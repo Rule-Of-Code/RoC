@@ -26,14 +26,15 @@ export class BranchGovernanceLaw extends GitLawBase {
 
     const currentBranch = this.getCurrentBranch(projectRoot);
     if (!currentBranch) {
-      violations.push('Unable to determine current branch');
-      return this.createResult(
-        violations,
-        this.LAW_NAME,
-        this.LAW_TYPE,
-        ['Check git configuration'],
-        context
-      );
+      // A detached HEAD names no branch — and that is a legitimate state, not a
+      // governance failure: CI checkouts, `git bisect`, and tag checkouts all
+      // produce one. This law governs how branches are NAMED and used; with no
+      // branch there is nothing to govern and nothing to violate. Reporting one
+      // failed every CI run of every consumer, which teaches teams to waive the
+      // law rather than fix anything. We report the situation and pass.
+      // (createResult drops suggestions on a passing law, so the explanation
+      // lives where a reader will actually find it: this law's detectionLimits.)
+      return this.createResult([], this.LAW_NAME, this.LAW_TYPE, [], context);
     }
 
     // This law governs BRANCHES. It used to merge CodeNamingAnalyzer output —

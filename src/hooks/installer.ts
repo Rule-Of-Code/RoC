@@ -17,7 +17,7 @@ export interface HooksInstallOptions {
 }
 
 export class GitHooksInstaller {
-  private static readonly VERSION = '7.17.2';
+  private static readonly VERSION = '7.17.3';
   private static readonly PACKAGE_JSON_FILE = 'package.json';
   private static readonly HUSKY_DIR = '.husky';
   private static readonly PRE_COMMIT_HOOK = 'pre-commit';

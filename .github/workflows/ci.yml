@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [master, develop]
   pull_request:
-    branches: [main]
+    branches: [master, develop]
 
 jobs:
   gate:
@@ -12,6 +12,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history: the git laws (commit message/description, branch
+          # governance, release tags) read real history. A shallow clone
+          # gives them one commit to look at, and they pass vacuously —
+          # a green that proves nothing.
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:

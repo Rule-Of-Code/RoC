@@ -40,16 +40,58 @@ export class GitLawBase extends LawBase {
     }
   }
 
+  /**
+   * The branch this working tree is on, or null when nothing names one.
+   *
+   * `git branch --show-current` prints an EMPTY string on a detached HEAD —
+   * and a detached HEAD is the NORMAL state in CI: GitHub Actions, GitLab,
+   * Jenkins, CircleCI and Bitbucket Pipelines all check out a commit, not a
+   * branch. It is also what `git bisect` and a tag checkout produce. Treating
+   * that empty string as "unknown" made every CI run report a branch-governance
+   * violation about a branch that was never in question. When git has no branch
+   * to give, we ask the CI system which branch it is building.
+   */
   protected static getCurrentBranch(projectRoot: string): string | null {
     try {
       const result = execSync('git branch --show-current', {
         cwd: projectRoot,
         encoding: 'utf8',
       });
-      return result.trim();
+      const branch = result.trim();
+      if (branch) return branch;
     } catch {
-      return null;
+      // Not a branch checkout (or not a repo) — try the CI environment below.
     }
+    return this.branchFromCiEnvironment();
+  }
+
+  /**
+   * The branch a CI system says it is building, on a detached checkout.
+   *
+   * Pull-request builds are asked for the SOURCE branch first: that is the
+   * branch whose name the governance rules are about. GitHub's GITHUB_REF_NAME
+   * is last because on a pull_request event it holds a synthetic `7/merge` ref,
+   * which names no branch and is skipped.
+   */
+  private static branchFromCiEnvironment(): string | null {
+    const candidates = [
+      process.env.GITHUB_HEAD_REF, // GitHub Actions — pull_request source
+      process.env.CI_MERGE_REQUEST_SOURCE_BRANCH_NAME, // GitLab — merge request
+      process.env.CI_COMMIT_BRANCH, // GitLab — push
+      process.env.BITBUCKET_BRANCH, // Bitbucket Pipelines
+      process.env.CIRCLE_BRANCH, // CircleCI
+      process.env.BRANCH_NAME, // Jenkins multibranch
+      process.env.GIT_BRANCH, // Jenkins git plugin
+      process.env.GITHUB_REF_NAME, // GitHub Actions — push
+    ];
+
+    for (const candidate of candidates) {
+      const name = candidate?.trim();
+      if (!name) continue;
+      if (/^\d+\/merge$/.test(name)) continue; // synthetic PR merge ref
+      return name;
+    }
+    return null;
   }
 
   protected static hasUncommittedChanges(projectRoot: string): boolean {

@@ -473,4 +473,90 @@ describe('checkers/git-laws/branch-governance', () => {
       expect(result.lawName).toBe('branch-governance');
     });
   });
+
+  // ==========================================================================
+  // Detached HEAD — the normal CI checkout. `git branch --show-current` prints
+  // an empty string there, which used to be reported as a violation, so every
+  // CI run of every consumer failed a law about branch naming.
+  // ==========================================================================
+
+  describe('Detached HEAD (CI checkouts, bisect, tag checkout)', () => {
+    const CI_VARS = [
+      'GITHUB_HEAD_REF',
+      'GITHUB_REF_NAME',
+      'CI_MERGE_REQUEST_SOURCE_BRANCH_NAME',
+      'CI_COMMIT_BRANCH',
+      'BITBUCKET_BRANCH',
+      'CIRCLE_BRANCH',
+      'BRANCH_NAME',
+      'GIT_BRANCH',
+    ];
+    let savedEnv: Record<string, string | undefined>;
+
+    const git = (cmd: string): string =>
+      execSync(`git ${cmd}`, { cwd: tempDir, stdio: 'pipe' }).toString();
+
+    /** A real repo whose HEAD is detached onto its only commit. */
+    const detachRepo = (): void => {
+      git('init -q');
+      git('config user.email "t@example.dev"');
+      git('config user.name "T"');
+      git('config commit.gpgsign false');
+      FileUtils.writeFile(PathOperations.join(tempDir, 'a.txt'), 'a');
+      git('add -A');
+      git('commit -q -m "chore: first"');
+      git('checkout -q --detach HEAD');
+    };
+
+    beforeEach(() => {
+      savedEnv = {};
+      for (const key of CI_VARS) {
+        savedEnv[key] = process.env[key];
+        delete process.env[key];
+      }
+    });
+
+    afterEach(() => {
+      for (const key of CI_VARS) {
+        const value = savedEnv[key];
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      }
+    });
+
+    it('does not report a violation when no branch names the checkout', () => {
+      detachRepo();
+
+      const result = BranchGovernanceLaw.check(mockContext);
+
+      expect(result.violations).toEqual([]);
+      expect(result.passed).toBe(true);
+    });
+
+    it('uses the branch the CI system reports (GitHub pull request)', () => {
+      detachRepo();
+      process.env.GITHUB_HEAD_REF = 'not-a-valid-prefix';
+
+      const result = BranchGovernanceLaw.check(mockContext);
+
+      // The CI-reported name is judged like any other branch: this one breaks
+      // the naming convention, so the law must say so rather than stay silent.
+      expect(
+        (result.violations ?? []).some(v =>
+          /not-a-valid-prefix/.test(v)
+        )
+      ).toBe(true);
+    });
+
+    it('ignores GitHub synthetic merge refs like "7/merge"', () => {
+      detachRepo();
+      process.env.GITHUB_REF_NAME = '7/merge';
+
+      const result = BranchGovernanceLaw.check(mockContext);
+
+      // "7/merge" names no branch — it must not be judged as a branch name.
+      expect(result.violations).toEqual([]);
+      expect(result.passed).toBe(true);
+    });
+  });
 });

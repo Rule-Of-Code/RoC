@@ -5,6 +5,38 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.17.3] - 2026-08-07
+
+First release published to npm as **`ruleofcode`**.
+
+### 🐛 Fixed — Branch Governance failed on every detached-HEAD checkout
+
+`git branch --show-current` prints an EMPTY string when HEAD is detached, and the law
+read that as "unable to determine current branch" — an error-severity violation. A
+detached HEAD is the normal state in CI: GitHub Actions, GitLab, Jenkins, CircleCI and
+Bitbucket Pipelines all check out a commit, not a branch; `git bisect` and tag checkouts
+produce one too. So **every CI run of every consumer failed a law about branch naming**,
+on repositories whose branches were fine.
+
+The branch is now read from the CI environment when git has none to give (pull-request
+source branch first; GitHub's synthetic `7/merge` ref names no branch and is skipped).
+When nothing names a branch there is nothing to govern: the law reports no violation
+instead of inventing one, and says so in its `detectionLimits`.
+
+If you pinned an earlier version because your CI went red on Branch Governance, this is
+the fix — no config change needed.
+
+### 🔧 Changed — the project's own CI gate
+
+Our workflow triggered on a branch that no longer existed, so it had never run; and it
+checked out a single commit, which would have let the git laws pass vacuously. Both
+corrected. This is what surfaced the bug above.
+
+### 📄 Added — pull request template
+
+Encodes the evidence the gate already demands: proven red AND green, a regression test,
+updated `detectionLimits`, and the verdict impact of a change.
+
 ## [7.17.2] - 2026-08-07
 
 Branch Governance no longer counts the whole history as branch size.

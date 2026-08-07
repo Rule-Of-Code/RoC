@@ -12,6 +12,7 @@ import { FileUtils } from '../../utils';
 import { ProjectTypeDetector } from '../../utils/config/project-type-detector';
 import { FileSystemOperations } from '../../utils/file-system-operations';
 import type { GitHookStatus } from '../../utils/git-hook-status';
+import { resolveGitHooksDir } from '../../utils/git/git-layout';
 import { resolveGitHookStatus } from '../../utils/git-hook-status';
 import { PathOperations } from '../../utils/path-operations';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
@@ -357,7 +358,13 @@ export class GitHookComplianceLaw extends GitLawBase {
    * Helper: Get hooks directory path
    */
   private static getHooksDirectory(projectRoot: string): string {
-    return PathOperations.join(projectRoot, '.git', 'hooks');
+    // Where git ACTUALLY looks: core.hooksPath when set (husky sets it), and the
+    // main repository's git dir when this is a linked worktree — `<root>/.git` is
+    // a pointer file there, so the naive join found nothing.
+    return (
+      resolveGitHooksDir(projectRoot) ??
+      PathOperations.join(projectRoot, '.git', 'hooks')
+    );
   }
 
   /**

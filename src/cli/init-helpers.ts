@@ -13,6 +13,19 @@ interface InitOptions {
 }
 
 /**
+ * True when a prompt can actually be answered — both ends are a real terminal.
+ *
+ * `init` asks questions, and a question needs someone able to answer it. In CI,
+ * in a container, or behind a pipe there is no terminal: inquirer force-closes
+ * its readline and the process dies with an ERR_USE_AFTER_CLOSE stack trace —
+ * a setup tool crashing instead of setting anything up. Callers use this to
+ * fall back to the documented defaults rather than ask into the void.
+ */
+export function isInteractiveTerminal(): boolean {
+  return Boolean(process.stdin.isTTY && process.stdout.isTTY);
+}
+
+/**
  * Detect project type based on files present
  */
 export function detectProjectType(

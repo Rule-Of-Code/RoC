@@ -24,6 +24,7 @@ export const VERSION_CONTROL_LAWS: EnhancedConstitutionalLaw[] = [
       'It judges the branch you are standing on and nothing else — source-identifier naming belongs to Naming Convention Enforcement and is deliberately not merged in here.',
       'The code-naming scan only reads src/**/*.ts, so on a Python or Go repo that half of the law is silently empty.',
       'The branch-name regex is the whole content check — a well-named branch with terrible commits passes.',
+      'On a detached HEAD (most CI checkouts, git bisect, a tag checkout) there is no branch to judge: when the CI environment does not name the branch either, naming and branch size are not checked at all and the law passes.',
     ],
     emoji: '🌿',
     description: 'Proper git branching strategy with protected main branch',

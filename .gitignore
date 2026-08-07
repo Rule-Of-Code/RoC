@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Test / coverage
+coverage/
+.nyc_output/
+
+# Caches
+.ruleofcode-cache/
+reports/
+.eslintcache
+
+# Packed npm artifacts
+*.tgz
+
+# Logs
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+
+# Agent-local memory / config (not part of the repo)
+.claude/
+
+# Generated audit report (regenerated per run; not source)
+ruleofcode-report.json

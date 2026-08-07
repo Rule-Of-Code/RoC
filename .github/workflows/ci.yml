@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  gate:
+    name: Constitutional gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Security audit (dependency vulnerability scan)
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+      - name: Build
+        run: npm run build
+
+      - name: Lint (eslint — 0 errors)
+        run: npm run lint
+
+      - name: Test (full jest suite)
+        run: npx jest --ci --silent
+
+      - name: Release canary (red/green across stacks)
+        run: npm run canary
+
+      - name: Self-audit (RuleOfCode against RuleOfCode)
+        run: node dist/cli.js audit

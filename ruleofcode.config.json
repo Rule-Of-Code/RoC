@@ -1,0 +1,89 @@
+{
+  "//": "RoC is audited by RoC itself. Zero waivers: notApplicable is EMPTY. The warning-level laws are VISIBLE DEBT, burned down one by one — never hidden.",
+  "project": {
+    "name": "rule-of-code",
+    "type": "node"
+  },
+  "includes": {
+    "global": [
+      "src/**/*.ts",
+      "scripts/**/*.js"
+    ]
+  },
+  "ignores": {
+    "global": [
+      "**/*.spec.ts",
+      "**/*.test.ts",
+      "dist/**",
+      "coverage/**",
+      "node_modules/**",
+      "tests/**"
+    ]
+  },
+  "laws": {
+    "paretoMode": false,
+    "minLawsChecked": 70,
+    "severity": {
+      "API Security Standards": "warning",
+      "API Testing Standards": "warning",
+      "Absolute Zero Tolerance Doctrine": "warning",
+      "Authentication Security": "warning",
+      "Automated Code Quality Gates": "warning",
+      "CDN and Caching Strategy": "warning",
+      "Centralized Logging": "warning",
+      "Code Complexity Control": "warning",
+      "Code Documentation Standards": "warning",
+      "Code Duplication Control": "warning",
+      "Code Review Quality": "warning",
+      "Commit Description Standards": "error",
+      "Commit Message Standards": "error",
+      "Commit Size Control": "warning",
+      "Constitutional Compliance Headers": "warning",
+      "Constitutional Supremacy Doctrine": "warning",
+      "Continuous Compliance Doctrine": "warning",
+      "Data Encryption Standards": "warning",
+      "Dead Code Elimination": "warning",
+      "Dependency Security Scanning": "warning",
+      "Environment Parity Standards": "warning",
+      "Environment Security Enforcement": "warning",
+      "Error Handling Completeness": "warning",
+      "Error Handling Standards": "warning",
+      "Extended Performance Monitoring Standards": "warning",
+      "Feature Branch Protection": "warning",
+      "Health Check Monitoring": "warning",
+      "Incident Response Protocol": "warning",
+      "Investment-Grade Quality (SACRED LAW)": "warning",
+      "Launch Readiness Checklist": "warning",
+      "MD Footer Template (MANDATORY)": "warning",
+      "Magic Number Prevention": "warning",
+      "Merge Conflict Prevention": "warning",
+      "NX Commands Only Policy": "warning",
+      "Naming Convention Enforcement": "warning",
+      "No Double Cast": "warning",
+      "No Explicit Any / Non-Null Assertion": "warning",
+      "Performance Monitoring Standards": "warning",
+      "Pre-Deployment Checklist (MANDATORY)": "warning",
+      "Pre-PR Quality Gates": "warning",
+      "Professional Excellence Mandate": "warning",
+      "Pull Request Workflow Standards": "warning",
+      "Security Vulnerability Response": "warning",
+      "Strategic Document Updates": "warning",
+      "TODO Management Constitutional Requirements": "warning",
+      "Test Coverage Constitutional Standard": "warning",
+      "Test Data Management": "warning",
+      "TypeScript Strict Mode (SACRED LAW)": "warning",
+      "Unit Test Quality Standards": "warning"
+    },
+    "notApplicable": {}
+  },
+  "failOnWarnings": false,
+  "hooks": {
+    "preCommit": true,
+    "prePush": true,
+    "commitMsg": true
+  },
+  "performance": {
+    "parallel": true,
+    "cache": true
+  }
+}

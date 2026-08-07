@@ -1,0 +1,71 @@
+# RuleOfCode v7.17.2 Commit Message Validation
+# Config-driven validation with 1 pattern(s)
+# husky v9+ native hook (no deprecated v8 boilerplate)
+
+COMMIT_MSG=$(cat "$1")
+VALID=false
+EXEMPT=false
+
+# Grandfather auto-generated commits — merge/squash/revert subjects (composed by
+# Git / Bitbucket / GitHub, not authored) and the initial commit. These never go
+# through a developer's editor, so enforcing conventional format on them is a
+# guaranteed false positive that tempts --no-verify. Keep them consistent with the
+# history-scan (Commit Message Standards law) which exempts the same set.
+# NOTE: space-bearing case patterns MUST be quoted ("Merge "*), otherwise POSIX
+# sh / Git-Bash throws "syntax error near unexpected token" on the bare space.
+FIRST_LINE=$(printf '%s' "$COMMIT_MSG" | head -n 1)
+case "$FIRST_LINE" in
+  "Merge "*|"Merged "*|"Revert "*|*[Ii]"nitial commit"*) VALID=true; EXEMPT=true ;;
+esac
+
+# Check against all configured patterns
+
+# Pattern 1: ^(feat|fix|docs|style|refactor|test|chore|perf|ci|...
+if echo "$COMMIT_MSG" | grep -qE '^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\([^)]+\))?:\s+.+$'; then
+    VALID=true
+fi
+
+if [ "$VALID" = false ]; then
+    echo "❌ Invalid commit message format!"
+    echo ""
+    echo "🏛️ RuleOfCode v7.17.2 Constitutional Commit Message Format:"
+    echo "   Your message must match one of the configured patterns"
+    echo ""
+    echo "Types: feat, fix, docs, style, refactor, test, chore, perf, ci, build, revert"
+    echo ""
+    echo "Examples:"
+    echo "   feat(auth): add user authentication"
+    echo "   fix(ui): resolve button alignment issue"
+    echo "   docs: update README with installation steps"
+    echo ""
+    echo "Your commit message:"
+    echo "$COMMIT_MSG"
+    echo ""
+    exit 1
+fi
+
+# --- Commit body (description) validation — Commit Description Standards ---
+# Skipped for exempt (auto-generated) subjects, consistent with the subject check.
+if [ "$EXEMPT" = false ]; then
+    SECOND_LINE=$(printf '%s\n' "$COMMIT_MSG" | sed -n '2p')
+    if [ -n "$SECOND_LINE" ]; then
+        echo "❌ Commit body must be separated from the subject by a blank line."
+        echo "   Add an empty line between the subject and the description."
+        echo ""
+        echo "Your commit message:"
+        echo "$COMMIT_MSG"
+        exit 1
+    fi
+    # Wrap body lines at 72 chars; exempt URLs, git trailers ("Word: …") and
+    # unwrappable no-whitespace lines.
+    LONG_LINES=$(printf '%s\n' "$COMMIT_MSG" | awk 'NR>=3 { if (length($0) > 72 && $0 ~ /[[:space:]]/ && index($0, "://") == 0 && $0 !~ /^[A-Za-z][A-Za-z0-9_-]*:[[:space:]]/) print "  line " NR " (" length($0) " chars)" }')
+    if [ -n "$LONG_LINES" ]; then
+        echo "❌ Commit body lines should wrap at 72 characters:"
+        echo "$LONG_LINES"
+        echo ""
+        echo "Wrap the description text. URLs and footers are exempt."
+        exit 1
+    fi
+fi
+
+echo "✅ Commit message format validated (RuleOfCode v7.17.2)"

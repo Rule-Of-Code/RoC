@@ -1,0 +1,115 @@
+{
+  "name": "ruleofcode",
+  "version": "7.17.2",
+  "description": "Constitutional-compliance CLI — audit a codebase against a catalog of laws and get one honest pass-or-fail verdict, with git hooks. Supports TypeScript, Angular and Python.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "ruleofcode": "dist/cli.js",
+    "roc": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint .",
+    "test": "jest --passWithNoTests",
+    "test:watch": "jest --watch --passWithNoTests",
+    "test:coverage": "jest --coverage --passWithNoTests",
+    "test:coverage:watch": "jest --coverage --watch --passWithNoTests",
+    "test:coverage:threshold": "jest --coverage --coverageThreshold '{\"global\":{\"branches\":100,\"functions\":100,\"lines\":100,\"statements\":100}}'",
+    "test:silent": "jest --silent --passWithNoTests",
+    "test:verbose": "jest --verbose --passWithNoTests",
+    "test:debug": "node --inspect-brk node_modules/.bin/jest --runInBand --passWithNoTests",
+    "test:bail": "jest --bail --passWithNoTests",
+    "test:changed": "jest --onlyChanged --passWithNoTests",
+    "test:related": "jest --findRelatedTests",
+    "test:unit": "jest --testPathPattern='.*\\.test\\.(ts|js)$' --passWithNoTests",
+    "test:e2e": "jest --testPathPattern='.*\\.e2e\\.(ts|js)$' --passWithNoTests",
+    "test:performance": "jest --logHeapUsage --passWithNoTests",
+    "test:clear-cache": "jest --clearCache",
+    "test:update-snapshots": "jest --updateSnapshot --passWithNoTests",
+    "detect-duplicates": "jscpd src/ --threshold 50 --format typescript --reporters console,json --output ./reports/",
+    "security-check": "npm audit --audit-level=moderate && npm run constitutional-check",
+    "security-audit": "npm audit --audit-level=moderate",
+    "update-deps": "npm update && npm outdated",
+    "constitutional-check": "node dist/cli.js audit",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "prepare": "npm run build",
+    "prepack": "npm run clean && npm run build",
+    "postinstall": "node scripts/postinstall-recommend.js",
+    "recommend": "node scripts/postinstall-recommend.js .",
+    "ruleofcode": "node dist/cli.js",
+    "canary": "node scripts/release-canary.js",
+    "ci:build": "npm run build && npm run test:coverage"
+  },
+  "keywords": [
+    "constitutional-compliance",
+    "code-quality",
+    "static-analysis",
+    "linter",
+    "git-hooks",
+    "pre-commit",
+    "typescript",
+    "angular",
+    "python",
+    "cli"
+  ],
+  "author": "ruleofcode.dev team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Rule-Of-Code/RoC.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Rule-Of-Code/RoC/issues"
+  },
+  "homepage": "https://ruleofcode.dev",
+  "files": [
+    "dist",
+    "templates",
+    "scripts/recommend-config.js",
+    "scripts/postinstall-recommend.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "commander": "^11.1.0",
+    "fs-extra": "^11.2.0",
+    "glob": "^10.3.10",
+    "inquirer": "^8.2.6",
+    "semver": "^7.5.4"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^18.0.0",
+    "@types/fs-extra": "^11.0.4",
+    "@types/inquirer": "^8.2.10",
+    "@types/jest": "^29.5.8",
+    "@types/node": "^20.10.4",
+    "@typescript-eslint/parser": "^8.52.0",
+    "eslint-plugin-sonarjs": "^3.0.5",
+    "husky": "^9.1.7",
+    "jest": "^29.7.0",
+    "jscpd": "^4.0.5",
+    "lint-staged": "^15.0.0",
+    "prettier": "^3.0.0",
+    "ts-jest": "^29.4.11",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.9.3"
+  },
+  "peerDependencies": {
+    "husky": "^8.0.0 || ^9.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "lint-staged": {
+    "*.{ts,js}": [
+      "npx ruleofcode audit --mode=pre-commit --staged"
+    ],
+    "*.{ts,js,json,md}": [
+      "prettier --write"
+    ]
+  }
+}

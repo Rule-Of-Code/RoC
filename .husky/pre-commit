@@ -1,0 +1,17 @@
+# RuleOfCode v7.17.2 Constitutional Checkpoint (husky v9+ native hook)
+echo "🏛️ RuleOfCode v7.17.2 Constitutional Checkpoint with lint-staged"
+npx lint-staged
+
+# Run constitutional audit on staged files
+npx ruleofcode audit --mode=pre-commit --staged
+
+# Check exit code
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "❌ Constitutional violations detected - commit blocked"
+    echo "   Run 'npx ruleofcode audit --verbose' for details"
+    echo "   Or use 'git commit --no-verify' to bypass (not recommended)"
+    exit 1
+fi
+
+echo "✅ Constitutional compliance verified - proceeding with commit"

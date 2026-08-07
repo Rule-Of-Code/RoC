@@ -1,0 +1,67 @@
+{
+  "comment_header": "🏛️ RuleOfCode Configuration — 159 constitutional laws, stack-gated",
+  "comment_usage": "🎯 Modify any section; keys under laws.* accept every public spelling of a law (canonical name / printed slug / id / legacyId)",
+  "comment_docs": "💡 See README.md and CHANGELOG.md in the RuleOfCode package",
+
+  "project": {
+    "name": "my-project",
+    "componentPrefix": "app",
+    "type": "generic"
+  },
+
+  "comment_laws": "⚖️ paretoMode is an explicit opt-in (true = only the high-impact core). A missing laws.enabled = all laws; enabled is an allowlist — an empty/non-matching allowlist does not pass silently, the audit refuses (exit 1). notApplicable requires a documented reason. failOnWarnings escalates warning → failure.",
+  "laws": {
+    "paretoMode": false,
+    "notApplicable": {},
+    "severity": {},
+    "failOnWarnings": false
+  },
+
+  "comment_ignores": "🚫 .ruleofcode-cache/ is the artifact of the RoC audit cache (only when performance.cache: true) — keep it in the repo's .gitignore too",
+  "ignores": {
+    "global": [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/coverage/**",
+      "**/.ruleofcode-cache/**",
+      "**/*.d.ts"
+    ],
+    "tests": ["**/*.spec.ts", "**/*.spec.js", "**/*.test.ts", "**/*.test.js", "**/e2e/**"],
+    "build": [
+      "**/dist/**",
+      "**/build/**",
+      "**/out/**",
+      "**/.next/**",
+      "**/.angular/**",
+      "**/.nx/**"
+    ],
+    "design": [
+      "**/design/**",
+      "**/mockups/**"
+    ]
+  },
+
+  "comment_hooks": "🪝 ===== GIT HOOKS =====",
+  "hooks": {
+    "preCommit": true,
+    "prePush": true,
+    "commitMsg": true
+  },
+
+  "comment_reporting": "📊 ===== REPORTING =====",
+  "reporting": {
+    "format": "console",
+    "verbose": false,
+    "onlyFailures": false,
+    "scoring": true
+  },
+
+  "comment_performance": "⚡ cache is opt-in: it caches the compliance result (risk of a stale PASSED) and creates .ruleofcode-cache/ in the root — add it to .gitignore if you enable it",
+  "performance": {
+    "parallel": true,
+    "maxConcurrent": 4,
+    "cache": false,
+    "incremental": true
+  }
+}

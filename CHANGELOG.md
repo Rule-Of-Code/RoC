@@ -5,6 +5,28 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.17.4] - 2026-08-07
+
+### 🐛 Fixed — `init` crashed instead of setting up when there is no terminal
+
+`ruleofcode init` asks its questions through inquirer, which needs a real terminal to
+answer them. In CI, in a container, or behind a pipe there is none: readline
+force-closes and the process dies with an `ERR_USE_AFTER_CLOSE` stack trace and exit 7 —
+a setup tool crashing rather than setting anything up.
+
+Three behaviours now, each stated out loud:
+
+- **no terminal, no config yet** — runs the same defaults `--quick` documents, and says
+  that is what happened instead of pretending you chose them;
+- **no terminal, config already there** — refuses and points at `--force`. Overwriting a
+  tuned config because nobody was present to object is the destructive answer to the
+  question;
+- **`--force`** still overwrites, terminal or not.
+
+The terminal requirement belongs to inquirer specifically, so an embedder that injects
+its own prompt function is unaffected. No verdict change: `init` writes configuration,
+it does not judge code.
+
 ## [7.17.3] - 2026-08-07
 
 First release published to npm as **`ruleofcode`**.

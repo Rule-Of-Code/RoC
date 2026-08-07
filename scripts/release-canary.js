@@ -92,7 +92,20 @@ function resolveCli() {
   const consumer = makeTempDir('roc-canary-consumer-');
   fs.writeFileSync(path.join(consumer, 'package.json'), JSON.stringify({ name: 'canary-consumer', private: true }));
   execSync(`npm install --no-audit --no-fund "${TARBALL}"`, { cwd: consumer, stdio: 'pipe' });
-  const bin = path.join(consumer, 'node_modules', '@ruleofcode', 'core', 'dist', 'cli.js');
+  // Resolve the installed CLI from the package's OWN name, never a hard-coded one.
+  // RoC ships under more than one name (unscoped `ruleofcode`, scoped
+  // `@ruleofcode/core`), and the literal path here reported the shipped CLI as
+  // broken when the name changed: the package was fine, the gate was wrong. A
+  // scoped name splits into two path segments, an unscoped one into a single one.
+  const pkgName = JSON.parse(
+    fs.readFileSync(path.join(REPO, 'package.json'), 'utf8')
+  ).name;
+  const bin = path.join(consumer, 'node_modules', ...pkgName.split('/'), 'dist', 'cli.js');
+  if (!fs.existsSync(bin)) {
+    throw new Error(
+      `Packed CLI not found at ${bin} — the tarball did not install '${pkgName}' where its own package.json says it lives.`
+    );
+  }
   return { cmd: process.execPath, baseArgs: [bin] };
 }
 

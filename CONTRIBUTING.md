@@ -31,7 +31,8 @@ Read this before your first PR.
 | `master` | **releases only**; the tag is cut here and merged back to `develop` |
 
 - Feature PRs target `develop`, **never `master`**.
-- The tag is **annotated** (`git tag -a vX.Y.Z -m "..."`), cut on `master` after merge.
+- The tag is **annotated** (`git tag -a vX.Y.Z -m "..."`), cut on `master` after merge,
+  and only once the release canary is green (see below).
 - The prefix matters: Branch Governance accepts only
   `feature|hotfix|bugfix|release`. `fix/` and `chore/` **fail** — the law caught this
   while this document was being written. Do not fix the law to admit your branch;

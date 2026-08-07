@@ -237,6 +237,63 @@ describe('cli/init-command', () => {
       expect(calls).toContain('Quick Setup Mode');
     });
 
+    // ======================================================================
+    // No terminal to prompt into — CI, a container, a pipe. `init` used to
+    // ask anyway and die with ERR_USE_AFTER_CLOSE: a setup tool crashing
+    // instead of setting anything up. (Jest itself has no TTY, so these run
+    // against the real default prompt path.)
+    // ======================================================================
+
+    it('falls back to the quick defaults instead of prompting into the void', async () => {
+      const options: InitOptions = { force: true };
+
+      const result = await executeInitAction(options, tempDir);
+
+      expect(result.success).toBe(true);
+      const calls = consoleSpy.mock.calls.map(c => c[0]).join(' ');
+      expect(calls).toContain('No interactive terminal detected');
+      // It really ran the setup, rather than reporting success and doing nothing.
+      expect(
+        FileUtils.exists(PathOperations.join(tempDir, 'ruleofcode.config.js')) ||
+          FileUtils.exists(
+            PathOperations.join(tempDir, 'ruleofcode.config.json')
+          )
+      ).toBe(true);
+    });
+
+    it('refuses to overwrite an existing config it cannot ask about', async () => {
+      const configPath = PathOperations.join(tempDir, 'ruleofcode.config.json');
+      FileUtils.writeFileSync(configPath, JSON.stringify({ version: '6.0.0' }));
+
+      const options: InitOptions = { force: false };
+
+      const result = await executeInitAction(options, tempDir);
+
+      expect(result.success).toBe(true);
+      const calls = consoleSpy.mock.calls.map(c => c[0]).join(' ');
+      expect(calls).toContain('--force');
+      // Untouched: overwriting because nobody was there to object is the
+      // destructive answer to the question.
+      expect(JSON.parse(FileUtils.readFile(configPath) as string)).toEqual({
+        version: '6.0.0',
+      });
+    });
+
+    it('still overwrites without a terminal when --force says so', async () => {
+      FileUtils.writeFileSync(
+        PathOperations.join(tempDir, 'ruleofcode.config.json'),
+        JSON.stringify({ version: '6.0.0' })
+      );
+
+      const options: InitOptions = { force: true };
+
+      const result = await executeInitAction(options, tempDir);
+
+      expect(result.success).toBe(true);
+      const calls = consoleSpy.mock.calls.map(c => c[0]).join(' ');
+      expect(calls).toContain('No interactive terminal detected');
+    });
+
     it('should run interactive setup when not quick mode', async () => {
       // Fake prompt function for interactive setup
       const fakePrompt = async () => ({

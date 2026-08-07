@@ -3,7 +3,7 @@ import type { Command } from 'commander';
 import * as inquirer from 'inquirer';
 import { FileUtils } from '../utils/file-utils';
 import { PathOperations } from '../utils/path-operations';
-import { setupQuickMode } from './init-helpers';
+import { isInteractiveTerminal, setupQuickMode } from './init-helpers';
 import { interactiveSetup } from './init-interactive';
 import { TOTAL_LAWS_COUNT, getVersion } from './utils';
 
@@ -53,11 +53,31 @@ export async function executeInitAction(
     const configPath = PathOperations.join(root, 'ruleofcode.config.js');
     const jsonConfigPath = PathOperations.join(root, 'ruleofcode.config.json');
 
+    // Without a terminal nobody can answer a prompt (CI, a container, a pipe).
+    // Asking anyway kills the process with an ERR_USE_AFTER_CLOSE stack trace.
+    // The terminal requirement belongs to inquirer specifically: a caller that
+    // injected its own prompt function has already supplied a way to answer.
+    const canPrompt = promptFn !== defaultPrompt || isInteractiveTerminal();
+
     // Check if already initialized
     if (
       !options.force &&
       (FileUtils.exists(configPath) || FileUtils.exists(jsonConfigPath))
     ) {
+      if (!canPrompt) {
+        // Refuse rather than guess: overwriting someone's tuned config because
+        // there was no one to ask is the destructive answer to the question.
+        console.log(
+          chalk.yellow(
+            'RuleOfCode config already exists and this is not an interactive terminal.'
+          )
+        );
+        console.log(
+          chalk.yellow('Re-run with --force to overwrite it. Nothing changed.')
+        );
+        return { success: true };
+      }
+
       const { overwrite } = await promptFn([
         {
           type: 'confirm',
@@ -77,6 +97,23 @@ export async function executeInitAction(
     if (options.quick) {
       console.log(
         chalk.green('🚀 Quick Setup Mode - Using production-ready defaults\n')
+      );
+      await setupQuickMode(root, options);
+      return { success: true };
+    }
+
+    if (!canPrompt) {
+      // Same defaults --quick documents, and we say so instead of pretending
+      // the user chose them.
+      console.log(
+        chalk.yellow(
+          'No interactive terminal detected — running the --quick setup defaults.'
+        )
+      );
+      console.log(
+        chalk.yellow(
+          'Run `ruleofcode init` from a terminal to choose the settings yourself.\n'
+        )
       );
       await setupQuickMode(root, options);
       return { success: true };

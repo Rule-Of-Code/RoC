@@ -59,6 +59,72 @@ stack do not run and are not counted:
 The project type comes from `project.type` in the config, or is detected from the
 filesystem.
 
+## 🗂️ Law card schema (`roc laws --json`)
+
+`roc laws --json` is the contract for anything that renders a law — a docs site, an
+IDE panel, a dashboard. It is versioned by `schemaVersion` (currently `2`).
+
+```jsonc
+{
+  "schemaVersion": 2,
+  "tool": "ruleofcode",          // the package name this build was published under
+  "version": "7.17.5",
+  "registryTotal": 173,
+  "satisfiedByStacks": {          // the mapping described below — read it, don't hardcode it
+    "keys": ["typescript", "angular", "python"],
+    "stackToKey": { "frontend": "angular", "typescript": "typescript", "python": "python" }
+  },
+  "laws": [ /* … */ ]
+}
+```
+
+### `stack` and `satisfiedBy` are two different axes
+
+This is the part that looks like an inconsistency and is not:
+
+| field | question it answers | values |
+|---|---|---|
+| `stack` | **selection** — does this law run on this project at all? | `frontend`, `typescript`, `python`, or absent (universal) |
+| `satisfiedBy` keys | **guidance** — which technology are these instructions written for? | `typescript`, `angular`, `python` |
+
+**They are orthogonal. A `satisfiedBy` key is not a stack label**, and no key maps 1:1
+onto a stack. Measured against the shipped registry:
+
+| key | laws | spread across stacks |
+|---|---|---|
+| `typescript` | 71 | 12 `typescript` + 59 universal |
+| `python` | 70 | 37 `python` + 33 universal |
+| `angular` | 67 | 58 `frontend` + 3 `typescript` + 6 universal |
+
+`angular` appearing on TypeScript-stack and universal laws is the clearest evidence:
+it names the technology the advice is written in, not the projects the law applies to.
+
+**Render by the key, not by the stack.** `satisfiedByStacks.stackToKey` gives the
+default key for a stacked law; universal laws carry whichever keys have been authored.
+Read that object rather than hardcoding a table — if a key is ever added, your renderer
+picks it up.
+
+### Where the guidance is missing, say so
+
+All 58 `frontend` laws carry only `satisfiedBy.angular`. **There is no React or Vue
+guidance yet** ([#12](https://github.com/Rule-Of-Code/RoC/issues/12)). A React project
+matches `stack: "frontend"`, so those laws run — but the only remediation text we have
+is Angular's.
+
+If you render law cards, say that plainly ("written for Angular — no React/Vue
+instructions yet") rather than presenting Angular steps as if they were universal. The
+same honesty `detectionLimits` applies to detection, applied to remediation.
+
+### The other authored fields
+
+| field | what it is |
+|---|---|
+| `rationale` | why the law exists — written after reading the real detector |
+| `detectionLimits` | what the detector does **not** catch. A law with none silently claims to be comprehensive |
+| `configKeys` / `identityKeys` | every spelling that resolves this law in `laws.severity` / `notApplicable` / `enabled` |
+| `urlSlug` | a registry-unique, URL-safe segment for `/laws/:slug` |
+| `severity` | the authored default, before any config override |
+
 ## 🔧 Configuration (`ruleofcode.config.json`)
 
 ```jsonc

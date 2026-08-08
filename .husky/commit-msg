@@ -1,4 +1,4 @@
-# RuleOfCode v7.17.5 Commit Message Validation
+# RuleOfCode v7.17.6 Commit Message Validation
 # Config-driven validation with 1 pattern(s)
 # husky v9+ native hook (no deprecated v8 boilerplate)
 
@@ -28,7 +28,7 @@ fi
 if [ "$VALID" = false ]; then
     echo "❌ Invalid commit message format!"
     echo ""
-    echo "🏛️ RuleOfCode v7.17.5 Constitutional Commit Message Format:"
+    echo "🏛️ RuleOfCode v7.17.6 Constitutional Commit Message Format:"
     echo "   Your message must match one of the configured patterns"
     echo ""
     echo "Types: feat, fix, docs, style, refactor, test, chore, perf, ci, build, revert"
@@ -68,4 +68,4 @@ if [ "$EXEMPT" = false ]; then
     fi
 fi
 
-echo "✅ Commit message format validated (RuleOfCode v7.17.5)"
+echo "✅ Commit message format validated (RuleOfCode v7.17.6)"

@@ -5,6 +5,50 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.17.6] - 2026-08-08
+
+### 🐛 Fixed — the hook executable bit is read from the git index, not the filesystem
+
+Git Hook Compliance called **every hook of every Windows project** non-executable, and
+the consumer could not act on it. NTFS carries no POSIX execute bit: `fs.stat().mode` is
+`0o666` for every file there and `chmod` is a no-op, so `chmod +x` — the fix the law
+printed — changes nothing. It also judged files git never runs: husky keeps
+`.gitignore`, `husky.sh` and `h` in its hooks directory.
+
+The bit now comes from the **git index** (`100755` / `100644`), which answers the same
+question identically on every platform and only for files a consumer can commit a mode
+for. Untracked hooks are not judged at all — husky ignores its generated `_` directory
+wholesale, so no mode exists there for anyone to set. Only names git actually runs as
+hooks are considered.
+
+**The concern behind the law was real and is kept.** Hooks committed at `100644` are not
+executable when the repository is cloned on Linux. The committed layout is
+`.husky/<hook>`, not the resolved hooks directory, so the check reads both — removing
+the false positive without removing the true one. The suggestion is now actionable:
+`git update-index --chmod=+x <path>`.
+
+Three new `detectionLimits` entries declare what is consequently **not** checked.
+
+If a Windows build was failing this law, this is the fix — no config change needed.
+
+### 🔒 Security — dependency lockfile refreshed
+
+Development installs pinned minimatch 9.0.5, brace-expansion 2.0.2 and lodash 4.17.21 —
+three high-severity advisories between them. **Consumers were never exposed**: the
+package's caret ranges resolve the patched versions on a fresh install, verified against
+the published tarball. Only this repository's lockfile was stale, which meant CI tested
+against vulnerable dependencies. `npm audit` now reports zero.
+
+### 📄 Documentation — the law card schema
+
+`roc laws --json` exposes two fields that look like one vocabulary and are not: `stack`
+answers **selection** (does this law run here), a `satisfiedBy` key answers **guidance**
+(which technology the instructions are written for). They are orthogonal — no key maps
+onto a single stack, and `angular` sits on TypeScript-stack and universal laws too. The
+README now documents both axes and points renderers at `satisfiedByStacks.stackToKey`,
+which the JSON already shipped undocumented. It also states plainly that all 58 frontend
+laws carry Angular guidance only.
+
 ## [7.17.5] - 2026-08-08
 
 ### 🐛 Fixed — three git laws were blind to linked worktrees

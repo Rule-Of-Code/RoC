@@ -5,6 +5,7 @@
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils/file-utils';
+import { resolveGitConfigPath } from '../../utils/git/git-layout';
 import { PathOperations } from '../../utils/path-operations';
 import { LawBase } from '../law-base';
 
@@ -44,7 +45,11 @@ export class VersionControlLawBase extends LawBase {
    * Gets Git configuration
    */
   static getGitConfig(projectRoot: string): string | null {
-    const gitConfigPath = PathOperations.join(projectRoot, '.git/config');
+    // The config that governs THIS working tree: in a linked worktree it lives in
+    // the main repository's git dir, not under `<root>/.git` (a pointer file there).
+    const gitConfigPath =
+      resolveGitConfigPath(projectRoot) ??
+      PathOperations.join(projectRoot, '.git/config');
     if (FileUtils.exists(gitConfigPath)) {
       try {
         return FileUtils.readFile(gitConfigPath);

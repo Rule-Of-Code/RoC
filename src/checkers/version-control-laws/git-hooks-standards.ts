@@ -7,6 +7,7 @@ import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileSystemOperations } from '../../utils/file-system-operations';
 import { FileUtils } from '../../utils/file-utils';
 import { resolveGitHookStatus } from '../../utils/git-hook-status';
+import { resolveGitHooksDir } from '../../utils/git/git-layout';
 import { PathOperations } from '../../utils/path-operations';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
 import { VersionControlLawBase } from './version-control-law-base';
@@ -70,11 +71,16 @@ export class GitHooksStandardsLaw {
     violations: string[];
     suggestions: string[];
   } {
-    const hooksDir = PathOperations.join(projectRoot, '.git/hooks');
+    // Where git ACTUALLY looks: core.hooksPath when the project sets one (husky
+    // does), and the main repository's git dir from a linked worktree, where
+    // `<root>/.git` is a pointer file and the naive join found nothing.
+    const hooksDir =
+      resolveGitHooksDir(projectRoot) ??
+      PathOperations.join(projectRoot, '.git/hooks');
     if (!FileUtils.exists(hooksDir)) {
       return {
         violations: ['Git hooks directory missing'],
-        suggestions: ['Git hooks directory should exist (.git/hooks)'],
+        suggestions: [`Git hooks directory should exist (${hooksDir})`],
       };
     }
 

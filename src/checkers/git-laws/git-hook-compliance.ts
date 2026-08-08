@@ -12,7 +12,11 @@ import { FileUtils } from '../../utils';
 import { ProjectTypeDetector } from '../../utils/config/project-type-detector';
 import { FileSystemOperations } from '../../utils/file-system-operations';
 import type { GitHookStatus } from '../../utils/git-hook-status';
-import { resolveGitHooksDir } from '../../utils/git/git-layout';
+import {
+  isGitHookName,
+  resolveGitHooksDir,
+  trackedModesByBasename,
+} from '../../utils/git/git-layout';
 import { resolveGitHookStatus } from '../../utils/git-hook-status';
 import { PathOperations } from '../../utils/path-operations';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
@@ -218,6 +222,43 @@ export class GitHookComplianceLaw extends GitLawBase {
     return { violations, suggestions };
   }
 
+  /**
+   * Tracked hook files whose git index mode is not `100755`.
+   *
+   * The bit is read from the INDEX, never the filesystem. NTFS has no POSIX
+   * execute bit: `fs.stat().mode` is 0o666 for every file on Windows and `chmod`
+   * is a no-op there, so a filesystem check reported every hook of every Windows
+   * project as non-executable — a violation `chmod +x` could not fix. The index
+   * answers the same question identically everywhere, and only for files a
+   * consumer can actually commit a mode for.
+   *
+   * Two directories hold hooks and only one can be committed: the resolved
+   * hooksDir is where git looks (`.git/hooks`, or husky's generated `_`, neither
+   * ever tracked), while `.husky/<hook>` is the COMMITTED layout — what a
+   * consumer ships, and what a clone on Linux will try to execute. Judge the mode
+   * wherever git holds one, and stay silent where it holds none.
+   */
+  private static trackedHooksMissingExecBit(
+    projectRoot: string,
+    hooksDir: string
+  ): string[] {
+    const trackedModes = new Map([
+      ...trackedModesByBasename(projectRoot, hooksDir),
+      ...trackedModesByBasename(
+        projectRoot,
+        PathOperations.join(projectRoot, '.husky')
+      ),
+    ]);
+
+    const missing: string[] = [];
+    for (const [hookFile, mode] of trackedModes) {
+      // Judge hooks, not the support files that share the directory: husky keeps
+      // .gitignore, husky.sh and h in there and git runs none of them.
+      if (isGitHookName(hookFile) && mode !== '100755') missing.push(hookFile);
+    }
+    return missing;
+  }
+
   private static checkHookExecutability(
     projectRoot: string,
     config: RuleOfCodeConfig,
@@ -238,18 +279,15 @@ export class GitHookComplianceLaw extends GitLawBase {
         .filter((entry: { isFile: () => boolean }) => entry.isFile())
         .map((entry: { name: string }) => entry.name);
 
-      const nonExecutableHooks: string[] = [];
+      const nonExecutableHooks = this.trackedHooksMissingExecBit(
+        projectRoot,
+        hooksDir
+      );
 
       for (const hookFile of hookFiles) {
+        if (!isGitHookName(hookFile)) continue;
         const hookPath = PathOperations.join(hooksDir, hookFile);
         try {
-          const stats = FileUtils.getFileStats(hookPath);
-          // Check if file is executable (permission bit)
-          if (stats && !(stats.mode & parseInt('111', 8))) {
-            nonExecutableHooks.push(hookFile);
-          }
-
-          // Check if hook has proper shebang
           const hookContent = FileUtils.readFile(hookPath);
           if (!hookContent.startsWith('#!')) {
             suggestions.push(
@@ -263,9 +301,13 @@ export class GitHookComplianceLaw extends GitLawBase {
 
       if (nonExecutableHooks.length > 0) {
         violations.push(
-          `Non-executable hooks found: ${nonExecutableHooks.join(', ')}`
+          `Hooks committed without the executable bit: ${nonExecutableHooks.join(', ')}`
         );
-        suggestions.push('Make hooks executable: chmod +x .git/hooks/*');
+        suggestions.push(
+          `Mark them executable in the index: git update-index --chmod=+x ${nonExecutableHooks
+            .map(h => `"${hooksDir}/${h}"`)
+            .join(' ')}`
+        );
       }
 
       // Check if hooks directory is empty (excluding samples)

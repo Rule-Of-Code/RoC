@@ -431,7 +431,9 @@ export const VERSION_CONTROL_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'On a stock git repo the default .sample hooks are read as unconfigured and fail — Git Hooks Standards now reads the same shared resolver and reaches the same verdict.',
       'A JavaScript/TypeScript repo that uses the pre-commit framework instead of husky is not recognised (that path is gated on the Python detector) and still fails.',
-      'Recognition is husky-first; the executable/shebang check reads the .git/hooks directory directly.',
+      'Recognition is husky-first; the hooks directory is resolved through git (common dir plus core.hooksPath), so linked worktrees and relocated hooks are found.',
+      'The executable bit is read from the git INDEX, so it is judged only for TRACKED hook files. Hooks generated at install time are untracked — husky ignores its whole `_` directory — and carry no mode that git or a consumer could set, so their executability is not checked at all.',
+      'Only the names git actually runs as hooks are judged; other files sharing the hooks directory (husky keeps .gitignore, husky.sh and h there) are ignored, so a broken support file is invisible to this law.',
     ],
     emoji: '🎣',
     description: 'All required git hooks must be properly configured',

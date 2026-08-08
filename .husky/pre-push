@@ -1,5 +1,5 @@
-# RuleOfCode v7.17.5 Constitutional Compliance Pre-Push Hook (husky v9+ native)
-echo "🏛️ RuleOfCode v7.17.5 Constitutional Checkpoint - Pre-Push Mode"
+# RuleOfCode v7.17.6 Constitutional Compliance Pre-Push Hook (husky v9+ native)
+echo "🏛️ RuleOfCode v7.17.6 Constitutional Checkpoint - Pre-Push Mode"
 echo "═════════════════════════════════════════════════════"
 
 # Run full RuleOfCode audit before push

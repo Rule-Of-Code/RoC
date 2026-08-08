@@ -63,6 +63,10 @@ Conventional Commits: `type(scope): summary`
 - subject ≤ **72** characters
 - a blank line between subject and body; body lines wrap at **72**
 - the body says **why**, not what — the diff already says what
+- 🔴 **no `Co-Authored-By` trailer.** Some tooling adds one automatically; strip it
+  before committing. A regression test fails the build on any commit that carries
+  one, and the eight historical exceptions it names are frozen — the list only ever
+  shrinks. If you pair with someone, credit them in the body.
 
 ## The gate
 

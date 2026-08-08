@@ -85,3 +85,76 @@ export function resolveGitConfigPath(projectRoot: string): string | null {
   const commonDir = resolveGitCommonDir(projectRoot);
   return commonDir ? PathOperations.join(commonDir, 'config') : null;
 }
+
+/**
+ * Index mode of every TRACKED file under `dir`, keyed by basename.
+ *
+ * The git index is the only portable carrier of the executable bit. NTFS has
+ * none: `fs.stat().mode` reports 0o666 for every file on Windows and `chmod` is
+ * a no-op there, so reading the filesystem reports every hook as
+ * non-executable on a platform where that cannot be fixed. `git ls-files -s`
+ * answers the same question identically everywhere — `100755` executable,
+ * `100644` not.
+ *
+ * Untracked files are absent from the result on purpose: git holds no mode for
+ * them, and neither can a consumer commit one. Husky's generated `_` directory
+ * is entirely untracked (its own .gitignore is `*`), so nothing there is ours
+ * to judge.
+ */
+export function trackedModesByBasename(
+  projectRoot: string,
+  dir: string
+): Map<string, string> {
+  const modes = new Map<string, string>();
+  const out = git(`git ls-files -s -z -- "${dir}"`, projectRoot);
+  if (!out) return modes;
+
+  for (const record of out.split('\0')) {
+    if (!record) continue;
+    // "<mode> <sha> <stage>\t<path>"
+    const tabAt = record.indexOf('\t');
+    if (tabAt < 0) continue;
+    const mode = record.slice(0, record.indexOf(' '));
+    const filePath = record.slice(tabAt + 1);
+    const basename = filePath.split('/').pop();
+    if (mode && basename) modes.set(basename, mode);
+  }
+  return modes;
+}
+
+/**
+ * The hook names git itself will run. Anything else in a hooks directory is
+ * support material — husky keeps `.gitignore`, `husky.sh` and `h` in there —
+ * and judging those as hooks produces findings about files git never executes.
+ */
+export const GIT_HOOK_NAMES: readonly string[] = [
+  'applypatch-msg',
+  'pre-applypatch',
+  'post-applypatch',
+  'pre-commit',
+  'pre-merge-commit',
+  'prepare-commit-msg',
+  'commit-msg',
+  'post-commit',
+  'pre-rebase',
+  'post-checkout',
+  'post-merge',
+  'pre-push',
+  'pre-receive',
+  'update',
+  'proc-receive',
+  'post-receive',
+  'post-update',
+  'reference-transaction',
+  'push-to-checkout',
+  'pre-auto-gc',
+  'post-rewrite',
+  'sendemail-validate',
+  'fsmonitor-watchman',
+  'post-index-change',
+];
+
+/** True when git would run a file of this name as a hook. */
+export function isGitHookName(name: string): boolean {
+  return GIT_HOOK_NAMES.includes(name);
+}

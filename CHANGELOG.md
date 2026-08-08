@@ -5,6 +5,32 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.17.5] - 2026-08-08
+
+### 🐛 Fixed — three git laws were blind to linked worktrees
+
+In a linked worktree (`git worktree add`) `<root>/.git` is a **file** holding `gitdir: …`,
+and the shared config and hooks live in the main repository's git directory. Three laws
+joined `.git/hooks` and `.git/config` onto the project root, found nothing, and reported
+it as a violation:
+
+- **Git Hooks Standards** — "Git hooks directory missing"
+- **Branch Protection Standards** — "Unable to read Git configuration"
+- **Git Hook Compliance** — "Git hooks directory not found"
+
+A consumer hit this in a worktree whose husky hooks had **just blocked a push**: the
+concern was met and the law said otherwise. The same commit scored 100/100 in the primary
+checkout and 90/100 in the worktree.
+
+A new shared resolver asks git (`rev-parse --git-common-dir`) instead of guessing the
+layout, and honours **`core.hooksPath`** — a second trap, since husky moves hooks to
+`.husky`, which makes `<gitdir>/hooks` the default rather than the answer. A relative
+`core.hooksPath` resolves against the working-tree top level, which is what git itself
+does. Verified with real `git worktree add` fixtures.
+
+Worktrees are a standard git workflow; if you audit from one, this is the fix. No config
+change needed.
+
 ## [7.17.4] - 2026-08-07
 
 ### 🐛 Fixed — `init` crashed instead of setting up when there is no terminal

@@ -18,6 +18,8 @@ chalk.level = 1;
 
 export class RuleOfCodeAuditor {
   private static readonly UNKNOWN_LAW = 'Unknown Law';
+  /** Suggestions shown per failing law before --verbose is needed. */
+  private static readonly SUGGESTION_PREVIEW_COUNT = 3;
 
   /**
    * Human-facing law name: the canonical registry title. Checker-local
@@ -737,6 +739,7 @@ export class RuleOfCodeAuditor {
         column?: number;
         message: string;
       }>;
+      suggestions?: string[];
       score?: number;
     },
     count: number,
@@ -767,7 +770,46 @@ export class RuleOfCodeAuditor {
       );
     }
 
+    this.displaySuggestions(lawResult.suggestions, options.verbose, chalk);
+
     console.log('');
+  }
+
+  /**
+   * What the law suggests doing about it — which is where most laws put the
+   * artefacts they counted.
+   *
+   * These were computed and thrown away: a law reported "21 source files lack
+   * corresponding test files" while holding the list of names in `suggestions`,
+   * and the renderer printed only `violations`. A consumer reimplemented the
+   * law's discovery in a script to find out which files it meant, got a
+   * different number, and had no way to tell which of the two was wrong — so
+   * they parked the law. An unexplained violation pushes a project toward a
+   * waiver rather than a fix, which is the opposite of the point.
+   */
+  private displaySuggestions(
+    suggestions: string[] | undefined,
+    verbose: boolean,
+    chalk: chalk.Chalk
+  ): void {
+    if (!suggestions || suggestions.length === 0) return;
+
+    const maxSuggestions = verbose
+      ? suggestions.length
+      : RuleOfCodeAuditor.SUGGESTION_PREVIEW_COUNT;
+    const remainingCount = suggestions.length - maxSuggestions;
+
+    console.log('');
+    console.log(`   ${chalk.cyan('💡 What the law is asking for:')}`);
+    suggestions.slice(0, maxSuggestions).forEach(suggestion => {
+      console.log(`   ${chalk.gray('•')} ${chalk.dim(suggestion)}`);
+    });
+
+    if (remainingCount > 0) {
+      console.log(
+        `   ${chalk.yellow(`... and ${remainingCount} more — run with --verbose for all, or --export json for the full result`)}`
+      );
+    }
   }
 
   private displayViolations(

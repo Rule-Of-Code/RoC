@@ -100,8 +100,19 @@ export class TypeScriptStrictLaw {
     compilerOptions: Record<string, unknown>,
     violations: string[]
   ): void {
-    if (compilerOptions.moduleResolution !== 'node') {
-      violations.push('TypeScript moduleResolution must be "node"');
+    // `node` is the LEGACY CommonJS algorithm (renamed `node10` in TS 5.0).
+    // Demanding it made the law actively harmful on any bundler-based project:
+    // Angular 17+ built with esbuild needs `bundler`, and setting `node` to
+    // satisfy an audit would change how modules resolve in the real build. The
+    // modern modes are the correct answer, not the violation.
+    const MODERN_RESOLUTIONS = ['bundler', 'node16', 'nodenext', 'node'];
+    const resolution = String(
+      compilerOptions.moduleResolution ?? ''
+    ).toLowerCase();
+    if (!MODERN_RESOLUTIONS.includes(resolution)) {
+      violations.push(
+        `TypeScript moduleResolution must be one of: ${MODERN_RESOLUTIONS.join(', ')}`
+      );
     }
   }
 

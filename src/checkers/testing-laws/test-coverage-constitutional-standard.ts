@@ -42,9 +42,12 @@ export class TestCoverageConstitutionalStandardLaw {
     suggestions.push(...coverageAnalysis.suggestions);
 
     // Check for test files existence - delegated to test files checker
+    // Pass the law id so `ignores.byRule` / `includes.byRule` keyed by the hashed
+    // id resolve as well as the readable slug the registry publishes.
     const testFilesAnalysis = TestFilesExistenceChecker.checkTestFilesExistence(
       context.projectRoot,
-      context.config
+      context.config,
+      context.lawId
     );
     violations.push(...testFilesAnalysis.violations);
     suggestions.push(...testFilesAnalysis.suggestions);

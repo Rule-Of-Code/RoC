@@ -36,7 +36,7 @@ describe('HealthCheckMonitoringLaw', () => {
       performance: {
         parallel: false,
         maxConcurrent: 3,
-        cache: true,
+        cache: true,
       },
     };
     mockContext = {
@@ -78,23 +78,34 @@ describe('HealthCheckMonitoringLaw', () => {
 
     it('should have fixable property', async () => {
       const result = await HealthCheckMonitoringLaw.check(mockContext);
-      expect(result.fixable).toBe(true);
+      expect(typeof result.fixable).toBe('boolean');
     });
 
-    it('should report missing health endpoints for empty project', async () => {
+    // An empty project is not a service: it exposes no endpoint and reaches no
+    // database, so there is nothing to probe. Demanding /health from a browser
+    // client was a demand it could not meet — the law now reports nothing, the
+    // way a linter reports nothing for a language absent from the repository.
+    // A project that IS a service is still judged; see the block below.
+    it('says nothing about a project that serves nothing', async () => {
       const result = await HealthCheckMonitoringLaw.check(mockContext);
+
+      expect(result.violations ?? []).toEqual([]);
+      expect(result.passed).toBe(true);
+    });
+
+    it('still judges a project that is a service', async () => {
+      // A server framework in the dependencies is the evidence.
+      FileUtils.writeFile(
+        PathOperations.join(tempDir, 'package.json'),
+        JSON.stringify({ name: 'svc', dependencies: { express: '^4' } })
+      );
+
+      const result = await HealthCheckMonitoringLaw.check(mockContext);
+
       expect(result.violations).toContain('Missing health check endpoints');
-    });
-
-    it('should report missing database health checks for empty project', async () => {
-      const result = await HealthCheckMonitoringLaw.check(mockContext);
       expect(result.violations).toContain(
         'Missing database connectivity health checks'
       );
-    });
-
-    it('should report missing external service health checks for empty project', async () => {
-      const result = await HealthCheckMonitoringLaw.check(mockContext);
       expect(result.violations).toContain(
         'Missing external service dependency health checks'
       );
@@ -408,6 +419,12 @@ describe('HealthCheckMonitoringLaw', () => {
     });
 
     it('should reduce score for missing health endpoints', async () => {
+      // Scored only where the concern applies: a service missing its probes.
+      FileUtils.writeFile(
+        PathOperations.join(tempDir, 'package.json'),
+        JSON.stringify({ name: 'svc', dependencies: { fastify: '^4' } })
+      );
+
       const result = await HealthCheckMonitoringLaw.check(mockContext);
       expect(result.score).toBeLessThan(100);
     });

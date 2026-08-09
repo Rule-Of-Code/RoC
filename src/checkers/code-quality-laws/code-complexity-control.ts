@@ -145,11 +145,28 @@ export class CodeComplexityControlLaw extends CodeQualityLawBase {
           );
         }
 
+        // Per FUNCTION — which is what this threshold has always been named and
+        // defaulted for. It used to be compared against the whole file's sum.
         const maxCyclomatic =
           config.thresholds?.codeQuality?.minFunctionComplexity ?? 10;
-        if (complexity.cyclomaticEstimate > maxCyclomatic) {
+        if (complexity.worstFunction > maxCyclomatic) {
           violations.push(
-            `High complexity estimated in ${PathOperations.getRelative(projectRoot, file)} (estimated ${complexity.cyclomaticEstimate}, max ${maxCyclomatic})`
+            `Function complexity too high in ${PathOperations.getRelative(projectRoot, file)} (worst function ${complexity.worstFunction}, max ${maxCyclomatic})`
+          );
+        }
+
+        // The file aggregate keeps its own name and its own, much higher default,
+        // so "this file is a lot" and "this function is a lot" stop being the same
+        // number. Opt-in: absent config means the old aggregate never fails a file
+        // that has no over-complex function in it.
+        const maxFileComplexity =
+          config.thresholds?.codeQuality?.maxFileComplexity;
+        if (
+          maxFileComplexity !== undefined &&
+          complexity.cyclomaticEstimate > maxFileComplexity
+        ) {
+          violations.push(
+            `File complexity too high in ${PathOperations.getRelative(projectRoot, file)} (estimated ${complexity.cyclomaticEstimate}, max ${maxFileComplexity})`
           );
         }
       } catch (_error) {
@@ -201,6 +218,7 @@ export class CodeComplexityControlLaw extends CodeQualityLawBase {
     functions: number;
     conditionals: number;
     cyclomaticEstimate: number;
+    worstFunction: number;
   } {
     const lines = content.split('\n').length;
 
@@ -236,9 +254,115 @@ export class CodeComplexityControlLaw extends CodeQualityLawBase {
       0
     );
 
+    // File aggregate, kept for the file-level knob. It is deliberately NOT what a
+    // per-function threshold is compared against — see worstFunctionComplexity.
     const cyclomaticEstimate = conditionals + functions;
 
-    return { lines, functions, conditionals, cyclomaticEstimate };
+    return {
+      lines,
+      functions,
+      conditionals,
+      cyclomaticEstimate,
+      worstFunction: this.worstFunctionComplexity(code),
+    };
+  }
+
+  /**
+   * Cyclomatic complexity of the single worst FUNCTION in the file.
+   *
+   * The threshold this feeds is called `minFunctionComplexity`, defaults to 10,
+   * and 10 is the classic per-function cyclomatic limit — but the number being
+   * compared against it used to be the whole file's decision points PLUS one per
+   * function. Two consequences, both wrong:
+   *
+   *  - a module of eight tiny branch-free helpers scored 8 before doing anything,
+   *    so well-factored code failed and the rule pushed toward one function per
+   *    file;
+   *  - a genuinely gnarly 400-line function alone in its file scored fine.
+   *
+   * We now measure each function's own body and report the worst. Bodies are
+   * found by brace matching, which means an arrow function with an expression
+   * body (`x => x + 1`) is not measured — it has no branches worth counting — and
+   * an arrow inside a TYPE (`readonly load: () => Promise<T>`) is correctly not a
+   * function at all. Both limits are declared on the law.
+   */
+  private static worstFunctionComplexity(code: string): number {
+    // A `(` preceded by one of these is control flow, not a callable signature.
+    const CONTROL = /\b(?:if|for|while|switch|catch|do|return|typeof)\s*$/;
+    // A TypeScript signature carries a return type between the `)` and the `{`
+    // (`): string {`, `): Promise<T> => {`), so the brace is not adjacent to the
+    // parameter list. Allow an annotation that contains no brace — a return type
+    // written as an inline object literal is not matched, and that limit is
+    // declared on the law rather than guessed at.
+    const starts = /\)\s*(?::\s*[^{};=]+?)?\s*(?:=>\s*)?\{/g;
+
+    let worst = 0;
+    let match: RegExpExecArray | null;
+    while ((match = starts.exec(code)) !== null) {
+      const openBrace = code.indexOf('{', match.index);
+      if (openBrace < 0) continue;
+
+      // Look back past the parameter list to see what kind of construct this is.
+      const parenStart = this.matchingOpenParen(code, match.index);
+      if (parenStart < 0) continue;
+      if (CONTROL.test(code.slice(Math.max(0, parenStart - 12), parenStart))) {
+        continue;
+      }
+
+      const body = this.bracedBody(code, openBrace);
+      if (body === null) continue;
+
+      worst = Math.max(worst, this.decisionPoints(body) + 1);
+    }
+    return worst;
+  }
+
+  /** Index of the `(` that opens the parameter list ending at/just before `from`. */
+  private static matchingOpenParen(code: string, from: number): number {
+    const closeParen = code.lastIndexOf(')', from + 1);
+    if (closeParen < 0) return -1;
+    let depth = 0;
+    for (let i = closeParen; i >= 0; i--) {
+      const ch = code[i];
+      if (ch === ')') depth++;
+      else if (ch === '(') {
+        depth--;
+        if (depth === 0) return i;
+      }
+    }
+    return -1;
+  }
+
+  /** The text between a `{` and its matching `}`, or null when unbalanced. */
+  private static bracedBody(code: string, openBrace: number): string | null {
+    let depth = 0;
+    for (let i = openBrace; i < code.length; i++) {
+      const ch = code[i];
+      if (ch === '{') depth++;
+      else if (ch === '}') {
+        depth--;
+        if (depth === 0) return code.slice(openBrace + 1, i);
+      }
+    }
+    return null;
+  }
+
+  /** Decision points in a body — the same proxy, without counting functions. */
+  private static decisionPoints(body: string): number {
+    const patterns = [
+      /\bif\b/g,
+      /\bfor\b/g,
+      /\bwhile\b/g,
+      /\bcase\b/g,
+      /\bcatch\b/g,
+      /&&/g,
+      /\|\|/g,
+      /(?<!\?)\?(?![.?:])/g,
+    ];
+    return patterns.reduce(
+      (sum, pattern) => sum + (body.match(pattern) ?? []).length,
+      0
+    );
   }
 
   private static calculateDirectoryDepth(

@@ -251,8 +251,18 @@ export interface RuleOfCodeConfig {
     codeQuality?: {
       /** Maximum cyclomatic complexity */
       maxComplexity?: number;
-      /** Minimum function complexity */
+      /**
+       * Cyclomatic complexity budget for a SINGLE function (default 10 — the
+       * classic per-function limit). The worst function in each file is measured
+       * against it; the file's total is not.
+       */
       minFunctionComplexity?: number;
+      /**
+       * Optional budget for a whole file's summed decision points. Absent by
+       * default: a file of many simple functions is not a defect, and treating it
+       * as one pushed projects toward one function per module.
+       */
+      maxFileComplexity?: number;
       /** Maximum lines per file before it is flagged as too long. Default: 300. */
       maxFileLines?: number;
       /** Maximum dependencies per module */

@@ -1,6 +1,6 @@
 {
   "name": "ruleofcode",
-  "version": "7.17.6",
+  "version": "7.18.0",
   "description": "Constitutional-compliance CLI — audit a codebase against a catalog of laws and get one honest pass-or-fail verdict, with git hooks. Supports TypeScript, Angular and Python.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

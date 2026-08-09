@@ -3,12 +3,12 @@ import { CONFIG_FILES, JEST_CONSTANTS } from '../constants';
 import { FileUtils } from '../file-utils';
 import { NxWorkspace } from '../nx-workspace';
 import { PathOperations } from '../path-operations';
+import { CoverageThresholdReader } from './coverage-threshold-reader';
 
 /**
  * Regular expression patterns for coverage configuration parsing
  */
 const COVERAGE_PATTERNS = {
-  THRESHOLD_GLOBAL: /coverageThreshold[^}]*global[^}]*{([^}]*)}/,
   COLLECTION_PATTERNS: /collectCoverageFrom[^[]*\[([^\]]*)\]/,
 } as const;
 
@@ -111,15 +111,26 @@ export class CoverageConfigurationInspector {
   /**
    * Check coverage thresholds
    */
+  /**
+   * Coverage thresholds declared anywhere in the workspace.
+   *
+   * Delegated to CoverageThresholdReader: the scan that lived here required the
+   * metrics to be inline literals immediately after `global` and only looked at the
+   * repository root, so an Nx workspace that states its contract once in
+   * `jest.preset.js` — or via a named constant — was told to "set coverage
+   * thresholds" it had already set.
+   */
   private static checkCoverageThresholds(projectRoot: string): {
     hasThresholds: boolean;
     thresholds: Record<string, number>;
     lowThresholds: string[];
   } {
-    let thresholds = this.extractThresholdsFromPackageJson(projectRoot);
-
-    if (Object.keys(thresholds).length === 0) {
-      thresholds = this.extractThresholdsFromJestConfig(projectRoot);
+    const declared = CoverageThresholdReader.lowestThresholds(projectRoot);
+    const thresholds: Record<string, number> = {};
+    for (const [metric, value] of Object.entries(declared)) {
+      if (value !== undefined) {
+        thresholds[metric] = value;
+      }
     }
 
     const lowThresholds = this.identifyLowThresholds(thresholds);
@@ -129,60 +140,6 @@ export class CoverageConfigurationInspector {
       thresholds,
       lowThresholds,
     };
-  }
-
-  private static extractThresholdsFromPackageJson(
-    projectRoot: string
-  ): Record<string, number> {
-    const coverageThreshold = this.extractJestPropertyFromPackageJson<{
-      global?: Record<string, number>;
-    }>(projectRoot, JEST_CONSTANTS.COVERAGE_THRESHOLD);
-
-    return coverageThreshold?.global ?? {};
-  }
-
-  private static extractThresholdsFromJestConfig(
-    projectRoot: string
-  ): Record<string, number> {
-    let result: Record<string, number> = {};
-
-    this.forEachJestConfig(projectRoot, (configPath, content) => {
-      if (Object.keys(result).length === 0) {
-        result = this.extractThresholdsFromContent(content);
-      }
-    });
-
-    return result;
-  }
-
-  private static extractThresholdsFromContent(
-    content: string
-  ): Record<string, number> {
-    const thresholds: Record<string, number> = {};
-
-    // Extract threshold values using centralized pattern
-    const thresholdMatch = content.match(COVERAGE_PATTERNS.THRESHOLD_GLOBAL);
-
-    if (!thresholdMatch?.[1]) {
-      return thresholds;
-    }
-
-    this.parseThresholdMetrics(thresholdMatch[1], thresholds);
-    return thresholds;
-  }
-
-  private static parseThresholdMetrics(
-    thresholdContent: string,
-    thresholds: Record<string, number>
-  ): void {
-    const metrics = JEST_CONSTANTS.COVERAGE_METRICS;
-
-    for (const metric of metrics) {
-      const match = thresholdContent.match(new RegExp(`${metric}:\\s*(\\d+)`));
-      if (match?.[1]) {
-        thresholds[metric] = parseInt(match[1], 10);
-      }
-    }
   }
 
   private static identifyLowThresholds(
@@ -200,21 +157,11 @@ export class CoverageConfigurationInspector {
   }
 
   /**
-   * Get Jest configuration files for iteration
-   */
-  private static getJestConfigFiles(): string[] {
-    return [CONFIG_FILES.JEST_CONFIG, CONFIG_FILES.JEST_CONFIG_TS];
-  }
-
-  /**
-   * Get Jest configuration files for coverage check (includes JSON)
+   * Every file that can carry Jest coverage settings — including the shared
+   * preset an Nx workspace states them in once.
    */
   private static getAllJestConfigFiles(): string[] {
-    return [
-      CONFIG_FILES.JEST_CONFIG,
-      CONFIG_FILES.JEST_CONFIG_TS,
-      CONFIG_FILES.JEST_CONFIG_JSON,
-    ];
+    return [...CoverageThresholdReader.CONFIG_FILES];
   }
 
   /**
@@ -271,10 +218,14 @@ export class CoverageConfigurationInspector {
     projectRoot: string,
     handler: (configPath: string, content: string) => void
   ): void {
-    const jestConfigs = this.getJestConfigFiles();
+    // Root AND every monorepo project: `coverageReporters` / `collectCoverageFrom`
+    // live in the per-project config (or the shared preset) just as the thresholds
+    // do, so a root-only walk sees none of them in an Nx workspace.
+    const jestConfigs = this.getAllJestConfigFiles().flatMap(configFile =>
+      NxWorkspace.resolveSourceFiles(projectRoot, configFile)
+    );
 
-    for (const configFile of jestConfigs) {
-      const configPath = PathOperations.join(projectRoot, configFile);
+    for (const configPath of new Set(jestConfigs)) {
       if (FileUtils.exists(configPath)) {
         const content = this.readJestConfigFile(configPath);
         if (content) {
@@ -294,12 +245,14 @@ export class CoverageConfigurationInspector {
     const reporters: string[] = [];
 
     this.extractReportersFromPackageJson(projectRoot, reporters);
-    this.extractFromJestConfigs(
-      projectRoot,
-      JEST_CONSTANTS.COVERAGE_REPORTERS,
-      (content, results) => {
-        this.extractCommonReporters(content, results);
-      }
+    reporters.push(
+      ...this.extractFromJestConfigs(
+        projectRoot,
+        JEST_CONSTANTS.COVERAGE_REPORTERS,
+        (content, results) => {
+          this.extractCommonReporters(content, results);
+        }
+      )
     );
 
     return {
@@ -345,12 +298,14 @@ export class CoverageConfigurationInspector {
     const collectFrom: string[] = [];
 
     this.extractCollectionFromPackageJson(projectRoot, collectFrom);
-    this.extractFromJestConfigs(
-      projectRoot,
-      JEST_CONSTANTS.COLLECT_COVERAGE_FROM,
-      (content, results) => {
-        this.extractCollectionPatterns(content, results);
-      }
+    collectFrom.push(
+      ...this.extractFromJestConfigs(
+        projectRoot,
+        JEST_CONSTANTS.COLLECT_COVERAGE_FROM,
+        (content, results) => {
+          this.extractCollectionPatterns(content, results);
+        }
+      )
     );
 
     return {
@@ -389,13 +344,18 @@ export class CoverageConfigurationInspector {
   }
 
   /**
-   * Extract property from Jest config files with property check and handler
+   * Extract property from Jest config files with property check and handler.
+   *
+   * The collected values used to be dropped on the floor — a local array the
+   * handler filled and nobody read — so every reporter and collection pattern
+   * declared in a jest config counted for nothing and only package.json was ever
+   * seen. Return them.
    */
   private static extractFromJestConfigs(
     projectRoot: string,
     propertyName: string,
     handler: (content: string, results: string[]) => void
-  ): void {
+  ): string[] {
     const results: string[] = [];
 
     this.forEachJestConfig(projectRoot, (configPath, content) => {
@@ -403,6 +363,8 @@ export class CoverageConfigurationInspector {
         handler(content, results);
       }
     });
+
+    return results;
   }
 
   /**

@@ -36,7 +36,7 @@ describe('CodeComplexityControlLaw', () => {
       performance: {
         parallel: false,
         maxConcurrent: 3,
-        cache: true,
+        cache: true,
       },
     };
     mockContext = {
@@ -246,10 +246,40 @@ function complexFunction() {
         JSON.stringify({ name: 'test' })
       );
       const result = CodeComplexityControlLaw.check(mockContext);
+      // Reported per FUNCTION now: the threshold is named and defaulted for a
+      // single function, and used to be compared against the whole file's sum.
       const complexityViolation = result.violations?.find(v =>
-        v.includes('High complexity')
+        v.includes('Function complexity too high')
       );
       expect(complexityViolation).toBeDefined();
+      expect(complexityViolation).toContain('worst function');
+    });
+
+    it('does not punish a file of many simple functions', () => {
+      // Five branch-free helpers used to score 5 before doing anything, because
+      // every function cost 1 — so well-factored code failed and the rule pushed
+      // toward one function per module.
+      const simpleHelpers = Array.from(
+        { length: 12 },
+        (_, i) =>
+          `export function helper${i}(value: unknown): string {\n  return String(value);\n}`
+      ).join('\n\n');
+      FileUtils.writeFile(
+        PathOperations.join(tempDir, 'src', 'helpers.ts'),
+        simpleHelpers
+      );
+      FileUtils.writeFile(
+        PathOperations.join(tempDir, 'package.json'),
+        JSON.stringify({ name: 'test' })
+      );
+
+      const result = CodeComplexityControlLaw.check(mockContext);
+
+      expect(
+        (result.violations ?? []).some(v =>
+          v.includes('Function complexity too high')
+        )
+      ).toBe(false);
     });
 
     it('should suggest refactoring for complex files', () => {

@@ -40,7 +40,7 @@ describe('TypeScriptStrictLaw', () => {
     performance: {
       parallel: false,
       maxConcurrent: 3,
-      cache: true,
+      cache: true,
     },
   });
 
@@ -468,12 +468,16 @@ describe('TypeScriptStrictLaw', () => {
       const ctx = createMockContext();
       const result = await TypeScriptStrictLaw.check(ctx);
 
-      // Implementation only accepts "node" moduleResolution, so "bundler" will cause violation
+      // `bundler` is the CORRECT value for an esbuild/Vite project — `node` is the
+      // legacy CommonJS algorithm, renamed `node10` in TS 5.0. This assertion used
+      // to demand a violation here, with a comment explaining that the
+      // implementation only accepted `node`: the test was written to match the
+      // defect rather than the intent its own name states.
       expect(
         result.violations!.filter((v: string) =>
           v.toLowerCase().includes('moduleresolution')
         ).length
-      ).toBeGreaterThan(0);
+      ).toBe(0);
     });
 
     it('should pass with NodeNext moduleResolution', async () => {
@@ -498,12 +502,35 @@ describe('TypeScriptStrictLaw', () => {
       const ctx = createMockContext();
       const result = await TypeScriptStrictLaw.check(ctx);
 
-      // Implementation only accepts "node" moduleResolution, so "NodeNext" will cause violation
+      // Same as the bundler case: `NodeNext` is a valid modern resolution, and
+      // the assertion used to encode the defect the test name contradicts.
       expect(
         result.violations!.filter((v: string) =>
           v.toLowerCase().includes('moduleresolution')
         ).length
-      ).toBeGreaterThan(0);
+      ).toBe(0);
+    });
+
+    it('still reports a resolution it does not recognise', () => {
+      // The fix must not turn the check into a rubber stamp: an unknown or
+      // legacy-only value is still a finding.
+      const tsconfig = {
+        compilerOptions: { strict: true, moduleResolution: 'classic' },
+      };
+      FileUtils.writeFile(
+        PathOperations.join(tempDir, 'tsconfig.json'),
+        JSON.stringify(tsconfig, null, 2)
+      );
+
+      const violations: string[] = [];
+      TypeScriptStrictLaw['validateModuleResolution'](
+        tsconfig.compilerOptions as Record<string, unknown>,
+        violations
+      );
+
+      expect(
+        violations.some(v => v.toLowerCase().includes('moduleresolution'))
+      ).toBe(true);
     });
   });
 

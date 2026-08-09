@@ -10,6 +10,7 @@ import type {
 import { FileUtils } from '../../utils';
 import { CheckerUtils } from '../../utils/checker-utils';
 import { ProjectTypeDetectorValidation } from '../../utils/config/project-type-detector/project-type-detector-validation';
+import { hasRuleOfCodeConfig } from '../../utils/config/roc-config-presence';
 import { dependenciesIncludeRuleOfCode } from '../../utils/ruleofcode-package';
 import { PathOperations } from '../../utils/path-operations';
 import { SacredLawUtilities } from './shared-sacred-utilities';
@@ -53,21 +54,24 @@ export class ContinuousComplianceLaw {
     const violations: string[] = [];
     const suggestions: string[] = [];
 
-    // Check for monitoring configuration
+    // A RoC config in ANY shape the loader accepts counts here — the literal
+    // `ruleofcode.config.json` used to be the only one recognised, so a project
+    // configured by `init` (which writes `.js`) looked unmonitored.
     const monitoringConfigs = [
-      'ruleofcode.config.json',
       '.eslintrc.js',
       'sonar-project.properties',
       '.github/workflows',
     ];
 
-    const hasMonitoring = monitoringConfigs.some(config =>
-      FileUtils.exists(PathOperations.join(projectRoot, config))
-    );
+    const hasMonitoring =
+      hasRuleOfCodeConfig(projectRoot) ||
+      monitoringConfigs.some(config =>
+        FileUtils.exists(PathOperations.join(projectRoot, config))
+      );
 
     if (!hasMonitoring) {
       violations.push(
-        'No continuous monitoring configuration detected in ruleofcode.config.json or .github/workflows/'
+        'No continuous monitoring configuration detected (RuleOfCode config, .eslintrc.js, sonar-project.properties or a CI workflow)'
       );
       suggestions.push('Set up continuous quality monitoring tools');
     }

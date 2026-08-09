@@ -1,9 +1,7 @@
 /**
- * Recommended-config generator (shared by the postinstall hook and the
- * `ruleofcode recommend` CLI command).
+ * Recommended-config generator, behind the `ruleofcode recommend` CLI command.
  *
- * Plain CommonJS with no dependency on dist/, so it also works during a
- * postinstall that runs before/without a build.
+ * Plain CommonJS with no dependency on dist/, so it runs without a build step.
  */
 
 const fs = require('fs');

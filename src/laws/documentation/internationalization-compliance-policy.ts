@@ -1,6 +1,8 @@
+import { glob } from 'glob';
 import type { RuleOfCodeConfig } from '../../config/types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { CheckerUtils } from '../../utils/checker-utils';
+import { NxWorkspace } from '../../utils/nx-workspace';
 import { ProjectTypeDetectorValidation } from '../../utils/config/project-type-detector/project-type-detector-validation';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
@@ -120,9 +122,19 @@ export class InternationalizationCompliancePolicyLaw {
     let hasI18nConfig = false;
     let configQuality = 'none';
 
-    // Check angular.json for i18n configuration
+    // Angular i18n configuration — from the root `angular.json` if there is one,
+    // and otherwise from the workspace's `project.json` files. Nx has no root
+    // angular.json: an app's `i18n` block lives in `apps/<name>/project.json`,
+    // so reading only the root file declared a configured project unconfigured.
     const angularJsonPath = PathOperations.join(projectRoot, 'angular.json');
-    if (FileUtils.exists(angularJsonPath)) {
+    if (!FileUtils.exists(angularJsonPath)) {
+      const buildConfig = NxWorkspace.getBuildConfigContent(projectRoot);
+      if (/"i18n"\s*:/.test(buildConfig)) {
+        hasI18nConfig = true;
+        configQuality = 'angular';
+      }
+    }
+    if (!hasI18nConfig && FileUtils.exists(angularJsonPath)) {
       try {
         const angularJson = JSON.parse(
           FileUtils.readFile(angularJsonPath, { encoding: 'utf8' })
@@ -187,11 +199,17 @@ export class InternationalizationCompliancePolicyLaw {
       const dirPath = PathOperations.join(projectRoot, translationPath);
       if (FileUtils.exists(dirPath)) {
         try {
-          const jsonFiles = CheckerUtils.findFilesByExtension(
-            dirPath,
-            ['.json'],
-            context?.config ?? FileUtils.getMinimalDefaultConfig()
-          );
+          // Enumerated WITHOUT the project's source scoping. `includes` answers
+          // "which files do you audit the CONTENTS of"; it must not also decide
+          // "which files exist". A repository that scopes includes.global to its
+          // source directories was told its translation files were missing while
+          // they sat in exactly the expected place with exactly the expected
+          // names — the two settings answer different questions.
+          const jsonFiles = glob.sync('**/*.json', {
+            cwd: dirPath,
+            absolute: true,
+            ignore: ['**/node_modules/**'],
+          });
           if (
             jsonFiles.some(file =>
               this.isTranslationFile(PathOperations.getBasename(file))

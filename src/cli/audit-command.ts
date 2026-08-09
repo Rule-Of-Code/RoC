@@ -189,7 +189,10 @@ export function auditCommand(program: Command): void {
       `🏛️ Run Constitutional Compliance Audit (${TOTAL_LAWS_COUNT} laws)`
     )
     .option('--mode <mode>', 'audit mode: fast (Pareto) or full')
-    .option('--verbose', 'detailed output with explanations')
+    .option(
+      '--verbose',
+      'show every violation, affected file and suggestion (no truncation)'
+    )
     .option('--only-failures', 'show only failed audits')
     .option('--parallel', 'run audits in parallel for faster execution')
     .option('--config <path>', 'custom config file path')

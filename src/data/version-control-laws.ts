@@ -55,6 +55,7 @@ export const VERSION_CONTROL_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'It judges the subject line only — a perfectly-typed `feat: x` with an empty or nonsensical body still passes.',
       'Merge, revert and "initial commit" subjects are exempted, so those are never graded.',
+      'Not evaluated in the pre-commit hook: these describe history, and blocking a commit on the past deadlocks the rewrite that would fix it. They run on pre-push and in CI; the commit-msg hook still checks the message being written.',
       'A second, identically-named class in commit-message-standards-impl.ts (the commitlint/husky variant) is dead code and never runs.',
     ],
     emoji: '💬',
@@ -87,6 +88,7 @@ export const VERSION_CONTROL_LAWS: EnhancedConstitutionalLaw[] = [
       'It checks shape, never substance — a body that is wrapped correctly but says nothing still passes.',
       'Single-line commits (subject only) are skipped entirely rather than flagged for a missing body.',
       'Only commits inside the configured range or baseline are read; older history is out of scope.',
+      'Not evaluated in the pre-commit hook: these describe history, and blocking a commit on the past deadlocks the rewrite that would fix it. They run on pre-push and in CI; the commit-msg hook still checks the message being written.',
     ],
     emoji: '📝',
     description:

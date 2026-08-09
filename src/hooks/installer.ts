@@ -17,7 +17,23 @@ export interface HooksInstallOptions {
 }
 
 export class GitHooksInstaller {
-  private static readonly VERSION = '7.17.6';
+  /**
+   * Stamped into every generated hook.
+   *
+   * Read from our own package.json rather than written here: this was a literal
+   * that a human had to remember to bump, and it had already drifted — the hooks
+   * committed in this repository announced a version the package had moved past.
+   * A tool whose whole subject is claims matching reality cannot stamp a version
+   * number it maintains by hand.
+   */
+  private static get VERSION(): string {
+    try {
+      const pkg = require('../../package.json') as { version?: string };
+      return pkg.version ?? 'unknown';
+    } catch {
+      return 'unknown';
+    }
+  }
   private static readonly PACKAGE_JSON_FILE = 'package.json';
   private static readonly HUSKY_DIR = '.husky';
   private static readonly PRE_COMMIT_HOOK = 'pre-commit';

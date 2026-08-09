@@ -9,8 +9,8 @@
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils';
-import { NxWorkspace } from '../../utils/nx-workspace';
 import { PathOperations } from '../../utils/path-operations';
+import { CoverageThresholdReader } from '../../utils/testing/coverage-threshold-reader';
 import { TestConfigurationInspector } from '../../utils/testing/test-configuration-inspector';
 
 export class JestUnitTest100CoverageMandateLaw {
@@ -70,61 +70,31 @@ export class JestUnitTest100CoverageMandateLaw {
     return { hasJest: hasJestFramework };
   }
 
-  private static readonly COVERAGE_CONFIG_FILES = [
-    'jest.config.js',
-    'jest.config.ts',
-    'jest.config.mjs',
-    'jest.config.cjs',
-    'jest.config.json',
-    'jest.preset.js',
-    'package.json',
-  ];
-  private static readonly COVERAGE_METRICS = [
-    'lines',
-    'functions',
-    'branches',
-    'statements',
-  ];
+  private static readonly REQUIRED_THRESHOLD = 100;
 
   /**
    * Does the project actually mandate 100% coverage?
    *
    * This used to accept ANY coverage config — `coverageThreshold.global.lines: 50`
    * satisfied a law named "100% Coverage Mandate". A law that lies in its own name
-   * is worse than no law. Now it verifies the thresholds ARE 100 for every metric.
+   * is worse than no law. So it verifies the thresholds ARE 100 for every metric.
+   *
+   * Reading them is delegated to CoverageThresholdReader, which reads each config
+   * on its own and follows a named constant. The scan that lived here joined every
+   * config into one blob and read 800 characters after the first `coverageThreshold`
+   * — in an Nx workspace the per-project configs sit between the root config and
+   * `jest.preset.js`, so the file holding the numbers fell outside the window and
+   * this law reported "not configured" against a workspace pinned to 100.
    */
   private static check100CoverageConfigurationSimple(projectRoot: string): {
     has100Coverage: boolean;
   } {
-    // Resolve each config name across the workspace — root AND apps/<name>/. In
-    // an Nx monorepo coverageThreshold lives in apps/<name>/jest.config.ts, so a
-    // root-only read reported "100% coverage thresholds not configured" against a
-    // project that had configured exactly that, per app.
-    const configText = this.COVERAGE_CONFIG_FILES.flatMap(file =>
-      NxWorkspace.resolveSourceFiles(projectRoot, file)
-    )
-      .map(p => FileUtils.readFileContentSync(p) ?? '')
-      .join('\n');
-
-    const idx = configText.indexOf('coverageThreshold');
-    if (idx === -1) return { has100Coverage: false };
-
-    // The threshold region: from `coverageThreshold` to a bounded window (enough
-    // to cover a global block without swallowing the rest of the file).
-    const region = configText.slice(idx, idx + 800);
-
-    // Every metric must be pinned to 100, and none may be set below it.
-    const allAt100 = this.COVERAGE_METRICS.every(metric =>
-      new RegExp(`["']?${metric}["']?\\s*:\\s*100\\b`).test(region)
-    );
-    const anyBelow100 = this.COVERAGE_METRICS.some(metric => {
-      const m = region.match(
-        new RegExp(`["']?${metric}["']?\\s*:\\s*(\\d{1,3})\\b`)
-      );
-      return m !== null && Number(m[1]) < 100;
-    });
-
-    return { has100Coverage: allAt100 && !anyBelow100 };
+    return {
+      has100Coverage: CoverageThresholdReader.mandatesAll(
+        projectRoot,
+        this.REQUIRED_THRESHOLD
+      ),
+    };
   }
 
   /**

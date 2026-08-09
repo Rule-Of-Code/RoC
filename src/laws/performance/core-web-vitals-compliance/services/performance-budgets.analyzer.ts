@@ -1,5 +1,6 @@
 import { FileSystemOperations } from '../../../../utils';
 import { FileUtils } from '../../../../utils/file-utils';
+import { NxWorkspace } from '../../../../utils/nx-workspace';
 import { CoreWebVitalsFileDiscoveryConstants as FileDiscovery } from '../constants/file-discovery';
 import type {
   AngularBuildConfig,
@@ -15,6 +16,16 @@ export class PerformanceBudgetsAnalyzerService {
     if (FileUtils.exists(angularJsonPath)) {
       if (this.hasAngularBudgets(angularJsonPath)) {
         budgetFiles.push('angular.json');
+      }
+    }
+
+    // Nx keeps per-project configuration in `apps/<name>/project.json` and has no
+    // root angular.json at all, so budgets that genuinely fail the build were
+    // reported as missing. Read the whole workspace's build configuration.
+    if (budgetFiles.length === 0) {
+      const buildConfig = NxWorkspace.getBuildConfigContent(projectRoot);
+      if (buildConfig.includes('"budgets"')) {
+        budgetFiles.push('project.json');
       }
     }
 

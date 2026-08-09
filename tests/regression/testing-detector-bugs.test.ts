@@ -139,4 +139,146 @@ describe('TESTING detector bugs', () => {
       ).toBe(false);
     });
   });
+
+  /**
+   * Reported against an Nx 23 workspace pinned to 100 on all four metrics: "100%
+   * coverage thresholds not configured". The scan joined every config into one
+   * blob, anchored on the FIRST `coverageThreshold` and read 800 characters after
+   * it — with the per-project configs sitting between the root config and
+   * `jest.preset.js`, the file holding the numbers fell outside the window.
+   */
+  describe('Jest 100% Coverage Mandate in an Nx workspace', () => {
+    const PROJECTS = [
+      'apps/festrr',
+      'apps/festrr-e2e',
+      'libs/events/data-access',
+      'libs/shared/util',
+    ];
+
+    // A realistic per-project config: long enough that four of them push the
+    // preset past any fixed-size window.
+    const projectConfig = (name: string): string =>
+      [
+        'export default {',
+        `  displayName: '${name}',`,
+        "  preset: '../../jest.preset.js',",
+        "  setupFilesAfterEnv: ['<rootDir>/src/test-setup.ts'],",
+        `  coverageDirectory: '../../coverage/${name}',`,
+        '  transform: {',
+        "    '^.+\\\\.(ts|mjs|js|html)$': [",
+        "      'jest-preset-angular',",
+        '      {',
+        "        tsconfig: '<rootDir>/tsconfig.spec.json',",
+        "        stringifyContentPathRegex: '\\\\.(html|svg)$',",
+        '      },',
+        '    ],',
+        '  },',
+        "  transformIgnorePatterns: ['node_modules/(?!.*\\\\.mjs$)'],",
+        '  snapshotSerializers: [',
+        "    'jest-preset-angular/build/serializers/no-ng-attributes',",
+        "    'jest-preset-angular/build/serializers/ng-snapshot',",
+        "    'jest-preset-angular/build/serializers/html-comment',",
+        '  ],',
+        '};',
+      ].join('\n');
+
+    const nxWorkspace = (presetThreshold: number): void => {
+      write(
+        'package.json',
+        JSON.stringify({
+          name: 'festrr',
+          version: '1.0.0',
+          scripts: { test: 'nx run-many -t test' },
+          devDependencies: { jest: '^29', '@nx/jest': '^23' },
+        })
+      );
+      write('nx.json', JSON.stringify({ npmScope: 'festrr' }));
+      write(
+        'jest.preset.js',
+        [
+          "const nxPreset = require('@nx/jest/preset').default;",
+          'module.exports = {',
+          '  ...nxPreset,',
+          '  coverageThreshold: {',
+          '    global: {',
+          `      statements: ${presetThreshold},`,
+          `      branches: ${presetThreshold},`,
+          `      functions: ${presetThreshold},`,
+          `      lines: ${presetThreshold},`,
+          '    },',
+          '  },',
+          '};',
+        ].join('\n')
+      );
+      // The root config names the contract rather than spelling it out — stating
+      // it once is the reason to write it this way.
+      write(
+        'jest.config.ts',
+        [
+          "import type { Config } from 'jest';",
+          "import { getJestProjectsAsync } from '@nx/jest';",
+          '',
+          'const COVERAGE_CONTRACT = {',
+          `  statements: ${presetThreshold},`,
+          `  branches: ${presetThreshold},`,
+          `  functions: ${presetThreshold},`,
+          `  lines: ${presetThreshold},`,
+          '};',
+          '',
+          'export default async (): Promise<Config> => ({',
+          '  projects: await getJestProjectsAsync(),',
+          "  coverageDirectory: 'coverage',",
+          "  coverageReporters: ['text-summary', 'lcov', 'json-summary'],",
+          '  coverageThreshold: { global: COVERAGE_CONTRACT },',
+          '});',
+        ].join('\n')
+      );
+      for (const project of PROJECTS) {
+        write(`${project}/jest.config.ts`, projectConfig(project));
+      }
+    };
+
+    it('accepts thresholds stated once in the shared preset', () => {
+      nxWorkspace(100);
+
+      const result = JestUnitTest100CoverageMandateLaw.check({
+        projectRoot: root,
+        config: config('angular'),
+      });
+
+      expect(
+        (result.violations ?? []).some(v => /100% coverage thresholds/.test(v))
+      ).toBe(false);
+    });
+
+    it('still fails an Nx workspace whose preset is below 100', () => {
+      nxWorkspace(80);
+
+      const result = JestUnitTest100CoverageMandateLaw.check({
+        projectRoot: root,
+        config: config('angular'),
+      });
+
+      expect(
+        (result.violations ?? []).some(v => /100% coverage thresholds/.test(v))
+      ).toBe(true);
+    });
+
+    it('still fails when one nested library undercuts the preset', () => {
+      nxWorkspace(100);
+      write(
+        'libs/events/data-access/jest.config.ts',
+        `export default { coverageThreshold: { global: { statements: 60, branches: 60, functions: 60, lines: 60 } } };`
+      );
+
+      const result = JestUnitTest100CoverageMandateLaw.check({
+        projectRoot: root,
+        config: config('angular'),
+      });
+
+      expect(
+        (result.violations ?? []).some(v => /100% coverage thresholds/.test(v))
+      ).toBe(true);
+    });
+  });
 });

@@ -162,6 +162,8 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Measures structural / cyclomatic complexity from syntax; it does not measure cognitive load, naming quality, or whether the complexity is justified by the problem.',
       'A low score is not "simple" — a tangled function under the threshold still passes.',
+      'Function bodies are found by brace matching, so an arrow with an expression body (x => x + 1) is never measured, and neither is a function whose return type is written as an inline object literal.',
+      'thresholds.codeQuality.maxFileComplexity is opt-in: with no value set a file is judged only by its worst single function, never by its total, so a large file of simple functions is not reported.',
     ],
     emoji: '🌪️',
     description: 'Functions must maintain reasonable cyclomatic complexity',

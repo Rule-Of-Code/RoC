@@ -3,6 +3,7 @@
  * @description Tests for the test files existence checker utility
  */
 
+import { FileFilterUtils } from '../../src/utils/file-filter-utils';
 import { FileUtils } from '../../src/utils/file-utils';
 import { PathOperations } from '../../src/utils/path-operations';
 import { TestFilesExistenceChecker } from '../../src/utils/testing/test-files-existence-checker';
@@ -677,6 +678,135 @@ describe('utils/testing/test-files-existence-checker', () => {
         // Should indicate there are more with "..."
         const hasTruncation = result.suggestions.some(s => s.includes('...'));
         expect(hasTruncation).toBe(true);
+      });
+    });
+
+    /**
+     * `ignores.byRule` had no code path here at all: the private ignore check read
+     * only `ignores.global`, and read it by stripping the glob wildcards and testing
+     * `path.includes(...)`. A consumer reported byte-identical output with the entry
+     * present and absent — correctly.
+     */
+    describe('config-driven exclusion', () => {
+      const LAW_SLUG = 'test-coverage-constitutional-standard';
+
+      const untestedLib = (): void => {
+        const lib = PathOperations.join(tempDir, 'libs', 'legacy', 'src');
+        FileUtils.createDirectory(lib);
+        for (const name of ['alpha', 'beta', 'gamma']) {
+          FileUtils.writeFile(
+            PathOperations.join(lib, `${name}.ts`),
+            `export function ${name}(x: number): number { return x * 2; }`
+          );
+        }
+      };
+
+      const missing = (result: { violations: string[] }): boolean =>
+        result.violations.some(v => v.includes('lack corresponding test'));
+
+      afterEach(() => {
+        FileFilterUtils.currentLawConfigKey = undefined;
+      });
+
+      it('honours ignores.byRule keyed by the law slug', () => {
+        untestedLib();
+        const config = FileUtils.getMinimalDefaultConfig();
+        config.ignores.byRule = { [LAW_SLUG]: ['libs/legacy/**'] };
+        FileFilterUtils.currentLawConfigKey = LAW_SLUG;
+
+        expect(
+          missing(
+            TestFilesExistenceChecker.checkTestFilesExistence(tempDir, config)
+          )
+        ).toBe(false);
+      });
+
+      it('still reports the same files when no rule entry matches', () => {
+        untestedLib();
+        const config = FileUtils.getMinimalDefaultConfig();
+        config.ignores.byRule = { 'some-other-law': ['libs/legacy/**'] };
+        FileFilterUtils.currentLawConfigKey = LAW_SLUG;
+
+        expect(
+          missing(
+            TestFilesExistenceChecker.checkTestFilesExistence(tempDir, config)
+          )
+        ).toBe(true);
+      });
+
+      it('honours ignores.byRule keyed by the law id', () => {
+        untestedLib();
+        const config = FileUtils.getMinimalDefaultConfig();
+        config.ignores.byRule = { 'law-42': ['libs/legacy/**'] };
+
+        expect(
+          missing(
+            TestFilesExistenceChecker.checkTestFilesExistence(
+              tempDir,
+              config,
+              'law-42'
+            )
+          )
+        ).toBe(false);
+      });
+
+      it('applies an ignore pattern to files below the top level', () => {
+        // The validator used to be handed a bare file name which the caller
+        // joined to the SCAN ROOT, so anything nested was matched against a path
+        // it did not have.
+        untestedLib();
+        const config = FileUtils.getMinimalDefaultConfig();
+        config.ignores.global = ['libs/legacy/src/*.ts'];
+
+        expect(
+          missing(
+            TestFilesExistenceChecker.checkTestFilesExistence(tempDir, config)
+          )
+        ).toBe(false);
+      });
+
+      it('does not ask for a test of the Jest preset', () => {
+        FileUtils.writeFile(
+          PathOperations.join(tempDir, 'jest.preset.js'),
+          'module.exports = { coverageThreshold: {} };'
+        );
+
+        const result = TestFilesExistenceChecker.checkTestFilesExistence(
+          tempDir,
+          FileUtils.getMinimalDefaultConfig()
+        );
+
+        expect(
+          result.suggestions.some(s => s.includes('jest.preset'))
+        ).toBe(false);
+      });
+
+      it('leaves untestable files out of the ratio denominator', () => {
+        // Barrels, configs and a bootstrap have no behaviour a spec can assert;
+        // counting them made the ratio a statement about project layout.
+        const src = PathOperations.join(tempDir, 'src');
+        FileUtils.createDirectory(src);
+        FileUtils.writeFile(
+          PathOperations.join(src, 'thing.ts'),
+          'export const thing = 1;'
+        );
+        FileUtils.writeFile(
+          PathOperations.join(src, 'thing.spec.ts'),
+          "it('works', () => expect(1).toBe(1));"
+        );
+        for (const barrel of ['index.ts', 'main.ts', 'app.config.ts']) {
+          FileUtils.writeFile(
+            PathOperations.join(src, barrel),
+            'export {};'
+          );
+        }
+
+        const result = TestFilesExistenceChecker.checkTestFilesExistence(
+          tempDir,
+          FileUtils.getMinimalDefaultConfig()
+        );
+
+        expect(result.violations.some(v => v.includes('ratio'))).toBe(false);
       });
     });
   });

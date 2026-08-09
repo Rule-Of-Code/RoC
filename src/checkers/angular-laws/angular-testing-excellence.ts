@@ -204,18 +204,32 @@ export class AngularTestingExcellenceLaw extends AngularLawBase {
     // doesn't start with "should", and the law raised a phantom violation. That
     // false positive broke a live consumer's dogfood build (a downstream consumer, F-09).
     // fit/xit (focused/skipped) are kept — they are real test declarations.
-    const itMatches = content.match(
-      /\b(?:fit|xit|it|test)\s*\(\s*['"`]([^'"`]+)['"`]/g
-    );
-    if (itMatches) {
-      itMatches.forEach(match => {
-        const description = match.match(/['"`]([^'"`]+)['"`]/)?.[1];
-        if (description && !description.startsWith('should')) {
-          violations.push(
-            `Test case should start with "should" in ${relativePath}: "${description}"`
-          );
-        }
-      });
+    // The description runs to the MATCHING quote, not to the first quote of any
+    // kind. `[^'"`]+` stopped at an inner quote, so
+    // `'separates "cannot push" from "not installed yet"'` was reported as
+    // `separates ` — a violation message that misquoted the very thing it was
+    // complaining about.
+    const itPattern =
+      /\b(?:fit|xit|it|test)\s*\(\s*(['"`])((?:\\.|(?!\1)[\s\S])*)\1/g;
+
+    let itMatch: RegExpExecArray | null;
+    while ((itMatch = itPattern.exec(content)) !== null) {
+      const quote = itMatch[1] ?? '';
+      const description = itMatch[2] ?? '';
+
+      // A template literal with an interpolation is not the test's name — the
+      // name is computed per iteration. `` it(`${platform}: ${id} is …`) `` reads
+      // at runtime as "ios: pedometer is available", which is exactly what a
+      // table-driven failure needs to be legible. Demanding a literal "should"
+      // prefix there forces either broken English or one static name repeated for
+      // every case, destroying that. Interpolated descriptions are skipped.
+      if (quote === '`' && description.includes('${')) continue;
+
+      if (!description.startsWith('should')) {
+        violations.push(
+          `Test case should start with "should" in ${relativePath}: "${description}"`
+        );
+      }
     }
   }
 

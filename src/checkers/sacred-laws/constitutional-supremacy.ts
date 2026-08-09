@@ -6,6 +6,7 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileSystemOperations } from '../../utils/file-system-operations';
 import { FileUtils } from '../../utils/file-utils';
+import { hasRuleOfCodeConfig, acceptedConfigFileNames } from '../../utils/config/roc-config-presence';
 import { PathOperations } from '../../utils/path-operations';
 import { dependenciesIncludeRuleOfCode } from '../../utils/ruleofcode-package';
 export class ConstitutionalSupremacyLaw {
@@ -52,16 +53,15 @@ export class ConstitutionalSupremacyLaw {
     const violations: string[] = [];
     const suggestions: string[] = [];
 
-    // Check for RuleOfCode configuration
-    const ruleofcodeConfig = PathOperations.join(
-      projectRoot,
-      'ruleofcode.config.json'
-    );
-    if (!FileUtils.exists(ruleofcodeConfig)) {
-      violations.push(
-        'Missing constitutional law configuration in ruleofcode.config.json'
+    // Any config shape the LOADER accepts counts. This used to demand the literal
+    // `ruleofcode.config.json`, so a project configured by our own `init` — which
+    // writes `ruleofcode.config.js` — was told its configuration was missing by an
+    // audit that had just read that file.
+    if (!hasRuleOfCodeConfig(projectRoot)) {
+      violations.push('Missing constitutional law configuration');
+      suggestions.push(
+        `Create a RuleOfCode config (${acceptedConfigFileNames().join(', ')}) — or run 'ruleofcode init'`
       );
-      suggestions.push('Create ruleofcode.config.json for law enforcement');
     }
 
     // Check for constitutional documentation

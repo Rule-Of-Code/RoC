@@ -1,6 +1,7 @@
 import type { RuleOfCodeConfig } from '../../config/types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { PathOperations } from '../../utils';
+import { ProjectTypeDetector } from '../../utils/config/project-type-detector';
 import { FileUtils } from '../../utils/file-utils';
 import { PathResolver } from '../../utils/path-resolver';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
@@ -31,6 +32,24 @@ export class HealthCheckMonitoringLaw {
     const suggestions: string[] = [];
     let score = 100;
     const { projectRoot } = context;
+
+    // This law is server-shaped: endpoints to expose, a database to reach,
+    // dependencies to probe. A browser client has none of those — its API lives
+    // in another repository — so demanding `/health` from it asks for something
+    // that cannot exist. Like a linter reporting nothing for a language absent
+    // from the repo, the law reports nothing when the project is not a service.
+    if (!this.projectIsAService(projectRoot)) {
+      return {
+        passed: true,
+        message:
+          '⚕️ Health Check Monitoring: not a service — no endpoints to probe',
+        violations: [],
+        suggestions: [],
+        score: 100,
+        fixable: false,
+        config: context.config,
+      } as LawResult;
+    }
 
     // 1. Check for health check endpoints
     const healthEndpoints = await this.analyzeHealthEndpoints(
@@ -174,6 +193,73 @@ export class HealthCheckMonitoringLaw {
     return (
       !PythonSatisfaction.isPython(projectRoot) ||
       PythonSatisfaction.hasJsTsSources(projectRoot)
+    );
+  }
+
+  /**
+   * Does this project SERVE anything?
+   *
+   * Health endpoints, database probes and dependency checks are properties of a
+   * service. A browser client — Angular, React, an Ionic app — exposes no
+   * endpoint and connects to no database, so every sub-check here was a demand
+   * it could not meet. The evidence for "service" is a server framework in the
+   * dependencies, a Python web stack, a container that exposes a port, or a
+   * deployment manifest.
+   */
+  private static projectIsAService(projectRoot: string): boolean {
+    // A project that already carries health-check substrate has answered the
+    // question itself — judge it, do not excuse it. Skipping here would turn the
+    // fix for a client-shaped false positive into a blind spot for the very
+    // projects the law is for.
+    const healthFiles = [
+      this.HEALTH_TS_FILE,
+      this.HEALTH_CHECK_TS_FILE,
+      this.SERVICES_HEALTH_TS_FILE,
+      this.DATABASE_HEALTH_TS_FILE,
+      this.EXTERNAL_HEALTH_CHECK_TS_FILE,
+    ];
+    if (
+      healthFiles.some(f => FileUtils.exists(PathOperations.join(projectRoot, f)))
+    ) {
+      return true;
+    }
+
+    if (PythonSatisfaction.isPython(projectRoot)) return true;
+
+    const SERVER_DEPS = [
+      'express',
+      'fastify',
+      '@nestjs/core',
+      'koa',
+      'hapi',
+      '@hapi/hapi',
+      'restify',
+      'apollo-server',
+      '@apollo/server',
+      'next',
+      'nuxt',
+      'http-server',
+    ];
+    const pkg = ProjectTypeDetector.getPackageJson(projectRoot) as {
+      dependencies?: Record<string, unknown>;
+      devDependencies?: Record<string, unknown>;
+    } | null;
+    if (pkg) {
+      const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+      if (SERVER_DEPS.some(d => deps[d])) return true;
+    }
+
+    // A container that opens a port, or a deployment manifest, is a service too.
+    const dockerfile = PathOperations.join(projectRoot, 'Dockerfile');
+    if (
+      FileUtils.exists(dockerfile) &&
+      /^\s*EXPOSE\s+\d+/im.test(FileUtils.readFile(dockerfile))
+    ) {
+      return true;
+    }
+
+    return ['k8s', 'kubernetes', 'helm', 'deploy'].some(dir =>
+      FileUtils.exists(PathOperations.join(projectRoot, dir))
     );
   }
 

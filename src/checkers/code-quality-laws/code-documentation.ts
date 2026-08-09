@@ -100,11 +100,23 @@ export class CodeDocumentationLaw extends CodeQualityLawBase {
         documentedFunctions: 0,
       };
 
-    // Count classes and their documentation
-    const classMatches = content.match(/export class \w+/g);
+    // Count classes and their documentation.
+    //
+    // `abstract` counts too: `export abstract class` matched neither the
+    // numerator nor the denominator, so a documented abstract class was
+    // invisible to this ratio in both directions.
+    const classMatches = content.match(/export\s+(?:abstract\s+)?class\s+\w+/g);
     const classes = classMatches?.length ?? 0;
 
-    const classDocPattern = /\/\*\*[\s\S]*?\*\/\s*export class/g;
+    // Decorators may sit between the docblock and the class. In Angular they
+    // almost always do — @Component, @Injectable, @Directive, @Pipe — and this
+    // pattern allowed whitespace only, so every decorated class in every Angular
+    // codebase counted as undocumented. The only way to satisfy it was to put the
+    // docblock BELOW the decorator, where IDEs, TypeDoc and the TypeScript
+    // language service all stop reading it as the class's documentation: the law
+    // asked people to hide their docs from the tooling.
+    const classDocPattern =
+      /\/\*\*[\s\S]*?\*\/\s*(?:@[\w$]+(?:\([\s\S]*?\))?\s*)*export\s+(?:abstract\s+)?class/g;
     const documentedClassMatches = content.match(classDocPattern);
     const documentedClasses = documentedClassMatches?.length ?? 0;
 

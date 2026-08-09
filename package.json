@@ -36,8 +36,7 @@
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "prepare": "npm run build",
     "prepack": "npm run clean && npm run build",
-    "postinstall": "node scripts/postinstall-recommend.js",
-    "recommend": "node scripts/postinstall-recommend.js .",
+    "recommend": "node dist/cli.js recommend",
     "ruleofcode": "node dist/cli.js",
     "canary": "node scripts/release-canary.js",
     "ci:build": "npm run build && npm run test:coverage"
@@ -68,7 +67,6 @@
     "dist",
     "templates",
     "scripts/recommend-config.js",
-    "scripts/postinstall-recommend.js",
     "README.md",
     "LICENSE"
   ],

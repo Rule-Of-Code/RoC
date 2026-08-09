@@ -1,7 +1,7 @@
 /**
- * Recommended-config delivery: the postinstall hook and the `recommend` command
- * share one generator (scripts/recommend-config.js, plain CJS so it also runs
- * during an install without a build).
+ * Recommended-config delivery, behind the `ruleofcode recommend` command. The
+ * generator (scripts/recommend-config.js) is plain CJS so it runs without a
+ * build step.
  *
  * The templates are validated against the live registry: a severity key that
  * matches no law would silently gate nothing — the exact failure mode the

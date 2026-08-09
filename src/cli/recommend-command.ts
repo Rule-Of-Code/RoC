@@ -1,8 +1,12 @@
 /**
  * `ruleofcode recommend` — write the stack-appropriate RECOMMENDED config into
- * the project root. The same generator runs automatically on install (see
- * scripts/postinstall-recommend.js), so every RoC upgrade refreshes it; this
- * command is the manual escape hatch (e.g. when install scripts are disabled).
+ * the project root, on request.
+ *
+ * This used to run automatically from a postinstall hook, which meant a package
+ * wrote an unrequested file into someone's repository on every `npm install`,
+ * CI included. A tool about honest gates should not have an install-time side
+ * effect a consumer never asked for, so the hook is gone and the capability is
+ * exactly here — same generator, run when someone wants it.
  */
 
 import chalk from 'chalk';
@@ -16,7 +20,7 @@ interface RecommendResult {
 }
 
 export function runRecommend(projectRoot: string): number {
-  // Plain-JS generator, shared with the postinstall hook (no dist dependency).
+  // Plain-JS generator: it must run without a build step, so it is not in dist.
   const { generateRecommendedConfig } = require('../../scripts/recommend-config') as {
     generateRecommendedConfig: (root: string) => RecommendResult;
   };

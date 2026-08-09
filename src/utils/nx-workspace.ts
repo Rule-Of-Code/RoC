@@ -13,9 +13,14 @@ import * as fs from 'fs';
 import { PathOperations } from './path-operations';
 
 export class NxWorkspace {
-  /** Common monorepo project folders (plus the workspace root, via the empty brace option). */
+  /**
+   * Common monorepo project folders (plus the workspace root, via the empty brace
+   * option). `libs/*​/*​/` is here because Nx nests libraries by domain —
+   * `libs/<domain>/<type>/` (libs/events/data-access) is the layout `nx g lib` produces
+   * for a scoped library, and a one-level pattern sees none of them.
+   */
   private static readonly PROJECT_DIRS =
-    '{,apps/*/,apps/*/*/,libs/*/,packages/*/,projects/*/}';
+    '{,apps/*/,apps/*/*/,libs/*/,libs/*/*/,packages/*/,packages/*/*/,projects/*/}';
 
   private static readonly IGNORE = [
     '**/node_modules/**',

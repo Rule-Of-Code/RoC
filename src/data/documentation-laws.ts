@@ -83,11 +83,11 @@ export const DOCUMENTATION_LAWS: EnhancedConstitutionalLaw[] = [
     title: "MD Footer Template (MANDATORY)",
     rationale:
       'This project mandates a constitutional footer on its docs so every Markdown file carries its version, status and rating. The law enforces that house convention.',
-    satisfiedBy: { typescript: 'End each Markdown file with the constitutional footer block: Document Version, Last Updated, Status, and the exact Investment Rating line, after a horizontal rule.' },
+    satisfiedBy: { typescript: 'End each Markdown file with the footer block after a horizontal rule: Document Version, Last Updated, Status, and a Rating line. The rating accepts any scale you declare — N/10, a letter grade, or a status word such as reviewed / needs-review / superseded.' },
     detectionLimits: [
       'It globs every **/*.md and bypasses the configured ignore paths, so vendored or generated Markdown is graded too.',
       'A single ordinary Markdown file without the bespoke footer raises a violation and fails the whole law — the check is all-or-nothing across every file it globs.',
-      'The required rating is a self-referential vanity string (the 10/10 SUPREME EXCELLENCE line) that almost no real project outside this repo carries, making the law near-unpassable elsewhere.',
+      'The rating is checked for being present and readable, never for being TRUE — nothing verifies that anyone reviewed the document or that the grade matches its state.',
     ],
     emoji: "📄",
     description:

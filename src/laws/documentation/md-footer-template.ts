@@ -86,7 +86,7 @@ export class MdFooterTemplateLaw {
         `${footerAnalysis.invalidRatings.length} files have incorrect investment rating format`
       );
       suggestions.push(
-        'Use standard investment rating: 🏆 10/10 SUPREME EXCELLENCE'
+        'Give the rating a readable value — N/10, a letter grade, or a declared status word (reviewed / needs-review / superseded)'
       );
       score -= 10;
     }
@@ -275,11 +275,28 @@ export class MdFooterTemplateLaw {
 
     const validFormat = formatChecks.every(check => check.test(footerContent));
 
-    // Check for valid investment rating format
+    // A rating field is satisfied by being PRESENT AND READABLE, not by holding
+    // one particular value.
+    //
+    // This used to accept `10/10` and nothing else — so the only footer that
+    // passed was one declaring the document perfect. A field with a single legal
+    // value carries no information, and requiring it on every file means
+    // requiring every file to assert an assessment nobody made: a draft privacy
+    // policy, an unfinished launch checklist, a bootstrap changelog. That is the
+    // tick-box lie this whole rule set exists to prevent, shipped by us.
+    //
+    // Any scale a project declares is accepted: N/10, a letter grade, or a
+    // status word. What is checked is that someone wrote a rating down.
+    const ratingLine = footerContent.match(
+      /(?:Investment\s+)?Rating:\s*(.+)$/im
+    );
+    const ratingValue = ratingLine?.[1]?.trim() ?? '';
     const validRating =
-      /🏆.*10\/10.*SUPREME EXCELLENCE|Investment Rating:.*10\/10|Rating:.*10\/10/i.test(
-        footerContent
-      );
+      /\d{1,2}\s*\/\s*10/.test(ratingValue) || // 7/10, 10/10
+      /^[A-F][+-]?\b/.test(ratingValue) || // A, B+, C-
+      /\b(?:reviewed|needs[- ]review|superseded|draft|current|stale)\b/i.test(
+        ratingValue
+      ); // a declared status vocabulary
 
     // Check for valid date format (flexible to accommodate various formats)
     const validDate =

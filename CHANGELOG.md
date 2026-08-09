@@ -5,6 +5,151 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.18.0] - 2026-08-09
+
+Sixteen consumer reports, closed together. The version is a **MINOR** for one
+reason: installing the package no longer runs a script. Everything else here
+only stops laws being wrong.
+
+### 💥 Changed — the package no longer runs a postinstall script
+
+Adding `ruleofcode` as a dependency executed a script that scanned the
+consumer's project and wrote a recommended config. A tool that inspects your
+repository the moment you install it has to be asked, not assumed — and package
+scanners flag install scripts for exactly that reason.
+
+The recommender is unchanged and still shipped. It now runs only when you
+invoke it. A regression test forbids `preinstall`, `install` and `postinstall`
+returning to `package.json`.
+
+**If you relied on the config appearing at install time**, run the recommend
+command once. Nothing else changes. (#22)
+
+### 🐛 Fixed — six laws only knew one project layout
+
+The same finding arrived six times from one reporter, in six shapes: an
+artefact looked for at a single-project root, while an Nx workspace keeps it
+under `apps/*`, `libs/*/*`, or states it once in a shared preset.
+
+- **Coverage thresholds** were read by joining every candidate config into one
+  string, anchoring on the **first** `coverageThreshold` and reading a fixed
+  800-character window after it. With the per-project configs sitting between
+  the root config and `jest.preset.js`, the file holding the numbers fell
+  outside the window — so a workspace pinned to 100 on all four metrics was told
+  "100% coverage thresholds not configured". The scan also required inline
+  literals, so `coverageThreshold: { global: COVERAGE_CONTRACT }` — stating the
+  contract once instead of copying it into eighteen files — was unreadable.
+  Threshold reading is now one shared reader: every config on its own, every
+  block, delimited by **brace balance** rather than a character budget, and a
+  same-file constant followed. (#40)
+- **CI and build discovery** was a hardcoded list per law, and each list missed
+  a different part of the same workspace: providers other than GitHub Actions,
+  Python build configuration, monorepo project folders. Now one shared
+  resolver. (#24, #32, #38)
+- **i18n configuration** was read from a root `angular.json` that an Nx
+  workspace does not have, and translation files were discovered through a scan
+  that honoured `includes` — so a narrow include list hid the very files the law
+  is about. (#34)
+- `libs/*/*/` is now resolved as a project folder. Nx nests libraries by domain
+  and a one-level pattern saw none of them.
+
+### 🐛 Fixed — an audit named a count and never the artefacts
+
+A violation said "21 source files lack corresponding test files" and stopped
+there. `--verbose` changed nothing.
+
+The information was never missing. **Most laws already resolve the file names
+and put them in `suggestions` — the console renderer printed `violations` and
+dropped `suggestions` entirely.** Two places in the engine touch that field and
+both set it to an empty array. The reporter reimplemented a law's discovery in a
+script to recover the list, got a different count, could not tell which of the
+two was wrong, and parked the law.
+
+That is the failure mode worth naming: an unexplained violation pushes a project
+toward a waiver rather than a fix, and a compliance tool that quietly rewards
+waivers is working against itself.
+
+Failing and warning laws now print what the law is asking for — three entries,
+then a pointer to `--verbose` for all of them and `--export json` for the full
+result. `--verbose` lifts every truncation. Its `--help` text described more
+than it did and now describes what it does. (#42)
+
+**Not fixed here:** the structured `violationDetails` channel — file, line,
+column, already rendered — is populated by **2 law files out of 225**. Filling
+it in is per-law work with a per-law judgement about what the evidence actually
+is, and a mass edit that filled it with something vague would be worse than the
+current honest silence. Tracked as its own issue.
+
+### 🐛 Fixed — laws that could not be satisfied without lying
+
+- **Health Check Monitoring** judged every project as if it served traffic, so a
+  library, a CLI or a component package was told to expose `/health`. It now
+  establishes that the project is a service first — a health file, a Python
+  service, a server dependency, an `EXPOSE`d Dockerfile, or a deployment
+  manifest — and reports nothing when it is not. (#34)
+- **The Markdown footer** accepted one literal rating line, so a document rated
+  8/10, graded B+, or marked `needs-review` failed a check named "has a rating".
+  It now accepts an N/10 score, a letter grade, or a status word. (#33)
+- **Code Complexity Control** summed every decision point in a file and compared
+  the total against a threshold documented as a per-function limit. A file of
+  many simple functions failed it, and the only escape was splitting modules
+  that had nothing wrong with them. The threshold now measures the worst single
+  function, which is what it says it measures; a file-wide budget is available
+  as an opt-in `thresholds.codeQuality.maxFileComplexity`. (#35)
+- **Git-history laws in the pre-commit hook** blocked a commit on the state of
+  the past, which deadlocks the rewrite that would fix it. They now run on
+  pre-push and in CI; the commit-msg hook still checks the message being
+  written. (#37)
+
+### 🐛 Fixed — detectors that misread what was in front of them
+
+- `test-coverage-constitutional-standard` had **no code path for
+  `ignores.byRule`** — its private ignore check read `ignores.global` only, and
+  read it by stripping the glob wildcards and testing whether the path contained
+  the remainder. Discovery now goes through the shared filter every other law
+  consults. Three more surfaced while proving it: the ignore check was handed a
+  bare filename joined to the scan root, so nothing below the top level was
+  matched against its real path; `jest.preset.js` was reported as a source file
+  lacking a test; and barrels and configs counted in the ratio denominator,
+  which made "test coverage ratio" a measure of project layout. (#39)
+- `typescript-strict` required `moduleResolution: "node"`, so `bundler`,
+  `node16` and `nodenext` — what current toolchains generate — were reported as
+  not strict. (#28)
+- The class-documentation check matched a doc comment only when it sat
+  immediately above the `class` keyword, so every decorated Angular class
+  counted as undocumented. (#36)
+- `angular-testing-excellence` matched only quoted test descriptions, so a title
+  written as a template literal was reported as having none. (#30)
+
+### 🐛 Fixed — configuration that looked like it worked
+
+- A `laws.severity` value the engine does not recognise fell back to **error**
+  with no warning, and a `notApplicable` entry naming a law that does not exist
+  parked nothing at all. Both are now reported. (#25)
+- Two sacred laws decided whether a project was governed by testing for a
+  literal `ruleofcode.config.json` in the repository root, while the loader
+  accepts several names across several directories. Both now ask the resolver
+  the loader uses. (#27)
+
+### 🐛 Fixed — the version stamped into git hooks was maintained by hand
+
+The hook installer wrote its own version into every hook it generated, from a
+literal in the source that a human had to remember to bump. It had drifted: the
+hooks committed in this repository announced 7.17.6 while the package moved on,
+and `package-lock.json` was two releases behind on top of that.
+
+The stamp is now read from `package.json`. A regression test asserts the stamp,
+the lockfile and the package agree — a tool whose subject is claims matching
+reality should not ship a version claim it maintains by hand.
+
+### 📄 Documentation — detectionLimits
+
+Two of the defects above (#33, #28) were **already recorded in our own
+`detectionLimits`**, and the `typescript-strict` test asserted the wrong
+behaviour with a comment explaining why. The honest field had become a place to
+hide. New entries state what the complexity and coverage checks still do not
+see — as limits to fix, not as cover.
+
 ## [7.17.6] - 2026-08-08
 
 ### 🐛 Fixed — the hook executable bit is read from the git index, not the filesystem

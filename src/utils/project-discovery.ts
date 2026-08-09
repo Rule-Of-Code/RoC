@@ -1,0 +1,144 @@
+/**
+ * Where a project's CI and build configuration actually lives.
+ *
+ * Four separate consumer reports turned out to be the same defect: an analyzer
+ * looking for one artefact by hard-coded path, in a project that legitimately
+ * keeps it somewhere else. Budgets searched for in `angular.json` by a workspace
+ * that uses `apps/<name>/project.json`. CI searched for in `.github/workflows/`
+ * by a repository hosted on Bitbucket. Build config searched for as
+ * `webpack.config.js` by a Python service. Each list was written once and then
+ * drifted from every other list — one law knew about `bitbucket-pipelines.yml`
+ * while nine did not.
+ *
+ * The reporter's own conclusion, after the fourth: "a shared CI/config discovery
+ * module would keep these lists from drifting apart between analyzers". This is
+ * that module. Adding a provider here reaches every law at once.
+ */
+
+import { FileSystemOperations } from './file-system-operations';
+import { FileUtils } from './file-utils';
+import { NxWorkspace } from './nx-workspace';
+import { PathOperations } from './path-operations';
+
+/** CI configuration, by provider. Order is discovery order, not preference. */
+const CI_CONFIG_FILES: readonly string[] = [
+  '.github/workflows',
+  '.gitlab-ci.yml',
+  'bitbucket-pipelines.yml',
+  'azure-pipelines.yml',
+  '.circleci/config.yml',
+  'Jenkinsfile',
+  '.travis.yml',
+  'buildkite.yml',
+  '.drone.yml',
+  'cloudbuild.yaml',
+];
+
+/** Build/tooling configuration that means "this project has a build", per stack. */
+const BUILD_CONFIG_FILES_JS: readonly string[] = [
+  'webpack.config.js',
+  'webpack.config.ts',
+  'vite.config.ts',
+  'vite.config.js',
+  'rollup.config.js',
+  'esbuild.config.js',
+  'tsconfig.json',
+  'angular.json',
+  'project.json',
+  '.babelrc',
+  'babel.config.js',
+];
+
+const BUILD_CONFIG_FILES_PYTHON: readonly string[] = [
+  'pyproject.toml',
+  'setup.py',
+  'setup.cfg',
+  'tox.ini',
+  'noxfile.py',
+  'Makefile',
+  'Dockerfile',
+  'Procfile',
+  'requirements.txt',
+];
+
+/** Container/runtime build files that count on any stack. */
+const BUILD_CONFIG_FILES_UNIVERSAL: readonly string[] = [
+  'Dockerfile',
+  'docker-compose.yml',
+  'Makefile',
+];
+
+/** Every CI configuration this project actually has. */
+export function ciConfigPaths(projectRoot: string): string[] {
+  return CI_CONFIG_FILES.map(f => PathOperations.join(projectRoot, f)).filter(
+    p => FileUtils.exists(p)
+  );
+}
+
+/** True when the project is wired to any CI provider we recognise. */
+export function hasCiConfig(projectRoot: string): boolean {
+  return ciConfigPaths(projectRoot).length > 0;
+}
+
+/**
+ * Combined text of every CI configuration present, for keyword checks
+ * ("is there a lighthouse step?", "is there a security scan?"). A workflows
+ * DIRECTORY contributes each file inside it.
+ */
+export function ciConfigContent(projectRoot: string): string {
+  const parts: string[] = [];
+  for (const p of ciConfigPaths(projectRoot)) {
+    if (FileUtils.isDirectory(p)) {
+      for (const entry of FileSystemOperations.readDirectory(p)) {
+        if (!entry.isFile()) continue;
+        parts.push(FileUtils.readFile(PathOperations.join(p, entry.name)));
+      }
+      continue;
+    }
+    parts.push(FileUtils.readFile(p));
+  }
+  return parts.filter(Boolean).join('\n');
+}
+
+/**
+ * Build-configuration filenames worth looking for on this stack.
+ *
+ * A Python repository cannot have `webpack.config.js`, so demanding one made the
+ * sub-check unsatisfiable there — the law could never reach 100 no matter what
+ * the project did, and the only ways out were a fake `tsconfig.json` or waiving a
+ * law that genuinely applied.
+ */
+export function buildConfigFileNames(projectType?: string): readonly string[] {
+  const stack = (projectType ?? '').toLowerCase();
+  if (stack === 'python') {
+    return [...BUILD_CONFIG_FILES_PYTHON, ...BUILD_CONFIG_FILES_UNIVERSAL];
+  }
+  if (stack) {
+    return [...BUILD_CONFIG_FILES_JS, ...BUILD_CONFIG_FILES_UNIVERSAL];
+  }
+  // No stack declared: the question is only "does this project have a build
+  // configuration", and a pyproject.toml answers it as well as a vite.config.ts.
+  return [
+    ...BUILD_CONFIG_FILES_JS,
+    ...BUILD_CONFIG_FILES_PYTHON,
+    ...BUILD_CONFIG_FILES_UNIVERSAL,
+  ];
+}
+
+/**
+ * Does the project have a build configuration? Searches the workspace root AND
+ * every monorepo project folder, so an Nx app whose config is
+ * `apps/<name>/project.json` counts.
+ */
+export function hasBuildConfig(
+  projectRoot: string,
+  projectType?: string
+): boolean {
+  for (const name of buildConfigFileNames(projectType)) {
+    if (FileUtils.exists(PathOperations.join(projectRoot, name))) return true;
+    if (NxWorkspace.resolveSourceFiles(projectRoot, name).length > 0) {
+      return true;
+    }
+  }
+  return false;
+}

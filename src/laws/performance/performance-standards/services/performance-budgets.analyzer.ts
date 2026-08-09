@@ -1,4 +1,5 @@
 import { FileUtils, PathOperations } from '../../../../utils';
+import { NxWorkspace } from '../../../../utils/nx-workspace';
 import { PerformanceBudgetsConstants } from '../constants';
 
 /**
@@ -10,19 +11,20 @@ export class PerformanceBudgetsAnalyzer {
   static analyze(projectRoot: string): string[] {
     const violations: string[] = [];
 
-    // Check Angular budgets
-    const angularJsonPath = PathOperations.join(projectRoot, 'angular.json');
-    if (FileUtils.exists(angularJsonPath)) {
-      try {
-        const content = FileUtils.readFile(angularJsonPath, {
-          encoding: 'utf8',
-        });
-        if (PerformanceBudgetsConstants.hasAngularBudgets(content)) {
-          return violations;
-        }
-      } catch (_error) {
-        // Continue
+    // Angular budgets — from the root `angular.json` AND every monorepo
+    // `project.json`. Nx does not use angular.json: per-project configuration
+    // lives in `apps/<name>/project.json`, and that is where the budgets are.
+    // Looking one file over reported real, build-failing budgets as missing.
+    try {
+      const buildConfig = NxWorkspace.getBuildConfigContent(projectRoot);
+      if (
+        buildConfig &&
+        PerformanceBudgetsConstants.hasAngularBudgets(buildConfig)
+      ) {
+        return violations;
       }
+    } catch (_error) {
+      // Continue
     }
 
     // Check Webpack configuration

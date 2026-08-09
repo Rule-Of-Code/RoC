@@ -4,7 +4,9 @@ import type {
   EnvironmentDetection,
 } from '../../../types';
 import { FileUtils } from '../../file-utils';
+import { NxWorkspace } from '../../nx-workspace';
 import { PathOperations } from '../../path-operations';
+import { hasBuildConfig as hasProjectBuildConfig } from '../../project-discovery';
 import { PythonSatisfaction } from '../../python-satisfaction';
 import { BuildEnvironmentAnalyzerConfiguration } from './build-environment-analyzer-configuration';
 
@@ -90,9 +92,18 @@ export class BuildEnvironmentAnalyzerValidation {
       testKeywords.some(keyword => script.includes(keyword))
     );
 
-    const hasBuildConfig = configFiles.some(file =>
-      FileUtils.exists(PathOperations.join(projectRoot, file))
-    );
+    // Shared, stack-aware discovery. The old list was JavaScript-only
+    // (webpack/vite/rollup/tsconfig/angular.json/.babelrc), so on a Python
+    // service this sub-check could not be satisfied by anything the project
+    // might legitimately contain — the law could never reach 100, and the only
+    // escapes were a fake tsconfig.json or waiving a law that genuinely applied.
+    // It also searches monorepo project folders, so an Nx app configured by
+    // apps/<name>/project.json counts.
+    const hasBuildConfig =
+      hasProjectBuildConfig(projectRoot) ||
+      configFiles.some(file =>
+        FileUtils.exists(PathOperations.join(projectRoot, file))
+      );
 
     const violations = [];
     const suggestions = [];
@@ -125,6 +136,33 @@ export class BuildEnvironmentAnalyzerValidation {
       violations,
       suggestions,
     };
+  }
+
+  /**
+   * Environment configuration held anywhere in the workspace.
+   *
+   * Two blind spots, one method. The config directories were resolved from the
+   * repository root only, so an Nx app keeping its environments at
+   * `apps/<name>/src/environments` was invisible. And a browser bundle has no
+   * `process.env` at runtime at all: the modern mechanism is a build-time
+   * substitution — the Angular builder's `define`, Vite's `define`, webpack's
+   * DefinePlugin — so demanding `process.env` asked a browser app to downgrade.
+   */
+  private static hasWorkspaceEnvironmentConfig(
+    projectRoot: string,
+    configPaths: readonly string[]
+  ): boolean {
+    for (const configPath of configPaths) {
+      if (FileUtils.exists(PathOperations.join(projectRoot, configPath))) {
+        return true;
+      }
+      if (NxWorkspace.resolveSourceFiles(projectRoot, configPath).length > 0) {
+        return true;
+      }
+    }
+
+    const buildConfig = NxWorkspace.getBuildConfigContent(projectRoot);
+    return /"define"\s*:|DefinePlugin|import\.meta\.env/.test(buildConfig);
   }
 
   /**
@@ -165,15 +203,11 @@ export class BuildEnvironmentAnalyzerValidation {
       }
     }
 
-    // Check config directories
     if (!hasEnvironmentDetection) {
-      for (const configPath of configPaths) {
-        const fullPath = PathOperations.join(projectRoot, configPath);
-        if (FileUtils.exists(fullPath)) {
-          hasEnvironmentDetection = true;
-          break;
-        }
-      }
+      hasEnvironmentDetection = this.hasWorkspaceEnvironmentConfig(
+        projectRoot,
+        configPaths
+      );
     }
 
     // Python reads its environment with os.environ / os.getenv, pydantic

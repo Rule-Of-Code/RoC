@@ -15,6 +15,7 @@
  * that module. Adding a provider here reaches every law at once.
  */
 
+import { glob } from 'glob';
 import { FileSystemOperations } from './file-system-operations';
 import { FileUtils } from './file-utils';
 import { NxWorkspace } from './nx-workspace';
@@ -68,16 +69,53 @@ const BUILD_CONFIG_FILES_UNIVERSAL: readonly string[] = [
   'Makefile',
 ];
 
-/** Every CI configuration this project actually has. */
-export function ciConfigPaths(projectRoot: string): string[] {
-  return CI_CONFIG_FILES.map(f => PathOperations.join(projectRoot, f)).filter(
-    p => FileUtils.exists(p)
+/**
+ * Every CI configuration this project actually has.
+ *
+ * `pathMappings.cicdConfig` is consulted first. A provider allowlist is always
+ * incomplete by construction, and one provider defeats it outright: Google Cloud
+ * Build takes its config from whatever path the trigger's `--build-config=`
+ * names, so there is no filename to add. A project that declares where its CI
+ * lives should not have to keep a decoy `bitbucket-pipelines.yml` around to look
+ * compliant — that is the tick-box lie these laws exist to prevent.
+ */
+export function ciConfigPaths(
+  projectRoot: string,
+  config?: { pathMappings?: { cicdConfig?: string | string[] } }
+): string[] {
+  const declared = config?.pathMappings?.cicdConfig;
+  const declaredPatterns =
+    declared === undefined
+      ? []
+      : Array.isArray(declared)
+        ? declared
+        : [declared];
+
+  const declaredPaths = declaredPatterns.flatMap(pattern =>
+    pattern.includes('*')
+      ? glob.sync(pattern, {
+          cwd: projectRoot,
+          absolute: true,
+          ignore: ['**/node_modules/**'],
+        })
+      : [PathOperations.join(projectRoot, pattern)]
+  );
+
+  const knownPaths = CI_CONFIG_FILES.map(f =>
+    PathOperations.join(projectRoot, f)
+  );
+
+  return [...new Set([...declaredPaths, ...knownPaths])].filter(p =>
+    FileUtils.exists(p)
   );
 }
 
 /** True when the project is wired to any CI provider we recognise. */
-export function hasCiConfig(projectRoot: string): boolean {
-  return ciConfigPaths(projectRoot).length > 0;
+export function hasCiConfig(
+  projectRoot: string,
+  config?: { pathMappings?: { cicdConfig?: string | string[] } }
+): boolean {
+  return ciConfigPaths(projectRoot, config).length > 0;
 }
 
 /**
@@ -85,9 +123,12 @@ export function hasCiConfig(projectRoot: string): boolean {
  * ("is there a lighthouse step?", "is there a security scan?"). A workflows
  * DIRECTORY contributes each file inside it.
  */
-export function ciConfigContent(projectRoot: string): string {
+export function ciConfigContent(
+  projectRoot: string,
+  config?: { pathMappings?: { cicdConfig?: string | string[] } }
+): string {
   const parts: string[] = [];
-  for (const p of ciConfigPaths(projectRoot)) {
+  for (const p of ciConfigPaths(projectRoot, config)) {
     if (FileUtils.isDirectory(p)) {
       for (const entry of FileSystemOperations.readDirectory(p)) {
         if (!entry.isFile()) continue;

@@ -3,9 +3,11 @@
  * Base functionality for all deployment-related laws
  */
 
+import type { RuleOfCodeConfig } from '../../config/types';
 import { FileUtils } from '../../utils';
 import { ProjectTypeDetector } from '../../utils/config/project-type-detector';
 import { PathOperations } from '../../utils/path-operations';
+import { hasCiConfig } from '../../utils/project-discovery';
 import { LawBase } from '../law-base';
 
 // Interface for Docker analysis results
@@ -54,21 +56,17 @@ export class DeploymentLawBase extends LawBase {
   }
 
   /**
-   * Checks for CI/CD configuration files
+   * Checks for CI/CD configuration files.
+   *
+   * Delegated to the shared discovery. This kept a sixth private copy of the
+   * provider list — the drift that module was written to end — and it was the
+   * shortest of them all: no CircleCI, no Cloud Build, no Travis, no Drone.
    */
-  static hasCICDConfiguration(projectRoot: string): boolean {
-    const cicdFiles = [
-      '.github/workflows',
-      '.gitlab-ci.yml',
-      'azure-pipelines.yml',
-      'bitbucket-pipelines.yml',
-      'jenkins.yml',
-      'Jenkinsfile',
-    ];
-
-    return cicdFiles.some(file =>
-      FileUtils.exists(PathOperations.join(projectRoot, file))
-    );
+  static hasCICDConfiguration(
+    projectRoot: string,
+    config?: RuleOfCodeConfig
+  ): boolean {
+    return hasCiConfig(projectRoot, config);
   }
 
   /**

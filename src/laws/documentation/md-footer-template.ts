@@ -1,4 +1,5 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
+import { FileFilterUtils } from '../../utils/file-filter-utils';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 /**
@@ -133,14 +134,28 @@ export class MdFooterTemplateLaw {
     projectRoot: string,
     config: LawCheckContext['config']
   ): string[] {
-    // Use glob directly to find markdown files, bypassing ignore patterns
     const { glob } = require('glob');
 
-    return glob.sync('**/*.md', {
+    const found: string[] = glob.sync('**/*.md', {
       cwd: projectRoot,
       absolute: true,
       ignore: ['**/node_modules/**', '**/dist/**', '**/.nx/**'],
     });
+
+    // `config` used to be accepted here and never read — the comment said the
+    // scan deliberately bypassed ignore patterns. That made this the one law
+    // whose `includes` / `ignores` meant nothing, and the files it caught were
+    // the ones nobody wrote: a README scaffolded into `ios/` by Capacitor is
+    // not documentation a project can be asked to footer.
+    return found.filter(
+      file =>
+        !FileFilterUtils.shouldIgnoreFile(
+          PathOperations.getRelative(projectRoot, file),
+          config,
+          undefined,
+          true
+        )
+    );
   }
 
   private static analyzeFooterCompliance(markdownFiles: string[]): {
@@ -287,10 +302,17 @@ export class MdFooterTemplateLaw {
     //
     // Any scale a project declares is accepted: N/10, a letter grade, or a
     // status word. What is checked is that someone wrote a rating down.
+    //
+    // The value is read with markdown emphasis stripped. `Rating:` matches
+    // INSIDE a bolded label — `**Investment Rating:** A` captures `** A`, and
+    // every letter-grade test then fails on the asterisks rather than on the
+    // grade. A bolded label is how the overwhelming majority of footers are
+    // written, so the check that was meant to accept any declared scale
+    // rejected almost every real file.
     const ratingLine = footerContent.match(
       /(?:Investment\s+)?Rating:\s*(.+)$/im
     );
-    const ratingValue = ratingLine?.[1]?.trim() ?? '';
+    const ratingValue = (ratingLine?.[1] ?? '').replace(/[*_`]/g, '').trim();
     const validRating =
       /\d{1,2}\s*\/\s*10/.test(ratingValue) || // 7/10, 10/10
       /^[A-F][+-]?\b/.test(ratingValue) || // A, B+, C-

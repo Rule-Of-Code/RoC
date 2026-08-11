@@ -49,6 +49,14 @@ interface BuildConfiguration {
  * Professional implementation following Angular i18n best practices
  */
 export class InternationalizationCompliancePolicyLaw {
+  /** Trees no discovery in this law should walk. */
+  private static readonly IGNORED_TREES = [
+    '**/node_modules/**',
+    '**/dist/**',
+    '**/.nx/**',
+    '**/.angular/**',
+  ];
+
   static async check(context: LawCheckContext): Promise<LawResult> {
     const violations: string[] = [];
     const suggestions: string[] = [];
@@ -187,12 +195,24 @@ export class InternationalizationCompliancePolicyLaw {
     projectRoot: string,
     context?: LawCheckContext
   ): boolean {
+    // Translation directories AT ANY DEPTH, not five fixed root-relative
+    // strings. The previous release fixed how files inside these directories
+    // were enumerated and left the directory list rooted — so an Nx workspace
+    // keeping its catalogs at `libs/shared/util/src/lib/i18n/locale/` was still
+    // told it had none. The name of the directory is the signal; where it sits
+    // in the tree is the project's business.
     const translationPaths = [
-      'src/locale',
-      'src/i18n',
-      'src/assets/i18n',
-      'locale',
-      'i18n',
+      ...new Set([
+        'src/locale',
+        'src/i18n',
+        'src/assets/i18n',
+        'locale',
+        'i18n',
+        ...glob.sync('**/{locale,locales,i18n,translations}/', {
+          cwd: projectRoot,
+          ignore: this.IGNORED_TREES,
+        }),
+      ]),
     ];
 
     for (const translationPath of translationPaths) {
@@ -210,9 +230,14 @@ export class InternationalizationCompliancePolicyLaw {
             absolute: true,
             ignore: ['**/node_modules/**'],
           });
+          // getFilename, not getBasename: getBasename strips the extension
+          // (`en.json` → `en`) and isTranslationFile decides BY extension, so
+          // this pairing could never return true — for any project, at any
+          // path. The directory list was only the second reason this check
+          // failed.
           if (
             jsonFiles.some(file =>
-              this.isTranslationFile(PathOperations.getBasename(file))
+              this.isTranslationFile(PathOperations.getFilename(file))
             )
           ) {
             return true;
@@ -226,12 +251,20 @@ export class InternationalizationCompliancePolicyLaw {
   }
 
   private static checkAngularExtractionFiles(projectRoot: string): boolean {
+    // Same shape as the translation directories: an Nx app keeps its extraction
+    // output under `apps/<name>/`, not at the workspace root.
     const extractionFiles = [
-      'messages.xlf',
-      'messages.xmb',
-      'messages.json',
-      'src/messages.xlf',
-      'src/locale/messages.en.xlf',
+      ...new Set([
+        'messages.xlf',
+        'messages.xmb',
+        'messages.json',
+        'src/messages.xlf',
+        'src/locale/messages.en.xlf',
+        ...glob.sync('**/messages*.{xlf,xmb,json}', {
+          cwd: projectRoot,
+          ignore: this.IGNORED_TREES,
+        }),
+      ]),
     ];
 
     for (const extractionFile of extractionFiles) {

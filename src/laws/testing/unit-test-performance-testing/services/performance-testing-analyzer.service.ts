@@ -54,7 +54,17 @@ export class UnitTestPerformanceTestingAnalyzerService extends TestAnalyzerMixin
         testCount: testFiles.length,
         hasCriticalFlowTests,
       };
-    } catch (_error) {
+    } catch (error) {
+      // A TypeError here is OUR bug, not a project without performance tests,
+      // and returning the empty result made the two indistinguishable: the
+      // predicate below was passed as a bare reference, lost its receiver,
+      // threw on `this.PATTERNS`, and this catch reported "no performance test
+      // files found" against a project that had one. A crash reported as a
+      // clean result is worse than a wrong answer — it hides that anything
+      // went wrong. Filesystem errors are still expected and still swallowed.
+      if (error instanceof TypeError || error instanceof ReferenceError) {
+        throw error;
+      }
       return { testFiles: [], testCount: 0, hasCriticalFlowTests: false };
     }
   }

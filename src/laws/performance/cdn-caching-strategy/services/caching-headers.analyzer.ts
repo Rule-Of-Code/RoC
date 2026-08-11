@@ -19,12 +19,14 @@ export class CachingHeadersAnalyzerService extends PerformanceAnalyzerBase {
     }
 
     try {
+      // Firebase's `headers` entries carry an ARRAY of {key, value} pairs — the
+      // only shape `firebase deploy` accepts. Indexing an array by a header
+      // name is `undefined` for every array, including a correct one, so no
+      // valid firebase.json could ever satisfy this check.
       const { headers } = hosting;
-      return headers.some(
-        (header: HeaderConfig) =>
-          header.headers?.['Cache-Control'] ??
-          header.headers?.['ETag'] ??
-          header.headers?.['Expires']
+      const CACHING_HEADERS = ['Cache-Control', 'ETag', 'Expires'];
+      return headers.some((header: HeaderConfig) =>
+        this.declaresAnyHeader(header.headers, CACHING_HEADERS)
       );
     } catch {
       // Ignore JSON parsing errors

@@ -49,6 +49,29 @@ describe('HealthCheckMonitoringLaw', () => {
     FileUtils.deleteDirectory(tempDir);
   });
 
+  /**
+   * Make the fixture a project that actually serves traffic.
+   *
+   * The law only judges services now. A bare temp directory holding one
+   * health-shaped file is not one — that filename used to be accepted as proof
+   * of being a backend, which is the false positive a consumer reported: their
+   * `health.ts` was a browser client's readiness probe, and the law then
+   * demanded an endpoint, a database and Kubernetes probes from a PWA.
+   *
+   * Tests that exercise a sub-check need the law to reach it, so they declare
+   * the project a service explicitly instead of relying on the filename.
+   */
+  const makeService = (): void => {
+    FileUtils.writeFile(
+      PathOperations.join(tempDir, 'package.json'),
+      JSON.stringify({
+        name: 'svc',
+        version: '1.0.0',
+        dependencies: { express: '^4.18.0' },
+      })
+    );
+  };
+
   describe('check()', () => {
     it('should return a LawResult object', async () => {
       const result = await HealthCheckMonitoringLaw.check(mockContext);
@@ -300,6 +323,7 @@ describe('HealthCheckMonitoringLaw', () => {
     });
 
     it('should detect external/health-check.ts', async () => {
+      makeService();
       FileUtils.createDirectory(
         PathOperations.join(tempDir, 'src', 'external')
       );
@@ -449,6 +473,7 @@ describe('HealthCheckMonitoringLaw', () => {
 
   describe('endpoint quality assessment', () => {
     it('should assess comprehensive quality', async () => {
+      makeService();
       FileUtils.createDirectory(PathOperations.join(tempDir, 'src'));
       FileUtils.writeFile(
         PathOperations.join(tempDir, 'src', 'health.ts'),
@@ -484,6 +509,7 @@ describe('HealthCheckMonitoringLaw', () => {
     });
 
     it('should handle file read error gracefully', async () => {
+      makeService();
       FileUtils.createDirectory(PathOperations.join(tempDir, 'src'));
       const healthFilePath = PathOperations.join(tempDir, 'src', 'health.ts');
       FileUtils.writeFile(healthFilePath, 'content');

@@ -559,8 +559,7 @@ echo "✅ Custom hook ${hookName} completed"
   static generateLintStagedConfig(config: RuleOfCodeConfig): object {
     const lintStagedConfig: Record<string, string[]> = {
       // NOT --mode=fast. RoC used to install a commit gate that ran the Pareto
-      // SUBSET — the tool itself handed every consumer a quietly disarmed gate
-      // (a backend consumer found this in their own package.json, installed by us).
+      // SUBSET, so the tool itself handed every project a quietly disarmed gate.
       // pre-commit narrows the FILES (--staged), never the laws.
       '*.{ts,js}': ['npx ruleofcode audit --mode=pre-commit --staged'],
     };

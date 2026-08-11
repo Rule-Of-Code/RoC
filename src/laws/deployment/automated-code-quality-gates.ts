@@ -1,8 +1,10 @@
+import type { RuleOfCodeConfig } from '../../config/types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileSystemOperations } from '../../utils/file-system-operations';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 import { PerformanceAnalysisService } from '../../utils/performance';
+import { ciConfigContent } from '../../utils/project-discovery';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
 // Interfaces for quality gate analysis
 interface QualityGateAnalysis {
@@ -35,7 +37,7 @@ export class AutomatedCodeQualityGatesLaw {
     const { projectRoot } = context;
 
     // 1. Check for linting configuration and automation
-    const lintingGates = this.analyzeLintingGates(projectRoot);
+    const lintingGates = this.analyzeLintingGates(projectRoot, context.config);
     if (!lintingGates.hasLintingGates) {
       violations.push('Missing automated linting quality gates');
       suggestions.push(
@@ -45,7 +47,7 @@ export class AutomatedCodeQualityGatesLaw {
     }
 
     // 2. Check for formatting gates
-    const formattingGates = this.analyzeFormattingGates(projectRoot);
+    const formattingGates = this.analyzeFormattingGates(projectRoot, context.config);
     if (!formattingGates.hasFormattingGates) {
       violations.push('Missing automated code formatting gates');
       suggestions.push(
@@ -55,7 +57,7 @@ export class AutomatedCodeQualityGatesLaw {
     }
 
     // 3. Check for test coverage gates
-    const coverageGates = this.analyzeCoverageGates(projectRoot);
+    const coverageGates = this.analyzeCoverageGates(projectRoot, context.config);
     if (!coverageGates.hasCoverageGates) {
       violations.push('Missing test coverage quality gates');
       suggestions.push('Configure minimum test coverage thresholds in CI/CD');
@@ -63,7 +65,7 @@ export class AutomatedCodeQualityGatesLaw {
     }
 
     // 4. Check for build validation gates
-    const buildGates = this.analyzeBuildGates(projectRoot);
+    const buildGates = this.analyzeBuildGates(projectRoot, context.config);
     if (!buildGates.hasBuildGates) {
       violations.push('Missing build validation gates');
       suggestions.push('Ensure builds are validated in CI/CD pipeline');
@@ -71,7 +73,7 @@ export class AutomatedCodeQualityGatesLaw {
     }
 
     // 5. Check for security scanning gates
-    const securityGates = this.analyzeSecurityGates(projectRoot);
+    const securityGates = this.analyzeSecurityGates(projectRoot, context.config);
     if (!securityGates.hasSecurityGates) {
       violations.push('Missing security scanning quality gates');
       suggestions.push(
@@ -128,7 +130,10 @@ export class AutomatedCodeQualityGatesLaw {
     };
   }
 
-  private static analyzeLintingGates(projectRoot: string): QualityGateAnalysis {
+  private static analyzeLintingGates(
+    projectRoot: string,
+    config?: RuleOfCodeConfig
+  ): QualityGateAnalysis {
     const lintingConfigs = [
       '.eslintrc.js',
       '.eslintrc.json',
@@ -166,7 +171,7 @@ export class AutomatedCodeQualityGatesLaw {
     }
 
     // Check for linting in CI/CD pipelines
-    hasLintingInCICD = this.checkLintingInPipeline(projectRoot);
+    hasLintingInCICD = this.checkLintingInPipeline(projectRoot, config);
 
     // Check package.json scripts for linting
     const hasLintingScripts =
@@ -187,7 +192,8 @@ export class AutomatedCodeQualityGatesLaw {
   }
 
   private static analyzeFormattingGates(
-    projectRoot: string
+    projectRoot: string,
+    config?: RuleOfCodeConfig
   ): QualityGateAnalysis {
     const formattingConfigs = [
       '.prettierrc',
@@ -209,7 +215,7 @@ export class AutomatedCodeQualityGatesLaw {
     }
 
     // Check for formatting in CI/CD pipelines
-    hasFormattingInCICD = this.checkFormattingInPipeline(projectRoot);
+    hasFormattingInCICD = this.checkFormattingInPipeline(projectRoot, config);
 
     // Check package.json scripts for formatting
     const hasFormattingScripts = this.checkFormattingScripts(projectRoot);
@@ -232,7 +238,8 @@ export class AutomatedCodeQualityGatesLaw {
   }
 
   private static analyzeCoverageGates(
-    projectRoot: string
+    projectRoot: string,
+    config?: RuleOfCodeConfig
   ): QualityGateAnalysis {
     let hasCoverageConfig = false;
     let hasCoverageThresholds = false;
@@ -276,7 +283,10 @@ export class AutomatedCodeQualityGatesLaw {
     } as QualityGateAnalysis;
   }
 
-  private static analyzeBuildGates(projectRoot: string): QualityGateAnalysis {
+  private static analyzeBuildGates(
+    projectRoot: string,
+    config?: RuleOfCodeConfig
+  ): QualityGateAnalysis {
     // Check for TypeScript configuration
     const hasTSConfig = FileUtils.exists(
       PathOperations.join(projectRoot, 'tsconfig.json')
@@ -286,7 +296,7 @@ export class AutomatedCodeQualityGatesLaw {
     const hasBuildScripts = this.checkBuildScripts(projectRoot);
 
     // Check for build validation in CI/CD
-    const hasBuildInCICD = this.checkBuildInPipeline(projectRoot);
+    const hasBuildInCICD = this.checkBuildInPipeline(projectRoot, config);
 
     // A PEP 517 [build-system] (or a Dockerfile) is a build gate. Demanding a
     // tsconfig.json from a Python service is demanding a foreign artifact.
@@ -349,10 +359,11 @@ export class AutomatedCodeQualityGatesLaw {
   }
 
   private static analyzeSecurityGates(
-    projectRoot: string
+    projectRoot: string,
+    config?: RuleOfCodeConfig
   ): QualityGateAnalysis {
     // Check for security scanning in CI/CD
-    const hasSecurityInCICD = this.checkSecurityInPipeline(projectRoot);
+    const hasSecurityInCICD = this.checkSecurityInPipeline(projectRoot, config);
 
     // Check for audit scripts
     const hasAuditScripts = this.checkAuditScripts(projectRoot);
@@ -396,9 +407,13 @@ export class AutomatedCodeQualityGatesLaw {
   }
 
   private static analyzePerformanceGates(
-    projectRoot: string
+    projectRoot: string,
+    config?: RuleOfCodeConfig
   ): QualityGateAnalysis {
-    const hasPerformanceInCICD = this.checkPerformanceInPipeline(projectRoot);
+    const hasPerformanceInCICD = this.checkPerformanceInPipeline(
+      projectRoot,
+      config
+    );
 
     const hasBundleAnalysis = this.checkBundleAnalysis(projectRoot);
 
@@ -411,68 +426,71 @@ export class AutomatedCodeQualityGatesLaw {
     } as QualityGateAnalysis;
   }
 
-  private static checkLintingInPipeline(projectRoot: string): boolean {
-    return this.checkPatternInPipelineFiles(projectRoot, [/lint/i, /eslint/i]);
+  private static checkLintingInPipeline(
+    projectRoot: string,
+    config?: RuleOfCodeConfig
+  ): boolean {
+    return this.checkPatternInPipelineFiles(projectRoot, [/lint/i, /eslint/i], config);
   }
 
-  private static checkFormattingInPipeline(projectRoot: string): boolean {
+  private static checkFormattingInPipeline(
+    projectRoot: string,
+    config?: RuleOfCodeConfig
+  ): boolean {
     return this.checkPatternInPipelineFiles(projectRoot, [
       /prettier/i,
       /format/i,
-    ]);
+    ], config);
   }
 
-  private static checkBuildInPipeline(projectRoot: string): boolean {
+  private static checkBuildInPipeline(
+    projectRoot: string,
+    config?: RuleOfCodeConfig
+  ): boolean {
     return this.checkPatternInPipelineFiles(projectRoot, [
       /build/i,
       /compile/i,
-    ]);
+    ], config);
   }
 
-  private static checkSecurityInPipeline(projectRoot: string): boolean {
+  private static checkSecurityInPipeline(
+    projectRoot: string,
+    config?: RuleOfCodeConfig
+  ): boolean {
     return this.checkPatternInPipelineFiles(projectRoot, [
       /audit/i,
       /security/i,
       /vulnerability/i,
-    ]);
+    ], config);
   }
 
-  private static checkPerformanceInPipeline(projectRoot: string): boolean {
+  private static checkPerformanceInPipeline(
+    projectRoot: string,
+    config?: RuleOfCodeConfig
+  ): boolean {
     return this.checkPatternInPipelineFiles(projectRoot, [
       /lighthouse/i,
       /performance/i,
       /BundleSizeAnalyzer.*bundle.*size/i,
-    ]);
+    ], config);
   }
 
   private static checkPatternInPipelineFiles(
     projectRoot: string,
-    patterns: RegExp[]
+    patterns: RegExp[],
+    config?: RuleOfCodeConfig
   ): boolean {
-    const pipelineFiles = [
-      '.github/workflows/ci.yml',
-      '.github/workflows/ci.yaml',
-      '.gitlab-ci.yml',
-      'azure-pipelines.yml',
-      'bitbucket-pipelines.yml',
-      'Jenkinsfile',
-    ];
-
-    for (const pipelineFile of pipelineFiles) {
-      const filePath = PathOperations.join(projectRoot, pipelineFile);
-      if (FileUtils.exists(filePath)) {
-        try {
-          const content = FileUtils.readFile(filePath, { encoding: 'utf8' });
-          if (patterns.some(pattern => pattern.test(content))) {
-            return true;
-          }
-        } catch (_error) {
-          // Skip files that can't be read
-        }
-      }
+    // The combined text of every CI config the shared discovery finds. This
+    // kept its own list, naming GitHub workflow files by exact filename — so a
+    // pipeline whose job lives in any other file, on any other provider, or at
+    // a declared path had no build, lint or security step as far as these
+    // checks could see.
+    const pipelineContent = ciConfigContent(projectRoot, config);
+    if (!pipelineContent) {
+      return false;
     }
 
-    return false;
+    return patterns.some(pattern => pattern.test(pipelineContent));
   }
 
   private static checkLintingScripts(projectRoot: string): boolean {
@@ -513,7 +531,15 @@ export class AutomatedCodeQualityGatesLaw {
           | Record<string, string>
           | undefined;
         if (scriptObj) {
-          const scripts = Object.values(scriptObj).join(' ');
+          // Script NAMES as well as their commands. Only the commands were
+          // scanned, so the conventional `"build": "tsc"` was invisible — the
+          // name says what the script is for, and the command names the tool.
+          // Every toolchain whose binary is not spelled "build" (tsc, ng, vite,
+          // esbuild, rollup) was judged to have no build script at all.
+          const scripts = [
+            ...Object.keys(scriptObj),
+            ...Object.values(scriptObj),
+          ].join(' ');
           return patterns.some(pattern => pattern.test(scripts));
         }
       } catch (_error) {

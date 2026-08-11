@@ -3,6 +3,7 @@ import { DirectoryScanner } from '../directory-scanner';
 import { FileUtils } from '../file-utils';
 import { PathOperations } from '../path-operations';
 import { PerformanceAnalysisService } from '../performance';
+import { ciConfigContent } from '../project-discovery';
 /**
  * Performance Monitoring Integration Inspector (Streamlined)
  * Simplified utility for analyzing performance monitoring setup and integration
@@ -150,28 +151,16 @@ export class PerformanceMonitoringInspector {
     return configFiles;
   }
 
+  /**
+   * Performance monitoring wired into CI — read from every pipeline the shared
+   * discovery finds, rather than from two filenames on two providers.
+   */
   private static checkCICDIntegrationSimple(projectRoot: string): string[] {
-    const integration: string[] = [];
-    const ciFiles = ['.github/workflows/ci.yml', '.gitlab-ci.yml'];
+    const pipelineText = ciConfigContent(projectRoot);
 
-    for (const ciFile of ciFiles) {
-      const ciPath = PathOperations.join(projectRoot, ciFile);
-      if (FileUtils.exists(ciPath)) {
-        try {
-          const content = FileUtils.readFile(ciPath, { encoding: 'utf8' });
-          if (
-            content.includes('performance') ||
-            content.includes('monitoring')
-          ) {
-            integration.push(`Performance monitoring in ${ciFile}`);
-          }
-        } catch (_error) {
-          // Ignore errors
-        }
-      }
-    }
-
-    return integration;
+    return /performance|monitoring/i.test(pipelineText)
+      ? ['Performance monitoring in CI pipeline']
+      : [];
   }
 
   private static findCriticalFlowTestsSimple(projectRoot: string): string[] {
@@ -224,37 +213,27 @@ export class PerformanceMonitoringInspector {
     return scenarios;
   }
 
+  /**
+   * A performance job in CI, named by what it DOES rather than by the file it
+   * lives in. Two GitHub workflow filenames were the whole search, so the same
+   * Lighthouse step in a differently-named workflow, or on another provider,
+   * counted for nothing.
+   */
   private static findPerformanceCIConfigsSimple(projectRoot: string): string[] {
-    const configs: string[] = [];
-    const ciFiles = [
-      '.github/workflows/performance.yml',
-      '.github/workflows/lighthouse.yml',
-    ];
+    const pipelineText = ciConfigContent(projectRoot);
 
-    for (const ciFile of ciFiles) {
-      if (FileUtils.exists(PathOperations.join(projectRoot, ciFile))) {
-        configs.push(ciFile);
-      }
-    }
-
-    return configs;
+    return /lighthouse|web-vitals|performance/i.test(pipelineText)
+      ? ['Performance job in CI pipeline']
+      : [];
   }
 
   private static analyzePerformanceStepsSimple(projectRoot: string): string[] {
-    const steps: string[] = [];
-    const ciPath = PathOperations.join(projectRoot, '.github/workflows/ci.yml');
+    // One named workflow file was the entire search — `.github/workflows/ci.yml`
+    // and nothing else, on GitHub and nowhere else.
+    const pipelineText = ciConfigContent(projectRoot);
 
-    if (FileUtils.exists(ciPath)) {
-      try {
-        const content = FileUtils.readFile(ciPath);
-        if (content.includes('lighthouse') || content.includes('performance')) {
-          steps.push('Performance tests in CI/CD pipeline detected');
-        }
-      } catch (_error) {
-        // Ignore errors
-      }
-    }
-
-    return steps;
+    return /lighthouse|performance/i.test(pipelineText)
+      ? ['Performance tests in CI/CD pipeline detected']
+      : [];
   }
 }

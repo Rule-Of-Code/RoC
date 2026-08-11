@@ -309,8 +309,8 @@ export class MergeConflictPreventionLaw extends GitLawBase {
       // exists, it is present on EVERY merge, for every user, with nothing
       // unresolved. A repository wiring this law into pre-commit — which the
       // law's own suggestion recommends — could not complete a local merge at
-      // all. A reporter hit it after resolving every marker and staging both
-      // files, with `git status` showing no `UU`.
+      // all: every marker resolved and every file staged still left MERGE_HEAD
+      // in place, because only the commit itself removes it.
       //
       // The real question is already answered twice above: literal conflict
       // markers via `git grep`, and `UU`/`AA`/`DD` via `git status --porcelain`.

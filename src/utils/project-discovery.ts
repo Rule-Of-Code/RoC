@@ -1,18 +1,16 @@
 /**
  * Where a project's CI and build configuration actually lives.
  *
- * Four separate consumer reports turned out to be the same defect: an analyzer
- * looking for one artefact by hard-coded path, in a project that legitimately
- * keeps it somewhere else. Budgets searched for in `angular.json` by a workspace
- * that uses `apps/<name>/project.json`. CI searched for in `.github/workflows/`
- * by a repository hosted on Bitbucket. Build config searched for as
- * `webpack.config.js` by a Python service. Each list was written once and then
- * drifted from every other list — one law knew about `bitbucket-pipelines.yml`
- * while nine did not.
+ * One defect wearing several faces: an analyzer looking for an artefact by
+ * hard-coded path, in a project that legitimately keeps it somewhere else.
+ * Budgets looked for in `angular.json` by a workspace that uses
+ * `apps/<name>/project.json`. CI looked for in `.github/workflows/` by a
+ * repository hosted anywhere else. Build config looked for as
+ * `webpack.config.js` by a Python service.
  *
- * The reporter's own conclusion, after the fourth: "a shared CI/config discovery
- * module would keep these lists from drifting apart between analyzers". This is
- * that module. Adding a provider here reaches every law at once.
+ * Every such list was written once and then drifted from every other list —
+ * one law knowing about a provider that nine others did not. This module is the
+ * single list: adding a provider here reaches every law at once.
  */
 
 import { glob } from 'glob';

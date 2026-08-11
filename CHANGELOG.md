@@ -5,6 +5,100 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.18.2] - 2026-08-11
+
+Four consumer reports, every one of them a follow-up to a fix we closed while
+it was still incomplete. A PATCH: nothing changes for a project that was
+passing.
+
+The pattern is worth stating plainly, because it is the reason this release
+exists. An issue that lists four fixes was closed on the first one. Another was
+closed after routing one of four detectors. Both looked done and were not. The
+sweep below is the answer to that, not an extra.
+
+### 🐛 Fixed — one CI discovery for the whole tool, not twelve
+
+A report named **three** laws still detecting CI/CD through their own hardcoded
+provider lists after the shared module landed. Searching for the shape found
+**twelve** places in total, each with a different subset of providers and none
+of them honouring a declared config path:
+
+- reported: code review quality, automated quality gates, pre-PR status checks
+- found by sweeping: feature branch protection, git history integrity, branch
+  protection standards, performance monitoring (three separate methods), unit
+  test automation standards
+
+All of them ask the shared discovery now, so adding a provider — or declaring
+`pathMappings.cicdConfig` — reaches every law at once. A search for an
+independent CI list in the source tree returns nothing.
+
+Two defects surfaced while proving it, neither of them reported:
+
+- **Package scripts were matched against their COMMANDS only.** The
+  conventional `"build": "tsc"` was invisible, as was every toolchain whose
+  binary is not spelled "build" — `ng build`, `vite build`, `esbuild`. Script
+  names are read as well now. This was half of one report's "Missing build
+  validation gates" against a project with a real build.
+- **Required status checks were recognised only in a GitHub-shaped pipeline.**
+  On hosts that configure "required for merge" in repository settings there is
+  nothing in the build file for a keyword to match, however real the gate is.
+  The sibling branch-protection check already accepted a server-side host as
+  evidence; this one does too.
+
+### 🐛 Fixed — the rest of the Nx and static-host discovery
+
+The previous release fixed the Firebase header misreading in **one** analyzer
+out of four named in the report. The rest:
+
+- **Build configuration is read from `project.json`** when a workspace has no
+  root `angular.json`. Both the asset-optimization and named-chunks checks go
+  through that one iterator, so a classic Nx workspace stopped being unable to
+  satisfy either regardless of what its production build actually configures.
+- **The service-worker lookup resolves through the workspace**, not the
+  repository root — `ngsw-config.json` sits beside the app.
+- **`.webmanifest` is accepted** alongside `manifest.json`, including under
+  `public/`. That is the extension `ng add @angular/pwa` scaffolds today, so a
+  PWA built the way Angular's own generator builds it had no manifest as far as
+  this law could see.
+- **Caching headers are read from the static-host config**, not only from
+  `nginx.conf`. A site behind a CDN had "no browser caching strategy" by
+  construction, whatever its configuration said — a defect independent of the
+  Firebase one, in the same law package.
+
+The header reader is now one shared helper. It had been fixed once, in one
+place, while two other analyzers kept the same misreading.
+
+### 🐛 Fixed — a service is what a project runs, not what it installs
+
+`http-server` and packages like it serve pre-built files: they run no
+application code, own no database, and expose nothing a liveness probe could
+mean. They are gone from the server-framework list.
+
+The match is also restricted to **runtime** dependencies. A framework in
+devDependencies is tooling — a preview server, a fixture in a test harness —
+and scanning both lists made any repository that serves its own build for an
+end-to-end run look like a backend, which was then asked for database
+connectivity and Kubernetes probes.
+
+### 🐛 Fixed — the Markdown footer is the block after the LAST rule
+
+The boundary matched the **first** `---` with no multiline flag, so the lazy
+capture ran to end of file. A document using `---` as an ordinary section
+divider had its whole body read as the footer, and the first line of prose
+containing `Rating:` was judged as the rating — while the real footer sat
+further down, valid and unread. Long documents, ADRs and changelogs use `---`
+that way as a matter of course.
+
+The rating is also read from the last such line in the footer: where the field
+appears more than once, the entry that closes the document is the canonical
+one.
+
+### 📄 Documentation
+
+Comments that narrated who reported a defect and what they were doing now
+describe the mechanism instead. A tool used by anyone should not read like the
+support log of one project.
+
 ## [7.18.1] - 2026-08-11
 
 Eleven consumer reports. **Four of them are against fixes that shipped in

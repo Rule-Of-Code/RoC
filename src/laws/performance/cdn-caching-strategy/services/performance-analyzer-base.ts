@@ -165,4 +165,36 @@ export class PerformanceAnalyzerBase {
   protected static fileExists(filePath: string): boolean {
     return this.safeCheckFileExists(filePath);
   }
+
+  /**
+   * Does a Firebase Hosting header entry declare any of `names`?
+   *
+   * Firebase's schema for `hosting.headers[].headers` is an ARRAY of
+   * `{ key, value }` — that is the only shape `firebase deploy` accepts, not a
+   * convention a project chose. Two analyzers read it as a dictionary
+   * (`headers['Cache-Control']`, `'Link' in headers`), which is `undefined` and
+   * `false` for every array no matter what it contains: no valid firebase.json
+   * could satisfy either check. Both now ask this.
+   *
+   * A dictionary is still accepted, since other hosts do use that shape.
+   */
+  protected static declaresAnyHeader(
+    headerFields: unknown,
+    names: readonly string[]
+  ): boolean {
+    if (Array.isArray(headerFields)) {
+      return headerFields.some(
+        (pair: unknown) =>
+          typeof pair === 'object' &&
+          pair !== null &&
+          names.includes(String((pair as { key?: unknown }).key))
+      );
+    }
+
+    if (typeof headerFields === 'object' && headerFields !== null) {
+      return names.some(name => name in (headerFields as object));
+    }
+
+    return false;
+  }
 }

@@ -42,7 +42,38 @@ export class CoreWebVitalsFileDiscoveryConstants {
   }
 
   static getManifestPath(projectRoot: string): string {
-    return NxWorkspace.resolveSourceFile(projectRoot, 'src/manifest.json');
+    return NxWorkspace.resolveSourceFile(
+      projectRoot,
+      this.CONFIG_FILES.MANIFEST_JSON
+    );
+  }
+
+  /**
+   * Every place a web app manifest legitimately lives.
+   *
+   * `manifest.json` alone missed `.webmanifest` — the correctly MIME-typed
+   * extension `ng add @angular/pwa` scaffolds today — so a PWA built the way
+   * Angular's own generator builds it had no manifest as far as this law could
+   * see. `public/` is checked too: that is where Angular 17+ puts static assets.
+   */
+  static getManifestPaths(projectRoot: string): string[] {
+    const relativePaths = [
+      this.CONFIG_FILES.MANIFEST_JSON,
+      'src/manifest.webmanifest',
+      'public/manifest.json',
+      'public/manifest.webmanifest',
+      'manifest.json',
+      'manifest.webmanifest',
+    ];
+
+    return [
+      ...new Set(
+        relativePaths.flatMap(relative => [
+          PathOperations.join(projectRoot, relative),
+          ...NxWorkspace.resolveSourceFiles(projectRoot, relative),
+        ])
+      ),
+    ];
   }
 
   static getNginxConfigPath(projectRoot: string): string {

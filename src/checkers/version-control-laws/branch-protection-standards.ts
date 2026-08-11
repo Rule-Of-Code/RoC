@@ -3,10 +3,12 @@
  * CodeNamingAnalyzer: Ensures proper branch protection and naming conventions
  */
 
+import type { RuleOfCodeConfig } from '../../config/types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileSystemOperations } from '../../utils/file-system-operations';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
+import { hasCiConfig } from '../../utils/project-discovery';
 import { VersionControlLawBase } from './version-control-law-base';
 export class BranchProtectionStandardsLaw {
   static check(context: LawCheckContext): LawResult {
@@ -125,22 +127,17 @@ export class BranchProtectionStandardsLaw {
     return { violations: [], suggestions };
   }
 
-  private static analyzeRepositoryProtection(projectRoot: string): {
+  private static analyzeRepositoryProtection(
+    projectRoot: string,
+    config?: RuleOfCodeConfig
+  ): {
     violations: string[];
     suggestions: string[];
   } {
     const suggestions: string[] = [];
 
-    // Check for GitHub/GitLab specific files that indicate repository settings
-    const ciFiles = [
-      '.github/workflows',
-      '.gitlab-ci.yml',
-      'bitbucket-pipelines.yml',
-    ];
-
-    const hasCIConfig = ciFiles.some(file =>
-      FileUtils.exists(PathOperations.join(projectRoot, file))
-    );
+    // One CI discovery for the whole tool — see project-discovery.
+    const hasCIConfig = hasCiConfig(projectRoot, config);
 
     if (hasCIConfig) {
       suggestions.push(

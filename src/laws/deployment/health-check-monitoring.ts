@@ -223,6 +223,10 @@ export class HealthCheckMonitoringLaw {
     // deployment manifest.
     if (this.hasPythonWebStack(projectRoot)) return true;
 
+    // Frameworks that run APPLICATION code behind a port. `http-server` and its
+    // kin are deliberately absent: they serve pre-built files and nothing else,
+    // so a static bundle handed to one has no endpoint of its own to probe, no
+    // database, and nothing for a liveness check to mean.
     const SERVER_DEPS = [
       'express',
       'fastify',
@@ -235,15 +239,19 @@ export class HealthCheckMonitoringLaw {
       '@apollo/server',
       'next',
       'nuxt',
-      'http-server',
     ];
     const pkg = ProjectTypeDetector.getPackageJson(projectRoot) as {
       dependencies?: Record<string, unknown>;
       devDependencies?: Record<string, unknown>;
     } | null;
-    if (pkg) {
-      const deps = { ...pkg.dependencies, ...pkg.devDependencies };
-      if (SERVER_DEPS.some(d => deps[d])) return true;
+    // RUNTIME dependencies only. A framework in devDependencies is tooling —
+    // a local preview server, a fixture in a test harness — and a project does
+    // not ship it. Matching both lists made any repository that serves its own
+    // build for an end-to-end run look like a backend, and then asked a static
+    // bundle for database and Kubernetes probes.
+    if (pkg?.dependencies) {
+      const runtimeDeps = pkg.dependencies;
+      if (SERVER_DEPS.some(dependency => runtimeDeps[dependency])) return true;
     }
 
     // A container that opens a port, or a deployment manifest, is a service too.

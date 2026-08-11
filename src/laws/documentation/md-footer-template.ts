@@ -245,6 +245,27 @@ export class MdFooterTemplateLaw {
     );
   }
 
+  /**
+   * The footer: everything after the LAST horizontal rule in the document.
+   *
+   * This used to take the FIRST `---` — `content.match(/---\s*\n([\s\S]*?)$/)`
+   * with no `m` flag, so `$` could only match end-of-string and the lazy
+   * quantifier was forced to the end anyway. Any document using `---` as an
+   * ordinary section divider had its whole body swallowed into "the footer",
+   * and the first line of prose containing `Rating:` was then judged as the
+   * rating — while the real footer sat further down, valid and unread. Long
+   * documents, ADRs and changelogs use `---` that way as a matter of course.
+   */
+  private static extractFooter(content: string): string {
+    const lines = content.split('\n');
+    for (let index = lines.length - 1; index >= 0; index--) {
+      if (/^\s*-{3,}\s*$/.test(lines[index] ?? '')) {
+        return lines.slice(index + 1).join('\n');
+      }
+    }
+    return '';
+  }
+
   private static analyzeFileFooter(
     content: string,
     _filePath: string
@@ -276,9 +297,7 @@ export class MdFooterTemplateLaw {
       };
     }
 
-    // Extract footer content (usually after last ---)
-    const footerMatch = content.match(/---\s*\n([\s\S]*?)$/);
-    const footerContent: string = footerMatch ? (footerMatch[1] ?? '') : '';
+    const footerContent = this.extractFooter(content);
 
     // Check for valid format elements
     const formatChecks = [
@@ -309,10 +328,14 @@ export class MdFooterTemplateLaw {
     // grade. A bolded label is how the overwhelming majority of footers are
     // written, so the check that was meant to accept any declared scale
     // rejected almost every real file.
-    const ratingLine = footerContent.match(
-      /(?:Investment\s+)?Rating:\s*(.+)$/im
-    );
-    const ratingValue = (ratingLine?.[1] ?? '').replace(/[*_`]/g, '').trim();
+    // The LAST rating line in the footer, not the first: if a footer mentions
+    // the field more than once, the canonical entry is the one that closes it.
+    const ratingLines = [
+      ...footerContent.matchAll(/(?:Investment\s+)?Rating:[ \t]*(.+)$/gim),
+    ];
+    const ratingValue = (ratingLines.at(-1)?.[1] ?? '')
+      .replace(/[*_`]/g, '')
+      .trim();
     const validRating =
       /\d{1,2}\s*\/\s*10/.test(ratingValue) || // 7/10, 10/10
       /^[A-F][+-]?\b/.test(ratingValue) || // A, B+, C-

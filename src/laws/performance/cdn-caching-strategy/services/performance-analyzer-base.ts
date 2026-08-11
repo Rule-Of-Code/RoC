@@ -1,3 +1,5 @@
+import { declaresAnyHeader } from '../../../../utils/host-headers';
+import { NxWorkspace } from '../../../../utils/nx-workspace';
 import { FileSystemOperations } from '../../../../utils';
 import { FileUtils } from '../../../../utils/file-utils';
 import { PathOperations } from '../../../../utils/path-operations';
@@ -59,21 +61,53 @@ export class PerformanceAnalyzerBase {
       projectRoot,
       FileDiscovery.CONFIG_FILES.ANGULAR_JSON
     );
-    if (!this.safeCheckFileExists(angularJsonPath)) {
-      return false;
+
+    if (this.safeCheckFileExists(angularJsonPath)) {
+      const angularJson = this.safeReadJsonFile(angularJsonPath);
+      const projects = angularJson?.projects as
+        | Record<string, unknown>
+        | undefined;
+      if (projects) {
+        for (const [projectName, project] of Object.entries(projects)) {
+          if (callback(project as AngularProject, projectName)) {
+            return true;
+          }
+        }
+      }
     }
 
-    const angularJson = this.safeReadJsonFile(angularJsonPath);
-    if (!angularJson) {
-      return false;
-    }
+    // An Nx classic workspace has NO root angular.json — build configuration
+    // lives in `project.json` per project. Returning false there judged an
+    // optimised, hashed production build as having none. A sibling analyzer in
+    // performance-standards already had this fallback, which is how we knew the
+    // pattern was needed and still shipped nine laws without it.
+    return this.iterateNxProjects(projectRoot, callback);
+  }
 
-    const projects = angularJson.projects as
-      | Record<string, unknown>
-      | undefined;
-    if (!projects) return false;
-    for (const [projectName, project] of Object.entries(projects)) {
-      if (callback(project as AngularProject, projectName)) {
+  /**
+   * Every `project.json` in the workspace, presented in the `architect` shape
+   * the callbacks expect. Nx names the same block `targets`; the contents —
+   * `build.configurations.production` — are identical.
+   */
+  private static iterateNxProjects(
+    projectRoot: string,
+    callback: (project: AngularProject, projectName: string) => boolean
+  ): boolean {
+    for (const configPath of NxWorkspace.resolveSourceFiles(
+      projectRoot,
+      'project.json'
+    )) {
+      const projectJson = this.safeReadJsonFile(configPath);
+      if (!projectJson) continue;
+
+      const targets = projectJson.targets ?? projectJson.architect;
+      if (!targets) continue;
+
+      const normalized = { architect: targets } as unknown as AngularProject;
+      const projectName = String(
+        projectJson.name ?? PathOperations.getDirectory(configPath)
+      );
+      if (callback(normalized, projectName)) {
         return true;
       }
     }
@@ -182,19 +216,6 @@ export class PerformanceAnalyzerBase {
     headerFields: unknown,
     names: readonly string[]
   ): boolean {
-    if (Array.isArray(headerFields)) {
-      return headerFields.some(
-        (pair: unknown) =>
-          typeof pair === 'object' &&
-          pair !== null &&
-          names.includes(String((pair as { key?: unknown }).key))
-      );
-    }
-
-    if (typeof headerFields === 'object' && headerFields !== null) {
-      return names.some(name => name in (headerFields as object));
-    }
-
-    return false;
+    return declaresAnyHeader(headerFields, names);
   }
 }

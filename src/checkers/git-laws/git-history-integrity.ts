@@ -11,6 +11,7 @@ import type {
 import { FileUtils } from '../../utils';
 import { CheckerUtils } from '../../utils/checker-utils';
 import { PathOperations } from '../../utils/path-operations';
+import { ciConfigContent } from '../../utils/project-discovery';
 import { GitLawBase } from './git-law-base';
 import { GitLawUtilities } from './shared-git-utilities';
 export class GitHistoryIntegrityLaw {
@@ -229,50 +230,9 @@ export class GitHistoryIntegrityLaw {
       );
     }
 
-    // Check for CI/CD history validation
-    const ciFiles = [
-      '.github/workflows',
-      '.gitlab-ci.yml',
-      'bitbucket-pipelines.yml',
-    ];
-
-    const hasCIValidation = ciFiles.some(file => {
-      const filePath = PathOperations.join(projectRoot, file);
-      if (FileUtils.exists(filePath)) {
-        if (file.includes('workflows')) {
-          // Check GitHub workflows directory
-          try {
-            const workflows = CheckerUtils.findFilesByExtension(
-              filePath,
-              ['yml', 'yaml'],
-              config
-            );
-            return workflows.some((workflow: string) => {
-              const workflowContent = FileUtils.readFile(
-                PathOperations.join(filePath, workflow),
-                { encoding: 'utf8' }
-              );
-              return (
-                workflowContent.includes('git log') ||
-                workflowContent.includes('history') ||
-                workflowContent.includes('commit')
-              );
-            });
-          } catch (_error) {
-            return false;
-          }
-        } else {
-          // Check other CI files
-          try {
-            const content = FileUtils.readFile(filePath);
-            return content.includes('git log') || content.includes('history');
-          } catch (_error) {
-            return false;
-          }
-        }
-      }
-      return false;
-    });
+    // One CI discovery for the whole tool — see project-discovery.
+    const pipelineText = ciConfigContent(projectRoot, config);
+    const hasCIValidation = /git log|history|commit/i.test(pipelineText);
 
     if (!hasCIValidation) {
       suggestions.push('Add git history validation to CI/CD pipeline');

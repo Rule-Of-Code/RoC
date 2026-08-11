@@ -273,10 +273,23 @@ export class PrePrQualityGatesLaw {
     // here named GitHub workflows by exact filename (`ci.yml`, `pr.yml`), so a
     // repository whose checks live in `gates.yml` had none as far as this law
     // was concerned.
+    // Two ways a repository can have required checks, and only one of them is
+    // visible in a build file.
+    //
+    // On hosts where "required for merge" is configured at the trigger or in
+    // repository settings — which is most of them outside GitHub Actions —
+    // there is nothing in the pipeline YAML for a keyword to match, however
+    // real the gate is. Demanding the GitHub shape of it asked those projects
+    // for an artefact their host does not read. The sibling check three lines
+    // below already accepts a server-side host as evidence of branch
+    // protection; the same reasoning applies here.
+    const pipelineContent = ciConfigContent(projectRoot, config);
+    const hasPipeline = pipelineContent.length > 0;
+
     return {
-      hasRequiredStatusChecks: this.hasStatusCheckConfiguration(
-        ciConfigContent(projectRoot, config)
-      ),
+      hasRequiredStatusChecks:
+        this.hasStatusCheckConfiguration(pipelineContent) ||
+        (hasPipeline && this.isServerSideProtectionHost(projectRoot)),
     };
   }
 

@@ -3,6 +3,7 @@ import { ConfigFileUtils } from '../../../../utils/config-file-utils';
 import { FileUtils } from '../../../../utils/file-utils';
 import { PathOperations } from '../../../../utils/path-operations';
 import { PatternMatchingUtils } from '../../../../utils/pattern-matching-utils';
+import { ciConfigContent } from '../../../../utils/project-discovery';
 import { UnitTestAutomationStandardsConstants } from '../constants/automation';
 
 /**
@@ -79,23 +80,13 @@ export class UnitTestAutomationStandardsAnalyzerService {
     let hasCICDConfig = false;
     let hasAutomatedTests = false;
 
-    for (const configFile of UnitTestAutomationStandardsConstants.CICD_CONFIG_FILES) {
-      const filePath = PathOperations.join(projectRoot, configFile);
-
-      if (FileUtils.exists(filePath)) {
-        hasCICDConfig = true;
-
-        try {
-          const content = FileUtils.readFile(filePath, { encoding: 'utf8' });
-
-          if (UnitTestAutomationStandardsConstants.hasAutomatedTests(content)) {
-            hasAutomatedTests = true;
-            break;
-          }
-        } catch (_error) {
-          // Skip files that can't be read
-        }
-      }
+    // One CI discovery for the whole tool — see project-discovery. This kept a
+    // six-provider list of its own.
+    const pipelineText = ciConfigContent(projectRoot);
+    if (pipelineText) {
+      hasCICDConfig = true;
+      hasAutomatedTests =
+        UnitTestAutomationStandardsConstants.hasAutomatedTests(pipelineText);
     }
 
     return {

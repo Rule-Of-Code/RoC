@@ -170,27 +170,27 @@ describe('AuditCache — keyed by git state (#3b)', () => {
   it('HITS on the same branch + commit', () => {
     const dir = newRepo();
     commit(dir, 'a.txt', 'x', 'feat: seed');
-    AuditCache.set(dir, fakeResults, 'FH', 'CH');
-    expect(AuditCache.get(dir, 'FH', 'CH')).not.toBeNull();
+    AuditCache.set(dir, fakeResults, 'FH', 'CH', 'full');
+    expect(AuditCache.get(dir, 'FH', 'CH', 'full')).not.toBeNull();
   });
 
   it('MISSES after a branch switch (same files)', () => {
     const dir = newRepo();
     commit(dir, 'a.txt', 'x', 'feat: seed');
-    AuditCache.set(dir, fakeResults, 'FH', 'CH');
+    AuditCache.set(dir, fakeResults, 'FH', 'CH', 'full');
     execSync('git checkout -q -b feature/x', {
       cwd: dir,
       stdio: ['pipe', 'pipe', 'pipe'],
     });
-    expect(AuditCache.get(dir, 'FH', 'CH')).toBeNull();
+    expect(AuditCache.get(dir, 'FH', 'CH', 'full')).toBeNull();
   });
 
   it('MISSES after a new commit (HEAD moved)', () => {
     const dir = newRepo();
     commit(dir, 'a.txt', 'x', 'feat: seed');
-    AuditCache.set(dir, fakeResults, 'FH', 'CH');
+    AuditCache.set(dir, fakeResults, 'FH', 'CH', 'full');
     commit(dir, 'b.txt', 'y', 'feat: another');
-    expect(AuditCache.get(dir, 'FH', 'CH')).toBeNull();
+    expect(AuditCache.get(dir, 'FH', 'CH', 'full')).toBeNull();
   });
 });
 

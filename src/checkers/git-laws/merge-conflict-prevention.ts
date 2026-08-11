@@ -300,16 +300,28 @@ export class MergeConflictPreventionLaw extends GitLawBase {
         );
       }
 
-      // Check for ongoing merge
+      // NOT checked: the existence of `.git/MERGE_HEAD`.
+      //
+      // It answers "is this commit a merge", not "is there an unresolved
+      // conflict". `git merge` writes it the moment a real merge commit is
+      // needed and git removes it only AFTER `git commit` creates that commit —
+      // so during a pre-commit hook, which by definition runs before the commit
+      // exists, it is present on EVERY merge, for every user, with nothing
+      // unresolved. A repository wiring this law into pre-commit — which the
+      // law's own suggestion recommends — could not complete a local merge at
+      // all. A reporter hit it after resolving every marker and staging both
+      // files, with `git status` showing no `UU`.
+      //
+      // The real question is already answered twice above: literal conflict
+      // markers via `git grep`, and `UU`/`AA`/`DD` via `git status --porcelain`.
+      // A resolved-but-uncommitted merge is a working-tree state, not a
+      // conflict, and this check contradicted the two above it by design.
       const gitDir = PathOperations.join(projectRoot, '.git');
-      if (FileUtils.exists(PathOperations.join(gitDir, 'MERGE_HEAD'))) {
-        violations.push('Repository is in the middle of a merge');
-        suggestions.push(
-          'Complete or abort the ongoing merge: git merge --continue or git merge --abort'
-        );
-      }
 
-      // Check for rebase in progress
+      // The rebase check below is NOT the same case, verified rather than
+      // assumed: git removes `rebase-merge`/`rebase-apply` before the commit a
+      // `rebase --continue` creates, so a pre-commit hook there sees no rebase
+      // directory. It fires only on a rebase genuinely left in progress.
       if (
         FileUtils.exists(PathOperations.join(gitDir, 'rebase-merge')) ||
         FileUtils.exists(PathOperations.join(gitDir, 'rebase-apply'))

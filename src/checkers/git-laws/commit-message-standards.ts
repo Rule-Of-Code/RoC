@@ -74,7 +74,7 @@ export class CommitMessageStandardsLaw extends GitLawBase {
       // single configurable limit (maxCommitMessageLength) is the only authority,
       // so the format check and the length check can never disagree.
       const conventionalPattern =
-        /^(feat|fix|docs|style|refactor|test|chore|perf|build|ci|revert)(\(.+\))?: .+/;
+        /^(feat|fix|docs|style|refactor|test|chore|perf|build|ci|revert)(\(.+\))?!?: .+/;
 
       // Auto-generated commits we do NOT author: merge commits (incl. Bitbucket
       // "Merged in…" / GitHub "Merge pull request…"), reverts, and the initial

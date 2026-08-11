@@ -2,9 +2,11 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
+import { CodeDocumentationLaw } from '../../src/checkers/code-quality-laws/code-documentation';
 import { DeploymentLawBase } from '../../src/checkers/deployment-laws/deployment-law-base';
 import { HealthCheckMonitoringLaw } from '../../src/laws/deployment/health-check-monitoring';
 import { MdFooterTemplateLaw } from '../../src/laws/documentation/md-footer-template';
+import { CachingHeadersAnalyzerService } from '../../src/laws/performance/cdn-caching-strategy/services/caching-headers.analyzer';
 import { CiCdDetector } from '../../src/utils/ci-cd-detector';
 import { FileUtils } from '../../src/utils';
 import { hasCiConfig } from '../../src/utils/project-discovery';
@@ -232,6 +234,93 @@ describe('consumer batch 2', () => {
       write(file, 'steps: []\n');
 
       expect(hasCiConfig(root)).toBe(true);
+    });
+  });
+
+  /**
+   * Every prose line of a JSDoc block begins with `*`, which is neither `//`
+   * nor `/*`, so the per-line classifier counted it as code. A file with two
+   * full doc blocks measured 3.6% commented where the honest figure was 38%.
+   */
+  describe('comment ratio counts a JSDoc block as comment', () => {
+    const jsdocFile = [
+      '/**',
+      ' * The launch page.',
+      ' * Explains what it coordinates.',
+      ' */',
+      'export class LaunchPage {',
+      '  readonly ready = true;',
+      '}',
+    ].join('\n');
+
+    it('counts continuation lines as comments, not code', () => {
+      const counted = (
+        CodeDocumentationLaw as unknown as {
+          countLines: (c: string) => { codeLines: number; commentLines: number };
+        }
+      ).countLines(jsdocFile);
+
+      expect(counted.commentLines).toBe(4);
+      expect(counted.codeLines).toBe(3);
+    });
+
+    it('still counts ordinary code as code', () => {
+      const counted = (
+        CodeDocumentationLaw as unknown as {
+          countLines: (c: string) => { codeLines: number; commentLines: number };
+        }
+      ).countLines('const a = 1;\nconst b = 2;\n// one comment\n');
+
+      expect(counted.codeLines).toBe(2);
+      expect(counted.commentLines).toBe(1);
+    });
+
+    it('closes the block on the same line for /* … */', () => {
+      const counted = (
+        CodeDocumentationLaw as unknown as {
+          countLines: (c: string) => { codeLines: number; commentLines: number };
+        }
+      ).countLines('/* inline */\nconst a = 1;\n');
+
+      expect(counted.commentLines).toBe(1);
+      expect(counted.codeLines).toBe(1);
+    });
+  });
+
+  /**
+   * Firebase Hosting's `headers` entries hold an ARRAY of {key, value} — the
+   * only shape `firebase deploy` accepts. Indexing an array by a header name is
+   * undefined for every array, so no valid firebase.json could pass.
+   */
+  describe('Firebase caching headers are read as the array they are', () => {
+    const firebase = (headers: unknown): void =>
+      write('firebase.json', JSON.stringify({ hosting: { public: 'dist', headers } }));
+
+    it('detects Cache-Control declared in Firebase schema', () => {
+      firebase([
+        {
+          source: '**/*.@(js|css)',
+          headers: [
+            { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+          ],
+        },
+      ]);
+
+      expect(CachingHeadersAnalyzerService.analyze(root).configured).toBe(true);
+    });
+
+    it('still reports a config with no caching header at all', () => {
+      firebase([
+        { source: '**', headers: [{ key: 'X-Frame-Options', value: 'DENY' }] },
+      ]);
+
+      expect(CachingHeadersAnalyzerService.analyze(root).configured).toBe(false);
+    });
+
+    it('accepts the dictionary shape other hosts use', () => {
+      firebase([{ source: '**', headers: { 'Cache-Control': 'max-age=60' } }]);
+
+      expect(CachingHeadersAnalyzerService.analyze(root).configured).toBe(true);
     });
   });
 });

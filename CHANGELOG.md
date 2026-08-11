@@ -5,6 +5,138 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.18.1] - 2026-08-11
+
+Eleven consumer reports. **Four of them are against fixes that shipped in
+7.18.0** — that is the part worth reading first, and the reason this release
+exists a day later.
+
+A PATCH: every change here stops a law being wrong. Nothing changes for a
+project that was passing.
+
+### 🐛 Fixed — what 7.18.0 got wrong
+
+- **The footer rating broke on a bolded label.** The check was rewritten last
+  release to accept any declared scale, then proved against
+  `Investment Rating: A`. Real footers bold the label, and `Rating:` matches
+  *inside* the bold span — so the captured value was `** A` and every
+  letter-grade test failed on the asterisks rather than on the grade. 83 of one
+  reporter's 84 files. Emphasis markers are now stripped before the value is
+  judged. (#52)
+- **The health-check gate accepted a filename as evidence.** `projectIsAService`
+  returned true the moment a file named `health.ts` existed, with a comment
+  arguing this was a safeguard. It was the defect it claimed to prevent: a
+  browser client keeps its readiness probe — the code that calls
+  `GET /api/health` and reads the answer — in exactly such a file, and the law
+  then demanded an endpoint, a database connection and Kubernetes probes from a
+  PWA. The evidence is now serving: a web framework, a container that opens a
+  port, a Procfile `web:` entry, or a deployment manifest. "Any Python project
+  is a service" is gone too — that accused every Python CLI and library. (#50)
+- **i18n discovery was rooted, and could not have worked anywhere.** Last
+  release fixed how files inside translation directories are enumerated and
+  left the directory list root-relative, so an Nx workspace keeping catalogs
+  under `libs/**/i18n/locale/` had none. Worse: the file test paired
+  `getBasename` (strips the extension) with `isTranslationFile` (decides *by*
+  the extension), so `en.json` arrived as `en` and matched nothing — that
+  pairing could never return true, at any path, for any project. (#51)
+- **The shared CI module was the eighth copy of the list.** A consumer moved CI
+  to Google Cloud Build and six unrelated laws failed on the commit that removed
+  `bitbucket-pipelines.yml`. They traced it to one hardcoded list; there were
+  eight — five inline in laws, one in `DeploymentLawBase`, one in
+  `project-discovery`, and one in `CiCdDetector`, an already-existing shared
+  module whose own docstring says the constitution must not assume a single
+  vendor. `project-discovery` was added last release *as* the shared module
+  without noticing it. There is one list now. (#48)
+
+### ✨ Added — declare where your CI lives
+
+`pathMappings.cicdConfig` accepts a path or glob. A provider allowlist is
+incomplete by construction, and Google Cloud Build defeats it outright: the
+trigger names the config path, so there is no filename to add. A project can
+now say where its CI is instead of keeping a decoy pipeline file around to look
+compliant.
+
+```json
+"pathMappings": { "cicdConfig": "infra/cloudbuild/*.yaml" }
+```
+
+Optional. Nothing changes for a project that does not set it.
+
+### 🐛 Fixed — a crash reported as a clean result
+
+`isPerformanceTestFile` read `this.PATTERNS` and was handed to the file walker
+as a bare reference, so `this` was undefined and every call threw. The
+enclosing `catch` returned an empty result, which the law printed as **"No
+performance test files found"** — indistinguishable from a project that
+genuinely has none. The sibling API-testing call site already binds; this one
+was missed.
+
+The predicates no longer read `this` at all, so no call style can break them,
+and the `catch` rethrows `TypeError`/`ReferenceError` instead of reporting them
+as an answer. Filesystem errors stay swallowed — those are expected. (#49)
+
+### 🐛 Fixed — merge commits failed their own hook
+
+`merge-conflict-prevention` flagged a violation whenever `.git/MERGE_HEAD`
+existed. That file answers "is this commit a merge", not "is there an
+unresolved conflict": git writes it when a real merge commit is needed and
+removes it only *after* `git commit` creates that commit. A pre-commit hook runs
+before the commit exists by definition — so it was present on every merge, for
+every user, with nothing unresolved. A repository wiring this law into
+pre-commit, which the law's own suggestion recommends, could not complete a
+local merge at all.
+
+The two checks above it — conflict markers via `git grep`, and `UU`/`AA`/`DD`
+via `git status --porcelain` — already answer the real question and still fail a
+genuinely unresolved conflict. (#56)
+
+### 🐛 Fixed — the commit hook now enforces what the audit enforces
+
+Two ways the generated `commit-msg` hook disagreed with the law that scans
+history afterwards:
+
+- It never measured the **subject length**. A 77-character subject passed the
+  hook, landed in history, and then failed Commit Message Standards — at which
+  point fixing it means rewriting history. That is how a team arrives at
+  `--no-verify`. The hook now reads the same config key the law reads. (#46)
+- The pattern had no `!`, so `feat(events)!:` — the Conventional Commits
+  breaking-change marker, clause 11 of the spec summary — was refused. That
+  pushes an author to the footer form or to dropping the marker, and an unmarked
+  breaking change is the failure the convention exists to prevent. It also
+  erases the marker from `git log --oneline`, which is where a reviewer scans
+  for it. Added to the history law's pattern too. (#47)
+
+### 🐛 Fixed — three checks that could not read what was in front of them
+
+- **Firebase Hosting headers.** `hosting.headers[].headers` is an ARRAY of
+  `{key, value}` — the only shape `firebase deploy` accepts. Two analyzers read
+  it as a dictionary: `headers['Cache-Control']` is `undefined` for every array,
+  and `'Link' in headers` asks whether the array object has a property by that
+  name. Both were false for every `firebase.json` ever written, so no valid
+  config could pass. (#53)
+- **Comment ratio.** Lines were classified by their own prefix with no notion of
+  being inside a block, so every `*`-prefixed JSDoc continuation line counted as
+  *code*. A file carrying two full doc blocks measured 3.6% commented where the
+  honest figure was 38%, and the law then asked it for more documentation. (#54)
+- **Performance-test discovery** — see the crash above. (#49)
+
+### 🔒 Fixed — the results cache is keyed by audit mode
+
+The cache key was files + config + git state, with one cache file per project.
+None of those change with the mode, but the modes audit different law sets on
+purpose: `pre-commit` skips the three git-history laws, a Pareto run checks a
+subset. So a verdict computed under one mode could be served for another — and
+the direction that matters is a **narrower** `pre-commit` verdict answering a
+full audit: PASSED reported over laws nobody ran.
+
+Entries written before this release invalidate safely.
+
+This was found while investigating a report of a flapping `pre-commit` law
+count. It is a real hole, proven by construction — but it is **not** confirmed
+to be the cause of that report, which stays open. Their numbers do not fit a
+simple explanation: `full` reports 110 and `pre-commit` excludes exactly three
+laws, which should give 107, while they observe 106 and 108.
+
 ## [7.18.0] - 2026-08-09
 
 Sixteen consumer reports, closed together. The version is a **MINOR** for one

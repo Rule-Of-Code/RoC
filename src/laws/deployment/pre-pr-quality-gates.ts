@@ -1,7 +1,9 @@
+import type { RuleOfCodeConfig } from '../../config/types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { ProjectTypeDetectorValidation } from '../../utils/config/project-type-detector/project-type-detector-validation';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
+import { ciConfigContent } from '../../utils/project-discovery';
 import { DeploymentValidationUtilities } from './shared-deployment-utilities';
 // Interfaces for pre-PR quality gates analysis
 interface PreCommitHooksAnalysis {
@@ -68,7 +70,7 @@ export class PrePrQualityGatesLaw {
     }
 
     // 4. Check for required status checks configuration
-    const statusChecks = this.analyzeStatusChecks(projectRoot);
+    const statusChecks = this.analyzeStatusChecks(projectRoot, context.config);
     if (!statusChecks.hasRequiredStatusChecks) {
       violations.push('Missing required status checks configuration');
       suggestions.push(
@@ -261,29 +263,21 @@ export class PrePrQualityGatesLaw {
     }
   }
 
-  private static analyzeStatusChecks(projectRoot: string): {
+  private static analyzeStatusChecks(
+    projectRoot: string,
+    config?: RuleOfCodeConfig
+  ): {
     hasRequiredStatusChecks: boolean;
   } {
-    // Check for required status checks in CI/CD configuration
-    const cicdFiles = [
-      '.github/workflows/ci.yml',
-      '.github/workflows/ci.yaml',
-      '.github/workflows/pr.yml',
-      '.gitlab-ci.yml',
-      'bitbucket-pipelines.yml',
-      '.circleci/config.yml',
-      'azure-pipelines.yml',
-    ];
-
-    const statusCheckResult = DeploymentValidationUtilities.checkCICDFiles(
-      projectRoot,
-      cicdFiles,
-      content => this.hasStatusCheckConfiguration(content)
-    );
-
-    const hasRequiredStatusChecks = statusCheckResult.found;
-
-    return { hasRequiredStatusChecks };
+    // Shared discovery, over the COMBINED text of every CI config. The list
+    // here named GitHub workflows by exact filename (`ci.yml`, `pr.yml`), so a
+    // repository whose checks live in `gates.yml` had none as far as this law
+    // was concerned.
+    return {
+      hasRequiredStatusChecks: this.hasStatusCheckConfiguration(
+        ciConfigContent(projectRoot, config)
+      ),
+    };
   }
 
   private static analyzePRValidation(projectRoot: string): {

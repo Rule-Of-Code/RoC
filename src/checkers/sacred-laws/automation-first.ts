@@ -3,10 +3,12 @@
  * Automated processes over manual interventions
  */
 
+import type { RuleOfCodeConfig } from '../../config/types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { ProjectTypeDetectorValidation } from '../../utils/config/project-type-detector/project-type-detector-validation';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
+import { hasCiConfig } from '../../utils/project-discovery';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
 import { PackageJsonUtilities } from './package-json-utilities';
 import { SacredLawUtilities } from './shared-sacred-utilities';
@@ -17,7 +19,7 @@ export class AutomationFirstLaw {
     const suggestions: string[] = [];
 
     // Check for automated CI/CD
-    const cicdAnalysis = this.checkCICDAutomation(context.projectRoot);
+    const cicdAnalysis = this.checkCICDAutomation(context.projectRoot, context.config);
     violations.push(...cicdAnalysis.violations);
     suggestions.push(...cicdAnalysis.suggestions);
 
@@ -39,29 +41,23 @@ export class AutomationFirstLaw {
     );
   }
 
-  private static checkCICDAutomation(projectRoot: string): {
+  private static checkCICDAutomation(
+    projectRoot: string,
+    config?: RuleOfCodeConfig
+  ): {
     violations: string[];
     suggestions: string[];
   } {
     const violations: string[] = [];
     const suggestions: string[] = [];
 
-    // Check for CI/CD configuration
-    const cicdFiles = [
-      '.github/workflows',
-      '.gitlab-ci.yml',
-      'bitbucket-pipelines.yml',
-      'azure-pipelines.yml',
-      '.circleci/config.yml',
-    ];
-
-    const hasCICD = cicdFiles.some(file =>
-      FileUtils.exists(PathOperations.join(projectRoot, file))
-    );
+    // Shared discovery: this list was one of six private copies, and every one
+    // of them was missing a different provider.
+    const hasCICD = hasCiConfig(projectRoot, config);
 
     if (!hasCICD) {
       violations.push(
-        'No CI/CD automation detected in .github/workflows/ or bitbucket-pipelines.yml'
+        'No CI/CD automation detected. Declare pathMappings.cicdConfig if your CI config lives at a non-standard path.'
       );
       suggestions.push(
         'Set up automated CI/CD pipeline (GitHub Actions, GitLab CI, etc.)'

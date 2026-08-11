@@ -1,7 +1,9 @@
+import type { RuleOfCodeConfig } from '../../config/types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 import { PerformanceAnalysisService } from '../../utils/performance';
+import { ciConfigContent, ciConfigPaths } from '../../utils/project-discovery';
 interface PipelineAnalysis {
   hasPipeline: boolean;
   pipelineType: string;
@@ -85,7 +87,7 @@ export class CicdConstitutionalTribunalLaw {
     };
 
     // 1. Check for CI/CD pipeline files
-    const pipelineAnalysis = this.analyzeCICDPipelines(projectRoot);
+    const pipelineAnalysis = this.analyzeCICDPipelines(projectRoot, context.config);
     if (!pipelineAnalysis.hasPipeline) {
       violations.push('No CI/CD pipeline configuration found');
       suggestions.push(
@@ -184,40 +186,26 @@ export class CicdConstitutionalTribunalLaw {
     };
   }
 
-  private static analyzeCICDPipelines(projectRoot: string): PipelineAnalysis {
-    const pipelineFiles = [
-      '.github/workflows/ci.yml',
-      '.github/workflows/ci.yaml',
-      '.github/workflows/main.yml',
-      '.github/workflows/build.yml',
-      '.gitlab-ci.yml',
-      'azure-pipelines.yml',
-      'bitbucket-pipelines.yml',
-      'Jenkinsfile',
-      '.circleci/config.yml',
-      '.travis.yml',
-      'buildkite.yml',
-    ];
+  private static analyzeCICDPipelines(
+    projectRoot: string,
+    config?: RuleOfCodeConfig
+  ): PipelineAnalysis {
+    // Shared discovery. The list here was the narrowest of all six copies: it
+    // named GitHub workflow files by exact filename, so a repository whose
+    // workflow is `.github/workflows/gates.yml` had no pipeline at all.
+    const pipelineFiles = ciConfigPaths(projectRoot, config);
 
-    let hasPipeline = false;
-    let pipelineType = '';
-    let pipelineContent = '';
-
-    for (const filename of pipelineFiles) {
-      const filePath = PathOperations.join(projectRoot, filename);
-      if (FileUtils.exists(filePath)) {
-        hasPipeline = true;
-        pipelineType = filename;
-        try {
-          pipelineContent = FileUtils.readFile(filePath, { encoding: 'utf8' });
-        } catch (_error) {
-          // Skip files that can't be read
-        }
-        break;
-      }
-    }
-
-    return { hasPipeline, pipelineType, pipelineContent };
+    // Every pipeline file, not the first one found. The checks downstream ask
+    // whether the pipeline runs quality gates and security scanning — a repo
+    // that splits those across `gates.yaml` and `release.yaml` was judged on
+    // whichever happened to sort first, and failed for the contents of the other.
+    return {
+      hasPipeline: pipelineFiles.length > 0,
+      pipelineType: pipelineFiles
+        .map(p => PathOperations.getRelative(projectRoot, p))
+        .join(', '),
+      pipelineContent: ciConfigContent(projectRoot, config),
+    };
   }
 
   private static analyzeConstitutionalChecks(

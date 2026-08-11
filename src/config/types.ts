@@ -83,6 +83,18 @@ export interface RuleOfCodeConfig {
      * Nx example: 'apps/*\/src' or ['apps/client-app/src', 'apps/master-app/src']
      */
     srcRoot?: string | string[];
+
+    /**
+     * Where this project's CI/CD configuration actually lives.
+     *
+     * Provider detection is a filename allowlist, and an allowlist of providers
+     * is always incomplete — Google Cloud Build in particular puts the build
+     * config wherever the trigger's `--build-config=` flag points, so there is no
+     * path to guess. Declare it and the CI/CD laws stop guessing.
+     *
+     * Example: 'infra/cloudbuild/*.yaml' or ['ci/gates.yaml', 'ci/release.yaml']
+     */
+    cicdConfig?: string | string[];
   };
 
   /**

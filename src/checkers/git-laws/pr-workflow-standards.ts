@@ -7,8 +7,9 @@ import type { RuleOfCodeConfig } from '../../config/types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { ConfigFileUtils } from '../../utils/config-file-utils';
 import { FileUtils } from '../../utils/file-utils';
-import { PathOperations } from '../../utils/path-operations';
 import { CiCdDetector } from '../../utils/ci-cd-detector';
+import { PathOperations } from '../../utils/path-operations';
+import { hasCiConfig } from '../../utils/project-discovery';
 import { GitLawBase } from './git-law-base';
 
 export class PRWorkflowStandardsLaw extends GitLawBase {
@@ -42,7 +43,10 @@ export class PRWorkflowStandardsLaw extends GitLawBase {
     suggestions.push(...reviewAnalysis.suggestions);
 
     // Check for automated checks
-    const automationAnalysis = this.checkAutomatedChecks(context.projectRoot);
+    const automationAnalysis = this.checkAutomatedChecks(
+      context.projectRoot,
+      context.config
+    );
     violations.push(...automationAnalysis.violations);
     suggestions.push(...automationAnalysis.suggestions);
 
@@ -85,7 +89,7 @@ export class PRWorkflowStandardsLaw extends GitLawBase {
 
       // Check for CI/CD workflow configuration from ANY provider — GitHub
       // Actions, Bitbucket Pipelines, GitLab CI, … — not only GitHub.
-      if (!CiCdDetector.hasAnyCiConfig(projectRoot)) {
+      if (!CiCdDetector.hasAnyCiConfig(projectRoot, config)) {
         violations.push('No CI/CD workflows configured');
         suggestions.push(
           'Set up CI/CD workflows (GitHub Actions, Bitbucket Pipelines, GitLab CI, …) for automated PR checks'
@@ -154,7 +158,10 @@ export class PRWorkflowStandardsLaw extends GitLawBase {
     return { violations, suggestions };
   }
 
-  private static checkAutomatedChecks(projectRoot: string): {
+  private static checkAutomatedChecks(
+    projectRoot: string,
+    config?: RuleOfCodeConfig
+  ): {
     violations: string[];
     suggestions: string[];
   } {
@@ -199,18 +206,9 @@ export class PRWorkflowStandardsLaw extends GitLawBase {
       );
     }
 
-    // Check for CI configuration files
-    const ciFiles = [
-      '.github/workflows',
-      '.gitlab-ci.yml',
-      'bitbucket-pipelines.yml',
-      '.circleci/config.yml',
-      'azure-pipelines.yml',
-    ];
-
-    const hasCIConfig = ciFiles.some(file =>
-      FileUtils.exists(PathOperations.join(projectRoot, file))
-    );
+    // Shared discovery — see project-discovery. This was one of six private
+    // copies of the provider list, each missing something different.
+    const hasCIConfig = hasCiConfig(projectRoot, config);
 
     if (!hasCIConfig) {
       violations.push('No CI/CD configuration for automated PR checks');

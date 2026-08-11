@@ -167,6 +167,54 @@ export class CodeDocumentationLaw extends CodeQualityLawBase {
     return { classes, functions, documentedClasses, documentedFunctions };
   }
 
+  /**
+   * Split a file into comment lines and code lines, tracking block-comment
+   * state.
+   *
+   * Each line used to be classified by its own prefix, in isolation. A JSDoc
+   * block's continuation lines begin with `*` — not `//`, not `/*` — so every
+   * prose line of every doc block counted as CODE, and only the opening `/**`
+   * counted as a comment. A file carrying two full doc blocks measured 3.6%
+   * commented where the honest figure was 38%, and the law then asked it for
+   * more documentation. The metric could not see JSDoc written the way every
+   * TypeScript style guide recommends writing it.
+   */
+  private static countLines(content: string): {
+    codeLines: number;
+    commentLines: number;
+  } {
+    let codeLines = 0;
+    let commentLines = 0;
+    let inBlockComment = false;
+
+    for (const rawLine of content.split('\n')) {
+      const line = rawLine.trim();
+      if (!line) continue;
+
+      if (inBlockComment) {
+        commentLines++;
+        if (line.includes('*/')) inBlockComment = false;
+        continue;
+      }
+
+      if (line.startsWith('/*')) {
+        commentLines++;
+        // A single-line `/* … */` opens and closes on the same line.
+        if (!line.includes('*/')) inBlockComment = true;
+        continue;
+      }
+
+      if (line.startsWith('//')) {
+        commentLines++;
+        continue;
+      }
+
+      codeLines++;
+    }
+
+    return { codeLines, commentLines };
+  }
+
   private static checkCommentRatio(
     file: string,
     content: string,
@@ -174,26 +222,16 @@ export class CodeDocumentationLaw extends CodeQualityLawBase {
     violations: string[],
     context: LawCheckContext
   ): void {
-    const codeLines = content
-      .split('\n')
-      .filter(
-        line =>
-          line.trim() &&
-          !line.trim().startsWith('//') &&
-          !line.trim().startsWith('/*')
-      );
-    const commentLines = content
-      .split('\n')
-      .filter(line => line.trim().startsWith('//') || line.includes('/*'));
+    const { codeLines, commentLines } = this.countLines(content);
 
-    const commentRatio = commentLines.length / Math.max(codeLines.length, 1);
+    const commentRatio = commentLines / Math.max(codeLines, 1);
     const minRatio =
       (context.config.thresholds?.codeQuality?.minCommentRatioPercent ?? 10) /
       100;
     const minFileSize =
       context.config.thresholds?.codeQuality?.minFileSizeForComments ?? 50;
 
-    if (commentRatio < minRatio && codeLines.length > minFileSize) {
+    if (commentRatio < minRatio && codeLines > minFileSize) {
       const relativePath = file.replace(projectRoot, '').replace(/^\//g, '');
       const requiredPercent = (minRatio * 100).toFixed(0);
       violations.push(

@@ -267,8 +267,14 @@ ${steps}
       const types =
         commitConfig.conventionalTypes?.join('|') ||
         'feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert';
-      patterns.push(`^(${types})(\\([^)]+\\))?:\\s+.+$`);
+      patterns.push(`^(${types})(\\([^)]+\\))?!?:\\s+.+$`);
     }
+
+    // The SAME limit Commit Message Standards audits history against, read from
+    // the same config key — so the hook and the law agree by construction
+    // rather than by both happening to be configured correctly.
+    const maxSubjectLength =
+      config.thresholds?.git?.maxCommitMessageLength ?? 72;
 
     if (
       commitConfig.allowEmoji &&
@@ -289,7 +295,13 @@ ${steps}
     // If no patterns defined, use default conventional commits
     if (patterns.length === 0) {
       patterns.push(
-        '^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\\([^)]+\\))?:\\s+.+$'
+        // `!?` is the Conventional Commits v1.0.0 breaking-change marker
+        // (`feat(events)!: …`, summary clause 11). Refusing it pushed authors
+        // to the footer form or to dropping the marker — and a breaking change
+        // that is not marked is the failure the convention exists to prevent.
+        // It also erases the marker from `git log --oneline`, which is exactly
+        // where a reviewer scans for it.
+        '^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\\([^)]+\\))?!?:\\s+.+$'
       );
     }
 
@@ -354,6 +366,23 @@ if [ "$VALID" = false ]; then
     echo "$COMMIT_MSG"
     echo ""
     exit 1
+fi
+
+# --- Subject length — the same limit Commit Message Standards audits ---
+# The hook is what teaches the rule. Accepting a subject here and failing it in
+# the audit afterwards is the pattern that produces --no-verify: the commit is
+# already made, and fixing it means rewriting history. Anything the history scan
+# can fail a developer for, the hook fails them for BEFORE it becomes history.
+if [ "$EXEMPT" = false ]; then
+    SUBJECT_LEN=$(printf '%s' "$FIRST_LINE" | wc -c | tr -d ' ')
+    if [ "$SUBJECT_LEN" -gt ${maxSubjectLength} ]; then
+        echo "❌ Subject is $SUBJECT_LEN characters (max ${maxSubjectLength})."
+        echo ""
+        echo "$FIRST_LINE"
+        echo ""
+        echo "Shorten the subject; move the detail into the body."
+        exit 1
+    fi
 fi
 
 # --- Commit body (description) validation — Commit Description Standards ---

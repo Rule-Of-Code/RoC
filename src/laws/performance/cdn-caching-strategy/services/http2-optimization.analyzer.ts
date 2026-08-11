@@ -39,11 +39,10 @@ export class Http2OptimizationAnalyzerService extends PerformanceAnalyzerBase {
       if (typeof header === 'object' && header !== null) {
         const headerObj = header as Record<string, unknown>;
         const headerFields = headerObj.headers;
-        if (
-          typeof headerFields === 'object' &&
-          headerFields !== null &&
-          'Link' in headerFields
-        ) {
+        // `'Link' in someArray` asks for an index or a literal property named
+        // Link ON the array — never "does an element declare Link". It was
+        // false for every firebase.json ever written.
+        if (this.declaresAnyHeader(headerFields, ['Link'])) {
           return true;
         }
       }

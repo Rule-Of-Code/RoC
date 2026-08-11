@@ -142,7 +142,8 @@ export class RuleOfCodeAuditor {
       const cachedResult = AuditCache.get(
         this.projectRoot,
         filesHash,
-        configHash
+        configHash,
+        this.mode
       );
 
       if (cachedResult) {
@@ -228,7 +229,13 @@ export class RuleOfCodeAuditor {
       if (cacheEnabled) {
         const filesHash = AuditCache.generateFilesHash(this.getProjectFiles());
         const configHash = AuditCache.generateConfigHash(this.config);
-        AuditCache.set(this.projectRoot, auditResult, filesHash, configHash);
+        AuditCache.set(
+          this.projectRoot,
+          auditResult,
+          filesHash,
+          configHash,
+          this.mode
+        );
       }
 
       this.displayResults(auditResult);

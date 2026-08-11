@@ -22,6 +22,23 @@ export interface CacheEntry {
    * untouched. Empty string when the project is not a git repo.
    */
   gitState: string;
+
+  /**
+   * The audit MODE the cached verdict was computed under.
+   *
+   * Different modes deliberately audit different law sets — `pre-commit` skips
+   * the three git-history laws, and a Pareto run checks a subset. The key was
+   * files + config + git state, none of which change with the mode, and there is
+   * one cache file per project: so a `--mode=full` verdict could be served to a
+   * `--mode=pre-commit` run, and — the direction that matters — a deliberately
+   * NARROWER pre-commit verdict could be served as a full audit's answer. That
+   * is a disarmed gate wearing the word PASSED, which is the one failure this
+   * whole rule set exists to prevent.
+   *
+   * Entries written before this field existed have `mode === undefined`, which
+   * never equals a real mode string, so they invalidate safely.
+   */
+  mode: string;
 }
 
 export class AuditCache {
@@ -35,7 +52,8 @@ export class AuditCache {
   static get(
     projectRoot: string,
     filesHash: string,
-    configHash: string
+    configHash: string,
+    mode: string
   ): AuditResult | null {
     try {
       const cachePath = this.getCachePath(projectRoot);
@@ -66,6 +84,11 @@ export class AuditCache {
 
       if (cacheData.configHash !== configHash) {
         // Config changed
+        return null;
+      }
+
+      if (cacheData.mode !== mode) {
+        // A verdict computed under another mode audits a different law set.
         return null;
       }
 
@@ -100,7 +123,8 @@ export class AuditCache {
     projectRoot: string,
     results: AuditResult,
     filesHash: string,
-    configHash: string
+    configHash: string,
+    mode: string
   ): void {
     try {
       const cacheDir = PathOperations.join(projectRoot, this.CACHE_DIR);
@@ -123,6 +147,7 @@ export class AuditCache {
         filesHash,
         configHash,
         gitState: this.getGitState(projectRoot),
+        mode,
       };
 
       FileUtils.writeFile(cachePath, JSON.stringify(cacheEntry, null, 2));

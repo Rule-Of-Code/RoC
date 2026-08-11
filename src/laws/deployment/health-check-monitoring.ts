@@ -207,24 +207,21 @@ export class HealthCheckMonitoringLaw {
    * deployment manifest.
    */
   private static projectIsAService(projectRoot: string): boolean {
-    // A project that already carries health-check substrate has answered the
-    // question itself — judge it, do not excuse it. Skipping here would turn the
-    // fix for a client-shaped false positive into a blind spot for the very
-    // projects the law is for.
-    const healthFiles = [
-      this.HEALTH_TS_FILE,
-      this.HEALTH_CHECK_TS_FILE,
-      this.SERVICES_HEALTH_TS_FILE,
-      this.DATABASE_HEALTH_TS_FILE,
-      this.EXTERNAL_HEALTH_CHECK_TS_FILE,
-    ];
-    if (
-      healthFiles.some(f => FileUtils.exists(PathOperations.join(projectRoot, f)))
-    ) {
-      return true;
-    }
-
-    if (PythonSatisfaction.isPython(projectRoot)) return true;
+    // NOT a signal: a file named `health.ts`.
+    //
+    // This check used to return true the moment one existed, on the reasoning
+    // that a project carrying health-check substrate had answered the question
+    // itself. It had not. A browser client that calls `GET /api/health` and
+    // interprets the response keeps its readiness probe in exactly such a file —
+    // and was then told to expose an endpoint, own a database connection and
+    // declare Kubernetes probes, none of which a browser can do. The shortcut
+    // traded one false positive for another and wrote down the reasoning as if
+    // it were a safeguard.
+    //
+    // Every genuine service is still caught below, by evidence of serving: a web
+    // framework, a process declaration, a container that opens a port, or a
+    // deployment manifest.
+    if (this.hasPythonWebStack(projectRoot)) return true;
 
     const SERVER_DEPS = [
       'express',
@@ -258,8 +255,51 @@ export class HealthCheckMonitoringLaw {
       return true;
     }
 
+    // A Procfile declares long-running processes by name; a `web:` entry is a
+    // server by definition.
+    const procfile = PathOperations.join(projectRoot, 'Procfile');
+    if (
+      FileUtils.exists(procfile) &&
+      /^\s*web\s*:/im.test(FileUtils.readFile(procfile))
+    ) {
+      return true;
+    }
+
     return ['k8s', 'kubernetes', 'helm', 'deploy'].some(dir =>
       FileUtils.exists(PathOperations.join(projectRoot, dir))
+    );
+  }
+
+  /**
+   * A Python project that actually serves HTTP.
+   *
+   * `isPython()` alone used to stand in for this, which made every Python
+   * project a service — a CLI, a library, a batch job. The manifest names the
+   * web stack when there is one.
+   */
+  private static hasPythonWebStack(projectRoot: string): boolean {
+    if (!PythonSatisfaction.isPython(projectRoot)) return false;
+
+    // Read the manifests' CONTENT. `projectManifest()` returns the file name,
+    // not what is in it.
+    const manifests = [
+      'pyproject.toml',
+      'requirements.txt',
+      'requirements/base.txt',
+      'setup.py',
+      'setup.cfg',
+      'Pipfile',
+      'poetry.lock',
+    ];
+    const declared = manifests
+      .map(name => {
+        const path = PathOperations.join(projectRoot, name);
+        return FileUtils.exists(path) ? FileUtils.readFile(path) : '';
+      })
+      .join('\n');
+
+    return /\b(?:fastapi|flask|django|starlette|uvicorn|gunicorn|aiohttp|tornado|sanic|bottle|falcon|quart)\b/i.test(
+      declared
     );
   }
 

@@ -1,4 +1,5 @@
 import type { RuleOfCodeConfig } from '../../../config/types';
+import { ciConfigPaths as resolveCiConfigPaths } from '../../project-discovery';
 import { ProjectTypeDetectorValidation } from '../../config/project-type-detector/project-type-detector-validation';
 import { FileSystemOperations } from '../../file-system-operations';
 import { PythonSatisfaction } from '../../python-satisfaction';
@@ -24,7 +25,7 @@ export class AutomatedReviewToolsAnalyzerValidation {
     const analysisResults = this.analyzeProjectTools(projectRoot);
 
     this.checkLintingTools(analysisResults, violations, suggestions);
-    this.checkCIConfiguration(projectRoot, violations, suggestions);
+    this.checkCIConfiguration(projectRoot, violations, suggestions, _config);
     this.checkPreCommitHooks(projectRoot, violations, suggestions);
     this.checkCodeQualityIntegration(projectRoot, violations, suggestions);
 
@@ -114,13 +115,15 @@ export class AutomatedReviewToolsAnalyzerValidation {
   static checkCIConfiguration(
     projectRoot: string,
     violations: string[],
-    suggestions: string[]
+    suggestions: string[],
+    rocConfig?: RuleOfCodeConfig
   ): void {
     const config = AutomatedReviewToolsAnalyzerConfiguration.getCICDPatterns();
 
     const { hasCICD, hasReviewChecks } = this.analyzeCIConfiguration(
       projectRoot,
-      config.configPaths
+      config.configPaths,
+      rocConfig
     );
 
     if (!hasCICD) {
@@ -137,13 +140,22 @@ export class AutomatedReviewToolsAnalyzerValidation {
    */
   static analyzeCIConfiguration(
     projectRoot: string,
-    ciConfigPaths: string[]
+    legacyConfigPaths: string[],
+    rocConfig?: RuleOfCodeConfig
   ): { hasCICD: boolean; hasReviewChecks: boolean } {
+    // The shared discovery first — it knows every provider the tool knows, and
+    // it honours a project's declared config path. This analyzer kept its own
+    // provider list, so a repository whose CI the rest of the tool recognised
+    // was still told here that it had none.
+    const discovered = resolveCiConfigPaths(projectRoot, rocConfig);
+    const legacy = legacyConfigPaths.map(relative =>
+      PathOperations.join(projectRoot, relative)
+    );
+
     let hasCICD = false;
     let hasReviewChecks = false;
 
-    for (const ciPath of ciConfigPaths) {
-      const fullPath = PathOperations.join(projectRoot, ciPath);
+    for (const fullPath of new Set([...discovered, ...legacy])) {
       if (!FileUtils.exists(fullPath)) {
         continue;
       }

@@ -10,6 +10,7 @@ import { FileUtils } from '../../utils';
 import { CheckerUtils } from '../../utils/checker-utils';
 import { CodeNamingAnalyzer } from '../../utils/naming';
 import { PathOperations } from '../../utils/path-operations';
+import { ciConfigContent } from '../../utils/project-discovery';
 import { GitLawBase } from './git-law-base';
 
 export class FeatureBranchProtectionLaw extends GitLawBase {
@@ -155,47 +156,12 @@ export class FeatureBranchProtectionLaw extends GitLawBase {
       );
     }
 
-    // Check for CI/CD configuration that validates branches
-    const ciFiles = [
-      '.github/workflows',
-      '.gitlab-ci.yml',
-      'bitbucket-pipelines.yml',
-    ];
-
-    const hasBranchValidation = ciFiles.some(file => {
-      const filePath = PathOperations.join(projectRoot, file);
-      if (FileUtils.exists(filePath)) {
-        if (file.includes('workflows')) {
-          try {
-            const workflows = CheckerUtils.findFilesByExtension(
-              filePath,
-              ['yml', 'yaml'],
-              config
-            );
-            return workflows.some((workflow: string) => {
-              const workflowContent = FileUtils.readFile(
-                PathOperations.join(filePath, workflow)
-              );
-              return (
-                workflowContent.includes('branches:') ||
-                workflowContent.includes('pull_request') ||
-                workflowContent.includes('feature')
-              );
-            });
-          } catch (_error) {
-            return false;
-          }
-        } else {
-          try {
-            const content = FileUtils.readFile(filePath);
-            return content.includes('branch') || content.includes('feature');
-          } catch (_error) {
-            return false;
-          }
-        }
-      }
-      return false;
-    });
+    // One CI discovery for the whole tool: this kept a three-provider list, so
+    // a repository on any other provider — or with its config at a declared
+    // path — was told to configure something it already had.
+    const pipelineText = ciConfigContent(projectRoot, config);
+    const hasBranchValidation =
+      /branches:|pull_request|feature|branch/i.test(pipelineText);
 
     if (!hasBranchValidation) {
       suggestions.push('Configure CI/CD to run on feature branch pushes');

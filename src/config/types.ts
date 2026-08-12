@@ -593,33 +593,12 @@ export const DEFAULT_CONFIG: RuleOfCodeConfig = {
       '**/generate-icons.js',
       '**/logger.service.ts',
     ],
-    byRule: {
-      // 🛡️ RoC SELF-EXCLUSION from all constitutional laws
-      'build-integrity': [
-        `${CONSTITUTIONAL_PATHS.RULEOFCODE_PACKAGE}/**`,
-        `${CONSTITUTIONAL_PATHS.CONSTITUTIONAL_COMPLIANCE_PATTERN}/**`,
-      ],
-      'eslint-zero-warnings': [
-        `${CONSTITUTIONAL_PATHS.RULEOFCODE_PACKAGE}/**`,
-        `${CONSTITUTIONAL_PATHS.CONSTITUTIONAL_COMPLIANCE_PATTERN}/**`,
-      ],
-      'typescript-strict': [
-        `${CONSTITUTIONAL_PATHS.RULEOFCODE_PACKAGE}/**`,
-        `${CONSTITUTIONAL_PATHS.CONSTITUTIONAL_COMPLIANCE_PATTERN}/**`,
-      ],
-      'no-secrets': [
-        `${CONSTITUTIONAL_PATHS.RULEOFCODE_PACKAGE}/**`,
-        `${CONSTITUTIONAL_PATHS.CONSTITUTIONAL_COMPLIANCE_PATTERN}/**`,
-      ],
-      'ai-first-development': [
-        `${CONSTITUTIONAL_PATHS.RULEOFCODE_PACKAGE}/**`,
-        `${CONSTITUTIONAL_PATHS.CONSTITUTIONAL_COMPLIANCE_PATTERN}/**`,
-      ],
-      'sacred-metrics': [
-        `${CONSTITUTIONAL_PATHS.RULEOFCODE_PACKAGE}/**`,
-        `${CONSTITUTIONAL_PATHS.CONSTITUTIONAL_COMPLIANCE_PATTERN}/**`,
-      ],
-    },
+    // No byRule defaults. The six that lived here named no law — the keys are
+    // SLUGS, and these were category names — so they filtered nothing, silently,
+    // for as long as they existed. They were also redundant: the RoC self-
+    // exclusion they intended is applied unconditionally in
+    // FileFilterUtils.getIgnorePatterns.
+    byRule: {},
     tests: [
       '**/*.spec.ts',
       '**/*.spec.js',
@@ -650,13 +629,11 @@ export const DEFAULT_CONFIG: RuleOfCodeConfig = {
     // file-based law "passes" — fail-open by project shape. Consumers that
     // want a whitelist set includes.global themselves.
     global: [],
-    byRule: {
-      'business-logic': ['apps/**/services/**'],
-      'api-validation': ['apps/**/api/**'],
-      'ui-components': ['libs/**/ui/**'],
-      'firebase-rules': ['firestore.rules', 'firestore.emulator.rules'],
-      'stripe-integration': ['apps/**/payment/**', 'libs/**/payment/**'],
-    },
+    // Empty for the same reason as includes.global above: these five named no
+    // law either, and every one of them was an Nx-shaped path. Had the keys
+    // ever matched, they would have whitelisted a non-Nx project down to
+    // nothing — the exact failure the comment above describes.
+    byRule: {},
   },
 
   laws: {

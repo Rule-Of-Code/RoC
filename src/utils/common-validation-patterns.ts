@@ -3,6 +3,8 @@
  * Extracts shared violation and suggestion patterns used across multiple checkers
  */
 
+import { GitTagVersion } from './git-tag-version';
+
 /** Interface for file existence checking utilities */
 export interface FileExistsChecker {
   exists: (path: string) => boolean;
@@ -222,7 +224,13 @@ export class CommonValidationPatterns {
     violation?: string;
     suggestion?: string;
   } {
-    const semverPattern = /^\d+\.\d+\.\d+(-[a-zA-Z0-9.]+)?(\+[a-zA-Z0-9.]+)?$/;
-    return this.validatePattern(semverPattern, version, 'semantic version');
+    // One definition of SemVer for the whole tool. Four had accumulated, in
+    // four dialects; two of them belonged to laws that judge the same tags,
+    // which is how one defect came to need fixing twice.
+    return this.validatePattern(
+      GitTagVersion.semVerPattern(),
+      version,
+      'semantic version'
+    );
   }
 }

@@ -71,6 +71,36 @@ discovery. Two consequences worth knowing:
 - A file the analysis will never read cannot prove the substrate either. A test
   fixture describing Firestore code is a description, not a database.
 
+### 🐛 Fixed — a git tag is a ref, not a version string
+
+`release/v1.2.3` carries the version in its last segment; the namespace before
+it is what deployment triggers match on — a Cloud Build `tag: ^release/v.*$`,
+a GitHub Actions `on.push.tags: 'release/v*'`. Two laws tested the **whole
+ref** against SemVer, so every namespaced release tag failed on its namespace
+alone, however correct the version inside it.
+
+The advice was the sharper half: *"Use semantic version tags: v1.2.3 or
+1.2.3"* — a rename that would disconnect a release from the pipeline that
+deploys it. The namespaced form is now named as acceptable in both laws'
+suggestions.
+
+A third site went unreported and is fixed with them: **tag-prefix
+consistency** read the whole ref too, so `release/v1.2.3` was not
+"v-prefixed". A project moving its tags under a namespace was told it was
+inconsistent with itself while every one of its tags was v-prefixed.
+
+A fourth surfaced while proving the third: a tag carrying **no** version —
+`nightly` — produced *"package.json version (0.1.0) is behind the latest git
+tag (nightly) — bump it"*. You cannot be behind a tag that names no version,
+and the tag's format is already reported by the check beside it.
+
+The root cause is the reason two issues were needed for one defect: the two
+laws held **their own copies** of the same rule. Four copies of the SemVer
+grammar had accumulated across the tool, in dialects that disagreed at the
+edges. There is one definition now — SemVer 2.0.0 as specified, including the
+no-leading-zeros rule for numeric prerelease identifiers. `1.2.3-01` is
+rejected where the loosest of the four accepted it.
+
 ### 🐛 Fixed — declared budgets count as a bundle-size policy
 
 `bundle-optimization-strategy-policy` demanded a webpack-era analyzer from

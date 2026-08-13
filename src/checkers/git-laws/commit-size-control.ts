@@ -84,8 +84,19 @@ export class CommitSizeControlLaw extends GitLawBase {
     const maxLines = git?.maxLinesPerCommit ?? 500;
 
     try {
+      // `--no-merges`, so the sample means what the message says it does.
+      //
+      // `git log --stat` prints NO diffstat for a merge commit — the subject
+      // line appears with no stat block under it. A merge therefore measured as
+      // zero files and could never be oversized, while still occupying a slot
+      // in the fixed window. On a gitflow repository one release cycle produces
+      // three of them, so the law inspected seven commits and reported "of the
+      // last 10" — the sample narrowed exactly when activity was highest.
+      //
+      // Excluding them is also the honest scope: this law is about the size of
+      // an AUTHORED change, and a merge is composed by git.
       const commitStats = execSync(
-        'git log --oneline --stat --since="1 week ago" -n 10',
+        'git log --oneline --stat --no-merges --since="1 week ago" -n 10',
         {
           cwd: projectRoot,
           encoding: 'utf8',
@@ -106,7 +117,7 @@ export class CommitSizeControlLaw extends GitLawBase {
 
       if (oversized > 0) {
         violations.push(
-          `${oversized} of the last ${summaries.length} commits exceed the size limit (>${maxFiles} files or >${maxLines} lines changed)`
+          `${oversized} of the last ${summaries.length} authored commits exceed the size limit (>${maxFiles} files or >${maxLines} lines changed)`
         );
         suggestions.push(
           `Keep commits atomic: under ${maxFiles} files and ${maxLines} changed lines each`

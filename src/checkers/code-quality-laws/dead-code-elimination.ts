@@ -27,7 +27,8 @@ export class DeadCodeEliminationLaw extends CodeQualityLawBase {
     // Analyze code for dead imports and variables
     const deadCodeAnalysis = this.analyzeDeadCode(
       context.projectRoot,
-      context.config
+      context.config,
+      context.lawId
     );
     violations.push(...deadCodeAnalysis.violations);
     suggestions.push(...deadCodeAnalysis.suggestions);
@@ -85,14 +86,15 @@ export class DeadCodeEliminationLaw extends CodeQualityLawBase {
 
   private static analyzeDeadCode(
     projectRoot: string,
-    config: RuleOfCodeConfig
+    config: RuleOfCodeConfig,
+    lawId?: string
   ): { violations: string[]; suggestions: string[] } {
     const violations: string[] = [];
     const suggestions: string[] = [];
 
     const codeFiles = DeadCodeEliminationLaw.findCodeFilesForAnalysis(
       projectRoot,
-      { projectRoot, config } as LawCheckContext
+      { projectRoot, config, lawId } as LawCheckContext
     );
     let deadCodeCount = 0;
 

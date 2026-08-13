@@ -22,7 +22,8 @@ export class MagicNumberPreventionLaw extends CodeQualityLawBase {
     // Analyze code for magic numbers
     const magicNumberAnalysis = this.analyzeMagicNumbers(
       context.projectRoot,
-      context.config
+      context.config,
+      context.lawId
     );
     violations.push(...magicNumberAnalysis.violations);
     suggestions.push(...magicNumberAnalysis.suggestions);
@@ -72,14 +73,15 @@ export class MagicNumberPreventionLaw extends CodeQualityLawBase {
 
   private static analyzeMagicNumbers(
     projectRoot: string,
-    config: RuleOfCodeConfig
+    config: RuleOfCodeConfig,
+    lawId?: string
   ): { violations: string[]; suggestions: string[] } {
     const violations: string[] = [];
     const suggestions: string[] = [];
 
     const codeFiles = MagicNumberPreventionLaw.findCodeFilesForAnalysis(
       projectRoot,
-      { projectRoot, config } as LawCheckContext
+      { projectRoot, config, lawId } as LawCheckContext
     );
     let magicNumberFiles = 0;
 
@@ -207,14 +209,42 @@ export class MagicNumberPreventionLaw extends CodeQualityLawBase {
     const acceptablePatterns = [
       /version.*\d+\.\d+/i,
       /\d+\.\d+\.\d+/, // Semantic version
-      /port.*\d+/i,
+      // Word-bounded: `/port/i` alone also matched exPORT, imPORT and supPORT,
+      // which is why the window around the literal had to be kept tight rather
+      // than the pattern made correct.
+      /\bport\b.*\d+/i,
       /timeout.*\d+/i,
       /delay.*\d+/i,
       /duration.*\d+/i,
       /\d{4}[-/]\d{1,2}[-/]\d{1,2}/, // Dates
-      /http.*:\d+/, // URLs with ports
-      /px|em|rem|%/, // CSS units
-      /ms|s\b/, // Time units
+      // The TIME half of an ISO 8601 datetime. The date pattern above exempts
+      // `2026-08-15` and, because the window is only searched, the hour that
+      // follows the `T` — but the minute and second sit past it with nothing
+      // on either side to match, so `:30:00` reported `30` and `00` as magic
+      // numbers. Splitting a datetime literal into named per-component
+      // constants is not a readability gain; it is standard syntax.
+      /\d{1,2}:\d{2}(?::\d{2})?/, // Times, including the HH:MM:SS of an ISO datetime
+      // A port in a URL. `/http.*:\d+/` alone needs the scheme inside the ±10
+      // character window, which it usually is not — `'http://host:8080'` puts
+      // it out of reach. That case was passing only because the old, too-broad
+      // time-unit pattern matched the `s` in "host"; narrowing that one exposed
+      // this. The authority is the `//` before the authority component.
+      /http.*:\d+/,
+      // `host:port` followed by a path or the end of the string. The scheme is
+      // usually outside the ±10 character window — `'ws://localhost:4200/ws'`
+      // puts it well out of reach — so the port is recognised by its own shape
+      // instead. The trailing delimiter is what keeps this from exempting a
+      // tightly-written object property such as `{retries:5000}`.
+      /[a-z0-9.\-]+:\d{2,5}(?:[/'"`]|$)/i,
+      // A unit is a SUFFIX OF A NUMBER, not a substring of a nearby word.
+      //
+      // These read `/px|em|rem|%/` and `/ms|s\b/`, which matched anywhere in the
+      // window: `em` inside "element", "item", "system"; `ms` inside "items",
+      // "params"; and `s\b` at the end of any plural at all. So
+      // `{ timeout: 30000, retries: 5 }` exempted 30000 — because of the `s` in
+      // "retries". The law went quiet next to ordinary English.
+      /\d+\s*(?:px|em|rem|vh|vw|%)/, // CSS units
+      /\d+\s*m?s\b/, // Time units: 300ms, 30s
       /max.*age/i, // maxAge configurations
     ];
 

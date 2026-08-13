@@ -30,10 +30,14 @@ export abstract class CodeQualityLawBase {
     projectRoot: string,
     context: LawCheckContext
   ): string[] {
+    // The law id is passed so `ignores.byRule` keyed by that id resolves as
+    // well as the readable slug the registry publishes. Without it only the
+    // slug form worked, and the id form silently filtered nothing.
     return CheckerUtils.findFilesByExtension(
       projectRoot,
       ['ts', 'js', 'tsx', 'jsx'],
-      context.config
+      context.config,
+      context.lawId
     );
   }
 

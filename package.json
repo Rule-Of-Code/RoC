@@ -78,6 +78,11 @@
     "inquirer": "^8.2.6",
     "semver": "^7.5.4"
   },
+  "overrides": {
+    "eslint-plugin-sonarjs": {
+      "minimatch": "^10.2.6"
+    }
+  },
   "devDependencies": {
     "@commitlint/cli": "^18.0.0",
     "@types/fs-extra": "^11.0.4",

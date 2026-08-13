@@ -16,9 +16,11 @@ describe('DatabaseQueryOptimizationLaw', () => {
 
   beforeEach(() => {
     tempDir = FileUtils.createTempDirectory('database-query-opt-law-test-');
-    // The law analyzes JS/TS query code against a database layer. Give every
-    // fixture both (the Firestore client + a TS source), so the substrate
-    // exists and the analysis runs; the two N/A cases have their own blocks.
+    // The law analyzes JS/TS query code against a database layer. The substrate
+    // is USE, not a dependency name: give every fixture a source file that
+    // actually opens Firestore, so the analysis runs. The N/A cases — including
+    // a project that depends on `firebase` but only signs users in — have their
+    // own blocks.
     FileUtils.writeFile(
       PathOperations.join(tempDir, 'package.json'),
       JSON.stringify(
@@ -33,7 +35,7 @@ describe('DatabaseQueryOptimizationLaw', () => {
     FileUtils.createDirectory(PathOperations.join(tempDir, 'src', 'app'));
     FileUtils.writeFile(
       PathOperations.join(tempDir, 'src', 'app', 'data.ts'),
-      'export const data = 1;\n'
+      "import { getFirestore } from 'firebase/firestore';\n\nexport const db = getFirestore();\n"
     );
     mockContext = {
       projectRoot: tempDir,
@@ -67,7 +69,7 @@ describe('DatabaseQueryOptimizationLaw', () => {
         performance: {
           parallel: true,
           maxConcurrent: 4,
-          cache: true,
+          cache: true,
         },
       },
     };

@@ -58,7 +58,6 @@
       "environment-parity-standards": "warning",
       "dependency-security-scanning": "warning",
       "performance-monitoring-standards": "warning",
-      "extended-performance-monitoring-standards": "warning",
       "memory-leak-prevention": "warning",
       "database-query-optimization": "warning",
       "health-check-monitoring": "warning",

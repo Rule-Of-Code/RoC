@@ -10,7 +10,7 @@ const path = require('path');
 const OUTPUT_FILE = 'ROC-RECOMMENDED.ruleofcode.config.json';
 
 /** Laws applicable per stack — kept in sync with the registry by a unit test. */
-const APPLICABLE_LAWS = { python: 100, frontend: 136, node: 78 };
+const APPLICABLE_LAWS = { python: 99, frontend: 132, node: 77 };
 
 function readJson(file) {
   try {

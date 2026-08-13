@@ -91,7 +91,7 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Measures NO actual Core Web Vitals despite the name — it is pure file/config presence, and Lighthouse is presence-only here (no threshold read).',
       'Resource hints are detected by a raw string search of index.html; browser-only.',
-      'Runs the SAME detector as "Extended Core Web Vitals Compliance" (a duplicate law entry); no Python path, so a backend fails all six.',
+      'No Python path, so a backend fails all six sub-checks.',
     ],
     stack: 'frontend',
     emoji: '🎯',
@@ -124,7 +124,7 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'All config-file heuristics (angular.json / package.json / project.json via includes/regex) — it measures nothing.',
       'The Nx fallback walks only apps/* (not libs/*) for the minification / critical-css / vendor checks.',
-      'Runs the SAME detector as "Advanced Bundle Optimization Policy" (a duplicate law entry); Angular-centric, no Python path — a backend fails all six.',
+      'Angular-centric, with no Python path — a backend fails all six sub-checks.',
     ],
     stack: 'frontend',
     emoji: '🚀',
@@ -346,104 +346,5 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article VI.6.10: Performance budget exceeded',
     remediation: 'Optimize assets and code to meet performance budgets',
-  },
-
-  {
-    id: generateLawId(
-      'Extended Core Web Vitals Compliance',
-      'Ensures performance meets Google Core Web Vitals standards',
-      'performance'
-    ),
-    legacyId: 65,
-    section: '10',
-    subsection: '10.6',
-    title: 'Extended Core Web Vitals Compliance',
-    rationale:
-      'Core Web Vitals — LCP, CLS, INP — are how Google and your users measure whether the page feels fast. This law asks for the setup that keeps them green: budgets, lazy-loading, caching, resource hints.',
-    satisfiedBy: { angular: 'Set performance budgets, lazy-load, add a service worker / caching, image optimization and resource hints in index.html; track web-vitals.' },
-    detectionLimits: [
-      'A REDUNDANT law entry — it runs the exact same detector as "Core Web Vitals Compliance", with the same result.',
-      'Measures no actual Core Web Vitals; pure file/config presence, Lighthouse presence-only.',
-      'Browser-only; no Python path, so a backend fails all six.',
-    ],
-    stack: 'frontend',
-    emoji: '🎯',
-    description: 'Ensures performance meets Google Core Web Vitals standards',
-    priority: 'HIGH',
-    category: 'PERFORMANCE',
-    automation: 'AUTOMATED',
-    defaultEnabled: true,
-    defaultSeverity: 'error',
-    checkFunction: 'checkCoreWebVitalsCompliance',
-    violationMessage:
-      'CONSTITUTIONAL VIOLATION Section 10.6: Core Web Vitals standards not met',
-    remediation:
-      'Implement performance monitoring, Lighthouse config, bundle analysis, resource hints, service workers, and image optimization',
-  },
-
-  {
-    id: generateLawId(
-      'Advanced Bundle Optimization Policy',
-      'Ensures optimal BundleSizeAnalyzer and loading strategies',
-      'performance'
-    ),
-    legacyId: 66,
-    section: '10',
-    subsection: '10.7',
-    title: 'Advanced Bundle Optimization Policy',
-    rationale:
-      'Shipping one giant bundle means the user downloads the checkout page to see the home page. A real optimization strategy — code-splitting, tree-shaking, vendor chunking — sends only what each route needs.',
-    satisfiedBy: { angular: 'Code-split with lazy routes and dynamic import(), enable tree-shaking, and configure vendor / critical-css chunking in angular.json.' },
-    detectionLimits: [
-      'A REDUNDANT law entry — it runs the exact same detector as "Bundle Optimization Strategy Policy", with the same result.',
-      'All config-file heuristics; it measures no actual bundle size; the Nx fallback covers only apps/*.',
-      'Angular-centric; no Python path, so a backend fails all six.',
-    ],
-    stack: 'frontend',
-    emoji: '📦',
-    description:
-      'BundleSizeAnalyzer: Ensures optimal bundle size and loading strategies',
-    priority: 'HIGH',
-    category: 'PERFORMANCE',
-    automation: 'AUTOMATED',
-    defaultEnabled: true,
-    defaultSeverity: 'error',
-    checkFunction: 'checkBundleOptimizationStrategy',
-    violationMessage:
-      'CONSTITUTIONAL VIOLATION Section 10.7: Bundle optimization strategy incomplete',
-    remediation:
-      'Configure code splitting, tree shaking, bundle analyzer, minification, compression, and critical CSS extraction',
-  },
-
-  {
-    id: generateLawId(
-      'Extended Performance Monitoring Standards',
-      'Ensures comprehensive performance monitoring is in place',
-      'performance'
-    ),
-    legacyId: 68,
-    section: '10',
-    subsection: '10.8',
-    title: 'Extended Performance Monitoring Standards',
-    rationale:
-      'A bot trading real money had a metric named unauthorized_401 that fed nothing and zero alert policies — it could have died silently while its dashboard looked green. Monitoring you never wire to an alert is decoration; the alert is the law.',
-    satisfiedBy: { angular: 'Wire RUM (web-vitals) and a Lighthouse budget in CI so a regression fails the build.', python: 'Export metrics (Prometheus / OpenTelemetry) AND define alerting rules that actually fire on latency and error-rate — not just a dashboard.' },
-    detectionLimits: [
-      'A REDUNDANT law entry — it runs the exact same detector as "Performance Monitoring Standards".',
-      'RUM, Core Web Vitals and a Lighthouse budget are checked only for a browser-facing project; a backend is judged on APM / metrics / alerting instead.',
-      'Presence, not proof: it verifies an integration is wired in, not that an alert would actually fire.',
-    ],
-    emoji: '📊',
-    description: 'Ensures comprehensive performance monitoring is in place',
-    priority: 'MEDIUM',
-    category: 'PERFORMANCE',
-    automation: 'AUTOMATED',
-    defaultEnabled: true,
-    defaultSeverity: 'warning',
-    checkFunction: 'checkPerformanceMonitoringStandards',
-    violationMessage:
-      'CONSTITUTIONAL VIOLATION Section 10.8: Performance monitoring standards not implemented',
-    remediation:
-      'Integrate monitoring tools, configure RUM, set performance budgets, build monitoring, error tracking, and alerts',
   },
 ];

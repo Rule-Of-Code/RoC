@@ -242,22 +242,22 @@ export class LaunchReadinessChecklistLaw {
     // Check for security review documentation
     let hasSecurityReview = false;
 
+    // SECURITY.md first: it is the convention the host itself recognises —
+    // GitHub surfaces it as THE security policy — and it is where a project
+    // writes exactly what this check asks for (disclosure process, audit
+    // results, accepted risks, enforced gates). Six exact filenames, none of
+    // them the standard one, meant a repository with a real policy lost the
+    // points for not having guessed our spelling.
     const securityFiles = [
+      'SECURITY.md',
       'SECURITY_REVIEW.md',
-      'docs/SECURITY_REVIEW.md',
       'security-audit.md',
-      'docs/security/audit-report.md',
       'SECURITY_AUDIT_REPORT.md',
       'security/review-checklist.md',
+      'security/audit-report.md',
     ];
 
-    for (const securityFile of securityFiles) {
-      const filePath = PathOperations.join(projectRoot, securityFile);
-      if (FileUtils.exists(filePath)) {
-        hasSecurityReview = true;
-        break;
-      }
-    }
+    hasSecurityReview = this.hasDocumentNamed(projectRoot, securityFiles);
 
     // Check for security scanning configuration
     if (!hasSecurityReview) {
@@ -279,27 +279,58 @@ export class LaunchReadinessChecklistLaw {
     return { hasSecurityReview };
   }
 
+  /**
+   * Is there a document or config with one of these names, anywhere?
+   *
+   * Matched by trailing path rather than by an exact join onto the project
+   * root, which is what the launch-checklist check three methods up already
+   * does. The exact-path form judged a project on whether it had guessed the
+   * directory we happened to write down.
+   */
+  private static hasDocumentNamed(
+    projectRoot: string,
+    names: readonly string[]
+  ): boolean {
+    const { glob } = require('glob');
+    const candidates: string[] = glob.sync('**/*.{md,yml,yaml,json,js,ts}', {
+      cwd: projectRoot,
+      ignore: [
+        '**/node_modules/**',
+        '**/dist/**',
+        '**/.nx/**',
+        '**/.angular/**',
+      ],
+    });
+
+    return candidates.some(file => {
+      const normalized = file.replace(/\\/g, '/');
+      return names.some(
+        name => normalized === name || normalized.endsWith(`/${name}`)
+      );
+    });
+  }
+
   private static analyzeMonitoringReadiness(projectRoot: string): {
     hasMonitoringReadiness: boolean;
   } {
     // Check for monitoring and alerting readiness
     let hasMonitoringReadiness = false;
 
+    // A first-party config counts. The list was eight vendor-shaped paths —
+    // Docker, Kubernetes, Prometheus — so a project that configures its own
+    // thresholds, error tracking and alert channels in a plain module had no
+    // monitoring at all as far as this check could see.
     const monitoringFiles = [
       'MONITORING_CHECKLIST.md',
-      'docs/MONITORING_CHECKLIST.md',
       'monitoring/alerts.yml',
       'monitoring/dashboards.json',
       'alert-rules.yml',
+      'monitoring.config.js',
+      'monitoring.config.ts',
+      'monitoring.config.json',
     ];
 
-    for (const monitoringFile of monitoringFiles) {
-      const filePath = PathOperations.join(projectRoot, monitoringFile);
-      if (FileUtils.exists(filePath)) {
-        hasMonitoringReadiness = true;
-        break;
-      }
-    }
+    hasMonitoringReadiness = this.hasDocumentNamed(projectRoot, monitoringFiles);
 
     // Check for monitoring configuration in other files
     if (!hasMonitoringReadiness) {

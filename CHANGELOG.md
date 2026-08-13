@@ -5,6 +5,122 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.19.0] - 2026-08-13
+
+**Read this before upgrading. Three changes move numbers you may have written
+into your config.** None of them is a defect in your project; all three will
+look like one if the note is not read.
+
+**1. The law count drops by four.** Four laws were duplicates of laws that
+remain — two entries running one detector, unable to disagree. They are
+retired:
+
+| retired | the law that remains |
+| --- | --- |
+| Advanced Bundle Optimization Policy | Bundle Optimization Strategy Policy |
+| Extended Core Web Vitals Compliance | Core Web Vitals Compliance |
+| NgRx State Structure Patterns | NgRx State Normalization Mandate |
+| Extended Performance Monitoring Standards | Performance Monitoring Standards |
+
+Applicable laws per stack: **frontend 136 → 132 · python 100 → 99 · node 78 →
+77**. If your `laws.minLawsChecked` equals the count you see today, the audit
+will refuse to report — correctly, because it can no longer prove the floor.
+**Lower it by the same amount.** The number to set it against is printed on
+every run: `of which count for the liveness floor: N`.
+
+**2. Those four names, if they appear in your config, are now dead keys.**
+A key in `laws.severity` or `laws.notApplicable` that resolves to no law gates
+nothing, and Config Integrity Guard reports it — by design, since a config that
+looks strict while being disarmed is the failure this tool exists to prevent.
+Remove the retired names. Our own config and both recommended templates carried
+them; that is how we found this half.
+
+**3. Magic Number Prevention reports more, because it was over-exempting.**
+The unit patterns matched a substring of any nearby word: `em` inside
+"element", `ms` inside "params", `s` at the end of any plural. `arr.slice(0,
+250)` was silently exempt because of the "s" in "items". On this repository
+alone the finding count went from 114 to 125. Those are not new violations —
+they were always there.
+
+### 🐛 Fixed — four duplicate laws retired
+
+One pair was reported. Sweeping for the shape found four, and all four were
+already declared in our own `detectionLimits` as redundant: written down
+instead of fixed. Each pair was verified empirically — both laws run against
+one project, results compared — not by reading the descriptions.
+
+The dilution was not cosmetic. The liveness floor is measured against the
+number of laws that ran, so a duplicate raised the floor a project trusted
+above the number of distinct checks protecting it.
+
+### 🐛 Fixed — a database layer is proved by use, not by a dependency name
+
+`database-query-optimization` tested a regex against the raw text of the
+manifest. `firebase` is a meta-package covering Auth, Analytics, Messaging and
+more, and the substring also matched unrelated packages such as
+`@capacitor-firebase/authentication`. A client that only ever calls
+`initializeApp()` and a sign-in method was told to add composite indexes, query
+batching and cursor pagination for a database it never opens.
+
+Evidence is now an actual import — `from '…'`, `require('…')`, `import('…')` —
+or a call that opens a connection, read through the project's own file
+discovery. Two consequences worth knowing:
+
+- A module name that is merely **listed** proves nothing. A dependency-audit
+  script naming `mongoose` is not a database layer.
+- A file the analysis will never read cannot prove the substrate either. A test
+  fixture describing Firestore code is a description, not a database.
+
+### 🐛 Fixed — a git tag is a ref, not a version string
+
+`release/v1.2.3` carries the version in its last segment; the namespace before
+it is what deployment triggers match on — a Cloud Build `tag: ^release/v.*$`,
+a GitHub Actions `on.push.tags: 'release/v*'`. Two laws tested the **whole
+ref** against SemVer, so every namespaced release tag failed on its namespace
+alone, however correct the version inside it.
+
+The advice was the sharper half: *"Use semantic version tags: v1.2.3 or
+1.2.3"* — a rename that would disconnect a release from the pipeline that
+deploys it. The namespaced form is now named as acceptable in both laws'
+suggestions.
+
+A third site went unreported and is fixed with them: **tag-prefix
+consistency** read the whole ref too, so `release/v1.2.3` was not
+"v-prefixed". A project moving its tags under a namespace was told it was
+inconsistent with itself while every one of its tags was v-prefixed.
+
+A fourth surfaced while proving the third: a tag carrying **no** version —
+`nightly` — produced *"package.json version (0.1.0) is behind the latest git
+tag (nightly) — bump it"*. You cannot be behind a tag that names no version,
+and the tag's format is already reported by the check beside it.
+
+The root cause is the reason two issues were needed for one defect: the two
+laws held **their own copies** of the same rule. Four copies of the SemVer
+grammar had accumulated across the tool, in dialects that disagreed at the
+edges. There is one definition now — SemVer 2.0.0 as specified, including the
+no-leading-zeros rule for numeric prerelease identifiers. `1.2.3-01` is
+rejected where the loosest of the four accepted it.
+
+### 🐛 Fixed — declared budgets count as a bundle-size policy
+
+`bundle-optimization-strategy-policy` demanded a webpack-era analyzer from
+projects that have no webpack. On the esbuild builder there is nothing to
+install and no reason to install it — vendor splitting is automatic — so no
+configuration both satisfied the law and stayed correct for the toolchain.
+
+Budgets declared in the build configuration are now accepted: they are a
+bundle-size policy, and an enforced one, since the build fails on them. The
+analyzers for esbuild, rollup, vite and Next.js are recognised alongside
+webpack's.
+
+### 🔒 Security
+
+`minimatch` reached the audit through a lint plugin at a version with three
+ReDoS advisories. Pinned via an override; `npm audit` reports zero
+vulnerabilities. Nothing changes for you: it is a development dependency, and
+the tarball ships no dependency tree — the `overrides` declaration appears in
+the published `package.json` but npm honours only the root project's.
+
 ## [7.18.2] - 2026-08-11
 
 Four consumer reports, every one of them a follow-up to a fix we closed while

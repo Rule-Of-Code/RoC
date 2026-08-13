@@ -556,7 +556,7 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
       'Deeply nested or duplicated state is where an update forgets a copy and the UI shows two different truths. Normalized state — entities by id — makes every update land in exactly one place.',
     satisfiedBy: { angular: 'Use @ngrx/entity (or an id-keyed map) for collections; keep state flat and derive nesting with selectors.' },
     detectionLimits: [
-      'Runs the SAME detector as "NgRx State Structure Patterns" (a duplicate law entry). Three of its five checks (nested-state, shape-consistency, selector-composition) are STUBS that can never fire.',
+      'Three of its five checks (nested-state, shape-consistency, selector-composition) are STUBS that can never fire.',
       'It is NOT NgRx-gated — an Angular app using no NgRx still fails it (missing @ngrx/entity + no *.feature/reducer/state.ts → score 45).',
       'Check 1 is dependency-presence, check 2 is file-existence; the real normalization regexes are dead code.',
     ],
@@ -608,39 +608,6 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
       'MEDIUM PRIORITY VIOLATION Article VI.6.23: NgRx DevTools integration missing',
     remediation:
       'Add StoreDevtoolsModule.instrument() to app.config.ts with environment check',
-  },
-
-  {
-    id: generateLawId(
-      'NgRx State Structure Patterns',
-      'Ensures proper state normalization patterns in NgRx stores',
-      'ngrx'
-    ),
-    legacyId: 51,
-    article: 'VI',
-    subsection: '6.24',
-    title: 'NgRx State Structure Patterns',
-    rationale:
-      'Deeply nested or duplicated state is where an update forgets a copy and the UI shows two different truths. Normalized state — entities by id — makes every update land in exactly one place.',
-    satisfiedBy: { angular: 'Use @ngrx/entity (or an id-keyed map) for collections; keep state flat and derive nesting with selectors.' },
-    detectionLimits: [
-      'A REDUNDANT law entry — it runs the exact same detector as "NgRx State Normalization Mandate".',
-      'Three of its five checks are STUBS that never fire; it is NOT NgRx-gated, so a non-NgRx Angular app fails it (score 45).',
-      'Dependency-presence and file-existence only; the real normalization regexes are dead code.',
-    ],
-    emoji: '🗃️',
-    description: 'Ensures proper state normalization patterns in NgRx stores',
-    priority: 'MEDIUM',
-    category: 'FRAMEWORK',
-    stack: 'frontend',
-    defaultEnabled: true,
-    defaultSeverity: 'warning',
-    automation: 'AUTOMATED',
-    checkFunction: 'checkNgrxStateNormalizationMandate',
-    violationMessage:
-      'MEDIUM PRIORITY VIOLATION Article VI.6.24: NgRx state normalization patterns not implemented',
-    remediation:
-      'Use @ngrx/entity adapters, implement flat state structures, compose selectors properly, and ensure consistent state shapes',
   },
 
   {

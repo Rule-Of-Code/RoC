@@ -6,6 +6,7 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileSystemOperations } from '../../utils/file-system-operations';
 import { FileUtils } from '../../utils/file-utils';
+import { GitTagVersion } from '../../utils/git-tag-version';
 import { PathOperations } from '../../utils/path-operations';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
 import { GitLawBase } from './git-law-base';
@@ -33,7 +34,8 @@ export class SemVerComplianceLaw extends GitLawBase {
         'Add version field to package.json',
         'Tag releases with SemVer versions',
         'Keep package.json and git tags in sync',
-        'Use v prefix for git tags (e.g., v1.0.0)',
+        'Use v prefix for git tags (e.g., v1.0.0) — a namespace your pipeline ' +
+          'matches on is fine too, e.g. release/v1.0.0',
       ],
       context
     );
@@ -51,12 +53,10 @@ export class SemVerComplianceLaw extends GitLawBase {
     projectRoot: string,
     violations: string[]
   ): void {
-    const semVerPattern =
-      /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([\da-z-]+(?:\.[\da-z-]+)*))?(?:\+([\da-z-]+(?:\.[\da-z-]+)*))?$/i;
     const packageJsonPath = PathOperations.join(projectRoot, 'package.json');
 
     if (!FileUtils.exists(packageJsonPath)) {
-      this.checkPythonVersion(projectRoot, violations, semVerPattern);
+      this.checkPythonVersion(projectRoot, violations);
       return;
     }
 
@@ -70,7 +70,7 @@ export class SemVerComplianceLaw extends GitLawBase {
         violations.push('package.json missing version field');
       } else {
         const version = String(packageJson.version as string);
-        if (!semVerPattern.test(version)) {
+        if (!GitTagVersion.isSemVer(version)) {
           violations.push(
             `package.json version "${version}" does not follow SemVer format`
           );
@@ -88,8 +88,7 @@ export class SemVerComplianceLaw extends GitLawBase {
    */
   private static checkPythonVersion(
     projectRoot: string,
-    violations: string[],
-    semVerPattern: RegExp
+    violations: string[]
   ): void {
     if (!PythonSatisfaction.isPython(projectRoot)) {
       return;
@@ -102,17 +101,20 @@ export class SemVerComplianceLaw extends GitLawBase {
       );
       return;
     }
-    if (!semVerPattern.test(version)) {
+    if (!GitTagVersion.isSemVer(version)) {
       violations.push(
         `pyproject.toml version "${version}" does not follow SemVer format`
       );
     }
   }
 
+  /**
+   * A tag name is a ref; the version lives in its last segment. This check
+   * used to test the whole ref, so every namespaced release tag failed on its
+   * namespace alone — while `checkPackageVersion` beside it validated the
+   * version string correctly. Both now ask the same shared helper.
+   */
   private static checkGitTags(projectRoot: string, violations: string[]): void {
-    const semVerPattern =
-      /^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([\da-z-]+(?:\.[\da-z-]+)*))?(?:\+([\da-z-]+(?:\.[\da-z-]+)*))?$/i;
-
     try {
       const result = this.executeGitCommand('git tag --list', projectRoot);
       if (!result.success || !result.stdout) return;
@@ -123,7 +125,7 @@ export class SemVerComplianceLaw extends GitLawBase {
         .filter(tag => tag.length > 0);
 
       for (const tag of tags) {
-        if (!semVerPattern.test(tag)) {
+        if (!GitTagVersion.isSemVerTag(tag)) {
           violations.push(`Git tag "${tag}" does not follow SemVer format`);
         }
       }
@@ -157,7 +159,8 @@ export class SemVerComplianceLaw extends GitLawBase {
       if (!tagResult.success || !tagResult.stdout) return;
 
       const latestTag = tagResult.stdout.trim();
-      const cleanTag = latestTag.replace(/^v/, '');
+      // The version segment, so a namespaced tag compares by what it carries.
+      const cleanTag = GitTagVersion.versionOf(latestTag);
       const pkgVersion = String(packageJson.version);
 
       // package.json AHEAD of the latest tag is the NORMAL pending-release state
@@ -166,9 +169,14 @@ export class SemVerComplianceLaw extends GitLawBase {
       const semver = require('semver');
       const pkgV = semver.coerce(pkgVersion)?.version;
       const tagV = semver.coerce(cleanTag)?.version;
-      const isBehind =
-        pkgV && tagV ? semver.lt(pkgV, tagV) : cleanTag !== pkgVersion;
-      if (isBehind) {
+
+      // Nothing to compare unless BOTH carry a version. A tag like `nightly`
+      // names no version, so "behind it" states nothing — and the check beside
+      // this one already reports its format. The old fallback compared the two
+      // as strings and declared the project behind a tag that is not a version.
+      if (!pkgV || !tagV) return;
+
+      if (semver.lt(pkgV, tagV)) {
         violations.push(
           `package.json version (${pkgVersion}) is behind the latest git tag (${cleanTag}) — bump it`
         );

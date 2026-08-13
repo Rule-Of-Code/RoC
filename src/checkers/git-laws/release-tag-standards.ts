@@ -10,6 +10,7 @@ import type {
   RuleOfCodeConfig,
 } from '../../types/law.types';
 import { FileSystemOperations, FileUtils } from '../../utils';
+import { GitTagVersion } from '../../utils/git-tag-version';
 import { CheckerUtils } from '../../utils/checker-utils';
 import { ProjectTypeDetectorValidation } from '../../utils/config/project-type-detector/project-type-detector-validation';
 import { PathOperations } from '../../utils/path-operations';
@@ -111,7 +112,10 @@ export class ReleaseTagStandardsLaw extends GitLawBase {
         violations.push(
           `Invalid tag formats found: ${invalidTags.slice(0, 3).join(', ')}`
         );
-        suggestions.push('Use semantic version tags: v1.2.3 or 1.2.3');
+        suggestions.push(
+          'Use semantic version tags: v1.2.3, 1.2.3, or the same under a ' +
+            'namespace your pipeline matches on, e.g. release/v1.2.3'
+        );
       }
 
       if (tags.length === 0) {
@@ -160,8 +164,13 @@ export class ReleaseTagStandardsLaw extends GitLawBase {
         .filter(tag => tag);
 
       if (tags.length > 0) {
-        const vPrefixed = tags.filter(tag => tag.startsWith('v'));
-        const nonVPrefixed = tags.filter(tag => !tag.startsWith('v'));
+        // Compare the VERSION segment, not the whole ref. `v1.2.3` and
+        // `release/v1.2.3` are the same style; reading the ref made a project
+        // that moved its tags under a namespace look inconsistent with itself.
+        const vPrefixed = tags.filter(tag => GitTagVersion.isVPrefixed(tag));
+        const nonVPrefixed = tags.filter(
+          tag => !GitTagVersion.isVPrefixed(tag)
+        );
 
         if (vPrefixed.length > 0 && nonVPrefixed.length > 0) {
           violations.push(
@@ -291,14 +300,13 @@ export class ReleaseTagStandardsLaw extends GitLawBase {
   }
 
   private static isValidSemVer(version: string): boolean {
-    const semverRegex =
-      /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
-    return semverRegex.test(version);
+    return GitTagVersion.isSemVer(version);
   }
 
   private static isValidTagFormat(tag: string): boolean {
-    // Accept v1.2.3 or 1.2.3 format
-    const tagWithoutV = tag.startsWith('v') ? tag.substring(1) : tag;
-    return this.isValidSemVer(tagWithoutV);
+    // Accept v1.2.3, 1.2.3, and the same under a namespace — release/v1.2.3.
+    // Shared with semantic-versioning-standards, which judged the same tags
+    // through its own copy of this rule and was fixed separately from it.
+    return GitTagVersion.isSemVerTag(tag);
   }
 }

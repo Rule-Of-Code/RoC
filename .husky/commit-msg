@@ -1,4 +1,4 @@
-# RuleOfCode v7.18.2 Commit Message Validation
+# RuleOfCode v7.19.0 Commit Message Validation
 # Config-driven validation with 1 pattern(s)
 # husky v9+ native hook (no deprecated v8 boilerplate)
 
@@ -21,14 +21,14 @@ esac
 # Check against all configured patterns
 
 # Pattern 1: ^(feat|fix|docs|style|refactor|test|chore|perf|ci|...
-if echo "$COMMIT_MSG" | grep -qE '^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\([^)]+\))?:\s+.+$'; then
+if echo "$COMMIT_MSG" | grep -qE '^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\([^)]+\))?!?:\s+.+$'; then
     VALID=true
 fi
 
 if [ "$VALID" = false ]; then
     echo "❌ Invalid commit message format!"
     echo ""
-    echo "🏛️ RuleOfCode v7.18.2 Constitutional Commit Message Format:"
+    echo "🏛️ RuleOfCode v7.19.0 Constitutional Commit Message Format:"
     echo "   Your message must match one of the configured patterns"
     echo ""
     echo "Types: feat, fix, docs, style, refactor, test, chore, perf, ci, build, revert"
@@ -42,6 +42,23 @@ if [ "$VALID" = false ]; then
     echo "$COMMIT_MSG"
     echo ""
     exit 1
+fi
+
+# --- Subject length — the same limit Commit Message Standards audits ---
+# The hook is what teaches the rule. Accepting a subject here and failing it in
+# the audit afterwards is the pattern that produces --no-verify: the commit is
+# already made, and fixing it means rewriting history. Anything the history scan
+# can fail a developer for, the hook fails them for BEFORE it becomes history.
+if [ "$EXEMPT" = false ]; then
+    SUBJECT_LEN=$(printf '%s' "$FIRST_LINE" | wc -c | tr -d ' ')
+    if [ "$SUBJECT_LEN" -gt 72 ]; then
+        echo "❌ Subject is $SUBJECT_LEN characters (max 72)."
+        echo ""
+        echo "$FIRST_LINE"
+        echo ""
+        echo "Shorten the subject; move the detail into the body."
+        exit 1
+    fi
 fi
 
 # --- Commit body (description) validation — Commit Description Standards ---
@@ -68,4 +85,4 @@ if [ "$EXEMPT" = false ]; then
     fi
 fi
 
-echo "✅ Commit message format validated (RuleOfCode v7.18.2)"
+echo "✅ Commit message format validated (RuleOfCode v7.19.0)"

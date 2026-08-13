@@ -9,6 +9,7 @@
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
+import { CheckerUtils } from '../../utils/checker-utils';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
@@ -36,8 +37,49 @@ const DATABASE_CONFIG_FILES = [
   'prisma/schema.prisma',
 ];
 
-/** Database clients a manifest can name beyond the shared helper's list. */
-const DATABASE_CLIENTS = /firebase|@angular\/fire|supabase|dexie|pouchdb/i;
+/**
+ * A database layer is proved by USE, not by a dependency name.
+ *
+ * This was a substring test against the raw text of the project manifest:
+ * `/firebase|@angular\/fire|supabase|dexie|pouchdb/`. `firebase` is a
+ * meta-package covering Auth, Analytics, Messaging, Remote Config and more, and
+ * the substring also matched unrelated packages such as
+ * `@capacitor-firebase/authentication`. A client that only ever calls
+ * `initializeApp()` and a sign-in method was therefore told to add composite
+ * indexes, query batching and cursor pagination for a database it never opens.
+ *
+ * These patterns name the modules and entry points you cannot use without
+ * actually querying something.
+ */
+const DATABASE_MODULES = [
+  '(?:@firebase|firebase)/(?:firestore|database)',
+  '@angular/fire/(?:firestore|database)',
+  '@supabase/supabase-js',
+  '@prisma/client',
+  'dexie',
+  'pouchdb(?:-[\\w-]+)?',
+  'mongoose',
+  'typeorm',
+  'sequelize',
+  'knex',
+  'drizzle-orm',
+].join('|');
+
+const QUOTE = '[\'"`]';
+
+/**
+ * A module name is evidence only where it is being IMPORTED. Matching the bare
+ * name would flag any file that merely lists it — a dependency audit script, a
+ * code sample, a detector like this one.
+ */
+const DATABASE_USAGE = [
+  new RegExp(`\\bfrom\\s+${QUOTE}(?:${DATABASE_MODULES})${QUOTE}`),
+  new RegExp(`\\brequire\\s*\\(\\s*${QUOTE}(?:${DATABASE_MODULES})${QUOTE}`),
+  new RegExp(`\\bimport\\s*\\(\\s*${QUOTE}(?:${DATABASE_MODULES})${QUOTE}`),
+  /\bgetFirestore\s*\(/,
+  /\bgetDatabase\s*\(/,
+  /\bnew\s+Dexie\s*\(/,
+];
 
 export class DatabaseQueryOptimizationLaw {
   /**
@@ -45,14 +87,43 @@ export class DatabaseQueryOptimizationLaw {
    * ORMs and the common JS ORMs; a Firestore app is additionally recognised by
    * its client dependency or its rules/indexes files.
    */
-  private static hasDatabaseLayer(projectRoot: string): boolean {
+  private static hasDatabaseLayer(context: LawCheckContext): boolean {
+    const { projectRoot } = context;
+
     return (
       PythonSatisfaction.hasDatabaseLayer(projectRoot) ||
-      DATABASE_CLIENTS.test(PythonSatisfaction.gateConfig(projectRoot)) ||
+      this.usesDatabaseInSource(context) ||
       DATABASE_CONFIG_FILES.some(rel =>
         FileUtils.exists(PathOperations.join(projectRoot, rel))
       )
     );
+  }
+
+  /**
+   * Does any source file actually open or query a database?
+   *
+   * Scanned through the project's own file discovery, so the substrate is
+   * proved by the same files the analysis will read: generated output, vendored
+   * code and test fixtures are out of scope here exactly as they are there. A
+   * fixture describing Firestore code is a description, not a database.
+   */
+  private static usesDatabaseInSource(context: LawCheckContext): boolean {
+    const sources = CheckerUtils.findFilesByExtension(
+      context.projectRoot,
+      CheckerUtils.getCommonExtensions().ALL_CODE,
+      context.config,
+      context.lawId
+    );
+
+    for (const file of sources) {
+      const content = FileUtils.readFileContentSync(file);
+      if (!content) continue;
+      if (DATABASE_USAGE.some(pattern => pattern.test(content))) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /**
@@ -78,7 +149,7 @@ export class DatabaseQueryOptimizationLaw {
   static async check(context: LawCheckContext): Promise<LawResult> {
     const { projectRoot } = context;
 
-    if (!this.hasDatabaseLayer(projectRoot)) {
+    if (!this.hasDatabaseLayer(context)) {
       return Promise.resolve(this.createNotApplicableResult(context));
     }
 

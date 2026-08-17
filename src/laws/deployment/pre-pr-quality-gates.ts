@@ -2,6 +2,7 @@ import type { RuleOfCodeConfig } from '../../config/types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { ProjectTypeDetectorValidation } from '../../utils/config/project-type-detector/project-type-detector-validation';
 import { FileUtils } from '../../utils/file-utils';
+import { resolveRemoteUrls } from '../../utils/git/git-layout';
 import { PathOperations } from '../../utils/path-operations';
 import { ciConfigContent } from '../../utils/project-discovery';
 import { DeploymentValidationUtilities } from './shared-deployment-utilities';
@@ -252,15 +253,14 @@ export class PrePrQualityGatesLaw {
       return true;
     }
 
-    try {
-      const gitConfig = FileUtils.readFile(
-        PathOperations.join(projectRoot, '.git', 'config'),
-        { encoding: 'utf8' }
-      );
-      return /bitbucket\.org|dev\.azure\.com|visualstudio\.com/i.test(gitConfig);
-    } catch {
-      return false;
-    }
+    // Ask git for the remotes rather than joining `.git/config` onto the root.
+    // `<root>/.git` is a directory only in a primary checkout; in a linked
+    // worktree it is a FILE holding a pointer, so the read failed and the host
+    // went unrecognised — the same commit in the same repository passed from
+    // one directory and failed from another.
+    return resolveRemoteUrls(projectRoot).some(url =>
+      /bitbucket\.org|dev\.azure\.com|visualstudio\.com/i.test(url)
+    );
   }
 
   private static analyzeStatusChecks(

@@ -65,6 +65,55 @@ export function resolveGitCommonDir(projectRoot: string): string | null {
 }
 
 /**
+ * THIS working tree's git directory — the per-worktree one, not the shared
+ * one. In a linked worktree that is `<main>/.git/worktrees/<name>`, and it is
+ * where the state of an operation in progress lives: `MERGE_HEAD`,
+ * `rebase-merge`, `rebase-apply`, `CHERRY_PICK_HEAD`.
+ *
+ * Distinct from {@link resolveGitCommonDir} on purpose. Config and hooks are
+ * SHARED between worktrees; an in-progress rebase is not — asking the common
+ * dir about it would report the main checkout's state while judging this one.
+ */
+export function resolveGitDir(projectRoot: string): string | null {
+  const fromGit = git('git rev-parse --git-dir', projectRoot);
+  if (fromGit) return absolute(fromGit, projectRoot);
+
+  const dotGit = PathOperations.join(projectRoot, '.git');
+  if (!FileUtils.exists(dotGit)) return null;
+
+  const pointer = FileUtils.readFile(dotGit)?.match(/^gitdir:\s*(.+)$/m)?.[1];
+  return pointer ? absolute(pointer.trim(), projectRoot) : dotGit;
+}
+
+/**
+ * Every remote URL configured for this repository.
+ *
+ * Asking git is what makes this correct in a linked worktree, a submodule, and
+ * a repository whose config lives somewhere unusual — reading `.git/config` as
+ * a path answers only for a primary checkout, and answers WRONG rather than
+ * not at all: the read fails, the host goes unrecognised, and a law that means
+ * "this host protects branches server-side" concludes it does not.
+ */
+export function resolveRemoteUrls(projectRoot: string): string[] {
+  const out = git('git config --get-regexp "^remote\\..*\\.url$"', projectRoot);
+  if (out) {
+    return out
+      .split('\n')
+      .map(line => line.slice(line.indexOf(' ') + 1).trim())
+      .filter(url => url.length > 0);
+  }
+
+  // No usable git binary: read the config git would have read.
+  const configPath = resolveGitConfigPath(projectRoot);
+  const content = configPath ? FileUtils.readFile(configPath) : null;
+  if (!content) return [];
+
+  return [...content.matchAll(/^\s*url\s*=\s*(.+)$/gm)]
+    .map(m => m[1]?.trim() ?? '')
+    .filter(url => url.length > 0);
+}
+
+/**
  * The directory git will actually consult for hooks: `core.hooksPath` when the
  * project sets one (husky does), otherwise `<common git dir>/hooks`. Returns
  * null only when there is no repository to ask about.

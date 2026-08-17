@@ -10,10 +10,15 @@ import type {
 } from '../../types/law.types';
 import { FileUtils } from '../../utils';
 import { CheckerUtils } from '../../utils/checker-utils';
+import {
+  resolveGitConfigPath,
+  resolveGitHooksDir,
+} from '../../utils/git/git-layout';
 import { PathOperations } from '../../utils/path-operations';
 import { ciConfigContent } from '../../utils/project-discovery';
 import { GitLawBase } from './git-law-base';
 import { GitLawUtilities } from './shared-git-utilities';
+
 export class GitHistoryIntegrityLaw {
   static check(context: LawCheckContext): LawResult {
     // Early git repository validation
@@ -71,14 +76,22 @@ export class GitHistoryIntegrityLaw {
     GitHistoryIntegrityLaw.CONTRIBUTING_DOC,
   ];
 
-  /** True when a pre-push hook exists AND mentions guarding force-push. */
+  /**
+   * True when a pre-push hook exists AND mentions guarding force-push.
+   *
+   * Asked of git rather than of `<root>/.git/hooks`. That join misses the hook
+   * twice over: husky points `core.hooksPath` at `.husky`, so the default
+   * directory is empty in most projects that HAVE a guard, and in a linked
+   * worktree `<root>/.git` is not a directory at all. This check drives a
+   * violation, not a suggestion, so missing the hook accuses a repository of
+   * having no force-push protection while its hook sits there working.
+   */
   private static hasPrePushForceGuard(projectRoot: string): boolean {
-    const prePushHookPath = PathOperations.join(
-      projectRoot,
-      '.git',
-      'hooks',
-      'pre-push'
-    );
+    const hooksDir = resolveGitHooksDir(projectRoot);
+    if (!hooksDir) {
+      return false;
+    }
+    const prePushHookPath = PathOperations.join(hooksDir, 'pre-push');
     if (!FileUtils.exists(prePushHookPath)) {
       return false;
     }
@@ -158,8 +171,11 @@ export class GitHistoryIntegrityLaw {
     const suggestions: string[] = [];
 
     // Check for git config settings
-    const gitConfigPath = PathOperations.join(projectRoot, '.git', 'config');
-    if (FileUtils.exists(gitConfigPath)) {
+    // Resolved through git: `<root>/.git/config` is a real path only in a
+    // primary checkout, so a worktree read nothing and the rebase-policy advice
+    // below fired for a repository that had already configured it.
+    const gitConfigPath = resolveGitConfigPath(projectRoot);
+    if (gitConfigPath && FileUtils.exists(gitConfigPath)) {
       try {
         const gitConfig = FileUtils.readFile(gitConfigPath);
 

@@ -12,6 +12,7 @@
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
+import { describeCommitScope } from './commit-scope';
 import { GitLawBase } from './git-law-base';
 
 export class CommitDescriptionStandardsLaw extends GitLawBase {
@@ -29,18 +30,22 @@ export class CommitDescriptionStandardsLaw extends GitLawBase {
     const { projectRoot } = context;
     const violations: string[] = [];
 
+    // Read outside the try, so the scope can still be reported when the
+    // analysis throws. The Commit Description scope has its own config but
+    // falls back to commitMessage, so one baseline can govern both subject and
+    // body — or each can be tuned independently (e.g. exempt old bodies only).
+    const gitCfg = context.config.thresholds?.git;
+    const descCfg = gitCfg?.commitDescription;
+    const msgCfg = gitCfg?.commitMessage;
+    const scopeBaseline = descCfg?.baseline ?? msgCfg?.baseline;
+    const scopeMaxCommits = descCfg?.maxCommits ?? msgCfg?.maxCommits ?? 10;
+
     try {
-      const gitCfg = context.config.thresholds?.git;
-      // The Commit Description scope has its own config but falls back to
-      // commitMessage, so one baseline can govern both subject and body — or each
-      // can be tuned independently (e.g. exempt old bodies only).
-      const descCfg = gitCfg?.commitDescription;
-      const msgCfg = gitCfg?.commitMessage;
       const ignoreMerges =
         (descCfg?.ignoreMergeCommits ?? msgCfg?.ignoreMergeCommits) !== false; // default true
-      const baseline = descCfg?.baseline ?? msgCfg?.baseline;
-      const maxCommits = descCfg?.maxCommits ?? msgCfg?.maxCommits ?? 10;
-      const range = baseline ? `${baseline}..HEAD` : `-${maxCommits}`;
+      const range = scopeBaseline
+        ? `${scopeBaseline}..HEAD`
+        : `-${scopeMaxCommits}`;
       const maxBodyLineLength = gitCfg?.maxCommitBodyLineLength ?? 72;
 
       // -z separates each commit's raw message (%B = subject + body) with NUL,
@@ -66,8 +71,8 @@ export class CommitDescriptionStandardsLaw extends GitLawBase {
         .filter(m => m.trim().length > 0);
 
       if (messages.length === 0) {
-        const note = baseline
-          ? `No authored commits after baseline ${baseline} — nothing to enforce`
+        const note = scopeBaseline
+          ? `No authored commits after baseline ${scopeBaseline} — nothing to enforce`
           : 'No (non-merge) commits in the scanned range';
         return this.createResult([], this.LAW_NAME, 'GIT_LAW', [note], context);
       }
@@ -116,6 +121,9 @@ export class CommitDescriptionStandardsLaw extends GitLawBase {
       this.LAW_NAME,
       'GIT_LAW',
       [
+        // The scope leads: a commit reported here that the reader did not write
+        // means a stale baseline, not shared history they have to rewrite.
+        describeCommitScope(context.projectRoot, scopeBaseline, scopeMaxCommits),
         'Separate the subject from the body with a single blank line',
         `Wrap body lines at 72 characters (configurable via thresholds.git.maxCommitBodyLineLength)`,
         'Use the body to explain what and why, not how',

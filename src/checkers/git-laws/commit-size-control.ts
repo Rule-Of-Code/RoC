@@ -13,6 +13,7 @@ import { FileUtils } from '../../utils';
 import { CheckerUtils } from '../../utils/checker-utils';
 import { FileSystemOperations } from '../../utils/file-system-operations';
 import { PathOperations } from '../../utils/path-operations';
+import { describeCommitScope } from './commit-scope';
 import { GitLawBase } from './git-law-base';
 
 export class CommitSizeControlLaw extends GitLawBase {
@@ -126,6 +127,11 @@ export class CommitSizeControlLaw extends GitLawBase {
       if (oversized > 0) {
         violations.push(
           `${oversized} of the last ${commits.length} authored commits exceed the size limit (>${maxFiles} files or >${maxLines} lines changed)`
+        );
+        // The scope leads: a commit reported here that the reader did not
+        // write means a stale baseline, not history they have to rewrite.
+        suggestions.push(
+          describeCommitScope(projectRoot, baseline, maxCommits)
         );
         suggestions.push(
           `Keep commits atomic: under ${maxFiles} files and ${maxLines} changed lines each`

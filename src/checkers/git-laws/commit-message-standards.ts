@@ -4,6 +4,7 @@
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
+import { describeCommitScope } from './commit-scope';
 import { GitLawBase } from './git-law-base';
 
 export class CommitMessageStandardsLaw extends GitLawBase {
@@ -22,11 +23,13 @@ export class CommitMessageStandardsLaw extends GitLawBase {
     const { projectRoot } = context;
     const violations: string[] = [];
 
+    // Scope is configurable so RoC can be adopted in an EXISTING repo: skip
+    // merge commits and/or only check commits after a baseline ref (old and
+    // auto-generated commits exempt; new commits enforced). Read outside the
+    // try, so the scope can still be reported when the analysis throws.
+    const commitCfg = context.config.thresholds?.git?.commitMessage;
+
     try {
-      // Get recent commit messages. Scope is configurable so RoC can be adopted in
-      // an EXISTING repo: skip merge commits and/or only check commits after a
-      // baseline ref (old/auto-generated commits exempt; new commits enforced).
-      const commitCfg = context.config.thresholds?.git?.commitMessage;
       const ignoreMerges = commitCfg?.ignoreMergeCommits !== false; // default: true
       const range = commitCfg?.baseline
         ? `${commitCfg.baseline}..HEAD`
@@ -123,6 +126,13 @@ export class CommitMessageStandardsLaw extends GitLawBase {
       this.LAW_NAME,
       'GIT_LAW',
       [
+        // The scope leads, because a commit reported here that the reader did
+        // not write is a stale baseline, not shared history they must rewrite.
+        describeCommitScope(
+          context.projectRoot,
+          commitCfg?.baseline,
+          commitCfg?.maxCommits ?? 10
+        ),
         'Use conventional commit format: type(scope): description',
         'Keep commit messages under 72 characters',
         'Use types: feat, fix, docs, style, refactor, test, chore',

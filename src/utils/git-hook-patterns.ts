@@ -4,6 +4,7 @@
  */
 
 import { FileSystemOperations } from './file-system-operations';
+import { resolveGitHooksDir } from './git/git-layout';
 import { FileUtils } from './file-utils';
 import { PathOperations } from './path-operations';
 
@@ -32,10 +33,18 @@ export class GitHookPatterns {
   ];
 
   /**
-   * Gets git hooks directory for a project
+   * Gets git hooks directory for a project.
+   *
+   * Resolved through git, so `core.hooksPath` (husky points it at `.husky`) and
+   * a linked worktree's shared git directory are both accounted for. The join
+   * onto `<root>/.git/hooks` that used to stand here answers only for a primary
+   * checkout with hooks in their default place.
    */
   static getHooksDirectory(projectRoot: string): string {
-    return PathOperations.join(projectRoot, '.git', 'hooks');
+    return (
+      resolveGitHooksDir(projectRoot) ??
+      PathOperations.join(projectRoot, '.git', 'hooks')
+    );
   }
 
   /**

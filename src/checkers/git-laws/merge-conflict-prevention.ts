@@ -8,8 +8,14 @@ import type { RuleOfCodeConfig } from '../../config/types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils';
 import { CheckerUtils } from '../../utils/checker-utils';
+import {
+  resolveGitConfigPath,
+  resolveGitDir,
+  resolveGitHooksDir,
+} from '../../utils/git/git-layout';
 import { PathOperations } from '../../utils/path-operations';
 import { GitLawBase } from './git-law-base';
+
 export class MergeConflictPreventionLaw extends GitLawBase {
   static check(context: LawCheckContext): LawResult {
     // Validate Git repository using base class
@@ -87,14 +93,14 @@ export class MergeConflictPreventionLaw extends GitLawBase {
       );
     }
 
-    // Check for pre-merge hooks
-    const preMergeHookPath = PathOperations.join(
-      projectRoot,
-      '.git',
-      'hooks',
-      'pre-merge-commit'
-    );
-    if (!FileUtils.exists(preMergeHookPath)) {
+    // Check for pre-merge hooks, where git will actually look for them:
+    // `core.hooksPath` when the project moves them (husky does), and the main
+    // repository's git directory from a linked worktree.
+    const hooksDir = resolveGitHooksDir(projectRoot);
+    const preMergeHookPath = hooksDir
+      ? PathOperations.join(hooksDir, 'pre-merge-commit')
+      : null;
+    if (!preMergeHookPath || !FileUtils.exists(preMergeHookPath)) {
       suggestions.push('Create pre-merge hook to validate conflict resolution');
     }
 
@@ -167,8 +173,10 @@ export class MergeConflictPreventionLaw extends GitLawBase {
     projectRoot: string,
     suggestions: string[]
   ): void {
-    const gitConfigPath = PathOperations.join(projectRoot, '.git', 'config');
-    if (!FileUtils.exists(gitConfigPath)) {
+    // Resolved through git: shared config lives in the MAIN repository's git
+    // directory, which `<root>/.git/config` does not name from a worktree.
+    const gitConfigPath = resolveGitConfigPath(projectRoot);
+    if (!gitConfigPath || !FileUtils.exists(gitConfigPath)) {
       return;
     }
 
@@ -316,15 +324,19 @@ export class MergeConflictPreventionLaw extends GitLawBase {
       // markers via `git grep`, and `UU`/`AA`/`DD` via `git status --porcelain`.
       // A resolved-but-uncommitted merge is a working-tree state, not a
       // conflict, and this check contradicted the two above it by design.
-      const gitDir = PathOperations.join(projectRoot, '.git');
+      // THIS worktree's git dir, not the shared one: a rebase in progress is
+      // per-worktree state, so asking the common directory would report the
+      // main checkout's rebase while judging this one.
+      const gitDir = resolveGitDir(projectRoot);
 
       // The rebase check below is NOT the same case, verified rather than
       // assumed: git removes `rebase-merge`/`rebase-apply` before the commit a
       // `rebase --continue` creates, so a pre-commit hook there sees no rebase
       // directory. It fires only on a rebase genuinely left in progress.
       if (
-        FileUtils.exists(PathOperations.join(gitDir, 'rebase-merge')) ||
-        FileUtils.exists(PathOperations.join(gitDir, 'rebase-apply'))
+        gitDir &&
+        (FileUtils.exists(PathOperations.join(gitDir, 'rebase-merge')) ||
+          FileUtils.exists(PathOperations.join(gitDir, 'rebase-apply')))
       ) {
         violations.push('Repository is in the middle of a rebase');
         suggestions.push(

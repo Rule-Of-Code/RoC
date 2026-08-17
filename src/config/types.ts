@@ -224,6 +224,39 @@ export interface RuleOfCodeConfig {
       /** Minimum branch name length */
       minBranchNameLength?: number;
       /**
+       * Commit-size scope — the same shape the commitMessage and
+       * commitDescription scopes already use, so all three laws that read
+       * commit history can be pointed at the same adoption baseline.
+       */
+      commitSize?: {
+        /**
+         * Only measure commits AFTER this git ref/SHA/tag, so history made
+         * before adopting RoC is exempt while new commits are enforced.
+         */
+        baseline?: string;
+        /** How many recent commits to measure when no baseline is set. Default: 10. */
+        maxCommits?: number;
+        /**
+         * Paths whose LINES are not counted, as regular-expression sources.
+         * Replaces the built-in list of lockfiles (package-lock.json, yarn.lock,
+         * poetry.lock, go.sum, Cargo.lock and the rest) rather than adding to
+         * it. Their file count still applies — the exemption is for content
+         * nobody reviews, not for the size of the change.
+         */
+        generatedFiles?: string[];
+      };
+      /**
+       * Branch prefixes this project accepts, without the trailing slash.
+       * Default: feature, bugfix, hotfix, release, chore.
+       *
+       * Read by every law that judges a branch name, so a project states its
+       * convention once. Set it to be stricter than the default (drop `chore`)
+       * or to name your own (`spike`, `poc`); the suggestion text follows what
+       * you declare, so the advice can never recommend a prefix the check
+       * rejects.
+       */
+      branchPrefixes?: string[];
+      /**
        * Commit-message-standards scope — lets you adopt RoC in an EXISTING repo
        * without rewriting its whole history: exempt old/merge commits, enforce new ones.
        */

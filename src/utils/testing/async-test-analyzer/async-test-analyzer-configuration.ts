@@ -98,9 +98,7 @@ export class AsyncTestAnalyzerConfiguration {
     },
     {
       checker: (content: string) =>
-        !!content.match(
-          /await\s+(?!\w+\(|\w+\.\w+\(|new\s+Promise)[\w.]+(?!\()/g
-        ),
+        AsyncTestAnalyzerConfiguration.AWAITED_LITERAL.test(content),
       message:
         AsyncTestAnalyzerConfiguration.ISSUE_MESSAGES.AWAITING_NON_PROMISE,
     },
@@ -110,6 +108,31 @@ export class AsyncTestAnalyzerConfiguration {
    * Recommendations configuration (RULE 1: Eliminate hardcoded strings)
    * Maps condition keys to recommendation messages
    */
+  /**
+   * `await` applied to something that CANNOT be a promise — a number, a string,
+   * a boolean, `null`/`undefined`, or an array (where `Promise.all` was meant).
+   *
+   * Narrowed to literals because that is the whole set this analyzer can be
+   * right about. It used to flag `await <anything that is not a one- or
+   * two-level call>`, which reported:
+   *
+   * - `await page.keyboard.press('Escape')` — a three-level call, and any
+   *   fluent API produces them;
+   * - `await expect` at the end of a line, because the formatter wrapped
+   *   `.poll(…)` onto the next one, making the finding depend on line width
+   *   rather than on the code;
+   * - `await promiseVariable`, which is correct code and indistinguishable from
+   *   the mistake without type information.
+   *
+   * A test could satisfy it only by abandoning fluent APIs or fighting the
+   * formatter, so it reported test-quality debt that could not be paid.
+   *
+   * Object literals are deliberately absent: `await { then() {} }` awaits a
+   * thenable and is legitimate.
+   */
+  static readonly AWAITED_LITERAL =
+    /\bawait\s+(?:-?\d[\d_.]*\b|'[^']*'|"[^"]*"|true\b|false\b|null\b|undefined\b|\[)/;
+
   static readonly RECOMMENDATION_CONFIG = {
     NO_ASYNC_HANDLING: 'Use async/await or done() callback for async tests',
     NO_FAKE_TIMERS: 'Consider using jest.useFakeTimers() for timer-based tests',

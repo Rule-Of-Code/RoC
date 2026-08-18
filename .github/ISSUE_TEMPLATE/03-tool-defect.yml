@@ -1,0 +1,109 @@
+name: 🛠️ The tool itself misbehaves
+description: A crash, a hook that will not run, a config that is not read, a wrong count, a install or CLI problem — anything that is not a single law's verdict.
+title: ""
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For the audit as a machine rather than any one law: it crashed, it
+        refused to run, it read the wrong config, it counted wrong, the hooks
+        did not install, the numbers on two runs disagree.
+
+        **A wrong count is the most serious thing in this category.** The audit
+        is a gate, and a number it prints is a number people act on.
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: "`npx ruleofcode --version`"
+      placeholder: "7.20.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where
+      options:
+        - The audit crashed or exited unexpectedly
+        - A number is wrong (laws checked, score, liveness floor)
+        - Config is not read, or read differently than documented
+        - Git hooks — install, execution, or a hook that never fires
+        - The cache serves a result that no longer holds
+        - CLI, flags, or output format
+        - Install or packaging
+      default: 0
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happens
+    attributes:
+      label: What happens
+      description: >-
+        Command and output, verbatim, including the exit code. If it crashed,
+        the whole stack trace — the frame that matters is rarely the first one.
+      placeholder: |
+        $ npx ruleofcode audit --mode=full
+        ...
+        $ echo $?
+        1
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead, and why
+      description: >-
+        Where the expectation comes from — the README, a changelog entry, the
+        law's own text, or the same command on a previous version. "The docs say
+        X and it does Y" is the strongest form of this.
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: >-
+        OS, Node version, package manager, and the shape of the repository —
+        monorepo or single project, Nx or plain, a primary checkout or a linked
+        worktree, CI or a developer machine. Several defects here have turned
+        out to be about the shape of the repository rather than the code in it.
+      placeholder: |
+        Windows 11 / Node 22.14 / npm 10
+        Nx monorepo, apps/web + libs/*, run from a linked git worktree
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: >-
+        Ideally from an empty directory — `git init`, the files that matter, the
+        command. A reproduction someone else can run decides these fastest.
+      render: shell
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Your config
+      description: "`ruleofcode.config.json`, secrets removed."
+      render: json
+
+  - type: textarea
+    id: not-verified
+    attributes:
+      label: What you did NOT verify
+      description: >-
+        Anything assumed rather than run. If you have not tried it on a clean
+        checkout, or on the latest version, say so — it is useful either way and
+        costs you nothing to admit.
+    validations:
+      required: true

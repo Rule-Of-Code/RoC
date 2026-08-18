@@ -5,6 +5,116 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.21.0] - 2026-08-18
+
+**If you work in an Nx workspace, five laws have been lying to you — and
+lying in the same direction.** No config edit is required; nothing was
+removed; the law count is unchanged at 169. Every change below makes a law
+report *less*, so a law you parked because of one of these can be unparked.
+
+Five consumer reports, and four of them turned out to be one defect wearing
+different names: **a config read from the project root, while an Nx workspace
+deliberately keeps it somewhere else.** In three of those four, the shared
+reader that looks across the workspace was *already written* — the law simply
+did not ask it.
+
+That is worth stating as its own finding. The shape is not "a detector is
+wrong"; it is **"a detector did not ask the module that already knew"**, and
+that is a different thing to go hunting for.
+
+### 🐛 Fixed — the test count, which was counting almost none of them
+
+The recursive walk asked the directory filter without the `includeTests` flag,
+so it resolved the ignore set for a scan that *excludes* tests — which prunes
+`**/*-e2e/**`, `**/e2e/**`, `**/test/**`, `**/tests/**` and `**/cypress/**`.
+Whole directories of specs were removed before the file validator meant to
+accept them ever ran. That validator asked correctly, with `true`; nothing
+reached it.
+
+| layout | before | after |
+| --- | --- | --- |
+| six typical spec locations | **1 of 6** | 6 of 6 |
+| Nx: 9 unit + 18 Playwright | **9 of 27** | 27 of 27 |
+
+The ratio was computed from a numerator that had never seen most of the tests,
+and its advice — "add test files" — could not move it.
+
+The audit now also names **which** test files it counted: *"If a test you have
+is missing from this list, the ratio is wrong rather than your coverage."*
+Until now the only way to see that was to re-implement the scan by hand against
+the compiled output, which the reporter did.
+
+### 🐛 Fixed — Angular states its environments in the build system
+
+`configurations.production` and `configurations.development` are what select the
+production budgets, output hashing and optimisation. That **is**
+environment-specific configuration — the thing `environment-parity-standards`
+asks for — so a project that had it was told to "use environment-specific config
+files" and could not make the finding move by doing so. Adding `NODE_ENV` would
+have added a variable nothing reads.
+
+A **single** configuration is still reported: that genuinely is a
+single-environment build.
+
+### 🐛 Fixed — the performance family contradicted itself in one run
+
+Four laws reported three things as absent that were present, and two of them
+were contradicted by other laws in the same audit, on the same commit.
+
+| check | before | after |
+| --- | --- | --- |
+| budgets (`performance-monitoring-policy`) | not configured | found |
+| budgets (`performance-monitoring-standards`) | not configured | found |
+| bundle optimization (`performance-standards`) | not configured | satisfied |
+| resource hints (`core-web-vitals-compliance`) | missing | found |
+
+Three separate causes: two of **six** budget readers asked only for a root
+`angular.json`; bundle optimization demanded a literal `"optimization": true`
+that the esbuild builder makes unnecessary; and resource hints were read from
+source alone.
+
+That last one deserves its own line. **A preload hint for a content-hashed
+asset cannot exist in source** — `font-<hash>.woff2` has no name until the
+bundler has run, so the tag is stamped in afterwards. The more carefully a
+project preloads its own fonts, the more certain the false finding was. The
+build output is read now, honouring a declared `outputPath` including Angular
+17's `{ base, browser, server }` form; source is still read, so hand-written
+hints in an unbuilt project are unaffected.
+
+### 🐛 Fixed — a waiver the law could not reach
+
+There is no `laws.notApplicable` entry for "the auth clause of the checklist
+law". So a project that had declared Authentication Security and Health Check
+Monitoring inapplicable — with written reasons the audit **accepted** — was
+asked for both again, inside `pre-deployment-checklist-mandatory`, where the
+waiver could not reach. The audit agreed the project had no authentication
+surface and demanded one, in the same run.
+
+Each of the four sub-checks now defers to the law that owns its concern:
+authentication, health checks, benchmarking and logging. Three boundaries are
+held deliberately, and tested:
+
+- **The checklist clauses are untouched.** The document is that law's own
+  subject; delete it and the law still fails, waivers or not.
+- A waiver answers **its own** clause and no other.
+- **An empty reason is not a waiver.** A waiver without a justification is the
+  disarmed gate this tool exists to refuse.
+
+Resolution is by name identity only — `legacyId` is shared by 51 laws, and an
+ambiguous key must never widen a waiver silently.
+
+### 🐛 Fixed — coverage thresholds live where Jest resolves them
+
+Jest resolves coverage thresholds **per project** when `projects` is used, so
+the root config of an Nx workspace cannot hold one; it is an aggregator. This
+law read the root and nowhere else, so a project gating on 100% branches was
+reported as having no coverage gate.
+
+Duplicating the threshold at the root would have gated nothing — a decoration
+added to be seen, which is precisely the box-ticking this tool refuses. The
+shared reader already existed; the law now asks it, and the root-only helper is
+deleted rather than left beside the fix.
+
 ## [7.20.0] - 2026-08-18
 
 **No config edit is required.** Nothing was removed, the law count is

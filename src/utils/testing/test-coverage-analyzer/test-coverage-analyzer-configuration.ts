@@ -114,6 +114,14 @@ export class TestCoverageAnalyzerConfiguration {
   /**
    * Centralized mocking issue messages (RULE 1: Single source of truth)
    */
+  /**
+   * A request actually being MADE: `fetch(…)`, an axios/http client method, or
+   * Angular's `HttpClient` being used. A URL is not a call — the text
+   * `https://example.com` in a comment says nothing about what the test does.
+   */
+  static readonly HTTP_CALL_PATTERN =
+    /\bfetch\s*\(|\bXMLHttpRequest\b|\baxios\s*\(|\b(?:axios|got|superagent|https?|httpClient|HttpClient|apiClient)\s*\.\s*(?:get|post|put|patch|delete|del|request|head|options)\s*(?:<[^>]*>\s*)?\(/;
+
   static readonly MOCKING_ISSUE_MESSAGES = {
     MOCKS_WITHOUT_CLEANUP:
       'Mock functions without cleanup may cause test interference',
@@ -173,8 +181,12 @@ export class TestCoverageAnalyzerConfiguration {
             .EXCESSIVE_MOCKING,
       },
       {
+        // A CALL, not the substring "http" anywhere in the file. `includes('http')`
+        // matched a URL in a comment, a JSDoc link and an import path, so a spec
+        // that makes no network request at all was told to mock its HTTP calls —
+        // a message that sends the reader looking for code that is not there.
         checker: (content: string) =>
-          (content.includes('http') || content.includes('fetch')) &&
+          TestCoverageAnalyzerConfiguration.HTTP_CALL_PATTERN.test(content) &&
           !content.includes('mock') &&
           !content.includes('stub'),
         message:

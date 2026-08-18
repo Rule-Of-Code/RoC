@@ -13,6 +13,7 @@ import { FileUtils } from '../../utils';
 import { CheckerUtils } from '../../utils/checker-utils';
 import { FileSystemOperations } from '../../utils/file-system-operations';
 import { PathOperations } from '../../utils/path-operations';
+import { describeCommitScope } from './commit-scope';
 import { GitLawBase } from './git-law-base';
 
 export class CommitSizeControlLaw extends GitLawBase {
@@ -95,29 +96,42 @@ export class CommitSizeControlLaw extends GitLawBase {
       //
       // Excluding them is also the honest scope: this law is about the size of
       // an AUTHORED change, and a merge is composed by git.
+      //
+      // `--numstat` rather than `--stat`, because a per-commit summary cannot be
+      // questioned file by file, and this law needs to be: a lockfile's 18,000
+      // regenerated lines are not a change anyone reviews.
+      //
+      // `baseline` is honoured here as it already is by the two sibling laws
+      // that read commit history — three laws read it, and one of them could
+      // not be scoped to commits made after adopting RoC.
+      const baseline = git?.commitSize?.baseline;
+      const maxCommits = git?.commitSize?.maxCommits ?? 10;
+      const range = baseline
+        ? `${baseline}..HEAD`
+        : `--since="1 week ago" -n ${maxCommits}`;
+
       const commitStats = execSync(
-        'git log --oneline --stat --no-merges --since="1 week ago" -n 10',
+        `git log --format=%x00%H --numstat --no-merges ${range}`,
         {
           cwd: projectRoot,
           encoding: 'utf8',
         }
       );
 
-      // `--stat` prints one summary line per commit:
-      // " 3 files changed, 45 insertions(+), 12 deletions(-)"
-      const summaries = commitStats
-        .split('\n')
-        .filter(line => / files? changed/.test(line));
+      const commits = this.parseNumstat(commitStats, config);
 
-      const oversized = summaries.filter(
-        line =>
-          this.filesChangedCount(line) > maxFiles ||
-          this.processChangesLine(line) > maxLines
+      const oversized = commits.filter(
+        commit => commit.files > maxFiles || commit.lines > maxLines
       ).length;
 
       if (oversized > 0) {
         violations.push(
-          `${oversized} of the last ${summaries.length} authored commits exceed the size limit (>${maxFiles} files or >${maxLines} lines changed)`
+          `${oversized} of the last ${commits.length} authored commits exceed the size limit (>${maxFiles} files or >${maxLines} lines changed)`
+        );
+        // The scope leads: a commit reported here that the reader did not
+        // write means a stale baseline, not history they have to rewrite.
+        suggestions.push(
+          describeCommitScope(projectRoot, baseline, maxCommits)
         );
         suggestions.push(
           `Keep commits atomic: under ${maxFiles} files and ${maxLines} changed lines each`
@@ -129,6 +143,90 @@ export class CommitSizeControlLaw extends GitLawBase {
     }
 
     return { violations, suggestions };
+  }
+
+  /**
+   * Files whose contents are written by a tool, not by a person.
+   *
+   * The ceiling exists to keep a commit reviewable, and nobody reviews a
+   * lockfile line by line. Counting its lines made a dependency update
+   * uncommittable: a lockfile cannot be split across two commits, and splitting
+   * it from the manifest that caused it lands an inconsistent tree. The only
+   * levers left were to raise the limit for every commit — losing the law
+   * everywhere to accommodate one file — or to leave the dependency unpatched.
+   *
+   * Their LINES are excluded; their presence is not. A commit touching thirty
+   * generated files is still thirty files, and still oversized by file count.
+   */
+  private static readonly GENERATED_FILES = [
+    /(^|\/)package-lock\.json$/,
+    /(^|\/)npm-shrinkwrap\.json$/,
+    /(^|\/)yarn\.lock$/,
+    /(^|\/)pnpm-lock\.yaml$/,
+    /(^|\/)bun\.lockb?$/,
+    /(^|\/)Cargo\.lock$/,
+    /(^|\/)poetry\.lock$/,
+    /(^|\/)Pipfile\.lock$/,
+    /(^|\/)uv\.lock$/,
+    /(^|\/)composer\.lock$/,
+    /(^|\/)Gemfile\.lock$/,
+    /(^|\/)go\.sum$/,
+    /(^|\/)packages\.lock\.json$/,
+    /(^|\/)pubspec\.lock$/,
+    /(^|\/)gradle\.lockfile$/,
+    /(^|\/)mix\.lock$/,
+  ];
+
+  /** Is this path a generated file whose lines nobody reads? */
+  private static isGeneratedFile(
+    filePath: string,
+    config: RuleOfCodeConfig
+  ): boolean {
+    const normalized = filePath.replace(/\\/g, '/');
+    const declared = config.thresholds?.git?.commitSize?.generatedFiles;
+    const patterns = declared?.length
+      ? declared.map(p => new RegExp(p))
+      : this.GENERATED_FILES;
+
+    return patterns.some(pattern => pattern.test(normalized));
+  }
+
+  /**
+   * Turn `git log --format=%x00%H --numstat` output into one entry per commit.
+   *
+   * Each numstat row is `<added>\t<deleted>\t<path>`, with `-` for both counts
+   * on a binary file — a binary has no line count to answer for, so it
+   * contributes files but no lines.
+   */
+  private static parseNumstat(
+    output: string,
+    config: RuleOfCodeConfig
+  ): Array<{ files: number; lines: number }> {
+    const commits: Array<{ files: number; lines: number }> = [];
+
+    for (const block of output.split('\0')) {
+      const rows = block
+        .split('\n')
+        .slice(1) // the commit hash line
+        .filter(row => row.includes('\t'));
+      if (rows.length === 0) continue;
+
+      let files = 0;
+      let lines = 0;
+      for (const row of rows) {
+        const [added, deleted, ...pathParts] = row.split('\t');
+        const filePath = pathParts.join('\t').trim();
+        if (!filePath) continue;
+
+        files += 1;
+        if (this.isGeneratedFile(filePath, config)) continue;
+        lines += (Number(added) || 0) + (Number(deleted) || 0);
+      }
+
+      commits.push({ files, lines });
+    }
+
+    return commits;
   }
 
   private static checkAtomicCommitPolicies(

@@ -5,6 +5,10 @@
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { CodeNamingAnalyzer } from '../../utils';
+import {
+  branchConventionSuggestion,
+  followsBranchConvention,
+} from '../../utils/git/branch-naming';
 import { GitLawBase } from './git-law-base';
 
 export class BranchGovernanceLaw extends GitLawBase {
@@ -45,9 +49,9 @@ export class BranchGovernanceLaw extends GitLawBase {
     // here loses no detection; it only stops misattributing the finding.
     const suggestions: string[] = [];
 
-    // Allow dots in the name segment so semver-style release/hotfix branches like
-    // `release/v1.4.0` are valid (not just kebab-case).
-    const validBranchPattern = /^(feature|hotfix|bugfix|release)\/[a-z0-9.-]+$/;
+    // One shared rule, because this law and Feature Branch Protection judged
+    // branch names independently and disagreed — including on `chore/`, which
+    // the other law's own advice recommends.
     const strictProtectedBranches = ['main', 'master']; // Stricter protection for production branches
     const developmentBranches = ['develop', 'development']; // More permissive for development
 
@@ -61,10 +65,11 @@ export class BranchGovernanceLaw extends GitLawBase {
     } else if (developmentBranches.includes(currentBranch)) {
       // Develop branch is allowed for direct work in active development
       // No violation for uncommitted changes
-    } else if (!validBranchPattern.test(currentBranch)) {
+    } else if (!followsBranchConvention(currentBranch, context.config)) {
       violations.push(
-        `Branch name "${currentBranch}" doesn't follow convention: feature/hotfix/bugfix/release/<name>`
+        `Branch name "${currentBranch}" doesn't follow convention. ${branchConventionSuggestion(context.config)}`
       );
+      suggestions.push(branchConventionSuggestion(context.config));
     }
 
     // Check for proper remote tracking

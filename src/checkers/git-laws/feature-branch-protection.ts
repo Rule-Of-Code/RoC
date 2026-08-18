@@ -8,6 +8,10 @@ import type { RuleOfCodeConfig } from '../../config/types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils';
 import { CheckerUtils } from '../../utils/checker-utils';
+import {
+  branchConventionSuggestion,
+  followsBranchConvention,
+} from '../../utils/git/branch-naming';
 import { CodeNamingAnalyzer } from '../../utils/naming';
 import { PathOperations } from '../../utils/path-operations';
 import { ciConfigContent } from '../../utils/project-discovery';
@@ -196,24 +200,15 @@ export class FeatureBranchProtectionLaw extends GitLawBase {
         // Source-identifier naming is deliberately NOT merged in here — see the
         // note in branch-governance.ts. It belongs to Naming Convention
         // Enforcement, not to a verdict about a branch.
-        const validPrefixes = [
-          'feature/',
-          'bugfix/',
-          'hotfix/',
-          'release/',
-          'chore/',
-        ];
-        const followsConvention = validPrefixes.some(prefix =>
-          currentBranch.startsWith(prefix)
-        );
-
-        if (!followsConvention) {
+        // One shared rule with Branch Governance Standards. These two judged
+        // branch names independently and disagreed: this list accepted
+        // `chore/` and recommended it in the line below, while the other law
+        // rejected it — following this suggestion produced that violation.
+        if (!followsBranchConvention(currentBranch, config)) {
           violations.push(
             `Branch '${currentBranch}' doesn't follow naming convention`
           );
-          suggestions.push(
-            'Use branch prefixes: feature/, bugfix/, hotfix/, release/, chore/'
-          );
+          suggestions.push(branchConventionSuggestion(config));
         }
 
         // Check for descriptive branch names (minimum length)

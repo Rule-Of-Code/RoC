@@ -1173,15 +1173,15 @@ export const PYTHON_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Seeded Randomness',
     rationale:
       'Randomness in business logic that is never seeded makes a run impossible to reproduce — the bug that appeared once will not appear again, and the test that passed is not the test that will fail. Determinism is debuggability.',
-    satisfiedBy: { python: 'Seed or inject the RNG in domain/application code; keep unseeded randomness at the boundary.' },
+    satisfiedBy: { python: 'Inject the source rather than calling it inline: a SEEDABLE generator where a run should be reproducible, an id/token factory where values must stay unpredictable (uuid4, secrets, os.urandom). A cryptographic source declared in thresholds.python.randomnessBoundary is a correct answer, not debt — seeding it would be a security defect.' },
     detectionLimits: [
       'Scans only domain/application paths — a flat-layout project is never scanned.',
-      'Literal random./uuid.uuid4( prefixes only — from random import randint, numpy.random, secrets, os.urandom and uuid1/3/5 are missed.',
-      'random.SystemRandom() instances are not caught.',
+      'Literal prefixes only — `from random import randint`, numpy.random and uuid1/3/5 are missed.',
+      'Two requirements, told apart by the source: random.* should be REPRODUCIBLE (seed it), while uuid4/secrets/os.urandom must stay UNPREDICTABLE (inject a factory, never seed). The line cannot tell which a project meant, so it names the requirement the source implies.',
     ],
     emoji: '🎲',
     description:
-      'random.* / uuid.uuid4 in domain/application layers only via an injected generator (thresholds.python.randomnessBoundary allowlists) — the determinism canon, advisory rollout',
+      'Randomness enters domain/application layers through an injected source: a seedable generator where a run must be reproducible, an id/token factory where values must stay unpredictable (thresholds.python.randomnessBoundary declares the owning module) — the determinism canon, advisory rollout',
     priority: 'LOW',
     category: 'PYTHON',
     stack: 'python',

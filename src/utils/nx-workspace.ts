@@ -72,6 +72,19 @@ export class NxWorkspace {
    * (e.g. `optimization`, `budgets`, `serviceWorker`) work in Nx workspaces.
    */
   static getBuildConfigContent(projectRoot: string): string {
+    return this.buildConfigPaths(projectRoot)
+      .map(p => {
+        try {
+          return fs.readFileSync(p, 'utf8');
+        } catch {
+          return '';
+        }
+      })
+      .join('\n');
+  }
+
+  /** The root `angular.json`, if any, plus every `project.json` in the workspace. */
+  private static buildConfigPaths(projectRoot: string): string[] {
     const paths: string[] = [];
     const angularJson = PathOperations.join(projectRoot, 'angular.json');
     if (fs.existsSync(angularJson)) {
@@ -84,15 +97,26 @@ export class NxWorkspace {
         ignore: this.IGNORE,
       })
     );
+    return paths;
+  }
 
-    return paths
-      .map(p => {
-        try {
-          return fs.readFileSync(p, 'utf8');
-        } catch {
-          return '';
-        }
-      })
-      .join('\n');
+  /**
+   * The same build configs, PARSED.
+   *
+   * A question about structure — how many named configurations a target
+   * declares — cannot be answered by matching keywords in concatenated text,
+   * which is all `getBuildConfigContent` can offer. A file that will not parse
+   * is skipped rather than guessed at.
+   */
+  static getBuildConfigDocuments(projectRoot: string): unknown[] {
+    const documents: unknown[] = [];
+    for (const p of this.buildConfigPaths(projectRoot)) {
+      try {
+        documents.push(JSON.parse(fs.readFileSync(p, 'utf8').replace(/^﻿/, '')));
+      } catch {
+        // Unparseable or unreadable: not evidence either way.
+      }
+    }
+    return documents;
   }
 }

@@ -162,7 +162,55 @@ export class BuildEnvironmentAnalyzerValidation {
     }
 
     const buildConfig = NxWorkspace.getBuildConfigContent(projectRoot);
-    return /"define"\s*:|DefinePlugin|import\.meta\.env/.test(buildConfig);
+    if (/"define"\s*:|DefinePlugin|import\.meta\.env/.test(buildConfig)) {
+      return true;
+    }
+
+    return this.declaresBuildConfigurations(projectRoot);
+  }
+
+  /**
+   * Does a build target declare more than one named configuration?
+   *
+   * An Angular or Nx workspace states its environments in the build system
+   * rather than in the process environment: `configurations.production` and
+   * `configurations.development` are what select the production budgets, output
+   * hashing and optimisation. That IS environment-specific configuration — the
+   * thing this law's own advice asks for — so a project that already had it was
+   * told to "use environment-specific config files" and could not make the
+   * finding move by doing so. Adding NODE_ENV to satisfy it would add a
+   * variable nothing reads.
+   *
+   * A single configuration is NOT accepted: that genuinely is a
+   * single-environment build, and the finding is fair.
+   */
+  private static declaresBuildConfigurations(projectRoot: string): boolean {
+    const MIN_ENVIRONMENTS = 2;
+
+    // `configurations` sits under `targets.<name>` in project.json and under
+    // `projects.<name>.architect.<name>` in angular.json. Rather than encode
+    // both shapes, look for the key wherever it appears in a file whose entire
+    // purpose is build configuration.
+    const hasEnough = (node: unknown): boolean => {
+      if (node === null || typeof node !== 'object') return false;
+
+      if (Array.isArray(node)) return node.some(hasEnough);
+
+      const record = node as Record<string, unknown>;
+      const configurations = record.configurations;
+      if (
+        configurations !== null &&
+        typeof configurations === 'object' &&
+        !Array.isArray(configurations) &&
+        Object.keys(configurations).length >= MIN_ENVIRONMENTS
+      ) {
+        return true;
+      }
+
+      return Object.values(record).some(hasEnough);
+    };
+
+    return NxWorkspace.getBuildConfigDocuments(projectRoot).some(hasEnough);
   }
 
   /**

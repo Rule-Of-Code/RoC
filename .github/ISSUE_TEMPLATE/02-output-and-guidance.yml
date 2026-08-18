@@ -1,0 +1,112 @@
+name: 🗣️ The verdict is right, the message is not
+description: A law is correct but says something unhelpful, misleading, or less than it knows — including advice that would make the code worse.
+title: "<law-slug>: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A correct result that reads as a broken one is a defect in this tool,
+        not a cosmetic complaint. Two releases have been shaped by reports in
+        this category: one where a law printed a position while holding the
+        reason, and one where the advice attached to a correct finding would
+        have introduced a security defect if followed.
+
+        Use the other template if the verdict itself is wrong.
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: "`npx ruleofcode --version`"
+      placeholder: "7.20.0"
+    validations:
+      required: true
+
+  - type: input
+    id: law
+    attributes:
+      label: Law
+      description: The slug from `npx ruleofcode laws --list`.
+      placeholder: "commit-message-standards"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What is wrong with it
+      options:
+        - It names something it never checked
+        - It reports a count or a position where it holds the artefact
+        - Its advice would make the code worse if followed
+        - It does not say which scope, file or rule it used
+        - The law text does not say a legitimate answer is legitimate
+      default: 0
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-it-says
+    attributes:
+      label: What it says now
+      description: Verbatim — the message, and the advice printed under it.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-it-knows
+    attributes:
+      label: What it already knows
+      description: >-
+        The point of this template. If the fact is already available where the
+        message is built — the file it matched, the range it iterated, the ref
+        it resolved — say so. That is the difference between a feature request
+        and a defect: the tool had the answer and printed something else.
+      placeholder: >-
+        Both facts are known at the point of the check: the law resolves the ref
+        to build the range, and the range is what it iterates.
+    validations:
+      required: true
+
+  - type: textarea
+    id: cost
+    attributes:
+      label: What it cost you
+      description: >-
+        What the wording led you to do. One reporter rebased, lost two commits,
+        recovered them from the reflog and started drafting an issue against a
+        tool that was working correctly — because the message named a position
+        and nothing else. That account is why the fix happened.
+
+  - type: textarea
+    id: better
+    attributes:
+      label: What would have been enough
+      description: >-
+        Write the line you wish it had printed. It does not have to be the final
+        wording — a rough one still shows what was missing.
+      placeholder: |
+        baseline: develop (6 behind origin/develop — pull before trusting this range)
+        scanned:  5 commits (develop..HEAD)
+      render: text
+
+  - type: textarea
+    id: precedent
+    attributes:
+      label: Does another law already do this well?
+      description: >-
+        If some other law names the key, the effect and the next step, point at
+        it. The house style is easier to match than to describe, and a
+        comparison inside the tool is the strongest argument available.
+
+  - type: textarea
+    id: not-verified
+    attributes:
+      label: What you did NOT verify
+      description: >-
+        Anything assumed rather than run — including whether this still behaves
+        the same on the version above.
+    validations:
+      required: true

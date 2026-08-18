@@ -1,0 +1,150 @@
+name: ⚖️ A law reaches the wrong verdict
+description: A law reports code that is correct, misses code that is not, or cannot be satisfied without making the code worse.
+title: "<law-slug>: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This tool exists to destroy unearned confidence. A law that reports a
+        correct project is exactly the failure it was built to prevent, so this
+        is the report we most want to receive.
+
+        **Fill what you know.** A partial report with an honest boundary beats a
+        complete-looking one with a guess in it — there is a field below for
+        saying what you did not check.
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: "`npx ruleofcode --version`"
+      placeholder: "7.20.0"
+    validations:
+      required: true
+
+  - type: input
+    id: law
+    attributes:
+      label: Law
+      description: >-
+        The slug from `npx ruleofcode laws --list`, and — if you found it — the
+        function and file in `dist/` that decides this.
+      placeholder: "database-query-optimization — DatabaseQueryOptimizationLaw.hasDatabaseLayer() in dist/laws/performance/database-query-optimization.js"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Which way is it wrong?
+      options:
+        - It reports code that is correct (false positive)
+        - It stays silent on code that is not (false negative)
+        - It can only be satisfied by making the code worse
+        - Its verdict changes for reasons unrelated to the code
+      default: 0
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happens
+    attributes:
+      label: What happens
+      description: >-
+        The output, verbatim. Paste the finding as printed — do not paraphrase
+        it, because the exact wording is often where the defect shows.
+      placeholder: |
+        ❌ FAILED CONSTITUTIONAL LAWS:
+        1. Release Tag Standards [1 violations] (Score: 90/100)
+           • Invalid tag formats found: release/v0.1.0
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: mechanism
+    attributes:
+      label: What is wrong
+      description: >-
+        The mechanism, if you traced it. Quoting the code from `dist/` is the
+        most useful thing you can put in an issue — it turns "this seems wrong"
+        into "this line decides it". If you did not trace it, say so and skip
+        this; a symptom with a clean reproduction is still a good report.
+      placeholder: |
+        ```js
+        const DATABASE_CLIENTS = /firebase|@angular\/fire|supabase|dexie|pouchdb/i;
+        ```
+
+        tested against the raw concatenated TEXT of package.json — not a parsed
+        dependency list, and not scoped to any Firebase subpackage.
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: >-
+        Commands and their output. State plainly which parts you ran and which
+        you are inferring — "grep confirms zero matches" and "I assume this is
+        why" are both welcome, as long as they are labelled.
+      placeholder: |
+        $ npx ruleofcode audit --mode=full --verbose
+        ...
+
+        Traced by reading the law's source, not guessed from the message text.
+    validations:
+      required: true
+
+  - type: textarea
+    id: cost
+    attributes:
+      label: What it cost you
+      description: >-
+        What you did, or could not do, because of this. A parked law, a
+        workaround, a rename that would break a deployment trigger, an hour
+        spent looking at your own diff. This is what tells us how to rank it —
+        and more than one fix here has been shaped by this field rather than by
+        the defect itself.
+
+  - type: textarea
+    id: siblings
+    attributes:
+      label: Is the same logic somewhere else?
+      description: >-
+        Two laws holding their own copy of one rule is the single most common
+        shape behind these reports — four separate issues have turned into six,
+        four, four and two sites once someone looked. If you noticed a sibling
+        law with the same blind spot, name it. We sweep for the shape either
+        way, and a pointer makes that sweep better.
+      placeholder: "Same blind spot in `semantic-versioning-standards`, separate implementation — fixing one will not fix the other."
+
+  - type: textarea
+    id: suggested-fix
+    attributes:
+      label: Suggested fix
+      description: >-
+        Optional, and genuinely used. If you can see more than one route, rank
+        them — a report that says "either of these would resolve it, and (1) is
+        closest to what the law is for" has decided more than one release.
+
+  - type: textarea
+    id: not-verified
+    attributes:
+      label: What you did NOT verify
+      description: >-
+        The field that makes the rest trustworthy. Anything you assumed,
+        inferred from a message, or did not re-test on this version. A report
+        that draws its own boundary is worth more than one that sounds
+        certain — and a claim you retract yourself costs nothing.
+      placeholder: "I did not re-stage this on 7.20.0, so I am not claiming the misattribution still reproduces there — only the diagnostic gap."
+    validations:
+      required: true
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Your config
+      description: >-
+        `ruleofcode.config.json`, or the part that matters. Secrets removed.
+        A whitelist or an ignore rule is sometimes the whole explanation.
+      render: json

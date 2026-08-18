@@ -2,6 +2,9 @@ import type { RuleOfCodeConfig } from '../../config/types';
 import { DirectoryScanner } from '../directory-scanner';
 import { FileFilterUtils } from '../file-filter-utils';
 import { PathOperations } from '../path-operations';
+/** How many discovered test files to name before summarising the rest. */
+const TEST_FILE_EXAMPLES = 5;
+
 /**
  * Test Files Existence Checker
  * Specialized utility for analyzing test files and their relationship to source files
@@ -80,9 +83,36 @@ export class TestFilesExistenceChecker {
       suggestions.push(
         `Aim for at least ${minRatio}% test file coverage (1 test file per ${Math.round(100 / minRatio)} source files)`
       );
+      suggestions.push(this.describeCountedTests(projectRoot, testFiles));
     }
 
     return { violations, suggestions };
+  }
+
+  /**
+   * Name what WAS counted.
+   *
+   * When this number is wrong, the only way to see it was to re-implement the
+   * scan by hand against the compiled output — a reporter did exactly that to
+   * show 27 test files where the audit counted one. A ratio is only a statement
+   * about testing if its numerator can be checked.
+   */
+  private static describeCountedTests(
+    projectRoot: string,
+    testFiles: string[]
+  ): string {
+    if (testFiles.length === 0) {
+      return 'No test files were found at all — if that is wrong, the scan is not seeing them, and the ratio above is not a statement about your testing';
+    }
+
+    const shown = testFiles
+      .slice(0, TEST_FILE_EXAMPLES)
+      .map(file => PathOperations.getRelative(projectRoot, file))
+      .join(', ');
+    const extra = testFiles.length - TEST_FILE_EXAMPLES;
+    const more = extra > 0 ? ` (+${extra} more)` : '';
+
+    return `Counted these test files: ${shown}${more}. If a test you have is missing from this list, the ratio is wrong rather than your coverage.`;
   }
 
   /**
@@ -100,7 +130,11 @@ export class TestFilesExistenceChecker {
       config,
       (fullPath, fileName) =>
         this.isSourceFile(fileName) &&
-        !this.shouldIgnoreFile(projectRoot, fullPath, config, false, lawId)
+        !this.shouldIgnoreFile(projectRoot, fullPath, config, false, lawId),
+      // Test directories are correctly pruned for the SOURCE scan: a spec is
+      // not a source file this law can ask a test of.
+      false,
+      lawId
     );
     return sourceFiles;
   }
@@ -120,7 +154,11 @@ export class TestFilesExistenceChecker {
       config,
       (fullPath, fileName) =>
         this.isTestFile(fileName) &&
-        !this.shouldIgnoreFile(projectRoot, fullPath, config, true, lawId)
+        !this.shouldIgnoreFile(projectRoot, fullPath, config, true, lawId),
+      // The scan that COUNTS tests must be allowed into the directories tests
+      // live in. The walk pruned them before the validator was ever consulted.
+      true,
+      lawId
     );
     return testFiles;
   }
@@ -132,21 +170,45 @@ export class TestFilesExistenceChecker {
    * The validator receives the FULL path: it used to be handed a bare file name
    * which the caller joined to the top-level directory, so every file below the
    * first level was ignore-checked against a path it did not have.
+   *
+   * `includeTests` is threaded through to the DIRECTORY filter, and that is the
+   * whole point of it being a parameter. The walk asked with the default —
+   * false — while the test scan's file validator asked with true, so the two
+   * scans resolved different ignore sets. `**​/*-e2e/**`, `**​/e2e/**`,
+   * `**​/test/**`, `**​/tests/**` and `**​/cypress/**` are added when tests are
+   * excluded, so entire directories of specs were pruned before the validator
+   * that was meant to accept them ever ran. The ratio was then computed from a
+   * numerator that had never seen most of the tests, and the advice —
+   * "add tests" — could not move it.
    */
   private static findFilesRecursively(
     directory: string,
     files: string[],
     config: RuleOfCodeConfig,
-    fileValidator: (fullPath: string, fileName: string) => boolean
+    fileValidator: (fullPath: string, fileName: string) => boolean,
+    includeTests: boolean,
+    lawId?: string
   ): void {
     try {
-      const entries = DirectoryScanner.safeReadDirectory(directory, config);
+      const entries = DirectoryScanner.safeReadDirectory(
+        directory,
+        config,
+        lawId,
+        includeTests
+      );
 
       for (const entry of entries) {
         const fullPath = PathOperations.join(directory, entry.name);
 
         if (entry.isDirectory() && !this.shouldSkipDirectory(entry.name)) {
-          this.findFilesRecursively(fullPath, files, config, fileValidator);
+          this.findFilesRecursively(
+            fullPath,
+            files,
+            config,
+            fileValidator,
+            includeTests,
+            lawId
+          );
         } else if (entry.isFile() && fileValidator(fullPath, entry.name)) {
           files.push(fullPath);
         }

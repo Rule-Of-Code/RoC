@@ -6,6 +6,7 @@ import { PathOperations } from '../../utils/path-operations';
 import { PerformanceAnalysisService } from '../../utils/performance';
 import { ciConfigContent } from '../../utils/project-discovery';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
+import { CoverageThresholdReader } from '../../utils/testing/coverage-threshold-reader';
 // Interfaces for quality gate analysis
 interface QualityGateAnalysis {
   hasLintingGates?: boolean;
@@ -244,18 +245,19 @@ export class AutomatedCodeQualityGatesLaw {
     let hasCoverageConfig = false;
     let hasCoverageThresholds = false;
 
-    // Check Jest configuration for coverage
-    const jestConfigFiles = [
-      'jest.config.js',
-      'jest.config.ts',
-      'jest.config.json',
-    ];
-    for (const configFile of jestConfigFiles) {
-      if (this.checkJestConfigFile(projectRoot, configFile)) {
-        hasCoverageConfig = true;
-        hasCoverageThresholds = true;
-        break;
-      }
+    // Jest thresholds, asked of the shared reader, which looks across the
+    // workspace rather than at the project root alone.
+    //
+    // In an Nx workspace the ROOT jest config cannot hold a threshold: it is an
+    // aggregator (`projects: await getJestProjectsAsync()`), and Jest resolves
+    // coverage thresholds per project when `projects` is used. The threshold
+    // lives in `apps/<name>/jest.config.ts`, which is where Jest expects it —
+    // so a project gating on 100% branches was reported as having no coverage
+    // gate, and the only way to satisfy the check would have been to duplicate
+    // the threshold at the root, where it gates nothing.
+    if (CoverageThresholdReader.workspaceBlocks(projectRoot).length > 0) {
+      hasCoverageConfig = true;
+      hasCoverageThresholds = true;
     }
 
     // Check package.json for coverage configuration
@@ -312,25 +314,6 @@ export class AutomatedCodeQualityGatesLaw {
       violations: [],
       suggestions: [],
     } as QualityGateAnalysis;
-  }
-
-  private static checkJestConfigFile(
-    projectRoot: string,
-    configFile: string
-  ): boolean {
-    const configPath = PathOperations.join(projectRoot, configFile);
-
-    if (!FileUtils.exists(configPath)) return false;
-
-    try {
-      const content = FileUtils.readFile(configPath, { encoding: 'utf8' });
-      return (
-        this.hasCoverageConfiguration(content) &&
-        this.hasCoverageThresholds(content)
-      );
-    } catch (_error) {
-      return false;
-    }
   }
 
   private static checkPackageJsonForCoverage(projectRoot: string): {

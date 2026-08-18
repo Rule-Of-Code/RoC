@@ -1,6 +1,7 @@
 import type { RuleOfCodeConfig } from '../../config/types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { ConfigHelper } from '../../utils/config-helper';
+import { concernIsWaived } from '../../utils/law-waivers';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
 import { BuildValidationChecker } from './pre-deployment/build-validator';
 import { ChecklistDocumentValidator } from './pre-deployment/checklist-validator';
@@ -98,6 +99,15 @@ export class PreDeploymentChecklistLaw {
       score -= 25;
     }
 
+    // A sub-check is not addressable: there is no `laws.notApplicable` entry
+    // for "the auth clause of the checklist law". So each clause below defers
+    // to the law that OWNS its concern — if a project has declared
+    // Authentication Security or Health Check Monitoring inapplicable, with a
+    // written reason the audit accepted, this law does not ask again. The tool
+    // already holds that reason; it is one lookup away.
+    //
+    // The CHECKLIST clauses are untouched: the document is this law's own
+    // subject, and satisfying them is what it is for.
     // 5. Check authentication setup — @login_required / abort(401) is an auth
     // guard, not merely an Express middleware.
     const authSetup = securityValidator.checkAuthenticationSetup(
@@ -106,7 +116,8 @@ export class PreDeploymentChecklistLaw {
     );
     if (
       !authSetup.authConfigured &&
-      !PythonSatisfaction.hasAuthGuards(projectRoot)
+      !PythonSatisfaction.hasAuthGuards(projectRoot) &&
+      !concernIsWaived(context.config, 'Authentication Security')
     ) {
       violations.push('Authentication/authorization setup not detected');
       suggestions.push('Implement proper authentication and security measures');
@@ -120,7 +131,8 @@ export class PreDeploymentChecklistLaw {
       performanceValidator.checkPerformanceBenchmarking(projectRoot);
     if (
       !performanceBenchmarking.benchmarkingConfigured &&
-      !PythonSatisfaction.hasBackendPerformanceMonitoring(projectRoot)
+      !PythonSatisfaction.hasBackendPerformanceMonitoring(projectRoot) &&
+      !concernIsWaived(context.config, 'Performance Monitoring Standards')
     ) {
       violations.push('Performance benchmarking not configured');
       suggestions.push(
@@ -142,7 +154,10 @@ export class PreDeploymentChecklistLaw {
     const healthChecksConfigured =
       monitoringSetup.healthChecksConfigured ||
       PythonSatisfaction.hasHealthEndpoint(projectRoot);
-    if (!healthChecksConfigured) {
+    if (
+      !healthChecksConfigured &&
+      !concernIsWaived(context.config, 'Health Check Monitoring')
+    ) {
       violations.push('Health checks not configured');
       suggestions.push('Implement health check endpoints for monitoring');
       score -= 10;
@@ -151,7 +166,10 @@ export class PreDeploymentChecklistLaw {
     const loggingConfigured =
       monitoringSetup.loggingConfigured ||
       PythonSatisfaction.hasStructuredLogging(projectRoot);
-    if (!loggingConfigured) {
+    if (
+      !loggingConfigured &&
+      !concernIsWaived(context.config, 'Centralized Logging')
+    ) {
       violations.push('Logging not properly configured');
       suggestions.push('Configure structured logging for production');
       score -= 10;

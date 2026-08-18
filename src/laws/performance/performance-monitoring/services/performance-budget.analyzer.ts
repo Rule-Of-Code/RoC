@@ -1,3 +1,4 @@
+import { AngularBundleConfig } from '../../../../utils/angular-bundle-config';
 import { FileUtils } from '../../../../utils/file-utils';
 import { PathOperations } from '../../../../utils/path-operations';
 import { PerformanceBudgetConstants } from '../constants/performance-budget.constants';
@@ -26,24 +27,13 @@ export class PerformanceBudgetAnalyzerService {
       }
     }
 
-    // Check Angular CLI performance budgets
-    const angularJsonPath = PathOperations.join(
-      projectRoot,
-      PerformanceBudgetConstants.ANGULAR_BUDGET_FILE
-    );
-    if (FileUtils.exists(angularJsonPath)) {
-      try {
-        const content = FileUtils.readFile(angularJsonPath, {
-          encoding: 'utf8',
-        });
-        if (
-          content.includes(PerformanceBudgetConstants.ANGULAR_BUDGET_PATTERN)
-        ) {
-          return { configured: true };
-        }
-      } catch {
-        // Ignore errors
-      }
+    // Angular budgets, asked of the shared reader rather than of a root
+    // `angular.json`. An Nx workspace declares them in
+    // `apps/<name>/project.json` and has no root angular.json, so a build that
+    // fails on its own budgets was reported as having none — while a sibling
+    // law read the same file and passed.
+    if (AngularBundleConfig.hasBudgets(projectRoot)) {
+      return { configured: true };
     }
 
     return { configured: false };

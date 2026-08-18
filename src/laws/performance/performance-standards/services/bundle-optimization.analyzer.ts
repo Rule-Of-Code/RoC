@@ -1,5 +1,6 @@
 import { glob } from 'glob';
 import { FileUtils, PathOperations } from '../../../../utils';
+import { AngularBundleConfig } from '../../../../utils/angular-bundle-config';
 import { BundleOptimizationConstants } from '../constants';
 
 /**
@@ -55,6 +56,17 @@ export class BundleOptimizationAnalyzer {
       ) {
         return violations;
       }
+    }
+
+    // A modern Angular project may declare neither `"optimization": true` nor a
+    // webpack config, and be correct: the esbuild `application` builder
+    // optimises production builds by default, and bundle SIZE is controlled by
+    // the budgets array. Requiring the literal key made this law contradict
+    // `bundle-optimization-strategy-policy` — same repository, same commit,
+    // same audit run, opposite verdicts — and there was no configuration that
+    // satisfied both while staying correct for the toolchain.
+    if (AngularBundleConfig.hasModernBundleSetup(projectRoot)) {
+      return violations;
     }
 
     violations.push('Bundle optimization not properly configured');

@@ -1,6 +1,7 @@
 import { FileSystemOperations } from '../../../../utils/file-system-operations';
 import { FileUtils } from '../../../../utils/file-utils';
 import { PathOperations } from '../../../../utils/path-operations';
+import { AngularBundleConfig } from '../../../../utils/angular-bundle-config';
 import { PerformanceBudgetPolicyConstants } from '../constants/performance-budget-policy.constants';
 
 /**
@@ -25,25 +26,21 @@ export class PerformanceBudgetPolicyAnalyzerService {
     };
   }
 
+  /**
+   * Asked of the shared reader, which looks across the whole workspace.
+   *
+   * This read only a ROOT `angular.json`. An Nx workspace declares its budgets
+   * in `apps/<name>/project.json` and has no root angular.json at all, so a
+   * project whose build fails on a 4kb component-style ceiling was told its
+   * performance budget was not configured — while a sibling law read the same
+   * budgets and passed. Two laws, opposite verdicts, one audit run.
+   */
   private static addAngularBudgetsIfPresent(
     projectRoot: string,
     budgetSources: string[]
   ): void {
-    const angularJsonPath = PathOperations.join(
-      projectRoot,
-      PerformanceBudgetPolicyConstants.ANGULAR_BUDGET_FILE
-    );
-
-    if (!FileUtils.exists(angularJsonPath)) return;
-
-    try {
-      const angularJson = FileSystemOperations.readJsonFile(angularJsonPath);
-      const content = JSON.stringify(angularJson);
-      if (content.includes('budgets') && content.includes('maximumError')) {
-        budgetSources.push('Angular CLI budgets');
-      }
-    } catch {
-      // Ignore parsing errors
+    if (AngularBundleConfig.hasBudgets(projectRoot)) {
+      budgetSources.push('Angular CLI budgets');
     }
   }
 

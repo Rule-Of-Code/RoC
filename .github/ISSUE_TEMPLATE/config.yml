@@ -1,0 +1,16 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 Check what the law already admits it cannot see
+    url: https://github.com/Rule-Of-Code/RoC/blob/master/CHANGELOG.md
+    about: >-
+      Every law declares its own blind spots. `npx ruleofcode laws --list`
+      prints them. If a law missed something it already declares it cannot see,
+      that is a known limit rather than a defect — open the report anyway, and
+      say so: it becomes a request to close the gap, which is a different and
+      easier conversation.
+  - name: 🔎 Check whether it is already fixed
+    url: https://github.com/Rule-Of-Code/RoC/blob/master/CHANGELOG.md
+    about: >-
+      Releases are frequent and the changelog leads with anything that changes
+      what a law reports. Upgrading first costs a minute and has closed several
+      reports before they were written.

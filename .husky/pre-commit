@@ -1,5 +1,5 @@
-# RuleOfCode v7.19.0 Constitutional Checkpoint (husky v9+ native hook)
-echo "🏛️ RuleOfCode v7.19.0 Constitutional Checkpoint with lint-staged"
+# RuleOfCode v7.20.0 Constitutional Checkpoint (husky v9+ native hook)
+echo "🏛️ RuleOfCode v7.20.0 Constitutional Checkpoint with lint-staged"
 npx lint-staged
 
 # Run constitutional audit on staged files

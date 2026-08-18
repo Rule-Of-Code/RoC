@@ -5,6 +5,149 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.20.0] - 2026-08-18
+
+**No config edit is required.** Nothing was removed, the law count is
+unchanged, and every fix below makes a law report less, not more — except one,
+which is `info` and cannot fail your audit.
+
+Six consumer reports. Four of them named one site; sweeping for the shape found
+six, four, four and two. That ratio is the reason these releases keep saying
+it: a reported defect is usually one instance of something repeated.
+
+**The one change that reports MORE:** Seeded Randomness now recognises
+`secrets.*`, `os.urandom` and `random.SystemRandom()` in Python domain code. It
+is an `info` law, so a new finding there does not fail an audit — and the advice
+attached to it changed, see below.
+
+### 🐛 Fixed — a git path is not the repository
+
+`<root>/.git` is a directory only in a primary checkout. In a linked worktree it
+is a FILE holding a `gitdir:` pointer, so every detector that joined
+`.git/config` or `.git/hooks` onto the project root read nothing there — and
+concluded the absence of what it looked for.
+
+The reported symptom was the worst kind: **a verdict that depends on which
+directory you commit from**. The same law, same commit, same version, scored 80
+in the primary checkout and 45 in a worktree of that repository.
+
+One site was reported; six were found. The second is worse than the report:
+
+> **Git History Integrity looked for a force-push guard in
+> `.git/hooks/pre-push`.** That misses the hook in *every husky project*,
+> worktree or not, because husky moves `core.hooksPath` to `.husky`. It drives a
+> violation, so it accused projects of having no force-push protection while
+> their hook sat there working — including projects that installed husky because
+> we told them to.
+
+Worktrees are how two agents avoid sharing one working directory. A gate that
+changes its verdict when you adopt that isolation penalises the safer setup, and
+reads as a code problem while doing it.
+
+### 🐛 Fixed — one branch-name rule, and `chore/` decided in one place
+
+Two laws validated the branch name independently with rules that disagreed. The
+sharpest consequence was ours: one law listed `chore/` as valid **and printed it
+as remediation advice**, while the other rejected it. Following our own
+suggestion produced our own violation — which is how it was found, when a
+back-merge branch named `chore/backmerge-v7.19.0` failed our CI.
+
+| branch | before | now |
+| --- | --- | --- |
+| `chore/update-deps` | one law rejected it | both accept |
+| `feature/Add_User_Auth` | `_` and uppercase rejected | both accept |
+| `feature/roc/sub-scope` | `/` rejected | both accept |
+| `feature/ABC-123` | **unreported** — uppercase rejected | both accept |
+
+A character class had been deciding policy by accident: nobody chose to reject a
+branch named after a ticket, a regex did. The accepted set is explicit now, and
+configurable via `thresholds.git.branchNaming.allowedPrefixes` — and **the
+suggestion string is generated from it**, so advice and policy cannot diverge
+again.
+
+### 🐛 Fixed — commit size measures authored change, not generated lines
+
+A lockfile cannot be split across two commits, and splitting it from the
+manifest that caused it lands an inconsistent tree. Counting its lines made a
+dependency update uncommittable — the report was a security patch held up by
+17,980 generated lines, with only two ways past: raise the limit for every
+commit and lose the law everywhere, or leave the advisory unpatched.
+
+- Generated files no longer contribute **lines**. Sixteen lockfile formats by
+  default, replaceable via `thresholds.git.commitSize.generatedFiles`.
+- They still contribute **files**. Twelve lockfiles in one commit is still
+  oversized: the exemption is for content nobody reads, not for the size of a
+  change.
+- **`baseline` is honoured**, as the two sibling commit-history laws already
+  did. Three laws read commit history and one of them could not be scoped to
+  commits made after adopting RoC.
+
+### 🐛 Fixed — two heuristics that reported on code they never read
+
+**Awaiting non-promise values** excluded one- and two-level calls and nothing
+deeper, and could not see past the end of a line. It reported
+`await page.keyboard.press('Escape')` — any fluent API produces three-level
+calls — and reported `await expect` because the formatter had wrapped `.poll(…)`
+onto the next line, making the finding depend on line width rather than on the
+code. It is narrowed to literals: a number, a string, a boolean,
+`null`/`undefined`, or an array where `Promise.all` was meant. That is the whole
+set the check can be right about.
+
+**HTTP calls should be mocked** fired on `content.includes('http')` over the
+whole file, so a URL in a comment was read as a network request. It requires an
+actual call now.
+
+Both sit in laws that carry real debt, so these counted as test-quality debt
+that could not be paid — satisfiable only by abandoning a fluent API or fighting
+the formatter.
+
+### ✨ Added — the commit laws say which scope they resolved
+
+A `baseline` resolves against the **local** ref, so a branch that has not been
+pulled puts commits already merged upstream inside the scanned range. The output
+named a position and nothing else, which made a correct result
+indistinguishable from a broken one.
+
+A reporter read the finding the only way it could be read — a foreign commit in
+shared history — rebased (which could not help, the commit being upstream
+already), lost two of their own commits, recovered them from the reflog, told
+their team lead the gate was blocking every branch, and began drafting an issue
+against a tool that was working correctly. `git pull` was the fix.
+
+All three history laws now lead their advice with the scope:
+
+```
+Scope: 3 commits in develop..HEAD — and 'develop' is 2 behind origin/develop,
+so commits already merged upstream are inside this range.
+Run 'git pull' on develop before trusting these findings.
+```
+
+It appears only when a law has something to report, so a clean run gains no
+noise.
+
+### ✨ Added — reproducible randomness and unpredictable randomness are not the same request
+
+`random.choice()` in domain logic should be **reproducible**; seeding is the
+answer. But `uuid4`, `secrets` and `os.urandom` are chosen precisely because
+their output **cannot** be predicted — an identifier travelling in a share URL,
+an invite code, a token. "Seed or inject the RNG" there is not a testability
+improvement, it is a security defect, and a sequential replacement leaks how
+many records exist and lets anyone walk the collection.
+
+| source | requirement | advice |
+| --- | --- | --- |
+| `random.*` | reproducible | inject a **seedable** generator |
+| `uuid4`, `secrets`, `os.urandom`, `random.SystemRandom` | unpredictable | inject an id/token factory — a test substitutes a stub, it does **not** seed the source or swap in a counter |
+
+`random.SystemRandom()` is recognised now; it was declared in our own
+`detectionLimits` as uncaught. This is the one change in this release that
+reports more, and the law is `info`.
+
+The Law Card states the exception too: a cryptographic source at a boundary
+declared in `thresholds.python.randomnessBoundary` is a **correct answer, not
+debt**. Nothing previously said the knob was the sanctioned path rather than a
+way to silence the law.
+
 ## [7.19.0] - 2026-08-13
 
 **Read this before upgrading. Three changes move numbers you may have written

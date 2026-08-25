@@ -212,15 +212,68 @@ export class MagicNumberPreventionLaw extends CodeQualityLawBase {
   private static blankStringLiterals(code: string): string {
     const out = code.split('');
     let index = 0;
+    let prev = '';
 
     while (index < out.length) {
-      const quote = out[index];
-      index = this.isQuote(quote)
-        ? this.blankOneLiteral(out, index, quote as string) + 1
-        : index + 1;
+      const ch = out[index] as string;
+
+      // A REGEX literal is skipped whole, never blanked and never treated as a
+      // string. `/['"]/` contains a quote, and reading that quote as the start
+      // of a string blanked everything after it until the next one — silently
+      // hiding real findings in the rest of the file.
+      if (ch === '/' && this.startsRegex(prev)) {
+        index = this.skipRegexLiteral(out, index) + 1;
+        prev = '/';
+        continue;
+      }
+
+      if (this.isQuote(ch)) {
+        index = this.blankOneLiteral(out, index, ch) + 1;
+        prev = ch;
+        continue;
+      }
+
+      if (!/\s/.test(ch)) prev = ch;
+      index += 1;
     }
 
     return out.join('');
+  }
+
+  /**
+   * Could a `/` here open a regex rather than divide?
+   *
+   * Division follows a value — an identifier, a number, or a closing bracket.
+   * Anything else (an operator, an opening bracket, a comma, nothing at all)
+   * means a regex. Comments are already gone by this point, so `//` and `/*`
+   * are not in play.
+   */
+  private static startsRegex(prev: string): boolean {
+    if (prev === '') return true;
+    return !/[\w$)\]]/.test(prev);
+  }
+
+  /** Index of the regex literal's closing `/`, honouring classes and escapes. */
+  private static skipRegexLiteral(out: string[], start: number): number {
+    let cursor = start + 1;
+    let inClass = false;
+
+    while (cursor < out.length) {
+      const current = out[cursor];
+      if (current === '\\') {
+        cursor += 2;
+        continue;
+      }
+      // Inside `[...]` a slash is literal and does not close the regex.
+      if (current === '[') inClass = true;
+      else if (current === ']') inClass = false;
+      else if (current === '/' && !inClass) break;
+      // An unterminated regex is not a regex — most likely a stray slash.
+      else if (current === '\n') return start;
+      cursor += 1;
+    }
+
+    return cursor;
   }
 
   private static isQuote(ch: string | undefined): boolean {

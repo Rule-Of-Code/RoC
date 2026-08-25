@@ -52,6 +52,34 @@ describe('a magic number is unnamed, and in code', () => {
     });
   });
 
+  /**
+   * A regex literal is not a string, and reading it as one is worse than not
+   * blanking at all: `/['"]/` contains a quote, so treating that quote as the
+   * start of a string blanked everything up to the next one — hiding real
+   * findings in the rest of the file. This codebase is full of such regexes,
+   * which is how it was caught.
+   */
+  describe('a regex literal is skipped, not blanked', () => {
+    it.each([
+      [`const q = /['"]/;\nif (x > 4242) {}`, '4242', 'quotes inside a regex'],
+      [`const r = /it\\'s/;\nif (y > 8080) {}`, '8080', 'an escaped quote'],
+      [`const s = /a\\/b/;\nif (z > 7777) {}`, '7777', 'an escaped slash'],
+      [`const c = /[/'"]/;\nif (w > 6666) {}`, '6666', 'a slash inside a class'],
+    ])('still sees code after %s', (source, expected) => {
+      expect(found(source)).toContain(expected);
+    });
+
+    it('does not mistake division for a regex', () => {
+      expect(found('const d = a / 2; const e = b / 3;\nif (v > 5555) {}')).toContain(
+        '5555'
+      );
+    });
+
+    it('reports nothing from the regex itself', () => {
+      expect(found(`const only = /[0-9]{4,8}['"]/;`)).toEqual([]);
+    });
+  });
+
   describe('an object property is a name', () => {
     it.each([
       ['const HERO = { curves: 44, ratio: 7, innerCurves: 26 };'],

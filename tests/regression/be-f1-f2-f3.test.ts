@@ -122,7 +122,7 @@ describe('a backend consumer F1/F2/F3 (v7.9.6)', () => {
   });
 
   describe('F1 — Code Review Quality sees ruff + mypy', () => {
-    it('passes a Python service with ruff/mypy/bandit and review guidelines', () => {
+    it('passes a Python service with ruff/mypy/bandit and review guidelines', async () => {
       beService();
 
       const result = CodeReviewQualityLaw.check({
@@ -133,7 +133,7 @@ describe('a backend consumer F1/F2/F3 (v7.9.6)', () => {
       expect(result.violations).toEqual([]);
     });
 
-    it('still fails a service with no tooling and no guidelines', () => {
+    it('still fails a service with no tooling and no guidelines', async () => {
       bareService();
 
       const result = CodeReviewQualityLaw.check({
@@ -146,7 +146,7 @@ describe('a backend consumer F1/F2/F3 (v7.9.6)', () => {
   });
 
   describe('F2 — a law never fails while listing nothing to fix', () => {
-    it('does not fail on score alone when there are zero violations', () => {
+    it('does not fail on score alone when there are zero violations', async () => {
       beService();
 
       const result = AutomatedCodeQualityGatesLaw.check({
@@ -160,7 +160,7 @@ describe('a backend consumer F1/F2/F3 (v7.9.6)', () => {
       expect(result.passed).toBe(true);
     });
 
-    it('never reports passed:false with an empty violation list', () => {
+    it('never reports passed:false with an empty violation list', async () => {
       bareService();
 
       const result = AutomatedCodeQualityGatesLaw.check({
@@ -174,10 +174,10 @@ describe('a backend consumer F1/F2/F3 (v7.9.6)', () => {
   });
 
   describe('F3 — the checklist law asks PythonSatisfaction', () => {
-    it('does not claim "Health checks not configured" when /api/health is served', () => {
+    it('does not claim "Health checks not configured" when /api/health is served', async () => {
       beService();
 
-      const result = PreDeploymentChecklistLaw.check({
+      const result = await PreDeploymentChecklistLaw.check({
         projectRoot: root,
         config: config(),
       });
@@ -185,24 +185,25 @@ describe('a backend consumer F1/F2/F3 (v7.9.6)', () => {
       expect(result.violations).toEqual([]);
     });
 
-    it('reports one build violation, in one wording', () => {
+    it('reports one build violation, in one wording', async () => {
       bareService();
 
-      const violations = (
-        PreDeploymentChecklistLaw.check({
-          projectRoot: root,
-          config: config(),
-        }).violations ?? []
-      ).filter(v => /build validation/i.test(v));
+      const result = await PreDeploymentChecklistLaw.check({
+        projectRoot: root,
+        config: config(),
+      });
+      const violations = (result.violations ?? []).filter(v =>
+        /build validation/i.test(v)
+      );
 
       // It used to run the same check twice and emit two wordings of one defect.
       expect(violations).toHaveLength(1);
     });
 
-    it('still fails a bare service that has none of it', () => {
+    it('still fails a bare service that has none of it', async () => {
       bareService();
 
-      const result = PreDeploymentChecklistLaw.check({
+      const result = await PreDeploymentChecklistLaw.check({
         projectRoot: root,
         config: config(),
       });

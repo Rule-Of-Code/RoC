@@ -153,9 +153,13 @@ describe('byRule keys, datetime literals, merge sampling and launch artefacts', 
       expect(found(source)).toEqual([]);
     });
 
+    // `{ limit: 500 }` used to be listed here. It is exempt now, and
+    // deliberately: an object property NAMES its number, which is the fix this
+    // law asks for. The fixtures below keep the original point — a plural in a
+    // nearby identifier is not a unit — without relying on that.
     it.each([
       ['const items = arr.slice(0, 250);', '250'],
-      ['const params = { limit: 500 };', '500'],
+      ['const params = collect(rows, 500);', '500'],
       ['const forms = rows.take(750);', '750'],
     ])('reports %s — a plural nearby is not a unit', (source, expected) => {
       expect(found(source)).toContain(expected);
@@ -169,8 +173,16 @@ describe('byRule keys, datetime literals, merge sampling and launch artefacts', 
       expect(found(source)).toEqual([]);
     });
 
-    it('still reports a tightly written property that only looks like a port', () => {
-      expect(found('const o = {retries:5000};')).toContain('5000');
+    /**
+     * The port exemption must not leak to any number that follows a colon.
+     *
+     * This used to assert on `{retries:5000}`. That case is exempt now for a
+     * different and legitimate reason — the property names it — so it can no
+     * longer prove anything about the port pattern. A colon that is NOT a
+     * property key can.
+     */
+    it('does not exempt a number because a colon precedes it', () => {
+      expect(found('switch (k) { case 3: return 5000; }')).toContain('5000');
     });
 
     it('does not exempt a number because a word contains "port"', () => {

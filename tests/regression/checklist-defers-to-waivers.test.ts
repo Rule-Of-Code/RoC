@@ -82,8 +82,30 @@ describe('checklist clauses defer to the law that owns the concern', () => {
     ).toEqual([]);
   });
 
+  /**
+   * A project the owning laws genuinely FAIL: a service that listens on a port,
+   * with no health endpoint and no auth guard.
+   *
+   * Without it these fixtures prove nothing. On a bare project Health Check
+   * Monitoring is not applicable and PASSES, so the clause is silent for a
+   * reason that has nothing to do with waivers — and a test that passes for
+   * the wrong reason is worse than no test.
+   */
+  const asAnUnguardedService = (): void => {
+    write(
+      'package.json',
+      JSON.stringify({ name: 'svc', dependencies: { express: '^4.18.0' } })
+    );
+    write(
+      'src/server.ts',
+      "import express from 'express';\nconst app = express();\napp.listen(3000);\n"
+    );
+  };
+
   /** The red controls: a waiver answers ITS clause and nothing else. */
   it('does not silence the other clauses', async () => {
+    asAnUnguardedService();
+
     const config = withWaivers({
       'authentication-security': 'No authentication surface.',
     });
@@ -94,6 +116,8 @@ describe('checklist clauses defer to the law that owns the concern', () => {
   });
 
   it('reports every clause when nothing is waived', async () => {
+    asAnUnguardedService();
+
     const findingsNow = await findings(FileUtils.getMinimalDefaultConfig());
 
     expect(findingsNow.some(v => /Authentication\/authorization/.test(v))).toBe(
@@ -121,6 +145,8 @@ describe('checklist clauses defer to the law that owns the concern', () => {
   });
 
   it('ignores an empty reason — a waiver must say why', async () => {
+    asAnUnguardedService();
+
     const config = withWaivers({ 'health-check-monitoring': '   ' });
 
     expect(

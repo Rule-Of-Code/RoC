@@ -93,7 +93,7 @@ describe('a backend consumer: wrong incentives and stack blindness (v7.9.5)', ()
   });
 
   describe('Environment Parity: the contract, never the secrets', () => {
-    it('accepts .env.example as the environment contract', () => {
+    it('accepts .env.example as the environment contract', async () => {
       write('pyproject.toml', '[project]\nname="s"\nversion="0.1.0"\n');
       write('.env.example', 'DB_URL=postgres://user:pass@host/db\n');
       write('api/app.py', 'import os\nENV = os.environ.get("APP_ENV")\n');
@@ -109,7 +109,7 @@ describe('a backend consumer: wrong incentives and stack blindness (v7.9.5)', ()
       );
     });
 
-    it('asks for .env.example — not for .env.production — when nothing is declared', () => {
+    it('asks for .env.example — not for .env.production — when nothing is declared', async () => {
       write('pyproject.toml', '[project]\nname="s"\nversion="0.1.0"\n');
       write('api/app.py', 'x = 1\n');
 
@@ -161,7 +161,7 @@ describe('a backend consumer: wrong incentives and stack blindness (v7.9.5)', ()
       write('api/app.py', 'import os\nENV = os.environ.get("APP_ENV")\n');
     };
 
-    it('accepts ruff + mypy + bandit as quality gates (no .eslintrc anywhere)', () => {
+    it('accepts ruff + mypy + bandit as quality gates (no .eslintrc anywhere)', async () => {
       pythonProject();
 
       const result = AutomatedCodeQualityGatesLaw.check({
@@ -172,7 +172,7 @@ describe('a backend consumer: wrong incentives and stack blindness (v7.9.5)', ()
       expect(result.violations).toEqual([]);
     });
 
-    it('still fails a Python project with no linter, formatter or scanner', () => {
+    it('still fails a Python project with no linter, formatter or scanner', async () => {
       write('pyproject.toml', '[project]\nname="bare"\nversion="0.1.0"\n');
       write('api/app.py', 'x = 1\n');
 

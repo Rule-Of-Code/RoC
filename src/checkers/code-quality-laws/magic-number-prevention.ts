@@ -136,7 +136,7 @@ export class MagicNumberPreventionLaw extends CodeQualityLawBase {
     // Strip comments first — a "magic number" is a numeric LITERAL in code logic,
     // not a number that happens to appear in a `// … 400 …` comment or JSDoc. The
     // old scan ran over raw text and flagged comment digits as violations.
-    const code = this.stripComments(content);
+    const code = this.blankStringLiterals(this.stripComments(content));
 
     // Find numeric literals that aren't in the acceptable list. Match a full
     // literal INCLUDING a decimal, so `0.25` is one number, not the fraction
@@ -158,12 +158,21 @@ export class MagicNumberPreventionLaw extends CodeQualityLawBase {
       // the keyword out of a fixed window, and (b) a declaration elsewhere on the
       // line can't exempt an unrelated inline literal. Giving a literal a name IS
       // the fix for a magic number, so never flag the literal in its own decl.
+      //
+      // An OBJECT PROPERTY names a number exactly as a declaration does.
+      // `{ curves: 44 }` is the thing this law asks for — a number with a name
+      // attached — and reporting it left no way to comply: the fix had already
+      // been applied. One consumer's source carried the comment "Every ratio is
+      // named: the engraving is maths, not magic" directly above an object the
+      // law reported in full.
       const lineStart = code.lastIndexOf('\n', match.index) + 1;
       const leftOfNumber = code.substring(lineStart, match.index);
       if (
         /\b(?:const|let|var|readonly)\s+[A-Za-z_$][\w$]*\s*=\s*-?$/.test(
           leftOfNumber
-        )
+        ) ||
+        /[A-Za-z_$][\w$]*\s*:\s*-?$/.test(leftOfNumber) ||
+        /['"`][^'"`]*['"`]\s*:\s*-?$/.test(leftOfNumber)
       ) {
         continue;
       }
@@ -181,6 +190,69 @@ export class MagicNumberPreventionLaw extends CodeQualityLawBase {
     }
 
     return Array.from(new Set(magicNumbers));
+  }
+
+  /**
+   * Replace the CONTENTS of every string and template literal with spaces.
+   *
+   * A number inside quoted text is data or prose — a label, a caption, a
+   * captured CLI transcript, an id like `'01'`. It can never be replaced by a
+   * named constant, so it can never be actioned, and reporting it asks for a
+   * change that cannot be made. Comments were already stripped for the same
+   * reason; strings were not, and they are where most of the noise lived: one
+   * consumer measured 217 findings, of which 153 were inside string literals
+   * and none was a magic number.
+   *
+   * Lengths are preserved so every index the caller computed still points where
+   * it did — the line start, the left context and the ±10 window all depend on
+   * that. Escapes are honoured so a `\'` does not close the literal early, and
+   * an unterminated quote stops at the end of its line rather than blanking the
+   * rest of the file.
+   */
+  private static blankStringLiterals(code: string): string {
+    const out = code.split('');
+    let index = 0;
+
+    while (index < out.length) {
+      const quote = out[index];
+      index = this.isQuote(quote)
+        ? this.blankOneLiteral(out, index, quote as string) + 1
+        : index + 1;
+    }
+
+    return out.join('');
+  }
+
+  private static isQuote(ch: string | undefined): boolean {
+    return ch === "'" || ch === '"' || ch === '`';
+  }
+
+  /**
+   * Blank the body of the literal opening at `start`, returning the index of
+   * its closing quote (or of the character that ended it).
+   */
+  private static blankOneLiteral(
+    out: string[],
+    start: number,
+    quote: string
+  ): number {
+    let cursor = start + 1;
+
+    while (cursor < out.length) {
+      const current = out[cursor];
+      if (current === '\\') {
+        cursor += 2;
+        continue;
+      }
+      if (current === quote) break;
+      // A quote that never closes is a quote on one line — most often an
+      // apostrophe in prose. Stop there rather than blanking what follows.
+      if (current === '\n' && quote !== '`') break;
+      out[cursor] = ' ';
+      cursor += 1;
+    }
+
+    return cursor;
   }
 
   // stripComments() is inherited from CodeQualityLawBase (shared by TS-safety laws).

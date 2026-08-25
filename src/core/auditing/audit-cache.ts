@@ -39,9 +39,38 @@ export interface CacheEntry {
    * never equals a real mode string, so they invalidate safely.
    */
   mode: string;
+
+  /**
+   * The RuleOfCode version that COMPUTED this verdict.
+   *
+   * Every release changes what laws report — that is what a release IS here.
+   * The key was files + config + git state + mode, none of which change when
+   * the tool is upgraded, so a consumer who upgraded and re-ran was served the
+   * previous version's answer: identical output, byte for byte, from a build
+   * that no longer existed.
+   *
+   * That made every fix we ship invisible to anyone with caching on, and it
+   * cost a reporter a second round trip — they upgraded, re-tested, saw no
+   * change, and correctly filed it as unfixed. Worse in the other direction: a
+   * law tightened in a new version keeps serving the old PASSED.
+   *
+   * Entries written before this field existed have `toolVersion === undefined`,
+   * which never equals a real version string, so they invalidate safely.
+   */
+  toolVersion: string;
 }
 
 export class AuditCache {
+  /** This tool's own version, read from its manifest. */
+  private static toolVersion(): string {
+    try {
+      const pkg = require('../../../package.json') as { version?: string };
+      return pkg.version ?? 'unknown';
+    } catch {
+      return 'unknown';
+    }
+  }
+
   private static readonly CACHE_DIR = '.ruleofcode-cache';
   private static readonly CACHE_FILE = 'audit-results.json';
   private static readonly MAX_CACHE_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -89,6 +118,12 @@ export class AuditCache {
 
       if (cacheData.mode !== mode) {
         // A verdict computed under another mode audits a different law set.
+        return null;
+      }
+
+      if (cacheData.toolVersion !== this.toolVersion()) {
+        // A verdict computed by another version of this tool. Upgrading is
+        // precisely when the answer is expected to change.
         return null;
       }
 
@@ -148,6 +183,7 @@ export class AuditCache {
         configHash,
         gitState: this.getGitState(projectRoot),
         mode,
+        toolVersion: this.toolVersion(),
       };
 
       FileUtils.writeFile(cachePath, JSON.stringify(cacheEntry, null, 2));

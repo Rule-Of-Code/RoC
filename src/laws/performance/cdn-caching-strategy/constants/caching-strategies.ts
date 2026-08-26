@@ -37,10 +37,25 @@ export class CdnCachingStrategyCachingStrategiesConstants {
 
   static readonly HTTP2_KEYWORDS = ['http2', 'HTTP/2', 'push', 'Link:'];
 
+  /**
+   * Content-addressed asset names, in every vocabulary that expresses them.
+   *
+   * The list held webpack's three strings only. Angular's builder declares the
+   * same thing as `"outputHashing": "all"` in the build target, and the word
+   * `contenthash` appears nowhere in an Angular project — so this finding was
+   * unreachable for that whole ecosystem, not merely inconvenient.
+   *
+   * It is the check that matters most for the neighbouring one: an immutable
+   * `Cache-Control` is only safe BECAUSE the filenames are hashed.
+   */
   static readonly OPTIMIZATION_KEYWORDS = [
     'contenthash',
     'chunkhash',
     'splitChunks',
+    'outputHashing',
+    'assetFileNames',
+    'entryFileNames',
+    'chunkFileNames',
   ];
 
   static readonly SERVICE_WORKER_KEYWORDS = [

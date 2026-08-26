@@ -1,10 +1,12 @@
 import type { RuleOfCodeConfig } from '../../../../types';
 import { CheckerUtils } from '../../../../utils/checker-utils';
 import { ConfigFileUtils } from '../../../../utils/config-file-utils';
+import { FileSystemOperations } from '../../../../utils/file-system-operations';
 import { FileUtils } from '../../../../utils/file-utils';
 import { PathOperations } from '../../../../utils/path-operations';
 import { TestAnalyzerMixin } from '../../test-analyzer-mixin';
 import { UnitTestPerformanceTestingConstants } from '../constants/performance-testing';
+import { AngularBundleConfig } from '../../../../utils/angular-bundle-config';
 
 /**
  * UnitTestPerformanceTestingAnalyzerService
@@ -115,8 +117,17 @@ export class UnitTestPerformanceTestingAnalyzerService extends TestAnalyzerMixin
         UnitTestPerformanceTestingConstants.hasBundleSizeTesting
       );
 
+      // Declared build budgets ARE bundle-size testing, and an enforced kind:
+      // the build fails on them. The check recognised four vendor names in
+      // package.json and nothing else, so a project whose build breaks on a
+      // 500kb initial bundle and a 4kb component stylesheet was told it does
+      // not test bundle size — while this same tool reads those budgets in the
+      // performance family two laws away.
+      const hasDeclaredBudgets = AngularBundleConfig.hasBudgets(projectRoot);
+
       return {
-        hasBundleSizeTesting: configFiles.length > 0 || hasInPackageJson,
+        hasBundleSizeTesting:
+          configFiles.length > 0 || hasInPackageJson || hasDeclaredBudgets,
         configFiles,
       };
     } catch (_error) {
@@ -266,19 +277,62 @@ export class UnitTestPerformanceTestingAnalyzerService extends TestAnalyzerMixin
   /**
    * Get all config files in project root
    */
+  /**
+   * CONFIG files — which is what every caller of this looks for, and what it
+   * did not return.
+   *
+   * It called `findTypeScriptFiles`, which scans `.ts` and `.tsx` only. The
+   * four sub-checks reading it search for `artillery.yml`, `k6.js`,
+   * `locustfile.py`, `jmeter.jmx`, `.bundlesize.json`, `.size-limit.json`,
+   * `lighthouse.json`, `.lighthouserc`, `newrelic.js`, `prometheus.yaml` —
+   * not one of which is a TypeScript file. The branch could never be true, so
+   * all four were decided entirely by a substring search in `package.json`.
+   *
+   * `findConfigFiles` sits one method below the one that was called, and scans
+   * exactly the extensions these names use.
+   */
   private static getAllConfigFiles(projectRoot: string): string[] {
-    const configFiles: string[] = [];
-
     try {
       if (FileUtils.exists(projectRoot)) {
         const config = ConfigFileUtils.getMinimalDefaultConfig();
-        return CheckerUtils.findTypeScriptFiles(projectRoot, config);
+        return [
+          ...CheckerUtils.findConfigFiles(projectRoot, config),
+          ...this.rootConfigFiles(projectRoot),
+        ];
       }
     } catch (_error) {
       // Return empty list on error
     }
 
-    return configFiles;
+    return [];
+  }
+
+  /**
+   * Configuration sitting at the project ROOT, which the shared scan misses
+   * twice over.
+   *
+   * It skips names beginning with a dot — and the conventional spelling of
+   * three of the four things these sub-checks look for is exactly that:
+   * `.lighthouserc.json`, `.size-limit.json`, `.bundlesize.json`. Its config
+   * extensions also cover `.config.js` but not a bare `.js`, so `newrelic.js`
+   * and `datadog.js` were invisible as well.
+   *
+   * The root is where every one of these tools puts its file, so that is the
+   * only directory widened here.
+   */
+  private static rootConfigFiles(projectRoot: string): string[] {
+    const CONFIG_SUFFIXES = ['.json', '.yaml', '.yml', '.js', '.mjs', '.cjs'];
+
+    try {
+      return FileSystemOperations.readDirectory(projectRoot)
+        .filter(entry => entry.isFile())
+        .filter(entry =>
+          CONFIG_SUFFIXES.some(suffix => entry.name.endsWith(suffix))
+        )
+        .map(entry => PathOperations.join(projectRoot, entry.name));
+    } catch {
+      return [];
+    }
   }
 
   /**

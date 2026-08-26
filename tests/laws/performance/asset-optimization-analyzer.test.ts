@@ -55,7 +55,16 @@ describe('AssetOptimizationAnalyzerService', () => {
       expect(result).toEqual({ optimized: true });
     });
 
-    it('should return optimized: false when Angular production config lacks optimization', () => {
+    /**
+     * `outputHashing` alone is enough, and that is a deliberate change.
+     *
+     * This asserted `optimized: false` for a config declaring `outputHashing`
+     * without `optimization`. The esbuild builder optimises production by
+     * default, so correct modern projects do not write the second key — and
+     * requiring both made a workspace that content-hashes every asset it ships
+     * answer false on a key it never needed.
+     */
+    it('should return optimized: true when Angular declares outputHashing alone', () => {
       const angularJsonPath = PathOperations.join(tempDir, 'angular.json');
       const angularJson = {
         version: 1,
@@ -74,6 +83,23 @@ describe('AssetOptimizationAnalyzerService', () => {
         },
       };
       FileSystemOperations.writeJsonFile(angularJsonPath, angularJson);
+
+      const result = AssetOptimizationAnalyzerService.analyze(tempDir);
+
+      expect(result).toEqual({ optimized: true });
+    });
+
+    /** The red control: no hashing declared anywhere is still reported. */
+    it('should return optimized: false when no hashing is declared', () => {
+      const angularJsonPath = PathOperations.join(tempDir, 'angular.json');
+      FileSystemOperations.writeJsonFile(angularJsonPath, {
+        version: 1,
+        projects: {
+          'my-app': {
+            architect: { build: { configurations: { production: {} } } },
+          },
+        },
+      });
 
       const result = AssetOptimizationAnalyzerService.analyze(tempDir);
 

@@ -1,6 +1,7 @@
 import type { RuleOfCodeConfig } from '../../../../config/types';
 import { FileUtils, PathOperations } from '../../../../utils';
 import { PathResolver } from '../../../../utils/path-resolver';
+import { BrowserCachingAnalyzerService } from '../../core-web-vitals-compliance/services/browser-caching.analyzer';
 import { CachingStrategyConstants } from '../constants';
 
 /**
@@ -44,6 +45,21 @@ export class CachingStrategyAnalyzer {
     }
 
     if (this.hasServiceWorkerConfigInFiles(configFiles)) {
+      return violations;
+    }
+
+    // The shared reader, which is what the sibling law already consults.
+    //
+    // This analyzer returned clean only for a service worker or a Capacitor
+    // app, and never read the static host's config. So a prerendered site with
+    // correct immutable `Cache-Control` headers was told it had no caching
+    // strategy — by one law, while another law in the SAME audit run had
+    // already confirmed it did.
+    //
+    // Its advice was half wrong for that shape too: a fully prerendered site
+    // behind a CDN gains nothing from a service worker except a second cache
+    // to invalidate.
+    if (BrowserCachingAnalyzerService.analyze(projectRoot).hasStrategy) {
       return violations;
     }
 

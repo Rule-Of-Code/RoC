@@ -5,6 +5,111 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.22.0] - 2026-08-26
+
+**Two things to do once, before trusting your next run.** No config edit is
+required, nothing was removed, the law count is unchanged at 169.
+
+**1. Delete `.ruleofcode-cache`.** Until this version the cache key was files +
+config + git state + mode — and none of those change when the tool is upgraded.
+So a consumer who upgraded and re-ran was served the *previous* version's
+verdict, byte for byte, from a build that no longer existed. Every fix we ship
+was invisible to anyone with caching on. The version is part of the key now, and
+entries written before the field existed invalidate safely; the one stale entry
+already on disk is the reason to clear it by hand.
+
+**2. Look again at any test law scoring 100.** `ignores.tests` was applied to
+the scans whose whole purpose is to *count* tests, so two laws could pass with a
+perfect score because they found nothing to check. See below.
+
+### 🐛 Fixed — a law that passes for want of subject matter
+
+The pattern assembly stripped the spec globs out of `ignores.global` when a scan
+asked to include tests, then pushed `ignores.tests` **unconditionally** twelve
+lines later — putting every one of them straight back.
+
+Nobody had to write the key for this to bite. The loader injects
+`**/*.spec.ts`, `**/*.test.ts` and `**/e2e/**` from `DEFAULT_CONFIG`, so a
+config that never mentions tests still hid all of them.
+
+The visible symptom was a coverage ratio of 1.6% on a repository with 30 spec
+files, where the single surviving "test" was a `tsconfig.spec.json`. The silent
+half mattered more:
+
+| law | before | after |
+| --- | --- | --- |
+| Test Isolation Enforcement | **100/100, 0 findings** | 25/100, 3 findings |
+| Test Documentation Requirements | **100/100, 0 findings** | 95/100, 2 findings |
+
+In the reporter's words: *a law that passes because it did not find anything to
+check is fail-open — and silent.* Those hundreds were published on a public
+audit page for weeks.
+
+### 🐛 Fixed — a Lighthouse gate is something that runs
+
+`echo '{"performance":1}' > .lighthouserc.json` took a law from 75/100 with a
+violation to **100/100 PASSED**. Eighteen bytes that nothing executes: no
+Lighthouse installed, no script referencing the file, the shipped artefact
+byte-identical.
+
+The check asked whether a file existed and searched its contents for
+`performance`, `90` or `0.9` — so any JSON mentioning a port `9000` or a width
+`390` satisfied the threshold clause it is named after.
+
+This tool publishes a list of ways to disarm it, deliberately, and every one is
+a visible decision in a config. This was the same power in one `echo`, recorded
+nowhere. Evidence is now that Lighthouse **runs** — a script, a dependency or a
+CI step — and that the threshold is declared as one.
+
+### 🐛 Fixed — four detection paths that could never fire
+
+`performance-test-requirements` looked for `artillery.yml`, `k6.js`,
+`.size-limit.json`, `lighthouse.json`, `newrelic.js` and `prometheus.yaml`
+through a helper that scanned `.ts` and `.tsx`. Not one of those is a TypeScript
+file, so all four sub-checks were decided by a substring search in
+`package.json` alone.
+
+Routing to the config-file scanner was not enough: it also skips dot-prefixed
+names — the conventional spelling of three of the four — and covers
+`.config.js` but not a bare `.js`. Declared build budgets now count as
+bundle-size testing, which they are, and an enforced kind.
+
+### 🐛 Fixed — the performance family agrees with itself
+
+Two caching analyzers gave opposite verdicts in one run, asset hashing was
+searched for in webpack's vocabulary (`contenthash` appears nowhere in an
+Angular project), and resource hints were read from source alone — where **a
+preload for a content-hashed asset cannot exist**, because the filename does not
+exist until the bundler has run.
+
+### 🐛 Fixed — a checklist clause defers to a law that PASSES
+
+The other half of 7.20.0's waiver fix. The concern exists, the project meets it,
+the owning law says so, and the checklist disagreed anyway — which rewarded
+waiving a law you pass, purely so another law stops reporting it.
+
+### 🐛 Fixed — a compliance script is what it runs, not what it is called
+
+Two laws looked up script names and never read the values, so a project whose
+`audit` script invokes this CLI inside a pre-push gate was told it had no
+constitutional enforcement. The remedy that invited —
+`"check:laws": "npm run audit"` — moves a number without adding a gate.
+
+### 🐛 Fixed — three detectors that reported on code they had not read
+
+Edge-case detection read `it()` and `describe()` but not `test()`, so a
+Playwright suite was judged on its describe titles alone. Magic-number detection
+scanned inside string literals and did not accept an object property as a name —
+217 findings on one repository, none of them real. And a routing table crossed a
+*complexity* ceiling with 22 functions and two decision points, by being
+maximally declarative.
+
+### 📄 Documentation
+
+The README advertised 173 laws while the registry held 169, and its scope table
+did not sum to its own total. Corrected, with tests that make the registry the
+source and the README the copy.
+
 ## [7.21.0] - 2026-08-18
 
 **If you work in an Nx workspace, five laws have been lying to you — and

@@ -137,11 +137,38 @@ export class CodeComplexityControlLaw extends CodeQualityLawBase {
           );
         }
 
+        // A COUNT of functions, under a key that says so.
+        //
+        // This was governed by `maxComplexity`, which an adopter would
+        // reasonably read as cyclomatic complexity — the metric this same law
+        // computes and reports two checks below. `maxComplexity` is still
+        // honoured so existing configs keep working, but it is the fallback
+        // now, not the name.
         const maxFunctions =
-          config.thresholds?.codeQuality?.maxComplexity ?? 20;
-        if (complexity.functions > maxFunctions) {
+          config.thresholds?.codeQuality?.maxFunctionsPerFile ??
+          config.thresholds?.codeQuality?.maxComplexity ??
+          20;
+
+        // And the count alone is not the thing the ceiling protects against.
+        //
+        // A lazy-route table costs two functions per route — an arrow to defer
+        // the import and an arrow to pick the export — so eleven routes reach
+        // 22 functions with TWO decision points and nothing to reason about.
+        // It crossed a complexity ceiling by being maximally declarative,
+        // which is the opposite of what the law is for, and the only ways to
+        // comply were to split the table across files or raise the limit for
+        // every file in the repository.
+        //
+        // The same is true of a DI provider array or a table of small pure
+        // lambdas. What the ceiling is for is a file with many functions that
+        // branches inside them, so both have to be high.
+        const minConditionals = Math.floor(maxFunctions / 2);
+        if (
+          complexity.functions > maxFunctions &&
+          complexity.conditionals >= minConditionals
+        ) {
           violations.push(
-            `Too many functions in ${PathOperations.getRelative(projectRoot, file)} (${complexity.functions}, max ${maxFunctions})`
+            `Too many functions in ${PathOperations.getRelative(projectRoot, file)} (${complexity.functions}, max ${maxFunctions}) with ${complexity.conditionals} decision points — split it, or extract the branching`
           );
         }
 

@@ -1,7 +1,7 @@
 import type { RuleOfCodeConfig } from '../../config/types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { ConfigHelper } from '../../utils/config-helper';
-import { concernIsWaived } from '../../utils/law-waivers';
+import { owningLawSatisfied } from '../../utils/owning-law';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
 import { BuildValidationChecker } from './pre-deployment/build-validator';
 import { ChecklistDocumentValidator } from './pre-deployment/checklist-validator';
@@ -28,7 +28,7 @@ import { DeploymentValidationUtilities } from './shared-deployment-utilities';
  * Status: CRITICAL - Deployment BLOCKED until all checks pass
  */
 export class PreDeploymentChecklistLaw {
-  static check(context: LawCheckContext): LawResult {
+  static async check(context: LawCheckContext): Promise<LawResult> {
     const violations: string[] = [];
     const suggestions: string[] = [];
     let score = 100;
@@ -117,7 +117,7 @@ export class PreDeploymentChecklistLaw {
     if (
       !authSetup.authConfigured &&
       !PythonSatisfaction.hasAuthGuards(projectRoot) &&
-      !concernIsWaived(context.config, 'Authentication Security')
+      !(await owningLawSatisfied(context, 'Authentication Security'))
     ) {
       violations.push('Authentication/authorization setup not detected');
       suggestions.push('Implement proper authentication and security measures');
@@ -132,7 +132,7 @@ export class PreDeploymentChecklistLaw {
     if (
       !performanceBenchmarking.benchmarkingConfigured &&
       !PythonSatisfaction.hasBackendPerformanceMonitoring(projectRoot) &&
-      !concernIsWaived(context.config, 'Performance Monitoring Standards')
+      !(await owningLawSatisfied(context, 'Performance Monitoring Standards'))
     ) {
       violations.push('Performance benchmarking not configured');
       suggestions.push(
@@ -156,7 +156,7 @@ export class PreDeploymentChecklistLaw {
       PythonSatisfaction.hasHealthEndpoint(projectRoot);
     if (
       !healthChecksConfigured &&
-      !concernIsWaived(context.config, 'Health Check Monitoring')
+      !(await owningLawSatisfied(context, 'Health Check Monitoring'))
     ) {
       violations.push('Health checks not configured');
       suggestions.push('Implement health check endpoints for monitoring');
@@ -168,7 +168,7 @@ export class PreDeploymentChecklistLaw {
       PythonSatisfaction.hasStructuredLogging(projectRoot);
     if (
       !loggingConfigured &&
-      !concernIsWaived(context.config, 'Centralized Logging')
+      !(await owningLawSatisfied(context, 'Centralized Logging'))
     ) {
       violations.push('Logging not properly configured');
       suggestions.push('Configure structured logging for production');

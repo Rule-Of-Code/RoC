@@ -320,8 +320,21 @@ export class TestCoverageAnalyzerConfiguration {
     // Titles first — but capture the CANONICAL multiline form `it('title', () =>`.
     // The old regex required the quoted title to be immediately followed by `)`,
     // so it never matched a real test and always fell through to false.
+    //
+    // `test` is read as well as `it`. Playwright — and Jest, for anyone who
+    // prefers it — declares tests with `test(...)`, and only `test.describe(...)`
+    // survived a scan for `describe(`. A Playwright suite was therefore judged
+    // on its describe titles alone and every test name inside it was invisible:
+    // one consumer could read 24 titles out of 106, and a file written for
+    // nothing but empty states was reported as testing no edge cases.
+    //
+    // Modifiers are allowed (`it.only`, `test.skip`, `test.describe`) because
+    // the title follows them directly. The leading word boundary matters:
+    // without it, `submit(` matched on its final `it`.
     const titles = [
-      ...content.matchAll(/(?:it|describe)\s*\(\s*['"`]([^'"`]+)['"`]/g),
+      ...content.matchAll(
+        /\b(?:it|test|describe)(?:\.\w+)*\s*\(\s*['"`]([^'"`]+)['"`]/g
+      ),
     ]
       .map(match => match[1])
       .join(' ');

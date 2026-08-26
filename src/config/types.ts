@@ -294,7 +294,24 @@ export interface RuleOfCodeConfig {
       };
     };
     codeQuality?: {
-      /** Maximum cyclomatic complexity */
+      /**
+       * How many functions one file may declare (default 20).
+       *
+       * A COUNT, which is why it has its own name. It used to be governed by
+       * `maxComplexity`, so an adopter tuning how many callbacks a file may
+       * hold was setting a key that reads as cyclomatic complexity — the metric
+       * this law computes separately.
+       *
+       * The count alone does not fail a file: it must also branch. See
+       * `maxComplexity` below for the metric about branching.
+       */
+      maxFunctionsPerFile?: number;
+      /**
+       * Maximum cyclomatic complexity.
+       *
+       * Still read as the fallback for `maxFunctionsPerFile`, so a config
+       * written before the two were separated keeps its meaning.
+       */
       maxComplexity?: number;
       /**
        * Cyclomatic complexity budget for a SINGLE function (default 10 — the

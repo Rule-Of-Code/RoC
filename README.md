@@ -1,8 +1,8 @@
 # 🏛️ RuleOfCode (RoC)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-gold.svg)](https://opensource.org/licenses/MIT)
-[![Constitutional Laws](https://img.shields.io/badge/Constitutional%20Laws-173-red.svg)](#-laws-and-scope)
-[![Tests](https://img.shields.io/badge/Tests-13%2C800%2B%20passing-success.svg)](#-development-and-release)
+[![Constitutional Laws](https://img.shields.io/badge/Constitutional%20Laws-169-red.svg)](#-laws-and-scope)
+[![Tests](https://img.shields.io/badge/Tests-14%2C200%2B%20passing-success.svg)](#-development-and-release)
 [![Fail Closed](https://img.shields.io/badge/Gate-fail--closed-blue.svg)](#-severity-semantics-and-fail-closed-guarantees)
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-Strict%20Mode-blue.svg)](https://www.typescriptlang.org/)
 
@@ -46,13 +46,13 @@ npx ruleofcode laws --list   # the law catalog with canonical names
 
 ## ⚖️ Laws and scope
 
-**173 laws**, scoped per stack via automatic stack gating — laws outside the project's
+**169 laws**, scoped per stack via automatic stack gating — laws outside the project's
 stack do not run and are not counted:
 
 | Scope | Laws | Applies to |
 |---|---|---|
-| Universal | 63 | every project |
-| Frontend (Angular/NgRx + FE architecture) | 58 | angular / react / vue / ionic |
+| Universal | 62 | every project |
+| Frontend (Angular/NgRx + FE architecture) | 55 | angular / react / vue / ionic |
 | Python (FastAPI, Clean Architecture/CQRS) | 37 | python |
 | TypeScript | 15 | all TS/JS projects |
 
@@ -68,8 +68,8 @@ IDE panel, a dashboard. It is versioned by `schemaVersion` (currently `2`).
 {
   "schemaVersion": 2,
   "tool": "ruleofcode",          // the package name this build was published under
-  "version": "7.17.5",
-  "registryTotal": 173,
+  "version": "7.21.0",
+  "registryTotal": 169,
   "satisfiedByStacks": {          // the mapping described below — read it, don't hardcode it
     "keys": ["typescript", "angular", "python"],
     "stackToKey": { "frontend": "angular", "typescript": "typescript", "python": "python" }
@@ -224,7 +224,7 @@ the default scan ignores, so the audit itself never inspects it.
 
 ```bash
 npm run build     # tsc
-npm test          # the full suite (13,800+ tests)
+npm test          # the full suite (14,200+ tests)
 npm run lint      # ESLint — 0 errors is the norm
 npm run canary    # the red/green gate
 ```

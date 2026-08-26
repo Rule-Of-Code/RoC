@@ -108,8 +108,25 @@ export class FileFilterUtils {
       }
     }
 
-    // Add categorical ignores
-    if (_config.ignores?.tests?.length > 0) {
+    // Add categorical ignores.
+    //
+    // `ignores.tests` is honoured ONLY when tests are being excluded. It used
+    // to be pushed unconditionally, twelve lines after the branch above had
+    // carefully stripped the very same spec patterns out of `ignores.global`
+    // for `includeTests: true` — so the exclusion was removed and then put
+    // straight back.
+    //
+    // Nobody had to write the key for this to bite: the loader injects
+    // `**/*.spec.ts`, `**/*.test.ts` and `**/e2e/**` from DEFAULT_CONFIG, so a
+    // config that never mentions tests still hid every one of them from the
+    // scans that exist to COUNT tests.
+    //
+    // The coverage ratio was the visible half. The serious half was silent:
+    // Test Isolation Enforcement and Test Documentation Requirements scored
+    // 100/100 on a repository with 30 spec files, because they found nothing
+    // to check. A law that passes for want of subject matter is fail-open, and
+    // those hundreds were published for weeks.
+    if (!includeTests && _config.ignores?.tests?.length > 0) {
       patterns.push(..._config.ignores.tests);
     }
     if (_config.ignores?.build?.length > 0) {

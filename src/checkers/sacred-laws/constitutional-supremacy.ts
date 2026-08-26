@@ -9,6 +9,10 @@ import { FileUtils } from '../../utils/file-utils';
 import { hasRuleOfCodeConfig, acceptedConfigFileNames } from '../../utils/config/roc-config-presence';
 import { PathOperations } from '../../utils/path-operations';
 import { dependenciesIncludeRuleOfCode } from '../../utils/ruleofcode-package';
+import {
+  runsConstitutionalAudit,
+  complianceScriptSuggestion,
+} from '../../utils/compliance-scripts';
 export class ConstitutionalSupremacyLaw {
   static check(context: LawCheckContext): LawResult {
     const violations: string[] = [];
@@ -104,14 +108,15 @@ export class ConstitutionalSupremacyLaw {
           [key: string]: unknown;
         };
 
-        if (
-          !packageJson.scripts?.['check:laws'] &&
-          !packageJson.scripts?.['audit:constitutional']
-        ) {
+        // The COMMAND, not the key. This looked up two script names and never
+        // read what any script runs, so a project whose `audit` script invokes
+        // this very CLI — inside a pre-push gate, on every push — was told it
+        // had no constitutional enforcement. The remedy that invites is
+        // `"check:laws": "npm run audit"`: a number moves, a gate does not
+        // appear, which is the edit this tool exists to argue against.
+        if (!runsConstitutionalAudit(packageJson.scripts)) {
           violations.push('No constitutional law enforcement scripts');
-          suggestions.push(
-            'Add check:laws script to package.json for automated enforcement'
-          );
+          suggestions.push(complianceScriptSuggestion());
         }
 
         const allDeps = {

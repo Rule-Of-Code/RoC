@@ -14,6 +14,10 @@ import { hasRuleOfCodeConfig } from '../../utils/config/roc-config-presence';
 import { dependenciesIncludeRuleOfCode } from '../../utils/ruleofcode-package';
 import { PathOperations } from '../../utils/path-operations';
 import { SacredLawUtilities } from './shared-sacred-utilities';
+import {
+  runsComplianceCheck,
+  complianceScriptSuggestion,
+} from '../../utils/compliance-scripts';
 
 export class ContinuousComplianceLaw {
   static check(context: LawCheckContext): LawResult {
@@ -114,22 +118,12 @@ export class ContinuousComplianceLaw {
     return SacredLawUtilities.checkPackageScripts(
       projectRoot,
       (scripts, violations, suggestions) => {
-        // Check for compliance checking scripts
-        const complianceScripts = [
-          'check:laws',
-          'audit:constitutional',
-          'compliance:check',
-          'quality:gate',
-        ];
-        const hasComplianceScript = complianceScripts.some(
-          script => scripts[script]
-        );
-
-        if (!hasComplianceScript) {
+        // The COMMAND, not the key — the same shared reader the sibling law
+        // uses, so the two cannot disagree about the same package.json. This
+        // matched six script NAMES and read the value of none of them.
+        if (!runsComplianceCheck(scripts)) {
           violations.push('No automated compliance checking scripts');
-          suggestions.push(
-            'Add compliance checking scripts for automated monitoring'
-          );
+          suggestions.push(complianceScriptSuggestion());
         }
 
         // Check for automated reporting

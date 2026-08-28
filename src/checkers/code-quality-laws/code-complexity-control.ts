@@ -240,6 +240,15 @@ export class CodeComplexityControlLaw extends CodeQualityLawBase {
 
     return { violations: [], suggestions };
   }
+  /**
+   * Lines the way `wc -l` and ESLint count them: a trailing newline terminates
+   * the last line rather than starting an empty one. An empty file has none.
+   */
+  private static countLines(content: string): number {
+    if (content.length === 0) return 0;
+    return content.split('\n').length - (content.endsWith('\n') ? 1 : 0);
+  }
+
   private static calculateFileComplexity(content: string): {
     lines: number;
     functions: number;
@@ -247,7 +256,17 @@ export class CodeComplexityControlLaw extends CodeQualityLawBase {
     cyclomaticEstimate: number;
     worstFunction: number;
   } {
-    const lines = content.split('\n').length;
+    // A trailing newline TERMINATES the last line, it does not begin another.
+    //
+    // `split('\n').length` counts the empty string after the final newline, so
+    // every POSIX-conformant file measured one line too long — and a file at
+    // exactly `maxFileLines` was reported as one over. Three tools disagreed on
+    // the same file at the boundary: `wc -l` said 300, ESLint's `max-lines: 300`
+    // passed it, and this blocked the commit claiming 301.
+    //
+    // The reported number was wrong for every file this law names, not only at
+    // the boundary.
+    const lines = this.countLines(content);
 
     // Count over code with comments removed so keywords in prose/JSDoc don't
     // inflate the estimate ("if you want, for example" must not score if + for).

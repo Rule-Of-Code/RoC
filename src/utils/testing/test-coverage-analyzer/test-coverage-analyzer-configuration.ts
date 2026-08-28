@@ -51,6 +51,12 @@ export class TestCoverageAnalyzerConfiguration {
     INVALID_VALUE: /invalid/i,
     ERROR_CASE: /error/i,
     EXCEPTION_CASE: /exception/i,
+
+    // The words an integration test uses for the same idea. A spec whose title
+    // says "and say so when unset" was counted as naming no edge case.
+    UNSET_VALUE: /\bunset\b/i,
+    MISSING_VALUE: /\bmissing\b/i,
+    NOT_FOUND: /not found|no such|\bnever\b/i,
   } as const;
 
   /**
@@ -71,6 +77,21 @@ export class TestCoverageAnalyzerConfiguration {
     UNDEFINED_LITERAL: /\bundefined\b/,
     NAN_LITERAL: /\bNaN\b/,
     INFINITY_LITERAL: /\bInfinity\b/,
+
+    // ABSENCE, as a suite that drives a real page expresses it.
+    //
+    // Every pattern above names a JavaScript VALUE. An integration test has no
+    // `null` to assert on: its degenerate cases are a list that must be empty,
+    // a count that must not be zero, a route that must not be missing, a host
+    // that must not be reached. The vocabulary is different, not absent — one
+    // consumer had 11 of 13 reported files asserting exactly these, including
+    // files that exist for nothing else.
+    //
+    // Nobody writes `toHaveCount(0)` on a happy path.
+    EMPTY_LIST_MATCHER: /\.toEqual\(\s*\[\s*\]\s*\)/,
+    EMPTY_COUNT: /\.toHaveCount\(\s*0\s*\)/,
+    EMPTY_LENGTH: /\.toHaveLength\(\s*0\s*\)/,
+    NEGATED_MATCHER: /\.not\.to[A-Z]\w+/,
   } as const;
 
   /**

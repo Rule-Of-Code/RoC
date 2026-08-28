@@ -532,17 +532,45 @@ describe('UnitTestIsolationConstants', () => {
       );
     });
 
-    it('should return true for module-level const object', () => {
-      const content = 'const config = {';
+    /**
+     * CONTRACT CHANGE. These two asserted that the DECLARATION alone is shared
+     * state — `const config = {` with nothing writing to it, ever.
+     *
+     * A `const` binding leaks between tests only if something mutates it. The
+     * old contract reported `const PHONE = { width: 390, height: 844 }` as
+     * shared state, while `magic-number-prevention` demanded in the same audit
+     * that those literals be extracted into exactly such a constant. Two laws
+     * asking for opposite edits is not a finding.
+     *
+     * The pattern constants still match a bare declaration (asserted above at
+     * MODULE_MUTABLE_OBJECT / MODULE_MUTABLE_ARRAY); what changed is the
+     * verdict the helper draws from a match.
+     */
+    it('should return true for a module-level const object that is mutated', () => {
+      const content = 'const config = {};\nconfig.retries = 3;';
       expect(UnitTestIsolationConstants.hasSharedMutableState(content)).toBe(
         true
       );
     });
 
-    it('should return true for module-level const array', () => {
-      const content = 'const items = [';
+    it('should return true for a module-level const array that is mutated', () => {
+      const content = 'const items = [];\nitems.push(1);';
       expect(UnitTestIsolationConstants.hasSharedMutableState(content)).toBe(
         true
+      );
+    });
+
+    it('should return false for a const object nothing writes to', () => {
+      const content = 'const PHONE = { width: 390, height: 844 };';
+      expect(UnitTestIsolationConstants.hasSharedMutableState(content)).toBe(
+        false
+      );
+    });
+
+    it('should return false for a const array nothing writes to', () => {
+      const content = "const ROUTES = ['/', '/laws'];";
+      expect(UnitTestIsolationConstants.hasSharedMutableState(content)).toBe(
+        false
       );
     });
 

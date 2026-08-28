@@ -1,4 +1,6 @@
+import { CodeText } from '../../../../utils/code-text';
 import { PatternMatchingUtils } from '../../../../utils/pattern-matching-utils';
+import { FixtureIsolation } from '../../../../utils/testing/fixture-isolation';
 
 /**
  * Unit Test Isolation - Constants
@@ -8,12 +10,43 @@ export class UnitTestIsolationConstants {
   /**
    * Patterns for detecting shared mutable state
    */
+  /**
+   * MODULE scope, which is what the names say and what the concern is.
+   *
+   * `^\s*` under `/m` matched at any indentation, so a declaration inside a
+   * test body — the most local thing there is — counted as module state. One
+   * consumer had six files flagged and not one of the matches was both at
+   * module scope and mutable: a `const` array built inside a test, a `let`
+   * cursor walking up the DOM in a `while` loop, a factory returning a fresh
+   * fake `Document` on every call.
+   *
+   * Anchoring to column 0 is the whole fix for those. A declaration that is
+   * indented is, by construction, inside something.
+   */
   static readonly SHARED_MUTABLE_PATTERNS = {
-    MODULE_LET: /^\s*let\s+\w+(?:\s*:\s*[^=]+)?\s*=(?!.*beforeEach)/m,
-    MODULE_VAR: /^\s*var\s+\w+\s*=/m,
-    MODULE_MUTABLE_OBJECT: /^\s*const\s+\w+\s*=\s*\{/m,
-    MODULE_MUTABLE_ARRAY: /^\s*const\s+\w+\s*=\s*\[/m,
+    MODULE_LET: /^let\s+\w+(?:\s*:\s*[^=]+)?\s*=(?!.*beforeEach)/m,
+    MODULE_VAR: /^var\s+\w+\s*=/m,
+    MODULE_MUTABLE_OBJECT: /^const\s+\w+\s*=\s*\{/m,
+    MODULE_MUTABLE_ARRAY: /^const\s+\w+\s*=\s*\[/m,
   };
+
+  /**
+   * A `const` binding at module scope leaks between tests only if something
+   * WRITES to it. `const PHONE = { width: 390, height: 844 }` is a viewport
+   * constant — and extracting those two numbers into a named constant is what
+   * `magic-number-prevention` asks for in the same audit, so reporting it here
+   * asked the project to do the opposite of what its neighbour required.
+   */
+  static isMutated(content: string, declaration: string): boolean {
+    const name = /^(?:const|let|var)\s+(\w+)/.exec(declaration)?.[1];
+    if (!name) return false;
+
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(
+      `\\b${escaped}\\s*(?:=[^=]|\\.\\w+\\s*=[^=]|\\[[^\\]]*\\]\\s*=[^=]|\\.(?:push|pop|shift|unshift|splice|sort|reverse|fill|set|delete|add|clear)\\s*\\()`,
+      'm'
+    ).test(content.replace(declaration, ''));
+  }
 
   /**
    * Patterns for test isolation indicators
@@ -108,15 +141,34 @@ export class UnitTestIsolationConstants {
    * Check if content has shared mutable state
    */
   static hasSharedMutableState(content: string): boolean {
-    const patterns = [
+    // Comments describe code; they are not code. Stripped for the same reason
+    // the magic-number analyzer strips them.
+    const code = CodeText.stripComments(content);
+
+    // `let`/`var` at module scope is shared mutable state by declaration.
+    const declared = [
       this.SHARED_MUTABLE_PATTERNS.MODULE_LET,
       this.SHARED_MUTABLE_PATTERNS.MODULE_VAR,
+    ].some(pattern => PatternMatchingUtils.hasRegexPattern(code, pattern));
+    if (declared) return true;
+
+    // A module-scope `const` object or array is shared state only if something
+    // WRITES to it. An immutable binding that is never mutated cannot leak
+    // between tests.
+    // EVERY such declaration is examined, not just the first one found: a file
+    // whose first constant is frozen and whose second is pushed to is not
+    // isolated, and stopping at the first match would call it isolated.
+    for (const pattern of [
       this.SHARED_MUTABLE_PATTERNS.MODULE_MUTABLE_OBJECT,
       this.SHARED_MUTABLE_PATTERNS.MODULE_MUTABLE_ARRAY,
-    ];
-    return patterns.some(pattern =>
-      PatternMatchingUtils.hasRegexPattern(content, pattern)
-    );
+    ]) {
+      const all = new RegExp(pattern.source, 'gm');
+      for (const match of code.matchAll(all)) {
+        if (this.isMutated(code, match[0])) return true;
+      }
+    }
+
+    return false;
   }
 
   /**
@@ -125,6 +177,16 @@ export class UnitTestIsolationConstants {
   static hasProperSetupTeardown(content: string): boolean {
     const hasTests = content.includes('it(') || content.includes('test(');
     if (!hasTests) return true;
+
+    // A Playwright spec's isolation is the FIXTURE, not a hook. Every
+    // `test('…', async ({ page }) => …)` gets a fresh BrowserContext and Page —
+    // that is stronger isolation than a `beforeEach`, not the absence of it.
+    //
+    // Demanding a hook here asked for empty `beforeEach` blocks whose only
+    // purpose is to reach a percentage: ceremony that changes nothing about
+    // whether the tests are isolated, which is the edit this whole rule set
+    // exists to argue against.
+    if (FixtureIsolation.isFixtureIsolated(content)) return true;
 
     const setupPatterns = [
       this.ISOLATION_SETUP_PATTERNS.BEFORE_EACH,
@@ -163,6 +225,10 @@ export class UnitTestIsolationConstants {
    * Check if content uses external resources
    */
   static usesExternalResources(content: string): boolean {
+    // A comment that DESCRIBES a resource is not a test that uses one. The
+    // single match in one consumer's file was a line of prose inside a block
+    // comment, explaining why a test had been deleted.
+    content = CodeText.stripComments(content);
     const patterns = [
       this.EXTERNAL_RESOURCE_PATTERNS.HTTP_CLIENT,
       this.EXTERNAL_RESOURCE_PATTERNS.STORAGE,

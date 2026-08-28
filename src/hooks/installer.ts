@@ -643,10 +643,17 @@ echo "✅ Custom hook ${hookName} completed"
     }
 
     if (config.hooks.commitMsg) {
+      // The VERSION, as its two siblings above already require.
+      //
+      // This asked for the literal string 'RuleOfCode', which every generated
+      // commit-msg hook has ever contained — so a hook written by any earlier
+      // version reported as up to date, and `reinstall-hooks` left it in place.
+      // A consumer upgrading kept the old hook silently, which is how a fix to
+      // the hook fails to reach the person it was written for.
       this.checkHookStatus(
         huskyDir,
         this.COMMIT_MSG_HOOK,
-        'RuleOfCode',
+        `v${this.VERSION}`,
         missing,
         outdated
       );

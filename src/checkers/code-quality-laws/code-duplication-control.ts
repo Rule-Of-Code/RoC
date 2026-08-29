@@ -98,6 +98,14 @@ export class CodeDuplicationControlLaw extends CodeQualityLawBase {
           if (block.length > minBlockSize) {
             // Only check substantial blocks
             const key = this.normalizeCode(block);
+            // A block that normalises to nothing — all comments, or all
+            // whitespace — is not duplicated code. It is the ABSENCE of code,
+            // and every such block matches every other one. The threshold above
+            // measures the RAW block, so a comment-only block passes it while
+            // carrying no logic at all.
+            if (key.length < minBlockSize) {
+              continue;
+            }
             this.addToCodeBlocks(
               codeBlocks,
               key,
@@ -163,13 +171,27 @@ export class CodeDuplicationControlLaw extends CodeQualityLawBase {
     return blocks;
   }
 
+  /**
+   * Comments go FIRST, while the line boundaries they are anchored to still
+   * exist.
+   *
+   * Whitespace was collapsed before the comment strip, so `/\/\/.*$/gm` had no
+   * `$` left to stop at and ate everything from the first `//` to the end of
+   * the block — comments and real code alike. Any block whose first line was a
+   * `//` comment normalised to the empty string, and every such block collided
+   * with every other one.
+   *
+   * That is how a flat Angular provider array was reported as a duplicate of a
+   * route guard: no shared logic, no overlap that `jscpd` could find, two
+   * empty strings meeting in a map.
+   */
   private static normalizeCode(code: string): string {
     return code
-      .replace(/\s+/g, ' ') // Normalize whitespace
-      .replace(/\/\/.*$/gm, '') // Remove single-line comments
-      .replace(/\/\*[\s\S]*?\*\//g, '') // Remove multi-line comments
-      .replace(/\b\d+\b/g, 'NUM') // Replace numbers with placeholder
-      .replace(/['"`][^'"`]*['"`]/g, 'STR') // Replace strings with placeholder
+      .replace(/\/\*[\s\S]*?\*\//g, ' ') // block comments, before lines collapse
+      .replace(/(^|[^:])\/\/[^\n]*/g, '$1') // line comments, not a URL's //
+      .replace(/\s+/g, ' ') // only now is whitespace irrelevant
+      .replace(/\b\d+\b/g, 'NUM')
+      .replace(/['"`][^'"`]*['"`]/g, 'STR')
       .trim();
   }
 

@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-gold.svg)](https://opensource.org/licenses/MIT)
 [![Constitutional Laws](https://img.shields.io/badge/Constitutional%20Laws-169-red.svg)](#-laws-and-scope)
-[![Tests](https://img.shields.io/badge/Tests-14%2C200%2B%20passing-success.svg)](#-development-and-release)
+[![Tests](https://img.shields.io/badge/Tests-14%2C300%2B%20passing-success.svg)](#-development-and-release)
 [![Fail Closed](https://img.shields.io/badge/Gate-fail--closed-blue.svg)](#-severity-semantics-and-fail-closed-guarantees)
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-Strict%20Mode-blue.svg)](https://www.typescriptlang.org/)
 
@@ -68,7 +68,7 @@ IDE panel, a dashboard. It is versioned by `schemaVersion` (currently `2`).
 {
   "schemaVersion": 2,
   "tool": "ruleofcode",          // the package name this build was published under
-  "version": "7.22.0",
+  "version": "7.23.0",
   "registryTotal": 169,
   "satisfiedByStacks": {          // the mapping described below — read it, don't hardcode it
     "keys": ["typescript", "angular", "python"],
@@ -224,7 +224,7 @@ the default scan ignores, so the audit itself never inspects it.
 
 ```bash
 npm run build     # tsc
-npm test          # the full suite (14,200+ tests)
+npm test          # the full suite (14,300+ tests)
 npm run lint      # ESLint — 0 errors is the norm
 npm run canary    # the red/green gate
 ```

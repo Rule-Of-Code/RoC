@@ -374,7 +374,17 @@ fi
 # already made, and fixing it means rewriting history. Anything the history scan
 # can fail a developer for, the hook fails them for BEFORE it becomes history.
 if [ "$EXEMPT" = false ]; then
-    SUBJECT_LEN=$(printf '%s' "$FIRST_LINE" | wc -c | tr -d ' ')
+    # CHARACTERS, which is what the message claims and what the limit means.
+    #
+    # \`wc -c\` counts BYTES, so a subject with any non-ASCII text was rejected
+    # for a length it did not have — 54 characters reported as 86, with the
+    # word "characters" pointing away from the answer. \`wc -m\` would only move
+    # the problem, since it counts bytes too under a C locale.
+    #
+    # Deleting UTF-8 continuation bytes (0x80-0xBF) leaves exactly one byte per
+    # character, and \`LC_ALL=C\` makes that deterministic on every machine
+    # rather than dependent on the ambient locale.
+    SUBJECT_LEN=$(printf '%s' "$FIRST_LINE" | LC_ALL=C tr -d '\\200-\\277' | LC_ALL=C wc -c | tr -d ' ')
     if [ "$SUBJECT_LEN" -gt ${maxSubjectLength} ]; then
         echo "❌ Subject is $SUBJECT_LEN characters (max ${maxSubjectLength})."
         echo ""
@@ -399,7 +409,11 @@ if [ "$EXEMPT" = false ]; then
     fi
     # Wrap body lines at 72 chars; exempt URLs, git trailers ("Word: …") and
     # unwrappable no-whitespace lines.
-    LONG_LINES=$(printf '%s\\n' "$COMMIT_MSG" | awk 'NR>=3 { if (length($0) > 72 && $0 ~ /[[:space:]]/ && index($0, "://") == 0 && $0 !~ /^[A-Za-z][A-Za-z0-9_-]*:[[:space:]]/) print "  line " NR " (" length($0) " chars)" }')
+    # Measured the same way as the subject, and pinned to LC_ALL=C so the
+    # verdict cannot change with the machine's locale. \`awk\`'s length() counts
+    # characters under a UTF-8 locale and bytes under C, so the identical file
+    # passed or failed depending on an environment variable.
+    LONG_LINES=$(printf '%s\\n' "$COMMIT_MSG" | LC_ALL=C awk 'NR>=3 { s=$0; gsub(/[\\200-\\277]/, "", s); n=length(s); if (n > 72 && $0 ~ /[[:space:]]/ && index($0, "://") == 0 && $0 !~ /^[A-Za-z][A-Za-z0-9_-]*:[[:space:]]/) print "  line " NR " (" n " chars)" }')
     if [ -n "$LONG_LINES" ]; then
         echo "❌ Commit body lines should wrap at 72 characters:"
         echo "$LONG_LINES"
@@ -629,10 +643,17 @@ echo "✅ Custom hook ${hookName} completed"
     }
 
     if (config.hooks.commitMsg) {
+      // The VERSION, as its two siblings above already require.
+      //
+      // This asked for the literal string 'RuleOfCode', which every generated
+      // commit-msg hook has ever contained — so a hook written by any earlier
+      // version reported as up to date, and `reinstall-hooks` left it in place.
+      // A consumer upgrading kept the old hook silently, which is how a fix to
+      // the hook fails to reach the person it was written for.
       this.checkHookStatus(
         huskyDir,
         this.COMMIT_MSG_HOOK,
-        'RuleOfCode',
+        `v${this.VERSION}`,
         missing,
         outdated
       );

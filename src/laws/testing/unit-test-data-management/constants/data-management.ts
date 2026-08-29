@@ -1,4 +1,6 @@
+import { CodeText } from '../../../../utils/code-text';
 import { PatternMatchingUtils } from '../../../../utils/pattern-matching-utils';
+import { FixtureIsolation } from '../../../../utils/testing/fixture-isolation';
 
 /**
  * Unit Test Data Management Constants
@@ -137,6 +139,11 @@ export class UnitTestDataManagementConstants {
    * Check if content has proper setup/teardown
    */
   static hasProperSetupTeardown(content: string): boolean {
+    // The runner can supply per-test data isolation instead of a hook; see
+    // FixtureIsolation. Second site of the same check, so it gets the same
+    // answer — a project should not pass one isolation law and fail its twin.
+    if (FixtureIsolation.isFixtureIsolated(content)) return true;
+
     const hasBeforeEach = PatternMatchingUtils.hasRegexPattern(
       content,
       this.SETUP_TEARDOWN_PATTERNS.BEFORE_EACH
@@ -163,8 +170,11 @@ export class UnitTestDataManagementConstants {
    * Check if content has shared mutable state
    */
   static hasSharedMutableState(content: string): boolean {
+    // Prose is not code: a comment saying why a `window.x =` was removed must
+    // not be read as the assignment itself.
+    const code = CodeText.stripComments(content);
     return Object.values(this.SHARED_STATE_PATTERNS).some(pattern =>
-      PatternMatchingUtils.hasRegexPattern(content, pattern)
+      PatternMatchingUtils.hasRegexPattern(code, pattern)
     );
   }
 
@@ -172,8 +182,10 @@ export class UnitTestDataManagementConstants {
    * Check if content uses external resources
    */
   static usesExternalResources(content: string): boolean {
+    // A comment that DESCRIBES a resource is not a test that reaches one.
+    const code = CodeText.stripComments(content);
     return Object.values(this.EXTERNAL_RESOURCE_PATTERNS).some(pattern =>
-      PatternMatchingUtils.hasRegexPattern(content, pattern)
+      PatternMatchingUtils.hasRegexPattern(code, pattern)
     );
   }
 

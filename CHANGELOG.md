@@ -5,6 +5,142 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.23.0] - 2026-08-29
+
+Seven consumer reports, seven fixes, no config edit required and nothing
+removed. The law count is unchanged at 169.
+
+**Two laws will report fewer findings than they did**, deliberately, and both
+changes are described below under "a law that judged the shape". If you have
+waivers written against `test-isolation-enforcement` or `unit-test-quality`,
+they may no longer be needed.
+
+**One law will report a different number.** `code-complexity-control` was
+overstating every file's length by exactly one line. Files you waived at the
+boundary may now pass on their own.
+
+### 🐛 Fixed — a law that judged the shape, not the code
+
+`test-isolation-enforcement` (#124) made three separate judgements about a test
+file by looking at how it was written rather than at what it does, and each one
+asked for an edit that moves a number without changing whether the tests are
+isolated.
+
+A module-scope `const` object or array counted as shared mutable state even
+when nothing ever wrote to it. `const PHONE = { width: 390, height: 844 }` is a
+viewport constant — and extracting those literals into exactly such a constant
+is what `magic-number-prevention` demands in the same audit. Two laws asking
+for opposite edits is not a finding; it is a contradiction the consumer has to
+resolve by disabling one of them. A `const` is now shared state only if
+something **writes** to it, and every such declaration is examined rather than
+only the first match.
+
+A comment counted as a resource. The sole `localStorage` in one reported file
+was a line of prose inside a block comment, explaining why a test had been
+deleted. `CodeText.stripComments` — the shared reader this repository already
+had, and which the magic-number analyzer already used — is now called first.
+
+The 70% setup/teardown rule was Jest-shaped. A Playwright spec has no
+`beforeEach` because it needs none: every `test('…', async ({ page }) => …)`
+gets a fresh BrowserContext and Page, which is *stronger* isolation than a
+hook, not its absence. The only way to satisfy the old check was to add empty
+hooks whose sole purpose was to be found.
+
+Measured on the reporting tree: shared state `true` → `false`, isolation ratio
+`false` → `true` (21/30 = 70.0%). Resource isolation stays `false` on a real
+`page.addInitScript(() => localStorage.setItem(…))` with no cleanup — the fix
+did not sweep away the finding that was correct.
+
+`unit-test-quality` (#125) decided whether a suite exercises degenerate inputs
+from a vocabulary in which every word named a **JavaScript value**: `null`,
+`undefined`, `NaN`, `.toThrow`, `.rejects`. A suite that drives a real page has
+no `null` to assert on. Its degenerate cases are a list that must be empty, a
+count that must not be zero, a route that must not be missing. The vocabulary
+is different, not absent — one consumer had 11 of 13 flagged files asserting
+exactly these, including one whose title says *"and say so when unset"* in
+plain English. `toEqual([])`, `toHaveCount(0)`, `toHaveLength(0)`, any negated
+matcher, and the words `unset` / `missing` / `not found` / `no such` / `never`
+now read as edge cases. Measured on the reporting tree: 13 findings → 5.
+
+The remaining five assert `toHaveCount(1)`, `toBeVisible()`, `toHaveURL()`. The
+reporter predicted 2; tuning until 5 became 2 would have fitted the law to one
+repository instead of to the idea.
+
+### 🐛 Fixed — a number that no other tool agreed with
+
+`code-complexity-control` (#127) measured a file with
+`content.split('\n').length`. A trailing newline **terminates** the last line;
+it does not begin another. Every POSIX-conformant file therefore measured
+exactly one line too long, and a file at exactly `maxFileLines` was rejected as
+one over.
+
+| tool | verdict on the same file |
+| --- | --- |
+| `wc -l` | 300 |
+| ESLint `max-lines: 300` | passes |
+| this law | **fails — "301 lines, max 300"** |
+
+The reported count was wrong for every file this law named, not only at the
+boundary, so the finding read as a bug in the tool. It was.
+
+### 🐛 Fixed — two empty strings meeting in a map
+
+`code-duplication-control` (#126) collapsed whitespace **before** stripping
+comments, so the line-comment pattern had no line boundaries left for its `$`
+to stop at and ate everything from the first `//` to the end of the block —
+comments and real code alike. Any block whose first line was a `//` comment
+normalised to the empty string, and every such block collided with every other
+one. That is how a flat Angular provider array was reported as a duplicate of a
+route guard.
+
+Two changes rather than one: the strip order is fixed, and a block that
+normalises to less than `minBlockSize` is now skipped. The threshold measures
+the **raw** block, so a comment-only block passed it while carrying no logic at
+all.
+
+### 🐛 Fixed — the hook that gates commit messages
+
+Two defects, one hook.
+
+`commit-msg` (#128) printed *"Subject is 86 characters (max 72)"* for a
+54-character subject, because `wc -c` counts bytes. The word "characters" in
+the error pointed the developer away from the answer. The body check was worse:
+`awk`'s `length()` counts characters under a UTF-8 locale and bytes under `C`,
+so the identical commit message passed on one machine and failed on another,
+decided by an environment variable nobody set on purpose. Both halves now
+delete UTF-8 continuation bytes and pin `LC_ALL=C`.
+
+`validateHooks()` (#129) checked the installed `commit-msg` hook against the
+literal string `'RuleOfCode'` — which every generated commit-msg hook has ever
+contained, of any version. That check could never fail. A hook written by any
+earlier version reported as up to date and `reinstall-hooks` left it in place,
+so the fix above would have shipped to nobody who already had a hook installed.
+The marker is now the version stamp, as its two siblings already required.
+
+### 🐛 Fixed — the config asked for a justification, then rejected it
+
+JSON has no comment syntax, so a `$`-prefixed key is the conventional way to
+annotate a map. `laws.notApplicable` is precisely the section where every entry
+is a human decision that needs explaining — and a `$comment` there resolved to
+zero laws and **failed the audit** (#130), while the same key in
+`ignores.byRule` warned on every single run.
+
+Swept rather than patched at the reported site: the same literal regex was
+tested in four places — the guard, and three in `audit-engine` covering
+severity overrides, unknown-law warnings and `notApplicable` waivers. All four
+now call one shared predicate.
+
+### 🔍 The shape behind the batch
+
+Five of the seven are the same mistake in different clothes: **a check reading
+the appearance of code instead of the code.** A comment that mentions
+`localStorage`. A `//` that survives whitespace collapse. A newline counted as
+a line. A brand name standing in for a version. A `$comment` read as a
+misspelled law name.
+
+In two of them the correct reader already existed in this repository and the
+law simply was not calling it.
+
 ## [7.22.0] - 2026-08-26
 
 **Two things to do once, before trusting your next run.** No config edit is

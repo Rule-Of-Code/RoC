@@ -510,6 +510,38 @@ describe('RuleOfCodeAuditor', () => {
       expect(selectedIn({ '@angular/core': '20.0.0' })).not.toContain(IONIC_LAW);
     });
 
+    const CAPACITOR_LAW = 'Capacitor Logging Never Production';
+    const selectedWith = (files: Record<string, string>): string[] => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-requires-cap-'));
+      try {
+        for (const [name, content] of Object.entries(files)) {
+          fs.writeFileSync(path.join(dir, name), content);
+        }
+        const auditor = new RuleOfCodeAuditor({}, dir) as unknown as {
+          getLawsToAudit: () => Array<{ name: string }>;
+        };
+        return auditor.getLawsToAudit().map(law => law.name);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    };
+    const CAP_DEPS = JSON.stringify({
+      dependencies: { '@angular/core': '20.0.0', '@capacitor/core': '8.5.1' },
+    });
+
+    it('a Capacitor law needs BOTH the dependency and a capacitor.config.*', () => {
+      expect(selectedWith({ 'package.json': CAP_DEPS })).not.toContain(CAPACITOR_LAW);
+      expect(
+        selectedWith({
+          'package.json': JSON.stringify({ dependencies: { '@angular/core': '20.0.0' } }),
+          'capacitor.config.json': '{}',
+        })
+      ).not.toContain(CAPACITOR_LAW);
+      expect(
+        selectedWith({ 'package.json': CAP_DEPS, 'capacitor.config.json': '{}' })
+      ).toContain(CAPACITOR_LAW);
+    });
+
     it('selects it where @ionic/angular is declared', () => {
       expect(
         selectedIn({ '@angular/core': '20.0.0', '@ionic/angular': '8.8.17' })

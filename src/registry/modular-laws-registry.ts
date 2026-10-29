@@ -169,6 +169,9 @@ import {
   TimerCleanupLaw,
 } from '../checkers/fe-architecture-laws';
 
+// Capacitor Laws Modular Imports — gated by `requires` on @capacitor/core + a config
+import { CapacitorLoggingNeverProductionLaw } from '../checkers/capacitor-laws';
+
 // Ionic Laws Modular Imports — gated by `requires` on an Ionic binding
 import {
   IonicE2eLocatorsTargetTheShownPageLaw,
@@ -470,6 +473,9 @@ export class ModularLawsRegistry {
     'NoPassthroughCastLaw.check': NoPassthroughCastLaw,
     'TimerCleanupLaw.check': TimerCleanupLaw,
     'NoRiskLiteralsLaw.check': NoRiskLiteralsLaw,
+
+    // Capacitor Laws (gated on @capacitor/core + a Capacitor config)
+    'CapacitorLoggingNeverProductionLaw.check': CapacitorLoggingNeverProductionLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

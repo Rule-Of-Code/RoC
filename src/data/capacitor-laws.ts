@@ -133,4 +133,42 @@ export const CAPACITOR_LAWS: EnhancedConstitutionalLaw[] = [
     remediation:
       'Remove server.url / cleartext / allowNavigation / allowMixedContent / webContentsDebuggingEnabled from the committed config',
   },
+
+  {
+    id: generateLawId(
+      'Capacitor Plugin Config Declared',
+      'Every installed Capacitor plugin that declares a PluginsConfig block gets one in the config',
+      'capacitor'
+    ),
+    legacyId: 424,
+    article: 'IV',
+    subsection: '4.53',
+    title: 'Capacitor Plugin Config Declared',
+    rationale:
+      'A plugin reads plugins.<Name> from the resolved config at native start and silently takes its own default when the block is absent — for the Firebase Authentication plugin an empty provider list, which rejects every sign-in on the device while the web build, cap sync, Gradle and every unit test stay green. A plugin that declares a PluginsConfig block gets one in the config, even if empty.',
+    satisfiedBy: {
+      capacitor:
+        'For every installed plugin that augments PluginsConfig, write plugins.<Name> in capacitor.config.ts — the values you mean, or {} to state that the defaults are deliberate.',
+    },
+    detectionLimits: [
+      'Cannot judge values; a block with the wrong provider id passes.',
+      'Sees only plugins that augment PluginsConfig in dist/esm/definitions.d.ts (the plugin template\'s convention); a plugin that documents config in its README only is invisible.',
+      'Needs node_modules installed and the config resolved by `cap config --json` on the auditing machine; without either it reports that it could not look, not green.',
+      'Asks for a block even when every option has a default (an `App: {}`); whether that should be info rather than warning is open in the issue it came from.',
+    ],
+    emoji: '🧩',
+    description:
+      'Every installed Capacitor plugin that declares a PluginsConfig block gets one in the config',
+    priority: 'HIGH',
+    category: 'FRAMEWORK',
+    stack: 'frontend',
+    requires: REQUIRES_CAPACITOR,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'CapacitorPluginConfigDeclaredLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.53: Capacitor plugin left on its own silent defaults',
+    remediation: 'Add plugins.<Name> for every installed plugin that declares one ({} is enough)',
+  },
 ];

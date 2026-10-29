@@ -7,3 +7,4 @@
 export { CapacitorLoggingNeverProductionLaw } from './capacitor-logging-never-production';
 export { CapacitorWebviewOriginDeclaredLaw } from './capacitor-webview-origin-declared';
 export { CapacitorNoDevOnlyServerKeysLaw } from './capacitor-no-dev-only-server-keys';
+export { CapacitorPluginConfigDeclaredLaw } from './capacitor-plugin-config-declared';

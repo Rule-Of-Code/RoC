@@ -174,6 +174,7 @@ import {
   IonicLeaveCancelsWhatEnterStartedLaw,
   IonicNoSkipLocationChangeLaw,
   IonicPageStateReadOnEnterLaw,
+  IonicSessionExitUsesNavigateRootLaw,
   IonicUniqueUrlKeyPerViewLaw,
   IonicViewLifecycleInterfacesLaw,
 } from '../checkers/ionic-laws';
@@ -473,6 +474,7 @@ export class ModularLawsRegistry {
     'IonicLeaveCancelsWhatEnterStartedLaw.check': IonicLeaveCancelsWhatEnterStartedLaw,
     'IonicNoSkipLocationChangeLaw.check': IonicNoSkipLocationChangeLaw,
     'IonicUniqueUrlKeyPerViewLaw.check': IonicUniqueUrlKeyPerViewLaw,
+    'IonicSessionExitUsesNavigateRootLaw.check': IonicSessionExitUsesNavigateRootLaw,
 
     // Security Laws
     checkEnvironmentVariables: EnvironmentVariablesLaw,

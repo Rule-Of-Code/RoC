@@ -1,7 +1,7 @@
 # 🏛️ RuleOfCode (RoC)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-gold.svg)](https://opensource.org/licenses/MIT)
-[![Constitutional Laws](https://img.shields.io/badge/Constitutional%20Laws-174-red.svg)](#-laws-and-scope)
+[![Constitutional Laws](https://img.shields.io/badge/Constitutional%20Laws-175-red.svg)](#-laws-and-scope)
 [![Tests](https://img.shields.io/badge/Tests-14%2C300%2B%20passing-success.svg)](#-development-and-release)
 [![Fail Closed](https://img.shields.io/badge/Gate-fail--closed-blue.svg)](#-severity-semantics-and-fail-closed-guarantees)
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-Strict%20Mode-blue.svg)](https://www.typescriptlang.org/)
@@ -46,17 +46,17 @@ npx ruleofcode laws --list   # the law catalog with canonical names
 
 ## ⚖️ Laws and scope
 
-**174 laws**, scoped per stack via automatic stack gating — laws outside the project's
+**175 laws**, scoped per stack via automatic stack gating — laws outside the project's
 stack do not run and are not counted:
 
 | Scope | Laws | Applies to |
 |---|---|---|
 | Universal | 62 | every project |
-| Frontend (Angular/NgRx, FE architecture, Ionic/Capacitor) | 60 | angular / react / vue / ionic |
+| Frontend (Angular/NgRx, FE architecture, Ionic/Capacitor) | 61 | angular / react / vue / ionic |
 | Python (FastAPI, Clean Architecture/CQRS) | 37 | python |
 | TypeScript | 15 | all TS/JS projects |
 
-Of the frontend laws, **5** run only where an Ionic binding is declared and **0** only
+Of the frontend laws, **6** run only where an Ionic binding is declared and **0** only
 where Capacitor is — see [`requires`](#requires-a-law-about-a-toolkit-runs-only-where-the-toolkit-is).
 
 The project type comes from `project.type` in the config, or is detected from the
@@ -72,7 +72,7 @@ IDE panel, a dashboard. It is versioned by `schemaVersion` (currently `2`).
   "schemaVersion": 2,
   "tool": "ruleofcode",          // the package name this build was published under
   "version": "7.23.0",
-  "registryTotal": 174,
+  "registryTotal": 175,
   "satisfiedByStacks": {          // the mapping described below — read it, don't hardcode it
     "keys": ["typescript", "angular", "python", "ionic", "capacitor"],
     "stackToKey": { "frontend": "angular", "typescript": "typescript", "python": "python" }
@@ -99,7 +99,7 @@ onto a stack. Measured against the shipped registry:
 | `typescript` | 71 | 12 `typescript` + 59 universal |
 | `python` | 69 | 37 `python` + 32 universal |
 | `angular` | 63 | 55 `frontend` + 3 `typescript` + 5 universal |
-| `ionic` | 5 | 5 `frontend` |
+| `ionic` | 6 | 6 `frontend` |
 
 `angular` appearing on TypeScript-stack and universal laws is the clearest evidence:
 it names the technology the advice is written in, not the projects the law applies to.

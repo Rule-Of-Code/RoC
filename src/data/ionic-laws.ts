@@ -244,4 +244,42 @@ export const IONIC_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article IV.4.45: Session ended with a forward navigation',
     remediation: 'End the session with NavController.navigateRoot(<final address>)',
   },
+
+  {
+    id: generateLawId(
+      'Ionic Route Reuse Strategy Provided',
+      'An Ionic Angular bootstrap provides IonicRouteStrategy as the RouteReuseStrategy',
+      'ionic'
+    ),
+    legacyId: 407,
+    article: 'IV',
+    subsection: '4.46',
+    title: 'Ionic Route Reuse Strategy Provided',
+    rationale:
+      'IonicRouteStrategy makes a param change a new page (shouldReuseRoute returns false on differing params), which is what lets ion-router-outlet stack /items/1 and /items/2 with a transition and a working Back. provideIonicAngular() does not register it; the starter and the docs do, so a project that assembled its own bootstrap has none and nothing says so. Proposed on the strength of the template and the source, not of a measured incident.',
+    satisfiedBy: {
+      ionic:
+        'Provide { provide: RouteReuseStrategy, useClass: IonicRouteStrategy } next to provideIonicAngular() in the bootstrap providers.',
+    },
+    detectionLimits: [
+      'Token presence in the files of one application that bootstrap it (main.ts, app.config.ts, app.module.ts, or any file calling bootstrapApplication / provideRouter / RouterModule.forRoot); a provider registered in a shared providers array in a library is invisible.',
+      'Accepts any RouteReuseStrategy provider; it cannot tell a custom strategy that breaks the param rule from one that extends IonicRouteStrategy.',
+      'Applications are told apart by the directory above src/; a workspace with another layout is judged as one application.',
+    ],
+    emoji: '♻️',
+    description:
+      'An Ionic Angular bootstrap provides IonicRouteStrategy as the RouteReuseStrategy',
+    priority: 'HIGH',
+    category: 'FRAMEWORK',
+    stack: 'frontend',
+    requires: REQUIRES_IONIC_ANGULAR,
+    defaultEnabled: true,
+    defaultSeverity: 'error',
+    automation: 'AUTOMATED',
+    checkFunction: 'IonicRouteReuseStrategyProvidedLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.46: No RouteReuseStrategy provider for ion-router-outlet',
+    remediation:
+      'Add { provide: RouteReuseStrategy, useClass: IonicRouteStrategy } to the bootstrap providers',
+  },
 ];

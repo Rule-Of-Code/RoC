@@ -91,4 +91,41 @@ export const IONIC_LAWS: EnhancedConstitutionalLaw[] = [
     remediation:
       'Read navigation state, history.state and route.snapshot in ionViewWillEnter, or subscribe to them',
   },
+
+  {
+    id: generateLawId(
+      'Ionic Leave Cancels What Enter Started',
+      'What an Ionic page starts on enter is stopped in ionViewWillLeave, not only in ngOnDestroy',
+      'ionic'
+    ),
+    legacyId: 403,
+    article: 'IV',
+    subsection: '4.42',
+    title: 'Ionic Leave Cancels What Enter Started',
+    rationale:
+      'ion-router-outlet keeps a page on forward navigation (setForward) and only destroys it when popped, so a timer or subscription cleaned up in ngOnDestroy keeps running after the user has left. A 1.5 s timer with onCleanup fired after the page was left, consumed a stored return and navigated the user away; the destroy-based unit test was green. The leave hooks are the only cleanup that runs when the page is merely left.',
+    satisfiedBy: {
+      ionic:
+        'Whatever ionViewWillEnter starts, ionViewWillLeave stops: clear the timer, unsubscribe, remove the listener. Keep ngOnDestroy for the pop; it is not a substitute.',
+    },
+    detectionLimits: [
+      'Token presence, like timer-cleanup: any ionViewWillLeave/ionViewDidLeave in the file (as a method or a listener name) credits every start token, and the law does not prove the leave handler cancels the right thing.',
+      'Deliberately does not credit ngOnDestroy / DestroyRef / takeUntilDestroyed — on a held page they are the false green this law exists to replace, so a page that is only ever popped (never left forward) is flagged although destroy would have run.',
+      'Start sites read: the constructor, ngOnInit, ionViewWillEnter/DidEnter and field initialisers that call effect(); a start in another method called from them is invisible.',
+    ],
+    emoji: '🚪',
+    description:
+      'What an Ionic page starts on enter is stopped in ionViewWillLeave, not only in ngOnDestroy',
+    priority: 'HIGH',
+    category: 'CODE_QUALITY',
+    stack: 'frontend',
+    requires: REQUIRES_IONIC_ANGULAR,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'IonicLeaveCancelsWhatEnterStartedLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.42: Ionic page starts work with no leave hook to stop it',
+    remediation: 'Stop timers, subscriptions and listeners in ionViewWillLeave',
+  },
 ];

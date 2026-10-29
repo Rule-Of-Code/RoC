@@ -128,4 +128,41 @@ export const IONIC_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article IV.4.42: Ionic page starts work with no leave hook to stop it',
     remediation: 'Stop timers, subscriptions and listeners in ionViewWillLeave',
   },
+
+  {
+    id: generateLawId(
+      'Ionic No Skip Location Change',
+      'An app routed through ion-router-outlet never navigates with skipLocationChange',
+      'ionic'
+    ),
+    legacyId: 404,
+    article: 'IV',
+    subsection: '4.43',
+    title: 'Ionic No Skip Location Change',
+    rationale:
+      'ion-router-outlet keys its view stack by URL and the hardware Back button pops that stack; skipLocationChange changes the screen without moving the key, so the view the user left stays in the stack and Back shows it. A mutation that replaced replaceUrl with skipLocationChange kept the Location-based Back test green.',
+    satisfiedBy: {
+      ionic:
+        'Use { replaceUrl: true } to drop the current view from the stack. Never skipLocationChange in a routed Ionic app.',
+    },
+    detectionLimits: [
+      'Literal `skipLocationChange: true` in code and the routerLink input in templates; extras built in a variable or spread from a constant are invisible.',
+      'Flags the whole project once an ion-router-outlet exists, including a subtree routed through a plain <router-outlet> where the extra would be harmless.',
+      'Angular only; IonNav and @ionic/react / @ionic/vue routers are out of scope.',
+    ],
+    emoji: '🔙',
+    description:
+      'An app routed through ion-router-outlet never navigates with skipLocationChange',
+    priority: 'HIGH',
+    category: 'FRAMEWORK',
+    stack: 'frontend',
+    requires: REQUIRES_IONIC_ANGULAR,
+    defaultEnabled: true,
+    defaultSeverity: 'error',
+    automation: 'AUTOMATED',
+    checkFunction: 'IonicNoSkipLocationChangeLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.43: skipLocationChange under ion-router-outlet',
+    remediation: 'Navigate with { replaceUrl: true } instead of skipLocationChange',
+  },
 ];

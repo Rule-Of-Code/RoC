@@ -171,4 +171,42 @@ export const CAPACITOR_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article IV.4.53: Capacitor plugin left on its own silent defaults',
     remediation: 'Add plugins.<Name> for every installed plugin that declares one ({} is enough)',
   },
+
+  {
+    id: generateLawId(
+      'Capacitor Single Platform Boundary',
+      'Capacitor imports and platform checks live in one boundary, not in feature code',
+      'capacitor'
+    ),
+    legacyId: 425,
+    article: 'IV',
+    subsection: '4.54',
+    title: 'Capacitor Single Platform Boundary',
+    rationale:
+      'One build serves three targets only while feature code does not know which one it is on; every @capacitor/* import and isNativePlatform() call lives in one boundary behind a port. A project-level ESLint rule holds the line in the hook but is judged wrong by a root-level run (flat config does not layer); RoC sees the tree and can state the boundary as data.',
+    satisfiedBy: {
+      capacitor:
+        'Import @capacitor/* and call Capacitor.isNativePlatform() only under thresholds.capacitor.boundary (one library). Everything else receives a port — an interface with a native implementation or null — through DI.',
+    },
+    detectionLimits: [
+      'Import-line and call-site patterns; a re-export through a barrel inside the boundary and consumed outside is credited to the boundary, and a wrapper that merely renames the plugin API is not detected as leakage.',
+      'Platform branching by other means (navigator.userAgent, window.innerWidth) is not this law\'s subject.',
+      'Without thresholds.capacitor.boundary the boundary is inferred: green only when exactly one project directory (nearest project.json / package.json) imports Capacitor. A monorepo with one boundary per app should configure it; a root ESLint no-restricted-imports rule naming @capacitor is accepted as the same boundary stated in another tool.',
+    ],
+    emoji: '🧱',
+    description:
+      'Capacitor imports and platform checks live in one boundary, not in feature code',
+    priority: 'HIGH',
+    category: 'FRAMEWORK',
+    stack: 'frontend',
+    requires: REQUIRES_CAPACITOR,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'CapacitorSinglePlatformBoundaryLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.54: Capacitor used outside the platform boundary',
+    remediation:
+      'Move @capacitor/* imports behind a port in one boundary; declare it in thresholds.capacitor.boundary',
+  },
 ];

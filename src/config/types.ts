@@ -431,6 +431,15 @@ export interface RuleOfCodeConfig {
        */
       specRequiredMinLoc?: number;
     };
+    capacitor?: {
+      /**
+       * Globs (relative to the workspace root) of the one place allowed to
+       * import @capacitor/* and call Capacitor.isNativePlatform() — the
+       * platform boundary. Absent: the boundary is inferred, and is accepted
+       * only when exactly one project directory imports Capacitor.
+       */
+      boundary?: string[];
+    };
     testing?: {
       /** Minimum test coverage percentage (0-100) */
       minCoveragePercent?: number;

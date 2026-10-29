@@ -170,7 +170,10 @@ import {
 } from '../checkers/fe-architecture-laws';
 
 // Ionic Laws Modular Imports — gated by `requires` on an Ionic binding
-import { IonicViewLifecycleInterfacesLaw } from '../checkers/ionic-laws';
+import {
+  IonicPageStateReadOnEnterLaw,
+  IonicViewLifecycleInterfacesLaw,
+} from '../checkers/ionic-laws';
 
 // Security Laws Modular Imports
 import {
@@ -463,6 +466,7 @@ export class ModularLawsRegistry {
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,
+    'IonicPageStateReadOnEnterLaw.check': IonicPageStateReadOnEnterLaw,
 
     // Security Laws
     checkEnvironmentVariables: EnvironmentVariablesLaw,

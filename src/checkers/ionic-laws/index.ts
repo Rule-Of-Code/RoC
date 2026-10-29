@@ -7,3 +7,4 @@ export { IonicViewLifecycleInterfacesLaw } from './ionic-view-lifecycle-interfac
 export { IonicPageStateReadOnEnterLaw } from './ionic-page-state-read-on-enter';
 export { IonicLeaveCancelsWhatEnterStartedLaw } from './ionic-leave-cancels-what-enter-started';
 export { IonicNoSkipLocationChangeLaw } from './ionic-no-skip-location-change';
+export { IonicUniqueUrlKeyPerViewLaw } from './ionic-unique-url-key-per-view';

@@ -47,7 +47,7 @@ describe('the README counts match the registry', () => {
   describe('the scope table', () => {
     it.each([
       ['Universal', undefined],
-      ['Frontend (Angular/NgRx + FE architecture)', 'frontend'],
+      ['Frontend (Angular/NgRx, FE architecture, Ionic/Capacitor)', 'frontend'],
       ['Python (FastAPI, Clean Architecture/CQRS)', 'python'],
       ['TypeScript', 'typescript'],
     ])('%s states the real count', (label, stack) => {
@@ -57,6 +57,18 @@ describe('the README counts match the registry', () => {
 
       expect(row).toBeDefined();
       expect(row).toContain(`| ${byStack(stack as string | undefined)} |`);
+    });
+
+    it('states how many frontend laws are gated on Ionic and on Capacitor', () => {
+      const gatedOn = (prefix: string): number =>
+        ModularLawsRegistry.getAll().filter(law =>
+          (law.requires?.anyDependency ?? []).some(name => name.startsWith(prefix))
+        ).length;
+
+      expect(readme()).toContain(
+        `Of the frontend laws, **${gatedOn('@ionic/')}** ${gatedOn('@ionic/') === 1 ? 'runs' : 'run'} only where an Ionic binding is declared and **${gatedOn('@capacitor/')}** only
+where Capacitor is`
+      );
     });
 
     /** The rows must account for every law, or one scope is missing. */

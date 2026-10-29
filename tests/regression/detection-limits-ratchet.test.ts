@@ -9,7 +9,7 @@ import { ALL_ENHANCED_CONSTITUTIONAL_LAWS } from '../../src/data/enhanced-laws';
  * this whole tool is built to kill — a law that silently misses a case while
  * looking like it covers it is the `unauthorized_401` metric that fed nothing.
  *
- * Authoring all 169 is a large content effort, so this is not error-on-day-one:
+ * Authoring every law's limits is a large content effort, so this is not error-on-day-one:
  * it is a FLOOR that ratchets up. The count may never drop below DECLARED_FLOOR,
  * and when you author more limits you raise the floor in the same PR. The number
  * is published on /dogfood and is meant to shrink the gap in public. A silently
@@ -17,7 +17,7 @@ import { ALL_ENHANCED_CONSTITUTIONAL_LAWS } from '../../src/data/enhanced-laws';
  */
 describe('detection-limits ratchet', () => {
   // Raise this when you author more limits. It must never go DOWN.
-  const DECLARED_FLOOR = 169;
+  const DECLARED_FLOOR = 170;
 
   const declared = ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(
     law => Array.isArray(law.detectionLimits) && law.detectionLimits.length > 0
@@ -58,8 +58,8 @@ describe('detection-limits ratchet', () => {
  * has its own floor that may never regress and is meant to grow in public.
  */
 describe('rationale & satisfiedBy ratchet', () => {
-  const RATIONALE_FLOOR = 169;
-  const SATISFIED_FLOOR = 168;
+  const RATIONALE_FLOOR = 170;
+  const SATISFIED_FLOOR = 169;
 
   const withRationale = ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(
     law => typeof law.rationale === 'string' && law.rationale.trim().length > 0

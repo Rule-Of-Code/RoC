@@ -52,4 +52,43 @@ export const IONIC_LAWS: EnhancedConstitutionalLaw[] = [
     remediation:
       'Implement ViewWillEnter / ViewDidEnter / ViewWillLeave / ViewDidLeave for every ionView* hook',
   },
+
+  {
+    id: generateLawId(
+      'Ionic Page State Read On Enter',
+      'Per-visit state on an Ionic page is read in ionViewWillEnter, not at construction',
+      'ionic'
+    ),
+    legacyId: 402,
+    article: 'IV',
+    subsection: '4.41',
+    title: 'Ionic Page State Read On Enter',
+    rationale:
+      'ion-router-outlet re-attaches a held page by URL key without constructing it again (getExistingView → activateWith), so a per-visit value read in a constructor, a field initialiser or ngOnInit is read on the first visit only. A one-shot notice read that way vanished for every session that began on that page; the unit test, which built a fresh instance, was green.',
+    satisfiedBy: {
+      ionic:
+        'Read what changes per visit (navigation state, history.state, route.snapshot) in ionViewWillEnter, or subscribe to it (route.paramMap, toSignal, component input binding). Keep the constructor for what is true for the life of the page.',
+    },
+    detectionLimits: [
+      'Cannot know whether the page is routed under an ion-router-outlet or a plain <router-outlet>; a page used only under the latter is flagged although Angular would rebuild it.',
+      'Sees four named sources only (getCurrentNavigation(), history.state, .snapshot, window.location); a one-shot read hidden in a service called from the constructor is invisible.',
+      'A class with an ionViewWillEnter is not read at all — the law does not prove the per-visit value is re-read there.',
+      'A route.snapshot read on a page whose URL always differs per visit is harmless (a different URL is a different held view) and is still flagged.',
+    ],
+    emoji: '🔁',
+    description:
+      'Per-visit state on an Ionic page is read in ionViewWillEnter, not at construction',
+    priority: 'HIGH',
+    category: 'FRAMEWORK',
+    stack: 'frontend',
+    requires: REQUIRES_IONIC_ANGULAR,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'IonicPageStateReadOnEnterLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.41: Per-visit state read where a re-attached page never runs again',
+    remediation:
+      'Read navigation state, history.state and route.snapshot in ionViewWillEnter, or subscribe to them',
+  },
 ];

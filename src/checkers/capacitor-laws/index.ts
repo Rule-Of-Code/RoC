@@ -9,3 +9,4 @@ export { CapacitorWebviewOriginDeclaredLaw } from './capacitor-webview-origin-de
 export { CapacitorNoDevOnlyServerKeysLaw } from './capacitor-no-dev-only-server-keys';
 export { CapacitorPluginConfigDeclaredLaw } from './capacitor-plugin-config-declared';
 export { CapacitorSinglePlatformBoundaryLaw } from './capacitor-single-platform-boundary';
+export { CapacitorPluginPlatformDeclarationsLaw } from './capacitor-plugin-platform-declarations';

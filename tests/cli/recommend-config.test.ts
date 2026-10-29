@@ -145,8 +145,15 @@ describe('templates are honest about the registry', () => {
   ])(
     'the advertised applicable-law count for %s matches the registry',
     (stack, projectType) => {
-      const actual = ModularLawsRegistry.getAll().filter(l =>
-        ModularLawsRegistry.lawAppliesToProjectType(l.stack, projectType)
+      // One template serves every project of the stack, and its floor is
+      // 90% of this count — so the count is the laws EVERY such project
+      // runs. A law gated by `requires` (Ionic, Capacitor) runs only where
+      // the toolkit is declared; counting it would lift the floor above
+      // what a project without the toolkit can reach.
+      const actual = ModularLawsRegistry.getAll().filter(
+        l =>
+          ModularLawsRegistry.lawAppliesToProjectType(l.stack, projectType) &&
+          l.requires === undefined
       ).length;
       expect(APPLICABLE_LAWS[stack]).toBe(actual);
     }

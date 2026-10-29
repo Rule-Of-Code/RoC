@@ -169,6 +169,9 @@ import {
   TimerCleanupLaw,
 } from '../checkers/fe-architecture-laws';
 
+// Ionic Laws Modular Imports — gated by `requires` on an Ionic binding
+import { IonicViewLifecycleInterfacesLaw } from '../checkers/ionic-laws';
+
 // Security Laws Modular Imports
 import {
   EnvironmentVariablesLaw,
@@ -457,6 +460,9 @@ export class ModularLawsRegistry {
     'NoPassthroughCastLaw.check': NoPassthroughCastLaw,
     'TimerCleanupLaw.check': TimerCleanupLaw,
     'NoRiskLiteralsLaw.check': NoRiskLiteralsLaw,
+
+    // Ionic Laws (gated on an Ionic binding)
+    'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,
 
     // Security Laws
     checkEnvironmentVariables: EnvironmentVariablesLaw,

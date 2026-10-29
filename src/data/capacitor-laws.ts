@@ -209,4 +209,41 @@ export const CAPACITOR_LAWS: EnhancedConstitutionalLaw[] = [
     remediation:
       'Move @capacitor/* imports behind a port in one boundary; declare it in thresholds.capacitor.boundary',
   },
+
+  {
+    id: generateLawId(
+      'Capacitor Plugin Platform Declarations',
+      'The native shells declare the permissions and usage strings the installed Capacitor plugins need',
+      'capacitor'
+    ),
+    legacyId: 426,
+    article: 'IV',
+    subsection: '4.55',
+    title: 'Capacitor Plugin Platform Declarations',
+    rationale:
+      "A plugin's bundled manifest declares what the plugin's native code needs, not the permission or usage string for the feature the app turned on; cap sync adds nothing. Push registration returned a token and never woke a locked screen until POST_NOTIFICATIONS, a high-importance channel and the default-channel meta-data were added by hand — three static facts a gate could have read.",
+    satisfiedBy: {
+      capacitor:
+        'For each installed plugin, add what it requires to android/app/src/main/AndroidManifest.xml and ios/App/App/Info.plist (permissions, usage descriptions, the push channel meta-data), and create the channel in code.',
+    },
+    detectionLimits: [
+      'Table-driven (@capacitor/push-notifications 8.1.3, @capacitor/geolocation 8.2.4): only plugins with a row are checked, and each row cites the file it was read from at that version.',
+      'Presence, not content: an empty usage string or a channel created with low importance passes.',
+      'Reads the main source set and Info.plist by fixed path; a permission declared only in a flavour or debug manifest is not seen, and a platform not yet added is not judged.',
+    ],
+    emoji: '📜',
+    description:
+      'The native shells declare the permissions and usage strings the installed Capacitor plugins need',
+    priority: 'HIGH',
+    category: 'DEPLOYMENT',
+    stack: 'frontend',
+    requires: REQUIRES_CAPACITOR,
+    defaultEnabled: true,
+    defaultSeverity: 'error',
+    automation: 'AUTOMATED',
+    checkFunction: 'CapacitorPluginPlatformDeclarationsLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.55: Native shell lacks a declaration an installed plugin needs',
+    remediation: 'Add the permission, usage string or meta-data the plugin requires to the native shell',
+  },
 ];

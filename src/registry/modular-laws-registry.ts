@@ -174,6 +174,7 @@ import {
   CapacitorLoggingNeverProductionLaw,
   CapacitorNoDevOnlyServerKeysLaw,
   CapacitorPluginConfigDeclaredLaw,
+  CapacitorPluginPlatformDeclarationsLaw,
   CapacitorSinglePlatformBoundaryLaw,
   CapacitorWebviewOriginDeclaredLaw,
 } from '../checkers/capacitor-laws';
@@ -486,6 +487,7 @@ export class ModularLawsRegistry {
     'CapacitorNoDevOnlyServerKeysLaw.check': CapacitorNoDevOnlyServerKeysLaw,
     'CapacitorPluginConfigDeclaredLaw.check': CapacitorPluginConfigDeclaredLaw,
     'CapacitorSinglePlatformBoundaryLaw.check': CapacitorSinglePlatformBoundaryLaw,
+    'CapacitorPluginPlatformDeclarationsLaw.check': CapacitorPluginPlatformDeclarationsLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

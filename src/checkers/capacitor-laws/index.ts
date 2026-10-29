@@ -10,3 +10,4 @@ export { CapacitorNoDevOnlyServerKeysLaw } from './capacitor-no-dev-only-server-
 export { CapacitorPluginConfigDeclaredLaw } from './capacitor-plugin-config-declared';
 export { CapacitorSinglePlatformBoundaryLaw } from './capacitor-single-platform-boundary';
 export { CapacitorPluginPlatformDeclarationsLaw } from './capacitor-plugin-platform-declarations';
+export { CapacitorDeepLinkContractLaw } from './capacitor-deep-link-contract';

@@ -544,6 +544,7 @@ export class ModularLawsRegistry {
       applicableFrameworks: this.getApplicableFrameworks(law),
       legacyId: law.legacyId,
       stack: law.stack,
+      requires: law.requires,
       check: this.createModularCheckFunction(law, law.id),
     }));
   }
@@ -825,6 +826,8 @@ export class ModularLawsRegistry {
     if (law.description.includes('Vue')) frameworks.push('vue');
     if (law.description.includes('Node')) frameworks.push('node');
     if (law.description.includes('TypeScript')) frameworks.push('typescript');
+    if (law.description.includes('Ionic')) frameworks.push('ionic');
+    if (law.description.includes('Capacitor')) frameworks.push('capacitor');
     return frameworks.length > 0 ? frameworks : ['*'];
   }
 }

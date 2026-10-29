@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
+import { ALL_ENHANCED_CONSTITUTIONAL_LAWS } from '../../src/data/enhanced-laws';
 import { ModularLawsRegistry } from '../../src/registry/modular-laws-registry';
 
 /**
@@ -64,6 +65,45 @@ describe('the README counts match the registry', () => {
       const summed = scopes.reduce((sum, s) => sum + byStack(s), 0);
 
       expect(summed).toBe(total());
+    });
+  });
+
+  /**
+   * The "measured against the shipped registry" table said 70 / 67 / 58 while
+   * the registry held 69 / 63 / 55 — the same hand-written drift, one section
+   * further down, in a table whose whole claim is that it was measured.
+   */
+  describe('the satisfiedBy spread table', () => {
+    const laws = ALL_ENHANCED_CONSTITUTIONAL_LAWS;
+    const keys = [...new Set(laws.flatMap(law => Object.keys(law.satisfiedBy ?? {})))];
+
+    it.each(keys)('the `%s` row states the measured count and spread', key => {
+      const carrying = laws.filter(law => law.satisfiedBy?.[key as 'angular'] !== undefined);
+      const spread = new Map<string, number>();
+      for (const law of carrying) {
+        const stack = law.stack ?? 'universal';
+        spread.set(stack, (spread.get(stack) ?? 0) + 1);
+      }
+      const row = readme()
+        .split('\n')
+        .find(line => line.startsWith(`| \`${key}\` | `));
+
+      expect(row).toBeDefined();
+      expect(row).toContain(`| ${carrying.length} |`);
+      for (const [stack, count] of spread) {
+        const label = stack === 'universal' ? `${count} universal` : `${count} \`${stack}\``;
+        expect(row).toContain(label);
+      }
+    });
+
+    it('states how many frontend laws carry only Angular guidance', () => {
+      const angularOnly = laws.filter(
+        law => law.stack === 'frontend' && law.requires === undefined
+      ).length;
+
+      expect(readme()).toContain(
+        `The ${angularOnly} \`frontend\` laws without a \`requires\` carry only \`satisfiedBy.angular\`.`
+      );
     });
   });
 });

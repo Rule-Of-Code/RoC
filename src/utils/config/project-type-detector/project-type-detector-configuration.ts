@@ -10,6 +10,20 @@ export class ProjectTypeDetectorConfiguration {
   /**
    * Angular project detection patterns (RULE 1: 100% internal coverage)
    */
+  /**
+   * Ionic project detection patterns: the Ionic CLI's own config file, or any
+   * Ionic binding. Ionic sits on top of Angular, React or Vue.
+   */
+  static readonly IONIC_PROJECT_PATTERNS = {
+    files: ['ionic.config.json'] as readonly string[],
+    dependencies: [
+      '@ionic/angular',
+      '@ionic/react',
+      '@ionic/vue',
+      '@ionic/core',
+    ] as readonly string[],
+  } as const;
+
   static readonly ANGULAR_PROJECT_PATTERNS = {
     files: [
       CONFIG_FILES.ANGULAR_JSON,
@@ -165,6 +179,10 @@ export class ProjectTypeDetectorConfiguration {
    */
   static readonly PROJECT_TYPE_DETECTION_ORDER = {
     types: [
+      // Before angular/react/vue: an Ionic project IS one of those as well,
+      // and the more specific answer wins. The stack is unchanged (ionic is a
+      // frontend type), so the same frontend laws still run.
+      'ionic',
       'angular',
       'react',
       'vue',
@@ -176,6 +194,13 @@ export class ProjectTypeDetectorConfiguration {
   /**
    * Get Angular project detection patterns (RULE 2: Caching)
    */
+  static getIonicProjectPatterns(_config?: unknown): {
+    files: readonly string[];
+    dependencies: readonly string[];
+  } {
+    return this.Config.IONIC_PROJECT_PATTERNS;
+  }
+
   static getAngularProjectPatterns(_config?: unknown): {
     files: readonly string[];
     dependencies: readonly string[];

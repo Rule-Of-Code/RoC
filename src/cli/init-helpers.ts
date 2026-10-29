@@ -5,6 +5,9 @@ import { ProjectTypeDetector } from '../utils/config/project-type-detector';
 import { FileUtils } from '../utils/file-utils';
 import { PathOperations } from '../utils/path-operations';
 
+/** The project types a config may declare — the one list, from the config schema. */
+export type ProjectType = RuleOfCodeConfig['project']['type'];
+
 interface InitOptions {
   force?: boolean;
   type?: string;
@@ -30,19 +33,12 @@ export function isInteractiveTerminal(): boolean {
  */
 export function detectProjectType(
   projectRoot: string
-): 'angular' | 'generic' | 'library' | 'node' | 'python' | 'react' | 'vue' {
+): ProjectType {
   try {
     const detectedType = ProjectTypeDetector.detectProjectType(projectRoot);
 
     if (detectedType) {
-      return detectedType as
-        | 'angular'
-        | 'generic'
-        | 'library'
-        | 'node'
-        | 'python'
-        | 'react'
-        | 'vue';
+      return detectedType as ProjectType;
     }
 
     return 'generic';
@@ -53,14 +49,7 @@ export function detectProjectType(
 
 interface ProConfigOptions {
   projectName: string;
-  projectType:
-    | 'angular'
-    | 'generic'
-    | 'library'
-    | 'node'
-    | 'python'
-    | 'react'
-    | 'vue';
+  projectType: ProjectType;
   componentPrefix: string;
   domain: string;
   lawsMode: string;

@@ -3,6 +3,10 @@ import type { Command } from 'commander';
 import { ConfigLoader } from '../config/loader';
 import { ALL_ENHANCED_CONSTITUTIONAL_LAWS } from '../data/enhanced-laws';
 import { ModularLawsRegistry } from '../registry/modular-laws-registry';
+import type {
+  LawRequirement,
+  SatisfiedByGuidance,
+} from '../types/enhanced-law.types';
 import type { ConstitutionalLaw } from '../types/law.types';
 import { TOTAL_LAWS_COUNT, getToolName, getVersion } from './utils';
 
@@ -71,12 +75,23 @@ export interface SerializedLaw {
   /** WHY the law exists (the incident/principle). `null` = not declared yet. */
   rationale: string | null;
   /** How to satisfy it, per stack. `null` = not declared yet. */
-  satisfiedBy: {
-    typescript?: string;
-    angular?: string;
-    python?: string;
-  } | null;
+  satisfiedBy: SatisfiedByGuidance | null;
+  /**
+   * What a project must declare before the law is selected (a dependency, a
+   * config file). `null` = no requirement beyond `stack`. A law whose
+   * requirement a project does not meet is not run there and not counted.
+   */
+  requires: LawRequirement | null;
 }
+
+/** Every `satisfiedBy` key, in the order a renderer should show them. */
+export const SATISFIED_BY_KEYS: readonly (keyof SatisfiedByGuidance)[] = [
+  'typescript',
+  'angular',
+  'python',
+  'ionic',
+  'capacitor',
+];
 
 export interface LawsJson {
   schemaVersion: number;
@@ -114,6 +129,9 @@ export interface LawsJson {
    * resolve it instead of maintaining your own frontend→angular table (a downstream consumer).
    * `"typescript"` also appears as cross-cutting guidance on laws of other
    * stacks, so it is not a 1:1 image of `stack: "typescript"`.
+   * `"ionic"` and `"capacitor"` are carried by `stack: "frontend"` laws whose
+   * `requires` names those toolkits — `stackToKey` cannot point at them, which
+   * is why a renderer must iterate `keys`.
    */
   satisfiedByStacks: {
     keys: string[];
@@ -238,6 +256,7 @@ export function serializeLaw(law: ConstitutionalLaw): SerializedLaw {
     detectionLimits: authored(LIMITS),
     rationale: authored(RATIONALE),
     satisfiedBy: authored(SATISFIED),
+    requires: law.requires ?? null,
   };
 }
 
@@ -258,7 +277,7 @@ export function buildLawsJson(
     },
     registryCategories: populatedCategories(),
     satisfiedByStacks: {
-      keys: ['typescript', 'angular', 'python'],
+      keys: [...SATISFIED_BY_KEYS],
       stackToKey: {
         frontend: 'angular',
         typescript: 'typescript',

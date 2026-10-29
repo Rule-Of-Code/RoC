@@ -278,4 +278,41 @@ export const IONIC_LAWS: EnhancedConstitutionalLaw[] = [
     remediation:
       'Add { provide: RouteReuseStrategy, useClass: IonicRouteStrategy } to the bootstrap providers',
   },
+
+  {
+    id: generateLawId(
+      'Ionic Navigation Specs Mount The Outlet',
+      'An Ionic navigation spec mounts ion-router-outlet and asserts the shown page, not only the URL',
+      'ionic'
+    ),
+    legacyId: 408,
+    article: 'IV',
+    subsection: '4.47',
+    title: 'Ionic Navigation Specs Mount The Outlet',
+    rationale:
+      'Under ion-router-outlet the URL and the shown page can disagree (held views, URL-keyed reuse, root vs forward direction, the hardware Back over the view stack). Four shipped defects each had a green spec asserting router.url or location.path(); the layer that decided the screen was not in the test. A navigation spec in an Ionic app mounts the outlet and asserts the visible page.',
+    satisfiedBy: {
+      ionic:
+        'Host the real <ion-app><ion-router-outlet> with the real routes in the spec, navigate, and assert the outlet child that is not .ion-page-hidden. Assert router.url as well if you like; never alone.',
+    },
+    detectionLimits: [
+      'Token presence; a spec that legitimately tests a guard or redirect outcome by URL (no page involved) is flagged.',
+      'Does not verify that the outlet-mounting spec asserts the shown child; mounting the outlet (or importing IonRouterOutlet) satisfies the law.',
+      'Unit specs only (*.spec.ts outside e2e/ and cypress/); browser specs are the subject of ionic-e2e-locators-target-the-shown-page.',
+    ],
+    emoji: '🧪',
+    description:
+      'An Ionic navigation spec mounts ion-router-outlet and asserts the shown page, not only the URL',
+    priority: 'MEDIUM',
+    category: 'TESTING',
+    stack: 'frontend',
+    requires: REQUIRES_IONIC_ANGULAR,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'IonicNavigationSpecsMountTheOutletLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.47: Navigation spec asserts the URL without the outlet',
+    remediation: 'Mount <ion-router-outlet> in the spec and assert the visible page',
+  },
 ];

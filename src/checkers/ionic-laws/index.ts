@@ -11,3 +11,4 @@ export { IonicUniqueUrlKeyPerViewLaw } from './ionic-unique-url-key-per-view';
 export { IonicSessionExitUsesNavigateRootLaw } from './ionic-session-exit-uses-navigate-root';
 export { IonicRouteReuseStrategyProvidedLaw } from './ionic-route-reuse-strategy-provided';
 export { IonicNavigationSpecsMountTheOutletLaw } from './ionic-navigation-specs-mount-the-outlet';
+export { IonicE2eLocatorsTargetTheShownPageLaw } from './ionic-e2e-locators-target-the-shown-page';

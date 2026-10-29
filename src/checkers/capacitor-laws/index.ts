@@ -8,3 +8,4 @@ export { CapacitorLoggingNeverProductionLaw } from './capacitor-logging-never-pr
 export { CapacitorWebviewOriginDeclaredLaw } from './capacitor-webview-origin-declared';
 export { CapacitorNoDevOnlyServerKeysLaw } from './capacitor-no-dev-only-server-keys';
 export { CapacitorPluginConfigDeclaredLaw } from './capacitor-plugin-config-declared';
+export { CapacitorSinglePlatformBoundaryLaw } from './capacitor-single-platform-boundary';

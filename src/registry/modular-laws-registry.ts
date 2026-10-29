@@ -171,6 +171,7 @@ import {
 
 // Ionic Laws Modular Imports — gated by `requires` on an Ionic binding
 import {
+  IonicLeaveCancelsWhatEnterStartedLaw,
   IonicPageStateReadOnEnterLaw,
   IonicViewLifecycleInterfacesLaw,
 } from '../checkers/ionic-laws';
@@ -467,6 +468,7 @@ export class ModularLawsRegistry {
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,
     'IonicPageStateReadOnEnterLaw.check': IonicPageStateReadOnEnterLaw,
+    'IonicLeaveCancelsWhatEnterStartedLaw.check': IonicLeaveCancelsWhatEnterStartedLaw,
 
     // Security Laws
     checkEnvironmentVariables: EnvironmentVariablesLaw,

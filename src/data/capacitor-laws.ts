@@ -56,4 +56,42 @@ export const CAPACITOR_LAWS: EnhancedConstitutionalLaw[] = [
       "CONSTITUTIONAL VIOLATION Article IV.4.50: Capacitor loggingBehavior is 'production'",
     remediation: "Set loggingBehavior to 'debug' or 'none' at every level",
   },
+
+  {
+    id: generateLawId(
+      'Capacitor WebView Origin Declared',
+      'The Capacitor WebView origin is declared: server.hostname, androidScheme and iosScheme stated',
+      'capacitor'
+    ),
+    legacyId: 422,
+    article: 'IV',
+    subsection: '4.51',
+    title: 'Capacitor WebView Origin Declared',
+    rationale:
+      'The WebView origin is <scheme>://<hostname> from three defaulted keys whose defaults differ per platform (https on Android, capacitor on iOS); the backend CORS allowlist refuses it and every origin-scoped store is keyed by it. Measured: preflight 403 for both default origins, 204 for the declared one; and a hostname change later orphaned the only localStorage value the product keeps, on every device.',
+    satisfiedBy: {
+      capacitor:
+        'State server.hostname, server.androidScheme and server.iosScheme explicitly — the same origin on both platforms unless you mean otherwise — and treat the value as permanent once a build has shipped.',
+    },
+    detectionLimits: [
+      'Declared, not correct: the law cannot know the backend allowlist or the product origin, and cannot compare across repositories.',
+      RESOLVED_ON_THIS_MACHINE,
+      NEEDS_THE_CLI,
+      'Does not detect a hostname change between versions (no history); that belongs to a release checklist.',
+    ],
+    emoji: '🌐',
+    description:
+      'The Capacitor WebView origin is declared: server.hostname, androidScheme and iosScheme stated',
+    priority: 'HIGH',
+    category: 'SECURITY',
+    stack: 'frontend',
+    requires: REQUIRES_CAPACITOR,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'CapacitorWebviewOriginDeclaredLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.51: Capacitor WebView origin left to per-platform defaults',
+    remediation: 'State server.hostname, server.androidScheme and server.iosScheme',
+  },
 ];

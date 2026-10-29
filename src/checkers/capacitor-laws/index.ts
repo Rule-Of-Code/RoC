@@ -5,3 +5,4 @@
  */
 
 export { CapacitorLoggingNeverProductionLaw } from './capacitor-logging-never-production';
+export { CapacitorWebviewOriginDeclaredLaw } from './capacitor-webview-origin-declared';

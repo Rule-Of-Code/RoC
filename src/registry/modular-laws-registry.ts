@@ -177,6 +177,7 @@ import {
   CapacitorPluginConfigDeclaredLaw,
   CapacitorPluginPlatformDeclarationsLaw,
   CapacitorSinglePlatformBoundaryLaw,
+  CapacitorSyncArtefactsMatchDependenciesLaw,
   CapacitorWebviewOriginDeclaredLaw,
 } from '../checkers/capacitor-laws';
 
@@ -490,6 +491,7 @@ export class ModularLawsRegistry {
     'CapacitorSinglePlatformBoundaryLaw.check': CapacitorSinglePlatformBoundaryLaw,
     'CapacitorPluginPlatformDeclarationsLaw.check': CapacitorPluginPlatformDeclarationsLaw,
     'CapacitorDeepLinkContractLaw.check': CapacitorDeepLinkContractLaw,
+    'CapacitorSyncArtefactsMatchDependenciesLaw.check': CapacitorSyncArtefactsMatchDependenciesLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

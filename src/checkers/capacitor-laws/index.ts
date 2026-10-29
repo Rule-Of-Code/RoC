@@ -11,3 +11,4 @@ export { CapacitorPluginConfigDeclaredLaw } from './capacitor-plugin-config-decl
 export { CapacitorSinglePlatformBoundaryLaw } from './capacitor-single-platform-boundary';
 export { CapacitorPluginPlatformDeclarationsLaw } from './capacitor-plugin-platform-declarations';
 export { CapacitorDeepLinkContractLaw } from './capacitor-deep-link-contract';
+export { CapacitorSyncArtefactsMatchDependenciesLaw } from './capacitor-sync-artefacts-match-dependencies';

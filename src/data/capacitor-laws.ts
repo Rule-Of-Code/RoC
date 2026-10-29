@@ -284,4 +284,41 @@ export const CAPACITOR_LAWS: EnhancedConstitutionalLaw[] = [
     remediation:
       'Declare the host on every platform and handle appUrlOpen, in one commit',
   },
+
+  {
+    id: generateLawId(
+      'Capacitor Sync Artefacts Match Dependencies',
+      'The tracked Capacitor sync artefacts list exactly the native dependencies in package.json',
+      'capacitor'
+    ),
+    legacyId: 428,
+    article: 'IV',
+    subsection: '4.57',
+    title: 'Capacitor Sync Artefacts Match Dependencies',
+    rationale:
+      'cap sync writes the list of native plugin projects into android/capacitor.settings.gradle, a generated file that is tracked; a dependency added without a sync ships a shell without the plugin ("not implemented" on device, green everywhere else), and one removed without a sync breaks the build for everyone. The tracked snapshot must equal package.json.',
+    satisfiedBy: {
+      capacitor:
+        'After every change to a @capacitor/* dependency run `npx cap sync` and commit the regenerated gradle (and Podfile/Package.swift if you track it) in the same commit.',
+    },
+    detectionLimits: [
+      'Reads tracked artefacts only (git ls-files); an untracked one cannot drift from a clean checkout and is reported as not read, not as green.',
+      'Needs node_modules to know which dependencies ship an android/ or ios/ directory; without it the law reports that it could not look.',
+      'Does not verify that the web assets copy (assets/public) is current; that copy is untracked by convention and belongs to the build.',
+    ],
+    emoji: '🔄',
+    description:
+      'The tracked Capacitor sync artefacts list exactly the native dependencies in package.json',
+    priority: 'HIGH',
+    category: 'DEPLOYMENT',
+    stack: 'frontend',
+    requires: REQUIRES_CAPACITOR,
+    defaultEnabled: true,
+    defaultSeverity: 'error',
+    automation: 'AUTOMATED',
+    checkFunction: 'CapacitorSyncArtefactsMatchDependenciesLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.57: Tracked Capacitor sync artefact out of date with package.json',
+    remediation: 'Run npx cap sync and commit the regenerated artefacts with the dependency change',
+  },
 ];

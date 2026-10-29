@@ -10,3 +10,4 @@ export { IonicNoSkipLocationChangeLaw } from './ionic-no-skip-location-change';
 export { IonicUniqueUrlKeyPerViewLaw } from './ionic-unique-url-key-per-view';
 export { IonicSessionExitUsesNavigateRootLaw } from './ionic-session-exit-uses-navigate-root';
 export { IonicRouteReuseStrategyProvidedLaw } from './ionic-route-reuse-strategy-provided';
+export { IonicNavigationSpecsMountTheOutletLaw } from './ionic-navigation-specs-mount-the-outlet';

@@ -13,6 +13,10 @@ import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
 import { REQUIRES_IONIC_ANGULAR } from '../utils/ionic/ionic-project';
 
+/** The routing laws read @ionic/angular's outlet; the other bindings route differently. */
+const ANGULAR_ROUTER_ONLY =
+  'Angular only; IonNav and @ionic/react / @ionic/vue routers are out of scope.';
+
 export const IONIC_LAWS: EnhancedConstitutionalLaw[] = [
   {
     id: generateLawId(
@@ -148,7 +152,7 @@ export const IONIC_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Literal `skipLocationChange: true` in code and the routerLink input in templates; extras built in a variable or spread from a constant are invisible.',
       'Flags the whole project once an ion-router-outlet exists, including a subtree routed through a plain <router-outlet> where the extra would be harmless.',
-      'Angular only; IonNav and @ionic/react / @ionic/vue routers are out of scope.',
+      ANGULAR_ROUTER_ONLY,
     ],
     emoji: '🔙',
     description:
@@ -185,7 +189,7 @@ export const IONIC_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Reads route array literals (typed Routes, children: [...], provideRouter / forRoot / forChild) one level at a time; routes assembled from spreads or helper functions are not resolved.',
       'Collisions across lazily loaded route files are invisible (two children at "" in two loadChildren groups mounted at the same prefix).',
-      'Angular only; IonNav and @ionic/react / @ionic/vue routers are out of scope.',
+      ANGULAR_ROUTER_ONLY,
     ],
     emoji: '🔑',
     description:
@@ -202,5 +206,42 @@ export const IONIC_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article IV.4.44: Two views share one ion-router-outlet URL key',
     remediation:
       'Give every component-rendering route its own path; redirect the empty path',
+  },
+
+  {
+    id: generateLawId(
+      'Ionic Session Exit Uses Navigate Root',
+      'Ending a session in an Ionic app navigates with navigateRoot, which empties the view stack',
+      'ionic'
+    ),
+    legacyId: 406,
+    article: 'IV',
+    subsection: '4.45',
+    title: 'Ionic Session Exit Uses Navigate Root',
+    rationale:
+      'Only direction root (NavController.navigateRoot → setRoot) empties the ion-router-outlet stack; a sign-out that navigates forward keeps every page of the old session, and a later sign-in that lands on the same URL re-attaches a page frozen at its last state — measured: same instance, zero requests, an endless skeleton.',
+    satisfiedBy: {
+      ionic:
+        'End a session with NavController.navigateRoot(<final address>). The address must not redirect through a guard: a NavigationCancel resets the direction to forward.',
+    },
+    detectionLimits: [
+      'File-level token heuristic: a session end (a signOut/logout/clearSession/revokeToken call) and a forward navigation in the same file, with no navigateRoot. An exit split across a service and a page is invisible; a file that only reloads the window (location.href) is not flagged and is legitimate.',
+      'Cannot verify that the navigateRoot destination does not redirect; the NavigationCancel reset is stated in the card and not detected.',
+      ANGULAR_ROUTER_ONLY,
+    ],
+    emoji: '🧹',
+    description:
+      'Ending a session in an Ionic app navigates with navigateRoot, which empties the view stack',
+    priority: 'HIGH',
+    category: 'FRAMEWORK',
+    stack: 'frontend',
+    requires: REQUIRES_IONIC_ANGULAR,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'IonicSessionExitUsesNavigateRootLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.45: Session ended with a forward navigation',
+    remediation: 'End the session with NavController.navigateRoot(<final address>)',
   },
 ];

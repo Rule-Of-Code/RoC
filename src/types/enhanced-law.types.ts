@@ -24,6 +24,28 @@ export type LawSeverity = "error" | "info" | "warning";
  */
 export type LawStack = "frontend" | "python" | "typescript";
 
+/**
+ * What a project must DECLARE before a law is selected at all — finer than
+ * `stack`. `stack: "frontend"` says "a UI project"; `requires` says "a UI
+ * project that ships through Ionic" or "… through Capacitor".
+ *
+ * A law whose subject is absent must not run. Run anyway, it inspects nothing
+ * and reports green: a pass over a store that does not exist, a WebView config
+ * that was never written. That green is the false confidence this tool exists
+ * to refuse, so an unmet requirement drops the law from the audit exactly the
+ * way a stack mismatch does — it is not counted, and it is never a passing
+ * check.
+ *
+ * Every listed condition must hold; within `anyDependency` and `anyFile`, one
+ * entry is enough.
+ */
+export interface LawRequirement {
+  /** At least one of these packages is a dependency or devDependency of a workspace package.json. */
+  anyDependency?: readonly string[];
+  /** At least one of these files exists at the workspace root or in a workspace project directory. */
+  anyFile?: readonly string[];
+}
+
 export interface EnhancedConstitutionalLaw {
   id: string; // Changed from number to string for hash-based IDs
   article?: string;
@@ -65,12 +87,10 @@ export interface EnhancedConstitutionalLaw {
    * to — a short, real fragment, not a paragraph. Without it, every consumer asks
    * "ok, now what do I do?" and gets `description`, which is not an answer. Keys
    * are only the stacks the law is meaningful for. Absent = not declared yet.
+   * `ionic` and `capacitor` carry guidance written for those toolkits — the
+   * laws that hold them are gated on the toolkit by `requires`.
    */
-  satisfiedBy?: {
-    typescript?: string;
-    angular?: string;
-    python?: string;
-  };
+  satisfiedBy?: SatisfiedByGuidance;
   /**
    * Legacy numeric id, for migration only. NOT a config key: 25 legacyIds are
    * shared by 51 laws, so keying a config by one silently affects several. Key by
@@ -78,6 +98,17 @@ export interface EnhancedConstitutionalLaw {
    */
   legacyId?: number;
   stack?: LawStack; // Stack scope (omitted = universal). See LawStack.
+  /** Declared dependencies/files without which the law is not selected. See LawRequirement. */
+  requires?: LawRequirement;
+}
+
+/** The `satisfiedBy` vocabulary — one key per technology guidance is written for. */
+export interface SatisfiedByGuidance {
+  typescript?: string;
+  angular?: string;
+  python?: string;
+  ionic?: string;
+  capacitor?: string;
 }
 
 export interface ParetoCategories {

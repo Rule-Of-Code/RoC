@@ -28,7 +28,7 @@ export class ConfigLoader {
 
     // Detect project type and apply type-specific defaults - delegated to detector
     const projectType = ProjectTypeDetector.detectProjectType(projectRoot);
-    const typeDefaults = this.getTypeDefaults(projectType);
+    const typeDefaults = this.getTypeDefaults(projectType, projectRoot);
     if (typeDefaults) {
       baseConfig = ConfigurationMerger.mergeConfigs(baseConfig, typeDefaults);
     }
@@ -97,11 +97,14 @@ export class ConfigLoader {
    * Get type-specific default configuration
    */
   private static getTypeDefaults(
-    projectType: string | null
+    projectType: string | null,
+    projectRoot: string
   ): Partial<RuleOfCodeConfig> | null {
     switch (projectType) {
       case 'angular':
         return ANGULAR_CONFIG;
+      case 'ionic':
+        return this.getIonicDefaults(projectRoot);
       case 'react':
         return REACT_CONFIG;
       case null:
@@ -109,6 +112,22 @@ export class ConfigLoader {
       default:
         return null;
     }
+  }
+
+  /**
+   * Ionic sits on a framework, so the framework's defaults apply — typed as
+   * what the project is, so the config says `ionic` and not the layer below.
+   */
+  private static getIonicDefaults(
+    projectRoot: string
+  ): Partial<RuleOfCodeConfig> | null {
+    const framework = ProjectTypeDetector.isAngularProject(projectRoot)
+      ? ANGULAR_CONFIG
+      : ProjectTypeDetector.hasPackageDependency(projectRoot, ['react'])
+        ? REACT_CONFIG
+        : null;
+    if (!framework?.project) return framework;
+    return { ...framework, project: { ...framework.project, type: 'ionic' } };
   }
 
   /**

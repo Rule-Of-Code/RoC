@@ -1,3 +1,4 @@
+import { SATISFIED_BY_KEYS } from '../../src/cli/laws-command';
 import { ALL_ENHANCED_CONSTITUTIONAL_LAWS } from '../../src/data/enhanced-laws';
 
 /**
@@ -85,7 +86,7 @@ describe('rationale & satisfiedBy ratchet', () => {
   });
 
   it('every satisfiedBy value names a real stack and is non-empty', () => {
-    const stacks = new Set(['typescript', 'angular', 'python']);
+    const stacks = new Set<string>(SATISFIED_BY_KEYS);
     const bad = withSatisfied.flatMap(law =>
       Object.entries(law.satisfiedBy ?? {})
         .filter(
@@ -95,5 +96,22 @@ describe('rationale & satisfiedBy ratchet', () => {
         .map(([stack]) => `${law.title}.${stack}`)
     );
     expect(bad).toEqual([]);
+  });
+
+  /**
+   * Guidance written for a toolkit only makes sense where the toolkit is. A
+   * law carrying `satisfiedBy.ionic` that ran in a project without Ionic would
+   * tell its reader to fix a page lifecycle that does not exist.
+   */
+  it.each([
+    ['ionic', '@ionic/'],
+    ['capacitor', '@capacitor/core'],
+  ])('a law with satisfiedBy.%s is gated on %s by requires', (key, dependency) => {
+    const ungated = ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(
+      law =>
+        law.satisfiedBy?.[key as 'ionic' | 'capacitor'] !== undefined &&
+        !(law.requires?.anyDependency ?? []).some(name => name.startsWith(dependency))
+    ).map(law => law.title);
+    expect(ungated).toEqual([]);
   });
 });

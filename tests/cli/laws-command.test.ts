@@ -344,6 +344,24 @@ describe('cli/laws-command', () => {
       expect(payload.registryTotal).toBe(TOTAL_LAWS_COUNT);
       expect(payload.returned).toBeLessThan(payload.registryTotal);
     });
+    it('the satisfiedBy vocabulary names every key a law may carry', () => {
+      const payload = buildLawsJson(ModularLawsRegistry.getAll(), {});
+      const keys = new Set(payload.satisfiedByStacks.keys);
+      const carried = payload.laws.flatMap(law => Object.keys(law.satisfiedBy ?? {}));
+
+      expect(payload.satisfiedByStacks.keys).toEqual(
+        expect.arrayContaining(['typescript', 'angular', 'python', 'ionic', 'capacitor'])
+      );
+      expect(carried.filter(key => !keys.has(key))).toEqual([]);
+    });
+
+    it('every law carries requires — null where nothing beyond the stack is required', () => {
+      const payload = buildLawsJson(ModularLawsRegistry.getAll(), {});
+
+      expect(payload.laws.every(law => 'requires' in law)).toBe(true);
+      const ungated = payload.laws.find(law => law.name === 'Angular Lifecycle Management');
+      expect(ungated?.requires).toBeNull();
+    });
   });
 
   describe('displayLaws', () => {

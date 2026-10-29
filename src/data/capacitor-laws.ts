@@ -94,4 +94,43 @@ export const CAPACITOR_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article IV.4.51: Capacitor WebView origin left to per-platform defaults',
     remediation: 'State server.hostname, server.androidScheme and server.iosScheme',
   },
+
+  {
+    id: generateLawId(
+      'Capacitor No Dev-Only Server Keys',
+      'The committed Capacitor config carries none of the keys Capacitor documents as not for production',
+      'capacitor'
+    ),
+    legacyId: 423,
+    article: 'IV',
+    subsection: '4.52',
+    title: 'Capacitor No Dev-Only Server Keys',
+    rationale:
+      'server.url, server.cleartext, server.allowNavigation, android.allowMixedContent and webContentsDebuggingEnabled are documented by Capacitor itself as not intended for production, and cap sync ships the one committed config to every build type. A debug build that needed cleartext to localhost got it from a debug-only networkSecurityConfig; the key that would have opened it for the release build never entered the config.',
+    satisfiedBy: {
+      capacitor:
+        'Keep the committed config production-shaped. Cleartext and debugging go into android/app/src/debug/ (a networkSecurityConfig for localhost) and the Xcode debug scheme; a live-reload server.url is passed by the CLI (`cap run --livereload`), never committed.',
+    },
+    detectionLimits: [
+      RESOLVED_ON_THIS_MACHINE,
+      NEEDS_THE_CLI,
+      'allowNavigation has legitimate production uses (an OAuth flow that must stay in the WebView); the law follows Capacitor\'s own statement and expects such a project to park the key in laws.notApplicable with the reason.',
+      'Does not read the native source sets, so a cleartext permission committed in the release manifest is not seen.',
+    ],
+    emoji: '🚧',
+    description:
+      'The committed Capacitor config carries none of the keys Capacitor documents as not for production',
+    priority: 'CRITICAL',
+    category: 'SECURITY',
+    stack: 'frontend',
+    requires: REQUIRES_CAPACITOR,
+    defaultEnabled: true,
+    defaultSeverity: 'error',
+    automation: 'AUTOMATED',
+    checkFunction: 'CapacitorNoDevOnlyServerKeysLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.52: Development-only key in the committed Capacitor config',
+    remediation:
+      'Remove server.url / cleartext / allowNavigation / allowMixedContent / webContentsDebuggingEnabled from the committed config',
+  },
 ];

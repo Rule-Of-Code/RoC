@@ -171,6 +171,7 @@ import {
 
 // Capacitor Laws Modular Imports — gated by `requires` on @capacitor/core + a config
 import {
+  CapacitorDeepLinkContractLaw,
   CapacitorLoggingNeverProductionLaw,
   CapacitorNoDevOnlyServerKeysLaw,
   CapacitorPluginConfigDeclaredLaw,
@@ -488,6 +489,7 @@ export class ModularLawsRegistry {
     'CapacitorPluginConfigDeclaredLaw.check': CapacitorPluginConfigDeclaredLaw,
     'CapacitorSinglePlatformBoundaryLaw.check': CapacitorSinglePlatformBoundaryLaw,
     'CapacitorPluginPlatformDeclarationsLaw.check': CapacitorPluginPlatformDeclarationsLaw,
+    'CapacitorDeepLinkContractLaw.check': CapacitorDeepLinkContractLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

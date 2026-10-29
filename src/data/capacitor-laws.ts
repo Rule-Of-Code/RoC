@@ -246,4 +246,42 @@ export const CAPACITOR_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article IV.4.55: Native shell lacks a declaration an installed plugin needs',
     remediation: 'Add the permission, usage string or meta-data the plugin requires to the native shell',
   },
+
+  {
+    id: generateLawId(
+      'Capacitor Deep Link Contract',
+      'An https deep link is declared on every Capacitor platform and handled by an appUrlOpen listener',
+      'capacitor'
+    ),
+    legacyId: 427,
+    article: 'IV',
+    subsection: '4.56',
+    title: 'Capacitor Deep Link Contract',
+    rationale:
+      "An https link opening the app is an Android intent-filter, an iOS associated-domains entitlement and an appUrlOpen listener agreeing on a host; a missing side fails without an error — the app opens at the launcher and the path is gone. Measured on a consumer: Android complete, iOS without an entitlements file, which no scan of src/ could report.",
+    satisfiedBy: {
+      capacitor:
+        'Declare the host in the Android intent-filter (VIEW, BROWSABLE, https, autoVerify) and in the iOS applinks entitlement, and handle App.addListener("appUrlOpen") to route it. Keep the three in one commit.',
+    },
+    detectionLimits: [
+      'Cannot see assetlinks.json / apple-app-site-association on the web host, nor whether the signing key they name is the one the build uses.',
+      'Does not judge the route mapping inside the listener, nor compare hosts across the sides — a side is present or absent.',
+      'Custom schemes (myapp://) are not https links and are not required to have an entitlement.',
+    ],
+    emoji: '🔗',
+    description:
+      'An https deep link is declared on every Capacitor platform and handled by an appUrlOpen listener',
+    priority: 'MEDIUM',
+    category: 'FRAMEWORK',
+    stack: 'frontend',
+    requires: REQUIRES_CAPACITOR,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'CapacitorDeepLinkContractLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.56: Deep link declared or handled on one side only',
+    remediation:
+      'Declare the host on every platform and handle appUrlOpen, in one commit',
+  },
 ];

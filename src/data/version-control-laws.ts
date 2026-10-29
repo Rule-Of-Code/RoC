@@ -463,11 +463,12 @@ export const VERSION_CONTROL_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Semantic Versioning Standards',
     rationale:
       'A version number that lies about compatibility breaks every consumer that trusts it; SemVer is the contract. This law checks the declared version and that tags stay consistent with it.',
-    satisfiedBy: { typescript: 'Keep package.json version SemVer-valid, tag each release, and never let package.json fall behind the latest tag.', python: 'Declare a SemVer version in pyproject.toml — [project] version (PEP 621) or [tool.poetry] version — and tag releases to match.' },
+    satisfiedBy: { typescript: 'Keep package.json version SemVer-valid, tag each release, and never let package.json fall behind the latest tag.', python: 'Declare a SemVer version in pyproject.toml — [project] version (PEP 621) or [tool.poetry] version — and tag releases to match.', capacitor: 'Keep android versionName and the Xcode MARKETING_VERSION equal to package.json, or inject both at build time from the release script; cap sync touches neither.' },
     detectionLimits: [
       'It reads package.json first and pyproject.toml ([project] or [tool.poetry]) for a Python project; a stack with neither manifest (Rust, Go) declares no version it can read, so the version check stays silent rather than inventing a finding.',
       'It duplicates the version/tag-format logic of Release Tag Standards but with a stricter, violation-level stance on the missing file.',
       'The behind-latest-tag check uses semver.coerce, so loosely-formatted tags may compare in surprising ways.',
+      'In a Capacitor project it also reads versionName in android/app/build.gradle and MARKETING_VERSION in project.pbxproj and any ios/App .xcconfig: only a quoted Gradle literal or a non-$(…) Xcode value is compared (as coerced SemVer, so 1.0 equals 1.0.0); a value injected at build time is named as not compared, and versionCode / CURRENT_PROJECT_VERSION are reported only — monotonicity is a history question.',
     ],
     emoji: '🔢',
     description: 'Strict adherence to Semantic Versioning (SemVer) everywhere',

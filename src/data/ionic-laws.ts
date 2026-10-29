@@ -165,4 +165,42 @@ export const IONIC_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article IV.4.43: skipLocationChange under ion-router-outlet',
     remediation: 'Navigate with { replaceUrl: true } instead of skipLocationChange',
   },
+
+  {
+    id: generateLawId(
+      'Ionic Unique URL Key Per View',
+      'No two routes render a component at the same path under ion-router-outlet',
+      'ionic'
+    ),
+    legacyId: 405,
+    article: 'IV',
+    subsection: '4.44',
+    title: 'Ionic Unique URL Key Per View',
+    rationale:
+      'ion-router-outlet finds a held page by the URL of its activated route and nothing else; two routes that resolve to the same URL and are told apart by guards share one key, so Ionic re-attaches whichever page it already holds. After sign-in the URL read /events and the screen still showed the launch page; every URL-based test was green.',
+    satisfiedBy: {
+      ionic:
+        'One URL per view. Give sibling pages distinct paths and let an empty path redirect; split by guard only on loadChildren groups whose children carry distinct URLs.',
+    },
+    detectionLimits: [
+      'Reads route array literals (typed Routes, children: [...], provideRouter / forRoot / forChild) one level at a time; routes assembled from spreads or helper functions are not resolved.',
+      'Collisions across lazily loaded route files are invisible (two children at "" in two loadChildren groups mounted at the same prefix).',
+      'Angular only; IonNav and @ionic/react / @ionic/vue routers are out of scope.',
+    ],
+    emoji: '🔑',
+    description:
+      'No two routes render a component at the same path under ion-router-outlet',
+    priority: 'HIGH',
+    category: 'FRAMEWORK',
+    stack: 'frontend',
+    requires: REQUIRES_IONIC_ANGULAR,
+    defaultEnabled: true,
+    defaultSeverity: 'error',
+    automation: 'AUTOMATED',
+    checkFunction: 'IonicUniqueUrlKeyPerViewLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.44: Two views share one ion-router-outlet URL key',
+    remediation:
+      'Give every component-rendering route its own path; redirect the empty path',
+  },
 ];

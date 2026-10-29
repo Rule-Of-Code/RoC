@@ -11,7 +11,7 @@
 
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
-import { REQUIRES_IONIC_ANGULAR } from '../utils/ionic/ionic-project';
+import { REQUIRES_IONIC, REQUIRES_IONIC_ANGULAR } from '../utils/ionic/ionic-project';
 
 /** The routing laws read @ionic/angular's outlet; the other bindings route differently. */
 const ANGULAR_ROUTER_ONLY =
@@ -318,5 +318,42 @@ export const IONIC_LAWS: EnhancedConstitutionalLaw[] = [
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article IV.4.47: Navigation spec asserts the URL without the outlet',
     remediation: 'Mount <ion-router-outlet> in the spec and assert the visible page',
+  },
+
+  {
+    id: generateLawId(
+      'Ionic E2E Locators Target The Shown Page',
+      'Browser specs in an Ionic app scope ion-* locators to the shown page',
+      'ionic'
+    ),
+    legacyId: 409,
+    article: 'IV',
+    subsection: '4.48',
+    title: 'Ionic E2E Locators Target The Shown Page',
+    rationale:
+      'Ionic keeps the left page in the DOM, hidden, ahead of the shown one; a first-match locator on ion-* or a page selector returns the hidden page and reads as "navigation did not happen" or "element is not visible". Two probes reported a working screen as broken for exactly this reason. A locator in an Ionic app filters by visibility or scopes to the page that is not .ion-page-hidden.',
+    satisfiedBy: {
+      ionic:
+        'Filter every page-level locator: `ion-content:visible`, `.ion-page:not(.ion-page-hidden) …`, or role/text queries, which skip hidden elements. Never .first() on an ion-* selector.',
+    },
+    detectionLimits: [
+      'Selector strings handed to locator / querySelector(All) / $ / $$ / get / find in e2e/, cypress/, *.e2e(.spec).ts and *.cy.ts files; a selector built in a variable, or a helper that adds the filter elsewhere, is judged as written.',
+      '.ion-page-hidden is not always on the element Ionic hides for a nested page (measured); the law accepts :visible as the stronger form and cannot judge which is right for a given tree.',
+      'Playwright/WebdriverIO/Cypress-shaped calls only; role and text queries are not read because they already skip hidden elements.',
+    ],
+    emoji: '🎯',
+    description:
+      'Browser specs in an Ionic app scope ion-* locators to the shown page',
+    priority: 'MEDIUM',
+    category: 'TESTING',
+    stack: 'frontend',
+    requires: REQUIRES_IONIC,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'IonicE2eLocatorsTargetTheShownPageLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.48: ion-* locator that matches the hidden page first',
+    remediation: 'Add :visible or scope to .ion-page:not(.ion-page-hidden)',
   },
 ];

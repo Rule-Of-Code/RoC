@@ -171,6 +171,7 @@ import {
 
 // Ionic Laws Modular Imports — gated by `requires` on an Ionic binding
 import {
+  IonicE2eLocatorsTargetTheShownPageLaw,
   IonicLeaveCancelsWhatEnterStartedLaw,
   IonicNavigationSpecsMountTheOutletLaw,
   IonicNoSkipLocationChangeLaw,
@@ -479,6 +480,7 @@ export class ModularLawsRegistry {
     'IonicSessionExitUsesNavigateRootLaw.check': IonicSessionExitUsesNavigateRootLaw,
     'IonicRouteReuseStrategyProvidedLaw.check': IonicRouteReuseStrategyProvidedLaw,
     'IonicNavigationSpecsMountTheOutletLaw.check': IonicNavigationSpecsMountTheOutletLaw,
+    'IonicE2eLocatorsTargetTheShownPageLaw.check': IonicE2eLocatorsTargetTheShownPageLaw,
 
     // Security Laws
     checkEnvironmentVariables: EnvironmentVariablesLaw,

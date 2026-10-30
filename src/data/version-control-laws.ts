@@ -149,12 +149,12 @@ export const VERSION_CONTROL_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Git Ignore Standards',
     rationale:
       'A .gitignore that misses the obvious — build output, secrets, logs — is how a committed .env or a 200MB dist/ ends up in history. This law checks the ignore file lists the usual dangerous paths.',
-    satisfiedBy: { typescript: 'List node_modules, dist, .env, *.log and .DS_Store in .gitignore; keep .env and debug logs off disk.', python: 'List __pycache__, .venv, .env, *.log and .DS_Store — the Node artifacts are only required of projects that carry a package.json.', capacitor: 'Also ignore google-services.json and GoogleService-Info.plist, and keep the android/ and ios/ .gitignore files `cap add` writes (they cover the copied web build, the copied config and the build output).' },
+    satisfiedBy: { typescript: 'List node_modules, dist, .env, *.log and .DS_Store in .gitignore, and keep those files untracked — a local .env on disk is expected.', python: 'List __pycache__, .venv, .env, *.log and .DS_Store — the Node artifacts are only required of projects that carry a package.json.', capacitor: 'Also ignore google-services.json and GoogleService-Info.plist, and keep the android/ and ios/ .gitignore files `cap add` writes (they cover the copied web build, the copied config and the build output).' },
     detectionLimits: [
       'Matching is a raw substring test, so a comment mentioning node_modules, or a negation like !node_modules, counts as ignoring it.',
-      'The "committed sensitive file" check is really a file-exists-on-disk test; it never runs git check-ignore or git ls-files, so an ignored-but-present .env still fails.',
+      'The sensitive-file check (.env, .env.local, .env.production, npm-debug.log, .DS_Store) asks git: tracked is a violation, present-but-not-ignored is a violation, ignored-and-untracked passes. Root level only. Outside a git repository it can only see presence, and reports a present file as "potentially tracked".',
       'The required entries follow the stack: __pycache__/.venv are asked of a Python project, node_modules/dist only of one carrying a package.json — a repo with neither manifest is asked for nothing beyond the universal three.',
-      'In a Capacitor project the generated shell paths and the two Firebase files are judged by git check-ignore (every nested .gitignore counts) and committed credentials by git ls-files; outside a git repository it falls back to reading the root, android/ and ios/ ignore files as text. The universal .env check still reads the disk (#142).',
+      'In a Capacitor project the generated shell paths and the two Firebase files are judged by git check-ignore (every nested .gitignore counts) and committed credentials by git ls-files; outside a git repository it falls back to reading the root, android/ and ios/ ignore files as text.',
     ],
     emoji: '🙈',
     description: 'Proper .gitignore configuration for project security',

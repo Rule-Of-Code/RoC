@@ -104,28 +104,32 @@ export class UnitTestIsolationAnalyzerService {
     config: RuleOfCodeConfig
   ): {
     hasProperResourceIsolation: boolean;
+    /** `path (resource, …)` for every file that reaches one without cleanup. */
+    unisolated: string[];
   } {
-    const testFiles = this.findTestFiles(projectRoot, config);
-    let hasProperResourceIsolation = true;
+    // Every offending file, named. The verdict used to stop at the first one
+    // and say only that "external resources" were the problem, so a reader
+    // could not tell which file, or which line of it, had tripped the check.
+    const unisolated: string[] = [];
 
-    for (const testFile of testFiles) {
+    for (const testFile of this.findTestFiles(projectRoot, config)) {
       try {
         const content = FileUtils.readFile(testFile, { encoding: 'utf8' });
-
-        // If test uses external resources, check for proper cleanup
+        const used = UnitTestIsolationConstants.resourcesUsed(content);
         if (
-          UnitTestIsolationConstants.usesExternalResources(content) &&
+          used.length > 0 &&
           !UnitTestIsolationConstants.hasResourceCleanup(content)
         ) {
-          hasProperResourceIsolation = false;
-          break;
+          unisolated.push(
+            `${PathOperations.getRelative(projectRoot, testFile)} (${used.join(', ')})`
+          );
         }
       } catch (_error) {
         // Skip files that can't be read
       }
     }
 
-    return { hasProperResourceIsolation };
+    return { hasProperResourceIsolation: unisolated.length === 0, unisolated };
   }
 
   /**

@@ -27,6 +27,7 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Scans a fixed list of files at the project ROOT only — no recursion, so Angular\'s src/environments/environment.ts and any nested config are not seen.',
       'Whole-file regex: a real secret sitting next to a placeholder in the same file is suppressed along with the placeholder.',
       'Detects quoted, length-thresholded secrets; an unquoted KEY=value in a .env is not matched. No Python.',
+      'Judges only what git could publish: a tracked file is read from the index, a present one that is not ignored from disk; an ignored, untracked local file is out of scope. Outside a git repository every listed file on disk is read.',
     ],
     emoji: '🔐',
     description:
@@ -63,6 +64,7 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Environment-variable usage is process.env (Node) only — Angular environment.ts objects and import.meta.env are invisible; no Python.',
       'Fallback detection is a crude character-window search: a || or ?? anywhere near a process.env read counts as "handled".',
       'URL / DB-URI / secret detection is substring/regex over raw text, including comments.',
+      'The .env sensitive-data and format checks read only env files git could publish (tracked, from the index; or present and not ignored); a local .env that is ignored and untracked is the correct setup and is not judged. Outside a git repository every env file on disk is read.',
     ],
     emoji: '🛡️',
     description:

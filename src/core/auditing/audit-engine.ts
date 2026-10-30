@@ -168,15 +168,19 @@ export class RuleOfCodeAuditor {
     }
 
     try {
-      const laws = this.getLawsToAudit();
+      const selected = this.getSelectedLaws();
+      const laws = selected.filter(
+        law => !this.isHistoryLawBlockedByCommit(law as { name?: string })
+      );
 
       // FAIL-CLOSED: a collapsed law selection is never compliance. The two
       // meta-gates are always-on (they cannot be configured away), so they do
       // NOT count as evidence — liveness is measured in SUBSTANTIVE laws.
       // The explicit floor is enforced HERE, in the engine, not only by law
       // 226: the same config mistake that shrinks the selection could also
-      // have dropped that law (QA-4).
-      const substantive = laws.filter(
+      // have dropped that law (QA-4). It counts the SELECTION, so one floor
+      // holds in every mode (see getSelectedLaws).
+      const substantive = selected.filter(
         law => !(law as { alwaysEnabled?: boolean }).alwaysEnabled
       );
       const floor =
@@ -229,6 +233,7 @@ export class RuleOfCodeAuditor {
         failedLaws: processedResults.failedLaws ?? 0,
         warningLaws: processedResults.warningLaws ?? 0,
         substantiveLaws: substantive.length,
+        deferredLaws: selected.length - laws.length,
         results: processedResults.results ?? new Map(),
         duration: processedResults.duration ?? 0,
         paretoMode:
@@ -270,7 +275,22 @@ export class RuleOfCodeAuditor {
     process.stdout.write(`${chalk.gray('Mode:')} ${this.mode}\n`);
   }
 
+  /** The laws this run executes: the selection, minus what the mode defers. */
   private getLawsToAudit(): unknown[] {
+    return this.getSelectedLaws().filter(
+      law => !this.isHistoryLawBlockedByCommit(law as { name?: string })
+    );
+  }
+
+  /**
+   * The laws the CONFIG selects for this project, before any mode defers some
+   * of them. This is what the liveness floor guards: a config mistake shrinks
+   * this set, while a mode deferring the history laws to pre-push is by design
+   * and runs them there. Comparing the floor with the per-mode count made one
+   * setting impossible to get right — the value printed by `--mode=full` broke
+   * every pre-commit, and the value that passed pre-commit left slack in full.
+   */
+  private getSelectedLaws(): unknown[] {
     const registry = ModularLawsRegistry.getInstance();
 
     const selected =
@@ -292,15 +312,11 @@ export class RuleOfCodeAuditor {
     // Requirement gating: a law about Ionic's outlet or Capacitor's config is
     // not selected in a project that declares neither. Run anyway, it would
     // inspect nothing and print a green check — a pass that proves nothing.
-    const requirementsMet = stackApplicable.filter(law =>
+    return stackApplicable.filter(law =>
       lawRequirementsMet(
         (law as { requires?: LawRequirement }).requires,
         this.projectRoot
       )
-    );
-
-    return requirementsMet.filter(
-      law => !this.isHistoryLawBlockedByCommit(law as { name?: string })
     );
   }
 
@@ -449,10 +465,9 @@ export class RuleOfCodeAuditor {
    * keys from DEFAULT_CONFIG are skipped.
    */
   private validateSeverityOverrides(): void {
-    const overrides = (
-      this.config.laws as { severity?: Record<string, string> }
-    ).severity;
-    if (!overrides) return;
+    const overrides =
+      (this.config.laws as { severity?: Record<string, string> }).severity ??
+      {};
 
     const known = new Map<string, KnownLaw>();
     for (const law of ModularLawsRegistry.getAll()) {
@@ -461,6 +476,8 @@ export class RuleOfCodeAuditor {
       }
     }
 
+    // No early return when severity is absent: the notApplicable and byRule
+    // checks below do not depend on it, and returning here skipped them.
     const projectType = this.detectProjectType();
     for (const [key, value] of Object.entries(overrides)) {
       if (LawIdentity.isNonLawConfigKey(key)) continue; // annotation or legacy map
@@ -711,7 +728,22 @@ export class RuleOfCodeAuditor {
     // always-on meta-gates. Print both, so nobody sets laws.minLawsChecked to
     // the total and fails for no reason (FE).
     const substantive = auditResult.substantiveLaws;
-    if (substantive !== undefined && substantive !== auditResult.totalLaws) {
+    const deferred = auditResult.deferredLaws ?? 0;
+    if (substantive !== undefined && deferred > 0) {
+      // The floor counts the selection, which here is larger than what ran.
+      // Say so, or the advice reads as a number bigger than the total.
+      const metaGates = auditResult.totalLaws - (substantive - deferred);
+      console.log(
+        `${chalk.gray('  the liveness floor counts the selection:')} ${chalk.white(
+          substantive
+        )} ${chalk.gray(
+          `(${substantive - deferred} run here + ${deferred} history laws deferred to pre-push in --mode=${this.mode}, +${metaGates} always-on meta-gates — set laws.minLawsChecked against ${substantive}, the same in every mode)`
+        )}`
+      );
+    } else if (
+      substantive !== undefined &&
+      substantive !== auditResult.totalLaws
+    ) {
       console.log(
         `${chalk.gray('  of which count for the liveness floor:')} ${chalk.white(
           substantive

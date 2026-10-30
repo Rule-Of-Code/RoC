@@ -772,42 +772,14 @@ export const ANGULAR_CONFIG: Partial<RuleOfCodeConfig> = {
       `${CONSTITUTIONAL_PATHS.RULEOFCODE_PACKAGE}/**`,
       `${CONSTITUTIONAL_PATHS.CONSTITUTIONAL_COMPLIANCE_PATTERN}/**`,
     ],
-    byRule: {
-      ...DEFAULT_CONFIG.ignores.byRule,
-      // Angular-specific exclusions + RoC self-exclusion
-      'angular-standalone-components': [
-        `${CONSTITUTIONAL_PATHS.RULEOFCODE_PACKAGE}/**`,
-        `${CONSTITUTIONAL_PATHS.CONSTITUTIONAL_COMPLIANCE_PATTERN}/**`,
-      ],
-      'angular-onpush-strategy': [
-        `${CONSTITUTIONAL_PATHS.RULEOFCODE_PACKAGE}/**`,
-        `${CONSTITUTIONAL_PATHS.CONSTITUTIONAL_COMPLIANCE_PATTERN}/**`,
-      ],
-      'angular-trackby-functions': [
-        `${CONSTITUTIONAL_PATHS.RULEOFCODE_PACKAGE}/**`,
-        `${CONSTITUTIONAL_PATHS.CONSTITUTIONAL_COMPLIANCE_PATTERN}/**`,
-      ],
-      'angular-async-pipe': [
-        `${CONSTITUTIONAL_PATHS.RULEOFCODE_PACKAGE}/**`,
-        `${CONSTITUTIONAL_PATHS.CONSTITUTIONAL_COMPLIANCE_PATTERN}/**`,
-      ],
-      angular_95b77e5f: [
-        `${CONSTITUTIONAL_PATHS.RULEOFCODE_PACKAGE}/**`,
-        `${CONSTITUTIONAL_PATHS.CONSTITUTIONAL_COMPLIANCE_PATTERN}/**`,
-      ],
-      ngrx_e156533b: [
-        `${CONSTITUTIONAL_PATHS.RULEOFCODE_PACKAGE}/**`,
-        `${CONSTITUTIONAL_PATHS.CONSTITUTIONAL_COMPLIANCE_PATTERN}/**`,
-      ],
-      ngrx_d494c2aa: [
-        `${CONSTITUTIONAL_PATHS.RULEOFCODE_PACKAGE}/**`,
-        `${CONSTITUTIONAL_PATHS.CONSTITUTIONAL_COMPLIANCE_PATTERN}/**`,
-      ],
-      ngrx_168c4ee5: [
-        `${CONSTITUTIONAL_PATHS.RULEOFCODE_PACKAGE}/**`,
-        `${CONSTITUTIONAL_PATHS.CONSTITUTIONAL_COMPLIANCE_PATTERN}/**`,
-      ],
-    },
+    // No byRule entries, for the reason DEFAULT_CONFIG gives. The eight that
+    // lived here only re-applied the RoC self-exclusion, which
+    // FileFilterUtils.getIgnorePatterns already applies to every law, and five
+    // of them named no law at all. These defaults are merged into the
+    // project's config, so the key validation then reported RuleOfCode's own
+    // entries to the user as THEIR unknown laws — a warning nothing in the
+    // project could silence.
+    byRule: {},
     tests: [...DEFAULT_CONFIG.ignores.tests, 'apps/*-e2e/**'],
     build: [...DEFAULT_CONFIG.ignores.build, '**/.angular/**'],
     design: [...DEFAULT_CONFIG.ignores.design, '**/assets/icons/**'],

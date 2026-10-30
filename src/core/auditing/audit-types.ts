@@ -19,6 +19,11 @@ export interface AuditResult {
    * printed total would otherwise fail for no reason (FE).
    */
   substantiveLaws?: number;
+  /**
+   * Selected laws this mode does not run — the history laws in pre-commit.
+   * They still count toward `substantiveLaws`, so one floor fits every mode.
+   */
+  deferredLaws?: number;
   results: Map<string, unknown>;
   duration: number;
   paretoMode: boolean;

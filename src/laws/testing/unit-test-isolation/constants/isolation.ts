@@ -225,21 +225,18 @@ export class UnitTestIsolationConstants {
    * Check if content uses external resources
    */
   static usesExternalResources(content: string): boolean {
-    // A comment that DESCRIBES a resource is not a test that uses one. The
-    // single match in one consumer's file was a line of prose inside a block
-    // comment, explaining why a test had been deleted.
-    content = CodeText.stripComments(content);
-    const patterns = [
-      this.EXTERNAL_RESOURCE_PATTERNS.HTTP_CLIENT,
-      this.EXTERNAL_RESOURCE_PATTERNS.STORAGE,
-      this.EXTERNAL_RESOURCE_PATTERNS.DATABASE,
-      this.EXTERNAL_RESOURCE_PATTERNS.FETCH,
-      this.EXTERNAL_RESOURCE_PATTERNS.XML_HTTP,
-      this.EXTERNAL_RESOURCE_PATTERNS.WEBSOCKET,
-      this.EXTERNAL_RESOURCE_PATTERNS.FILE_READER,
-    ];
-    return patterns.some(pattern =>
-      PatternMatchingUtils.hasRegexPattern(content, pattern)
+    return this.resourcesUsed(content).length > 0;
+  }
+
+  /**
+   * The resources this file reaches, by the text that matched — read from the
+   * code, not its comments, and without browser storage where the runner
+   * isolates it (see FixtureIsolation.resourcesUsed).
+   */
+  static resourcesUsed(content: string): string[] {
+    return FixtureIsolation.resourcesUsed(
+      content,
+      this.EXTERNAL_RESOURCE_PATTERNS
     );
   }
 

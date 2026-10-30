@@ -220,7 +220,9 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
       'A test that depends on another test’s side effects passes in one order and fails in another — and CI runs them in whatever order it likes. Isolation is what makes a green suite mean the same thing every time.',
     satisfiedBy: { typescript: 'Keep no mutable state at module scope in specs, pair setup with teardown, and avoid it.only/fit and global-state writes.' },
     detectionLimits: [
-      'Flags ANY module-level object/array const in a spec as "shared mutable state", even one never mutated — noisy false positives.',
+      'Shared mutable state is a module-scope let, or a module-scope const that is later written to (push, property or index assignment); the analysis is regex over code with comments stripped, not a data-flow trace.',
+      'External resources are read from code, not comments, and each offending file is named. Browser storage in a Playwright spec whose tests destructure a fixture is not counted — every test gets its own BrowserContext — unless a beforeAll could share a page; databases, sockets and network calls still count.',
+      'Test files are looked for under src/, apps/ and libs/ only; a root-level e2e/, test/ or tests/ directory is not read.',
       'it.only/fit are flagged as an order dependency (really a focus/CI concern), and a lone describe() satisfies "framework isolation".',
       'Regex over JS/TS test files only — no Python.',
     ],

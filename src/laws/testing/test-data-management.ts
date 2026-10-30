@@ -1,6 +1,7 @@
 import { LawBase } from '../../checkers/law-base';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { UnitTestDataManagementAnalyzerService } from './unit-test-data-management/services/data-management-analyzer.service';
+import { namedFiles } from '../../utils/testing/fixture-isolation';
 
 /**
  * Test Data Management Law
@@ -103,7 +104,11 @@ export class TestDataManagementLaw {
           projectRoot
         );
       if (!cleanupPatterns.hasProperCleanup) {
-        violations.push('Tests missing proper cleanup of external resources');
+        violations.push(
+          `Tests missing proper cleanup of external resources: ${namedFiles(
+            cleanupPatterns.uncleaned
+          )}`
+        );
         suggestions.push('Implement proper cleanup in afterEach blocks');
         score -= thresholds.noCleanupDeduction;
       }

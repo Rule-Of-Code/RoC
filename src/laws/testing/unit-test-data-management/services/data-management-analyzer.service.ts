@@ -84,28 +84,30 @@ export class UnitTestDataManagementAnalyzerService {
    */
   static analyzeCleanupPatterns(projectRoot: string): {
     hasProperCleanup: boolean;
+    /** `path (resource, …)` for every file that reaches one without cleanup. */
+    uncleaned: string[];
   } {
-    const testFiles = this.findTestFiles(projectRoot);
-    let hasProperCleanup = true;
+    // Every offending file, named — see the same note in the isolation law.
+    const uncleaned: string[] = [];
 
-    for (const testFile of testFiles) {
+    for (const testFile of this.findTestFiles(projectRoot)) {
       try {
         const content = FileUtils.readFile(testFile, { encoding: 'utf8' });
-
-        // If test uses external resources, it should have cleanup
+        const used = UnitTestDataManagementConstants.resourcesUsed(content);
         if (
-          UnitTestDataManagementConstants.usesExternalResources(content) &&
+          used.length > 0 &&
           !UnitTestDataManagementConstants.hasResourceCleanup(content)
         ) {
-          hasProperCleanup = false;
-          break;
+          uncleaned.push(
+            `${PathOperations.getRelative(projectRoot, testFile)} (${used.join(', ')})`
+          );
         }
       } catch (_error) {
         // Skip files that can't be read
       }
     }
 
-    return { hasProperCleanup };
+    return { hasProperCleanup: uncleaned.length === 0, uncleaned };
   }
 
   /**

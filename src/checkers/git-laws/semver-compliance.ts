@@ -9,6 +9,7 @@ import { FileUtils } from '../../utils/file-utils';
 import { GitTagVersion } from '../../utils/git-tag-version';
 import { PathOperations } from '../../utils/path-operations';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
+import { CapacitorNativeVersions } from './capacitor-native-versions';
 import { GitLawBase } from './git-law-base';
 
 export class SemVerComplianceLaw extends GitLawBase {
@@ -19,13 +20,17 @@ export class SemVerComplianceLaw extends GitLawBase {
     // Check package.json version
     this.checkDeclaredVersion(projectRoot, violations);
 
+    // A Capacitor project declares it twice more, in the native shells.
+    const native = CapacitorNativeVersions.check(projectRoot);
+    violations.push(...native.violations);
+
     // Check git tags and consistency if git repository
     if (this.isGitRepository(projectRoot)) {
       this.checkGitTags(projectRoot, violations);
       this.checkVersionConsistency(projectRoot, violations);
     }
 
-    return this.createResult(
+    const result = this.createResult(
       violations,
       'SemVer Compliance',
       'GIT_LAW',
@@ -36,9 +41,14 @@ export class SemVerComplianceLaw extends GitLawBase {
         'Keep package.json and git tags in sync',
         'Use v prefix for git tags (e.g., v1.0.0) — a namespace your pipeline ' +
           'matches on is fine too, e.g. release/v1.0.0',
+        'In a Capacitor project, keep versionName and MARKETING_VERSION equal to package.json, or inject them at build time',
       ],
       context
     );
+    if (native.notes.length > 0) {
+      result.message = `${result.message} — native versions not compared: ${native.notes.join('; ')}`;
+    }
+    return result;
   }
 
   /**

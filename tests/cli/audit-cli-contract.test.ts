@@ -197,4 +197,41 @@ describe('audit CLI contract', () => {
     const r = runAudit(dir);
     expect(r.code).toBe(1);
   });
+
+  describe('laws.minLawsChecked: one printed value holds in every mode (#141)', () => {
+    const plain = (out: string): string => out.replace(/\[[0-9;]*m/g, '');
+    const advisedFloor = (out: string): number => {
+      const m = plain(out).match(/set laws\.minLawsChecked against (\d+)/);
+      return m ? Number(m[1]) : -1;
+    };
+    const BELOW_FLOOR = 'below the liveness floor';
+
+    it('the value --mode=full advises passes --mode=pre-commit, with no slack', () => {
+      writeConfig({ paretoMode: false });
+      const full = runAudit(dir, ['--mode=full']);
+      const floor = advisedFloor(full.out);
+      expect(floor).toBeGreaterThan(0);
+
+      // The case only exists when pre-commit runs fewer laws than full;
+      // without that this test would prove nothing.
+      const preCommit = runAudit(dir, ['--mode=pre-commit']);
+      expect(lawsProcessed(preCommit.out)).toBeLessThan(
+        lawsProcessed(full.out)
+      );
+      expect(advisedFloor(preCommit.out)).toBe(floor);
+
+      writeConfig({ paretoMode: false, minLawsChecked: floor });
+      for (const mode of ['--mode=full', '--mode=pre-commit', '--mode=pre-push']) {
+        expect(plain(runAudit(dir, [mode]).out)).not.toContain(BELOW_FLOOR);
+      }
+
+      // Tight: one law more than the selection fails in every mode.
+      writeConfig({ paretoMode: false, minLawsChecked: floor + 1 });
+      for (const mode of ['--mode=full', '--mode=pre-commit']) {
+        const r = runAudit(dir, [mode]);
+        expect(r.code).toBe(1);
+        expect(plain(r.out)).toContain(BELOW_FLOOR);
+      }
+    });
+  });
 });

@@ -182,10 +182,14 @@ export class UnitTestDataManagementConstants {
    * Check if content uses external resources
    */
   static usesExternalResources(content: string): boolean {
-    // A comment that DESCRIBES a resource is not a test that reaches one.
-    const code = CodeText.stripComments(content);
-    return Object.values(this.EXTERNAL_RESOURCE_PATTERNS).some(pattern =>
-      PatternMatchingUtils.hasRegexPattern(code, pattern)
+    return this.resourcesUsed(content).length > 0;
+  }
+
+  /** As UnitTestIsolationConstants.resourcesUsed, over this law's table. */
+  static resourcesUsed(content: string): string[] {
+    return FixtureIsolation.resourcesUsed(
+      content,
+      this.EXTERNAL_RESOURCE_PATTERNS
     );
   }
 

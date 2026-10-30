@@ -1,5 +1,6 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { UnitTestIsolationAnalyzerService } from './unit-test-isolation/services/isolation-analyzer.service';
+import { namedFiles } from '../../utils/testing/fixture-isolation';
 
 /**
  * Test Isolation Enforcement Law
@@ -142,7 +143,11 @@ export class TestIsolationEnforcementLaw {
       config
     );
     if (!resourceIsolationAnalysis.hasProperResourceIsolation) {
-      violations.push('External resources not properly isolated between tests');
+      violations.push(
+        `External resources not properly isolated between tests: ${namedFiles(
+          resourceIsolationAnalysis.unisolated
+        )}`
+      );
       suggestions.push('Mock or properly clean up external dependencies');
       score -= thresholds.resourceIsolationDeduction;
     }

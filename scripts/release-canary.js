@@ -59,6 +59,30 @@ const STACKS = {
     redLaw: 'No Risk Literals',
     redThresholds: undefined,
     projectType: 'angular',
+    // `requires`-gated laws must not be selected where the toolkit is absent.
+    mustNotRun: ['Ionic No Skip Location Change', 'Capacitor Logging Never Production'],
+  },
+  ionic: {
+    floor: 95, // the angular arm + the Ionic and Capacitor laws its `requires` admit
+    files: {
+      'package.json': JSON.stringify({
+        name: 'canary-ionic',
+        dependencies: { '@angular/core': '^20.0.0', '@ionic/angular': '^8.8.0', '@capacitor/core': '^8.5.0' },
+      }),
+      'angular.json': '{}',
+      'capacitor.config.json': JSON.stringify({ appId: 'com.example.canary', webDir: 'www' }),
+      'libs/bot/src/app.component.ts':
+        "export const template = '<ion-app><ion-router-outlet></ion-router-outlet></ion-app>';\n",
+    },
+    redFile: {
+      'libs/bot/src/wizard.ts':
+        "export function done(router: { navigate: (c: string[], e: object) => void }): void {\n  router.navigate(['/x'], { skipLocationChange: true });\n}\n",
+    },
+    redLaw: 'Ionic No Skip Location Change',
+    redThresholds: undefined,
+    projectType: 'ionic',
+    // Proof through the CLI that `requires` admits them where the toolkit is declared.
+    mustRun: ['Ionic No Skip Location Change', 'Capacitor Logging Never Production'],
   },
   node: {
     floor: 55, // typescript + universal (75 applicable on 2026-07-10)
@@ -127,6 +151,16 @@ function lawsProcessed(out) {
   return m ? Number(m[1]) : null;
 }
 
+/** Canonical names of every law the audit executed, from the exported JSON report. */
+function ranLawTitles(dir) {
+  try {
+    const report = JSON.parse(fs.readFileSync(path.join(dir, 'ruleofcode-report.json'), 'utf8'));
+    return report.results.map(r => r.lawTitle ?? r.lawName).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Canonical names of failing laws, from the exported JSON report (lawTitle is
  * the registry name — the printed lawName may be a checker-local slug).
@@ -177,6 +211,10 @@ function main() {
     const cal = runAudit(cli, dir, ['--export', 'json']);
     const floorCount = lawsProcessed(cal.out);
     const failed = failedLawTitles(dir);
+    const ran = ranLawTitles(dir);
+    const gateOk =
+      (stack.mustRun ?? []).every(name => ran.includes(name)) &&
+      (stack.mustNotRun ?? []).every(name => !ran.includes(name));
 
     if (failed === null) {
       // The CLI under test never produced a report: it did not run at all.
@@ -215,10 +253,10 @@ function main() {
     // Runtime errors in checkers reduce coverage silently (QA-3) — any
     // TypeError in any run is a canary failure even when exit codes look right.
     const noNoise = !/TypeError/.test(cal.out + green.out + red.out + zero.out);
-    ok = ok && floorOk && greenOk && redOk && zeroOk && noNoise;
+    ok = ok && floorOk && greenOk && redOk && zeroOk && noNoise && gateOk;
 
     rows.push(
-      `${stackKey.padEnd(8)} | laws=${String(floorCount).padEnd(4)} floor>=${String(stack.floor).padEnd(3)} ${floorOk ? '✅' : '❌'} | green exit ${green.code} ${greenOk ? '✅' : '❌'} | red exit ${red.code} ${redOk ? '✅' : '❌'} | zero-laws exit ${zero.code}${zeroRefused ? ' (refused)' : ''} ${zeroOk ? '✅' : '❌'} | no-TypeError ${noNoise ? '✅' : '❌'}`
+      `${stackKey.padEnd(8)} | laws=${String(floorCount).padEnd(4)} floor>=${String(stack.floor).padEnd(3)} ${floorOk ? '✅' : '❌'} | green exit ${green.code} ${greenOk ? '✅' : '❌'} | red exit ${red.code} ${redOk ? '✅' : '❌'} | zero-laws exit ${zero.code}${zeroRefused ? ' (refused)' : ''} ${zeroOk ? '✅' : '❌'} | no-TypeError ${noNoise ? '✅' : '❌'}${stack.mustRun || stack.mustNotRun ? ` | requires-gate ${gateOk ? '✅' : '❌'}` : ''}`
     );
 
     fs.rmSync(dir, { recursive: true, force: true });

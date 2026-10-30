@@ -5,6 +5,107 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.25.0] - 2026-10-30
+
+Four reported defects, all of the same family: the tool answering a
+question by looking somewhere other than where the answer is. A "committed
+secret" check read the disk instead of git. A floor was compared with what
+one mode runs instead of what the config selects. A key validator reported
+RuleOfCode's own defaults as the user's mistakes. A test-isolation finding
+named no file, so nobody could tell which match had tripped it.
+
+No law is added or removed, and no default severity or threshold changes.
+Verdicts do change, in both directions — read the first section if you
+have a `.env` in git.
+
+### ⚠️ Verdicts that change
+
+**A committed `.env` is now found, including the two cases that passed
+before (#142).** `git-ignore-standards`, `environment-security-enforcement`,
+`environment-variables-policy` and `environment-parity-standards` ask git
+whether a sensitive file is tracked instead of whether it exists on disk:
+
+| state | 7.24.0 | 7.25.0 |
+|---|---|---|
+| `.env` present, ignored, untracked (the correct setup) | **FAIL** | PASS |
+| `.env` committed | FAIL | FAIL |
+| `.env` committed, deleted from the working copy | **PASS** | FAIL |
+| `.DS_Store` / `npm-debug.log` present and ignored | **FAIL** | PASS |
+| `.env` present, untracked, not ignored | FAIL | FAIL |
+
+Measured with five real git states against the built CLI, full mode, all
+laws diffed against the no-`.env` state: the verdicts that moved were
+`git-ignore-standards` and `environment-security-enforcement` (plus
+`branch-governance-standards` for the uncommitted deletion on `main`).
+The other two react only to other inputs — a quoted secret, a committed
+`.env` that `.gitignore` also lists — and are pinned by tests for every
+state above. A committed file's content
+is read from the git index, so editing or deleting the working copy no
+longer hides it. `environment-parity-standards` used to decide "is .env in
+git" from the text of `.gitignore`, so a committed `.env` passed whenever
+`.gitignore` also listed it — git does not untrack a file because it is
+later ignored. Outside a git repository the old disk reading is kept.
+
+**What to do:** if one of these laws now fails on a tracked `.env`,
+`git rm --cached .env`, keep it in `.gitignore`, and rotate what it held —
+it stays in the history. If you parked any of the four because your local
+`.env` failed them, remove the waiver.
+
+**`test-isolation-enforcement` / `test-data-management` (#124):** browser
+storage in a Playwright spec whose tests destructure a fixture
+(`async ({ page }) => …`) no longer counts as an unisolated resource —
+every test gets its own BrowserContext. Not where a `beforeAll` can share a
+page; databases, sockets and network calls still count.
+
+### 🐛 Fixed
+
+- **`laws.minLawsChecked`: one value now holds in every mode (#141).**
+  `--mode=pre-commit` defers the three history laws to pre-push, so it ran
+  three fewer laws than `--mode=full` — and the floor was compared with what
+  ran. The value `--mode=full` told you to set failed every commit; the
+  value that passed pre-commit left three laws of slack in full. The floor
+  now counts the laws the config **selects**, before a mode defers any, and
+  pre-commit prints `N run here + 3 history laws deferred to pre-push … set
+  laws.minLawsChecked against M, the same in every mode`. Nothing that
+  passed fails: the compared number can only grow.
+- **No more `unknown law` warnings for keys you never wrote (#140).**
+  `ANGULAR_CONFIG` merged eight `ignores.byRule` entries into every Angular
+  project; five named no law, and all eight only repeated the self-exclusion
+  that is applied to every law anyway. They are gone, and a test now
+  resolves every law key in every shipped preset and template, so a dead
+  default fails our CI instead of your audit output. Also:
+  `byRule`/`notApplicable` keys were not checked at all when a config had
+  no `laws.severity`.
+- **The test resource finding names its files (#124).**
+  `External resources not properly isolated between tests: src/a.spec.ts
+  (localStorage); …` — every offending file and the resource it reached,
+  instead of one sentence that stopped at the first match. In the re-test
+  on 7.23.0, the comment in `app.spec.ts` was **not** what fired — comments
+  were already stripped there — but the message gave nobody a way to see
+  that.
+
+### 🗑️ Removed
+
+- `templates/angular.config.js`. It was referenced by nothing, shipped in
+  the package, and carried 24 keys that name no law — including a
+  `laws.enabled` allowlist that would have run zero laws if copied. Use
+  `templates/recommended-frontend.config.json` (or `ruleofcode recommend`).
+
+### 📝 Law cards
+
+- `git-ignore-standards` no longer advises keeping `.env` "off disk": a
+  local `.env` is expected; it must be ignored and untracked.
+- `test-isolation-enforcement` still described the const false positive
+  fixed in 7.23.0; it now says what the law reads, including that it looks
+  for test files only under `src/`, `apps/` and `libs/` (#192).
+
+### Known, not fixed here
+
+- **#192** — the two isolation twins discover different test files (roots
+  and config), and neither applied a root-relative `ignores.global` entry in
+  the probe. Fixing it widens what `test-isolation-enforcement` reads, so it
+  goes into a release that says so.
+
 ## [7.24.0] - 2026-10-30
 
 Ionic and Capacitor become subjects instead of exemptions. `ionic` was a

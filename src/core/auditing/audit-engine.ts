@@ -449,10 +449,9 @@ export class RuleOfCodeAuditor {
    * keys from DEFAULT_CONFIG are skipped.
    */
   private validateSeverityOverrides(): void {
-    const overrides = (
-      this.config.laws as { severity?: Record<string, string> }
-    ).severity;
-    if (!overrides) return;
+    const overrides =
+      (this.config.laws as { severity?: Record<string, string> }).severity ??
+      {};
 
     const known = new Map<string, KnownLaw>();
     for (const law of ModularLawsRegistry.getAll()) {
@@ -461,6 +460,8 @@ export class RuleOfCodeAuditor {
       }
     }
 
+    // No early return when severity is absent: the notApplicable and byRule
+    // checks below do not depend on it, and returning here skipped them.
     const projectType = this.detectProjectType();
     for (const [key, value] of Object.entries(overrides)) {
       if (LawIdentity.isNonLawConfigKey(key)) continue; // annotation or legacy map

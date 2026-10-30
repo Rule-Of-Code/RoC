@@ -14,7 +14,7 @@
  * be run at all.
  */
 
-import { execSync } from 'child_process';
+import { execSync, spawnSync } from 'child_process';
 import { FileUtils } from '../file-utils';
 import { PathOperations } from '../path-operations';
 
@@ -169,6 +169,149 @@ export function trackedModesByBasename(
     if (mode && basename) modes.set(basename, mode);
   }
   return modes;
+}
+
+/**
+ * Where a file stands with git — the question a "committed secret" check is
+ * actually asking.
+ *
+ * - `tracked`: in the index. Committed, or about to be; still true after the
+ *   working copy is deleted, because deleting a file does not untrack it.
+ * - `unignored`: on disk, untracked, and not ignored — `git add -A` commits it.
+ * - `ignored`: on disk, untracked, and ignored. This is the CORRECT state of a
+ *   local `.env`, and a check that reads the disk cannot tell it from the
+ *   committed one.
+ * - `absent`: none of the above.
+ */
+export type GitExposure = 'tracked' | 'unignored' | 'ignored' | 'absent';
+
+/** Run git with arguments (no shell); null when it cannot run at all. */
+function gitRun(
+  args: string[],
+  projectRoot: string,
+  input?: string
+): { status: number; stdout: string } | null {
+  const result = spawnSync('git', args, {
+    cwd: projectRoot,
+    encoding: 'utf8',
+    windowsHide: true,
+    input,
+  });
+  if (result.error || result.status === null) return null;
+  return { status: result.status, stdout: result.stdout ?? '' };
+}
+
+/**
+ * The {@link GitExposure} of each path (relative to `projectRoot`), or null
+ * when git cannot answer — no git binary, or not inside a working tree. The
+ * caller then falls back to the filesystem, saying less but not nothing.
+ */
+export function gitExposure(
+  projectRoot: string,
+  paths: readonly string[]
+): Map<string, GitExposure> | null {
+  const inside = gitRun(['rev-parse', '--is-inside-work-tree'], projectRoot);
+  if (!inside || inside.status !== 0 || inside.stdout.trim() !== 'true') {
+    return null;
+  }
+
+  const listed = gitRun(['ls-files', '-z', '--', ...paths], projectRoot);
+  if (!listed || listed.status !== 0) return null;
+  const tracked = new Set(listed.stdout.split('\0').filter(Boolean));
+
+  const onDisk = paths.filter(
+    p =>
+      !tracked.has(p) && FileUtils.exists(PathOperations.join(projectRoot, p))
+  );
+  const ignored = ignoredAmong(projectRoot, onDisk);
+  if (!ignored) return null;
+
+  const states = new Map<string, GitExposure>();
+  for (const p of paths) {
+    if (tracked.has(p)) states.set(p, 'tracked');
+    else if (ignored.has(p)) states.set(p, 'ignored');
+    else if (onDisk.includes(p)) states.set(p, 'unignored');
+    else states.set(p, 'absent');
+  }
+  return states;
+}
+
+/**
+ * Which of these untracked paths git ignores; null when git errors.
+ *
+ * check-ignore exits 1 when none of the paths is ignored; only 128 is an
+ * error. It never reports tracked paths, which is why the caller separates
+ * those out first. `-z` is accepted only together with `--stdin`.
+ */
+function ignoredAmong(
+  projectRoot: string,
+  untracked: readonly string[]
+): Set<string> | null {
+  const ignored = new Set<string>();
+  if (untracked.length === 0) return ignored;
+
+  const checked = gitRun(
+    ['check-ignore', '-z', '--stdin'],
+    projectRoot,
+    untracked.map(p => `${p}\0`).join('')
+  );
+  if (!checked || checked.status > 1) return null;
+  for (const p of checked.stdout.split('\0')) if (p) ignored.add(p);
+  return ignored;
+}
+
+/**
+ * A tracked file's content as the INDEX holds it — what is committed or
+ * staged, rather than whatever the working copy says. Null when git cannot
+ * read it.
+ */
+export function readFromIndex(
+  projectRoot: string,
+  filePath: string
+): string | null {
+  // `:./path` is relative to the working directory; bare `:path` would be
+  // relative to the repository root, which differs in a monorepo package.
+  const shown = gitRun(['show', `:./${filePath}`], projectRoot);
+  return shown && shown.status === 0 ? shown.stdout : null;
+}
+
+/**
+ * The content of each file that git could publish, read from where git would
+ * publish it from: a tracked file from the INDEX (so a committed secret is
+ * found even after the working copy is deleted), an unignored one from disk.
+ * Ignored, untracked files are left out — they never leave the machine, and a
+ * working local `.env` holds real values by definition.
+ *
+ * Without git, every file present on disk is returned, as before.
+ */
+export function readPublishableFiles(
+  projectRoot: string,
+  files: readonly string[]
+): Array<{ file: string; content: string }> {
+  const fromDisk = (file: string): string | null => {
+    const filePath = PathOperations.join(projectRoot, file);
+    if (!FileUtils.exists(filePath)) return null;
+    try {
+      return FileUtils.readFile(filePath);
+    } catch {
+      return null;
+    }
+  };
+
+  const states = gitExposure(projectRoot, files);
+  const read: Array<{ file: string; content: string }> = [];
+  for (const file of files) {
+    const state = states?.get(file);
+    const content = !states
+      ? fromDisk(file)
+      : state === 'tracked'
+        ? readFromIndex(projectRoot, file)
+        : state === 'unignored'
+          ? fromDisk(file)
+          : null;
+    if (content) read.push({ file, content });
+  }
+  return read;
 }
 
 /**

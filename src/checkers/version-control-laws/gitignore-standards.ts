@@ -12,6 +12,7 @@ import { FileUtils } from '../../utils';
 import { ProjectTypeDetector } from '../../utils/config/project-type-detector';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
 import { PathOperations } from '../../utils/path-operations';
+import { gitExposure } from '../../utils/git/git-layout';
 import { CapacitorIgnoreRequirements } from './capacitor-ignore-requirements';
 import { VersionControlLawBase } from './version-control-law-base';
 export class GitIgnoreStandardsLaw {
@@ -173,9 +174,53 @@ export class GitIgnoreStandardsLaw {
       '.DS_Store',
     ];
 
+    // Ask git, not the disk. An ignored, untracked `.env` is the state this
+    // law asks for, and a committed one deleted from the working copy is still
+    // committed — the disk gets both backwards.
+    const states = gitExposure(projectRoot, riskyFiles);
+    if (!states) {
+      return this.checkRiskyFilesOnDisk(projectRoot, riskyFiles, violationDetails);
+    }
+
+    for (const riskyFile of riskyFiles) {
+      const state = states.get(riskyFile);
+      if (state === 'tracked') {
+        violations.push(`Tracked sensitive file: ${riskyFile}`);
+        suggestions.push(
+          `git rm --cached ${riskyFile}, keep it in .gitignore, and rotate anything it held — it stays in the history`
+        );
+        violationDetails.push({
+          file: riskyFile,
+          message: 'Sensitive file is tracked by git',
+        });
+      } else if (state === 'unignored') {
+        violations.push(
+          `Sensitive file not ignored: ${riskyFile} — the next git add -A commits it`
+        );
+        suggestions.push(`Add ${riskyFile} to .gitignore`);
+        violationDetails.push({
+          file: riskyFile,
+          message: 'Sensitive file is untracked but not ignored',
+        });
+      }
+    }
+
+    return { violations, suggestions };
+  }
+
+  /**
+   * Without git there is no index to ask, so presence is all that can be seen.
+   * Said as "potentially": the file may well be ignored.
+   */
+  private static checkRiskyFilesOnDisk(
+    projectRoot: string,
+    riskyFiles: string[],
+    violationDetails: ViolationDetail[]
+  ): { violations: string[]; suggestions: string[] } {
+    const violations: string[] = [];
+    const suggestions: string[] = [];
     for (const riskyFile of riskyFiles) {
       if (FileUtils.exists(PathOperations.join(projectRoot, riskyFile))) {
-        // Check if it's likely tracked (simple heuristic)
         violations.push(`Potentially tracked sensitive file: ${riskyFile}`);
         suggestions.push(
           `Add ${riskyFile} to .gitignore and remove from Git history`
@@ -186,7 +231,6 @@ export class GitIgnoreStandardsLaw {
         });
       }
     }
-
     return { violations, suggestions };
   }
 }

@@ -6,6 +6,7 @@
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { ACCESSIBILITY_LAWS } from './accessibility-laws';
 import { ANGULAR_LAWS } from './angular-laws';
+import { CAPACITOR_LAWS } from './capacitor-laws';
 import { CODE_QUALITY_LAWS } from './code-quality-laws';
 import { DEPLOYMENT_LAWS } from './deployment-laws';
 import { DOCUMENTATION_LAWS } from './documentation-laws';
@@ -15,6 +16,7 @@ import {
   PROJECT_LAWS,
 } from './pareto-optimization';
 import { FE_ARCHITECTURE_LAWS } from './fe-architecture-laws';
+import { IONIC_LAWS } from './ionic-laws';
 import { META_GATE_LAWS } from './meta-gate-laws';
 import { PERFORMANCE_LAWS } from './performance-laws';
 import { PYTHON_LAWS } from './python-laws';
@@ -38,16 +40,20 @@ export const ALL_ENHANCED_CONSTITUTIONAL_LAWS: EnhancedConstitutionalLaw[] = [
   ...PYTHON_LAWS, // 🐍 Python domain — FastAPI + Clean Architecture/CQRS (IDs 200+)
   ...META_GATE_LAWS, // 💓 Gate-integrity meta laws (universal; IDs 226+)
   ...FE_ARCHITECTURE_LAWS, // 🏛️ FE architecture audit laws (frontend; IDs 301+)
+  ...IONIC_LAWS, // 📱 Ionic laws (frontend, requires an Ionic binding; IDs 401+)
+  ...CAPACITOR_LAWS, // 🔌 Capacitor laws (frontend, requires @capacitor/core + config; IDs 421+)
 ];
 
 // Re-export for easy access
 export {
   ACCESSIBILITY_LAWS,
   ANGULAR_LAWS,
+  CAPACITOR_LAWS,
   CODE_QUALITY_LAWS,
   DEPLOYMENT_LAWS,
   DOCUMENTATION_LAWS,
   FE_ARCHITECTURE_LAWS,
+  IONIC_LAWS,
   META_GATE_LAWS,
   FRAMEWORK_LAWS,
   PARETO_CATEGORIES,

@@ -6,15 +6,29 @@ import chalk from 'chalk';
 import { ConfigLoader } from '../../config/loader';
 import { GitHooksInstaller } from '../../hooks/installer';
 import { ModularLawsRegistry } from '../../registry/modular-laws-registry';
+import type { LawRequirement } from '../../types/enhanced-law.types';
 import type { RuleOfCodeConfig } from '../../types/law.types';
+import { CapacitorProjects } from '../../utils/capacitor/capacitor-project';
 import { ProjectTypeDetector } from '../../utils/config/project-type-detector';
 import * as LawIdentity from '../../utils/law-identity';
+import {
+  describeRequirement,
+  lawRequirementsMet,
+} from '../../utils/law-requirements';
+import { NxWorkspace } from '../../utils/nx-workspace';
+import { PathOperations } from '../../utils/path-operations';
 import { AuditCache } from './audit-cache';
 import type { AuditOptions, AuditResult } from './audit-types';
 import { AuditResultProcessor } from './result-processor';
 
 // Force chalk to use colors in all environments
 chalk.level = 1;
+
+/** What the config validators need to know about a law named by a key. */
+interface KnownLaw {
+  stack?: string;
+  requires?: LawRequirement;
+}
 
 export class RuleOfCodeAuditor {
   private static readonly UNKNOWN_LAW = 'Unknown Law';
@@ -275,7 +289,17 @@ export class RuleOfCodeAuditor {
       )
     );
 
-    return stackApplicable.filter(
+    // Requirement gating: a law about Ionic's outlet or Capacitor's config is
+    // not selected in a project that declares neither. Run anyway, it would
+    // inspect nothing and print a green check — a pass that proves nothing.
+    const requirementsMet = stackApplicable.filter(law =>
+      lawRequirementsMet(
+        (law as { requires?: LawRequirement }).requires,
+        this.projectRoot
+      )
+    );
+
+    return requirementsMet.filter(
       law => !this.isHistoryLawBlockedByCommit(law as { name?: string })
     );
   }
@@ -430,10 +454,10 @@ export class RuleOfCodeAuditor {
     ).severity;
     if (!overrides) return;
 
-    const known = new Map<string, { stack?: string }>();
+    const known = new Map<string, KnownLaw>();
     for (const law of ModularLawsRegistry.getAll()) {
       for (const key of ModularLawsRegistry.lawIdentityKeys(law)) {
-        known.set(key, { stack: law.stack });
+        known.set(key, { stack: law.stack, requires: law.requires });
       }
     }
 
@@ -452,6 +476,10 @@ export class RuleOfCodeAuditor {
       ) {
         console.warn(
           `ℹ️  laws.severity: '${key}' exists but does not apply to this project type (${projectType ?? 'unknown'}) — stack-gated, kept for shared configs.`
+        );
+      } else if (!lawRequirementsMet(law.requires, this.projectRoot)) {
+        console.warn(
+          `ℹ️  laws.severity: '${key}' exists but this project does not declare ${describeRequirement(law.requires ?? {})} — requirement-gated, kept for shared configs.`
         );
       }
     }
@@ -473,7 +501,7 @@ export class RuleOfCodeAuditor {
    * people are most likely to write — excluding spec files — appears to work,
    * for the unrelated reason that test files are excluded by default anyway.
    */
-  private validateByRuleKeys(known: Map<string, { stack?: string }>): void {
+  private validateByRuleKeys(known: Map<string, KnownLaw>): void {
     const sections: Array<[string, Record<string, string[]> | undefined]> = [
       [
         'ignores.byRule',
@@ -529,7 +557,7 @@ export class RuleOfCodeAuditor {
    * it is running and failing them.
    */
   private validateNotApplicableKeys(
-    known: Map<string, { stack?: string }>,
+    known: Map<string, KnownLaw>,
     projectType: string | undefined
   ): void {
     const notApplicable = (
@@ -557,6 +585,10 @@ export class RuleOfCodeAuditor {
       ) {
         console.warn(
           `ℹ️  laws.notApplicable: '${key}' is already stack-gated off this project type (${projectType ?? 'unknown'}) — the waiver is redundant here.`
+        );
+      } else if (law && !lawRequirementsMet(law.requires, this.projectRoot)) {
+        console.warn(
+          `ℹ️  laws.notApplicable: '${key}' is already requirement-gated off this project (it needs ${describeRequirement(law.requires ?? {})}) — the waiver is redundant here.`
         );
       }
     }
@@ -981,11 +1013,12 @@ export class RuleOfCodeAuditor {
     // way to know the gate was disarmed (a backend consumer). Better to refuse the
     // word than to lie with it.
     if (auditResult.passed && auditResult.paretoMode) {
-      const applicable = ModularLawsRegistry.getAll().filter(law =>
-        ModularLawsRegistry.lawAppliesToProjectType(
-          law.stack,
-          this.detectProjectType()
-        )
+      const applicable = ModularLawsRegistry.getAll().filter(
+        law =>
+          ModularLawsRegistry.lawAppliesToProjectType(
+            law.stack,
+            this.detectProjectType()
+          ) && lawRequirementsMet(law.requires, this.projectRoot)
       ).length;
       console.log(
         chalk.yellowBright.bold(
@@ -1183,7 +1216,28 @@ export class RuleOfCodeAuditor {
       }
     }
 
-    return files;
+    return [...files, ...this.getFixedPathInputs()];
+  }
+
+  /**
+   * Files laws open by a FIXED path rather than through the scan: manifests
+   * and lockfiles (which decide `requires` gating and what is installed), the
+   * ignore file, and the Capacitor native shells, which a project rightly
+   * excludes from the scan. A cache keyed only on scanned files would serve a
+   * verdict computed before one of these changed.
+   */
+  private getFixedPathInputs(): string[] {
+    const rootFiles = [
+      'package-lock.json',
+      'yarn.lock',
+      'pnpm-lock.yaml',
+      '.gitignore',
+    ].map(name => PathOperations.join(this.projectRoot, name));
+    return [
+      ...rootFiles,
+      ...NxWorkspace.resolveSourceFiles(this.projectRoot, 'package.json'),
+      ...CapacitorProjects.fixedPathInputs(this.projectRoot),
+    ];
   }
 
   private chunkArray<T>(array: T[], size: number): T[][] {

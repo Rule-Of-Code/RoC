@@ -570,7 +570,10 @@ echo "✅ Custom hook ${hookName} completed"
   /**
    * Generate template for lint-staged integration
    */
-  static generateLintStagedConfig(config: RuleOfCodeConfig): object {
+  static generateLintStagedConfig(
+    config: RuleOfCodeConfig,
+    projectRoot?: string
+  ): object {
     const lintStagedConfig: Record<string, string[]> = {
       // NOT --mode=fast. RoC used to install a commit gate that ran the Pareto
       // SUBSET, so the tool itself handed every project a quietly disarmed gate.
@@ -579,7 +582,13 @@ echo "✅ Custom hook ${hookName} completed"
     };
 
     // Add framework-specific linting
-    if (config.project.type === 'angular') {
+    // An Ionic project on Angular lints with the Angular CLI as well.
+    const onAngular =
+      config.project.type === 'angular' ||
+      (config.project.type === 'ionic' &&
+        projectRoot !== undefined &&
+        ProjectTypeDetectorValidation.isAngularProject(projectRoot));
+    if (onAngular) {
       lintStagedConfig['*.{ts,js}']?.push('ng lint --fix');
     }
 
@@ -726,7 +735,10 @@ echo "✅ Custom hook ${hookName} completed"
       FileUtils.readJsonFile<Record<string, unknown>>(packageJsonPath);
 
     // Add lint-staged configuration
-    packageJson['lint-staged'] = this.generateLintStagedConfig(config);
+    packageJson['lint-staged'] = this.generateLintStagedConfig(
+      config,
+      projectRoot
+    );
 
     // Update pre-commit hook to use lint-staged
     if (config.hooks.preCommit) {

@@ -3,6 +3,7 @@ import * as inquirer from 'inquirer';
 import { FileUtils } from '../utils/file-utils';
 import { PathOperations } from '../utils/path-operations';
 import {
+  type ProjectType,
   detectProjectType,
   generateConfigFile,
   generateProConfig,
@@ -18,14 +19,7 @@ interface InitOptions {
 
 export interface ConfigData {
   projectName: string;
-  projectType:
-    | 'angular'
-    | 'generic'
-    | 'library'
-    | 'node'
-    | 'python'
-    | 'react'
-    | 'vue';
+  projectType: ProjectType;
   componentPrefix: string;
   domain: string;
   lawsMode: string;
@@ -43,7 +37,7 @@ async function getProjectType(
   initialType?: string,
   promptFn: PromptFn = inquirer.prompt.bind(inquirer)
 ): Promise<
-  'angular' | 'generic' | 'library' | 'node' | 'python' | 'react' | 'vue'
+  ProjectType
 > {
   const validTypes = [
     'angular',
@@ -56,14 +50,7 @@ async function getProjectType(
   ] as const;
 
   if (initialType && (validTypes as readonly string[]).includes(initialType)) {
-    return initialType as
-      | 'angular'
-      | 'generic'
-      | 'library'
-      | 'node'
-      | 'python'
-      | 'react'
-      | 'vue';
+    return initialType as ProjectType;
   }
 
   const detected = detectProjectType(projectRoot);
@@ -75,9 +62,10 @@ async function getProjectType(
       name: 'type',
       message: 'What type of project is this?',
       choices: [
+        { name: '⚛️  Angular Application', value: 'angular' },
         {
-          name: '⚛️  Angular Application (with Ionic support)',
-          value: 'angular',
+          name: '📱 Ionic Application (Angular/React/Vue, Capacitor)',
+          value: 'ionic',
         },
         { name: '⚛️  React Application', value: 'react' },
         { name: '💚 Vue.js Application', value: 'vue' },

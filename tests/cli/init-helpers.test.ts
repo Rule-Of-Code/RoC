@@ -57,6 +57,41 @@ describe('cli/init-helpers', () => {
       expect(result).toBe('react');
     });
 
+    it('detects an Ionic project ahead of the framework it sits on', () => {
+      FileUtils.writeFileSync(
+        PathOperations.join(tempDir, 'package.json'),
+        JSON.stringify({
+          dependencies: { '@angular/core': '^20.0.0', '@ionic/angular': '^8.8.0' },
+        })
+      );
+      FileUtils.writeFileSync(
+        PathOperations.join(tempDir, 'angular.json'),
+        JSON.stringify({ version: 1 })
+      );
+
+      expect(detectProjectType(tempDir)).toBe('ionic');
+    });
+
+    it('detects an Ionic project by the Ionic CLI config alone', () => {
+      FileUtils.writeFileSync(
+        PathOperations.join(tempDir, 'ionic.config.json'),
+        JSON.stringify({ name: 'x', type: 'angular-standalone' })
+      );
+
+      expect(detectProjectType(tempDir)).toBe('ionic');
+    });
+
+    it('a Capacitor dependency alone does not make a project Ionic', () => {
+      FileUtils.writeFileSync(
+        PathOperations.join(tempDir, 'package.json'),
+        JSON.stringify({
+          dependencies: { react: '^18.0.0', '@capacitor/core': '^8.0.0' },
+        })
+      );
+
+      expect(detectProjectType(tempDir)).toBe('react');
+    });
+
     it('should detect vue project', () => {
       FileUtils.writeFileSync(
         PathOperations.join(tempDir, 'package.json'),

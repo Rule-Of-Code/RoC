@@ -12,6 +12,7 @@ import { FileUtils } from '../../utils';
 import { ProjectTypeDetector } from '../../utils/config/project-type-detector';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
 import { PathOperations } from '../../utils/path-operations';
+import { CapacitorIgnoreRequirements } from './capacitor-ignore-requirements';
 import { VersionControlLawBase } from './version-control-law-base';
 export class GitIgnoreStandardsLaw {
   private static readonly GITIGNORE_FILE = '.gitignore';
@@ -52,6 +53,15 @@ export class GitIgnoreStandardsLaw {
     );
     violations.push(...committedIssues.violations);
     suggestions.push(...committedIssues.suggestions);
+
+    // A Capacitor project has its own dangerous paths (see the module).
+    const capacitor = CapacitorIgnoreRequirements.check(context.projectRoot);
+    violations.push(...capacitor);
+    if (capacitor.length > 0) {
+      suggestions.push(
+        'Ignore google-services.json and GoogleService-Info.plist, and keep the android/ and ios/ .gitignore files cap add writes'
+      );
+    }
 
     const result = VersionControlLawBase.createResult(
       violations,

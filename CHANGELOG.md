@@ -5,6 +5,170 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.24.0] - 2026-10-30
+
+Ionic and Capacitor become subjects instead of exemptions. `ionic` was a
+project type RuleOfCode knew about and never wrote a law for: an Ionic app
+ran the Angular laws, and several of them handed out unearned green on exactly
+the behaviour Ionic changes — three cleanup laws credit `ngOnDestroy`, which
+never runs on a page `ion-router-outlet` keeps (#143).
+
+Seventeen new laws, two extended ones, and the mechanism that keeps them out
+of every project they are not about. The registry goes from **169 to 186
+laws**. A project that declares neither Ionic nor Capacitor runs exactly what
+it ran before.
+
+### ⚠️ BREAKING — for Ionic and Capacitor projects only
+
+**More laws run, and seven of them default to `error`.** Measured on the same
+fixture (Angular + `@ionic/angular` + `@capacitor/core` + a
+`capacitor.config.json`), 7.23.0 against 7.24.0:
+
+| mode | 7.23.0 | 7.24.0 |
+|---|---|---|
+| full | 132 | 149 |
+| `--mode=pre-commit` | 129 | 146 |
+
+An Ionic project without Capacitor gains 9; a Capacitor project without Ionic
+gains 8. A plain Angular, React, Vue, Node or Python project is unchanged —
+the release canary measures 132 / 77 / 99, the same as 7.23.0.
+
+The seven at `error`: `ionic-no-skip-location-change`,
+`ionic-unique-url-key-per-view`, `ionic-route-reuse-strategy-provided`,
+`capacitor-logging-never-production`, `capacitor-no-dev-only-server-keys`,
+`capacitor-plugin-platform-declarations`,
+`capacitor-sync-artefacts-match-dependencies`.
+
+**Two existing `error` laws can report new findings in a Capacitor project:**
+`git-ignore-standards` now requires `google-services.json` and
+`GoogleService-Info.plist` to be ignored and the generated shell paths to be
+covered (#161); `semantic-versioning-standards` now compares a literal
+`versionName` / `MARKETING_VERSION` with `package.json` (#162).
+
+**A Capacitor law that cannot run your `@capacitor/cli` fails, it does not
+pass.** Four laws read the config the way Capacitor does — by running the
+project's own `cap config --json` — and report "could not resolve the
+Capacitor config" when the CLI is not installed. Run the audit after
+`npm ci`, as CI already does.
+
+**`laws.minLawsChecked` (#141):** the counts above rise; a floor is a minimum,
+so nothing that passed fails because of it. Raise it if you set it to the old
+count deliberately.
+
+**Project type:** a project with an Ionic binding (or `ionic.config.json`) is
+now detected as `ionic` instead of `angular`. The stack is the same, so the
+same frontend laws run, and the framework's defaults still apply. An explicit
+`project.type: "angular"` in your config keeps working.
+
+**What to do:** fix what the new laws find, or park a law in
+`laws.notApplicable` with the reason — the card of each says when that is
+legitimate (`capacitor-no-dev-only-server-keys` names an OAuth flow that must
+stay in the WebView).
+
+### ✨ Added — `requires`: a law about a toolkit runs only where the toolkit is
+
+`stack: "frontend"` cannot tell an Ionic app from a plain Angular one, and a
+law about `ion-router-outlet` that ran without one would inspect nothing and
+print a green check. A law may now declare
+`requires: { anyDependency, anyFile }`; where the project does not declare it,
+the law is **not selected and not counted** — like a stack mismatch, never a
+passing check. The selector, the `PARTIAL SCAN` count, the Audit Liveness
+floor and the `laws.severity` / `laws.notApplicable` validators all ask one
+function, so they cannot disagree; a config key for a gated law is reported as
+`requirement-gated`, not as an unknown law. Dependencies are read from every
+workspace `package.json`. `laws --json` carries `requires` per law, and
+`satisfiedByStacks.keys` gains `ionic` and `capacitor`.
+
+### ✨ Added — nine Ionic laws (#144–#152)
+
+Selected where `@ionic/angular` is declared (the last one: any Ionic binding).
+Four of them pass in an app without `<ion-router-outlet>` and say that the
+URL-keyed view stack they are about does not exist there.
+
+- `ionic-view-lifecycle-interfaces` — every `ionView*` hook with its
+  `ViewWillEnter` interface; a near-miss name (`ionViewWillEnterr`,
+  `IonViewWillEnter`, `#ionViewWillEnter`) "will never be bound".
+- `ionic-page-state-read-on-enter` — per-visit state (`getCurrentNavigation()`,
+  `history.state`, `route.snapshot`) read in `ionViewWillEnter`, not where a
+  re-attached page never runs again.
+- `ionic-leave-cancels-what-enter-started` — what a page starts, its
+  `ionViewWillLeave` stops; `ngOnDestroy` / `takeUntilDestroyed` are
+  deliberately not credited.
+- `ionic-no-skip-location-change` — `replaceUrl`, never `skipLocationChange`
+  (code and the `routerLink` input).
+- `ionic-unique-url-key-per-view` — no two routes render a component at one
+  path, children arrays included.
+- `ionic-session-exit-uses-navigate-root` — a sign-out empties the stack.
+- `ionic-route-reuse-strategy-provided` — `IonicRouteStrategy` in each
+  application's bootstrap; `provideIonicAngular()` does not register it.
+- `ionic-navigation-specs-mount-the-outlet` — a navigation spec mounts the
+  outlet, not only `router.url`.
+- `ionic-e2e-locators-target-the-shown-page` — `ion-*` locators filtered to
+  the shown page.
+
+### ✨ Added — eight Capacitor laws (#153–#160)
+
+Selected where `@capacitor/core` **and** a `capacitor.config.{ts,js,json}` are
+present. The config is read resolved, by the project's own CLI — never by a
+pattern over the file, which a comment holding the safe value above a real
+unsafe one defeats. The native shells are opened by fixed path, independent of
+`ignores`.
+
+- `capacitor-logging-never-production` — `loggingBehavior` at every level,
+  case-insensitive.
+- `capacitor-webview-origin-declared` — `server.hostname`, `androidScheme`,
+  `iosScheme` stated.
+- `capacitor-no-dev-only-server-keys` — the five keys Capacitor documents as
+  not for production.
+- `capacitor-plugin-config-declared` — every plugin that augments
+  `PluginsConfig` gets its block, `{}` included.
+- `capacitor-single-platform-boundary` — Capacitor imports in one boundary,
+  stated in the new `thresholds.capacitor.boundary` or inferred.
+- `capacitor-plugin-platform-declarations` — what the installed plugins need
+  in `AndroidManifest.xml` / `Info.plist`, from a table that cites its sources.
+- `capacitor-deep-link-contract` — intent-filter, `applinks:` entitlement and
+  `appUrlOpen` listener agree.
+- `capacitor-sync-artefacts-match-dependencies` — the tracked
+  `capacitor.settings.gradle` (and Podfile / `Package.swift`, if tracked)
+  equals the dependencies; an untracked one is "not read", not green.
+
+### 🔧 Changed
+
+- The audit cache now keys on the files laws open by fixed path — lockfiles,
+  every workspace `package.json`, `.gitignore`, the Capacitor shells. They sit
+  outside the scanned set, so a cached verdict would otherwise survive an edit
+  to the manifest it was computed from.
+- The init wizard offers an Ionic project type; lint-staged keeps `ng lint` for
+  Ionic on Angular.
+- The release canary has an `ionic` arm, and proves `requires` both ways
+  through the CLI: the Ionic/Capacitor laws run in it and do not run in the
+  Angular arm. With the gate forced open in `dist/`, the canary went red on
+  that check alone.
+
+### 🙋 Ours
+
+- The README's "measured against the shipped registry" table said
+  `python 70`, `angular 67`, "all 58 frontend laws" while the registry held
+  69 / 63 / 55 — a hand-written count, in a table whose whole claim was that it
+  was measured. It is now asserted against the registry like the others.
+- #158's table cited the push-notifications README for `POST_NOTIFICATIONS`.
+  The README at 8.1.3 does not mention it; the requirement is real and comes
+  from the plugin's code (`PushNotificationsPlugin.java:39`), which the row now
+  cites.
+- A first regex in `ionic-no-skip-location-change` read
+  `[skipLocationChange]="false"` as a violation, and `git check-ignore`, asked
+  about a bare non-existent `android/build`, answered "not ignored" for a
+  directory the template covers. Both were caught by the red/green tests
+  before merge.
+- The script that landed the laws ran tsc and the tests but not eslint; four
+  stacked PRs went red in CI on a duplicated limit string before it was fixed
+  and the script changed.
+
+`git-ignore-standards` had no tests at all; it now has eleven.
+
+Closes #143, #144, #145, #146, #147, #148, #149, #150, #151, #152, #153, #154,
+#155, #156, #157, #158, #159, #160, #161, #162
+
 ## [7.23.0] - 2026-08-29
 
 Seven consumer reports, seven fixes, no config edit required and nothing

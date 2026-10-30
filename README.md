@@ -1,7 +1,7 @@
 # 🏛️ RuleOfCode (RoC)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-gold.svg)](https://opensource.org/licenses/MIT)
-[![Constitutional Laws](https://img.shields.io/badge/Constitutional%20Laws-169-red.svg)](#-laws-and-scope)
+[![Constitutional Laws](https://img.shields.io/badge/Constitutional%20Laws-186-red.svg)](#-laws-and-scope)
 [![Tests](https://img.shields.io/badge/Tests-14%2C300%2B%20passing-success.svg)](#-development-and-release)
 [![Fail Closed](https://img.shields.io/badge/Gate-fail--closed-blue.svg)](#-severity-semantics-and-fail-closed-guarantees)
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-Strict%20Mode-blue.svg)](https://www.typescriptlang.org/)
@@ -46,15 +46,18 @@ npx ruleofcode laws --list   # the law catalog with canonical names
 
 ## ⚖️ Laws and scope
 
-**169 laws**, scoped per stack via automatic stack gating — laws outside the project's
+**186 laws**, scoped per stack via automatic stack gating — laws outside the project's
 stack do not run and are not counted:
 
 | Scope | Laws | Applies to |
 |---|---|---|
 | Universal | 62 | every project |
-| Frontend (Angular/NgRx + FE architecture) | 55 | angular / react / vue / ionic |
+| Frontend (Angular/NgRx, FE architecture, Ionic/Capacitor) | 72 | angular / react / vue / ionic |
 | Python (FastAPI, Clean Architecture/CQRS) | 37 | python |
 | TypeScript | 15 | all TS/JS projects |
+
+Of the frontend laws, **9** run only where an Ionic binding is declared and **8** only
+where Capacitor is — see [`requires`](#requires-a-law-about-a-toolkit-runs-only-where-the-toolkit-is).
 
 The project type comes from `project.type` in the config, or is detected from the
 filesystem.
@@ -68,10 +71,10 @@ IDE panel, a dashboard. It is versioned by `schemaVersion` (currently `2`).
 {
   "schemaVersion": 2,
   "tool": "ruleofcode",          // the package name this build was published under
-  "version": "7.23.0",
-  "registryTotal": 169,
+  "version": "7.24.0",
+  "registryTotal": 186,
   "satisfiedByStacks": {          // the mapping described below — read it, don't hardcode it
-    "keys": ["typescript", "angular", "python"],
+    "keys": ["typescript", "angular", "python", "ionic", "capacitor"],
     "stackToKey": { "frontend": "angular", "typescript": "typescript", "python": "python" }
   },
   "laws": [ /* … */ ]
@@ -85,7 +88,8 @@ This is the part that looks like an inconsistency and is not:
 | field | question it answers | values |
 |---|---|---|
 | `stack` | **selection** — does this law run on this project at all? | `frontend`, `typescript`, `python`, or absent (universal) |
-| `satisfiedBy` keys | **guidance** — which technology are these instructions written for? | `typescript`, `angular`, `python` |
+| `satisfiedBy` keys | **guidance** — which technology are these instructions written for? | `typescript`, `angular`, `python`, `ionic`, `capacitor` |
+| `requires` | **selection, finer** — does the project declare the toolkit this law is about? | `{ anyDependency, anyFile }`, or `null` |
 
 **They are orthogonal. A `satisfiedBy` key is not a stack label**, and no key maps 1:1
 onto a stack. Measured against the shipped registry:
@@ -93,8 +97,10 @@ onto a stack. Measured against the shipped registry:
 | key | laws | spread across stacks |
 |---|---|---|
 | `typescript` | 71 | 12 `typescript` + 59 universal |
-| `python` | 70 | 37 `python` + 33 universal |
-| `angular` | 67 | 58 `frontend` + 3 `typescript` + 6 universal |
+| `python` | 69 | 37 `python` + 32 universal |
+| `angular` | 63 | 55 `frontend` + 3 `typescript` + 5 universal |
+| `ionic` | 9 | 9 `frontend` |
+| `capacitor` | 10 | 8 `frontend` + 2 universal |
 
 `angular` appearing on TypeScript-stack and universal laws is the clearest evidence:
 it names the technology the advice is written in, not the projects the law applies to.
@@ -104,9 +110,28 @@ default key for a stacked law; universal laws carry whichever keys have been aut
 Read that object rather than hardcoding a table — if a key is ever added, your renderer
 picks it up.
 
+### `requires`: a law about a toolkit runs only where the toolkit is
+
+`stack: "frontend"` cannot tell an Ionic app from a plain Angular one. A law about
+`ion-router-outlet` or `capacitor.config.ts` that ran in a project without them would
+inspect nothing and print a green check — a pass that proves nothing. So such a law
+carries `requires`, and where the project does not declare what it names, the law is
+**not selected**: not run, not counted, exactly like a stack mismatch.
+
+```jsonc
+"requires": { "anyDependency": ["@capacitor/core"],
+              "anyFile": ["capacitor.config.ts", "capacitor.config.js", "capacitor.config.json"] }
+```
+
+Dependencies are read from every workspace `package.json` (root, `apps/*`, `libs/*/*`,
+`packages/*`); files from the root and the same project directories. Every listed
+condition must hold; within a list, one entry is enough. The guidance of such a law sits
+under the key named for the toolkit (`ionic`, `capacitor`), which `stackToKey` cannot
+point at — another reason to iterate `keys`.
+
 ### Where the guidance is missing, say so
 
-All 58 `frontend` laws carry only `satisfiedBy.angular`. **There is no React or Vue
+The 55 `frontend` laws without a `requires` carry only `satisfiedBy.angular`. **There is no React or Vue
 guidance yet** ([#12](https://github.com/Rule-Of-Code/RoC/issues/12)). A React project
 matches `stack: "frontend"`, so those laws run — but the only remediation text we have
 is Angular's.

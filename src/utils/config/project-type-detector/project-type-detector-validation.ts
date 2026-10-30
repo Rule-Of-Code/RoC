@@ -32,6 +32,8 @@ export class ProjectTypeDetectorValidation {
    */
   private static isProjectOfType(projectRoot: string, type: string): boolean {
     switch (type) {
+      case 'ionic':
+        return this.isIonicProject(projectRoot);
       case 'angular':
         return this.isAngularProject(projectRoot);
       case 'react':
@@ -57,6 +59,13 @@ export class ProjectTypeDetectorValidation {
     const patterns =
       ProjectTypeDetectorConfiguration.getPythonProjectPatterns(undefined);
     return this.hasAnyFile(projectRoot, patterns.files);
+  }
+
+  /** Check if project is Ionic — the Ionic CLI config, or any Ionic binding as a dependency. */
+  static isIonicProject(projectRoot: string): boolean {
+    const patterns =
+      ProjectTypeDetectorConfiguration.getIonicProjectPatterns(undefined);
+    return this.isProjectOfTypeByPatterns(projectRoot, patterns);
   }
 
   /**

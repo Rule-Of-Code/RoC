@@ -138,6 +138,37 @@ describe('ConfigLoader', () => {
     });
   });
 
+  describe('an Ionic project', () => {
+    const ionicProject = (deps: Record<string, string>): string => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-loader-ionic-'));
+      fs.writeFileSync(
+        path.join(dir, 'package.json'),
+        JSON.stringify({ dependencies: deps })
+      );
+      return dir;
+    };
+
+    it('is typed ionic and keeps the Angular defaults it sits on', () => {
+      const dir = ionicProject({ '@angular/core': '20.0.0', '@ionic/angular': '8.8.17' });
+      try {
+        const config = ConfigLoader.load(dir);
+        expect(config.project.type).toBe('ionic');
+        expect(config.project.framework?.angular?.strictMode).toBe(true);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it('on React is typed ionic too', () => {
+      const dir = ionicProject({ react: '18.0.0', '@ionic/react': '8.8.17' });
+      try {
+        expect(ConfigLoader.load(dir).project.type).toBe('ionic');
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+  });
+
   describe('edge cases', () => {
     it('should handle non-existent project root gracefully', () => {
       const config = ConfigLoader.loadConfig('/non/existent/path');

@@ -169,6 +169,31 @@ import {
   TimerCleanupLaw,
 } from '../checkers/fe-architecture-laws';
 
+// Capacitor Laws Modular Imports — gated by `requires` on @capacitor/core + a config
+import {
+  CapacitorDeepLinkContractLaw,
+  CapacitorLoggingNeverProductionLaw,
+  CapacitorNoDevOnlyServerKeysLaw,
+  CapacitorPluginConfigDeclaredLaw,
+  CapacitorPluginPlatformDeclarationsLaw,
+  CapacitorSinglePlatformBoundaryLaw,
+  CapacitorSyncArtefactsMatchDependenciesLaw,
+  CapacitorWebviewOriginDeclaredLaw,
+} from '../checkers/capacitor-laws';
+
+// Ionic Laws Modular Imports — gated by `requires` on an Ionic binding
+import {
+  IonicE2eLocatorsTargetTheShownPageLaw,
+  IonicLeaveCancelsWhatEnterStartedLaw,
+  IonicNavigationSpecsMountTheOutletLaw,
+  IonicNoSkipLocationChangeLaw,
+  IonicPageStateReadOnEnterLaw,
+  IonicRouteReuseStrategyProvidedLaw,
+  IonicSessionExitUsesNavigateRootLaw,
+  IonicUniqueUrlKeyPerViewLaw,
+  IonicViewLifecycleInterfacesLaw,
+} from '../checkers/ionic-laws';
+
 // Security Laws Modular Imports
 import {
   EnvironmentVariablesLaw,
@@ -458,6 +483,27 @@ export class ModularLawsRegistry {
     'TimerCleanupLaw.check': TimerCleanupLaw,
     'NoRiskLiteralsLaw.check': NoRiskLiteralsLaw,
 
+    // Capacitor Laws (gated on @capacitor/core + a Capacitor config)
+    'CapacitorLoggingNeverProductionLaw.check': CapacitorLoggingNeverProductionLaw,
+    'CapacitorWebviewOriginDeclaredLaw.check': CapacitorWebviewOriginDeclaredLaw,
+    'CapacitorNoDevOnlyServerKeysLaw.check': CapacitorNoDevOnlyServerKeysLaw,
+    'CapacitorPluginConfigDeclaredLaw.check': CapacitorPluginConfigDeclaredLaw,
+    'CapacitorSinglePlatformBoundaryLaw.check': CapacitorSinglePlatformBoundaryLaw,
+    'CapacitorPluginPlatformDeclarationsLaw.check': CapacitorPluginPlatformDeclarationsLaw,
+    'CapacitorDeepLinkContractLaw.check': CapacitorDeepLinkContractLaw,
+    'CapacitorSyncArtefactsMatchDependenciesLaw.check': CapacitorSyncArtefactsMatchDependenciesLaw,
+
+    // Ionic Laws (gated on an Ionic binding)
+    'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,
+    'IonicPageStateReadOnEnterLaw.check': IonicPageStateReadOnEnterLaw,
+    'IonicLeaveCancelsWhatEnterStartedLaw.check': IonicLeaveCancelsWhatEnterStartedLaw,
+    'IonicNoSkipLocationChangeLaw.check': IonicNoSkipLocationChangeLaw,
+    'IonicUniqueUrlKeyPerViewLaw.check': IonicUniqueUrlKeyPerViewLaw,
+    'IonicSessionExitUsesNavigateRootLaw.check': IonicSessionExitUsesNavigateRootLaw,
+    'IonicRouteReuseStrategyProvidedLaw.check': IonicRouteReuseStrategyProvidedLaw,
+    'IonicNavigationSpecsMountTheOutletLaw.check': IonicNavigationSpecsMountTheOutletLaw,
+    'IonicE2eLocatorsTargetTheShownPageLaw.check': IonicE2eLocatorsTargetTheShownPageLaw,
+
     // Security Laws
     checkEnvironmentVariables: EnvironmentVariablesLaw,
     checkXSSPrevention: XSSPreventionLaw,
@@ -544,6 +590,7 @@ export class ModularLawsRegistry {
       applicableFrameworks: this.getApplicableFrameworks(law),
       legacyId: law.legacyId,
       stack: law.stack,
+      requires: law.requires,
       check: this.createModularCheckFunction(law, law.id),
     }));
   }
@@ -825,6 +872,8 @@ export class ModularLawsRegistry {
     if (law.description.includes('Vue')) frameworks.push('vue');
     if (law.description.includes('Node')) frameworks.push('node');
     if (law.description.includes('TypeScript')) frameworks.push('typescript');
+    if (law.description.includes('Ionic')) frameworks.push('ionic');
+    if (law.description.includes('Capacitor')) frameworks.push('capacitor');
     return frameworks.length > 0 ? frameworks : ['*'];
   }
 }

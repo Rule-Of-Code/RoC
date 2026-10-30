@@ -4,6 +4,9 @@
  * Uses REAL ConfigLoader and ModularLawsRegistry - NO MOCKS
  */
 
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import { PathOperations } from '../../src/utils/path-operations';
 import { RuleOfCodeAuditor } from '../../src/core/auditing/audit-engine';
 import { ConfigFileUtils } from '../../src/utils/config-file-utils';
@@ -479,6 +482,73 @@ describe('RuleOfCodeAuditor', () => {
     });
   });
 
+  /**
+   * `requires` gating through the engine's own selector, with the real
+   * registry: an Ionic law is selected where the project declares
+   * @ionic/angular and absent — not run, not counted — where it does not.
+   */
+  describe('requirement gating in law selection', () => {
+    const IONIC_LAW = 'Ionic View Lifecycle Interfaces';
+
+    const selectedIn = (deps: Record<string, string>): string[] => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-requires-'));
+      try {
+        fs.writeFileSync(
+          path.join(dir, 'package.json'),
+          JSON.stringify({ dependencies: deps })
+        );
+        const auditor = new RuleOfCodeAuditor({}, dir) as unknown as {
+          getLawsToAudit: () => Array<{ name: string }>;
+        };
+        return auditor.getLawsToAudit().map(law => law.name);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    };
+
+    it('drops an Ionic law in an Angular project without Ionic', () => {
+      expect(selectedIn({ '@angular/core': '20.0.0' })).not.toContain(IONIC_LAW);
+    });
+
+    const CAPACITOR_LAW = 'Capacitor Logging Never Production';
+    const selectedWith = (files: Record<string, string>): string[] => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-requires-cap-'));
+      try {
+        for (const [name, content] of Object.entries(files)) {
+          fs.writeFileSync(path.join(dir, name), content);
+        }
+        const auditor = new RuleOfCodeAuditor({}, dir) as unknown as {
+          getLawsToAudit: () => Array<{ name: string }>;
+        };
+        return auditor.getLawsToAudit().map(law => law.name);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    };
+    const CAP_DEPS = JSON.stringify({
+      dependencies: { '@angular/core': '20.0.0', '@capacitor/core': '8.5.1' },
+    });
+
+    it('a Capacitor law needs BOTH the dependency and a capacitor.config.*', () => {
+      expect(selectedWith({ 'package.json': CAP_DEPS })).not.toContain(CAPACITOR_LAW);
+      expect(
+        selectedWith({
+          'package.json': JSON.stringify({ dependencies: { '@angular/core': '20.0.0' } }),
+          'capacitor.config.json': '{}',
+        })
+      ).not.toContain(CAPACITOR_LAW);
+      expect(
+        selectedWith({ 'package.json': CAP_DEPS, 'capacitor.config.json': '{}' })
+      ).toContain(CAPACITOR_LAW);
+    });
+
+    it('selects it where @ionic/angular is declared', () => {
+      expect(
+        selectedIn({ '@angular/core': '20.0.0', '@ionic/angular': '8.8.17' })
+      ).toContain(IONIC_LAW);
+    });
+  });
+
   describe('validateSeverityOverrides', () => {
     type Validator = {
       config: { laws: Record<string, unknown> };
@@ -524,6 +594,28 @@ describe('RuleOfCodeAuditor', () => {
       };
       auditor.validateSeverityOverrides();
       expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    it('reports a requirement-gated key as informational, not as unknown', () => {
+      // An Angular project (frontend stack applies) that declares no Ionic binding.
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-gated-key-'));
+      try {
+        fs.writeFileSync(
+          path.join(dir, 'package.json'),
+          JSON.stringify({ dependencies: { '@angular/core': '20.0.0' } })
+        );
+        const auditor = new RuleOfCodeAuditor({}, dir) as unknown as Validator;
+        auditor.config.laws.severity = { 'ionic-view-lifecycle-interfaces': 'error' };
+        auditor.validateSeverityOverrides();
+        expect(warnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('requirement-gated')
+        );
+        expect(warnSpy).not.toHaveBeenCalledWith(
+          expect.stringContaining('unknown law')
+        );
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
     });
 
     it('reports a stack-gated key as informational, not as unknown', () => {

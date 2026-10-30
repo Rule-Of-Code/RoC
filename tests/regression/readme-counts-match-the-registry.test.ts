@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
+import { ALL_ENHANCED_CONSTITUTIONAL_LAWS } from '../../src/data/enhanced-laws';
 import { ModularLawsRegistry } from '../../src/registry/modular-laws-registry';
 
 /**
@@ -15,8 +16,12 @@ import { ModularLawsRegistry } from '../../src/registry/modular-laws-registry';
  * registry the source and the README the copy.
  */
 describe('the README counts match the registry', () => {
+  // Line endings normalised: a Windows checkout (core.autocrlf) has CRLF, and
+  // an assertion spanning a line break must not depend on the platform.
   const readme = (): string =>
-    fs.readFileSync(path.join(__dirname, '../../README.md'), 'utf8');
+    fs
+      .readFileSync(path.join(__dirname, '../../README.md'), 'utf8')
+      .replace(/\r\n/g, '\n');
 
   const total = (): number => ModularLawsRegistry.getAll().length;
 
@@ -46,7 +51,7 @@ describe('the README counts match the registry', () => {
   describe('the scope table', () => {
     it.each([
       ['Universal', undefined],
-      ['Frontend (Angular/NgRx + FE architecture)', 'frontend'],
+      ['Frontend (Angular/NgRx, FE architecture, Ionic/Capacitor)', 'frontend'],
       ['Python (FastAPI, Clean Architecture/CQRS)', 'python'],
       ['TypeScript', 'typescript'],
     ])('%s states the real count', (label, stack) => {
@@ -58,12 +63,63 @@ describe('the README counts match the registry', () => {
       expect(row).toContain(`| ${byStack(stack as string | undefined)} |`);
     });
 
+    it('states how many frontend laws are gated on Ionic and on Capacitor', () => {
+      const gatedOn = (prefix: string): number =>
+        ModularLawsRegistry.getAll().filter(law =>
+          (law.requires?.anyDependency ?? []).some(name => name.startsWith(prefix))
+        ).length;
+
+      expect(readme()).toContain(
+        `Of the frontend laws, **${gatedOn('@ionic/')}** ${gatedOn('@ionic/') === 1 ? 'runs' : 'run'} only where an Ionic binding is declared and **${gatedOn('@capacitor/')}** only
+where Capacitor is`
+      );
+    });
+
     /** The rows must account for every law, or one scope is missing. */
     it('the rows sum to the total', () => {
       const scopes = [undefined, 'frontend', 'python', 'typescript'];
       const summed = scopes.reduce((sum, s) => sum + byStack(s), 0);
 
       expect(summed).toBe(total());
+    });
+  });
+
+  /**
+   * The "measured against the shipped registry" table said 70 / 67 / 58 while
+   * the registry held 69 / 63 / 55 — the same hand-written drift, one section
+   * further down, in a table whose whole claim is that it was measured.
+   */
+  describe('the satisfiedBy spread table', () => {
+    const laws = ALL_ENHANCED_CONSTITUTIONAL_LAWS;
+    const keys = [...new Set(laws.flatMap(law => Object.keys(law.satisfiedBy ?? {})))];
+
+    it.each(keys)('the `%s` row states the measured count and spread', key => {
+      const carrying = laws.filter(law => law.satisfiedBy?.[key as 'angular'] !== undefined);
+      const spread = new Map<string, number>();
+      for (const law of carrying) {
+        const stack = law.stack ?? 'universal';
+        spread.set(stack, (spread.get(stack) ?? 0) + 1);
+      }
+      const row = readme()
+        .split('\n')
+        .find(line => line.startsWith(`| \`${key}\` | `));
+
+      expect(row).toBeDefined();
+      expect(row).toContain(`| ${carrying.length} |`);
+      for (const [stack, count] of spread) {
+        const label = stack === 'universal' ? `${count} universal` : `${count} \`${stack}\``;
+        expect(row).toContain(label);
+      }
+    });
+
+    it('states how many frontend laws carry only Angular guidance', () => {
+      const angularOnly = laws.filter(
+        law => law.stack === 'frontend' && law.requires === undefined
+      ).length;
+
+      expect(readme()).toContain(
+        `The ${angularOnly} \`frontend\` laws without a \`requires\` carry only \`satisfiedBy.angular\`.`
+      );
     });
   });
 });

@@ -4,6 +4,7 @@
  */
 
 import type { RuleOfCodeConfig } from '../config/types';
+import type { LawRequirement, SatisfiedByGuidance } from './enhanced-law.types';
 
 export interface ConstitutionalLaw {
   id: string;
@@ -26,13 +27,15 @@ export interface ConstitutionalLaw {
   /** WHY the law exists — see EnhancedConstitutionalLaw.rationale. */
   rationale?: string;
   /** How to satisfy the law per stack — see EnhancedConstitutionalLaw.satisfiedBy. */
-  satisfiedBy?: { typescript?: string; angular?: string; python?: string };
+  satisfiedBy?: SatisfiedByGuidance;
   /**
    * Legacy numeric id, for migration only. NOT a config key: 25 legacyIds are
    * shared by 51 laws (v7.10.0 refuses ambiguous keys). Key by name or slug.
    */
   legacyId?: number;
   stack?: 'frontend' | 'python' | 'typescript'; // Stack scope (omitted = universal)
+  /** Declared dependencies/files without which the law is not selected — see EnhancedConstitutionalLaw.requires. */
+  requires?: LawRequirement;
   check: (projectRoot: string, config: RuleOfCodeConfig) => Promise<LawResult>;
 }
 

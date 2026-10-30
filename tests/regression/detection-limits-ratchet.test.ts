@@ -1,3 +1,4 @@
+import { SATISFIED_BY_KEYS } from '../../src/cli/laws-command';
 import { ALL_ENHANCED_CONSTITUTIONAL_LAWS } from '../../src/data/enhanced-laws';
 
 /**
@@ -8,7 +9,7 @@ import { ALL_ENHANCED_CONSTITUTIONAL_LAWS } from '../../src/data/enhanced-laws';
  * this whole tool is built to kill — a law that silently misses a case while
  * looking like it covers it is the `unauthorized_401` metric that fed nothing.
  *
- * Authoring all 169 is a large content effort, so this is not error-on-day-one:
+ * Authoring every law's limits is a large content effort, so this is not error-on-day-one:
  * it is a FLOOR that ratchets up. The count may never drop below DECLARED_FLOOR,
  * and when you author more limits you raise the floor in the same PR. The number
  * is published on /dogfood and is meant to shrink the gap in public. A silently
@@ -16,7 +17,7 @@ import { ALL_ENHANCED_CONSTITUTIONAL_LAWS } from '../../src/data/enhanced-laws';
  */
 describe('detection-limits ratchet', () => {
   // Raise this when you author more limits. It must never go DOWN.
-  const DECLARED_FLOOR = 169;
+  const DECLARED_FLOOR = 186;
 
   const declared = ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(
     law => Array.isArray(law.detectionLimits) && law.detectionLimits.length > 0
@@ -57,8 +58,8 @@ describe('detection-limits ratchet', () => {
  * has its own floor that may never regress and is meant to grow in public.
  */
 describe('rationale & satisfiedBy ratchet', () => {
-  const RATIONALE_FLOOR = 169;
-  const SATISFIED_FLOOR = 168;
+  const RATIONALE_FLOOR = 186;
+  const SATISFIED_FLOOR = 185;
 
   const withRationale = ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(
     law => typeof law.rationale === 'string' && law.rationale.trim().length > 0
@@ -85,7 +86,7 @@ describe('rationale & satisfiedBy ratchet', () => {
   });
 
   it('every satisfiedBy value names a real stack and is non-empty', () => {
-    const stacks = new Set(['typescript', 'angular', 'python']);
+    const stacks = new Set<string>(SATISFIED_BY_KEYS);
     const bad = withSatisfied.flatMap(law =>
       Object.entries(law.satisfiedBy ?? {})
         .filter(
@@ -95,5 +96,24 @@ describe('rationale & satisfiedBy ratchet', () => {
         .map(([stack]) => `${law.title}.${stack}`)
     );
     expect(bad).toEqual([]);
+  });
+
+  /**
+   * Guidance written ONLY for a toolkit only makes sense where the toolkit is.
+   * A law whose sole guidance is `satisfiedBy.ionic`, running in a project
+   * without Ionic, would tell its reader to fix a page lifecycle that does not
+   * exist. A universal law may carry a toolkit key NEXT to its general
+   * guidance — "and if you ship through Capacitor, also…" — and is not gated.
+   */
+  it.each([
+    ['ionic', '@ionic/'],
+    ['capacitor', '@capacitor/core'],
+  ])('a law whose only guidance is satisfiedBy.%s is gated on %s', (key, dependency) => {
+    const ungated = ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(
+      law =>
+        Object.keys(law.satisfiedBy ?? {}).join() === key &&
+        !(law.requires?.anyDependency ?? []).some(name => name.startsWith(dependency))
+    ).map(law => law.title);
+    expect(ungated).toEqual([]);
   });
 });

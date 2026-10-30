@@ -99,17 +99,19 @@ describe('rationale & satisfiedBy ratchet', () => {
   });
 
   /**
-   * Guidance written for a toolkit only makes sense where the toolkit is. A
-   * law carrying `satisfiedBy.ionic` that ran in a project without Ionic would
-   * tell its reader to fix a page lifecycle that does not exist.
+   * Guidance written ONLY for a toolkit only makes sense where the toolkit is.
+   * A law whose sole guidance is `satisfiedBy.ionic`, running in a project
+   * without Ionic, would tell its reader to fix a page lifecycle that does not
+   * exist. A universal law may carry a toolkit key NEXT to its general
+   * guidance — "and if you ship through Capacitor, also…" — and is not gated.
    */
   it.each([
     ['ionic', '@ionic/'],
     ['capacitor', '@capacitor/core'],
-  ])('a law with satisfiedBy.%s is gated on %s by requires', (key, dependency) => {
+  ])('a law whose only guidance is satisfiedBy.%s is gated on %s', (key, dependency) => {
     const ungated = ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(
       law =>
-        law.satisfiedBy?.[key as 'ionic' | 'capacitor'] !== undefined &&
+        Object.keys(law.satisfiedBy ?? {}).join() === key &&
         !(law.requires?.anyDependency ?? []).some(name => name.startsWith(dependency))
     ).map(law => law.title);
     expect(ungated).toEqual([]);

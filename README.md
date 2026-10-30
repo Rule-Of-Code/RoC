@@ -100,7 +100,7 @@ onto a stack. Measured against the shipped registry:
 | `python` | 69 | 37 `python` + 32 universal |
 | `angular` | 63 | 55 `frontend` + 3 `typescript` + 5 universal |
 | `ionic` | 9 | 9 `frontend` |
-| `capacitor` | 8 | 8 `frontend` |
+| `capacitor` | 9 | 8 `frontend` + 1 universal |
 
 `angular` appearing on TypeScript-stack and universal laws is the clearest evidence:
 it names the technology the advice is written in, not the projects the law applies to.

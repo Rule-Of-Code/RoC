@@ -16,8 +16,12 @@ import { ModularLawsRegistry } from '../../src/registry/modular-laws-registry';
  * registry the source and the README the copy.
  */
 describe('the README counts match the registry', () => {
+  // Line endings normalised: a Windows checkout (core.autocrlf) has CRLF, and
+  // an assertion spanning a line break must not depend on the platform.
   const readme = (): string =>
-    fs.readFileSync(path.join(__dirname, '../../README.md'), 'utf8');
+    fs
+      .readFileSync(path.join(__dirname, '../../README.md'), 'utf8')
+      .replace(/\r\n/g, '\n');
 
   const total = (): number => ModularLawsRegistry.getAll().length;
 

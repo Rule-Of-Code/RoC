@@ -5,6 +5,7 @@
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils/file-utils';
+import { readPublishableFiles } from '../../utils/git/git-layout';
 import { PathOperations } from '../../utils/path-operations';
 import { SecretManagementAnalyzer } from '../../utils/security/secret-management';
 import { SecurityLawBase } from './security-law-base';
@@ -25,17 +26,15 @@ export class EnvironmentVariablesLaw {
       'config.json',
     ];
 
-    for (const envFile of envFiles) {
-      const filePath = PathOperations.join(context.projectRoot, envFile);
-
-      if (FileUtils.exists(filePath)) {
-        try {
-          const content = FileUtils.readFile(filePath);
-          this.checkFileForSecrets(content, envFile, violations, suggestions);
-        } catch (error) {
-          violations.push(`Could not read ${envFile}: ${error}`);
-        }
-      }
+    // A secret is a finding where git can publish it: tracked (read from the
+    // index), or present and not ignored. An ignored local `.env` — or an
+    // ignored `environment.ts` generated from a committed template — is the
+    // setup this law asks for, not a leak.
+    for (const { file, content } of readPublishableFiles(
+      context.projectRoot,
+      envFiles
+    )) {
+      this.checkFileForSecrets(content, file, violations, suggestions);
     }
 
     // Check if proper template files exist

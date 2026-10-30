@@ -187,6 +187,7 @@ export const DEPLOYMENT_LAWS: EnhancedConstitutionalLaw[] = [
       'Asks for the CONTRACT (.env.example), never the values — it will not, and must not, want .env.production in the repo.',
       'Environment-variable usage detection is process.env (Node) only; Angular environment.ts objects are invisible.',
       'Presence / consistency heuristics over config files; no runtime check that the environments actually match.',
+      'Whether .env is in git is asked of git (tracked, or present and not ignored); outside a git repository it falls back to looking for a .env line in .gitignore.',
     ],
     emoji: '🌍',
     description: 'Development, staging, and production environment parity',

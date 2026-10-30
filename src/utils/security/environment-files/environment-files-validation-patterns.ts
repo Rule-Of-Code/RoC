@@ -3,6 +3,7 @@
  * Validation workflow for environment files security analysis
  */
 
+import { readPublishableFiles } from '../../git/git-layout';
 import * as Config from './environment-files-configuration';
 
 // ============================================================================
@@ -14,22 +15,20 @@ export function validateEnvironmentFiles(
 ): Config.EnvCheckResult {
   const results: Config.EnvCheckResult[] = [];
 
-  // Check each env file
-  Config.ENV_FILES.forEach(envFile => {
-    if (Config.envFileExists(projectRoot, envFile)) {
-      const filePath = Config.getEnvFilePath(projectRoot, envFile);
-      const content = Config.safeReadFile(filePath);
-
-      if (content) {
-        results.push(
-          Config.mergeResults(
-            checkForSensitiveData(content, envFile),
-            checkEnvFileFormatting(content, envFile)
-          )
-        );
-      }
-    }
-  });
+  // Only env files git could publish: a tracked one is read from the index,
+  // and an ignored, untracked one is not judged at all — it is the correct
+  // setup, and holds real values because it is the one that runs.
+  for (const { file, content } of readPublishableFiles(
+    projectRoot,
+    Config.ENV_FILES
+  )) {
+    results.push(
+      Config.mergeResults(
+        checkForSensitiveData(content, file),
+        checkEnvFileFormatting(content, file)
+      )
+    );
+  }
 
   // Check gitignore
   results.push(checkGitignore(projectRoot));

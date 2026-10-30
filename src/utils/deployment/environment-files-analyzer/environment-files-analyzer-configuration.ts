@@ -94,6 +94,9 @@ export class EnvironmentFilesAnalyzerConfiguration {
   static readonly ENV_ANALYSIS_MESSAGES = {
     noExampleFile: '.env.example file not found',
     envInGit: '.env file may be tracked in git',
+    envTracked: '.env file is tracked in git',
+    untrackEnv:
+      'git rm --cached .env, keep it in .gitignore, and rotate the secrets it held — they stay in the history',
     createExampleFile:
       'Create .env.example file with all required environment variables',
     addToGitignore: 'Add .env to .gitignore to prevent committing secrets',

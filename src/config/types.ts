@@ -587,6 +587,41 @@ export interface RuleOfCodeConfig {
        */
       fixedContentPattern?: string;
     };
+    next?: {
+      /**
+       * App Router routes that need no metadata of their own (Next Metadata
+       * Declared), as globs over the route path: `/admin/**`, `/internal`.
+       * Route groups `(x)` and slots `@x` are not part of the path.
+       */
+      metadataExemptRoutes?: string[];
+      /**
+       * Module specifiers that must not be imported statically by a module in
+       * the client bundle (Next Heavy Lib In Client Graph), as globs over the
+       * specifier: `moment`, `three/**`. REPLACES the built-in list rather than
+       * adding to it, so a project can also drop an entry it has measured.
+       */
+      heavyClientLibraries?: string[];
+      /**
+       * External script hosts the app loads on purpose (Next Third Party
+       * Script Declared), each with the reason it is worth its cost. An entry
+       * without a reason is reported, not honoured.
+       */
+      thirdPartyScripts?: Array<{ host: string; reason: string }>;
+      /**
+       * Root-relative links that must do a full page load (Next Internal Link
+       * Component), as globs over the href path, each with its reason — a
+       * recovery page that resets client state. An entry without a reason is
+       * reported, not honoured.
+       */
+      fullReloadLinks?: Array<{ path: string; reason: string }>;
+      /**
+       * Largest first-load JavaScript a route may ship, in kilobytes of 1024
+       * bytes, uncompressed — the `firstLoadUncompressedJsBytes` Next writes to
+       * .next/diagnostics/route-bundle-stats.json (Next Route JS Budget).
+       * No default: the law is opt-in and fails until a budget is declared.
+       */
+      routeJsBudgetKb?: number;
+    };
     testing?: {
       /** Minimum test coverage percentage (0-100) */
       minCoveragePercent?: number;

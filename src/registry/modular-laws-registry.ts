@@ -220,6 +220,20 @@ import {
   IonicViewportFitCoverLaw,
 } from '../checkers/ionic-laws';
 
+// Next.js Client Laws Modular Imports — gated by `requires` on next
+import {
+  HtmlLangDeclaredLaw,
+  NextClientPropsSerializableLaw,
+  NextHeavyLibInClientGraphLaw,
+  NextImageHasDimensionsLaw,
+  NextInternalLinkComponentLaw,
+  NextLoadingForAsyncPageLaw,
+  NextMetadataDeclaredLaw,
+  NextRouteJsBudgetLaw,
+  NextSegmentConfigConsistentLaw,
+  NextThirdPartyScriptDeclaredLaw,
+  NextUseClientAtLeavesLaw,
+} from '../checkers/next-laws';
 // React Laws Modular Imports — gated by `requires` on react (or next)
 import {
   ClientFetchResponseCheckedLaw,
@@ -563,6 +577,19 @@ export class ModularLawsRegistry {
     'ClientFetchResponseCheckedLaw.check': ClientFetchResponseCheckedLaw,
     'ReactPollVisibilityGatedLaw.check': ReactPollVisibilityGatedLaw,
     'ReactListKeyStabilityLaw.check': ReactListKeyStabilityLaw,
+
+    // Next.js client laws (gated on next)
+    'NextMetadataDeclaredLaw.check': NextMetadataDeclaredLaw,
+    'NextHeavyLibInClientGraphLaw.check': NextHeavyLibInClientGraphLaw,
+    'NextImageHasDimensionsLaw.check': NextImageHasDimensionsLaw,
+    'NextThirdPartyScriptDeclaredLaw.check': NextThirdPartyScriptDeclaredLaw,
+    'HtmlLangDeclaredLaw.check': HtmlLangDeclaredLaw,
+    'NextInternalLinkComponentLaw.check': NextInternalLinkComponentLaw,
+    'NextUseClientAtLeavesLaw.check': NextUseClientAtLeavesLaw,
+    'NextClientPropsSerializableLaw.check': NextClientPropsSerializableLaw,
+    'NextRouteJsBudgetLaw.check': NextRouteJsBudgetLaw,
+    'NextSegmentConfigConsistentLaw.check': NextSegmentConfigConsistentLaw,
+    'NextLoadingForAsyncPageLaw.check': NextLoadingForAsyncPageLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

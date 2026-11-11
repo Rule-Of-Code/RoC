@@ -21,6 +21,7 @@ import { FE_ARCHITECTURE_LAWS } from './fe-architecture-laws';
 import { IONIC_LAWS } from './ionic-laws';
 import { IONIC_RENDERING_LAWS } from './ionic-rendering-laws';
 import { META_GATE_LAWS } from './meta-gate-laws';
+import { NEXT_CLIENT_LAWS } from './next-client-laws';
 import { PERFORMANCE_LAWS } from './performance-laws';
 import { PYTHON_LAWS } from './python-laws';
 import { REACT_LAWS } from './react-laws';
@@ -48,6 +49,7 @@ export const ALL_ENHANCED_CONSTITUTIONAL_LAWS: EnhancedConstitutionalLaw[] = [
   ...IONIC_LAWS, // 📱 Ionic laws (frontend, requires an Ionic binding; IDs 401+)
   ...IONIC_RENDERING_LAWS, // 🖌️ Ionic rendering-model laws (frontend, requires an Ionic binding; IDs 411+)
   ...CAPACITOR_LAWS, // 🔌 Capacitor laws (frontend, requires @capacitor/core + config; IDs 421+)
+  ...NEXT_CLIENT_LAWS, // ▲ Next.js client laws (frontend, requires next; IDs 551–569)
   ...REACT_LAWS, // ⚛️ React laws (frontend, requires react or next; IDs 501+)
   ...REACT_SECURITY_LAWS, // 🧯 React security laws (frontend, requires react / next; IDs 581+)
   ...CAPACITOR_NATIVE_LAWS, // 🤖 Capacitor native-shell laws (frontend, + the platform package; IDs 431+)
@@ -68,6 +70,7 @@ export {
   IONIC_LAWS,
   IONIC_RENDERING_LAWS,
   META_GATE_LAWS,
+  NEXT_CLIENT_LAWS,
   FRAMEWORK_LAWS,
   PARETO_CATEGORIES,
   PERFORMANCE_LAWS,

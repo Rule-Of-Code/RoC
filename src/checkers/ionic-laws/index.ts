@@ -16,3 +16,4 @@ export { IonicViewHooksOnlyOnPagesLaw } from './ionic-view-hooks-only-on-pages';
 export { IonicSingleBuildSystemLaw } from './ionic-single-build-system';
 export { IonicIconsRegisteredLaw } from './ionic-icons-registered';
 export { IonicScrollThroughIonContentLaw } from './ionic-scroll-through-ion-content';
+export { IonicViewportFitCoverLaw } from './ionic-viewport-fit-cover';

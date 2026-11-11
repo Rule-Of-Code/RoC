@@ -18,7 +18,7 @@
 
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
-import { REQUIRES_IONIC_ANGULAR } from '../utils/ionic/ionic-project';
+import { REQUIRES_IONIC, REQUIRES_IONIC_ANGULAR } from '../utils/ionic/ionic-project';
 
 const TEMPLATES_ANGULAR_ONLY =
   'Angular templates only (inline `template` and `templateUrl`); @ionic/react and @ionic/vue are not selected because JSX and SFC templates are not read.';
@@ -176,5 +176,42 @@ export const IONIC_RENDERING_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article IV.4.83: Scroll handled through the window, or ionScroll without scrollEvents',
     remediation:
       'Add [scrollEvents]="true" next to (ionScroll), and use IonContent instead of window scroll',
+  },
+
+  {
+    id: generateLawId(
+      'Ionic Viewport Fit Cover',
+      'The index.html of an Ionic app declares viewport-fit=cover so the safe-area insets reach the page',
+      'ionic'
+    ),
+    legacyId: 415,
+    article: 'IV',
+    subsection: '4.84',
+    title: 'Ionic Viewport Fit Cover',
+    rationale:
+      "Ionic pads header, footer, tabs and content with --ion-safe-area-*, which @ionic/core's core.css sets from var(--safe-area-inset-*, env(safe-area-inset-*)); env() carries the notch and home-indicator insets only when the viewport meta asks for viewport-fit=cover. Capacitor's Android SystemBars plugin, which injects the --safe-area-inset-* fallback, passes the insets through only when the last <meta name=viewport> contains viewport-fit=cover and pads the WebView natively otherwise. Without the tag every safe-area rule is inert, while desktop Chromium, emulators without a cutout and unit tests look identical. The tag lives in index.html, outside every TS/template scan.",
+    satisfiedBy: {
+      ionic:
+        'Declare <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"> in the index.html the build uses, and keep pinch-zoom enabled unless you decided otherwise.',
+    },
+    detectionLimits: [
+      "Reads the index the Angular application builder uses (the build target's index option, else <sourceRoot>/index.html) from angular.json and every project.json; without either, index.html, src/index.html or public/index.html. A meta tag injected at runtime is not seen.",
+      'Only the last <meta name="viewport"> counts, as in browsers and Capacitor SystemBars; comments are ignored. user-scalable=no and maximum-scale ≤ 1 are reported as notes, not violations.',
+      'Presence only; whether the app then reads the insets is ionic-edge-chrome-pays-safe-area. The zero inset on iOS without the tag follows from the CSS env() specification and was not measured on a device.',
+    ],
+    emoji: '📐',
+    description:
+      'The index.html of an Ionic app declares viewport-fit=cover so the safe-area insets reach the page',
+    priority: 'MEDIUM',
+    category: 'FRAMEWORK',
+    stack: 'frontend',
+    requires: REQUIRES_IONIC,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'IonicViewportFitCoverLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.84: index.html viewport without viewport-fit=cover',
+    remediation: 'Add viewport-fit=cover to the <meta name="viewport"> content of index.html',
   },
 ];

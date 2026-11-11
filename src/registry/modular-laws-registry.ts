@@ -196,6 +196,7 @@ import {
   IonicUniqueUrlKeyPerViewLaw,
   IonicViewHooksOnlyOnPagesLaw,
   IonicViewLifecycleInterfacesLaw,
+  IonicViewportFitCoverLaw,
 } from '../checkers/ionic-laws';
 
 // Security Laws Modular Imports
@@ -513,6 +514,7 @@ export class ModularLawsRegistry {
     'IonicSingleBuildSystemLaw.check': IonicSingleBuildSystemLaw,
     'IonicIconsRegisteredLaw.check': IonicIconsRegisteredLaw,
     'IonicScrollThroughIonContentLaw.check': IonicScrollThroughIonContentLaw,
+    'IonicViewportFitCoverLaw.check': IonicViewportFitCoverLaw,
 
     // Security Laws
     checkEnvironmentVariables: EnvironmentVariablesLaw,

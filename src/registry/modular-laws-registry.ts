@@ -194,6 +194,11 @@ import {
   IonicViewLifecycleInterfacesLaw,
 } from '../checkers/ionic-laws';
 
+// Next.js Client Laws Modular Imports — gated by `requires` on next
+import {
+  NextMetadataDeclaredLaw,
+} from '../checkers/next-laws';
+
 // Security Laws Modular Imports
 import {
   EnvironmentVariablesLaw,
@@ -492,6 +497,9 @@ export class ModularLawsRegistry {
     'CapacitorPluginPlatformDeclarationsLaw.check': CapacitorPluginPlatformDeclarationsLaw,
     'CapacitorDeepLinkContractLaw.check': CapacitorDeepLinkContractLaw,
     'CapacitorSyncArtefactsMatchDependenciesLaw.check': CapacitorSyncArtefactsMatchDependenciesLaw,
+
+    // Next.js client laws (gated on next)
+    'NextMetadataDeclaredLaw.check': NextMetadataDeclaredLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

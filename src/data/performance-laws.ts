@@ -19,11 +19,16 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Performance Standards',
     rationale:
       'A slow app is a broken app the profiler has not caught yet — users leave before they reach the feature. This law asks for the guardrails (a Lighthouse threshold, budgets, web-vitals, bundle and image optimization) that keep speed from silently regressing.',
-    satisfiedBy: { angular: 'Add a Lighthouse config with a >=90 threshold, angular.json/webpack budgets, web-vitals tracking, lazy-loading and image optimization.' },
+    satisfiedBy: {
+      angular: 'Add a Lighthouse config with a >=90 threshold, angular.json/webpack budgets, web-vitals tracking, lazy-loading and image optimization.',
+      capacitor:
+        'No service worker is needed for caching in the shell; if the web build registers one, disable it on native or handle SwUpdate (#268).',
+    },
     detectionLimits: [
       'Presence and keyword detection only — it checks that config and tooling EXIST, never a real Lighthouse score, LCP or CLS; "web-vitals usage" is a substring match, not proof it runs.',
       'The Lighthouse >=90 threshold is checked only IF a config file exists; a missing file yields a different, non-threshold violation.',
       'TypeScript/Angular only — no Python path, so a backend fails all six checks.',
+      'A project declaring @capacitor/core in any workspace manifest is exempt from the caching-strategy check. A service worker such an app does register runs in the native WebView too and can serve the previous release on the first cold start after an update; that is not judged here (#268).',
     ],
     stack: 'frontend',
     emoji: '⚡',

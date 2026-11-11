@@ -21,14 +21,6 @@ export class NoLayoutTransitionLaw extends FeArchLawBase {
 
   static check(context: LawCheckContext): LawResult {
     const { projectRoot, config } = context;
-    const early = this.createAngularRequiredResult(
-      this.LAW_NAME,
-      projectRoot,
-      root => this.hasAngularProject(root),
-      context
-    );
-    if (early) return early;
-
     const violations: string[] = [];
 
     const files = glob.sync('**/*.{scss,css}', {
@@ -71,7 +63,7 @@ export class NoLayoutTransitionLaw extends FeArchLawBase {
     return this.createResult(
       violations,
       this.LAW_NAME,
-      'ANGULAR_LAW',
+      'FE_ARCHITECTURE',
       [
         'Animate transform/opacity instead of width/height/top/left/…',
         'Use transform: scale()/translate() for size/position changes',

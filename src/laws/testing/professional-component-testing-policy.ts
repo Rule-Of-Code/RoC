@@ -1,5 +1,7 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
+import { PathOperations } from '../../utils/path-operations';
 import { UnitTestProfessionalComponentTestingAnalyzerService } from './unit-test-professional-component-testing/services/component-testing-analyzer.service';
+import { ReactComponentTestingAnalyzer } from './unit-test-professional-component-testing/services/react-component-testing';
 
 /**
  * Professional Component Testing Policy Law
@@ -63,6 +65,38 @@ export class ProfessionalComponentTestingPolicyLaw {
           thresholds.maxMissingSpecDeduction,
           componentAnalysis.missingTestFiles.length *
             thresholds.missingSpecFileDeduction
+        );
+      }
+
+      // 1b. React components (.tsx/.jsx) and their co-located tests. The
+      // Angular-only checks below (patterns, mocking, TestBed) judge the
+      // Angular specs only; a React test is judged by its role queries.
+      const react = ReactComponentTestingAnalyzer.analyze(context);
+      if (react.missingTestFiles.length > 0) {
+        violations.push(
+          `${react.missingTestFiles.length} React components missing a co-located .test.tsx / .spec.tsx (e.g. ${this.firstFew(context, react.missingTestFiles)})`
+        );
+        suggestions.push('Add X.test.tsx next to X.tsx (or __tests__/X.test.tsx)');
+        score -= Math.min(
+          thresholds.maxMissingSpecDeduction,
+          react.missingTestFiles.length * thresholds.missingSpecFileDeduction
+        );
+      }
+      if (react.lowQualityTests.length > 0) {
+        violations.push(
+          `${react.lowQualityTests.length} React component tests do not query by role and assert, in at least two tests (e.g. ${this.firstFew(context, react.lowQualityTests)})`
+        );
+        suggestions.push(
+          "Query the rendered component by role (screen.getByRole('button', { name: … })) and assert on what the user sees"
+        );
+        score -= Math.min(
+          thresholds.maxLowQualityDeduction,
+          react.lowQualityTests.length * thresholds.lowQualityTestDeduction
+        );
+      }
+      if (componentAnalysis.totalComponents === 0 && react.components.length === 0) {
+        violations.push(
+          'found no component files (*.component.ts under src/, apps/, libs/; .tsx/.jsx through the scan) — this law judged nothing'
         );
       }
 
@@ -162,6 +196,12 @@ export class ProfessionalComponentTestingPolicyLaw {
         config: context.config,
       };
     }
+  }
+
+  /** Up to three files, relative, for a message. */
+  private static firstFew(context: LawCheckContext, files: string[]): string {
+    const shown = files.slice(0, 3).map(file => PathOperations.getRelative(context.projectRoot, file));
+    return files.length > 3 ? `${shown.join(', ')}, …` : shown.join(', ');
   }
 
   private static generateMessage(

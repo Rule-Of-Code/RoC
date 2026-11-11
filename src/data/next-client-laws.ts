@@ -403,4 +403,42 @@ export const NEXT_CLIENT_LAWS: EnhancedConstitutionalLaw[] = [
     violationMessage: 'CONSTITUTIONAL VIOLATION Article XXIV.24.10: segment config contradicts a request-time API',
     remediation: "Drop force-static/revalidate from the segment, or move the cookies()/headers() read",
   },
+
+  {
+    id: generateLawId(
+      'Next Loading For Async Page',
+      'An async App Router page has a loading file in its segment or above, or a <Suspense> in the page',
+      'next'
+    ),
+    legacyId: 561,
+    article: 'XXIV',
+    subsection: '24.11',
+    title: 'Next Loading For Async Page',
+    rationale:
+      'An async page awaits its data before it can render. With no Suspense boundary above it, navigating to it shows nothing new until the await settles, and the click seems ignored. A `loading` file wraps the page of its segment and every nested layout and page below it in `<Suspense>` (next/dist/docs: loading, "loading.js wraps not-found.js, page.js, and nested layout.js files"); a `<Suspense>` in the page does the same for what it wraps.',
+    satisfiedBy: {
+      react:
+        '`app/dashboard/loading.tsx` exporting a skeleton (it covers every page under dashboard/), or `<Suspense fallback={<Skeleton />}><Orders /></Suspense>` inside the page.',
+    },
+    detectionLimits: [
+      'Cannot tell a slow page from a fast one: every async page without a boundary is listed, so expect noise — hence info.',
+      'A <Suspense> counts only in the page file itself (imported from react, by name or through the React namespace); one in a layout above the page is not seen.',
+      'Async is read from the default export (an async function, arrow or the local function it names).',
+      PAGE_EXTENSIONS,
+      UNREAD_FAILS,
+    ],
+    emoji: '⏳',
+    description:
+      'An async App Router page has a loading file in its segment or above, or a <Suspense> in the page',
+    priority: 'LOW',
+    category: 'PERFORMANCE',
+    stack: 'frontend',
+    requires: REQUIRES_NEXT,
+    defaultEnabled: true,
+    defaultSeverity: 'info',
+    automation: 'AUTOMATED',
+    checkFunction: 'NextLoadingForAsyncPageLaw.check',
+    violationMessage: 'CONSTITUTIONAL VIOLATION Article XXIV.24.11: async page without a loading boundary',
+    remediation: 'Add loading.tsx to the segment (or above), or wrap the awaited part in <Suspense>',
+  },
 ];

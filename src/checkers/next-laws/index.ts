@@ -10,6 +10,7 @@ export { NextClientPropsSerializableLaw } from './next-client-props-serializable
 export { NextHeavyLibInClientGraphLaw } from './next-heavy-lib-in-client-graph';
 export { NextImageHasDimensionsLaw } from './next-image-has-dimensions';
 export { NextInternalLinkComponentLaw } from './next-internal-link-component';
+export { NextLoadingForAsyncPageLaw } from './next-loading-for-async-page';
 export { NextMetadataDeclaredLaw } from './next-metadata-declared';
 export { NextRouteJsBudgetLaw } from './next-route-js-budget';
 export { NextSegmentConfigConsistentLaw } from './next-segment-config-consistent';

@@ -201,6 +201,7 @@ import {
   NextHeavyLibInClientGraphLaw,
   NextImageHasDimensionsLaw,
   NextInternalLinkComponentLaw,
+  NextLoadingForAsyncPageLaw,
   NextMetadataDeclaredLaw,
   NextRouteJsBudgetLaw,
   NextSegmentConfigConsistentLaw,
@@ -518,6 +519,7 @@ export class ModularLawsRegistry {
     'NextClientPropsSerializableLaw.check': NextClientPropsSerializableLaw,
     'NextRouteJsBudgetLaw.check': NextRouteJsBudgetLaw,
     'NextSegmentConfigConsistentLaw.check': NextSegmentConfigConsistentLaw,
+    'NextLoadingForAsyncPageLaw.check': NextLoadingForAsyncPageLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

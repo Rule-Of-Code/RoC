@@ -214,4 +214,42 @@ export const NEXT_CLIENT_LAWS: EnhancedConstitutionalLaw[] = [
     violationMessage: 'CONSTITUTIONAL VIOLATION Article XXIV.24.5: <html> without lang',
     remediation: 'Set lang on the root layout <html> (Pages Router: _document <Html>)',
   },
+
+  {
+    id: generateLawId(
+      'Next Internal Link Component',
+      'Links to pages of the same Next app use next/link, not a plain <a href="/…">',
+      'next'
+    ),
+    legacyId: 556,
+    article: 'XXIV',
+    subsection: '24.6',
+    title: 'Next Internal Link Component',
+    rationale:
+      "A plain `<a href=\"/pricing\">` to a page of the same app is a full document load: the browser discards the JavaScript heap, every client state and the router cache, then downloads and hydrates the app again. `next/link` navigates on the client and prefetches the target (next/dist/docs: linking-and-navigating). Sometimes a full load is the point — a recovery page that must reset client state — so the law takes a reason, not a ban.",
+    satisfiedBy: {
+      react:
+        '`<Link href="/pricing">Pricing</Link>` from next/link. A link that must reload: `{/* roc-allow-full-reload: resets the client cache after sign-out */}` on the line before it, or `thresholds.next.fullReloadLinks: [{ "path": "/logout", "reason": "…" }]`.',
+    },
+    detectionLimits: [
+      'Reads literal hrefs only; a computed href (`href={url}`) is not judged.',
+      'Flags only hrefs that match a page route of the app (dynamic, catch-all and optional catch-all segments included); a root-relative link to a route handler, a static file, a rewrite or another app on the same domain is not a page here and passes.',
+      'A link with `download` or a `target` other than `_self` is not flagged (it is not a navigation of this tab).',
+      PAGE_EXTENSIONS,
+      UNREAD_FAILS,
+    ],
+    emoji: '🔗',
+    description:
+      'Links to pages of the same Next app use next/link, not a plain <a href="/…">',
+    priority: 'LOW',
+    category: 'PERFORMANCE',
+    stack: 'frontend',
+    requires: REQUIRES_NEXT,
+    defaultEnabled: true,
+    defaultSeverity: 'info',
+    automation: 'AUTOMATED',
+    checkFunction: 'NextInternalLinkComponentLaw.check',
+    violationMessage: 'CONSTITUTIONAL VIOLATION Article XXIV.24.6: internal link without next/link',
+    remediation: 'Use <Link> from next/link for links to pages of the app',
+  },
 ];

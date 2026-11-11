@@ -199,6 +199,7 @@ import {
   HtmlLangDeclaredLaw,
   NextHeavyLibInClientGraphLaw,
   NextImageHasDimensionsLaw,
+  NextInternalLinkComponentLaw,
   NextMetadataDeclaredLaw,
   NextThirdPartyScriptDeclaredLaw,
 } from '../checkers/next-laws';
@@ -508,6 +509,7 @@ export class ModularLawsRegistry {
     'NextImageHasDimensionsLaw.check': NextImageHasDimensionsLaw,
     'NextThirdPartyScriptDeclaredLaw.check': NextThirdPartyScriptDeclaredLaw,
     'HtmlLangDeclaredLaw.check': HtmlLangDeclaredLaw,
+    'NextInternalLinkComponentLaw.check': NextInternalLinkComponentLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

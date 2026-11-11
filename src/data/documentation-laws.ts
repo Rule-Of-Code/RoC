@@ -248,11 +248,15 @@ export const DOCUMENTATION_LAWS: EnhancedConstitutionalLaw[] = [
     title: "Internationalization (i18n) Compliance Policy",
     rationale:
       'An app that hardcodes user-facing strings cannot be localised without a rewrite. This law checks that i18n is configured and that visible text goes through it.',
-    satisfiedBy: { angular: 'Configure Angular i18n (angular.json i18n block or @angular/localize / @ngx-translate), keep translation files under src/locale or i18n, and mark template text with i18n= / $localize / | translate.' },
+    satisfiedBy: {
+      angular: 'Configure Angular i18n (angular.json i18n block or @angular/localize / @ngx-translate), keep translation files under src/locale or i18n, and mark template text with i18n= / $localize / | translate.',
+      react:
+        "Use an i18n library (next-intl or react-i18next) and keep user text in message files (messages/en.json, locales/, i18n/); render it through t('…') or <Trans>, not as JSX text or a literal placeholder/title/alt/aria-label.",
+    },
     detectionLimits: [
-      'It is effectively Angular-only: a React or Vue frontend has no angular.json and no @angular/localize, so it fails on the config and translation-file checks by construction.',
-      'The hardcoded-text regex matches any three-plus-letter tag text and even fires inside .ts and .scss files it scans, making it noisy.',
-      'It confirms translation files exist but never checks the translations are correct or complete.',
+      'Recognised setups: an Angular i18n block (angular.json or project.json), @angular/localize / @ngx-translate/core in the root package.json, or next-intl / react-i18next in any workspace package.json. Vue, react-intl and Lingui are not recognised and fail the config check.',
+      'Angular templates: the hardcoded-text regex matches any three-plus-letter tag text and even fires inside .ts and .scss files it scans, making it noisy. JSX: read on the syntax tree — JsxText and string placeholder/title/alt/aria-label with four-plus Latin letters, outside <Trans>; text in a variable or a non-Latin script is not seen.',
+      'It confirms translation files exist (locale/locales/i18n/translations directories, or locale-named .json in a messages/ directory) but never checks the translations are correct or complete.',
     ],
     stack: "frontend",
     emoji: "🌍",

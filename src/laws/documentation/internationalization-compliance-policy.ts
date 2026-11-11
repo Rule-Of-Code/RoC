@@ -7,6 +7,13 @@ import { ProjectTypeDetectorValidation } from '../../utils/config/project-type-d
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 import { PathResolver } from '../../utils/path-resolver';
+import { declaredDependencies } from '../../utils/law-requirements';
+import { analyzeJsxText } from './i18n-jsx';
+
+/** React i18n libraries this law recognises as a configured i18n setup. */
+const REACT_I18N_LIBRARIES = ['next-intl', 'react-i18next'];
+/** A locale-named catalog (`en.json`, `pt-BR.json`) — required inside a generic `messages/` directory. */
+const LOCALE_JSON = /^[a-z]{2}(?:-[A-Z]{2})?\.json$/;
 // Interfaces for i18n analysis
 interface I18nConfig {
   sourceLocale?: string;
@@ -63,13 +70,20 @@ export class InternationalizationCompliancePolicyLaw {
     let score = 100;
     const { projectRoot } = context;
 
-    // 1. Check for Angular i18n configuration
+    // 1. Check for an i18n configuration (Angular, or a React i18n library)
     const i18nConfig = this.analyzeI18nConfiguration(projectRoot);
     if (!i18nConfig.hasI18nConfig) {
-      violations.push('Missing Angular i18n configuration');
-      suggestions.push(
-        'Configure Angular i18n in angular.json and add @angular/localize'
-      );
+      if (declaredDependencies(projectRoot).has('react')) {
+        violations.push(
+          `Missing i18n configuration — no ${REACT_I18N_LIBRARIES.join(' or ')} declared in any workspace package.json (nor an Angular i18n setup)`
+        );
+        suggestions.push('Add next-intl (Next.js) or react-i18next and keep user text in message files');
+      } else {
+        violations.push('Missing Angular i18n configuration');
+        suggestions.push(
+          'Configure Angular i18n in angular.json and add @angular/localize'
+        );
+      }
       score -= 30;
     }
 
@@ -91,9 +105,21 @@ export class InternationalizationCompliancePolicyLaw {
       score -= 20;
     }
 
+    // 3b. Hardcoded text in JSX, read on the syntax tree
+    const jsx = analyzeJsxText(context);
+    violations.push(...jsx.unread);
+    if (jsx.hardcoded.length > 0) {
+      const shown = jsx.hardcoded.slice(0, 3).join('; ');
+      violations.push(
+        `Hardcoded text found in JSX: ${jsx.hardcoded.length} text(s), e.g. ${shown}${jsx.hardcoded.length > 3 ? '; …' : ''}`
+      );
+      suggestions.push('Move user-facing JSX text into message files and render it through t(...)');
+      score -= 20;
+    }
+
     // 4. Check for i18n directive usage
     const i18nDirectives = this.analyzeI18nDirectiveUsage(projectRoot, context);
-    if (!i18nDirectives.hasI18nDirectives) {
+    if (!i18nDirectives.hasI18nDirectives && !jsx.usesTranslations) {
       // Advisory only — no violation, so no score deduction (see the
       // score/verdict coherence note in incident-response-protocol).
       suggestions.push('Use i18n directives for proper text localization');
@@ -126,52 +152,43 @@ export class InternationalizationCompliancePolicyLaw {
     hasI18nConfig: boolean;
     configQuality: string;
   } {
-    // Check for Angular i18n configuration
-    let hasI18nConfig = false;
-    let configQuality = 'none';
+    if (this.hasAngularI18nBlock(projectRoot)) {
+      return { hasI18nConfig: true, configQuality: 'angular' };
+    }
+    // A React i18n library, declared in any workspace manifest
+    const declared = declaredDependencies(projectRoot);
+    const library = REACT_I18N_LIBRARIES.find(name => declared.has(name));
+    if (library) return { hasI18nConfig: true, configQuality: library };
+    // Check package.json for @angular/localize
+    try {
+      if (this.hasLocalizePackage(projectRoot)) {
+        return { hasI18nConfig: true, configQuality: 'localize' };
+      }
+    } catch (_error) {
+      // Skip if can't read package.json
+    }
+    return { hasI18nConfig: false, configQuality: 'none' };
+  }
 
-    // Angular i18n configuration — from the root `angular.json` if there is one,
-    // and otherwise from the workspace's `project.json` files. Nx has no root
-    // angular.json: an app's `i18n` block lives in `apps/<name>/project.json`,
-    // so reading only the root file declared a configured project unconfigured.
+  /**
+   * Angular i18n configuration — from the root `angular.json` if there is one,
+   * and otherwise from the workspace's `project.json` files. Nx has no root
+   * angular.json: an app's `i18n` block lives in `apps/<name>/project.json`,
+   * so reading only the root file declared a configured project unconfigured.
+   */
+  private static hasAngularI18nBlock(projectRoot: string): boolean {
     const angularJsonPath = PathOperations.join(projectRoot, 'angular.json');
     if (!FileUtils.exists(angularJsonPath)) {
-      const buildConfig = NxWorkspace.getBuildConfigContent(projectRoot);
-      if (/"i18n"\s*:/.test(buildConfig)) {
-        hasI18nConfig = true;
-        configQuality = 'angular';
-      }
+      return /"i18n"\s*:/.test(NxWorkspace.getBuildConfigContent(projectRoot));
     }
-    if (!hasI18nConfig && FileUtils.exists(angularJsonPath)) {
-      try {
-        const angularJson = JSON.parse(
-          FileUtils.readFile(angularJsonPath, { encoding: 'utf8' })
-        );
-        if (this.hasAngularI18nConfig(angularJson)) {
-          hasI18nConfig = true;
-          configQuality = 'angular';
-        }
-      } catch (_error) {
-        // Skip if can't read angular.json
-      }
+    try {
+      const angularJson = JSON.parse(
+        FileUtils.readFile(angularJsonPath, { encoding: 'utf8' })
+      );
+      return this.hasAngularI18nConfig(angularJson);
+    } catch (_error) {
+      return false; // Skip if can't read angular.json
     }
-
-    // Check package.json for @angular/localize
-    if (!hasI18nConfig) {
-      try {
-        if (this.hasLocalizePackage(projectRoot)) {
-          hasI18nConfig = true;
-          configQuality = 'localize';
-        }
-      } catch (_error) {
-        // Skip if can't read package.json
-      }
-    }
-
-    return {
-      hasI18nConfig,
-      configQuality,
-    };
   }
 
   private static analyzeTranslationFiles(
@@ -246,6 +263,18 @@ export class InternationalizationCompliancePolicyLaw {
           // Skip directories that can't be read
         }
       }
+    }
+    return this.checkMessagesDirectories(projectRoot);
+  }
+
+  /**
+   * next-intl's convention: `messages/en.json`. `messages` is a common name for
+   * other things (a chat feature), so only locale-named catalogs count there.
+   */
+  private static checkMessagesDirectories(projectRoot: string): boolean {
+    for (const dir of glob.sync('**/messages/', { cwd: projectRoot, ignore: this.IGNORED_TREES })) {
+      const files = glob.sync('*.json', { cwd: PathOperations.join(projectRoot, dir) });
+      if (files.some(file => LOCALE_JSON.test(PathOperations.getFilename(file)))) return true;
     }
     return false;
   }

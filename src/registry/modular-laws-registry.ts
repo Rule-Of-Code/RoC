@@ -171,27 +171,53 @@ import {
 
 // Capacitor Laws Modular Imports — gated by `requires` on @capacitor/core + a config
 import {
+  CapacitorAndroidBackupScopedLaw,
+  CapacitorAndroidCleartextDebugOnlyLaw,
   CapacitorDeepLinkContractLaw,
+  CapacitorFirebaseNativeConfigNotSkippedLaw,
+  CapacitorIosPrivacyManifestDeclaredLaw,
+  CapacitorAndroidBackHasOneOwnerLaw,
+  CapacitorDurableStateOffWebviewStorageLaw,
+  CapacitorListenerHandlesReleasedLaw,
+  CapacitorLocalPluginContractLaw,
   CapacitorLoggingNeverProductionLaw,
+  CapacitorSigningSecretsOutsideRepoLaw,
   CapacitorNoDevOnlyServerKeysLaw,
   CapacitorPluginConfigDeclaredLaw,
   CapacitorPluginPlatformDeclarationsLaw,
+  CapacitorPluginStubHasContractTestLaw,
+  CapacitorServiceWorkerNativeDecisionLaw,
   CapacitorSinglePlatformBoundaryLaw,
   CapacitorSyncArtefactsMatchDependenciesLaw,
   CapacitorWebviewOriginDeclaredLaw,
 } from '../checkers/capacitor-laws';
 
+// React Laws Modular Imports — gated by `requires` on react / next
+import {
+  NextOpenRedirectGuardedLaw,
+  ReactDangerousHtmlGuardedLaw,
+  ReactHrefSchemeGuardedLaw,
+} from '../checkers/react-laws';
+
 // Ionic Laws Modular Imports — gated by `requires` on an Ionic binding
 import {
   IonicE2eLocatorsTargetTheShownPageLaw,
+  IonicEdgeChromePaysSafeAreaLaw,
+  IonicFixedContentInFixedSlotLaw,
+  IonicGestureTouchActionLaw,
+  IonicIconsRegisteredLaw,
   IonicLeaveCancelsWhatEnterStartedLaw,
   IonicNavigationSpecsMountTheOutletLaw,
   IonicNoSkipLocationChangeLaw,
   IonicPageStateReadOnEnterLaw,
   IonicRouteReuseStrategyProvidedLaw,
+  IonicScrollThroughIonContentLaw,
   IonicSessionExitUsesNavigateRootLaw,
+  IonicSingleBuildSystemLaw,
   IonicUniqueUrlKeyPerViewLaw,
+  IonicViewHooksOnlyOnPagesLaw,
   IonicViewLifecycleInterfacesLaw,
+  IonicViewportFitCoverLaw,
 } from '../checkers/ionic-laws';
 
 // React Laws Modular Imports — gated by `requires` on react (or next)
@@ -209,6 +235,7 @@ import {
 
 // Security Laws Modular Imports
 import {
+  ContentSecurityPolicyLaw,
   EnvironmentVariablesLaw,
   XSSPreventionLaw,
 } from '../checkers/security-laws';
@@ -505,6 +532,25 @@ export class ModularLawsRegistry {
     'CapacitorPluginPlatformDeclarationsLaw.check': CapacitorPluginPlatformDeclarationsLaw,
     'CapacitorDeepLinkContractLaw.check': CapacitorDeepLinkContractLaw,
     'CapacitorSyncArtefactsMatchDependenciesLaw.check': CapacitorSyncArtefactsMatchDependenciesLaw,
+    // Capacitor native-shell laws (gated on the platform package as well)
+    'CapacitorAndroidCleartextDebugOnlyLaw.check': CapacitorAndroidCleartextDebugOnlyLaw,
+    'CapacitorFirebaseNativeConfigNotSkippedLaw.check': CapacitorFirebaseNativeConfigNotSkippedLaw,
+    'CapacitorAndroidBackupScopedLaw.check': CapacitorAndroidBackupScopedLaw,
+    'CapacitorIosPrivacyManifestDeclaredLaw.check': CapacitorIosPrivacyManifestDeclaredLaw,
+    'CapacitorSigningSecretsOutsideRepoLaw.check': CapacitorSigningSecretsOutsideRepoLaw,
+
+    // Capacitor bridge laws (back button, local plugins, listeners, web-side decisions)
+    'CapacitorAndroidBackHasOneOwnerLaw.check': CapacitorAndroidBackHasOneOwnerLaw,
+    'CapacitorLocalPluginContractLaw.check': CapacitorLocalPluginContractLaw,
+    'CapacitorListenerHandlesReleasedLaw.check': CapacitorListenerHandlesReleasedLaw,
+    'CapacitorServiceWorkerNativeDecisionLaw.check': CapacitorServiceWorkerNativeDecisionLaw,
+    'CapacitorDurableStateOffWebviewStorageLaw.check': CapacitorDurableStateOffWebviewStorageLaw,
+    'CapacitorPluginStubHasContractTestLaw.check': CapacitorPluginStubHasContractTestLaw,
+
+    // React Laws (gated on react / next)
+    'ReactDangerousHtmlGuardedLaw.check': ReactDangerousHtmlGuardedLaw,
+    'ReactHrefSchemeGuardedLaw.check': ReactHrefSchemeGuardedLaw,
+    'NextOpenRedirectGuardedLaw.check': NextOpenRedirectGuardedLaw,
 
     // React Laws (gated on react; React Render No Browser Global on next)
     'ReactHooksLintEnforcedLaw.check': ReactHooksLintEnforcedLaw,
@@ -529,6 +575,16 @@ export class ModularLawsRegistry {
     'IonicNavigationSpecsMountTheOutletLaw.check': IonicNavigationSpecsMountTheOutletLaw,
     'IonicE2eLocatorsTargetTheShownPageLaw.check': IonicE2eLocatorsTargetTheShownPageLaw,
 
+    // Ionic rendering-model laws (gated on an Ionic binding)
+    'IonicViewHooksOnlyOnPagesLaw.check': IonicViewHooksOnlyOnPagesLaw,
+    'IonicSingleBuildSystemLaw.check': IonicSingleBuildSystemLaw,
+    'IonicIconsRegisteredLaw.check': IonicIconsRegisteredLaw,
+    'IonicScrollThroughIonContentLaw.check': IonicScrollThroughIonContentLaw,
+    'IonicViewportFitCoverLaw.check': IonicViewportFitCoverLaw,
+    'IonicEdgeChromePaysSafeAreaLaw.check': IonicEdgeChromePaysSafeAreaLaw,
+    'IonicGestureTouchActionLaw.check': IonicGestureTouchActionLaw,
+    'IonicFixedContentInFixedSlotLaw.check': IonicFixedContentInFixedSlotLaw,
+
     // Security Laws
     checkEnvironmentVariables: EnvironmentVariablesLaw,
     checkXSSPrevention: XSSPreventionLaw,
@@ -542,7 +598,9 @@ export class ModularLawsRegistry {
     'APISecurityStandardsLaw.check': ApiSecurityStandardsLaw,
     'DependencySecurityScanningLaw.check': DependencySecurityScanningLaw,
     checkSecurityTestingRequirements: SecurityTestingRequirementsLaw,
-    checkSecurityStandards: XSSPreventionLaw,
+    // legacyId 44 judges the CSP; the sinks are legacyId 43's (one defect, one result)
+    checkSecurityStandards: ContentSecurityPolicyLaw,
+    'ContentSecurityPolicyLaw.check': ContentSecurityPolicyLaw,
     'XSSPreventionLaw.check': XSSPreventionLaw,
 
     // Performance Laws

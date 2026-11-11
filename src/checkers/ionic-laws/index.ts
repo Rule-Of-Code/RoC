@@ -12,3 +12,11 @@ export { IonicSessionExitUsesNavigateRootLaw } from './ionic-session-exit-uses-n
 export { IonicRouteReuseStrategyProvidedLaw } from './ionic-route-reuse-strategy-provided';
 export { IonicNavigationSpecsMountTheOutletLaw } from './ionic-navigation-specs-mount-the-outlet';
 export { IonicE2eLocatorsTargetTheShownPageLaw } from './ionic-e2e-locators-target-the-shown-page';
+export { IonicViewHooksOnlyOnPagesLaw } from './ionic-view-hooks-only-on-pages';
+export { IonicSingleBuildSystemLaw } from './ionic-single-build-system';
+export { IonicIconsRegisteredLaw } from './ionic-icons-registered';
+export { IonicScrollThroughIonContentLaw } from './ionic-scroll-through-ion-content';
+export { IonicViewportFitCoverLaw } from './ionic-viewport-fit-cover';
+export { IonicEdgeChromePaysSafeAreaLaw } from './ionic-edge-chrome-pays-safe-area';
+export { IonicGestureTouchActionLaw } from './ionic-gesture-touch-action';
+export { IonicFixedContentInFixedSlotLaw } from './ionic-fixed-content-in-fixed-slot';

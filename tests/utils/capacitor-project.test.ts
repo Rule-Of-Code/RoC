@@ -150,4 +150,22 @@ describe('CapacitorProjects.nativePaths', () => {
     const inputs = CapacitorProjects.fixedPathInputs(root);
     expect(inputs.some(file => file.endsWith('App.entitlements'))).toBe(true);
   });
+
+  it('lists every Android source set\'s manifest and res/xml, and the iOS privacy manifest', () => {
+    const root = project({
+      'capacitor.config.json': '{}',
+      'android/app/src/debug/AndroidManifest.xml': '<manifest/>',
+      'android/app/src/debug/res/xml/dev.xml': '<network-security-config/>',
+    });
+    const inputs = CapacitorProjects.fixedPathInputs(root);
+    expect(inputs).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/android\/app\/src\/debug\/AndroidManifest\.xml$/),
+        expect.stringMatching(/android\/app\/src\/debug\/res\/xml\/dev\.xml$/),
+        expect.stringMatching(/android\/app\/src\/debug\/google-services\.json$/),
+        expect.stringMatching(/ios\/App\/App\/PrivacyInfo\.xcprivacy$/),
+        expect.stringMatching(/android\/app\/build\.gradle\.kts$/),
+      ])
+    );
+  });
 });

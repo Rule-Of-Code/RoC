@@ -5,6 +5,7 @@
 
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
+import { REQUIRES_RXJS } from '../utils/framework-requirements';
 
 export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
   {
@@ -93,6 +94,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Regex, no AST; matches in comments/strings; no Python.',
     ],
     stack: 'frontend',
+    requires: REQUIRES_RXJS,
     emoji: '🧹',
     description:
       'All subscriptions must be properly unsubscribed to prevent memory leaks',
@@ -518,11 +520,18 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Web Storage Encapsulation',
     rationale:
       'localStorage sprinkled through components is untyped, unversioned global state with no single place to change a key or clear on logout. A storage boundary turns "a string under a magic key" into a typed, testable seam.',
-    satisfiedBy: { angular: 'Access localStorage/sessionStorage only through a service (*.service.ts); wrap reads/writes in a typed API.' },
+    satisfiedBy: {
+      angular: 'Access localStorage/sessionStorage only through a service (*.service.ts); wrap reads/writes in a typed API.',
+      react:
+        'Put every web-storage call in one small module named *.service.ts (a plain TS module; that suffix is the only place this detector exempts) and read it through a hook. Guard it for server rendering and for blocked storage.',
+      capacitor:
+        'Wrap storage in a service and, on native, back durable keys with @capacitor/preferences; declare WebView-only keys as disposable (#269).',
+    },
     detectionLimits: [
       'Only five method-call shapes are matched — localStorage["k"], .length, or a destructured getItem are missed; window.localStorage matches via substring.',
       'The boundary allow is *.service.ts only, so a *.store.ts / *.facade.ts wrapper is still flagged; strings not stripped.',
       'TS/Angular; not Angular-gated; no Python.',
+      "Judges where storage is called, not what backs it: in a Capacitor app WebView storage must be considered transient (Capacitor's storage guide) and is keyed by the WebView origin, so a service over localStorage passes in full. Which store backs a durable key is #269's question.",
     ],
     stack: 'frontend',
     emoji: '🗄️',

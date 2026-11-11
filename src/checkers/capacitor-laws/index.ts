@@ -12,3 +12,4 @@ export { CapacitorSinglePlatformBoundaryLaw } from './capacitor-single-platform-
 export { CapacitorPluginPlatformDeclarationsLaw } from './capacitor-plugin-platform-declarations';
 export { CapacitorDeepLinkContractLaw } from './capacitor-deep-link-contract';
 export { CapacitorSyncArtefactsMatchDependenciesLaw } from './capacitor-sync-artefacts-match-dependencies';
+export { CapacitorAndroidCleartextDebugOnlyLaw } from './capacitor-android-cleartext-debug-only';

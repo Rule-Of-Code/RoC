@@ -198,6 +198,8 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     description: 'Proper test data setup and teardown procedures',
     priority: 'MEDIUM',
     category: 'TESTING',
+    // JS/TS test files only: on a Python project it read nothing and passed.
+    stack: 'typescript',
     defaultEnabled: true,
     defaultSeverity: 'warning',
     automation: 'AUTOMATED',
@@ -231,6 +233,8 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     description: 'All tests must be isolated and independent',
     priority: 'HIGH',
     category: 'TESTING',
+    // JS/TS test files only: on a Python project it read nothing and passed.
+    stack: 'typescript',
     defaultEnabled: true,
     defaultSeverity: 'error',
     automation: 'AUTOMATED',

@@ -53,6 +53,16 @@ export class TestFileDiscovery {
     });
   }
 
+  /**
+   * The verdict of a test law that found no test file to judge: a violation
+   * that says so, never a pass. Before, both isolation twins scored 100 on a
+   * scope with no tests in it — including RoC's own audit, whose config hid
+   * every test from them — which is a green that inspected nothing.
+   */
+  static nothingToJudge(lawName: string): string {
+    return `${lawName}: no JS/TS test file found under ${DEFAULT_TEST_ROOTS.join(', ')} after the project's ignores — nothing was judged. If tests exist, keep them out of ignores.global (ignores.tests hides them from source scans only); if the project has none, that is the finding`;
+  }
+
   static findTestFilesRecursively(
     dir: string,
     testFiles: string[],

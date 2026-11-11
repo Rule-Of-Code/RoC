@@ -16,6 +16,8 @@ export * from './documentation-laws';
 export * from './git-laws';
 export * from './integrity-laws';
 export * from './ionic-laws';
+export * from './next-laws';
+export * from './react-laws';
 export * from './sacred-laws';
 export * from './testing-laws';
 export * from './version-control-laws';

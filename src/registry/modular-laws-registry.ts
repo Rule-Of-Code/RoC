@@ -169,13 +169,37 @@ import {
   TimerCleanupLaw,
 } from '../checkers/fe-architecture-laws';
 
+// Next.js Laws Modular Imports — gated by `requires` on next (Client IP: Node HTTP servers)
+import {
+  ClientIpSingleBoundaryLaw,
+  GuardExemptionMatchesARouteLaw,
+  NextClientEnvPublicOnlyLaw,
+  NextErrorBoundariesDeclaredLaw,
+  NextProxyPlacementAndMatcherLaw,
+  NextPublicEnvIsBuildTimeLaw,
+  NextRouteHandlerGuardedLaw,
+  NextServerActionAuthorizesLaw,
+  NextServerOnlyBoundaryLaw,
+} from '../checkers/next-laws';
+
 // Capacitor Laws Modular Imports — gated by `requires` on @capacitor/core + a config
 import {
+  CapacitorAndroidBackupScopedLaw,
+  CapacitorAndroidCleartextDebugOnlyLaw,
   CapacitorDeepLinkContractLaw,
+  CapacitorFirebaseNativeConfigNotSkippedLaw,
+  CapacitorIosPrivacyManifestDeclaredLaw,
+  CapacitorAndroidBackHasOneOwnerLaw,
+  CapacitorDurableStateOffWebviewStorageLaw,
+  CapacitorListenerHandlesReleasedLaw,
+  CapacitorLocalPluginContractLaw,
   CapacitorLoggingNeverProductionLaw,
+  CapacitorSigningSecretsOutsideRepoLaw,
   CapacitorNoDevOnlyServerKeysLaw,
   CapacitorPluginConfigDeclaredLaw,
   CapacitorPluginPlatformDeclarationsLaw,
+  CapacitorPluginStubHasContractTestLaw,
+  CapacitorServiceWorkerNativeDecisionLaw,
   CapacitorSinglePlatformBoundaryLaw,
   CapacitorSyncArtefactsMatchDependenciesLaw,
   CapacitorWebviewOriginDeclaredLaw,
@@ -189,22 +213,64 @@ import {
   SqlCheckConstraintNullPassesLaw,
   TsconfigExcludeLeavesCodeUntypedLaw,
 } from '../checkers/integrity-laws';
+// React Laws Modular Imports — gated by `requires` on react / next
+import {
+  NextOpenRedirectGuardedLaw,
+  ReactDangerousHtmlGuardedLaw,
+  ReactHrefSchemeGuardedLaw,
+} from '../checkers/react-laws';
 
 // Ionic Laws Modular Imports — gated by `requires` on an Ionic binding
 import {
   IonicE2eLocatorsTargetTheShownPageLaw,
+  IonicEdgeChromePaysSafeAreaLaw,
+  IonicFixedContentInFixedSlotLaw,
+  IonicGestureTouchActionLaw,
+  IonicIconsRegisteredLaw,
   IonicLeaveCancelsWhatEnterStartedLaw,
   IonicNavigationSpecsMountTheOutletLaw,
   IonicNoSkipLocationChangeLaw,
   IonicPageStateReadOnEnterLaw,
   IonicRouteReuseStrategyProvidedLaw,
+  IonicScrollThroughIonContentLaw,
   IonicSessionExitUsesNavigateRootLaw,
+  IonicSingleBuildSystemLaw,
   IonicUniqueUrlKeyPerViewLaw,
+  IonicViewHooksOnlyOnPagesLaw,
   IonicViewLifecycleInterfacesLaw,
+  IonicViewportFitCoverLaw,
 } from '../checkers/ionic-laws';
+
+// Next.js Client Laws Modular Imports — gated by `requires` on next
+import {
+  HtmlLangDeclaredLaw,
+  NextClientPropsSerializableLaw,
+  NextHeavyLibInClientGraphLaw,
+  NextImageHasDimensionsLaw,
+  NextInternalLinkComponentLaw,
+  NextLoadingForAsyncPageLaw,
+  NextMetadataDeclaredLaw,
+  NextRouteJsBudgetLaw,
+  NextSegmentConfigConsistentLaw,
+  NextThirdPartyScriptDeclaredLaw,
+  NextUseClientAtLeavesLaw,
+} from '../checkers/next-laws';
+// React Laws Modular Imports — gated by `requires` on react (or next)
+import {
+  ClientFetchResponseCheckedLaw,
+  ReactContextValueStableLaw,
+  ReactEffectFetchRaceGuardedLaw,
+  ReactEffectResourceCleanupLaw,
+  ReactHooksLintEnforcedLaw,
+  ReactListKeyStabilityLaw,
+  ReactPollVisibilityGatedLaw,
+  ReactRenderNoBrowserGlobalLaw,
+  ReactStoreSubscriptionUsesSyncExternalStoreLaw,
+} from '../checkers/react-laws';
 
 // Security Laws Modular Imports
 import {
+  ContentSecurityPolicyLaw,
   EnvironmentVariablesLaw,
   XSSPreventionLaw,
 } from '../checkers/security-laws';
@@ -243,6 +309,11 @@ import { NgRxStateNormalizationMandateLaw } from '../laws/angular/ngrx-state-nor
 // Testing Laws Modular Imports
 import {
   JestUnitTest100CoverageMandateLaw,
+  NoFocusedTestsLaw,
+  NoTestOnlyLeakageLaw,
+  PlaywrightLocatorsUserFacingLaw,
+  PlaywrightNoFixedWaitLaw,
+  RtlQueryByRoleLaw,
   TestCoverageRequirementsLaw,
   UnitTestQualityLaw,
 } from '../checkers/testing-laws';
@@ -492,6 +563,17 @@ export class ModularLawsRegistry {
     'TimerCleanupLaw.check': TimerCleanupLaw,
     'NoRiskLiteralsLaw.check': NoRiskLiteralsLaw,
 
+    // Next.js Laws (gated on next; Client IP Single Boundary on any Node HTTP server)
+    'NextServerActionAuthorizesLaw.check': NextServerActionAuthorizesLaw,
+    'NextRouteHandlerGuardedLaw.check': NextRouteHandlerGuardedLaw,
+    'NextServerOnlyBoundaryLaw.check': NextServerOnlyBoundaryLaw,
+    'NextClientEnvPublicOnlyLaw.check': NextClientEnvPublicOnlyLaw,
+    'NextProxyPlacementAndMatcherLaw.check': NextProxyPlacementAndMatcherLaw,
+    'NextErrorBoundariesDeclaredLaw.check': NextErrorBoundariesDeclaredLaw,
+    'NextPublicEnvIsBuildTimeLaw.check': NextPublicEnvIsBuildTimeLaw,
+    'GuardExemptionMatchesARouteLaw.check': GuardExemptionMatchesARouteLaw,
+    'ClientIpSingleBoundaryLaw.check': ClientIpSingleBoundaryLaw,
+
     // Capacitor Laws (gated on @capacitor/core + a Capacitor config)
     'CapacitorLoggingNeverProductionLaw.check': CapacitorLoggingNeverProductionLaw,
     'CapacitorWebviewOriginDeclaredLaw.check': CapacitorWebviewOriginDeclaredLaw,
@@ -501,6 +583,50 @@ export class ModularLawsRegistry {
     'CapacitorPluginPlatformDeclarationsLaw.check': CapacitorPluginPlatformDeclarationsLaw,
     'CapacitorDeepLinkContractLaw.check': CapacitorDeepLinkContractLaw,
     'CapacitorSyncArtefactsMatchDependenciesLaw.check': CapacitorSyncArtefactsMatchDependenciesLaw,
+    // Capacitor native-shell laws (gated on the platform package as well)
+    'CapacitorAndroidCleartextDebugOnlyLaw.check': CapacitorAndroidCleartextDebugOnlyLaw,
+    'CapacitorFirebaseNativeConfigNotSkippedLaw.check': CapacitorFirebaseNativeConfigNotSkippedLaw,
+    'CapacitorAndroidBackupScopedLaw.check': CapacitorAndroidBackupScopedLaw,
+    'CapacitorIosPrivacyManifestDeclaredLaw.check': CapacitorIosPrivacyManifestDeclaredLaw,
+    'CapacitorSigningSecretsOutsideRepoLaw.check': CapacitorSigningSecretsOutsideRepoLaw,
+
+    // Capacitor bridge laws (back button, local plugins, listeners, web-side decisions)
+    'CapacitorAndroidBackHasOneOwnerLaw.check': CapacitorAndroidBackHasOneOwnerLaw,
+    'CapacitorLocalPluginContractLaw.check': CapacitorLocalPluginContractLaw,
+    'CapacitorListenerHandlesReleasedLaw.check': CapacitorListenerHandlesReleasedLaw,
+    'CapacitorServiceWorkerNativeDecisionLaw.check': CapacitorServiceWorkerNativeDecisionLaw,
+    'CapacitorDurableStateOffWebviewStorageLaw.check': CapacitorDurableStateOffWebviewStorageLaw,
+    'CapacitorPluginStubHasContractTestLaw.check': CapacitorPluginStubHasContractTestLaw,
+
+    // React Laws (gated on react / next)
+    'ReactDangerousHtmlGuardedLaw.check': ReactDangerousHtmlGuardedLaw,
+    'ReactHrefSchemeGuardedLaw.check': ReactHrefSchemeGuardedLaw,
+    'NextOpenRedirectGuardedLaw.check': NextOpenRedirectGuardedLaw,
+
+    // React Laws (gated on react; React Render No Browser Global on next)
+    'ReactHooksLintEnforcedLaw.check': ReactHooksLintEnforcedLaw,
+    'ReactEffectResourceCleanupLaw.check': ReactEffectResourceCleanupLaw,
+    'ReactEffectFetchRaceGuardedLaw.check': ReactEffectFetchRaceGuardedLaw,
+    'ReactContextValueStableLaw.check': ReactContextValueStableLaw,
+    'ReactStoreSubscriptionUsesSyncExternalStoreLaw.check':
+      ReactStoreSubscriptionUsesSyncExternalStoreLaw,
+    'ReactRenderNoBrowserGlobalLaw.check': ReactRenderNoBrowserGlobalLaw,
+    'ClientFetchResponseCheckedLaw.check': ClientFetchResponseCheckedLaw,
+    'ReactPollVisibilityGatedLaw.check': ReactPollVisibilityGatedLaw,
+    'ReactListKeyStabilityLaw.check': ReactListKeyStabilityLaw,
+
+    // Next.js client laws (gated on next)
+    'NextMetadataDeclaredLaw.check': NextMetadataDeclaredLaw,
+    'NextHeavyLibInClientGraphLaw.check': NextHeavyLibInClientGraphLaw,
+    'NextImageHasDimensionsLaw.check': NextImageHasDimensionsLaw,
+    'NextThirdPartyScriptDeclaredLaw.check': NextThirdPartyScriptDeclaredLaw,
+    'HtmlLangDeclaredLaw.check': HtmlLangDeclaredLaw,
+    'NextInternalLinkComponentLaw.check': NextInternalLinkComponentLaw,
+    'NextUseClientAtLeavesLaw.check': NextUseClientAtLeavesLaw,
+    'NextClientPropsSerializableLaw.check': NextClientPropsSerializableLaw,
+    'NextRouteJsBudgetLaw.check': NextRouteJsBudgetLaw,
+    'NextSegmentConfigConsistentLaw.check': NextSegmentConfigConsistentLaw,
+    'NextLoadingForAsyncPageLaw.check': NextLoadingForAsyncPageLaw,
 
     // Integrity Laws (migrations, CHECKs, guards, tsconfig, retention)
     'DrizzleMigrationJournalIntegrityLaw.check': DrizzleMigrationJournalIntegrityLaw,
@@ -520,6 +646,16 @@ export class ModularLawsRegistry {
     'IonicNavigationSpecsMountTheOutletLaw.check': IonicNavigationSpecsMountTheOutletLaw,
     'IonicE2eLocatorsTargetTheShownPageLaw.check': IonicE2eLocatorsTargetTheShownPageLaw,
 
+    // Ionic rendering-model laws (gated on an Ionic binding)
+    'IonicViewHooksOnlyOnPagesLaw.check': IonicViewHooksOnlyOnPagesLaw,
+    'IonicSingleBuildSystemLaw.check': IonicSingleBuildSystemLaw,
+    'IonicIconsRegisteredLaw.check': IonicIconsRegisteredLaw,
+    'IonicScrollThroughIonContentLaw.check': IonicScrollThroughIonContentLaw,
+    'IonicViewportFitCoverLaw.check': IonicViewportFitCoverLaw,
+    'IonicEdgeChromePaysSafeAreaLaw.check': IonicEdgeChromePaysSafeAreaLaw,
+    'IonicGestureTouchActionLaw.check': IonicGestureTouchActionLaw,
+    'IonicFixedContentInFixedSlotLaw.check': IonicFixedContentInFixedSlotLaw,
+
     // Security Laws
     checkEnvironmentVariables: EnvironmentVariablesLaw,
     checkXSSPrevention: XSSPreventionLaw,
@@ -533,7 +669,9 @@ export class ModularLawsRegistry {
     'APISecurityStandardsLaw.check': ApiSecurityStandardsLaw,
     'DependencySecurityScanningLaw.check': DependencySecurityScanningLaw,
     checkSecurityTestingRequirements: SecurityTestingRequirementsLaw,
-    checkSecurityStandards: XSSPreventionLaw,
+    // legacyId 44 judges the CSP; the sinks are legacyId 43's (one defect, one result)
+    checkSecurityStandards: ContentSecurityPolicyLaw,
+    'ContentSecurityPolicyLaw.check': ContentSecurityPolicyLaw,
     'XSSPreventionLaw.check': XSSPreventionLaw,
 
     // Performance Laws
@@ -567,6 +705,13 @@ export class ModularLawsRegistry {
       TestCoverageConstitutionalStandardLaw,
     checkUnitTestQuality: UnitTestQualityLaw,
     checkJestUnitTest100Coverage: JestUnitTest100CoverageMandateLaw,
+
+    // Test Integrity Laws (gated on the runner or library they read)
+    'NoFocusedTestsLaw.check': NoFocusedTestsLaw,
+    'PlaywrightNoFixedWaitLaw.check': PlaywrightNoFixedWaitLaw,
+    'PlaywrightLocatorsUserFacingLaw.check': PlaywrightLocatorsUserFacingLaw,
+    'RtlQueryByRoleLaw.check': RtlQueryByRoleLaw,
+    'NoTestOnlyLeakageLaw.check': NoTestOnlyLeakageLaw,
 
     // Deployment Laws
     checkEnvironmentParityStandards: EnvironmentParityStandardsLaw,

@@ -2,15 +2,31 @@ import type { RuleOfCodeConfig } from '../../../../config/types';
 import { CheckerUtils } from '../../../../utils/checker-utils';
 import { FileUtils } from '../../../../utils/file-utils';
 import { NxWorkspace } from '../../../../utils/nx-workspace';
+import type { ReactPerformanceEvidence } from '../../../../utils/react/react-performance-source';
+import {
+  type BundlerReport,
+  WebBundlerConfig,
+} from '../../../../utils/react/web-bundler-config';
 import { CoreWebVitalsPerformanceChecksConstants as Checks } from '../constants/performance-checks';
 import type { BundleOptimizationResult } from '../constants/types';
 
 export class BundleOptimizationAnalyzerService {
   static analyze(
     projectRoot: string,
-    config: RuleOfCodeConfig
+    config: RuleOfCodeConfig,
+    react?: ReactPerformanceEvidence,
+    bundler?: BundlerReport
   ): BundleOptimizationResult {
     const optimizations: string[] = [];
+
+    // Next.js / Vite: the production build minifies unless the config turns
+    // it off; React source: next/dynamic, React.lazy, dynamic import().
+    for (const app of bundler ? WebBundlerConfig.optimizingBuilds(bundler) : []) {
+      optimizations.push(`${WebBundlerConfig.label(projectRoot, app)} production build optimizes`);
+    }
+    if (react && react.dynamicImports.length > 0) {
+      optimizations.push(`Lazy-loaded code: ${react.dynamicImports[0]}`);
+    }
 
     // Check for lazy loading
     if (this.hasLazyLoadingRoutes(projectRoot, config)) {

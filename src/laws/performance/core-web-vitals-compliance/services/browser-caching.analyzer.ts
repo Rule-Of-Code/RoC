@@ -2,6 +2,7 @@ import { FileUtils } from '../../../../utils/file-utils';
 import { declaresAnyHeader } from '../../../../utils/host-headers';
 import { NxWorkspace } from '../../../../utils/nx-workspace';
 import { PathOperations } from '../../../../utils/path-operations';
+import { WebBundlerConfig } from '../../../../utils/react/web-bundler-config';
 import { CoreWebVitalsFileDiscoveryConstants as FileDiscovery } from '../constants/file-discovery';
 import { CoreWebVitalsPerformanceChecksConstants as Checks } from '../constants/performance-checks';
 import type { BrowserCachingResult } from '../constants/types';
@@ -24,6 +25,8 @@ export class BrowserCachingAnalyzerService {
     if (this.hasCachingHeaders(projectRoot)) {
       strategies.push('HTTP caching headers configured');
     }
+
+    strategies.push(...this.nextCaching(projectRoot));
 
     return {
       hasStrategy: strategies.length > 0,
@@ -110,5 +113,27 @@ export class BrowserCachingAnalyzerService {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Next.js: `headers()` in next.config declaring Cache-Control, or Next's
+   * own server, which answers hashed `/_next/static` assets with
+   * `Cache-Control: public, max-age=31536000, immutable`
+   * (`next/dist/server/lib/router-server.js`). With `output: 'export'` no
+   * Next server runs — the static host's headers decide, and those are read
+   * above (firebase.json, nginx.conf).
+   */
+  private static nextCaching(projectRoot: string): string[] {
+    const found: string[] = [];
+    for (const app of WebBundlerConfig.inspect(projectRoot).apps) {
+      if (app.kind !== 'next') continue;
+      const label = WebBundlerConfig.label(projectRoot, app);
+      if (app.cacheControlHeaders) {
+        found.push(`${label}: Cache-Control declared in next.config headers()`);
+      } else if (app.builds && !app.staticExport) {
+        found.push(`${label}: Next serves hashed /_next/static assets as immutable`);
+      }
+    }
+    return found;
   }
 }

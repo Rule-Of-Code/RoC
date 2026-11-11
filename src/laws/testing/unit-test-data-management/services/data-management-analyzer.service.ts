@@ -1,4 +1,4 @@
-import { ConfigFileUtils } from '../../../../utils/config-file-utils';
+import type { RuleOfCodeConfig } from '../../../../types/law.types';
 import { DirectorySearcher } from '../../../../utils/directory-searcher';
 import { FileUtils } from '../../../../utils/file-utils';
 import { PathOperations } from '../../../../utils/path-operations';
@@ -16,30 +16,37 @@ export class UnitTestDataManagementAnalyzerService {
   /**
    * Analyze test data patterns in test files
    */
-  static analyzeTestDataPatterns(projectRoot: string): {
+  static analyzeTestDataPatterns(
+    projectRoot: string,
+    config: RuleOfCodeConfig
+  ): {
     hasProperSetup: boolean;
     hasHardcodedData: boolean;
     hasSharedState: boolean;
+    /** The files behind each finding — a finding must say what to fix. */
+    hardcodedDataFiles: string[];
+    sharedStateFiles: string[];
   } {
-    const testFiles = this.findTestFiles(projectRoot);
+    const testFiles = this.findTestFiles(projectRoot, config);
     let hasProperSetup = false;
-    let hasHardcodedData = false;
-    let hasSharedState = false;
+    const hardcodedDataFiles: string[] = [];
+    const sharedStateFiles: string[] = [];
 
     for (const testFile of testFiles) {
       try {
         const content = FileUtils.readFile(testFile, { encoding: 'utf8' });
+        const relative = PathOperations.getRelative(projectRoot, testFile);
 
         if (UnitTestDataManagementConstants.hasProperSetupTeardown(content)) {
           hasProperSetup = true;
         }
 
         if (UnitTestDataManagementConstants.hasHardcodedTestData(content)) {
-          hasHardcodedData = true;
+          hardcodedDataFiles.push(relative);
         }
 
         if (UnitTestDataManagementConstants.hasSharedMutableState(content)) {
-          hasSharedState = true;
+          sharedStateFiles.push(relative);
         }
       } catch (_error) {
         // Skip files that can't be read
@@ -48,8 +55,10 @@ export class UnitTestDataManagementAnalyzerService {
 
     return {
       hasProperSetup: hasProperSetup || testFiles.length === 0,
-      hasHardcodedData,
-      hasSharedState,
+      hasHardcodedData: hardcodedDataFiles.length > 0,
+      hasSharedState: sharedStateFiles.length > 0,
+      hardcodedDataFiles,
+      sharedStateFiles,
     };
   }
 
@@ -82,7 +91,10 @@ export class UnitTestDataManagementAnalyzerService {
   /**
    * Analyze resource cleanup patterns
    */
-  static analyzeCleanupPatterns(projectRoot: string): {
+  static analyzeCleanupPatterns(
+    projectRoot: string,
+    config: RuleOfCodeConfig
+  ): {
     hasProperCleanup: boolean;
     /** `path (resource, …)` for every file that reaches one without cleanup. */
     uncleaned: string[];
@@ -90,7 +102,7 @@ export class UnitTestDataManagementAnalyzerService {
     // Every offending file, named — see the same note in the isolation law.
     const uncleaned: string[] = [];
 
-    for (const testFile of this.findTestFiles(projectRoot)) {
+    for (const testFile of this.findTestFiles(projectRoot, config)) {
       try {
         const content = FileUtils.readFile(testFile, { encoding: 'utf8' });
         const used = UnitTestDataManagementConstants.resourcesUsed(content);
@@ -113,10 +125,13 @@ export class UnitTestDataManagementAnalyzerService {
   /**
    * Analyze mocking usage
    */
-  static analyzeMockingUsage(projectRoot: string): {
+  static analyzeMockingUsage(
+    projectRoot: string,
+    config: RuleOfCodeConfig
+  ): {
     hasProperMocking: boolean;
   } {
-    const testFiles = this.findTestFiles(projectRoot);
+    const testFiles = this.findTestFiles(projectRoot, config);
     let hasMockingFramework = false;
 
     for (const testFile of testFiles) {
@@ -137,12 +152,15 @@ export class UnitTestDataManagementAnalyzerService {
   /**
    * Analyze data factory usage
    */
-  static analyzeDataFactoryUsage(projectRoot: string): {
+  static analyzeDataFactoryUsage(
+    projectRoot: string,
+    config: RuleOfCodeConfig
+  ): {
     filesUsingFactories: number;
     totalTestFiles: number;
     factoryCoverage: number;
   } {
-    const testFiles = this.findTestFiles(projectRoot);
+    const testFiles = this.findTestFiles(projectRoot, config);
     let filesUsingFactories = 0;
 
     for (const testFile of testFiles) {
@@ -172,27 +190,15 @@ export class UnitTestDataManagementAnalyzerService {
   // ============================================
 
   /**
-   * Find all test files in project
+   * Find all test files in project, with the PROJECT's config so its
+   * ignores apply, through the same discovery as test-isolation-enforcement,
+   * which carries the same resource check (#192).
    */
-  private static findTestFiles(projectRoot: string): string[] {
-    return TestFileDiscovery.findTestFiles(
-      projectRoot,
-      ConfigFileUtils.getMinimalDefaultConfig()
-    );
-  }
-
-  /**
-   * Recursively find test files in directory
-   */
-  private static findTestFilesRecursively(
-    dir: string,
-    testFiles: string[]
-  ): void {
-    TestFileDiscovery.findTestFilesRecursively(
-      dir,
-      testFiles,
-      ConfigFileUtils.getMinimalDefaultConfig()
-    );
+  private static findTestFiles(
+    projectRoot: string,
+    config: RuleOfCodeConfig
+  ): string[] {
+    return TestFileDiscovery.findTestFiles(projectRoot, config);
   }
 
   /**

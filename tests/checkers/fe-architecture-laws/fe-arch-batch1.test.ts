@@ -59,6 +59,8 @@ describe('ROC-FE-03 Stores In Data Access', () => {
   it('passes a store in the data-access layer', () => {
     const dir = fixture({
       'libs/bot/data-access/src/x.store.ts': 'export const x = signalStore();',
+      // the feature layer exists and consumes the store: the law judged it
+      'libs/bot/feature-dashboard/src/page.ts': 'export const page = inject(Store);',
     });
     expect(StoresInDataAccessLaw.check(ctx(dir)).passed).toBe(true);
   });
@@ -152,7 +154,9 @@ describe('ROC-FE-01 Poll Via Sanctioned Source', () => {
 });
 
 describe('FE architecture laws gate off on a non-Angular project', () => {
-  it('all three no-op on a Python project', () => {
+  // Stores In Data Access is framework-neutral now (#210) and is no longer
+  // gated on Angular; see fe-arch-react.test.ts.
+  it('the two Angular-gated ones no-op on a Python project', () => {
     const dir = fixture(
       {
         'pyproject.toml': "[project]\nname='x'\n",
@@ -161,7 +165,6 @@ describe('FE architecture laws gate off on a non-Angular project', () => {
       false // no Angular markers → hasAngularProject is false
     );
     const c = (): LawCheckContext => ctx(dir, 'python');
-    expect(StoresInDataAccessLaw.check(c()).passed).toBe(true);
     expect(RootServiceNoTimerLaw.check(c()).passed).toBe(true);
     expect(PollViaSanctionedSourceLaw.check(c()).passed).toBe(true);
   });

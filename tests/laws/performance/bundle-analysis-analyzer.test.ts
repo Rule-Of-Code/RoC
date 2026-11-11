@@ -152,7 +152,7 @@ describe('BundleAnalysisAnalyzerService', () => {
       expect(result.isSetup).toBe(true);
     });
 
-    it('should detect only when bundle is in script value not key', () => {
+    it('counts a script that runs an analyzer, whatever the script is called', () => {
       jest
         .spyOn(ProjectTypeDetectorValidation, 'getProjectDependencies')
         .mockReturnValue({});
@@ -165,25 +165,40 @@ describe('BundleAnalysisAnalyzerService', () => {
 
       const result = BundleAnalysisAnalyzerService.analyze(tempDir);
 
-      // Script key has 'bundle' but value does not contain 'bundle'
-      expect(result.isSetup).toBe(false);
+      // It used to require the word "bundle" in the VALUE, and so failed
+      // this source-map-explorer run.
+      expect(result.isSetup).toBe(true);
     });
 
-    it('should add script message only once with multiple bundle scripts', () => {
+    it('does not count the word "bundle" in a script that runs no analyzer', () => {
       jest
         .spyOn(ProjectTypeDetectorValidation, 'getProjectDependencies')
         .mockReturnValue({});
       jest
         .spyOn(ProjectTypeDetectorValidation, 'getPackageScripts')
         .mockReturnValue({
-          'bundle:analyze': 'bundle analyze script',
-          'bundle:report': 'bundle report script',
-          'view-bundle': 'view bundle script',
+          smoke: 'node tools/verify/bundle-smoke.mjs',
+          ruby: 'bundle exec rake',
+        });
+
+      expect(BundleAnalysisAnalyzerService.analyze(tempDir).isSetup).toBe(false);
+    });
+
+    it('should add script message only once with multiple analyzer scripts', () => {
+      jest
+        .spyOn(ProjectTypeDetectorValidation, 'getProjectDependencies')
+        .mockReturnValue({});
+      jest
+        .spyOn(ProjectTypeDetectorValidation, 'getPackageScripts')
+        .mockReturnValue({
+          'bundle:analyze': 'source-map-explorer dist/main.js',
+          'bundle:report': 'webpack-bundle-analyzer dist/stats.json',
+          size: 'size-limit',
         });
 
       const result = BundleAnalysisAnalyzerService.analyze(tempDir);
 
-      // Only one script message should be added regardless of how many scripts have 'bundle'
+      // Only one script message should be added regardless of how many scripts run an analyzer
       const scriptMessages = result.tools.filter(
         t => t === 'Bundle analysis script in npm scripts'
       );

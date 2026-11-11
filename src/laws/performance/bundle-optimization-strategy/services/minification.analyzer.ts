@@ -1,4 +1,8 @@
 import { AngularBundleConfig } from '../../../../utils/angular-bundle-config';
+import {
+  type BundlerReport,
+  WebBundlerConfig,
+} from '../../../../utils/react/web-bundler-config';
 import { BundleOptimizationStrategyCheckConstants } from '../constants';
 import { BundleOptimizationBaseAnalyzer } from './base.analyzer';
 
@@ -13,7 +17,10 @@ export class MinificationAnalyzerService {
   /**
    * Analyze minification and compression
    */
-  static analyze(projectRoot: string): {
+  static analyze(
+    projectRoot: string,
+    bundler?: BundlerReport
+  ): {
     isOptimal: boolean;
     configurations: string[];
   } {
@@ -22,6 +29,22 @@ export class MinificationAnalyzerService {
     // so a correct esbuild project read as un-minified.
     if (AngularBundleConfig.usesEsbuildBuilder(projectRoot)) {
       return { isOptimal: true, configurations: ['esbuild minification'] };
+    }
+
+    // Next.js and Vite minify production client builds by default, so the
+    // question for them is whether next.config / vite.config turned it OFF
+    // (`experimental.turbopackMinify: false`, `minimize: false`,
+    // `build.minify: false`) — read from the config's syntax, not its words.
+    const optimizing = WebBundlerConfig.optimizingBuilds(
+      bundler ?? WebBundlerConfig.inspect(projectRoot)
+    );
+    if (optimizing.length > 0) {
+      return {
+        isOptimal: true,
+        configurations: optimizing.map(
+          app => `${WebBundlerConfig.label(projectRoot, app)} minifies its production build`
+        ),
+      };
     }
 
     const result = BundleOptimizationBaseAnalyzer.analyzeAngularConfiguration(

@@ -2,6 +2,7 @@ import { glob } from 'glob';
 import { FileUtils } from '../../../../utils/file-utils';
 import { NxWorkspace } from '../../../../utils/nx-workspace';
 import { PathOperations } from '../../../../utils/path-operations';
+import type { ReactPerformanceEvidence } from '../../../../utils/react/react-performance-source';
 import { CoreWebVitalsFileDiscoveryConstants as FileDiscovery } from '../constants/file-discovery';
 import { CoreWebVitalsPerformanceChecksConstants as Checks } from '../constants/performance-checks';
 import type { ResourceHintsResult } from '../constants/types';
@@ -24,8 +25,18 @@ export class ResourceHintsAnalyzerService {
    * Source is still read, so a project that writes its hints by hand and has
    * not built yet is unaffected.
    */
-  static analyze(projectRoot: string): ResourceHintsResult {
+  static analyze(
+    projectRoot: string,
+    react?: ReactPerformanceEvidence
+  ): ResourceHintsResult {
     const hints = new Set<string>();
+
+    // React/Next: a `<link rel>` hint in JSX (the root layout is where Next
+    // puts the document head), a next/font loader (preloads by default), or a
+    // react-dom resource call (`preload`, `preconnect`, `prefetchDNS`, …).
+    for (const hint of react?.resourceHints ?? []) {
+      hints.add(hint);
+    }
 
     for (const document of this.indexDocuments(projectRoot)) {
       try {

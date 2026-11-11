@@ -32,6 +32,20 @@ export class ConfigLoader {
     if (typeDefaults) {
       baseConfig = ConfigurationMerger.mergeConfigs(baseConfig, typeDefaults);
     }
+    // The detected type is the base, for every type — not only the ones with
+    // framework defaults. Before, a detected `python` or `typescript` left the
+    // default type in place, and the engine trusts a configured type, so a
+    // Python repository with no `project.type` ran the Angular law set. A
+    // type the project's own config declares still wins (merged below).
+    if (projectType) {
+      baseConfig = {
+        ...baseConfig,
+        project: {
+          ...baseConfig.project,
+          type: projectType as RuleOfCodeConfig['project']['type'],
+        },
+      };
+    }
 
     // Load from various sources - delegated to file loader
     const packageJsonConfig =

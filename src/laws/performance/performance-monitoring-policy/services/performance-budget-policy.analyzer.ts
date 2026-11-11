@@ -1,7 +1,9 @@
 import { FileSystemOperations } from '../../../../utils/file-system-operations';
 import { FileUtils } from '../../../../utils/file-utils';
 import { PathOperations } from '../../../../utils/path-operations';
+import type { RuleOfCodeConfig } from '../../../../config/types';
 import { AngularBundleConfig } from '../../../../utils/angular-bundle-config';
+import { PerformanceBudgetGates } from '../../../../utils/performance-budget-gates';
 import { PerformanceBudgetPolicyConstants } from '../constants/performance-budget-policy.constants';
 
 /**
@@ -10,14 +12,21 @@ import { PerformanceBudgetPolicyConstants } from '../constants/performance-budge
  * Single Responsibility: Analyze performance budget configuration
  */
 export class PerformanceBudgetPolicyAnalyzerService {
-  static checkPerformanceBudget(projectRoot: string): {
+  static checkPerformanceBudget(
+    projectRoot: string,
+    config?: RuleOfCodeConfig
+  ): {
     configured: boolean;
     budgetSources: string[];
   } {
     const budgetSources: string[] = [];
 
+    // A size-limit check or Lighthouse assertions — counted only when a
+    // script or CI step RUNS them. This accepted any .lighthouserc file
+    // containing "budget" or "assert", which a file nothing executes satisfies.
+    budgetSources.push(...PerformanceBudgetGates.enforcedBudgets(projectRoot, config));
+
     this.addAngularBudgetsIfPresent(projectRoot, budgetSources);
-    this.addLighthouseBudgetsIfPresent(projectRoot, budgetSources);
     this.addWebpackBudgetsIfPresent(projectRoot, budgetSources);
 
     return {
@@ -41,31 +50,6 @@ export class PerformanceBudgetPolicyAnalyzerService {
   ): void {
     if (AngularBundleConfig.hasBudgets(projectRoot)) {
       budgetSources.push('Angular CLI budgets');
-    }
-  }
-
-  private static addLighthouseBudgetsIfPresent(
-    projectRoot: string,
-    budgetSources: string[]
-  ): void {
-    for (const configFile of PerformanceBudgetPolicyConstants.LIGHTHOUSE_CONFIG_FILES) {
-      const fullPath = PathOperations.join(projectRoot, configFile);
-      if (!FileUtils.exists(fullPath)) continue;
-
-      try {
-        const content = FileUtils.readFile(fullPath, { encoding: 'utf8' });
-        const hasBudget =
-          PerformanceBudgetPolicyConstants.LIGHTHOUSE_BUDGET_PATTERNS.some(
-            pattern => content.includes(pattern)
-          );
-
-        if (hasBudget) {
-          budgetSources.push('Lighthouse CI');
-          break;
-        }
-      } catch {
-        // Ignore read errors
-      }
     }
   }
 

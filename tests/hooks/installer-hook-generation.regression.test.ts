@@ -33,12 +33,14 @@ function read(huskyDir: string, hook: string): string {
   return fs.readFileSync(path.join(huskyDir, hook), 'utf8');
 }
 
-let shAvailable = true;
-try {
-  execFileSync('sh', ['-c', 'exit 0'], { stdio: ['pipe', 'pipe', 'pipe'] });
-} catch {
-  shAvailable = false;
-}
+const shAvailable = ((): boolean => {
+  try {
+    execFileSync('sh', ['-c', 'exit 0'], { stdio: ['pipe', 'pipe', 'pipe'] });
+    return true;
+  } catch {
+    return false;
+  }
+})();
 
 afterAll(() => {
   for (const dir of dirs) {

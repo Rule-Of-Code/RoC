@@ -6,7 +6,9 @@
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { ACCESSIBILITY_LAWS } from './accessibility-laws';
 import { ANGULAR_LAWS } from './angular-laws';
+import { CAPACITOR_BRIDGE_LAWS } from './capacitor-bridge-laws';
 import { CAPACITOR_LAWS } from './capacitor-laws';
+import { CAPACITOR_NATIVE_LAWS } from './capacitor-native-laws';
 import { CODE_QUALITY_LAWS } from './code-quality-laws';
 import { DEPLOYMENT_LAWS } from './deployment-laws';
 import { DOCUMENTATION_LAWS } from './documentation-laws';
@@ -17,6 +19,7 @@ import {
 } from './pareto-optimization';
 import { FE_ARCHITECTURE_LAWS } from './fe-architecture-laws';
 import { IONIC_LAWS } from './ionic-laws';
+import { IONIC_RENDERING_LAWS } from './ionic-rendering-laws';
 import { META_GATE_LAWS } from './meta-gate-laws';
 import { PERFORMANCE_LAWS } from './performance-laws';
 import { PYTHON_LAWS } from './python-laws';
@@ -42,20 +45,26 @@ export const ALL_ENHANCED_CONSTITUTIONAL_LAWS: EnhancedConstitutionalLaw[] = [
   ...META_GATE_LAWS, // 💓 Gate-integrity meta laws (universal; IDs 226+)
   ...FE_ARCHITECTURE_LAWS, // 🏛️ FE architecture audit laws (frontend; IDs 301+)
   ...IONIC_LAWS, // 📱 Ionic laws (frontend, requires an Ionic binding; IDs 401+)
+  ...IONIC_RENDERING_LAWS, // 🖌️ Ionic rendering-model laws (frontend, requires an Ionic binding; IDs 411+)
   ...CAPACITOR_LAWS, // 🔌 Capacitor laws (frontend, requires @capacitor/core + config; IDs 421+)
   ...REACT_SECURITY_LAWS, // 🧯 React security laws (frontend, requires react / next; IDs 581+)
+  ...CAPACITOR_NATIVE_LAWS, // 🤖 Capacitor native-shell laws (frontend, + the platform package; IDs 431+)
+  ...CAPACITOR_BRIDGE_LAWS, // 🌉 Capacitor bridge laws (frontend, requires @capacitor/core + config; IDs 441+)
 ];
 
 // Re-export for easy access
 export {
   ACCESSIBILITY_LAWS,
   ANGULAR_LAWS,
+  CAPACITOR_BRIDGE_LAWS,
   CAPACITOR_LAWS,
+  CAPACITOR_NATIVE_LAWS,
   CODE_QUALITY_LAWS,
   DEPLOYMENT_LAWS,
   DOCUMENTATION_LAWS,
   FE_ARCHITECTURE_LAWS,
   IONIC_LAWS,
+  IONIC_RENDERING_LAWS,
   META_GATE_LAWS,
   FRAMEWORK_LAWS,
   PARETO_CATEGORIES,

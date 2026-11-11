@@ -1,5 +1,6 @@
 import type { RuleOfCodeConfig } from '../../../../config/types';
 import { FileUtils, PathOperations } from '../../../../utils';
+import { declaredDependencies } from '../../../../utils/law-requirements';
 import { PathResolver } from '../../../../utils/path-resolver';
 import { BrowserCachingAnalyzerService } from '../../core-web-vitals-compliance/services/browser-caching.analyzer';
 import { CachingStrategyConstants } from '../constants';
@@ -67,21 +68,17 @@ export class CachingStrategyAnalyzer {
     return violations;
   }
 
+  /**
+   * Declared as a dependency in ANY workspace manifest — the reader `requires`
+   * uses. A substring of the root package.json missed a monorepo whose app
+   * declares Capacitor in its own manifest, and matched a mere mention.
+   *
+   * The exemption is about caching only: a Capacitor app that does register
+   * a service worker runs it in the native WebView too, which this analyzer
+   * does not judge.
+   */
   private static isCapacitorApp(projectRoot: string): boolean {
-    const packageJsonPath = PathOperations.join(projectRoot, 'package.json');
-    if (FileUtils.exists(packageJsonPath)) {
-      try {
-        const packageContent = FileUtils.readFile(packageJsonPath, {
-          encoding: 'utf8',
-        });
-        if (packageContent.includes('@capacitor/core')) {
-          return true;
-        }
-      } catch (_error) {
-        // Continue
-      }
-    }
-    return false;
+    return declaredDependencies(projectRoot).has('@capacitor/core');
   }
 
   private static hasServiceWorkerFile(projectRoot: string): boolean {

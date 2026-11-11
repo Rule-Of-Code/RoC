@@ -37,7 +37,7 @@ export const IONIC_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Reads class declarations in .ts source; a hook delivered as a DOM listener (renderer.listen(host, "ionViewWillLeave", …)) is a legitimate form this law cannot see and does not need an interface.',
       'An interface declared on a base class is not followed: a subclass that overrides the hook is flagged unless it repeats the interface.',
-      'Does not know whether the class is routed under an ion-router-outlet; a hook on a component that is never a page is flagged the same way.',
+      'Judges the declaration only, not whether Ionic ever calls the hook: a hook on a component that is never a page is flagged here the same way; whether the class is a route target or controller-created is ionic-view-hooks-only-on-pages.',
       'Angular binding only (@ionic/angular); @ionic/react and @ionic/vue expose the hooks differently and are out of scope.',
     ],
     emoji: '🪝',

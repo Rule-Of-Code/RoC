@@ -450,6 +450,20 @@ export interface RuleOfCodeConfig {
        */
       cspFiles?: string[];
     };
+    react?: {
+      /**
+       * Functions whose output may be rendered as HTML although they are not
+       * sanitizers — a renderer that escapes its input — each with the reason.
+       * An entry without a reason is reported, not honoured.
+       */
+      trustedHtmlFunctions?: Array<{ name: string; reason: string }>;
+      /**
+       * Serializers that escape `<` for a `<script>` body (e.g. `serialize`
+       * from serialize-javascript), as the callee is written. JSON.stringify
+       * followed by `.replace(/</g, '\\u003c')` is recognised without this key.
+       */
+      jsonSerializers?: string[];
+    };
     frontend?: {
       /**
        * Globs (relative to the project root) of the feature layer, read by

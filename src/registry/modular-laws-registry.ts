@@ -181,6 +181,9 @@ import {
   CapacitorWebviewOriginDeclaredLaw,
 } from '../checkers/capacitor-laws';
 
+// React Laws Modular Imports — gated by `requires` on react / next
+import { ReactDangerousHtmlGuardedLaw } from '../checkers/react-laws';
+
 // Ionic Laws Modular Imports — gated by `requires` on an Ionic binding
 import {
   IonicE2eLocatorsTargetTheShownPageLaw,
@@ -493,6 +496,9 @@ export class ModularLawsRegistry {
     'CapacitorPluginPlatformDeclarationsLaw.check': CapacitorPluginPlatformDeclarationsLaw,
     'CapacitorDeepLinkContractLaw.check': CapacitorDeepLinkContractLaw,
     'CapacitorSyncArtefactsMatchDependenciesLaw.check': CapacitorSyncArtefactsMatchDependenciesLaw,
+
+    // React Laws (gated on react / next)
+    'ReactDangerousHtmlGuardedLaw.check': ReactDangerousHtmlGuardedLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

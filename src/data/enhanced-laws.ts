@@ -20,6 +20,7 @@ import { IONIC_LAWS } from './ionic-laws';
 import { META_GATE_LAWS } from './meta-gate-laws';
 import { PERFORMANCE_LAWS } from './performance-laws';
 import { PYTHON_LAWS } from './python-laws';
+import { REACT_SECURITY_LAWS } from './react-security-laws';
 import { SACRED_LAWS } from './sacred-laws';
 import { SECURITY_LAWS } from './security-laws';
 import { TESTING_LAWS } from './testing-laws';
@@ -42,6 +43,7 @@ export const ALL_ENHANCED_CONSTITUTIONAL_LAWS: EnhancedConstitutionalLaw[] = [
   ...FE_ARCHITECTURE_LAWS, // 🏛️ FE architecture audit laws (frontend; IDs 301+)
   ...IONIC_LAWS, // 📱 Ionic laws (frontend, requires an Ionic binding; IDs 401+)
   ...CAPACITOR_LAWS, // 🔌 Capacitor laws (frontend, requires @capacitor/core + config; IDs 421+)
+  ...REACT_SECURITY_LAWS, // 🧯 React security laws (frontend, requires react / next; IDs 581+)
 ];
 
 // Re-export for easy access
@@ -60,6 +62,7 @@ export {
   PERFORMANCE_LAWS,
   PROJECT_LAWS,
   PYTHON_LAWS,
+  REACT_SECURITY_LAWS,
   SACRED_LAWS,
   SECURITY_LAWS,
   TESTING_LAWS,

@@ -220,6 +220,19 @@ import {
   IonicViewportFitCoverLaw,
 } from '../checkers/ionic-laws';
 
+// React Laws Modular Imports — gated by `requires` on react (or next)
+import {
+  ClientFetchResponseCheckedLaw,
+  ReactContextValueStableLaw,
+  ReactEffectFetchRaceGuardedLaw,
+  ReactEffectResourceCleanupLaw,
+  ReactHooksLintEnforcedLaw,
+  ReactListKeyStabilityLaw,
+  ReactPollVisibilityGatedLaw,
+  ReactRenderNoBrowserGlobalLaw,
+  ReactStoreSubscriptionUsesSyncExternalStoreLaw,
+} from '../checkers/react-laws';
+
 // Security Laws Modular Imports
 import {
   ContentSecurityPolicyLaw,
@@ -538,6 +551,18 @@ export class ModularLawsRegistry {
     'ReactDangerousHtmlGuardedLaw.check': ReactDangerousHtmlGuardedLaw,
     'ReactHrefSchemeGuardedLaw.check': ReactHrefSchemeGuardedLaw,
     'NextOpenRedirectGuardedLaw.check': NextOpenRedirectGuardedLaw,
+
+    // React Laws (gated on react; React Render No Browser Global on next)
+    'ReactHooksLintEnforcedLaw.check': ReactHooksLintEnforcedLaw,
+    'ReactEffectResourceCleanupLaw.check': ReactEffectResourceCleanupLaw,
+    'ReactEffectFetchRaceGuardedLaw.check': ReactEffectFetchRaceGuardedLaw,
+    'ReactContextValueStableLaw.check': ReactContextValueStableLaw,
+    'ReactStoreSubscriptionUsesSyncExternalStoreLaw.check':
+      ReactStoreSubscriptionUsesSyncExternalStoreLaw,
+    'ReactRenderNoBrowserGlobalLaw.check': ReactRenderNoBrowserGlobalLaw,
+    'ClientFetchResponseCheckedLaw.check': ClientFetchResponseCheckedLaw,
+    'ReactPollVisibilityGatedLaw.check': ReactPollVisibilityGatedLaw,
+    'ReactListKeyStabilityLaw.check': ReactListKeyStabilityLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

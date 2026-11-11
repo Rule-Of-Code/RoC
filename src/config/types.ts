@@ -494,6 +494,20 @@ export interface RuleOfCodeConfig {
        * Guarded.
        */
       redirectGuards?: string[];
+      /**
+       * Module names (as imported in eslint.config.*, or as written in an
+       * .eslintrc `extends`) of shared ESLint presets that enable
+       * eslint-plugin-react-hooks' rules-of-hooks and exhaustive-deps — read by
+       * React Hooks Lint Enforced, which cannot read inside a package's preset.
+       * eslint-config-next is already known. Default: none.
+       */
+      hooksLintPresets?: string[];
+      /**
+       * Globs (relative to the workspace root) of the project's sanctioned
+       * poll helper — the file that owns visibility-gated polling. React Poll
+       * Visibility Gated does not judge a setInterval inside it. Default: none.
+       */
+      pollHelpers?: string[];
     };
     frontend?: {
       /**

@@ -98,4 +98,42 @@ export const TEST_INTEGRITY_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article VII.26.2: A Playwright test waits for a fixed time',
     remediation: 'Replace waitForTimeout with a web-first assertion or a wait for the event; explain the pauses that stay',
   },
+
+  {
+    id: generateLawId(
+      'Playwright Locators User Facing',
+      'Most Playwright locators find an element by role, label or text',
+      'testing'
+    ),
+    legacyId: 573,
+    article: 'VII',
+    subsection: '26.3',
+    title: 'Playwright Locators User Facing',
+    rationale:
+      'A locator by role, label or text fails when a user could no longer find the element either — the button lost its name, the field its label. A test id or a CSS selector keeps passing through both and breaks on a class rename no user sees. One locator cannot be judged alone, so the share is held to a floor.',
+    satisfiedBy: {
+      typescript:
+        "Locate as a user does — page.getByRole('button', { name: 'Save' }), getByLabel('Email'), getByText('Welcome') — and keep getByTestId or a CSS locator for what has no stable role or text.",
+    },
+    detectionLimits: [
+      'A ratio over all Playwright files: user-facing = getByRole/getByLabel/getByText/getByPlaceholder/getByAltText/getByTitle; implementation = getByTestId and every .locator() call (a `role=`/`text=` selector string and a locator passed as an argument count as implementation). $, $$ and waitForSelector are not counted.',
+      'Cannot judge whether a chosen locator is meaningful; a ratio cannot judge one line. The floor is thresholds.testing.playwrightUserFacingLocatorPercent (0–100, default 50); a value outside that range is reported, never guessed.',
+      'Zero locators in the Playwright files passes: there is nothing to share out.',
+      PLAYWRIGHT_FILES,
+      PARSED_WITH_PROJECT_TYPESCRIPT,
+    ],
+    emoji: '🎯',
+    description: 'Most Playwright locators find an element by role, label or text',
+    priority: 'LOW',
+    category: 'TESTING',
+    stack: 'frontend',
+    requires: REQUIRES_PLAYWRIGHT,
+    defaultEnabled: true,
+    defaultSeverity: 'info',
+    automation: 'CONFIGURABLE',
+    checkFunction: 'PlaywrightLocatorsUserFacingLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article VII.26.3: Too few Playwright locators are user-facing',
+    remediation: 'Replace test-id and CSS locators with getByRole / getByLabel / getByText where the element has them',
+  },
 ];

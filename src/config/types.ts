@@ -452,6 +452,12 @@ export interface RuleOfCodeConfig {
       /** Minimum Angular component test coverage percentage (0-100) */
       minAngularTestCoveragePercent?: number;
       /**
+       * Playwright Locators User Facing: the minimum share (0-100, default 50)
+       * of getByRole/Label/Text/Placeholder/AltText/Title among all
+       * getByRole…/getByTestId/locator() calls in the Playwright files.
+       */
+      playwrightUserFacingLocatorPercent?: number;
+      /**
        * Real-data testing mode. When true, the checks that REQUIRE mocking
        * ("dependencies found but no mocking detected") and that forbid inline
        * real data ("hardcoded test data") are skipped — for projects that

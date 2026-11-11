@@ -11,7 +11,8 @@ export class PerformanceStandardsLaw {
     const { violations, scoreImpact } =
       await PerformanceAnalyzerService.analyze(
         context.projectRoot,
-        context.config
+        context.config,
+        context.lawId
       );
 
     const passed = violations.length === 0;
@@ -27,10 +28,10 @@ export class PerformanceStandardsLaw {
       violations,
       suggestions: [
         'Configure Lighthouse with performance thresholds ≥90',
-        'Set performance budgets in angular.json or webpack config',
-        'Implement CLS, FID, LCP monitoring with web-vitals library',
+        'Set performance budgets (angular.json, webpack, Lighthouse assertions, or a size-limit check run by a script or CI)',
+        'Report CLS, INP, LCP with web-vitals or Next.js useReportWebVitals',
         'Enable production optimizations and code splitting',
-        'Configure WebP, lazy loading, and image compression',
+        'Configure WebP, lazy loading, and image compression (next/image in Next.js)',
         'Implement service worker or configure HTTP caching headers',
       ],
       fixable: true,

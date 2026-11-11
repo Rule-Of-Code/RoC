@@ -4,6 +4,11 @@ import {
   BundleOptimizationStrategyCheckConstants,
   BundleOptimizationStrategyFileDiscoveryConstants,
 } from '../constants';
+import type { ReactPerformanceEvidence } from '../../../../utils/react/react-performance-source';
+import {
+  type BundlerReport,
+  WebBundlerConfig,
+} from '../../../../utils/react/web-bundler-config';
 
 /**
  * CodeSplittingAnalyzerService
@@ -18,7 +23,9 @@ export class CodeSplittingAnalyzerService {
    */
   static analyze(
     projectRoot: string,
-    config: RuleOfCodeConfig
+    config: RuleOfCodeConfig,
+    react?: ReactPerformanceEvidence,
+    bundler?: BundlerReport
   ): {
     isConfigured: boolean;
     strategies: string[];
@@ -27,6 +34,24 @@ export class CodeSplittingAnalyzerService {
 
     this.checkRoutingFiles(projectRoot, config, strategies);
     this.checkDynamicImports(projectRoot, config, strategies);
+
+    // Next.js splits client code by route segment / page on its own (the
+    // production checklist in `next/dist/docs` lists it under "Automatic
+    // optimizations"), so a Next app with a router directory that Next builds
+    // is route-split without a line of configuration.
+    for (const app of bundler?.apps ?? []) {
+      if (app.kind === 'next' && app.builds && app.hasRouter) {
+        strategies.push(
+          `Route-based code splitting: ${WebBundlerConfig.label(projectRoot, app)} router`
+        );
+      }
+    }
+    // React source, read from the parse: `dynamic(() => import('x'))` counts
+    // whether or not the file also contains `.then(` — the substring rule
+    // below never saw it.
+    if (react && react.dynamicImports.length > 0) {
+      strategies.push(`Lazy-loaded code: ${react.dynamicImports.slice(0, 3).join(', ')}`);
+    }
 
     return {
       isConfigured: strategies.length > 0,

@@ -1,5 +1,6 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { PerformanceMonitoringPolicyAnalyzerService } from './performance-monitoring-policy/services';
+import { unreadViolation } from '../../utils/react/react-performance-source';
 
 /**
  * Performance Monitoring Policy Law
@@ -14,7 +15,8 @@ export class PerformanceMonitoringPolicyLaw {
     const analysis =
       await PerformanceMonitoringPolicyAnalyzerService.analyzeMonitoringPolicy(
         context.projectRoot,
-        context.config
+        context.config,
+        context.lawId
       );
 
     // Check for Real User Monitoring (RUM) setup
@@ -37,7 +39,7 @@ export class PerformanceMonitoringPolicyLaw {
     if (!analysis.errorTracking.hasTracking) {
       violations.push('Performance error tracking not configured');
       suggestions.push(
-        'Implement error tracking with Sentry, LogRocket, or similar tools'
+        'Implement error tracking with Sentry (@sentry/nextjs, @sentry/react, @sentry/angular), LogRocket, or similar tools'
       );
       score -= 20;
     }
@@ -54,7 +56,15 @@ export class PerformanceMonitoringPolicyLaw {
     // Check for Core Web Vitals monitoring
     if (!analysis.coreWebVitals.monitored) {
       violations.push('Core Web Vitals monitoring not implemented');
-      suggestions.push('Monitor LCP, FID, CLS metrics in production');
+      suggestions.push(
+        'Monitor LCP, INP, CLS in production (web-vitals, or useReportWebVitals in Next.js)'
+      );
+      score -= 10;
+    }
+
+    // React source the analysis needed and could not read was not inspected.
+    if (analysis.unread.length > 0) {
+      violations.push(unreadViolation(analysis.unread));
       score -= 10;
     }
 

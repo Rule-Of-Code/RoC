@@ -6,12 +6,14 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { CoreWebVitalsPerformanceChecksConstants as Checks } from './core-web-vitals-compliance/constants/performance-checks';
 import { CoreWebVitalsAnalyzerService } from './core-web-vitals-compliance/services/analyzer.service';
+import { unreadViolation } from '../../utils/react/react-performance-source';
 
 export class CoreWebVitalsComplianceLaw {
   static async check(context: LawCheckContext): Promise<LawResult> {
     const analysis = CoreWebVitalsAnalyzerService.analyze(
       context.projectRoot,
-      context.config
+      context.config,
+      context.lawId
     );
 
     const violations: string[] = [];
@@ -57,6 +59,13 @@ export class CoreWebVitalsComplianceLaw {
     if (!analysis.resourceHints.hasHints) {
       violations.push(Checks.VIOLATION_MESSAGES.HINTS_NOT_CONFIGURED);
       suggestions.push(Checks.SUGGESTION_MESSAGES.RESOURCE_HINTS);
+      score -= Checks.SCORE_DEDUCTIONS.RESOURCE_HINTS_MISSING;
+    }
+
+    // Source or config the analysis needed and could not read was not
+    // inspected — its absence must not read as compliance.
+    if (analysis.unread && analysis.unread.length > 0) {
+      violations.push(unreadViolation(analysis.unread));
       score -= Checks.SCORE_DEDUCTIONS.RESOURCE_HINTS_MISSING;
     }
 

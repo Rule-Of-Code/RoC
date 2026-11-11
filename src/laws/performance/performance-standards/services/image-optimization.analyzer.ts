@@ -1,6 +1,8 @@
 import type { RuleOfCodeConfig } from '../../../../config/types';
 import { FileUtils, PathOperations } from '../../../../utils';
 import { PathResolver } from '../../../../utils/path-resolver';
+import type { ReactPerformanceEvidence } from '../../../../utils/react/react-performance-source';
+import type { BundlerReport } from '../../../../utils/react/web-bundler-config';
 import { ImageOptimizationConstants } from '../constants';
 
 /**
@@ -11,9 +13,18 @@ import { ImageOptimizationConstants } from '../constants';
 export class ImageOptimizationAnalyzer {
   static async analyze(
     projectRoot: string,
-    config?: RuleOfCodeConfig
+    config?: RuleOfCodeConfig,
+    react?: ReactPerformanceEvidence,
+    bundler?: BundlerReport
   ): Promise<string[]> {
     const violations: string[] = [];
+
+    // Next.js: `<Image>` from next/image is served through Next's optimizer
+    // (resized, `image/webp` by default) unless the element says
+    // `unoptimized` or next.config sets `images.unoptimized: true`.
+    if (this.usesNextImageOptimizer(react, bundler)) {
+      return violations;
+    }
 
     const packageJsonPath = PathOperations.join(projectRoot, 'package.json');
     if (!FileUtils.exists(packageJsonPath)) {
@@ -64,5 +75,15 @@ export class ImageOptimizationAnalyzer {
     }
 
     return violations;
+  }
+
+  private static usesNextImageOptimizer(
+    react?: ReactPerformanceEvidence,
+    bundler?: BundlerReport
+  ): boolean {
+    if (!react || react.optimizedImages.length === 0 || !bundler) return false;
+    return bundler.apps.some(
+      app => app.kind === 'next' && app.builds && !app.imagesUnoptimized
+    );
   }
 }

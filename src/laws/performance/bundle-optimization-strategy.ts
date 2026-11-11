@@ -18,17 +18,17 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import type { ViolationConfig } from './bundle-optimization-strategy/constants/types';
 import { BundleOptimizationStrategyAnalyzerService } from './bundle-optimization-strategy/services';
+import {
+  ReactPerformanceSource,
+  unreadViolation,
+} from '../../utils/react/react-performance-source';
+import { WebBundlerConfig } from '../../utils/react/web-bundler-config';
 
 export class BundleOptimizationStrategyLaw {
   static check(context: LawCheckContext): LawResult {
     const violations: string[] = [];
     const suggestions: string[] = [];
-    const score = this.runAllAnalyses(
-      context.projectRoot,
-      context.config,
-      violations,
-      suggestions
-    );
+    const score = this.runAllAnalyses(context, violations, suggestions);
     return this.buildResult(violations, suggestions, score, context);
   }
 
@@ -36,17 +36,22 @@ export class BundleOptimizationStrategyLaw {
    * Run all bundle optimization analyses
    */
   private static runAllAnalyses(
-    projectRoot: string,
-    config: LawCheckContext['config'],
+    context: LawCheckContext,
     violations: string[],
     suggestions: string[]
   ): number {
+    const { projectRoot, config } = context;
     let score = 100;
     const analyzer = BundleOptimizationStrategyAnalyzerService;
+    // Read once and shared by the sub-checks: next.config / vite.config, and
+    // the React source (only where react or next is declared).
+    const bundler = WebBundlerConfig.inspect(projectRoot);
+    const react = ReactPerformanceSource.scan(context);
 
     // Run each analysis and add violations if not passing
     score = this.checkAnalysis(
-      analyzer.analyzeCodeSplitting(projectRoot, config).isConfigured,
+      analyzer.analyzeCodeSplitting(projectRoot, config, react, bundler)
+        .isConfigured,
       violations,
       suggestions,
       score,
@@ -57,7 +62,7 @@ export class BundleOptimizationStrategyLaw {
       }
     );
     score = this.checkAnalysis(
-      analyzer.analyzeTreeShaking(projectRoot).isEnabled,
+      analyzer.analyzeTreeShaking(projectRoot, bundler).isEnabled,
       violations,
       suggestions,
       score,
@@ -68,7 +73,7 @@ export class BundleOptimizationStrategyLaw {
       }
     );
     score = this.checkAnalysis(
-      analyzer.analyzeMinification(projectRoot).isOptimal,
+      analyzer.analyzeMinification(projectRoot, bundler).isOptimal,
       violations,
       suggestions,
       score,
@@ -79,7 +84,7 @@ export class BundleOptimizationStrategyLaw {
       }
     );
     score = this.checkAnalysis(
-      analyzer.analyzeCriticalCSS(projectRoot).isConfigured,
+      analyzer.analyzeCriticalCSS(projectRoot, bundler).isConfigured,
       violations,
       suggestions,
       score,
@@ -90,7 +95,7 @@ export class BundleOptimizationStrategyLaw {
       }
     );
     score = this.checkAnalysis(
-      analyzer.analyzeVendorChunk(projectRoot).isOptimized,
+      analyzer.analyzeVendorChunk(projectRoot, bundler).isOptimized,
       violations,
       suggestions,
       score,
@@ -101,7 +106,7 @@ export class BundleOptimizationStrategyLaw {
       }
     );
     score = this.checkAnalysis(
-      analyzer.analyzeBundleAnalysis(projectRoot).isSetup,
+      analyzer.analyzeBundleAnalysis(projectRoot, config, bundler).isSetup,
       violations,
       suggestions,
       score,
@@ -111,6 +116,13 @@ export class BundleOptimizationStrategyLaw {
         penalty: 'BUNDLE_ANALYSIS',
       }
     );
+
+    // What could not be read was not inspected: a violation, never a pass.
+    const unread = [...bundler.unread, ...react.unread];
+    if (unread.length > 0) {
+      violations.push(unreadViolation(unread));
+      score -= 10;
+    }
 
     return score;
   }

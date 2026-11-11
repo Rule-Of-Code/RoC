@@ -1,6 +1,7 @@
 import { ProjectTypeDetectorValidation } from '../../../../utils/config/project-type-detector/project-type-detector-validation';
 import { FileUtils } from '../../../../utils/file-utils';
 import { PathOperations } from '../../../../utils/path-operations';
+import type { ReactPerformanceEvidence } from '../../../../utils/react/react-performance-source';
 import { RealUserMonitoringPolicyConstants } from '../constants/real-user-monitoring-policy.constants';
 
 /**
@@ -9,11 +10,20 @@ import { RealUserMonitoringPolicyConstants } from '../constants/real-user-monito
  * Single Responsibility: Analyze RUM tools and configuration
  */
 export class RealUserMonitoringPolicyAnalyzerService {
-  static checkRealUserMonitoring(projectRoot: string): {
+  static checkRealUserMonitoring(
+    projectRoot: string,
+    react?: ReactPerformanceEvidence
+  ): {
     hasRUM: boolean;
     tools: string[];
   } {
     const tools: string[] = [];
+
+    // Field metrics collected in real users' browsers: a CALL of Next's
+    // `useReportWebVitals` (it bundles web-vitals, so no dependency is
+    // declared) or of a web-vitals metric function.
+    const report = react?.webVitalsReports[0];
+    if (report) tools.push(`Web Vitals reported from the browser (${report})`);
 
     tools.push(...this.getPackageJsonRumTools(projectRoot));
     this.addGoogleAnalyticsIfDetected(projectRoot, tools);

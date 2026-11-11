@@ -388,7 +388,12 @@ describe('CoreWebVitalsComplianceLaw', () => {
       const context = createContext();
       await CoreWebVitalsComplianceLaw.check(context);
 
-      expect(analyzeSpy).toHaveBeenCalledWith('/test/project', mockConfig);
+      // lawId is forwarded so the React source scan honours per-law ignores.
+      expect(analyzeSpy).toHaveBeenCalledWith(
+        '/test/project',
+        mockConfig,
+        undefined
+      );
     });
   });
 });

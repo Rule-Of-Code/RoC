@@ -82,6 +82,9 @@ export class BundleOptimizationStrategyCheckConstants {
     'penthouse',
     'critical-css',
     '@critters/critters',
+    // What Next's `experimental.optimizeCss` requires at run time
+    // (`next/dist/server/post-process.js`: `require('critters')`).
+    'critters',
   ];
 
   /**

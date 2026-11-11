@@ -3,6 +3,7 @@ import { ProjectTypeDetectorValidation } from '../../../../utils';
 import { FileUtils } from '../../../../utils/file-utils';
 import { PathOperations } from '../../../../utils/path-operations';
 import { PathResolver } from '../../../../utils/path-resolver';
+import type { ReactPerformanceEvidence } from '../../../../utils/react/react-performance-source';
 import { CoreWebVitalsPolicyConstants } from '../constants/core-web-vitals-policy.constants';
 
 /**
@@ -13,12 +14,20 @@ import { CoreWebVitalsPolicyConstants } from '../constants/core-web-vitals-polic
 export class CoreWebVitalsPolicyAnalyzerService {
   static async checkCoreWebVitalsMonitoring(
     projectRoot: string,
-    config?: RuleOfCodeConfig
+    config?: RuleOfCodeConfig,
+    react?: ReactPerformanceEvidence
   ): Promise<{
     monitored: boolean;
     implementations: string[];
   }> {
     const implementations: string[] = [];
+
+    // React/Next: the reporting call anywhere in the parsed source - a Next
+    // app reports from a client component rendered by the root layout, not
+    // from main.ts or app.component.ts, which it does not have.
+    if (react && react.webVitalsReports.length > 0) {
+      implementations.push(`Core Web Vitals reported: ${react.webVitalsReports[0]}`);
+    }
 
     // Check for web-vitals library usage
     const allDeps =

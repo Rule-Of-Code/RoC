@@ -440,6 +440,16 @@ export interface RuleOfCodeConfig {
        */
       boundary?: string[];
     };
+    react?: {
+      /**
+       * Module names (as imported in eslint.config.*, or as written in an
+       * .eslintrc `extends`) of shared ESLint presets that enable
+       * eslint-plugin-react-hooks' rules-of-hooks and exhaustive-deps — read by
+       * React Hooks Lint Enforced, which cannot read inside a package's preset.
+       * eslint-config-next is already known. Default: none.
+       */
+      hooksLintPresets?: string[];
+    };
     testing?: {
       /** Minimum test coverage percentage (0-100) */
       minCoveragePercent?: number;

@@ -194,6 +194,11 @@ import {
   IonicViewLifecycleInterfacesLaw,
 } from '../checkers/ionic-laws';
 
+// React Laws Modular Imports — gated by `requires` on react (or next)
+import {
+  ReactHooksLintEnforcedLaw,
+} from '../checkers/react-laws';
+
 // Security Laws Modular Imports
 import {
   EnvironmentVariablesLaw,
@@ -492,6 +497,9 @@ export class ModularLawsRegistry {
     'CapacitorPluginPlatformDeclarationsLaw.check': CapacitorPluginPlatformDeclarationsLaw,
     'CapacitorDeepLinkContractLaw.check': CapacitorDeepLinkContractLaw,
     'CapacitorSyncArtefactsMatchDependenciesLaw.check': CapacitorSyncArtefactsMatchDependenciesLaw,
+
+    // React Laws (gated on react; React Render No Browser Global on next)
+    'ReactHooksLintEnforcedLaw.check': ReactHooksLintEnforcedLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

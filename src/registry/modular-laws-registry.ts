@@ -183,6 +183,7 @@ import {
 
 // React Laws Modular Imports — gated by `requires` on react / next
 import {
+  NextOpenRedirectGuardedLaw,
   ReactDangerousHtmlGuardedLaw,
   ReactHrefSchemeGuardedLaw,
 } from '../checkers/react-laws';
@@ -503,6 +504,7 @@ export class ModularLawsRegistry {
     // React Laws (gated on react / next)
     'ReactDangerousHtmlGuardedLaw.check': ReactDangerousHtmlGuardedLaw,
     'ReactHrefSchemeGuardedLaw.check': ReactHrefSchemeGuardedLaw,
+    'NextOpenRedirectGuardedLaw.check': NextOpenRedirectGuardedLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

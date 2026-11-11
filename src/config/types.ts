@@ -469,6 +469,12 @@ export interface RuleOfCodeConfig {
        * Guarded.
        */
       urlGuards?: string[];
+      /**
+       * Redirect-target guards, as the callee is written: a redirect whose
+       * target passes through one of them is accepted by Next Open Redirect
+       * Guarded.
+       */
+      redirectGuards?: string[];
     };
     frontend?: {
       /**

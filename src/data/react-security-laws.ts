@@ -10,7 +10,7 @@
  */
 
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
-import { REQUIRES_REACT } from '../utils/framework-requirements';
+import { REQUIRES_NEXT, REQUIRES_REACT } from '../utils/framework-requirements';
 import { generateLawId } from '../utils/id-generator';
 
 /** The limit every law here shares: one file, no data flow across functions. */
@@ -31,7 +31,7 @@ export const REACT_SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '25.1',
     title: 'React Dangerous HTML Guarded',
     rationale:
-      "dangerouslySetInnerHTML writes its __html into the page as markup, so a string from a user, a CMS or an API becomes script — React's escaping, the reason JSX is safe by default, is exactly what this prop turns off. The usual hole is JSON-LD: Next's own guide warns that JSON.stringify \"does not sanitize\" and that a '<' must be escaped as \\u003c, because a '</script>' inside the data closes the tag.",
+      "dangerouslySetInnerHTML writes its __html into the page as markup, so a string from a user, a CMS or an API becomes script — React's escaping, the reason JSX is safe by default, is exactly what this prop turns off. One hole is easy to miss, JSON-LD: Next's own guide warns that JSON.stringify \"does not sanitize\" and that a '<' must be escaped as \\u003c, because a '</script>' inside the data closes the tag.",
     satisfiedBy: {
       react:
         "Render text by default. Where HTML must be rendered, sanitize at the sink — __html: DOMPurify.sanitize(html) — naming any other sanitizer in thresholds.security.htmlSanitizers; for JSON-LD write __html: JSON.stringify(data).replace(/</g, '\\\\u003c'). A function whose output is safe for another reason goes in thresholds.react.trustedHtmlFunctions with that reason.",
@@ -97,5 +97,44 @@ export const REACT_SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Section 25.2: a link or frame URL whose scheme the code does not fix',
     remediation:
       'Build the URL from a fixed prefix, or pass it through a configured URL guard',
+  },
+
+  {
+    id: generateLawId(
+      'Next Open Redirect Guarded',
+      'A Next.js redirect never sends the visitor to a target taken from searchParams or the request body without a guard',
+      'react'
+    ),
+    legacyId: 583,
+    section: '25',
+    subsection: '25.3',
+    title: 'Next Open Redirect Guarded',
+    rationale:
+      "redirect(next) with next read from the query string or the request body sends the visitor wherever a crafted link says — the sign-in page that, after a real login, bounces to the attacker's look-alike. The link carries the real domain, so the victim has every reason to trust it, and a redirect is one line in a Server Component, a Server Action or a route handler.",
+    satisfiedBy: {
+      react:
+        "Redirect only to same-site paths: check that the target starts with '/' and not '//' or '/\\', in one guard named in thresholds.react.redirectGuards, and call it at the redirect — redirect(safeNext(searchParams.next)). A target built from a fixed path, `/login?next=${encodeURIComponent(path)}`, needs no guard.",
+    },
+    detectionLimits: [
+      'Redirects recognised: redirect / permanentRedirect imported from next/navigation, NextResponse.redirect (next/server) and the global Response.redirect. router.push, window.location and a <meta refresh> are not judged.',
+      'A target counts as from the request when, in the same function, it reads searchParams (any access), useSearchParams(), .json()/.formData()/.text() on the request parameter (typed Request/NextRequest, or named request/req when untyped), a FormData parameter, or a local initialised from those (followed through declarations, not assignments). A value passed in from another function or module is not followed.',
+      "Accepted: a call to a guard named in thresholds.react.redirectGuards (by callee name — what the guard checks is not seen), a literal, or a template / + chain whose static start is a same-site path ('/x…'), also as the target of new URL(target, request.url). Any read of searchParams in the target counts, so a same-site target built from it without a fixed path start is flagged too — hence warning.",
+      NEEDS_THE_PARSER,
+    ],
+    emoji: '↪️',
+    description:
+      'A Next.js redirect never sends the visitor to a target taken from searchParams or the request body without a guard',
+    priority: 'HIGH',
+    category: 'SECURITY',
+    stack: 'frontend',
+    requires: REQUIRES_NEXT,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'NextOpenRedirectGuardedLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Section 25.3: a redirect target taken from the request without a guard',
+    remediation:
+      'Allow only same-site paths, through a guard named in thresholds.react.redirectGuards',
   },
 ];

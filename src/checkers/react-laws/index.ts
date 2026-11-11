@@ -4,5 +4,6 @@
  * where a workspace manifest declares the package the law is about.
  */
 
+export { NextOpenRedirectGuardedLaw } from './next-open-redirect-guarded';
 export { ReactDangerousHtmlGuardedLaw } from './react-dangerous-html-guarded';
 export { ReactHrefSchemeGuardedLaw } from './react-href-scheme-guarded';

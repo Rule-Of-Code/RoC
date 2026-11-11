@@ -450,6 +450,117 @@ export interface RuleOfCodeConfig {
        */
       specRequiredMinLoc?: number;
     };
+    next?: {
+      /**
+       * Names of the functions that establish who the caller is and what they
+       * may do (`requireUser`, `auth.requireRole`). A call matches when its
+       * callee is the name or ends with `.<name>`; a wrapper built from one
+       * (`withAuth(handler)`, `authClient.action(fn)`) counts too. Read by
+       * Next Server Action Authorizes and Next Route Handler Guarded; absent
+       * while there are actions or mutating handlers to judge, both fail.
+       */
+      authGuards?: string[];
+      /**
+       * Names of the calls that validate a request body (`parse`,
+       * `safeParse`). A route handler that reads `.json()`/`.formData()` must
+       * call one, or narrow with `typeof` (Next Route Handler Guarded).
+       */
+      bodyValidators?: string[];
+      /**
+       * Route handlers that are deliberately public (a signed webhook, a public
+       * read), by route path as the filesystem gives it (`/api/hooks/[id]`),
+       * each with the reason. Exempts the handler from the guard rule only.
+       */
+      publicRoutes?: Array<{ route: string; reason: string }>;
+      /**
+       * Modules that must never reach a 'use client' module graph, ADDED to
+       * the built-in list (unpolyfilled Node built-ins and database drivers).
+       * A package name also covers its subpaths (Next Server Only Boundary).
+       */
+      serverModules?: string[];
+      /**
+       * Whether a module the server graph imports, which imports a server
+       * module directly, must carry `import 'server-only'`. Default true; false
+       * turns that second rule of Next Server Only Boundary off (for code that
+       * plain Node test runners import, where `server-only` throws).
+       */
+      requireServerOnlyMarker?: boolean;
+      /**
+       * The reason a proxy (middleware) deliberately runs on every request,
+       * static files included. Absent: a proxy without a literal
+       * `config.matcher` fails Next Proxy Placement And Matcher.
+       */
+      proxyWithoutMatcher?: string;
+      /**
+       * Where `next build` gets its NEXT_PUBLIC_* values when no Dockerfile or
+       * CI file in the repository runs it (a hosting dashboard). Absent while
+       * such a value is read and no build is found: Next Public Env Is Build
+       * Time fails, because it could not see the build.
+       */
+      publicEnvBuildSource?: string;
+      /**
+       * NEXT_PUBLIC_* names that look secret (KEY, TOKEN, …) and are public by
+       * design (a publishable key), each with the reason.
+       */
+      publicEnvAllowed?: Array<{ name: string; reason: string }>;
+      /**
+       * The exemption lists of security guards (CSRF, auth, rate limit): the
+       * file, the top-level constant, and how the guard matches a pattern
+       * against a path. `[]` declares there are none. Absent: Guard Exemption
+       * Matches A Route fails, asking for the declaration.
+       */
+      guardExemptions?: Array<{
+        file: string;
+        constant: string;
+        match: 'exact' | 'glob' | 'prefix' | 'regex';
+      }>;
+      /**
+       * App Router routes that need no metadata of their own (Next Metadata
+       * Declared), as globs over the route path: `/admin/**`, `/internal`.
+       * Route groups `(x)` and slots `@x` are not part of the path.
+       */
+      metadataExemptRoutes?: string[];
+      /**
+       * Module specifiers that must not be imported statically by a module in
+       * the client bundle (Next Heavy Lib In Client Graph), as globs over the
+       * specifier: `moment`, `three/**`. REPLACES the built-in list rather than
+       * adding to it, so a project can also drop an entry it has measured.
+       */
+      heavyClientLibraries?: string[];
+      /**
+       * External script hosts the app loads on purpose (Next Third Party
+       * Script Declared), each with the reason it is worth its cost. An entry
+       * without a reason is reported, not honoured.
+       */
+      thirdPartyScripts?: Array<{ host: string; reason: string }>;
+      /**
+       * Root-relative links that must do a full page load (Next Internal Link
+       * Component), as globs over the href path, each with its reason — a
+       * recovery page that resets client state. An entry without a reason is
+       * reported, not honoured.
+       */
+      fullReloadLinks?: Array<{ path: string; reason: string }>;
+      /**
+       * Largest first-load JavaScript a route may ship, in kilobytes of 1024
+       * bytes, uncompressed — the `firstLoadUncompressedJsBytes` Next writes to
+       * .next/diagnostics/route-bundle-stats.json (Next Route JS Budget).
+       * No default: the law is opt-in and fails until a budget is declared.
+       */
+      routeJsBudgetKb?: number;
+    };
+    clientIp?: {
+      /**
+       * The ONE module (path relative to the workspace root) allowed to read
+       * x-forwarded-for, forwarded, x-real-ip and cf-connecting-ip
+       * (Client IP Single Boundary).
+       */
+      module?: string;
+      /**
+       * The reason the project does not use client IP addresses at all. Any
+       * read of those headers then fails.
+       */
+      notUsed?: string;
+    };
     security?: {
       /**
        * HTML sanitizers, as the callee is written at the call site
@@ -586,41 +697,6 @@ export interface RuleOfCodeConfig {
        * reported, never replaced by the default.
        */
       fixedContentPattern?: string;
-    };
-    next?: {
-      /**
-       * App Router routes that need no metadata of their own (Next Metadata
-       * Declared), as globs over the route path: `/admin/**`, `/internal`.
-       * Route groups `(x)` and slots `@x` are not part of the path.
-       */
-      metadataExemptRoutes?: string[];
-      /**
-       * Module specifiers that must not be imported statically by a module in
-       * the client bundle (Next Heavy Lib In Client Graph), as globs over the
-       * specifier: `moment`, `three/**`. REPLACES the built-in list rather than
-       * adding to it, so a project can also drop an entry it has measured.
-       */
-      heavyClientLibraries?: string[];
-      /**
-       * External script hosts the app loads on purpose (Next Third Party
-       * Script Declared), each with the reason it is worth its cost. An entry
-       * without a reason is reported, not honoured.
-       */
-      thirdPartyScripts?: Array<{ host: string; reason: string }>;
-      /**
-       * Root-relative links that must do a full page load (Next Internal Link
-       * Component), as globs over the href path, each with its reason — a
-       * recovery page that resets client state. An entry without a reason is
-       * reported, not honoured.
-       */
-      fullReloadLinks?: Array<{ path: string; reason: string }>;
-      /**
-       * Largest first-load JavaScript a route may ship, in kilobytes of 1024
-       * bytes, uncompressed — the `firstLoadUncompressedJsBytes` Next writes to
-       * .next/diagnostics/route-bundle-stats.json (Next Route JS Budget).
-       * No default: the law is opt-in and fails until a budget is declared.
-       */
-      routeJsBudgetKb?: number;
     };
     testing?: {
       /** Minimum test coverage percentage (0-100) */

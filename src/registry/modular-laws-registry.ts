@@ -169,6 +169,19 @@ import {
   TimerCleanupLaw,
 } from '../checkers/fe-architecture-laws';
 
+// Next.js Laws Modular Imports — gated by `requires` on next (Client IP: Node HTTP servers)
+import {
+  ClientIpSingleBoundaryLaw,
+  GuardExemptionMatchesARouteLaw,
+  NextClientEnvPublicOnlyLaw,
+  NextErrorBoundariesDeclaredLaw,
+  NextProxyPlacementAndMatcherLaw,
+  NextPublicEnvIsBuildTimeLaw,
+  NextRouteHandlerGuardedLaw,
+  NextServerActionAuthorizesLaw,
+  NextServerOnlyBoundaryLaw,
+} from '../checkers/next-laws';
+
 // Capacitor Laws Modular Imports — gated by `requires` on @capacitor/core + a config
 import {
   CapacitorAndroidBackupScopedLaw,
@@ -536,6 +549,17 @@ export class ModularLawsRegistry {
     'NoPassthroughCastLaw.check': NoPassthroughCastLaw,
     'TimerCleanupLaw.check': TimerCleanupLaw,
     'NoRiskLiteralsLaw.check': NoRiskLiteralsLaw,
+
+    // Next.js Laws (gated on next; Client IP Single Boundary on any Node HTTP server)
+    'NextServerActionAuthorizesLaw.check': NextServerActionAuthorizesLaw,
+    'NextRouteHandlerGuardedLaw.check': NextRouteHandlerGuardedLaw,
+    'NextServerOnlyBoundaryLaw.check': NextServerOnlyBoundaryLaw,
+    'NextClientEnvPublicOnlyLaw.check': NextClientEnvPublicOnlyLaw,
+    'NextProxyPlacementAndMatcherLaw.check': NextProxyPlacementAndMatcherLaw,
+    'NextErrorBoundariesDeclaredLaw.check': NextErrorBoundariesDeclaredLaw,
+    'NextPublicEnvIsBuildTimeLaw.check': NextPublicEnvIsBuildTimeLaw,
+    'GuardExemptionMatchesARouteLaw.check': GuardExemptionMatchesARouteLaw,
+    'ClientIpSingleBoundaryLaw.check': ClientIpSingleBoundaryLaw,
 
     // Capacitor Laws (gated on @capacitor/core + a Capacitor config)
     'CapacitorLoggingNeverProductionLaw.check': CapacitorLoggingNeverProductionLaw,

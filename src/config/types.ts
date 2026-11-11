@@ -4,7 +4,7 @@
  */
 
 import { CONSTITUTIONAL_LAWS } from '../data/constitutional-laws';
-import { CONSTITUTIONAL_PATHS } from '../utils/constants';
+import { CONSTITUTIONAL_PATHS, TEST_FILE_GLOBS } from '../utils/constants';
 
 export interface RuleOfCodeConfig {
   // Allow index signature for compatibility with Record<string, unknown>
@@ -658,13 +658,7 @@ export const DEFAULT_CONFIG: RuleOfCodeConfig = {
     // exclusion they intended is applied unconditionally in
     // FileFilterUtils.getIgnorePatterns.
     byRule: {},
-    tests: [
-      '**/*.spec.ts',
-      '**/*.spec.js',
-      '**/*.test.ts',
-      '**/*.test.js',
-      '**/e2e/**',
-    ],
+    tests: [...TEST_FILE_GLOBS, '**/e2e/**'],
     build: [
       '**/dist/**',
       '**/build/**',

@@ -5,7 +5,7 @@
 
 import { minimatch } from 'minimatch';
 import type { RuleOfCodeConfig } from '../config/types';
-import { PATTERNS, SKIP_DIRECTORIES } from './constants';
+import { PATTERNS, SKIP_DIRECTORIES, TEST_FILE_GLOBS } from './constants';
 import { PathOperations } from './path-operations';
 export class FileFilterUtils {
   /**
@@ -71,8 +71,7 @@ export class FileFilterUtils {
     // Only add test patterns if includeTests is false
     if (!includeTests) {
       basePatterns.push(
-        PATTERNS.SPEC_FILES,
-        PATTERNS.TEST_FILES,
+        ...TEST_FILE_GLOBS,
         '**/cypress/**',
         '**/*-e2e/**',
         '**/e2e/**',
@@ -87,12 +86,7 @@ export class FileFilterUtils {
         // PROFESSIONAL FIX: Filter out test patterns from config.ignores.global when includeTests=true
         // This prevents config-level test ignores from overriding includeTests parameter
         const testPatterns = [
-          PATTERNS.SPEC_FILES,
-          PATTERNS.TEST_FILES,
-          '**/*.spec.ts',
-          '**/*.test.ts',
-          '**/*.spec.js',
-          '**/*.test.js',
+          ...TEST_FILE_GLOBS,
           '**/cypress/**',
           '**/*-e2e/**',
           '**/e2e/**',

@@ -1,9 +1,12 @@
 import type { RuleOfCodeConfig } from '../../../config/types';
 import type { LawCheckContext } from '../../../types/law.types';
-import { CheckerUtils } from '../../../utils/checker-utils';
+import { glob } from 'glob';
 import { ConfigFileUtils } from '../../../utils/config-file-utils';
+import { TEST_FILE_GLOBS } from '../../../utils/constants';
 import { FileUtils } from '../../../utils/file-utils';
 import { PathOperations } from '../../../utils/path-operations';
+
+const TEST_COUNT_IGNORES = ['**/node_modules/**', '**/dist/**', '**/coverage/**', '**/.nx/**', '**/.angular/**'];
 /**
  * Build Validation Checker
  * Validates build scripts and compilation setup
@@ -131,55 +134,28 @@ export class BuildValidationChecker {
     return buildScripts;
   }
 
-  private countTestFiles(dir: string, config: RuleOfCodeConfig): number {
+  /**
+   * Test files, counted by their names. This used to ask a SOURCE scan — one
+   * that hides tests by design — and then filter it for test names, so it
+   * found only the spellings the hiding list happened to miss (`.spec.js`)
+   * and reported 0 for every `.spec.ts`. Its tests asserted that 0 as a
+   * "temp directory limitation". The project's own ignores still apply to
+   * everything but the test-hiding patterns.
+   */
+  private countTestFiles(dir: string, _config: RuleOfCodeConfig): number {
     if (!FileUtils.exists(dir)) return 0;
-
-    const testFileExtensions = ['.spec.ts', '.test.ts', '.spec.js', '.test.js'];
-
-    // Try to use CheckerUtils for comprehensive file search
-    try {
-      const allFiles = CheckerUtils.findAllCodeFiles(dir, config);
-      const testFiles = allFiles.filter(file =>
-        testFileExtensions.some(ext => file.endsWith(ext))
-      );
-
-      // If CheckerUtils returns results, use them
-      if (testFiles.length > 0) {
-        return testFiles.length;
-      }
-    } catch (_error) {
-      // Fall through to manual counting
-    }
-
-    // Fallback: manually count test files in common directories
-    // This handles cases where CheckerUtils might fail or miss files
-    let count = 0;
-    const commonTestDirs = [
-      'apps',
-      'libs',
-      'src',
-      'test',
-      'tests',
-      '__tests__',
-    ];
-
-    for (const testDir of commonTestDirs) {
-      const fullPath = PathOperations.join(dir, testDir);
-      if (FileUtils.exists(fullPath)) {
-        try {
-          const files = CheckerUtils.findFilesByExtension(
-            fullPath,
-            testFileExtensions,
-            config
-          );
-          count += files.length;
-        } catch (_error) {
-          // Continue with other directories
-        }
+    const found = new Set<string>();
+    for (const pattern of TEST_FILE_GLOBS) {
+      for (const file of glob.sync(pattern, {
+        cwd: dir,
+        absolute: true,
+        nodir: true,
+        ignore: TEST_COUNT_IGNORES,
+      })) {
+        found.add(file);
       }
     }
-
-    return count;
+    return found.size;
   }
 
   private extractTestScripts(packageJsonPath: string): string[] {

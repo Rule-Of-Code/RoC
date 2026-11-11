@@ -116,6 +116,25 @@ export const PATH_CONSTANTS = {
   PARENT_DIR: '../',
 } as const;
 
+/**
+ * Every spelling of a unit/component test file name. React writes component
+ * tests as `.test.tsx`; with only `.ts`/`.js` listed, those files were scanned
+ * as SOURCE by every law and missed by every law that counts tests.
+ */
+export const TEST_FILE_GLOBS: readonly string[] = [
+  '**/*.spec.ts',
+  '**/*.spec.tsx',
+  '**/*.spec.js',
+  '**/*.spec.jsx',
+  '**/*.test.ts',
+  '**/*.test.tsx',
+  '**/*.test.js',
+  '**/*.test.jsx',
+];
+
+/** A unit/component test file name, in every spelling TEST_FILE_GLOBS lists. */
+export const TEST_FILE_NAME = /\.(?:spec|test)\.[jt]sx?$/;
+
 // Common patterns and regex
 export const PATTERNS = {
   TYPESCRIPT_FILES: '**/*.ts',

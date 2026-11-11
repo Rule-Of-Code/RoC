@@ -41,7 +41,8 @@ describe('BuildValidationChecker', () => {
       performance: {
         parallel: false,
         maxConcurrent: 3,
-        cache: true,
+        cache: true,
+
       },
     };
     mockContext = {
@@ -364,8 +365,7 @@ describe('BuildValidationChecker', () => {
         'describe("App", () => {});'
       );
       const result = validator.checkTestingSetup(tempDir, mockContext);
-      // Test file counting may not work correctly in temp directories due to file discovery limitations
-      expect(result.testFiles).toBe(0);
+      expect(result.testFiles).toBe(1);
     });
 
     it('should count .test.ts files', () => {
@@ -375,8 +375,7 @@ describe('BuildValidationChecker', () => {
         'describe("App", () => {});'
       );
       const result = validator.checkTestingSetup(tempDir, mockContext);
-      // Test file counting may not work correctly in temp directories due to file discovery limitations
-      expect(result.testFiles).toBe(0);
+      expect(result.testFiles).toBe(1);
     });
 
     it('should count .spec.js files', () => {
@@ -414,8 +413,28 @@ describe('BuildValidationChecker', () => {
         'describe("Helper", () => {});'
       );
       const result = validator.checkTestingSetup(tempDir, mockContext);
-      // File discovery limitations in temp directories cause partial count
+      expect(result.testFiles).toBe(3);
+    });
+
+    it('should count .test.tsx files (React component tests)', () => {
+      FileUtils.createDirectory(PathOperations.join(tempDir, 'src'));
+      FileUtils.writeFile(
+        PathOperations.join(tempDir, 'src', 'Button.test.tsx'),
+        'test("b", () => {});'
+      );
+      FileUtils.writeFile(PathOperations.join(tempDir, 'src', 'Button.tsx'), 'export {};');
+      const result = validator.checkTestingSetup(tempDir, mockContext);
       expect(result.testFiles).toBe(1);
+    });
+
+    it('does not count a test file inside node_modules', () => {
+      FileUtils.createDirectory(PathOperations.join(tempDir, 'node_modules', 'x'));
+      FileUtils.writeFile(
+        PathOperations.join(tempDir, 'node_modules', 'x', 'a.test.js'),
+        'test("x", () => {});'
+      );
+      const result = validator.checkTestingSetup(tempDir, mockContext);
+      expect(result.testFiles).toBe(0);
     });
 
     it('should return configured true when test scripts exist', () => {

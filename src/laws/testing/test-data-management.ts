@@ -2,6 +2,7 @@ import { LawBase } from '../../checkers/law-base';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { UnitTestDataManagementAnalyzerService } from './unit-test-data-management/services/data-management-analyzer.service';
 import { namedFiles } from '../../utils/testing/fixture-isolation';
+import { TestFileDiscovery } from './test-file-discovery';
 
 /**
  * Test Data Management Law
@@ -26,6 +27,17 @@ export class TestDataManagementLaw {
       const suggestions: string[] = [];
       let score = 100;
       const { projectRoot, config } = context;
+      if (TestFileDiscovery.findTestFiles(projectRoot, config).length === 0) {
+        const nothing = TestFileDiscovery.nothingToJudge('Test Data Management');
+        return LawBase.buildDetailedResult({
+          passed: false,
+          message: nothing,
+          violations: [nothing],
+          suggestions,
+          score: 0,
+          context,
+        });
+      }
       // Real-data mode: a project may deliberately use real inline data instead of
       // factories/mocks — don't flag that as a violation.
       const realDataMode =
@@ -67,7 +79,9 @@ export class TestDataManagementLaw {
       }
 
       if (testDataPatterns.hasHardcodedData && !realDataMode) {
-        violations.push('Found hardcoded test data in test files');
+        violations.push(
+          `Found hardcoded test data in test files: ${namedFiles(testDataPatterns.hardcodedDataFiles)}`
+        );
         suggestions.push(
           'Use test data factories or builders instead of hardcoded values'
         );
@@ -75,7 +89,9 @@ export class TestDataManagementLaw {
       }
 
       if (testDataPatterns.hasSharedState) {
-        violations.push('Tests have shared mutable state issues');
+        violations.push(
+          `Tests have shared mutable state issues: ${namedFiles(testDataPatterns.sharedStateFiles)}`
+        );
         suggestions.push('Ensure tests are isolated with proper cleanup');
         score -= thresholds.sharedStateDeduction;
       }

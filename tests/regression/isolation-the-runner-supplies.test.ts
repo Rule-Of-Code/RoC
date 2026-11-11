@@ -279,7 +279,7 @@ describe('browser storage is isolated where the runner isolates it', () => {
       "import { test } from '@playwright/test';",
       "test('lists orders', async ({ page }) => { await db.insert('orders', {}); await page.goto('/'); });",
     ].join('\n');
-    expect(UnitTestIsolationConstants.resourcesUsed(seeded)).toEqual(['db.']);
+    expect(UnitTestIsolationConstants.resourcesUsed(seeded)).toEqual(['db.insert(']);
   });
 
   it('still counts storage in a unit test, where nothing resets it', () => {
@@ -318,5 +318,88 @@ describe('the resource finding names its files', () => {
     expect(finding).toContain('apps/web-e2e/src/shared.spec.ts (localStorage)');
     expect(finding).not.toContain('clean.spec.ts');
     expect(finding).not.toContain('theme.spec.ts');
+  });
+});
+
+/**
+ * Angular's HTTP testing backend is isolation the FRAMEWORK supplies. Measured
+ * on a real Angular app once the twin laws read the same file set (#192): 48 of
+ * the first 50 "external resource" findings were `HttpClient` in specs that
+ * provide `provideHttpClientTesting()` and verify the controller in afterEach.
+ */
+describe('HttpClient under the Angular testing backend', () => {
+  const spec = (providers: string): string =>
+    [
+      "import { HttpClient } from '@angular/common/http';",
+      `beforeEach(() => TestBed.configureTestingModule({ providers: [${providers}] }));`,
+      "it('loads', () => { TestBed.inject(HttpClient).get('/x').subscribe(); });",
+    ].join('\n');
+
+  it('is not an external resource with provideHttpClientTesting()', () => {
+    expect(
+      UnitTestIsolationConstants.resourcesUsed(spec('provideHttpClient(), provideHttpClientTesting()'))
+    ).toEqual([]);
+  });
+
+  it('is not an external resource with HttpClientTestingModule', () => {
+    const withModule = spec('').replace('providers: []', 'imports: [HttpClientTestingModule]');
+    expect(UnitTestIsolationConstants.resourcesUsed(withModule)).toEqual([]);
+  });
+
+  it('still is one against the real backend (the control)', () => {
+    expect(UnitTestIsolationConstants.resourcesUsed(spec('provideHttpClient()'))).toEqual(['HttpClient']);
+  });
+
+  it('a comment naming the testing backend does not count', () => {
+    expect(
+      UnitTestIsolationConstants.resourcesUsed(`// provideHttpClientTesting()\n${spec('provideHttpClient()')}`)
+    ).toEqual(['HttpClient']);
+  });
+
+  it('a fetch() beside the testing backend is still reported', () => {
+    expect(
+      UnitTestIsolationConstants.resourcesUsed(`${spec('provideHttpClientTesting()')}\nawait fetch('/real');`)
+    ).toEqual(['fetch(']);
+  });
+});
+
+/**
+ * Once the twin laws read every test (#192), their old patterns met real
+ * suites for the first time. Each case below was a false finding on a real
+ * Angular app or on RoC's own tests, and each has its control.
+ */
+describe('the isolation patterns read code, not text (#192 follow-up)', () => {
+  const C = UnitTestIsolationConstants;
+
+  it('a comment or a string saying "only" is not a focused test', () => {
+    expect(C.hasTestOrderDependencies("// the only way\nit('a', () => {});")).toBe(false);
+    expect(C.hasTestOrderDependencies('const fixture = "it.only(\'a\', () => {});";')).toBe(false);
+    expect(C.hasTestOrderDependencies("it.only('a', () => {});")).toBe(true);
+  });
+
+  it('a template literal holding quotes does not desynchronise the reading', () => {
+    const fixture = 'const s = `it("x", () => { const r = "a\'b"; });`;\nit(\'real\', () => {});';
+    expect(C.hasTestOrderDependencies(fixture)).toBe(false);
+  });
+
+  it('benefit( is not fit(', () => {
+    expect(C.hasTestOrderDependencies("it('x', () => benefit(1));")).toBe(false);
+    expect(C.hasTestOrderDependencies("fit('x', () => {});")).toBe(true);
+  });
+
+  it('a conditional skip gates on the environment; an unconditional one is reported', () => {
+    expect(C.hasTestOrderDependencies("test.skip(browserName !== 'chromium', 'reason');")).toBe(false);
+    expect(C.hasTestOrderDependencies("(shAvailable ? it : it.skip)('x', () => {});")).toBe(false);
+    expect(C.hasTestOrderDependencies("it.skip('later', () => {});")).toBe(true);
+  });
+
+  it('a module-scope let declared without a value is the per-test assignment pattern', () => {
+    expect(C.hasSharedMutableState('let logger: Logger;\nbeforeEach(() => { logger = new Logger(); });\nconst x = 1;')).toBe(false);
+    expect(C.hasSharedMutableState("let answer = 'root';\nit('a', () => { answer = 'x'; });")).toBe(true);
+  });
+
+  it('an identifier naming a database is not a database client', () => {
+    expect(C.resourcesUsed("it('a', () => { new DatabaseQueryLaw(); expect(r.hasHttpClient).toBe(true); });")).toEqual([]);
+    expect(C.resourcesUsed("it('a', async () => { await db.query('select 1'); });")).toEqual(['db.query(']);
   });
 });

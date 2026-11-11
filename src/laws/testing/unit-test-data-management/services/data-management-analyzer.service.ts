@@ -23,26 +23,30 @@ export class UnitTestDataManagementAnalyzerService {
     hasProperSetup: boolean;
     hasHardcodedData: boolean;
     hasSharedState: boolean;
+    /** The files behind each finding — a finding must say what to fix. */
+    hardcodedDataFiles: string[];
+    sharedStateFiles: string[];
   } {
     const testFiles = this.findTestFiles(projectRoot, config);
     let hasProperSetup = false;
-    let hasHardcodedData = false;
-    let hasSharedState = false;
+    const hardcodedDataFiles: string[] = [];
+    const sharedStateFiles: string[] = [];
 
     for (const testFile of testFiles) {
       try {
         const content = FileUtils.readFile(testFile, { encoding: 'utf8' });
+        const relative = PathOperations.getRelative(projectRoot, testFile);
 
         if (UnitTestDataManagementConstants.hasProperSetupTeardown(content)) {
           hasProperSetup = true;
         }
 
         if (UnitTestDataManagementConstants.hasHardcodedTestData(content)) {
-          hasHardcodedData = true;
+          hardcodedDataFiles.push(relative);
         }
 
         if (UnitTestDataManagementConstants.hasSharedMutableState(content)) {
-          hasSharedState = true;
+          sharedStateFiles.push(relative);
         }
       } catch (_error) {
         // Skip files that can't be read
@@ -51,8 +55,10 @@ export class UnitTestDataManagementAnalyzerService {
 
     return {
       hasProperSetup: hasProperSetup || testFiles.length === 0,
-      hasHardcodedData,
-      hasSharedState,
+      hasHardcodedData: hardcodedDataFiles.length > 0,
+      hasSharedState: sharedStateFiles.length > 0,
+      hardcodedDataFiles,
+      sharedStateFiles,
     };
   }
 

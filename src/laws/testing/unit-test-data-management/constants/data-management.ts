@@ -74,10 +74,12 @@ export class UnitTestDataManagementConstants {
   // here: they leave no handle to close — the framework/GC reclaims them — so a
   // stateless API/integration test must not be flagged for "missing cleanup".
   static readonly EXTERNAL_RESOURCE_PATTERNS = {
-    DATABASE: /database|db\.|createConnection|\.connect\(/i,
+    // Clients and calls, not words: `/database/i` matched any identifier
+    // naming a database and `io\(` matched `radio(`.
+    DATABASE: /\bdb\.\w+\s*\(|\.connect\s*\(|\bcreateConnection\s*\(|\bcreatePool\s*\(|\bnew\s+(?:Pool|PrismaClient|Sequelize)\s*\(|\bknex\s*\(/,
     STORAGE: /localStorage|sessionStorage/,
     FILE_HANDLE: /createReadStream|createWriteStream|fs\.open\(/,
-    WEBSOCKET: /new WebSocket|io\(|socket\./i,
+    WEBSOCKET: /\bnew\s+WebSocket\s*\(|\bio\s*\(|\bsocket\.(?:emit|on|send|connect)\s*\(/,
     TIMER: /setInterval\(/,
   };
 

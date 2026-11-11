@@ -171,6 +171,7 @@ import {
 
 // Capacitor Laws Modular Imports — gated by `requires` on @capacitor/core + a config
 import {
+  CapacitorAndroidBackHasOneOwnerLaw,
   CapacitorDeepLinkContractLaw,
   CapacitorLoggingNeverProductionLaw,
   CapacitorNoDevOnlyServerKeysLaw,
@@ -492,6 +493,9 @@ export class ModularLawsRegistry {
     'CapacitorPluginPlatformDeclarationsLaw.check': CapacitorPluginPlatformDeclarationsLaw,
     'CapacitorDeepLinkContractLaw.check': CapacitorDeepLinkContractLaw,
     'CapacitorSyncArtefactsMatchDependenciesLaw.check': CapacitorSyncArtefactsMatchDependenciesLaw,
+
+    // Capacitor bridge laws (back button, local plugins, listeners, web-side decisions)
+    'CapacitorAndroidBackHasOneOwnerLaw.check': CapacitorAndroidBackHasOneOwnerLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

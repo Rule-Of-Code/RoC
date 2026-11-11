@@ -8,6 +8,9 @@ import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils/file-utils';
 import { CodeQualityLawBase } from './code-quality-law-base';
 
+const REACT_IMPORT = /\bfrom\s+['"]react(?:\/[^'"]*)?['"]/;
+const RXJS_IMPORT = /\bfrom\s+['"]rxjs(?:\/[^'"]*)?['"]/;
+
 export class ObservableCleanupLaw extends CodeQualityLawBase {
   static check(context: LawCheckContext): LawResult {
     const { projectRoot } = context;
@@ -20,6 +23,11 @@ export class ObservableCleanupLaw extends CodeQualityLawBase {
       for (const file of tsFiles) {
         const content = FileUtils.readFileContentSync(file);
         if (!content) continue;
+
+        // A React module's `.subscribe(` is a store's own API (the shape
+        // useSyncExternalStore consumes), not an RxJS Observable — unless the
+        // module imports RxJS itself.
+        if (this.isReactModuleWithoutRxjs(content)) continue;
 
         // Check if file has observable subscriptions but no cleanup
         if (
@@ -73,6 +81,10 @@ export class ObservableCleanupLaw extends CodeQualityLawBase {
       ],
       context
     );
+  }
+
+  private static isReactModuleWithoutRxjs(content: string): boolean {
+    return REACT_IMPORT.test(content) && !RXJS_IMPORT.test(content);
   }
 
   /**

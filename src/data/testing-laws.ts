@@ -5,6 +5,7 @@
 
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
+import { REQUIRES_ANGULAR } from '../utils/framework-requirements';
 
 export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
   {
@@ -126,6 +127,7 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
       'Angular-gated; string matching, no AST.',
     ],
     stack: 'frontend',
+    requires: REQUIRES_ANGULAR,
     emoji: '🔬',
     description:
       'Use TestBed properly, mock dependencies, test user interactions and edge cases',

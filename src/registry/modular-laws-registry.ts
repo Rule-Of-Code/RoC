@@ -197,6 +197,7 @@ import {
 // Next.js Client Laws Modular Imports — gated by `requires` on next
 import {
   HtmlLangDeclaredLaw,
+  NextClientPropsSerializableLaw,
   NextHeavyLibInClientGraphLaw,
   NextImageHasDimensionsLaw,
   NextInternalLinkComponentLaw,
@@ -512,6 +513,7 @@ export class ModularLawsRegistry {
     'HtmlLangDeclaredLaw.check': HtmlLangDeclaredLaw,
     'NextInternalLinkComponentLaw.check': NextInternalLinkComponentLaw,
     'NextUseClientAtLeavesLaw.check': NextUseClientAtLeavesLaw,
+    'NextClientPropsSerializableLaw.check': NextClientPropsSerializableLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

@@ -290,4 +290,42 @@ export const NEXT_CLIENT_LAWS: EnhancedConstitutionalLaw[] = [
     violationMessage: "CONSTITUTIONAL VIOLATION Article XXIV.24.7: 'use client' above the interactive leaves",
     remediation: "Move 'use client' down to the interactive component",
   },
+
+  {
+    id: generateLawId(
+      'Next Client Props Serializable',
+      'A Server Component passes no inline function and no class instance to a Client Component',
+      'next'
+    ),
+    legacyId: 558,
+    article: 'XXIV',
+    subsection: '24.8',
+    title: 'Next Client Props Serializable',
+    rationale:
+      'Props from a Server Component to a Client Component are serialized into the RSC payload. React serializes primitives, plain objects, arrays, Date, Map, Set, Promise, FormData, typed arrays, Blob and Server Functions; a plain function or an instance of another class throws at render — "Functions cannot be passed directly to Client Components unless you explicitly expose it by marking it with \'use server\'" / "Only plain objects, and a few built-ins, can be passed to Client Components" (react-server-dom, compiled into next@16.4.6). TypeScript does not catch it, and the render that throws may be one no test makes.',
+    satisfiedBy: {
+      react:
+        "Define the handler inside the Client Component, or pass a Server Function (`async function save() { 'use server'; … }`); pass plain data (`createdAt={row.createdAt}` as a Date, an id) and build class instances on the client.",
+    },
+    detectionLimits: [
+      'Reads only what is written inline in the JSX: an arrow or function expression (also inside an object or array literal, or as a child), and `new X(…)` of a class that is not a serializable built-in. A variable holding a function or a class instance needs types and is not seen.',
+      "A component counts as a Client Component when its import resolves — through `export … from` re-exports — to a local `'use client'` module; client components from packages are not recognised.",
+      "Server modules are those reached by static imports from the App Router's special files, stopping at each `'use client'` module. " +
+        GRAPH_RESOLUTION,
+      UNREAD_FAILS,
+    ],
+    emoji: '📦',
+    description:
+      'A Server Component passes no inline function and no class instance to a Client Component',
+    priority: 'MEDIUM',
+    category: 'FRAMEWORK',
+    stack: 'frontend',
+    requires: REQUIRES_NEXT,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'NextClientPropsSerializableLaw.check',
+    violationMessage: 'CONSTITUTIONAL VIOLATION Article XXIV.24.8: unserializable prop passed to a Client Component',
+    remediation: 'Pass plain data or a Server Function across the client boundary',
+  },
 ];

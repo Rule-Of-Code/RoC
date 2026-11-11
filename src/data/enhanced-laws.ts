@@ -17,6 +17,7 @@ import {
 } from './pareto-optimization';
 import { FE_ARCHITECTURE_LAWS } from './fe-architecture-laws';
 import { IONIC_LAWS } from './ionic-laws';
+import { IONIC_RENDERING_LAWS } from './ionic-rendering-laws';
 import { META_GATE_LAWS } from './meta-gate-laws';
 import { PERFORMANCE_LAWS } from './performance-laws';
 import { PYTHON_LAWS } from './python-laws';
@@ -41,6 +42,7 @@ export const ALL_ENHANCED_CONSTITUTIONAL_LAWS: EnhancedConstitutionalLaw[] = [
   ...META_GATE_LAWS, // 💓 Gate-integrity meta laws (universal; IDs 226+)
   ...FE_ARCHITECTURE_LAWS, // 🏛️ FE architecture audit laws (frontend; IDs 301+)
   ...IONIC_LAWS, // 📱 Ionic laws (frontend, requires an Ionic binding; IDs 401+)
+  ...IONIC_RENDERING_LAWS, // 🖌️ Ionic rendering-model laws (frontend, requires an Ionic binding; IDs 411+)
   ...CAPACITOR_LAWS, // 🔌 Capacitor laws (frontend, requires @capacitor/core + config; IDs 421+)
 ];
 
@@ -54,6 +56,7 @@ export {
   DOCUMENTATION_LAWS,
   FE_ARCHITECTURE_LAWS,
   IONIC_LAWS,
+  IONIC_RENDERING_LAWS,
   META_GATE_LAWS,
   FRAMEWORK_LAWS,
   PARETO_CATEGORIES,

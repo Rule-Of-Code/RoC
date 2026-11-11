@@ -191,6 +191,7 @@ import {
   IonicRouteReuseStrategyProvidedLaw,
   IonicSessionExitUsesNavigateRootLaw,
   IonicUniqueUrlKeyPerViewLaw,
+  IonicViewHooksOnlyOnPagesLaw,
   IonicViewLifecycleInterfacesLaw,
 } from '../checkers/ionic-laws';
 
@@ -503,6 +504,9 @@ export class ModularLawsRegistry {
     'IonicRouteReuseStrategyProvidedLaw.check': IonicRouteReuseStrategyProvidedLaw,
     'IonicNavigationSpecsMountTheOutletLaw.check': IonicNavigationSpecsMountTheOutletLaw,
     'IonicE2eLocatorsTargetTheShownPageLaw.check': IonicE2eLocatorsTargetTheShownPageLaw,
+
+    // Ionic rendering-model laws (gated on an Ionic binding)
+    'IonicViewHooksOnlyOnPagesLaw.check': IonicViewHooksOnlyOnPagesLaw,
 
     // Security Laws
     checkEnvironmentVariables: EnvironmentVariablesLaw,

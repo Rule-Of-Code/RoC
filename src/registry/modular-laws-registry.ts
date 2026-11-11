@@ -196,6 +196,7 @@ import {
 
 // Next.js Client Laws Modular Imports — gated by `requires` on next
 import {
+  NextHeavyLibInClientGraphLaw,
   NextMetadataDeclaredLaw,
 } from '../checkers/next-laws';
 
@@ -500,6 +501,7 @@ export class ModularLawsRegistry {
 
     // Next.js client laws (gated on next)
     'NextMetadataDeclaredLaw.check': NextMetadataDeclaredLaw,
+    'NextHeavyLibInClientGraphLaw.check': NextHeavyLibInClientGraphLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

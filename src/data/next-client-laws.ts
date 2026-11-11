@@ -23,6 +23,8 @@ const PAGE_EXTENSIONS =
   'Route files are recognised by Next\'s default pageExtensions (tsx, ts, jsx, js); a custom `pageExtensions` in next.config is not read.';
 const UNREAD_FAILS =
   "Uses the project's own `typescript` to parse; without it, or for a file it cannot open, the law reports what it did not read instead of passing.";
+const GRAPH_RESOLUTION =
+  'The import graph is static: specifiers are resolved with the nearest tsconfig.json (relative paths, index files, `paths` aliases) under bundler resolution. Webpack/Turbopack `resolve.alias` in next.config is not read; an alias that only exists there is reported as unresolved. Packages are not walked into, and `require()` calls are not edges.';
 
 export const NEXT_CLIENT_LAWS: EnhancedConstitutionalLaw[] = [
   {
@@ -61,5 +63,43 @@ export const NEXT_CLIENT_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'NextMetadataDeclaredLaw.check',
     violationMessage: 'CONSTITUTIONAL VIOLATION Article XXIV.24.1: Next page without a title',
     remediation: 'Export metadata with a title from the page or a layout above it (Pages Router: next/head <title>)',
+  },
+
+  {
+    id: generateLawId(
+      'Next Heavy Lib In Client Graph',
+      'No module that ships to the browser imports a heavy library statically; it is loaded with next/dynamic or import()',
+      'next'
+    ),
+    legacyId: 552,
+    article: 'XXIV',
+    subsection: '24.2',
+    title: 'Next Heavy Lib In Client Graph',
+    rationale:
+      "A `'use client'` module and everything it imports statically — transitively — ship in the first-load JavaScript of every route that renders it. One `import moment from 'moment'` in a shared helper reached from a client component puts the whole library into those routes, and nothing at the import site says so. `next/dynamic`, `React.lazy` and `import()` split the library into its own chunk, loaded when it is used (next/dist/docs: lazy-loading).",
+    satisfiedBy: {
+      react:
+        "`const Chart = dynamic(() => import('./chart'))` for the component that needs the library, or `const { default: moment } = await import('moment')` where it is used; import subpaths (`lodash/debounce`) instead of the root; keep the import in a Server Component when the browser does not need it. The list is `thresholds.next.heavyClientLibraries` (globs over the specifier; replaces the default).",
+    },
+    detectionLimits: [
+      'Does not measure bytes: a library is heavy because it is on the list (default: moment, lodash root, chart.js, d3, three, plotly.js, mapbox-gl, monaco-editor, pdfjs-dist — a judgement, not a measurement). An unlisted heavy library passes; see Next Route JS Budget for bytes.',
+      "Client entries are the `'use client'` modules plus Pages Router pages and _app. Imports used only by getServerSideProps/getStaticProps/getStaticPaths are not edges (Next strips them from the client bundle); an import used elsewhere in the page counts even if tree-shaking would drop it.",
+      GRAPH_RESOLUTION,
+      'A package that is itself client code (a UI kit that marks its own modules) is not walked, so what it imports is not seen.',
+      UNREAD_FAILS,
+    ],
+    emoji: '🏋️',
+    description:
+      'No module that ships to the browser imports a heavy library statically; it is loaded with next/dynamic or import()',
+    priority: 'HIGH',
+    category: 'PERFORMANCE',
+    stack: 'frontend',
+    requires: REQUIRES_NEXT,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'NextHeavyLibInClientGraphLaw.check',
+    violationMessage: 'CONSTITUTIONAL VIOLATION Article XXIV.24.2: heavy library imported statically into the client bundle',
+    remediation: 'Load the library with next/dynamic or import(), or keep it on the server',
   },
 ];

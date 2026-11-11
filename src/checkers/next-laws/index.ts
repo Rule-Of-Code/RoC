@@ -5,4 +5,5 @@
  * package declares `next`.
  */
 
+export { NextHeavyLibInClientGraphLaw } from './next-heavy-lib-in-client-graph';
 export { NextMetadataDeclaredLaw } from './next-metadata-declared';

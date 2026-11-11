@@ -140,4 +140,41 @@ export const IONIC_RENDERING_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article IV.4.82: ion-icon name not registered with addIcons',
     remediation: "Register the icon: addIcons({ camelCaseName }) from 'ionicons/icons'",
   },
+
+  {
+    id: generateLawId(
+      'Ionic Scroll Through Ion Content',
+      'Scroll is read and listened to through ion-content, never through the window',
+      'ionic'
+    ),
+    legacyId: 414,
+    article: 'IV',
+    subsection: '4.83',
+    title: 'Ionic Scroll Through Ion Content',
+    rationale:
+      "Under Ionic the window does not scroll: ion-content scrolls a .inner-scroll in its shadow root and binds that element's scroll listener only when scrollEvents is true (default false, 'for performance reasons'; @ionic/core content.js), and ionScroll, ionScrollStart and ionScrollEnd are all emitted from that listener. An (ionScroll) handler without [scrollEvents]=\"true\" never runs, and window.scrollTo / window.scrollY / a window:scroll listener read 0 and never fire — while working in a plain Angular app and in jsdom.",
+    satisfiedBy: {
+      ionic:
+        'Pair every (ionScroll|ionScrollStart|ionScrollEnd) with [scrollEvents]="true" on the same ion-content, and read or set positions through IonContent (scrollToTop, scrollToPoint, getScrollElement), never through window.',
+    },
+    detectionLimits: [
+      'Template attributes are read per opening tag; scrollEvents set from code (content.scrollEvents = true) is not seen and is reported as a false red.',
+      "Window-scroll use (window.scrollTo/scrollBy/scroll/scrollY/scrollX/pageYOffset/pageXOffset, document.scrollingElement, @HostListener('window:scroll'), fromEvent(window, 'scroll'), window.addEventListener('scroll')) is judged in a component whose own template has an ion-content or whose host is placed inside one (followed through parent templates by element selector); a service that scrolls the window is not judged.",
+      TEMPLATES_ANGULAR_ONLY,
+    ],
+    emoji: '📜',
+    description: 'Scroll is read and listened to through ion-content, never through the window',
+    priority: 'MEDIUM',
+    category: 'FRAMEWORK',
+    stack: 'frontend',
+    requires: REQUIRES_IONIC_ANGULAR,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'IonicScrollThroughIonContentLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.83: Scroll handled through the window, or ionScroll without scrollEvents',
+    remediation:
+      'Add [scrollEvents]="true" next to (ionScroll), and use IonContent instead of window scroll',
+  },
 ];

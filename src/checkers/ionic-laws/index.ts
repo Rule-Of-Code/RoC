@@ -15,3 +15,4 @@ export { IonicE2eLocatorsTargetTheShownPageLaw } from './ionic-e2e-locators-targ
 export { IonicViewHooksOnlyOnPagesLaw } from './ionic-view-hooks-only-on-pages';
 export { IonicSingleBuildSystemLaw } from './ionic-single-build-system';
 export { IonicIconsRegisteredLaw } from './ionic-icons-registered';
+export { IonicScrollThroughIonContentLaw } from './ionic-scroll-through-ion-content';

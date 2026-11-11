@@ -190,6 +190,7 @@ import {
   IonicNoSkipLocationChangeLaw,
   IonicPageStateReadOnEnterLaw,
   IonicRouteReuseStrategyProvidedLaw,
+  IonicScrollThroughIonContentLaw,
   IonicSessionExitUsesNavigateRootLaw,
   IonicSingleBuildSystemLaw,
   IonicUniqueUrlKeyPerViewLaw,
@@ -511,6 +512,7 @@ export class ModularLawsRegistry {
     'IonicViewHooksOnlyOnPagesLaw.check': IonicViewHooksOnlyOnPagesLaw,
     'IonicSingleBuildSystemLaw.check': IonicSingleBuildSystemLaw,
     'IonicIconsRegisteredLaw.check': IonicIconsRegisteredLaw,
+    'IonicScrollThroughIonContentLaw.check': IonicScrollThroughIonContentLaw,
 
     // Security Laws
     checkEnvironmentVariables: EnvironmentVariablesLaw,

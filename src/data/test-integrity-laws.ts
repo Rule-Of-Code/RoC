@@ -14,6 +14,7 @@ import { generateLawId } from '../utils/id-generator';
 import {
   REQUIRES_JS_TEST_RUNNER,
   REQUIRES_PLAYWRIGHT,
+  REQUIRES_REACT_TESTING_LIBRARY,
 } from '../utils/testing/test-sources';
 
 /** The limit every law that parses test files shares. */
@@ -135,5 +136,43 @@ export const TEST_INTEGRITY_LAWS: EnhancedConstitutionalLaw[] = [
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article VII.26.3: Too few Playwright locators are user-facing',
     remediation: 'Replace test-id and CSS locators with getByRole / getByLabel / getByText where the element has them',
+  },
+
+  {
+    id: generateLawId(
+      'RTL Query By Role',
+      'Most React Testing Library queries find an element by role, label or text',
+      'testing'
+    ),
+    legacyId: 574,
+    article: 'VII',
+    subsection: '26.4',
+    title: 'RTL Query By Role',
+    rationale:
+      "Testing Library's queries by role, label and text find an element the way a user and assistive technology do, so the test fails when they could not find it either; getByTestId and container.querySelector keep passing through a broken label. Testing Library's own query priority puts the test id last. The React parallel of Angular Testing Excellence.",
+    satisfiedBy: {
+      react:
+        "Query as a user does — screen.getByRole('button', { name: 'Save' }), getByLabelText('Email'), findByText('Saved') — and keep getByTestId for elements with no accessible role, label or text.",
+    },
+    detectionLimits: [
+      'A ratio over all non-Playwright test files: user-facing = …ByRole/LabelText/PlaceholderText/Text/DisplayValue/AltText/Title; implementation = …ByTestId and querySelector/querySelectorAll in a file that uses Testing Library. The floor is a fixed 50%.',
+      'Query names are matched by spelling (getBy/queryBy/findBy, All); a query renamed through a wrapper is not seen. Assertion quality is not judged.',
+      'Selected by @testing-library/react; the query names are Testing Library\'s documented API, not verified against an installed copy on a reference project. Other Testing Library bindings are out of scope.',
+      'Fails when @testing-library/react is declared but no scanned file imports it (directly or through a non-test wrapper): nothing would have been inspected.',
+      PARSED_WITH_PROJECT_TYPESCRIPT,
+    ],
+    emoji: '🧭',
+    description: 'Most React Testing Library queries find an element by role, label or text',
+    priority: 'LOW',
+    category: 'TESTING',
+    stack: 'frontend',
+    requires: REQUIRES_REACT_TESTING_LIBRARY,
+    defaultEnabled: true,
+    defaultSeverity: 'info',
+    automation: 'AUTOMATED',
+    checkFunction: 'RtlQueryByRoleLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article VII.26.4: Too few Testing Library queries are user-facing',
+    remediation: 'Replace getByTestId and querySelector with getByRole / getByLabelText / getByText where the element has them',
   },
 ];

@@ -237,6 +237,7 @@ import {
   NoFocusedTestsLaw,
   PlaywrightLocatorsUserFacingLaw,
   PlaywrightNoFixedWaitLaw,
+  RtlQueryByRoleLaw,
   TestCoverageRequirementsLaw,
   UnitTestQualityLaw,
 } from '../checkers/testing-laws';
@@ -559,6 +560,7 @@ export class ModularLawsRegistry {
     'NoFocusedTestsLaw.check': NoFocusedTestsLaw,
     'PlaywrightNoFixedWaitLaw.check': PlaywrightNoFixedWaitLaw,
     'PlaywrightLocatorsUserFacingLaw.check': PlaywrightLocatorsUserFacingLaw,
+    'RtlQueryByRoleLaw.check': RtlQueryByRoleLaw,
 
     // Deployment Laws
     checkEnvironmentParityStandards: EnvironmentParityStandardsLaw,

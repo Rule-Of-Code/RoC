@@ -29,6 +29,7 @@ import { REACT_LAWS } from './react-laws';
 import { REACT_SECURITY_LAWS } from './react-security-laws';
 import { SACRED_LAWS } from './sacred-laws';
 import { SECURITY_LAWS } from './security-laws';
+import { TEST_INTEGRITY_LAWS } from './test-integrity-laws';
 import { TESTING_LAWS } from './testing-laws';
 import { VERSION_CONTROL_LAWS } from './version-control-laws';
 
@@ -50,6 +51,7 @@ export const ALL_ENHANCED_CONSTITUTIONAL_LAWS: EnhancedConstitutionalLaw[] = [
   ...IONIC_LAWS, // 📱 Ionic laws (frontend, requires an Ionic binding; IDs 401+)
   ...IONIC_RENDERING_LAWS, // 🖌️ Ionic rendering-model laws (frontend, requires an Ionic binding; IDs 411+)
   ...CAPACITOR_LAWS, // 🔌 Capacitor laws (frontend, requires @capacitor/core + config; IDs 421+)
+  ...TEST_INTEGRITY_LAWS, // 🔦 Test integrity laws (requires the runner or library they read; IDs 571+)
   ...NEXT_SERVER_LAWS, // ▲ Next.js server laws (requires next; IDs 531+)
   ...NEXT_CLIENT_LAWS, // ▲ Next.js client laws (frontend, requires next; IDs 551–569)
   ...REACT_LAWS, // ⚛️ React laws (frontend, requires react or next; IDs 501+)
@@ -83,6 +85,7 @@ export {
   REACT_SECURITY_LAWS,
   SACRED_LAWS,
   SECURITY_LAWS,
+  TEST_INTEGRITY_LAWS,
   TESTING_LAWS,
   VERSION_CONTROL_LAWS,
 };

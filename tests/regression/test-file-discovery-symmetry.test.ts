@@ -4,6 +4,12 @@ import * as path from 'path';
 
 import { TestFilesExistenceChecker } from '../../src/utils/testing/test-files-existence-checker';
 import { FileUtils } from '../../src/utils';
+import { ALL_ENHANCED_CONSTITUTIONAL_LAWS } from '../../src/data/enhanced-laws';
+import { TestDataManagementLaw } from '../../src/laws/testing/test-data-management';
+import { TestIsolationEnforcementLaw } from '../../src/laws/testing/test-isolation-enforcement';
+import { ctx, manifest, project, removeProjects } from '../checkers/toolkit-fixture';
+
+afterAll(removeProjects);
 
 /**
  * The scan that COUNTS tests must be allowed into the directories tests live
@@ -139,5 +145,39 @@ describe('test discovery reaches the directories tests live in', () => {
     expect(
       result.suggestions.some(s => /No test files were found at all/.test(s))
     ).toBe(true);
+  });
+});
+
+/**
+ * A twin that finds no test to judge says so — it no longer scores 100. Both
+ * passed on RoC's own audit while its config hid every test from them, and on
+ * every Python project, whose tests they cannot read; they are TypeScript
+ * laws now, and an empty scope is a violation.
+ */
+describe('the twins fail closed on an empty scope', () => {
+  const twins = [
+    ['Test Isolation Enforcement', TestIsolationEnforcementLaw],
+    ['Test Data Management', TestDataManagementLaw],
+  ] as const;
+
+  it.each(twins)('%s is a TypeScript law', title => {
+    expect(ALL_ENHANCED_CONSTITUTIONAL_LAWS.find(law => law.title === title)?.stack).toBe('typescript');
+  });
+
+  it.each(twins)('%s reports "nothing was judged" with no test file in scope', (title, law) => {
+    const root = project({ 'package.json': manifest({ typescript: '5' }), 'src/a.ts': 'export const a = 1;' });
+    const result = law.check(ctx(root));
+    expect(result.passed).toBe(false);
+    expect(result.violations).toEqual([expect.stringContaining(`${title}: no JS/TS test file found`)]);
+  });
+
+  it.each(twins)('%s reads a test that ignores.tests hides only from source scans (the control)', (_title, law) => {
+    const root = project({
+      'package.json': manifest({ typescript: '5' }),
+      'tests/a.test.ts': "it('a', () => { expect(1).toBe(1); });",
+    });
+    const config = { ...ctx(root).config, ignores: { global: [], tests: ['tests/**'], build: [], design: [] } };
+    const result = law.check({ projectRoot: root, config } as never);
+    expect((result.violations ?? []).some(v => v.includes('no JS/TS test file found'))).toBe(false);
   });
 });

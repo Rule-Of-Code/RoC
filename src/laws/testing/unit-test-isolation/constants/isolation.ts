@@ -23,8 +23,11 @@ export class UnitTestIsolationConstants {
    * Anchoring to column 0 is the whole fix for those. A declaration that is
    * indented is, by construction, inside something.
    */
+  // The type annotation stops at the end of the line: `[^=]+` crossed
+  // newlines, so `let logger: Logger;` — declared here and assigned per test,
+  // the standard isolation pattern — matched against an `=` lines below.
   static readonly SHARED_MUTABLE_PATTERNS = {
-    MODULE_LET: /^let\s+\w+(?:\s*:\s*[^=]+)?\s*=(?!.*beforeEach)/m,
+    MODULE_LET: /^let\s+\w+(?:\s*:\s*[^=;\n]+)?\s*=(?!.*beforeEach)/m,
     MODULE_VAR: /^var\s+\w+\s*=/m,
     MODULE_MUTABLE_OBJECT: /^const\s+\w+\s*=\s*\{/m,
     MODULE_MUTABLE_ARRAY: /^const\s+\w+\s*=\s*\[/m,
@@ -63,24 +66,39 @@ export class UnitTestIsolationConstants {
   /**
    * Patterns for test order dependencies
    */
+  /**
+   * Word-bounded and matched against code with comments removed: `fit(`
+   * matched `benefit(`, and a comment saying "the only way" was read as
+   * `.only`. Measured on a real suite, 28 files were flagged this way.
+   */
+  // A skip counts only when it is unconditional — called with the test's
+  // title (a string literal, or "" once codeOnly has blanked it).
+  // `test.skip(browserName !== 'chromium', …)` and `(shAvailable ? it :
+  // it.skip)(…)` gate on the environment; they are not an ordering between
+  // tests.
   static readonly ORDER_DEPENDENCY_PATTERNS = {
-    SKIP_TEST: /it\.skip/,
-    ONLY_TEST: /it\.only/,
-    SKIP_TEST_JASMINE: /xit\(/,
-    FOCUSED_TEST: /fit\(/,
-    SKIP_SUITE: /describe\.skip/,
-    ONLY_SUITE: /describe\.only/,
-    FOCUSED_SUITE: /fdescribe\(/,
-    SKIP_SUITE_JASMINE: /xdescribe\(/,
+    SKIP_TEST: /\b(?:it|test)\.skip\s*\(\s*['"`]/,
+    ONLY_TEST: /\b(?:it|test)\.only\b/,
+    SKIP_TEST_JASMINE: /\bxit\s*\(/,
+    FOCUSED_TEST: /\bfit\s*\(/,
+    SKIP_SUITE: /\bdescribe\.skip\s*\(\s*['"`]/,
+    ONLY_SUITE: /\bdescribe\.only\b/,
+    FOCUSED_SUITE: /\bfdescribe\s*\(/,
+    SKIP_SUITE_JASMINE: /\bxdescribe\s*\(/,
   };
 
   /**
    * Patterns for external resources
    */
   static readonly EXTERNAL_RESOURCE_PATTERNS = {
-    HTTP_CLIENT: /HttpClient|http\./i,
+    // The client class as a word, or an HTTP call — not any identifier that
+    // contains the letters (`hasHttpClient`, `HTTP_CLIENT`).
+    HTTP_CLIENT: /\bHttpClient\b|\bhttp\.(?:get|post|put|patch|delete|head|request)\s*\(/,
     STORAGE: /localStorage|sessionStorage/,
-    DATABASE: /database|db\./i,
+    // A database CLIENT, not the word: `/database/i` matched any identifier
+    // naming one (a law class, a fixture string), so tests about databases
+    // were read as tests that open one.
+    DATABASE: /\bdb\.\w+\s*\(|\bcreateConnection\s*\(|\bcreatePool\s*\(|\bmongoose\.connect\s*\(|\bnew\s+(?:Pool|PrismaClient|Sequelize)\s*\(|\bknex\s*\(/,
     FETCH: /fetch\(/,
     XML_HTTP: /XMLHttpRequest/,
     WEBSOCKET: /WebSocket/,
@@ -216,8 +234,9 @@ export class UnitTestIsolationConstants {
       this.ORDER_DEPENDENCY_PATTERNS.FOCUSED_SUITE,
       this.ORDER_DEPENDENCY_PATTERNS.SKIP_SUITE_JASMINE,
     ];
+    const code = CodeText.codeOnly(content);
     return patterns.some(pattern =>
-      PatternMatchingUtils.hasRegexPattern(content, pattern)
+      PatternMatchingUtils.hasRegexPattern(code, pattern)
     );
   }
 

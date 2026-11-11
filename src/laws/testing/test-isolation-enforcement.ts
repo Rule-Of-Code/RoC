@@ -1,6 +1,7 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { UnitTestIsolationAnalyzerService } from './unit-test-isolation/services/isolation-analyzer.service';
 import { namedFiles } from '../../utils/testing/fixture-isolation';
+import { TestFileDiscovery } from './test-file-discovery';
 
 /**
  * Test Isolation Enforcement Law
@@ -21,6 +22,15 @@ import { namedFiles } from '../../utils/testing/fixture-isolation';
 export class TestIsolationEnforcementLaw {
   static check(context: LawCheckContext): LawResult {
     try {
+      if (TestFileDiscovery.findTestFiles(context.projectRoot, context.config).length === 0) {
+        return this.buildFinalResult(context, {
+          violations: [TestFileDiscovery.nothingToJudge('Test Isolation Enforcement')],
+          suggestions: [],
+          score: 0,
+          sharedStateAnalysis: { hasSharedMutableState: false },
+          setupTeardownAnalysis: { hasProperIsolation: false },
+        });
+      }
       const analysisResult = this.runAllAnalyses(context);
       return this.buildFinalResult(context, analysisResult);
     } catch (error: unknown) {
@@ -70,7 +80,9 @@ export class TestIsolationEnforcementLaw {
       config
     );
     if (sharedStateAnalysis.hasSharedMutableState) {
-      violations.push('Tests share mutable state that can cause interference');
+      violations.push(
+        `Tests share mutable state that can cause interference: ${namedFiles(sharedStateAnalysis.files)}`
+      );
       suggestions.push(
         'Move shared variables inside test functions or beforeEach blocks'
       );
@@ -83,7 +95,9 @@ export class TestIsolationEnforcementLaw {
       config
     );
     if (!setupTeardownAnalysis.hasProperIsolation) {
-      violations.push('Tests missing proper isolation in setup/teardown');
+      violations.push(
+        `Tests missing proper isolation in setup/teardown (fewer than 70% of test files have it): ${namedFiles(setupTeardownAnalysis.files)}`
+      );
       suggestions.push(
         'Implement comprehensive beforeEach/afterEach for test isolation'
       );
@@ -132,7 +146,9 @@ export class TestIsolationEnforcementLaw {
       config
     );
     if (orderDependencyAnalysis.hasOrderDependencies) {
-      violations.push('Tests appear to have order dependencies');
+      violations.push(
+        `Tests appear to have order dependencies (a skipped or focused test or suite): ${namedFiles(orderDependencyAnalysis.files)}`
+      );
       suggestions.push('Ensure tests can run independently in any order');
       score -= thresholds.orderDependenciesDeduction;
     }

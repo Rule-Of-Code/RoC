@@ -304,4 +304,44 @@ export const NEXT_SERVER_LAWS: EnhancedConstitutionalLaw[] = [
     remediation:
       'Declare NEXT_PUBLIC_* where next build runs, read them literally, and keep secrets out of NEXT_PUBLIC_',
   },
+
+  {
+    id: generateLawId(
+      'Guard Exemption Matches A Route',
+      'Every pattern in a security guard exemption list matches at least one real route',
+      'next'
+    ),
+    legacyId: 538,
+    article: 'XXIII',
+    subsection: '23.8',
+    title: 'Guard Exemption Matches A Route',
+    rationale:
+      'CSRF, auth and rate-limit guards carry lists of exempt path patterns, and nothing connects those lists to the routes. A pattern with a typo or a stale prefix matches nothing and nobody notices: the dead exemption waits for the next route that happens to match it, while the route it was written for is guarded differently from what the code says. The report behind this law (#197) found one in a Next project: a pattern that did not match the real path of the route it was written for.',
+    satisfiedBy: {
+      react:
+        'Keep each exemption list a literal top-level array and declare it: `thresholds.next.guardExemptions: [{ "file": "src/lib/csrf.ts", "constant": "CSRF_EXEMPT", "match": "prefix" }]` (`[]` when no guard has one). Remove or correct any pattern that matches no page or route handler.',
+    },
+    detectionLimits: [
+      'Reports coverage, not intent: whether an exemption is justified is not judged. What each pattern covers is in the result metrics (exemptionCoverage).',
+      'Patterns built at runtime are not read and fail the law.',
+      'Paths rewritten in next.config or by the proxy, and basePath, are not applied.',
+      'Dynamic segments are matched segment-wise (exact/prefix) or by two sample URLs ([id] and 1) for glob and regex; a regex that needs a specific value shape may be reported as dead.',
+      ROUTER_LIMIT,
+      PARSER_LIMIT,
+    ],
+    emoji: '🗺️',
+    description: 'Every pattern in a security guard exemption list matches at least one real route',
+    priority: 'HIGH',
+    category: 'SECURITY',
+    stack: 'frontend',
+    requires: REQUIRES_NEXT,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'GuardExemptionMatchesARouteLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXIII.23.8: a guard exemption pattern matches no route, or the list cannot be read',
+    remediation:
+      'Declare each exemption list in thresholds.next.guardExemptions and fix every pattern that matches no route',
+  },
 ];

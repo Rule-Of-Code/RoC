@@ -104,13 +104,8 @@ export class NoRiskLiteralsLaw extends FeArchLawBase {
 
   static check(context: LawCheckContext): LawResult {
     const { projectRoot, config } = context;
-    const early = this.createAngularRequiredResult(
-      this.LAW_NAME,
-      projectRoot,
-      root => this.hasAngularProject(root),
-      context
-    );
-    if (early) return early;
+    // Opt-in by domain, not gated by framework: the literals it reads are
+    // the same mistake in any UI that renders risk numbers.
 
     const violations = [
       ...this.collectTsViolations(projectRoot, config),

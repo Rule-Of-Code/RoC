@@ -36,7 +36,7 @@ describe('ObservableCleanupLaw', () => {
       performance: {
         parallel: false,
         maxConcurrent: 3,
-        cache: true,
+        cache: true,
       },
     };
     mockContext = {
@@ -527,6 +527,36 @@ export class MultiComponent {
         v.includes('multi.component.ts')
       );
       expect(multiViolation).toBeDefined();
+    });
+  });
+
+  // #207: a React store's `.subscribe(` is not an RxJS Observable.
+  describe('React modules', () => {
+    beforeEach(() => {
+      FileUtils.createDirectory(PathOperations.join(tempDir, 'src'));
+    });
+
+    const storeModule = (extraImport: string): string => `
+import { useSyncExternalStore } from 'react';
+${extraImport}
+export function useCount(store: Store) {
+  return useSyncExternalStore(listener => store.subscribe(listener), store.get);
+}
+`;
+
+    it('does not read a store subscription in a React module as an RxJS leak', () => {
+      FileUtils.writeFile(PathOperations.join(tempDir, 'src', 'count-store.ts'), storeModule(''));
+      const result = ObservableCleanupLaw.check(mockContext);
+      expect(result.violations?.some(v => v.includes('count-store.ts'))).toBe(false);
+    });
+
+    it('still reads a React module that imports RxJS (the control)', () => {
+      FileUtils.writeFile(
+        PathOperations.join(tempDir, 'src', 'count-store.ts'),
+        storeModule("import { interval } from 'rxjs';")
+      );
+      const result = ObservableCleanupLaw.check(mockContext);
+      expect(result.violations?.some(v => v.includes('count-store.ts'))).toBe(true);
     });
   });
 });

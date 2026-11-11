@@ -5,6 +5,7 @@
 
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
+import { REQUIRES_RXJS } from '../utils/framework-requirements';
 
 export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
   {
@@ -93,6 +94,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Regex, no AST; matches in comments/strings; no Python.',
     ],
     stack: 'frontend',
+    requires: REQUIRES_RXJS,
     emoji: '🧹',
     description:
       'All subscriptions must be properly unsubscribed to prevent memory leaks',

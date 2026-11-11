@@ -106,4 +106,43 @@ export const CAPACITOR_NATIVE_LAWS: EnhancedConstitutionalLaw[] = [
     remediation:
       'Fail the build when google-services.json is missing for a variant, and keep its package_name equal to the variant applicationId',
   },
+
+  {
+    id: generateLawId(
+      'Capacitor Android Backup Scoped',
+      'The Capacitor Android manifest decides what Auto Backup copies: backup off, or rules for both backup formats',
+      'capacitor'
+    ),
+    legacyId: 433,
+    article: 'IV',
+    subsection: '4.62',
+    title: 'Capacitor Android Backup Scoped',
+    rationale:
+      'The Android shell @capacitor/cli 8.5.1 generates sets allowBackup="true" with no extraction rules (android-template AndroidManifest.xml:5), and Auto Backup then copies shared preferences, getDir() directories and databases to the user\'s cloud backup and to a new device (developer.android.com/identity/data/autobackup). In a Capacitor app those hold the Preferences store (SharedPreferences "CapacitorStorage"), the WebView\'s localStorage and IndexedDB, and native SDK session tokens. What leaves the device is a product decision the template makes by default.',
+    satisfiedBy: {
+      capacitor:
+        'Decide it in the manifest: allowBackup="false", or keep it true and add dataExtractionRules (API 31+) and fullBackupContent (API 30 and lower) that exclude the sharedpref, database and app_webview domains holding credentials.',
+    },
+    detectionLimits: [
+      'Presence of the decision only: the domains the rules exclude are reported in the details, not judged. Both rule files are required, since each covers a different range of Android versions.',
+      'Reads src/main only; a variant manifest that overrides allowBackup through tools:replace is not merged. A ${placeholder} value is reported as not judged.',
+      'Does not know which stored values are sensitive; an app with nothing worth protecting should park the law in laws.notApplicable with that reason.',
+      NO_SHELL_NO_PASS,
+    ],
+    emoji: '☁️',
+    description:
+      'The Capacitor Android manifest decides what Auto Backup copies: backup off, or rules for both backup formats',
+    priority: 'HIGH',
+    category: 'SECURITY',
+    stack: 'frontend',
+    requires: REQUIRES_CAPACITOR_ANDROID,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'CapacitorAndroidBackupScopedLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.62: Android Auto Backup left to the template default',
+    remediation:
+      'Set android:allowBackup="false", or add android:dataExtractionRules and android:fullBackupContent',
+  },
 ];

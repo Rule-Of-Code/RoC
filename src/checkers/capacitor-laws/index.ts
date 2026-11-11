@@ -14,3 +14,4 @@ export { CapacitorDeepLinkContractLaw } from './capacitor-deep-link-contract';
 export { CapacitorSyncArtefactsMatchDependenciesLaw } from './capacitor-sync-artefacts-match-dependencies';
 export { CapacitorAndroidCleartextDebugOnlyLaw } from './capacitor-android-cleartext-debug-only';
 export { CapacitorFirebaseNativeConfigNotSkippedLaw } from './capacitor-firebase-native-config-not-skipped';
+export { CapacitorAndroidBackupScopedLaw } from './capacitor-android-backup-scoped';

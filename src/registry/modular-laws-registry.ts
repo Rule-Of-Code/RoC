@@ -171,6 +171,7 @@ import {
 
 // Capacitor Laws Modular Imports — gated by `requires` on @capacitor/core + a config
 import {
+  CapacitorAndroidBackupScopedLaw,
   CapacitorAndroidCleartextDebugOnlyLaw,
   CapacitorDeepLinkContractLaw,
   CapacitorFirebaseNativeConfigNotSkippedLaw,
@@ -497,6 +498,7 @@ export class ModularLawsRegistry {
     // Capacitor native-shell laws (gated on the platform package as well)
     'CapacitorAndroidCleartextDebugOnlyLaw.check': CapacitorAndroidCleartextDebugOnlyLaw,
     'CapacitorFirebaseNativeConfigNotSkippedLaw.check': CapacitorFirebaseNativeConfigNotSkippedLaw,
+    'CapacitorAndroidBackupScopedLaw.check': CapacitorAndroidBackupScopedLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

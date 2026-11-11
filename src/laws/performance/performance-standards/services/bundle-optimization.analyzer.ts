@@ -1,6 +1,11 @@
 import { glob } from 'glob';
 import { FileUtils, PathOperations } from '../../../../utils';
 import { AngularBundleConfig } from '../../../../utils/angular-bundle-config';
+import {
+  type BundlerReport,
+  WebBundlerConfig,
+} from '../../../../utils/react/web-bundler-config';
+import { unreadViolation } from '../../../../utils/react/react-performance-source';
 import { BundleOptimizationConstants } from '../constants';
 
 /**
@@ -9,7 +14,7 @@ import { BundleOptimizationConstants } from '../constants';
  * Single Responsibility: Analyzing bundle optimization configuration
  */
 export class BundleOptimizationAnalyzer {
-  static analyze(projectRoot: string): string[] {
+  static analyze(projectRoot: string, bundler?: BundlerReport): string[] {
     const violations: string[] = [];
 
     // Check Angular configuration
@@ -69,6 +74,27 @@ export class BundleOptimizationAnalyzer {
       return violations;
     }
 
+    return this.frameworkBuildViolations(projectRoot, bundler);
+  }
+
+  /**
+   * A Next.js or Vite production build minifies and tree-shakes by default;
+   * what is read from next.config.* / vite.config.* is whether the project
+   * turned that OFF. Without this a Next app could only pass by adding an
+   * unused webpack config.
+   */
+  private static frameworkBuildViolations(
+    projectRoot: string,
+    bundler?: BundlerReport
+  ): string[] {
+    const report = bundler ?? WebBundlerConfig.inspect(projectRoot);
+    if (WebBundlerConfig.optimizingBuilds(report).length > 0) {
+      return [];
+    }
+    const violations: string[] = [];
+    if (report.unread.length > 0) {
+      violations.push(unreadViolation(report.unread));
+    }
     violations.push('Bundle optimization not properly configured');
     return violations;
   }

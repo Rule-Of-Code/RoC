@@ -1,5 +1,6 @@
 import { FileUtils } from './file-utils';
 import { PathOperations } from './path-operations';
+import { commandText } from './ci-command-text';
 import { ciConfigContent } from './project-discovery';
 import { ProjectTypeDetectorValidation } from './config/project-type-detector/project-type-detector-validation';
 import type { RuleOfCodeConfig } from '../config/types';
@@ -95,7 +96,9 @@ export function inspectLighthouseGate(
     evidence.push('it is a declared dependency');
   }
 
-  const ci = ciConfigContent(projectRoot, config);
+  // Commands only: a `# lighthouse` comment or a step named "Lighthouse"
+  // runs nothing, and used to wire the gate all the same.
+  const ci = commandText(ciConfigContent(projectRoot, config));
   if (ci && RUNS_LIGHTHOUSE.test(ci)) {
     evidence.push('a CI step runs it');
   }

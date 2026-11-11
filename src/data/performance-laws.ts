@@ -21,13 +21,16 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
       'A slow app is a broken app the profiler has not caught yet — users leave before they reach the feature. This law asks for the guardrails (a Lighthouse threshold, budgets, web-vitals, bundle and image optimization) that keep speed from silently regressing.',
     satisfiedBy: {
       angular: 'Add a Lighthouse config with a >=90 threshold, angular.json/webpack budgets, web-vitals tracking, lazy-loading and image optimization.',
+      react: 'Run Lighthouse from a script or CI step with a performance threshold, declare one enforced budget (Lighthouse assertions or a size-limit check that a script runs), report Web Vitals with useReportWebVitals or web-vitals, and render images with next/image. A Next build already optimizes and caches hashed assets unless next.config turns that off.',
       capacitor:
         'No service worker is needed for caching in the shell; if the web build registers one, disable it on native or handle SwUpdate (#268).',
     },
     detectionLimits: [
-      'Presence and keyword detection only — it checks that config and tooling EXIST, never a real Lighthouse score, LCP or CLS; "web-vitals usage" is a substring match, not proof it runs.',
+      'Configuration and source evidence only — it never measures a real Lighthouse score, LCP or CLS. On Angular, "web-vitals usage" is a substring match in main.ts / app.component.ts / *monitoring*.ts; on React/Next it is a parsed CALL of useReportWebVitals or a web-vitals metric function.',
       'The Lighthouse >=90 threshold is checked only IF a config file exists; a missing file yields a different, non-threshold violation.',
-      'TypeScript/Angular only — no Python path, so a backend fails all six checks.',
+      'Next.js / Vite bundle optimization and Next caching are credited to the framework defaults (read in next/dist and vite types): it checks only that next.config / vite.config does not turn minification off or set output: "export". Values imported into the config from another module are not resolved.',
+      'next/image counts as image optimization without resolving `src` (Next serves an SVG unoptimized); only the element\'s `unoptimized` prop and next.config images.unoptimized are read.',
+      'TypeScript/JavaScript only — no Python path, so a backend fails all six checks.',
       'A project declaring @capacitor/core in any workspace manifest is exempt from the caching-strategy check. A service worker such an app does register runs in the native WebView too and can serve the previous release on the first cold start after an update; that is not judged here (#268).',
     ],
     stack: 'frontend',
@@ -58,11 +61,14 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Bundle Size Optimization',
     rationale:
       'Every kilobyte the browser must download is time the user waits before anything works. A bundle that grows unchecked is a page that gets slower with every feature. This law asks that the bundle be optimized and measured.',
-    satisfiedBy: { angular: 'Enable optimization/tree-shaking in the build, lazy-load routes (loadChildren), and add a bundle analyzer (source-map-explorer / webpack-bundle-analyzer).' },
+    satisfiedBy: {
+      angular: 'Enable optimization/tree-shaking in the build, lazy-load routes (loadChildren), and add a bundle analyzer (source-map-explorer / webpack-bundle-analyzer).',
+      react: 'Build with next build or vite build without turning minification off, run a bundle analyzer from a script (next experimental-analyze, @next/bundle-analyzer wired into next.config, source-map-explorer, size-limit), and load heavy libraries with next/dynamic or React.lazy.',
+    },
     detectionLimits: [
-      'Never measures actual bundle bytes despite the name — the "optimization config" check is a bare substring (the word "bundle", or a comment, satisfies it).',
-      'Lazy-load detection is Angular loadChildren only; a dynamic import() is not counted here.',
-      'TS/JS/Angular — no Python path, so a backend gets false "no optimization / no bundle analysis" violations.',
+      'Never measures actual bundle bytes despite the name: "optimization configured" is read from the build tool\'s config (Angular budgets/esbuild/"optimization", Next/Vite defaults unless minification is turned off, webpack production mode, a Rollup terser plugin), never from the output.',
+      'Lazy loading is credited project-wide (Angular loadChildren in a routing file; next/dynamic, React.lazy or import() in parsed React source) — it does not check that the heavy library itself is the deferred one, and heavy libraries are read from the root package.json only.',
+      'TS/JS — no Python path, so a backend gets false "no optimization / no bundle analysis" violations.',
     ],
     stack: 'frontend',
     emoji: '📦',
@@ -92,10 +98,14 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Core Web Vitals Compliance',
     rationale:
       'Core Web Vitals — LCP, CLS, INP — are how Google and your users measure whether the page feels fast. This law asks for the setup that keeps them green: budgets, lazy-loading, caching, resource hints.',
-    satisfiedBy: { angular: 'Set performance budgets, lazy-load, add a service worker / caching, image optimization and resource hints (preload/preconnect) in index.html; track web-vitals.' },
+    satisfiedBy: {
+      angular: 'Set performance budgets, lazy-load, add a service worker / caching, image optimization and resource hints (preload/preconnect) in index.html; track web-vitals.',
+      react: 'Run Lighthouse from a script or CI step, declare an enforced budget (Lighthouse assertions or a size-limit check that a script runs), render images with next/image or loading="lazy", and preload fonts with next/font or a <link rel="preconnect"> in the root layout. Next serves hashed assets with immutable caching unless next.config sets output: "export".',
+    },
     detectionLimits: [
-      'Measures NO actual Core Web Vitals despite the name — it is pure file/config presence, and Lighthouse is presence-only here (no threshold read).',
-      'Resource hints are detected by a raw string search of index.html; browser-only.',
+      'Measures NO actual Core Web Vitals despite the name — configuration and source evidence only, and Lighthouse is wiring-only here (no threshold read).',
+      'Resource hints: a raw string search of index.html (source and built) on Angular; on React, parsed <link rel> elements, next/font loader calls and react-dom preload/preconnect calls — a hint a library emits at run time is not seen.',
+      'Next caching is credited to Next\'s own immutable /_next/static headers unless next.config sets output: "export"; a proxy or host in front of `next start` is not read.',
       'No Python path, so a backend fails all six sub-checks.',
     ],
     stack: 'frontend',
@@ -125,11 +135,15 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Bundle Optimization Strategy Policy',
     rationale:
       'Shipping one giant bundle means the user downloads the checkout page to see the home page. A real optimization strategy — code-splitting, tree-shaking, vendor chunking — sends only what each route needs.',
-    satisfiedBy: { angular: 'Code-split with lazy routes and dynamic import(), enable tree-shaking (ESM, optimization), and configure vendor / critical-css chunking in angular.json.' },
+    satisfiedBy: {
+      angular: 'Code-split with lazy routes and dynamic import(), enable tree-shaking (ESM, optimization), and configure vendor / critical-css chunking in angular.json.',
+      react: 'Build with next build (route splitting, minification, tree-shaking and chunking are Next\'s own), enable experimental.optimizeCss (with critters) for critical CSS, split heavy client code with next/dynamic or React.lazy, and check it with an analyzer (next experimental-analyze, @next/bundle-analyzer, size-limit). On Vite, declare manualChunks / codeSplitting groups.',
+    },
     detectionLimits: [
-      'All config-file heuristics (angular.json / package.json / project.json via includes/regex) — it measures nothing.',
-      'The Nx fallback walks only apps/* (not libs/*) for the minification / critical-css / vendor checks.',
-      'Angular-centric, with no Python path — a backend fails all six sub-checks.',
+      'All configuration reads (angular.json / project.json / package.json / next.config / vite.config) — it measures no bundle.',
+      'The Nx fallback walks only apps/* (not libs/*) for the Angular minification / critical-css / vendor checks.',
+      'Vendor chunking does not apply to a Next app (Next owns chunking) and is reported satisfied with that reason. Outside Angular, tree-shaking is credited to Next / Vite / webpack-production defaults; on Angular the dependency-name heuristic ("@", "ng-", "ngx-") still stands.',
+      'No Python path — a backend fails all six sub-checks.',
     ],
     stack: 'frontend',
     emoji: '🚀',
@@ -158,9 +172,13 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Performance Monitoring Policy',
     rationale:
       'You cannot fix a slowdown you cannot see. This law asks for the monitoring that turns "users say it is slow" into a graph: RUM, error tracking, alerts, dashboards, web-vitals in production.',
-    satisfiedBy: { angular: 'Wire RUM (or analytics), error tracking, performance alerts, a dashboard, and web-vitals reporting from production.' },
+    satisfiedBy: {
+      angular: 'Wire RUM (or analytics), error tracking, performance alerts, a dashboard, and web-vitals reporting from production.',
+      react: 'Report Web Vitals with useReportWebVitals (or web-vitals) and errors with @sentry/nextjs or @sentry/react from the root layout or instrumentation*.ts; declare a size-limit or Lighthouse budget, an alert definition and a dashboard.',
+    },
     detectionLimits: [
-      'Dependency / config / file presence only — no proof monitoring is wired or actually reports; a Google Analytics snippet is detected by an index.html substring.',
+      'Dependency / config / file presence only — no proof monitoring actually reports; a Google Analytics snippet is detected by an index.html substring. On React/Next a parsed useReportWebVitals / web-vitals CALL counts as RUM and Web Vitals monitoring, and an error-tracking SDK import anywhere in the source counts as error tracking.',
+      'Alerting and dashboards are keyword / file-presence checks on every stack (newrelic.js, datadog.json, .lighthouserc.js containing "alert", "notification" or "webhook"; grafana.json and similar).',
       'Browser-oriented with NO backend/Python path (unlike Performance Monitoring Standards) — a backend fails most checks.',
       'Conceptually overlaps Performance Monitoring Standards but is a separate, less capable detector.',
     ],
@@ -333,11 +351,14 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Performance Budget Compliance',
     rationale:
       'A performance budget is a number a regression cannot cross without failing the build — without it, "a little slower each release" compounds into unusable. This law asks that the budget exist and be enforced in CI.',
-    satisfiedBy: { angular: 'Declare angular.json/webpack budgets, a Lighthouse budget, bundle-size monitoring, and a CI gate that fails on a budget breach.' },
+    satisfiedBy: {
+      angular: 'Declare angular.json/webpack budgets, a Lighthouse budget, bundle-size monitoring, and a CI gate that fails on a budget breach.',
+      react: 'Declare one enforced budget — a size-limit check with a limit, or Lighthouse CI assertions — run by a script, run it from a CI step (or a git hook when the project has no hosted CI), and report Web Vitals or errors in production (useReportWebVitals, @sentry/nextjs).',
+    },
     detectionLimits: [
-      'Presence only — it reads that a budget config EXISTS, never the budget value, and never whether a build actually breaches it.',
-      'The CI gate is a keyword substring in a workflow YAML (a comment satisfies it).',
-      'Angular/webpack/CI-oriented; no Python N/A path — a backend fails all six.',
+      'Presence only — it reads that a budget is declared and wired, never the budget value, and never whether a build actually breaches it.',
+      'The gate is a CI command (comments and `name:` lines removed) or, with no hosted CI, a husky / lefthook / simple-git-hooks hook, that runs lhci, size-limit, bundlesize or bundlewatch — directly or through package scripts — or the Angular build when maximumError budgets exist. Whether the CI pipeline actually runs is not known.',
+      'No Python N/A path — a backend fails it.',
     ],
     stack: 'frontend',
     emoji: '💰',

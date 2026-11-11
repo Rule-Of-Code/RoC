@@ -2,6 +2,7 @@ import { glob } from 'glob';
 import type { RuleOfCodeConfig } from '../../../../config/types';
 import { FileUtils, PathOperations } from '../../../../utils';
 import { PathResolver } from '../../../../utils/path-resolver';
+import type { ReactPerformanceEvidence } from '../../../../utils/react/react-performance-source';
 import { CoreWebVitalsConstants } from '../constants';
 
 /**
@@ -12,9 +13,18 @@ import { CoreWebVitalsConstants } from '../constants';
 export class CoreWebVitalsAnalyzer {
   static async analyze(
     projectRoot: string,
-    config?: RuleOfCodeConfig
+    config?: RuleOfCodeConfig,
+    react?: ReactPerformanceEvidence
   ): Promise<string[]> {
     const violations: string[] = [];
+
+    // React/Next: a CALL of `useReportWebVitals` (next/web-vitals, which
+    // bundles web-vitals, so no `web-vitals` dependency is declared) or of a
+    // web-vitals metric function, anywhere in the parsed source. The Angular
+    // path below looks only in main.ts / app.component.ts / *monitoring*.ts.
+    if (react && react.webVitalsReports.length > 0) {
+      return violations;
+    }
 
     // Check for web-vitals dependency
     const packageJsonPath = PathOperations.join(projectRoot, 'package.json');

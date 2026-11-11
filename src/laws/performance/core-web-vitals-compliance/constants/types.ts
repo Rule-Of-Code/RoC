@@ -35,6 +35,8 @@ export interface CoreWebVitalsAnalysisResult {
   browserCaching: BrowserCachingResult;
   imageOptimization: ImageOptimizationResult;
   resourceHints: ResourceHintsResult;
+  /** React source / build config the analysis needed and could not read. */
+  unread?: string[];
 }
 
 export interface AngularBuildConfig {

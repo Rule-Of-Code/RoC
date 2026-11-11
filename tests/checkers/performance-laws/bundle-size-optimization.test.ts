@@ -135,58 +135,84 @@ describe('BundleSizeOptimizationLaw', () => {
         ).toBe(0);
       });
 
-      it('should detect compress keyword in config', () => {
+      it('passes a Vite app whose production build minifies by default', () => {
+        FileUtils.writeFile(
+          PathOperations.join(tempDir, 'package.json'),
+          JSON.stringify({
+            scripts: { build: 'vite build' },
+            devDependencies: { vite: '^8.0.0' },
+          })
+        );
         FileUtils.writeFile(
           PathOperations.join(tempDir, 'vite.config.js'),
-          `
-            export default {
-              build: {
-                compress: true,
-                terserOptions: {}
-              }
-            };
-          `
-        );
-        const distDir = PathOperations.join(tempDir, 'dist');
-        FileUtils.createDirectory(distDir);
-        FileUtils.writeFile(
-          PathOperations.join(distDir, 'bundle-analysis.html'),
-          '<html></html>'
+          'export default { build: { sourcemap: true } };'
         );
 
         const result = BundleSizeOptimizationLaw.check(context);
 
-        expect(
-          result.violations!.filter(v =>
-            v.toLowerCase().includes('optimization configuration not found')
-          ).length
-        ).toBe(0);
+        expect(result.violations).not.toContain(
+          'Bundle optimization configuration not found'
+        );
       });
 
-      it('should detect tree-shake keyword in config', () => {
+      it('fails a Vite config that turns minification off, and one nothing builds', () => {
+        FileUtils.writeFile(
+          PathOperations.join(tempDir, 'package.json'),
+          JSON.stringify({
+            scripts: { build: 'vite build' },
+            devDependencies: { vite: '^8.0.0' },
+          })
+        );
+        FileUtils.writeFile(
+          PathOperations.join(tempDir, 'vite.config.js'),
+          '// minify bundle compress\nexport default { build: { minify: false } };'
+        );
+        expect(BundleSizeOptimizationLaw.check(context).violations).toContain(
+          'Bundle optimization configuration not found'
+        );
+
+        FileUtils.writeFile(
+          PathOperations.join(tempDir, 'package.json'),
+          JSON.stringify({ devDependencies: { vite: '^8.0.0' } })
+        );
+        FileUtils.writeFile(
+          PathOperations.join(tempDir, 'vite.config.js'),
+          'export default { test: { environment: "jsdom" } };'
+        );
+        expect(BundleSizeOptimizationLaw.check(context).violations).toContain(
+          'Bundle optimization configuration not found'
+        );
+      });
+
+      it('passes a Rollup config that calls a terser plugin', () => {
+        FileUtils.writeFile(
+          PathOperations.join(tempDir, 'rollup.config.js'),
+          "import terser from '@rollup/plugin-terser';\nexport default { plugins: [terser()] };"
+        );
+
+        const result = BundleSizeOptimizationLaw.check(context);
+
+        expect(result.violations).not.toContain(
+          'Bundle optimization configuration not found'
+        );
+      });
+
+      it('fails a Rollup config whose only "optimization" is a word in a comment', () => {
         FileUtils.writeFile(
           PathOperations.join(tempDir, 'rollup.config.js'),
           `
             export default {
               treeshake: true,
-              // tree-shake enabled for production
+              // tree-shake, optimize, bundle, minify, compress
             };
           `
-        );
-        const distDir = PathOperations.join(tempDir, 'dist');
-        FileUtils.createDirectory(distDir);
-        FileUtils.writeFile(
-          PathOperations.join(distDir, 'bundle-analysis.html'),
-          '<html></html>'
         );
 
         const result = BundleSizeOptimizationLaw.check(context);
 
-        expect(
-          result.violations!.filter(v =>
-            v.toLowerCase().includes('optimization configuration not found')
-          ).length
-        ).toBe(0);
+        expect(result.violations).toContain(
+          'Bundle optimization configuration not found'
+        );
       });
 
       it('should detect lazy-load keyword in config', () => {

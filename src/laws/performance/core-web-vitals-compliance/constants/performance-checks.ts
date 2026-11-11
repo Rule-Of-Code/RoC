@@ -21,12 +21,13 @@ export class CoreWebVitalsPerformanceChecksConstants {
   static readonly SUGGESTION_MESSAGES = {
     LIGHTHOUSE: 'Add lighthouse.config.js with Core Web Vitals thresholds',
     BUDGETS:
-      'Configure performance budgets in angular.json or webpack.config.js',
+      'Configure performance budgets: angular.json, webpack.config.js, Lighthouse assertions, or a size-limit check run by a script or CI',
     BUNDLE_OPTIMIZATION:
       'Enable code splitting, lazy loading, and tree shaking',
     CACHING: 'Implement service worker and HTTP caching headers',
     IMAGE_OPTIMIZATION: 'Implement next-gen image formats and lazy loading',
-    RESOURCE_HINTS: 'Add preload/prefetch hints for critical resources',
+    RESOURCE_HINTS:
+      'Add preload/prefetch hints for critical resources (index.html, a <link> in the root layout, next/font, or react-dom preload())',
   };
 
   static readonly OPTIMIZATION_KEYWORDS = {

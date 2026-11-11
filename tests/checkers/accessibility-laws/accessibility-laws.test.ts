@@ -60,10 +60,10 @@ describe('ExplicitButtonTypeLaw', () => {
     const dir = fixture({ 'a.component.html': '<button (click)="x()">Go</button>\n' });
     expect(ExplicitButtonTypeLaw.check(ctx(dir)).passed).toBe(false);
   });
-  it('passes typed buttons and <t3-button>', () => {
+  it('passes typed buttons and a custom button component', () => {
     const dir = fixture({
       'ok.component.html':
-        '<button type="button">A</button>\n<button [type]="t">B</button>\n<t3-button>C</t3-button>\n',
+        '<button type="button">A</button>\n<button [type]="t">B</button>\n<app-button>C</app-button>\n',
     });
     expect(ExplicitButtonTypeLaw.check(ctx(dir)).passed).toBe(true);
   });
@@ -92,13 +92,24 @@ describe('ModalDialogAccessibilityLaw', () => {
     });
     expect(ModalDialogAccessibilityLaw.check(ctx(dir)).passed).toBe(false);
   });
-  it('passes a fully marked dialog and <t3-modal>', () => {
+  it('passes a fully marked dialog', () => {
     const dir = fixture({
       'm.component.html':
         '<div class="fixed inset-0" role="dialog" aria-modal="true" cdkTrapFocus></div>\n',
-      'n-modal.component.html': '<t3-modal><p>hi</p></t3-modal>\n',
     });
     expect(ModalDialogAccessibilityLaw.check(ctx(dir)).passed).toBe(true);
+  });
+  it('trusts a dialog component only when the project names it', () => {
+    const dir = fixture({
+      'n-modal.component.html': '<app-modal><p>hi</p></app-modal>\n',
+    });
+    // Not named: a shared component is not trusted by its tag alone.
+    expect(ModalDialogAccessibilityLaw.check(ctx(dir)).passed).toBe(false);
+    const named = ctx(dir);
+    named.config.thresholds = {
+      accessibility: { accessibleDialogComponents: ['APP-MODAL'] },
+    };
+    expect(ModalDialogAccessibilityLaw.check(named).passed).toBe(true);
   });
   it('ignores non-modal templates', () => {
     const dir = fixture({ 'plain.component.html': '<div class="p-4">x</div>\n' });

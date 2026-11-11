@@ -378,6 +378,15 @@ export interface RuleOfCodeConfig {
        * template a11y rule set in their ESLint config. Default: true.
        */
       requireAngularTemplateA11y?: boolean;
+      /**
+       * Modal Dialog Accessibility: element names of the project's own dialog
+       * components that render role="dialog", aria-modal="true" and a focus
+       * trap themselves — an HTML tag (`app-modal`, matched case-insensitively)
+       * in templates. A modal template that uses one of these is compliant
+       * without repeating the three. Default: none — no component is trusted
+       * until the project names it.
+       */
+      accessibleDialogComponents?: string[];
     };
     performance?: {
       /** Maximum module lines before requiring lazy loading */
@@ -398,7 +407,7 @@ export interface RuleOfCodeConfig {
       minServicesForBarrel?: number;
       /**
        * Additional valid component selector prefixes beyond project.componentPrefix
-       * (e.g. ["t3"] for a design-system library, like Material's "mat").
+       * (e.g. ["ui"] for a design-system library, like Material's "mat").
        */
       allowedComponentPrefixes?: string[];
       /** Extra callee names allowed in template bindings (e.g. ["$any"]). */

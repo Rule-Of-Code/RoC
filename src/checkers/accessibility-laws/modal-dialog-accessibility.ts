@@ -2,57 +2,122 @@
  * Modal Dialog Accessibility Law
  * Without a focus trap, focus escapes behind an open modal — keyboard and
  * screen-reader users reach the background (often credential/control surfaces).
- * Every dialog must either use the accessible `<t3-modal>` component or declare
- * role="dialog"/"alertdialog" + aria-modal="true" + a CDK focus trap.
+ * Every dialog must declare role="dialog"/"alertdialog" + aria-modal="true" + a
+ * focus trap, or be rendered by something that provides all three:
+ *
+ * - a component the project names in
+ *   `thresholds.accessibility.accessibleDialogComponents` (its shared,
+ *   accessible-by-construction modal);
+ * - Ionic's `ion-modal` — inline, or a component shown through
+ *   `ModalController.create` (see IonicDialogReader), unless that
+ *   presentation turns `focusTrap` off.
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { AccessibilityLawBase } from './accessibility-law-base';
+import { AccessibilityLawBase, type ReadTemplate } from './accessibility-law-base';
+import {
+  IonicDialogReader,
+  templateKey,
+  type IonicDialogs,
+  type IonicPresentation,
+} from './ionic-dialogs';
+import { TemplateMarkup, type MarkupDocument, type MarkupElement } from './template-markup';
+
+const ROLE_DIALOG = 'role="dialog"';
+const ARIA_MODAL = 'aria-modal="true"';
+const FOCUS_TRAP = 'a focus trap (cdkTrapFocus)';
+const DIALOG_ROLES = ['dialog', 'alertdialog'];
+const CONFIG_KEY = 'thresholds.accessibility.accessibleDialogComponents';
 
 export class ModalDialogAccessibilityLaw extends AccessibilityLawBase {
   static check(context: LawCheckContext): LawResult {
-    const { projectRoot } = context;
-    const violations: string[] = [];
+    const { templates, unread } = this.readTemplates(context);
+    const violations: string[] = [...unread];
+    const accessible = (
+      context.config.thresholds?.accessibility?.accessibleDialogComponents ?? []
+    ).map(name => name.toLowerCase());
 
-    for (const file of this.findTemplateFiles(projectRoot, context)) {
-      const relativePath = this.relative(projectRoot, file);
-      const html = this.stripHtmlComments(this.readTemplate(file));
+    let ionic: IonicDialogs | null = null;
+    const presentationOf = (template: ReadTemplate): IonicPresentation | undefined => {
+      ionic ??= IonicDialogReader.read(context, this.byPath(templates));
+      return ionic.presented.get(templateKey(template.file));
+    };
 
-      const isModal =
-        /-modal\.component\.html$/i.test(file.replace(/\\/g, '/')) ||
-        /\bfixed\s+inset-0\b/.test(html);
-      if (!isModal) continue;
+    for (const template of templates) {
+      if (!this.isModal(template)) continue;
+      const elements = template.document.elements;
+      if (elements.some(el => accessible.includes(el.tag))) continue;
 
-      // Using the accessible shared component satisfies the law.
-      if (/<t3-modal\b/.test(html)) continue;
-
-      const missing: string[] = [];
-      if (!/\brole\s*=\s*["'](dialog|alertdialog)["']/.test(html)) {
-        missing.push('role="dialog"');
-      }
-      if (!/\baria-modal\s*=\s*["']true["']/.test(html)) {
-        missing.push('aria-modal="true"');
-      }
-      if (!/\bcdkTrapFocus\b/.test(html)) {
-        missing.push('CDK focus-trap (cdkTrapFocus)');
-      }
-      if (missing.length > 0) {
-        violations.push(
-          `${relativePath}: dialog without ${missing.join(
-            ' + '
-          )} — add them or use <t3-modal>.`
-        );
-      }
+      const missing = this.missing(elements);
+      if (missing.length === 0) continue;
+      const presentation = presentationOf(template);
+      const stillMissing = presentation
+        ? missing.filter(item => item === FOCUS_TRAP && !presentation.focusTrap)
+        : missing;
+      if (stillMissing.length === 0) continue;
+      violations.push(this.message(template, stillMissing, presentation, ionic));
     }
 
     return this.createResult(
       violations,
       'Modal Dialog Accessibility',
       [
-        'Use <t3-modal> (accessible by construction), or',
+        `Name your accessible shared modal component in ${CONFIG_KEY}, or`,
         'Add role="dialog" + aria-modal="true" + cdkTrapFocus to the dialog container',
+        'Ionic: present it with ion-modal / ModalController (do not turn focusTrap off)',
       ],
       context
     );
+  }
+
+  private static byPath(templates: ReadTemplate[]): Map<string, MarkupDocument> {
+    return new Map(templates.map(t => [t.file, t.document]));
+  }
+
+  /** A modal: a `-modal.component.html` file, or an element classed `fixed inset-0`. */
+  private static isModal(template: ReadTemplate): boolean {
+    if (/-modal\.component\.html$/i.test(template.file.replace(/\\/g, '/'))) return true;
+    return template.document.elements.some(el => {
+      const classes = TemplateMarkup.classes(el);
+      return classes.includes('fixed') && classes.includes('inset-0');
+    });
+  }
+
+  private static missing(elements: MarkupElement[]): string[] {
+    const ionModals = elements.filter(el => el.tag === 'ion-modal');
+    const inlineIonModal = ionModals.length > 0;
+    const ionTrapOff = ionModals.some(el => {
+      const trap = TemplateMarkup.attribute(el, 'focusTrap');
+      return trap !== undefined && (trap.value ?? '').trim() === 'false';
+    });
+    const missing: string[] = [];
+    const hasRole = elements.some(el =>
+      DIALOG_ROLES.includes((TemplateMarkup.staticValue(el, 'role') ?? '').trim())
+    );
+    if (!hasRole && !inlineIonModal) missing.push(ROLE_DIALOG);
+    const hasAriaModal = elements.some(el => {
+      const written = TemplateMarkup.attribute(el, 'aria-modal');
+      return written !== undefined && (written.value ?? '').trim() === 'true';
+    });
+    if (!hasAriaModal && !inlineIonModal) missing.push(ARIA_MODAL);
+    const hasTrap = elements.some(el => TemplateMarkup.has(el, 'cdkTrapFocus'));
+    if (!hasTrap && (!inlineIonModal || ionTrapOff)) missing.push(FOCUS_TRAP);
+    return missing;
+  }
+
+  private static message(
+    template: ReadTemplate,
+    missing: string[],
+    presentation: IonicPresentation | undefined,
+    ionic: IonicDialogs | null
+  ): string {
+    if (presentation) {
+      return `${template.relative}: presented by ${presentation.via} with focusTrap set to false and no focus trap of its own — keep ion-modal's focus trap or add cdkTrapFocus.`;
+    }
+    const unreadNote =
+      ionic && ionic.unread.length > 0
+        ? ` (whether ion-modal presents it could not be decided: ${ionic.unread.join('; ')})`
+        : '';
+    return `${template.relative}: dialog without ${missing.join(' + ')} — add them, present it with ion-modal / ModalController, or name your accessible dialog component in ${CONFIG_KEY}${unreadNote}.`;
   }
 }

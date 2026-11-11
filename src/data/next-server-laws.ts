@@ -17,6 +17,8 @@ import { generateLawId } from '../utils/id-generator';
 
 const PARSER_LIMIT =
   "Parses with the project's own TypeScript (ts.createSourceFile, no type checker); without it every file is reported unread, never passed.";
+const GRAPH_LIMIT =
+  "The client graph follows static imports, `export … from`, and literal `import()`/`require()` through the project's own TypeScript resolver (tsconfig paths, workspace packages); a computed `import()` path is not followed, and an import that does not resolve is reported, not passed.";
 const ROUTER_LIMIT =
   "Reads the router directory Next uses (app/ before src/app/) with Next's default page extensions (tsx, ts, jsx, js); a custom `pageExtensions` in next.config is not read.";
 
@@ -100,5 +102,45 @@ export const NEXT_SERVER_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article XXIII.23.2: a mutating route handler is unguarded or reads an unvalidated body',
     remediation:
       'Call a configured guard in each POST/PUT/PATCH/DELETE handler (or declare it public with a reason) and validate the body',
+  },
+
+  {
+    id: generateLawId(
+      'Next Server Only Boundary',
+      'No server module reaches a client graph, and modules importing one carry server-only',
+      'next'
+    ),
+    legacyId: 533,
+    article: 'XXIII',
+    subsection: '23.3',
+    title: 'Next Server Only Boundary',
+    rationale:
+      "A 'use client' file brings every module it imports, transitively, into the browser bundle; \"it's possible to accidentally import server-only code into the client\" (next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md). `import 'server-only'` turns that into a build error — next/dist/build/webpack-config.js reports \"'server-only' cannot be imported from a Client Component module\" — but only in a module that carries the marker, and nothing requires it.",
+    satisfiedBy: {
+      react:
+        "Keep database drivers and Node built-ins out of every module a 'use client' file imports; put `import 'server-only'` at the top of each module that imports one (the data access layer). Extend the built-in list with `thresholds.next.serverModules`.",
+    },
+    detectionLimits: [
+      GRAPH_LIMIT,
+      'Server data handed to a client component as props is not seen; that is a data question, not an import.',
+      "The second rule (import 'server-only') can be turned off with thresholds.next.requireServerOnlyMarker: false. The npm server-only package throws outside the react-server condition, so a module that plain Node scripts or a Jest/Vitest run import needs it mocked there.",
+      "Pages Router pages are not client entries here (Next strips imports used only by getServerSideProps); the client graph is the App Router's 'use client' graph plus instrumentation-client.",
+      'Built-in list: Node built-ins Next does not polyfill for the browser, and common database drivers/ORMs; a server module not on it is not seen unless added in thresholds.next.serverModules.',
+      PARSER_LIMIT,
+    ],
+    emoji: '🧱',
+    description: 'No server module reaches a client graph, and modules importing one carry server-only',
+    priority: 'HIGH',
+    category: 'SECURITY',
+    stack: 'frontend',
+    requires: REQUIRES_NEXT,
+    defaultEnabled: true,
+    defaultSeverity: 'error',
+    automation: 'AUTOMATED',
+    checkFunction: 'NextServerOnlyBoundaryLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXIII.23.3: server code reaches the browser bundle, or lacks the server-only marker',
+    remediation:
+      "Remove server imports from the client graph and add import 'server-only' to modules that import a server module",
   },
 ];

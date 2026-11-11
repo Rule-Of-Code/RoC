@@ -7,3 +7,4 @@
 
 export { NextServerActionAuthorizesLaw } from './next-server-action-authorizes';
 export { NextRouteHandlerGuardedLaw } from './next-route-handler-guarded';
+export { NextServerOnlyBoundaryLaw } from './next-server-only-boundary';

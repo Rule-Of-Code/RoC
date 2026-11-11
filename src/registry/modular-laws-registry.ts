@@ -199,6 +199,7 @@ import {
   NextHeavyLibInClientGraphLaw,
   NextImageHasDimensionsLaw,
   NextMetadataDeclaredLaw,
+  NextThirdPartyScriptDeclaredLaw,
 } from '../checkers/next-laws';
 
 // Security Laws Modular Imports
@@ -504,6 +505,7 @@ export class ModularLawsRegistry {
     'NextMetadataDeclaredLaw.check': NextMetadataDeclaredLaw,
     'NextHeavyLibInClientGraphLaw.check': NextHeavyLibInClientGraphLaw,
     'NextImageHasDimensionsLaw.check': NextImageHasDimensionsLaw,
+    'NextThirdPartyScriptDeclaredLaw.check': NextThirdPartyScriptDeclaredLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

@@ -8,3 +8,4 @@
 export { NextHeavyLibInClientGraphLaw } from './next-heavy-lib-in-client-graph';
 export { NextImageHasDimensionsLaw } from './next-image-has-dimensions';
 export { NextMetadataDeclaredLaw } from './next-metadata-declared';
+export { NextThirdPartyScriptDeclaredLaw } from './next-third-party-script-declared';

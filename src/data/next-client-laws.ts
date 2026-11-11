@@ -139,4 +139,41 @@ export const NEXT_CLIENT_LAWS: EnhancedConstitutionalLaw[] = [
     violationMessage: 'CONSTITUTIONAL VIOLATION Article XXIV.24.3: image without reserved dimensions',
     remediation: 'Give the image width and height (next/image: or fill, or a static import)',
   },
+
+  {
+    id: generateLawId(
+      'Next Third Party Script Declared',
+      'Every external script host is declared with a reason in thresholds.next.thirdPartyScripts',
+      'next'
+    ),
+    legacyId: 554,
+    article: 'XXIV',
+    subsection: '24.4',
+    title: 'Next Third Party Script Declared',
+    rationale:
+      "A third-party script is added in one line and costs what its vendor decides: its bytes, its main-thread time, the scripts it loads in turn, all from a host that can change them without a deploy. It is the quickest way to break a performance budget, and the line that adds it looks like any other. Declaring each host with its reason makes adding one a reviewed decision.",
+    satisfiedBy: {
+      react:
+        '`"thresholds": { "next": { "thirdPartyScripts": [{ "host": "www.googletagmanager.com", "reason": "analytics required by …" }] } }` (host may be a glob such as `*.example.com`), with the script written as a literal URL, preferably `<Script src="https://…" strategy="lazyOnload" />` from next/script.',
+    },
+    detectionLimits: [
+      'Reads `<script src>` and next/script `<Script src>`: scripts injected at runtime (document.createElement), loaded by another script, or rendered by a wrapper component such as @next/third-parties are not seen.',
+      'A src that is not a literal (or a template whose host is not fixed) is reported as unreadable rather than guessed.',
+      'Judges hosts, not cost: a declared host passes whatever it serves.',
+      UNREAD_FAILS,
+    ],
+    emoji: '📜',
+    description:
+      'Every external script host is declared with a reason in thresholds.next.thirdPartyScripts',
+    priority: 'MEDIUM',
+    category: 'PERFORMANCE',
+    stack: 'frontend',
+    requires: REQUIRES_NEXT,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'NextThirdPartyScriptDeclaredLaw.check',
+    violationMessage: 'CONSTITUTIONAL VIOLATION Article XXIV.24.4: undeclared third-party script',
+    remediation: 'Declare the script host with a reason in thresholds.next.thirdPartyScripts',
+  },
 ];

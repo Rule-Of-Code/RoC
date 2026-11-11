@@ -9,3 +9,4 @@ export { NextServerActionAuthorizesLaw } from './next-server-action-authorizes';
 export { NextRouteHandlerGuardedLaw } from './next-route-handler-guarded';
 export { NextServerOnlyBoundaryLaw } from './next-server-only-boundary';
 export { NextClientEnvPublicOnlyLaw } from './next-client-env-public-only';
+export { NextProxyPlacementAndMatcherLaw } from './next-proxy-placement-and-matcher';

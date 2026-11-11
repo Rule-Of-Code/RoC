@@ -181,4 +181,43 @@ export const NEXT_SERVER_LAWS: EnhancedConstitutionalLaw[] = [
     remediation:
       'Read the variable on the server and pass it down, or rename it NEXT_PUBLIC_ if it is public',
   },
+
+  {
+    id: generateLawId(
+      'Next Proxy Placement And Matcher',
+      'The Next proxy sits where Next loads it, is not duplicated by middleware, exports one function and a literal matcher',
+      'next'
+    ),
+    legacyId: 535,
+    article: 'XXIII',
+    subsection: '23.5',
+    title: 'Next Proxy Placement And Matcher',
+    rationale:
+      'Next looks for proxy (middleware before v16) only in the parent of the router directory, so proxy.ts at the root beside src/app/ is never loaded and nothing says so (next/dist/build/index.js). Without a matcher it "runs on every request, including static files", and a non-constant matcher "will be ignored" (next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md). middleware is deprecated in v16, and both files together stop the build.',
+    satisfiedBy: {
+      react:
+        "Put proxy.ts beside app/ (in src/ when the router is in src/), export one function (`export function proxy(request)` or a default), and `export const config = { matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'] }`. A proxy meant to run everywhere declares why in `thresholds.next.proxyWithoutMatcher`.",
+    },
+    detectionLimits: [
+      'Does not judge whether the matcher covers the right paths, nor Server Functions reachable on excluded paths (Next Server Action Authorizes covers those).',
+      'The Next major is read from the installed next (else the declared range); on Next 15 and older middleware is the expected name.',
+      ROUTER_LIMIT,
+      PARSER_LIMIT,
+    ],
+    emoji: '🚦',
+    description:
+      'The Next proxy sits where Next loads it, is not duplicated by middleware, exports one function and a literal matcher',
+    priority: 'MEDIUM',
+    category: 'FRAMEWORK',
+    stack: 'frontend',
+    requires: REQUIRES_NEXT,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'NextProxyPlacementAndMatcherLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXIII.23.5: the Next proxy is misplaced, duplicated, or has no literal matcher',
+    remediation:
+      'Place proxy.ts beside the router directory, drop middleware.ts, export one function and a literal config.matcher',
+  },
 ];

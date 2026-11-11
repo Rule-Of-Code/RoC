@@ -107,7 +107,7 @@ onto a stack. Measured against the shipped registry:
 |---|---|---|
 | `typescript` | 72 | 13 `typescript` + 59 universal |
 | `angular` | 65 | 57 `frontend` + 3 `typescript` + 5 universal |
-| `react` | 49 | 48 `frontend` + 1 `typescript` |
+| `react` | 55 | 54 `frontend` + 1 `typescript` |
 | `python` | 69 | 37 `python` + 32 universal |
 | `ionic` | 23 | 23 `frontend` |
 | `capacitor` | 23 | 21 `frontend` + 2 universal |

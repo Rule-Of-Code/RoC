@@ -449,6 +449,12 @@ export interface RuleOfCodeConfig {
        * eslint-config-next is already known. Default: none.
        */
       hooksLintPresets?: string[];
+      /**
+       * Globs (relative to the workspace root) of the project's sanctioned
+       * poll helper — the file that owns visibility-gated polling. React Poll
+       * Visibility Gated does not judge a setInterval inside it. Default: none.
+       */
+      pollHelpers?: string[];
     };
     testing?: {
       /** Minimum test coverage percentage (0-100) */

@@ -294,4 +294,41 @@ export const REACT_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article XXII.22.7: Client fetch response used without checking its status',
     remediation: 'Read res.ok (or res.status) before using the response body',
   },
+
+  {
+    id: generateLawId(
+      'React Poll Visibility Gated',
+      'A setInterval that fetches is in a file that reacts to page visibility, or in the sanctioned poll helper',
+      'react'
+    ),
+    legacyId: 508,
+    article: 'XXII',
+    subsection: '22.8',
+    title: 'React Poll Visibility Gated',
+    rationale:
+      "A setInterval that fetches keeps fetching while the tab is hidden: nobody is looking, the battery, the network and the API quota are still spent, and browsers throttle hidden timers so requests bunch up and fire on return. The Page Visibility API tells the app when it is hidden (visibilitychange, document.visibilityState); a poll should pause or skip on it.",
+    satisfiedBy: {
+      react:
+        "In the polling hook, listen to visibilitychange: clear the interval when document.visibilityState === 'hidden' and restart it when visible. Or poll through one helper that does this and name it in thresholds.react.pollHelpers; TanStack Query's refetchInterval pauses in the background by default.",
+    },
+    detectionLimits: [
+      PARSED_SOURCE_ONLY,
+      'File-level: any visibilitychange string or visibilityState / document.hidden read in the file credits every poll in it; that it actually pauses the poll is not checked.',
+      'Follows the callback one level into functions of the same file; a fetch behind an imported helper is invisible. Polling by recursive setTimeout is not seen.',
+    ],
+    emoji: '👁️',
+    description:
+      'A setInterval that fetches is in a file that reacts to page visibility, or in the sanctioned poll helper',
+    priority: 'LOW',
+    category: 'PERFORMANCE',
+    stack: 'frontend',
+    requires: REQUIRES_REACT,
+    defaultEnabled: true,
+    defaultSeverity: 'info',
+    automation: 'AUTOMATED',
+    checkFunction: 'ReactPollVisibilityGatedLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXII.22.8: Polling continues while the page is hidden',
+    remediation: 'Pause polling on visibilitychange, or poll through the sanctioned helper',
+  },
 ];

@@ -29,3 +29,9 @@ export const REQUIRES_SQL_FILES: LawRequirement = {
 export const REQUIRES_TYPESCRIPT: LawRequirement = {
   anyDependency: ['typescript'],
 };
+
+/** A TypeScript project with a tsconfig at the root or in a workspace project. */
+export const REQUIRES_TSCONFIG: LawRequirement = {
+  anyDependency: ['typescript'],
+  anyFile: ['tsconfig.json'],
+};

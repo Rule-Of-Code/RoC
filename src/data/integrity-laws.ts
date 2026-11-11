@@ -15,6 +15,7 @@ import { generateLawId } from '../utils/id-generator';
 import {
   REQUIRES_DRIZZLE_MIGRATIONS,
   REQUIRES_SQL_FILES,
+  REQUIRES_TSCONFIG,
   REQUIRES_TYPESCRIPT,
 } from '../utils/integrity/integrity-requirements';
 
@@ -147,5 +148,45 @@ export const INTEGRITY_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article XXVII.27.3: a guard function is referenced only by tests',
     remediation:
       'Call the guard on the real path it protects, or delete it',
+  },
+
+  {
+    id: generateLawId(
+      'Tsconfig Exclude Leaves Code Untyped',
+      'Every TypeScript file a tsconfig excludes is included by some other tsconfig',
+      'integrity'
+    ),
+    legacyId: 594,
+    article: 'XXVII',
+    subsection: '27.4',
+    title: 'Tsconfig Exclude Leaves Code Untyped',
+    rationale:
+      '`"exclude": ["node_modules", "e2e"]` is a common setup, and a test runner that strips types at runtime does not check them. The excluded specs are then in no compilation at all: `tsc --noEmit` is green, and an undefined identifier reaches CI as a runtime failure — or never, if that line is not reached. The typecheck reports a pass over a subset without saying so; in the reported case 24 spec files across 6 tsconfigs were in none, and hid a real undefined identifier.',
+    satisfiedBy: {
+      typescript:
+        'Give the excluded directory a tsconfig of its own that includes it (`e2e/tsconfig.json` with `"include": ["**/*.ts"]`) and run it in the typecheck, or stop excluding it.',
+    },
+    detectionLimits: [
+      TRACKED_ONLY,
+      'Whether the tsconfig that includes a file is actually run by any script is not checked.',
+      "Configs are resolved with the project's own TypeScript (extends, include, files, exclude, references). A config, an extends or a reference it cannot resolve is a finding, and the files it would have included are not counted as covered.",
+      'A config that sets neither include nor files (itself or through extends) and is extended by another tsconfig is treated as a shared base: its implicit include of everything beneath it is not counted as covering.',
+      'Exclude entries naming a dependency or build folder (node_modules, dist, build, out, tmp, .next, coverage, www, android, ios …) or the config\'s outDir are skipped. Counted files are .ts, .tsx, .mts and .cts (a jest.config.cts is code); .d.ts files are not counted.',
+      'Only `exclude` is read: a directory that no include ever reached, without being excluded, is out of scope. `// @ts-nocheck` inside an included file is not seen.',
+    ],
+    emoji: '🙈',
+    description: 'Every TypeScript file a tsconfig excludes is included by some other tsconfig',
+    priority: 'MEDIUM',
+    category: 'CODE_QUALITY',
+    stack: 'typescript',
+    requires: REQUIRES_TSCONFIG,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'TsconfigExcludeLeavesCodeUntypedLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXVII.27.4: an excluded directory is type-checked by no tsconfig',
+    remediation:
+      'Include the excluded files in a tsconfig of their own and run it, or stop excluding them',
   },
 ];

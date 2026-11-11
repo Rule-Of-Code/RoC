@@ -14,6 +14,9 @@ import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import {
   REQUIRES_CAPACITOR_ANDROID,
 } from '../utils/capacitor/capacitor-law-support';
+import {
+  FIREBASE_ANDROID_DEPENDENCIES,
+} from '../utils/capacitor/capacitor-native-tables';
 import { generateLawId } from '../utils/id-generator';
 
 const NO_SHELL_NO_PASS =
@@ -58,5 +61,49 @@ export const CAPACITOR_NATIVE_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article IV.4.60: Cleartext opened in a shipped Android source set',
     remediation:
       'Move the cleartext opening out of src/main into src/debug and scope it to localhost / 127.0.0.1 / 10.0.2.2',
+  },
+
+  {
+    id: generateLawId(
+      'Capacitor Firebase Native Config Not Skipped',
+      'The Capacitor Android build fails, rather than silently skipping Firebase, when google-services.json is missing or names another package',
+      'capacitor'
+    ),
+    legacyId: 432,
+    article: 'IV',
+    subsection: '4.61',
+    title: 'Capacitor Firebase Native Config Not Skipped',
+    rationale:
+      "The Android shell @capacitor/cli 8.5.1 generates wraps the google-services plugin in try/catch with logger.info (android-template app/build.gradle:47-54), and google-services.json is rightly git-ignored, so every fresh checkout builds a green APK without Firebase: push never registers, native sign-in does nothing, no message anywhere. Measured on a consumer: 143 tasks / 0 GoogleServices / BUILD SUCCESSFUL without the file, 144 / 1 with it. A file from another project or for another applicationId also passes the template's check.",
+    satisfiedBy: {
+      capacitor:
+        "Replace the template's try/catch with a Gradle task that fails the build when google-services.json is missing for that variant, and check that the file's package_name equals the variant's applicationId (with suffix) before cap sync.",
+    },
+    detectionLimits: [
+      'Reads android/app/build.gradle(.kts) as text; a google-services apply moved into a convention plugin, buildSrc or a version-catalog alias is reported as not applied, not as green.',
+      'A conditional apply is accepted when the script throws somewhere (a GradleException task); that the throw guards the missing file is not proven.',
+      'applicationId / applicationIdSuffix are compared only when they are string literals (initWith followed once); a computed value, or a google-services.json in a flavour directory, is named in the details as not compared.',
+      `Table-driven: ${FIREBASE_ANDROID_DEPENDENCIES.map(row => row.dependency).join(', ')}; each row cites where it was read (capacitor-native-tables.ts). Any other @capacitor-firebase/* dependency is treated the same once the law is selected.`,
+      'Does not read GoogleService-Info.plist (iOS BUNDLE_ID), and cannot tell that the Firebase project is the right one for the environment — only that the package matches.',
+      NO_SHELL_NO_PASS,
+    ],
+    emoji: '🔥',
+    description:
+      'The Capacitor Android build fails, rather than silently skipping Firebase, when google-services.json is missing or names another package',
+    priority: 'CRITICAL',
+    category: 'FRAMEWORK',
+    stack: 'frontend',
+    requires: {
+      ...REQUIRES_CAPACITOR_ANDROID,
+      anyDependency: FIREBASE_ANDROID_DEPENDENCIES.map(row => row.dependency),
+    },
+    defaultEnabled: true,
+    defaultSeverity: 'error',
+    automation: 'AUTOMATED',
+    checkFunction: 'CapacitorFirebaseNativeConfigNotSkippedLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.61: The Android build can skip Firebase without failing',
+    remediation:
+      'Fail the build when google-services.json is missing for a variant, and keep its package_name equal to the variant applicationId',
   },
 ];

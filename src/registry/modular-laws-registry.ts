@@ -173,6 +173,7 @@ import {
 import {
   CapacitorAndroidCleartextDebugOnlyLaw,
   CapacitorDeepLinkContractLaw,
+  CapacitorFirebaseNativeConfigNotSkippedLaw,
   CapacitorLoggingNeverProductionLaw,
   CapacitorNoDevOnlyServerKeysLaw,
   CapacitorPluginConfigDeclaredLaw,
@@ -495,6 +496,7 @@ export class ModularLawsRegistry {
     'CapacitorSyncArtefactsMatchDependenciesLaw.check': CapacitorSyncArtefactsMatchDependenciesLaw,
     // Capacitor native-shell laws (gated on the platform package as well)
     'CapacitorAndroidCleartextDebugOnlyLaw.check': CapacitorAndroidCleartextDebugOnlyLaw,
+    'CapacitorFirebaseNativeConfigNotSkippedLaw.check': CapacitorFirebaseNativeConfigNotSkippedLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

@@ -112,7 +112,9 @@ describe('rationale & satisfiedBy ratchet', () => {
     const ungated = ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(
       law =>
         Object.keys(law.satisfiedBy ?? {}).join() === key &&
-        !(law.requires?.anyDependency ?? []).some(name => name.startsWith(dependency))
+        !(law.requires?.anyDependency ?? []).some(name => name.startsWith(dependency)) &&
+        // allDependencies: every one is required, so one naming the toolkit gates the law.
+        !(law.requires?.allDependencies ?? []).some(name => name.startsWith(dependency))
     ).map(law => law.title);
     expect(ungated).toEqual([]);
   });

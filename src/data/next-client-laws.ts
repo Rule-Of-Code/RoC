@@ -102,4 +102,41 @@ export const NEXT_CLIENT_LAWS: EnhancedConstitutionalLaw[] = [
     violationMessage: 'CONSTITUTIONAL VIOLATION Article XXIV.24.2: heavy library imported statically into the client bundle',
     remediation: 'Load the library with next/dynamic or import(), or keep it on the server',
   },
+
+  {
+    id: generateLawId(
+      'Next Image Has Dimensions',
+      'Every <img> has width and height; every next/image has them, fill, or a statically imported src',
+      'next'
+    ),
+    legacyId: 553,
+    article: 'XXIV',
+    subsection: '24.3',
+    title: 'Next Image Has Dimensions',
+    rationale:
+      'An image whose box is unknown until it downloads pushes the content below it down when it arrives: layout shift, the CLS of Core Web Vitals. The browser reserves the box from `width` and `height`. next/image requires both unless the image is statically imported or has `fill` (next/dist/docs: image, "You must set both width and height properties unless…"), and throws `missing required "width" property` (next/dist/shared/lib/get-img-props.js) — but only for an image that actually renders. A plain `<img>` has no such guard.',
+    satisfiedBy: {
+      react:
+        '`<img src="/logo.png" width={120} height={40} alt="…" />`; next/image: `<Image src="/hero.jpg" width={1200} height={630} alt="…" />`, `import hero from "./hero.jpg"; <Image src={hero} alt="…" />`, or `<Image fill sizes="100vw" … />` inside a positioned parent. CSS still sets the rendered size.',
+    },
+    detectionLimits: [
+      'Reads JSX attributes as written: CSS that sets the box (aspect-ratio, fixed height), and images set as CSS backgrounds, are not seen — an <img> sized by CSS is still flagged.',
+      'An element with a {...spread} and no width/height is flagged: what the spread sets cannot be read from the file.',
+      'next/image is recognised by its default import from next/image or next/legacy/image; another image component (a design-system wrapper) is not read.',
+      UNREAD_FAILS,
+    ],
+    emoji: '🖼️',
+    description:
+      'Every <img> has width and height; every next/image has them, fill, or a statically imported src',
+    priority: 'MEDIUM',
+    category: 'PERFORMANCE',
+    stack: 'frontend',
+    requires: REQUIRES_NEXT,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'NextImageHasDimensionsLaw.check',
+    violationMessage: 'CONSTITUTIONAL VIOLATION Article XXIV.24.3: image without reserved dimensions',
+    remediation: 'Give the image width and height (next/image: or fill, or a static import)',
+  },
 ];

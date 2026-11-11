@@ -10,16 +10,20 @@
 
 import type { LawRequirement } from '../../types/enhanced-law.types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
+import { FileUtils } from '../file-utils';
 import { PathOperations } from '../path-operations';
 import {
   CAPACITOR_CONFIG_FILES,
+  type CapacitorNativePaths,
   type CapacitorProject,
   CapacitorProjects,
 } from './capacitor-project';
 
+const CAPACITOR_CORE = '@capacitor/core';
+
 /** @capacitor/core declared, and a Capacitor config present. */
 export const REQUIRES_CAPACITOR: LawRequirement = {
-  anyDependency: ['@capacitor/core'],
+  anyDependency: [CAPACITOR_CORE],
   anyFile: CAPACITOR_CONFIG_FILES,
 };
 
@@ -68,6 +72,52 @@ export function resolvedProjects(context: LawCheckContext): {
     }
   }
   return { resolved, unresolved };
+}
+
+/** Capacitor and its Android platform: the laws that read the Android shell. */
+export const REQUIRES_CAPACITOR_ANDROID: LawRequirement = {
+  ...REQUIRES_CAPACITOR,
+  allDependencies: [CAPACITOR_CORE, '@capacitor/android'],
+};
+
+/** Capacitor and its iOS platform: the laws that read the iOS shell. */
+export const REQUIRES_CAPACITOR_IOS: LawRequirement = {
+  ...REQUIRES_CAPACITOR,
+  allDependencies: [CAPACITOR_CORE, '@capacitor/ios'],
+};
+
+export interface PlatformProject {
+  project: CapacitorProject;
+  native: CapacitorNativePaths;
+}
+
+/**
+ * The Capacitor projects that have the platform's shell on disk.
+ *
+ * The law is selected because the platform package is declared; a workspace
+ * where NO project has the shell has nothing the law can read, and says so
+ * as a violation rather than passing. A project without the shell next to
+ * one that has it is another app of the monorepo, not a gap.
+ */
+export function projectsWithPlatform(
+  context: LawCheckContext,
+  platform: 'android' | 'ios'
+): { projects: PlatformProject[]; notRead: string[] } {
+  const shellOf = (native: CapacitorNativePaths) =>
+    platform === 'android' ? native.androidDir : native.iosDir;
+  const all = CapacitorProjects.find(context.projectRoot).map(project => ({
+    project,
+    native: CapacitorProjects.nativePaths(project, context.projectRoot),
+  }));
+  const projects = all.filter(({ native }) => FileUtils.isDirectory(shellOf(native)));
+  if (projects.length > 0 || all.length === 0) return { projects, notRead: [] };
+  const looked = all.map(({ native }) => relative(context, shellOf(native))).join(', ');
+  return {
+    projects,
+    notRead: [
+      `@capacitor/${platform} is declared but no ${platform}/ shell exists (looked for ${looked}) — this law reads the committed native shell and does not pass without it; run \`npx cap add ${platform}\` and commit the shell, or remove the platform package`,
+    ],
+  };
 }
 
 /**

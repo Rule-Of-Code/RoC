@@ -64,6 +64,10 @@ export type CapacitorConfigResolution =
 
 type ResolvedPlatform = Record<string, unknown>;
 
+const ANDROID_MANIFEST = 'AndroidManifest.xml';
+const BUILD_GRADLE = 'build.gradle';
+const GOOGLE_SERVICES_JSON = 'google-services.json';
+
 /** Resolving runs the project's config program; allow a slow machine, not a hang. */
 const CLI_TIMEOUT_MS = 60_000;
 
@@ -118,8 +122,8 @@ export class CapacitorProjects {
     const iosTargetDir = PathOperations.join(iosDir, 'App', 'App');
     return {
       androidDir,
-      androidManifest: PathOperations.join(androidDir, 'app', 'src', 'main', 'AndroidManifest.xml'),
-      androidAppBuildGradle: PathOperations.join(androidDir, 'app', 'build.gradle'),
+      androidManifest: PathOperations.join(androidDir, 'app', 'src', 'main', ANDROID_MANIFEST),
+      androidAppBuildGradle: PathOperations.join(androidDir, 'app', BUILD_GRADLE),
       capacitorSettingsGradle: PathOperations.join(androidDir, 'capacitor.settings.gradle'),
       iosDir,
       iosTargetDir,
@@ -157,10 +161,45 @@ export class CapacitorProjects {
         PathOperations.join(native.iosDir, '.gitignore'),
         PathOperations.join(native.iosDir, 'App', 'Podfile'),
         PathOperations.join(native.iosDir, 'App', 'CapApp-SPM', 'Package.swift'),
+        PathOperations.join(native.iosTargetDir, 'PrivacyInfo.xcprivacy'),
+        `${native.androidAppBuildGradle}.kts`,
+        PathOperations.join(native.androidDir, BUILD_GRADLE),
+        PathOperations.join(native.androidDir, 'gradle.properties'),
+        PathOperations.join(native.androidDir, 'keystore.properties'),
+        PathOperations.join(PathOperations.getDirectory(native.androidAppBuildGradle), GOOGLE_SERVICES_JSON),
         ...this.entitlementFiles(native),
+        ...this.sourceSetInputs(native),
         ...this.nativeSourceFiles(native),
       ];
     });
+  }
+
+  /**
+   * Each Android source set's manifest, google-services.json and res/xml
+   * files: the native-shell laws read every source set, not only main.
+   */
+  private static sourceSetInputs(native: CapacitorNativePaths): string[] {
+    const src = PathOperations.getDirectory(PathOperations.getDirectory(native.androidManifest));
+    const list = (dir: string): fs.Dirent[] => {
+      try {
+        return fs.readdirSync(dir, { withFileTypes: true });
+      } catch {
+        return [];
+      }
+    };
+    return list(src)
+      .filter(entry => entry.isDirectory())
+      .flatMap(entry => {
+        const set = PathOperations.join(src, entry.name);
+        const xmlDir = PathOperations.join(set, 'res', 'xml');
+        return [
+          PathOperations.join(set, ANDROID_MANIFEST),
+          PathOperations.join(set, GOOGLE_SERVICES_JSON),
+          ...list(xmlDir)
+            .filter(file => file.isFile() && file.name.endsWith('.xml'))
+            .map(file => PathOperations.join(xmlDir, file.name)),
+        ];
+      });
   }
 
   /** The `*.entitlements` files of the iOS target (Xcode names them after the target). */
@@ -280,10 +319,10 @@ export class CapacitorProjects {
     return {
       androidDir,
       androidManifest: androidMain
-        ? PathOperations.join(androidMain, 'AndroidManifest.xml')
+        ? PathOperations.join(androidMain, ANDROID_MANIFEST)
         : fallback.androidManifest,
       androidAppBuildGradle: androidApp
-        ? PathOperations.join(androidApp, 'build.gradle')
+        ? PathOperations.join(androidApp, BUILD_GRADLE)
         : fallback.androidAppBuildGradle,
       capacitorSettingsGradle: PathOperations.join(androidDir, 'capacitor.settings.gradle'),
       iosDir,

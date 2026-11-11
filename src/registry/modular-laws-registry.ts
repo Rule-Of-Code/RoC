@@ -196,6 +196,7 @@ import {
 
 // React Laws Modular Imports — gated by `requires` on react (or next)
 import {
+  ClientFetchResponseCheckedLaw,
   ReactContextValueStableLaw,
   ReactEffectFetchRaceGuardedLaw,
   ReactEffectResourceCleanupLaw,
@@ -511,6 +512,7 @@ export class ModularLawsRegistry {
     'ReactStoreSubscriptionUsesSyncExternalStoreLaw.check':
       ReactStoreSubscriptionUsesSyncExternalStoreLaw,
     'ReactRenderNoBrowserGlobalLaw.check': ReactRenderNoBrowserGlobalLaw,
+    'ClientFetchResponseCheckedLaw.check': ClientFetchResponseCheckedLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

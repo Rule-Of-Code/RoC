@@ -5,6 +5,7 @@
  * project declares react (or next).
  */
 
+export { ClientFetchResponseCheckedLaw } from './client-fetch-response-checked';
 export { ReactContextValueStableLaw } from './react-context-value-stable';
 export { ReactEffectFetchRaceGuardedLaw } from './react-effect-fetch-race-guarded';
 export { ReactEffectResourceCleanupLaw } from './react-effect-resource-cleanup';

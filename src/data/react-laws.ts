@@ -256,4 +256,42 @@ export const REACT_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article XXII.22.6: Browser global read while rendering on the server',
     remediation: 'Read browser globals in useEffect or an event handler, not during render',
   },
+
+  {
+    id: generateLawId(
+      'Client Fetch Response Checked',
+      'A fetch in client code reads res.ok or res.status, or is inside a catch',
+      'react'
+    ),
+    legacyId: 507,
+    article: 'XXII',
+    subsection: '22.7',
+    title: 'Client Fetch Response Checked',
+    rationale:
+      'fetch rejects only when the request cannot be made; a 401, 404 or 500 resolves like a success. Code that goes straight to res.json() renders the error body as data, or throws later on a body that is not JSON, far from the cause — and in the browser nothing reports it: the user sees an empty or wrong screen.',
+    satisfiedBy: {
+      react:
+        'Check the status before the body: `const res = await fetch(url); if (!res.ok) throw new Error("HTTP " + res.status); return res.json();` — ideally in one client helper every call site uses, with the failure shown to the user.',
+    },
+    detectionLimits: [
+      PARSED_SOURCE_ONLY,
+      NO_CROSS_FILE,
+      "Client code is a 'use client' file, or any React source outside a Next app (a Remix loader or other server code outside Next is treated as client).",
+      'A fetch whose promise is returned is a wrapper and is not judged — its callers, who receive the response, are not followed.',
+      'As the issue states, a catch around the call (try block in the same function, .catch, or .then(ok, onRejected)) is accepted, although fetch resolves on HTTP errors: a caught but unchecked 500 passes. A failure that is caught and ignored passes.',
+    ],
+    emoji: '📮',
+    description: 'A fetch in client code reads res.ok or res.status, or is inside a catch',
+    priority: 'MEDIUM',
+    category: 'CODE_QUALITY',
+    stack: 'frontend',
+    requires: REQUIRES_REACT,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'ClientFetchResponseCheckedLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXII.22.7: Client fetch response used without checking its status',
+    remediation: 'Read res.ok (or res.status) before using the response body',
+  },
 ];

@@ -13,9 +13,11 @@
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import {
   REQUIRES_CAPACITOR_ANDROID,
+  REQUIRES_CAPACITOR_IOS,
 } from '../utils/capacitor/capacitor-law-support';
 import {
   FIREBASE_ANDROID_DEPENDENCIES,
+  PRIVACY_MANIFEST_ROWS,
 } from '../utils/capacitor/capacitor-native-tables';
 import { generateLawId } from '../utils/id-generator';
 
@@ -144,5 +146,48 @@ export const CAPACITOR_NATIVE_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article IV.4.62: Android Auto Backup left to the template default',
     remediation:
       'Set android:allowBackup="false", or add android:dataExtractionRules and android:fullBackupContent',
+  },
+
+  {
+    id: generateLawId(
+      'Capacitor iOS Privacy Manifest Declared',
+      'The Capacitor iOS app declares, in PrivacyInfo.xcprivacy, the required-reason APIs its installed plugins use',
+      'capacitor'
+    ),
+    legacyId: 434,
+    article: 'IV',
+    subsection: '4.63',
+    title: 'Capacitor iOS Privacy Manifest Declared',
+    rationale:
+      "Apple asks for a PrivacyInfo.xcprivacy that declares the required-reason APIs an app uses, and Capacitor's guide (capacitorjs.com/docs/ios/privacy-manifest) names @capacitor/preferences — whose iOS store is UserDefaults.standard — as a plugin that brings the duty, with NSPrivacyAccessedAPICategoryUserDefaults and CA92.1 in its sample. Nothing in cap add, cap sync or the Xcode build creates the file; the project learns of it at App Store upload.",
+    satisfiedBy: {
+      capacitor:
+        'Add ios/App/App/PrivacyInfo.xcprivacy to the App target and declare, for each installed plugin that uses a required-reason API, its NSPrivacyAccessedAPIType with the reason code that matches your use.',
+    },
+    detectionLimits: [
+      `Table-driven (${PRIVACY_MANIFEST_ROWS.map(row => `${row.dependency} → ${row.category}`).join('; ')}): only plugins with a row are checked, and each row cites its source. @capacitor/filesystem is not a row: Capacitor's guide names it, but its timestamp reads happen in IONFilesystemLib, which CocoaPods/SPM fetch and node_modules does not hold, so the category could not be confirmed from source.`,
+      'Native SDKs pulled in by plugins (Firebase) ship their own manifests and are not judged.',
+      'Presence of the category and of a reason string; whether the reason is the right one for the app is reported in the details, not judged.',
+      'Looks in ios/App/App first, then elsewhere under ios/App (not Pods, build output or CapApp-SPM); does not check that the file is a member of the App target in project.pbxproj. A file git ignores is red, since a clean checkout builds without it.',
+      NO_SHELL_NO_PASS,
+    ],
+    emoji: '🍏',
+    description:
+      'The Capacitor iOS app declares, in PrivacyInfo.xcprivacy, the required-reason APIs its installed plugins use',
+    priority: 'MEDIUM',
+    category: 'DEPLOYMENT',
+    stack: 'frontend',
+    requires: {
+      ...REQUIRES_CAPACITOR_IOS,
+      anyDependency: PRIVACY_MANIFEST_ROWS.map(row => row.dependency),
+    },
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'CapacitorIosPrivacyManifestDeclaredLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.63: iOS privacy manifest missing a category an installed plugin needs',
+    remediation:
+      'Add PrivacyInfo.xcprivacy to the App target with an NSPrivacyAccessedAPIType and reason for each listed plugin',
   },
 ];

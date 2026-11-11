@@ -29,6 +29,7 @@ export interface RuleOfCodeConfig {
       | 'node'
       | 'python'
       | 'react'
+      | 'typescript'
       | 'vue';
     /** Framework-specific settings */
     framework?: {
@@ -632,7 +633,11 @@ export const DEFAULT_CONFIG: RuleOfCodeConfig = {
   project: {
     name: 'Workspace',
     componentPrefix: 'app',
-    type: 'angular',
+    // Not a framework. The loader writes the DETECTED type here; this was
+    // 'angular', and since the engine trusts any configured type, a project
+    // whose type the detector did not map to defaults (Python, TypeScript,
+    // Node, or an undetected React monorepo) was audited as Angular.
+    type: 'generic',
   },
 
   ignores: {

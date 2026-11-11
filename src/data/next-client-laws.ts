@@ -252,4 +252,42 @@ export const NEXT_CLIENT_LAWS: EnhancedConstitutionalLaw[] = [
     violationMessage: 'CONSTITUTIONAL VIOLATION Article XXIV.24.6: internal link without next/link',
     remediation: 'Use <Link> from next/link for links to pages of the app',
   },
+
+  {
+    id: generateLawId(
+      'Next Use Client At Leaves',
+      "'use client' marks interactive leaves: never a page or layout, never a module that needs nothing from the client",
+      'next'
+    ),
+    legacyId: 557,
+    article: 'XXIV',
+    subsection: '24.7',
+    title: 'Next Use Client At Leaves',
+    rationale:
+      "`'use client'` makes a module and everything it imports client code, shipped and hydrated in the browser. On a page or layout it turns the route subtree into client code, data fetching included, and the page can no longer export metadata (next/dist/docs: use-client, server-and-client-components — mark only the interactive components). A `'use client'` module that uses no hook, no handler and no browser API pays for the boundary and gets nothing from it.",
+    satisfiedBy: {
+      react:
+        "Keep page.tsx and layout.tsx Server Components; put the interactive part in its own file (`'use client'; export function LikeButton() { const [n, setN] = useState(0) … }`) and render it from the page. Remove the directive from a module that only renders markup.",
+    },
+    detectionLimits: [
+      "A module counts as needing the client when it calls a hook (`use…`, `use`), createContext, writes an `on…` handler or a function-valued prop (incl. `action`/`formAction`/`ref`), touches a browser global (window, document, localStorage, …), declares a class component, or re-exports (`export … from`, the wrapper pattern for libraries without the directive). Anything else — e.g. client-only behaviour reached through a helper not named use… — is a false positive of the second check.",
+      'error.tsx and global-error.tsx are exempt from the second check (Next requires them to be Client Components).',
+      'Does not judge a real client component that is simply too large.',
+      PAGE_EXTENSIONS,
+      UNREAD_FAILS,
+    ],
+    emoji: '🍃',
+    description:
+      "'use client' marks interactive leaves: never a page or layout, never a module that needs nothing from the client",
+    priority: 'MEDIUM',
+    category: 'PERFORMANCE',
+    stack: 'frontend',
+    requires: REQUIRES_NEXT,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'NextUseClientAtLeavesLaw.check',
+    violationMessage: "CONSTITUTIONAL VIOLATION Article XXIV.24.7: 'use client' above the interactive leaves",
+    remediation: "Move 'use client' down to the interactive component",
+  },
 ];

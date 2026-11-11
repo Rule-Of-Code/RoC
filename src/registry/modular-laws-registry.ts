@@ -202,6 +202,7 @@ import {
   NextInternalLinkComponentLaw,
   NextMetadataDeclaredLaw,
   NextThirdPartyScriptDeclaredLaw,
+  NextUseClientAtLeavesLaw,
 } from '../checkers/next-laws';
 
 // Security Laws Modular Imports
@@ -510,6 +511,7 @@ export class ModularLawsRegistry {
     'NextThirdPartyScriptDeclaredLaw.check': NextThirdPartyScriptDeclaredLaw,
     'HtmlLangDeclaredLaw.check': HtmlLangDeclaredLaw,
     'NextInternalLinkComponentLaw.check': NextInternalLinkComponentLaw,
+    'NextUseClientAtLeavesLaw.check': NextUseClientAtLeavesLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

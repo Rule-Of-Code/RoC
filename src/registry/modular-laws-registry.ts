@@ -202,6 +202,7 @@ import {
   NextImageHasDimensionsLaw,
   NextInternalLinkComponentLaw,
   NextMetadataDeclaredLaw,
+  NextRouteJsBudgetLaw,
   NextThirdPartyScriptDeclaredLaw,
   NextUseClientAtLeavesLaw,
 } from '../checkers/next-laws';
@@ -514,6 +515,7 @@ export class ModularLawsRegistry {
     'NextInternalLinkComponentLaw.check': NextInternalLinkComponentLaw,
     'NextUseClientAtLeavesLaw.check': NextUseClientAtLeavesLaw,
     'NextClientPropsSerializableLaw.check': NextClientPropsSerializableLaw,
+    'NextRouteJsBudgetLaw.check': NextRouteJsBudgetLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

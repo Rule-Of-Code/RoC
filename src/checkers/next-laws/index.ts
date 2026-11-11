@@ -11,5 +11,6 @@ export { NextHeavyLibInClientGraphLaw } from './next-heavy-lib-in-client-graph';
 export { NextImageHasDimensionsLaw } from './next-image-has-dimensions';
 export { NextInternalLinkComponentLaw } from './next-internal-link-component';
 export { NextMetadataDeclaredLaw } from './next-metadata-declared';
+export { NextRouteJsBudgetLaw } from './next-route-js-budget';
 export { NextThirdPartyScriptDeclaredLaw } from './next-third-party-script-declared';
 export { NextUseClientAtLeavesLaw } from './next-use-client-at-leaves';

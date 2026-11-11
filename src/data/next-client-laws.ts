@@ -328,4 +328,41 @@ export const NEXT_CLIENT_LAWS: EnhancedConstitutionalLaw[] = [
     violationMessage: 'CONSTITUTIONAL VIOLATION Article XXIV.24.8: unserializable prop passed to a Client Component',
     remediation: 'Pass plain data or a Server Function across the client boundary',
   },
+
+  {
+    id: generateLawId(
+      'Next Route JS Budget',
+      "No route's first-load JavaScript exceeds thresholds.next.routeJsBudgetKb, read from Next's build output",
+      'next'
+    ),
+    legacyId: 559,
+    article: 'XXIV',
+    subsection: '24.9',
+    title: 'Next Route JS Budget',
+    rationale:
+      "Every other performance law checks that tooling exists; none reads the bytes a route ships. After a Turbopack build Next writes .next/diagnostics/route-bundle-stats.json with each route's `firstLoadUncompressedJsBytes` (next/dist/build/route-bundle-stats.js, called from build/index.js only for Turbopack builds) — the measurement this law compares to a declared budget. A fresh create-next-app route measured 474,314 bytes on next@16.4.6.",
+    satisfiedBy: {
+      react:
+        'Enable the law, declare `"thresholds": { "next": { "routeJsBudgetKb": 500 } }`, and run `next build` (Turbopack) before the audit in CI. Over budget: move client code behind next/dynamic or into Server Components.',
+    },
+    detectionLimits: [
+      'Measures a build, so it cannot pass without one: a missing stats file (no build, a webpack build, or a custom `distDir` — only .next is read), one older than any scanned source file of the app, or an unknown format is reported as NOT measured. That is why it is opt-in (defaultEnabled: false).',
+      'Bytes are uncompressed, as Next writes them; transfer size (gzip/brotli) is smaller. Runtime metrics (LCP, INP) are not measured.',
+      'The stats format is the one next@16.4.6 writes; the law refuses a file whose rows are not { route, firstLoadUncompressedJsBytes } rather than guessing.',
+      'One budget for every route; no per-route budgets.',
+    ],
+    emoji: '⚖️',
+    description:
+      "No route's first-load JavaScript exceeds thresholds.next.routeJsBudgetKb, read from Next's build output",
+    priority: 'HIGH',
+    category: 'PERFORMANCE',
+    stack: 'frontend',
+    requires: REQUIRES_NEXT,
+    defaultEnabled: false,
+    defaultSeverity: 'error',
+    automation: 'CONFIGURABLE',
+    checkFunction: 'NextRouteJsBudgetLaw.check',
+    violationMessage: 'CONSTITUTIONAL VIOLATION Article XXIV.24.9: route JavaScript over budget or not measured',
+    remediation: 'Build with Turbopack before the audit and keep every route under thresholds.next.routeJsBudgetKb',
+  },
 ];

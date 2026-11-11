@@ -359,7 +359,7 @@ describe('cli/laws-command', () => {
       const payload = buildLawsJson(ModularLawsRegistry.getAll(), {});
 
       expect(payload.laws.every(law => 'requires' in law)).toBe(true);
-      const ungated = payload.laws.find(law => law.name === 'Angular Lifecycle Management');
+      const ungated = payload.laws.find(law => law.name === 'Web Storage Encapsulation');
       expect(ungated?.requires).toBeNull();
     });
   });

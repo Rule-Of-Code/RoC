@@ -90,7 +90,9 @@ export function lawIdentityKeys(law: {
  */
 export const STACK_PROJECT_TYPES: Record<string, string[]> = {
   frontend: ['angular', 'react', 'vue', 'ionic'],
-  typescript: ['angular', 'react', 'vue', 'ionic', 'node', 'library', 'generic'],
+  // `typescript` itself was missing: the detector's own answer for a plain TS
+  // repository selected none of the TypeScript-language laws.
+  typescript: ['angular', 'react', 'vue', 'ionic', 'node', 'library', 'generic', 'typescript'],
   python: ['python'],
 };
 

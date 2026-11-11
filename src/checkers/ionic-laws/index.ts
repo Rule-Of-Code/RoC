@@ -13,3 +13,4 @@ export { IonicRouteReuseStrategyProvidedLaw } from './ionic-route-reuse-strategy
 export { IonicNavigationSpecsMountTheOutletLaw } from './ionic-navigation-specs-mount-the-outlet';
 export { IonicE2eLocatorsTargetTheShownPageLaw } from './ionic-e2e-locators-target-the-shown-page';
 export { IonicViewHooksOnlyOnPagesLaw } from './ionic-view-hooks-only-on-pages';
+export { IonicSingleBuildSystemLaw } from './ionic-single-build-system';

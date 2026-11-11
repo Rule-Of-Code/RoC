@@ -190,6 +190,7 @@ import {
   IonicPageStateReadOnEnterLaw,
   IonicRouteReuseStrategyProvidedLaw,
   IonicSessionExitUsesNavigateRootLaw,
+  IonicSingleBuildSystemLaw,
   IonicUniqueUrlKeyPerViewLaw,
   IonicViewHooksOnlyOnPagesLaw,
   IonicViewLifecycleInterfacesLaw,
@@ -507,6 +508,7 @@ export class ModularLawsRegistry {
 
     // Ionic rendering-model laws (gated on an Ionic binding)
     'IonicViewHooksOnlyOnPagesLaw.check': IonicViewHooksOnlyOnPagesLaw,
+    'IonicSingleBuildSystemLaw.check': IonicSingleBuildSystemLaw,
 
     // Security Laws
     checkEnvironmentVariables: EnvironmentVariablesLaw,

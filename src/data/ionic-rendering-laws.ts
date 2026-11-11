@@ -59,4 +59,43 @@ export const IONIC_RENDERING_LAWS: EnhancedConstitutionalLaw[] = [
     remediation:
       'Move the per-visit work to the page that renders the component, or to ngOnInit / effect',
   },
+
+  {
+    id: generateLawId(
+      'Ionic Single Build System',
+      'An Ionic Angular app imports from one build: @ionic/angular or @ionic/angular/standalone, never both',
+      'ionic'
+    ),
+    legacyId: 412,
+    article: 'IV',
+    subsection: '4.81',
+    title: 'Ionic Single Build System',
+    rationale:
+      "@ionic/angular and @ionic/angular/standalone are two builds. ModalController, IonRouterOutlet, IonModal and every component are declared in each entry — different classes, so different DI tokens — and only what both re-export from @ionic/angular/common (NavController, Platform, Config, NavParams, IonicRouteStrategy, DomController, IonModalToken) is shared. Ionic's docs say the two 'cannot be used at the same time'. One auto-imported ModalController from the wrong entry compiles and brings the other build's token and its lazy loader (@ionic/core/loader) into a standalone app.",
+    satisfiedBy: {
+      ionic:
+        "Pick one entry point. In a standalone app import every Ionic symbol, including NavController, ModalController, Platform and provideIonicAngular, from '@ionic/angular/standalone'; enforce it with a no-restricted-imports rule on '@ionic/angular'.",
+    },
+    detectionLimits: [
+      'Import and re-export declarations only; a re-export through a local barrel is attributed to the barrel file.',
+      "The shared set is read from the installed @ionic/angular entry's `export … from '@ionic/angular/common'` statements; when both entries are imported and that file cannot be read, the law reports it as not judged.",
+      "Type-only imports are ignored; a value import used only as a type (without 'import type') still counts. Shared symbols imported from '@ionic/angular' in a standalone app are reported as a note, not a violation.",
+      'Does not measure a runtime symptom or the bundle cost, only the mix the docs forbid; the runtime failure of a mixed app was not measured.',
+    ],
+    emoji: '🧩',
+    description:
+      'An Ionic Angular app imports from one build: @ionic/angular or @ionic/angular/standalone, never both',
+    priority: 'HIGH',
+    category: 'FRAMEWORK',
+    stack: 'frontend',
+    requires: REQUIRES_IONIC_ANGULAR,
+    defaultEnabled: true,
+    defaultSeverity: 'error',
+    automation: 'AUTOMATED',
+    checkFunction: 'IonicSingleBuildSystemLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.81: Both @ionic/angular builds imported in one app',
+    remediation:
+      "Import every Ionic symbol from one entry; in a standalone app, '@ionic/angular/standalone'",
+  },
 ];

@@ -142,4 +142,41 @@ export const REACT_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article XXII.22.3: Effect fetch can be overwritten by a stale response',
     remediation: 'Abort the request in the cleanup, or guard the update with an ignore flag',
   },
+
+  {
+    id: generateLawId(
+      'React Context Value Stable',
+      'A context provider value is not an inline object or array literal',
+      'react'
+    ),
+    legacyId: 504,
+    article: 'XXII',
+    subsection: '22.4',
+    title: 'React Context Value Stable',
+    rationale:
+      'Every consumer of a context re-renders when the provider value changes by identity, and an object or array literal written in value={…} is a new identity on every render of the provider — so every consumer below it re-renders whether or not anything it reads changed. The React documentation for useContext recommends wrapping the value in useMemo (and its functions in useCallback) for this reason.',
+    satisfiedBy: {
+      react:
+        'Memoize the value: `const value = useMemo(() => ({ user, login }), [user, login]); <AuthContext value={value}>` (or `<AuthContext.Provider value={value}>`). Split a context whose parts change at different rates.',
+    },
+    detectionLimits: [
+      PARSED_SOURCE_ONLY,
+      'Flags only an object or array literal written inline in value={…}; a value built earlier in render without useMemo is not seen.',
+      "A provider is a `*.Provider` tag, a tag bound by createContext in the same file, or a tag named `…Context` (React 19 renders the context itself); a non-context component named `…Context` with a value prop is flagged.",
+      'React Compiler, where enabled, memoizes such literals itself; the law does not detect it.',
+    ],
+    emoji: '🧬',
+    description: 'A context provider value is not an inline object or array literal',
+    priority: 'LOW',
+    category: 'PERFORMANCE',
+    stack: 'frontend',
+    requires: REQUIRES_REACT,
+    defaultEnabled: true,
+    defaultSeverity: 'info',
+    automation: 'AUTOMATED',
+    checkFunction: 'ReactContextValueStableLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXII.22.4: Context provider value is a new object every render',
+    remediation: 'Memoize the provider value with useMemo',
+  },
 ];

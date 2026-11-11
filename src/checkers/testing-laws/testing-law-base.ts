@@ -5,6 +5,7 @@
 
 import type { RuleOfCodeConfig } from '../../types/law.types';
 import { LawBase } from '../law-base';
+import { TEST_FILE_GLOBS } from '../../utils/constants';
 
 export class TestingLawBase extends LawBase {
   // Inherits createResult() from LawBase
@@ -32,13 +33,7 @@ export class TestingLawBase extends LawBase {
   ): string[] {
     // Use glob directly to find test files (*.spec.ts, *.test.ts, *.cy.ts)
     const { glob } = require('glob');
-    const testPatterns = [
-      '**/*.spec.ts',
-      '**/*.spec.js',
-      '**/*.test.ts',
-      '**/*.test.js',
-      '**/*.cy.ts',
-    ];
+    const testPatterns = [...TEST_FILE_GLOBS, '**/*.cy.ts'];
 
     const testFiles: string[] = [];
     for (const pattern of testPatterns) {

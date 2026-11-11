@@ -3,18 +3,14 @@
  * Common functions for all testing law analyzers
  */
 
+import { TEST_FILE_NAME } from '../../utils/file-constants';
+
 /**
  * Check if filename matches test file patterns
  */
 export class TestFilePatterns {
   static isTestFile(filename: string): boolean {
-    return (
-      filename.endsWith('.spec.ts') ||
-      filename.endsWith('.test.ts') ||
-      filename.endsWith('.spec.js') ||
-      filename.endsWith('.test.js') ||
-      filename.includes('.e2e-spec.')
-    );
+    return TEST_FILE_NAME.test(filename) || filename.includes('.e2e-spec.');
   }
 
   static isUnitTestFile(filename: string): boolean {
@@ -30,11 +26,6 @@ export class TestFilePatterns {
   }
 
   private static hasUnitTestExtension(filename: string): boolean {
-    return (
-      filename.endsWith('.spec.ts') ||
-      filename.endsWith('.test.ts') ||
-      filename.endsWith('.spec.js') ||
-      filename.endsWith('.test.js')
-    );
+    return TEST_FILE_NAME.test(filename);
   }
 }

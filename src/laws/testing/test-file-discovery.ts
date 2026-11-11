@@ -1,3 +1,4 @@
+import { TEST_FILE_NAME } from '../../utils/file-constants';
 import type { RuleOfCodeConfig } from '../../types';
 import { CheckerUtils } from '../../utils/checker-utils';
 import { FileUtils } from '../../utils/file-utils';
@@ -66,12 +67,6 @@ export class TestFileDiscovery {
    * Check if file is a test file
    */
   static isTestFile(filename: string): boolean {
-    return (
-      filename.endsWith('.spec.ts') ||
-      filename.endsWith('.test.ts') ||
-      filename.endsWith('.spec.js') ||
-      filename.endsWith('.test.js') ||
-      filename.includes('.e2e-spec.')
-    );
+    return TEST_FILE_NAME.test(filename) || filename.includes('.e2e-spec.');
   }
 }

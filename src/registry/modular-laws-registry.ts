@@ -234,6 +234,7 @@ import { NgRxStateNormalizationMandateLaw } from '../laws/angular/ngrx-state-nor
 // Testing Laws Modular Imports
 import {
   JestUnitTest100CoverageMandateLaw,
+  NoFocusedTestsLaw,
   TestCoverageRequirementsLaw,
   UnitTestQualityLaw,
 } from '../checkers/testing-laws';
@@ -551,6 +552,9 @@ export class ModularLawsRegistry {
       TestCoverageConstitutionalStandardLaw,
     checkUnitTestQuality: UnitTestQualityLaw,
     checkJestUnitTest100Coverage: JestUnitTest100CoverageMandateLaw,
+
+    // Test Integrity Laws (gated on the runner or library they read)
+    'NoFocusedTestsLaw.check': NoFocusedTestsLaw,
 
     // Deployment Laws
     checkEnvironmentParityStandards: EnvironmentParityStandardsLaw,

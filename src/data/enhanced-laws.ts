@@ -22,6 +22,7 @@ import { PERFORMANCE_LAWS } from './performance-laws';
 import { PYTHON_LAWS } from './python-laws';
 import { SACRED_LAWS } from './sacred-laws';
 import { SECURITY_LAWS } from './security-laws';
+import { TEST_INTEGRITY_LAWS } from './test-integrity-laws';
 import { TESTING_LAWS } from './testing-laws';
 import { VERSION_CONTROL_LAWS } from './version-control-laws';
 
@@ -42,6 +43,7 @@ export const ALL_ENHANCED_CONSTITUTIONAL_LAWS: EnhancedConstitutionalLaw[] = [
   ...FE_ARCHITECTURE_LAWS, // 🏛️ FE architecture audit laws (frontend; IDs 301+)
   ...IONIC_LAWS, // 📱 Ionic laws (frontend, requires an Ionic binding; IDs 401+)
   ...CAPACITOR_LAWS, // 🔌 Capacitor laws (frontend, requires @capacitor/core + config; IDs 421+)
+  ...TEST_INTEGRITY_LAWS, // 🔦 Test integrity laws (requires the runner or library they read; IDs 571+)
 ];
 
 // Re-export for easy access
@@ -62,6 +64,7 @@ export {
   PYTHON_LAWS,
   SACRED_LAWS,
   SECURITY_LAWS,
+  TEST_INTEGRITY_LAWS,
   TESTING_LAWS,
   VERSION_CONTROL_LAWS,
 };

@@ -1,7 +1,7 @@
 # 🏛️ RuleOfCode (RoC)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-gold.svg)](https://opensource.org/licenses/MIT)
-[![Constitutional Laws](https://img.shields.io/badge/Constitutional%20Laws-228-red.svg)](#-laws-and-scope)
+[![Constitutional Laws](https://img.shields.io/badge/Constitutional%20Laws-237-red.svg)](#-laws-and-scope)
 [![Tests](https://img.shields.io/badge/Tests-14%2C300%2B%20passing-success.svg)](#-development-and-release)
 [![Fail Closed](https://img.shields.io/badge/Gate-fail--closed-blue.svg)](#-severity-semantics-and-fail-closed-guarantees)
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-Strict%20Mode-blue.svg)](https://www.typescriptlang.org/)
@@ -46,15 +46,15 @@ npx ruleofcode laws --list   # the law catalog with canonical names
 
 ## ⚖️ Laws and scope
 
-**228 laws**, scoped per stack via automatic stack gating — laws outside the project's
+**237 laws**, scoped per stack via automatic stack gating — laws outside the project's
 stack do not run and are not counted:
 
 | Scope | Laws | Applies to |
 |---|---|---|
 | Universal | 62 | every project |
-| Frontend (Angular/NgRx, FE architecture, Ionic/Capacitor) | 114 | angular / react / vue / ionic |
+| Frontend (Angular/NgRx, FE architecture, Ionic/Capacitor) | 122 | angular / react / vue / ionic |
 | Python (FastAPI, Clean Architecture/CQRS) | 37 | python |
-| TypeScript | 15 | all TS/JS projects |
+| TypeScript | 16 | all TS/JS projects |
 
 Of the frontend laws, **18** run only where an Ionic binding is declared and **18** only
 where Capacitor is — see [`requires`](#requires-a-law-about-a-toolkit-runs-only-where-the-toolkit-is).
@@ -79,7 +79,7 @@ IDE panel, a dashboard. It is versioned by `schemaVersion` (currently `2`).
   "schemaVersion": 2,
   "tool": "ruleofcode",          // the package name this build was published under
   "version": "7.25.0",
-  "registryTotal": 228,
+  "registryTotal": 237,
   "satisfiedByStacks": {          // the mapping described below — read it, don't hardcode it
     "keys": ["typescript", "angular", "react", "python", "ionic", "capacitor"],
     "stackToKey": { "frontend": "angular", "typescript": "typescript", "python": "python" },
@@ -105,9 +105,9 @@ onto a stack. Measured against the shipped registry:
 
 | key | laws | spread across stacks |
 |---|---|---|
-| `typescript` | 71 | 12 `typescript` + 59 universal |
+| `typescript` | 72 | 13 `typescript` + 59 universal |
 | `angular` | 65 | 57 `frontend` + 3 `typescript` + 5 universal |
-| `react` | 40 | 40 `frontend` |
+| `react` | 49 | 48 `frontend` + 1 `typescript` |
 | `python` | 69 | 37 `python` + 32 universal |
 | `ionic` | 23 | 23 `frontend` |
 | `capacitor` | 23 | 21 `frontend` + 2 universal |

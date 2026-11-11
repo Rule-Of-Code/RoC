@@ -12,6 +12,7 @@
  */
 
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
+import { REQUIRES_CAPACITOR } from '../utils/capacitor/capacitor-law-support';
 import { CAPACITOR_CONFIG_FILES } from '../utils/capacitor/capacitor-project';
 import { generateLawId } from '../utils/id-generator';
 
@@ -65,5 +66,46 @@ export const CAPACITOR_BRIDGE_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article IV.4.70: Android back has no owner, or more than one',
     remediation:
       "Register exactly one App.addListener('backButton'); decide whether it or Ionic's chain (hardwareBackButton) navigates",
+  },
+
+  {
+    id: generateLawId(
+      'Capacitor Local Plugin Contract',
+      'Capacitor local plugins: registerPlugin name, @CapacitorPlugin name, @PluginMethods and the MainActivity registration agree',
+      'capacitor'
+    ),
+    legacyId: 442,
+    article: 'IV',
+    subsection: '4.71',
+    title: 'Capacitor Local Plugin Contract',
+    rationale:
+      'A plugin inside the app is joined to JS by three hand-kept names: registerPlugin(\'Name\'), @CapacitorPlugin(name = "Name") with one @PluginMethod per interface method, and registerPlugin(Class.class) in MainActivity before super.onCreate (BridgeActivity.onCreate builds the bridge from the builder\'s plugin list; registerPlugin only appends to it, and capacitor.plugins.json lists npm plugins only). A drift is "not implemented on android" at call time (@capacitor/core) and isPluginAvailable() false, which a capability port reads as "this phone cannot". Measured: three Java-only mutants (registration removed, name changed, method renamed) passed every gate green.',
+    satisfiedBy: {
+      capacitor:
+        'Keep the plugin name in one TS constant used by registerPlugin, mirror it in @CapacitorPlugin(name), annotate every interface method with @PluginMethod, and register the class in MainActivity above super.onCreate.',
+    },
+    detectionLimits: [
+      NEEDS_TYPESCRIPT,
+      'A registerPlugin name is read from a string literal or a const string in the same file or one relative import away; anything else is reported as not judged. A name is local when no installed package with a capacitor.android.src tree declares it.',
+      'The TS interface is read from the registerPlugin<T> type argument: same-file interfaces (with their extends), type aliases, intersections and type literals, or one import away; a generic or mapped type is not followed and its methods are not compared (a note says so).',
+      'Java and Kotlin are read as text (comments masked) under android/app/src/main/java|kotlin by fixed path; @CapacitorPlugin(name = CONSTANT) is not followed, and the legacy @NativePlugin annotation is not read. A registration with no super.onCreate( in the activity to order it against is accepted.',
+      'iOS is PARTIAL: a Swift CAPBridgedPlugin with a matching jsName under the iOS target has its pluginMethods compared; how it is registered (a CAPBridgeViewController subclass calling registerPluginInstance) is not judged.',
+      'Says nothing about what a method does; only that the bridge can find it. A @PluginMethod without a TS counterpart is a note, not a violation.',
+    ],
+    emoji: '🧩',
+    description:
+      'Capacitor local plugins: registerPlugin name, @CapacitorPlugin name, @PluginMethods and the MainActivity registration agree',
+    priority: 'HIGH',
+    category: 'FRAMEWORK',
+    stack: 'frontend',
+    requires: REQUIRES_CAPACITOR,
+    defaultEnabled: true,
+    defaultSeverity: 'error',
+    automation: 'AUTOMATED',
+    checkFunction: 'CapacitorLocalPluginContractLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.71: a local Capacitor plugin name, method or registration has drifted',
+    remediation:
+      'Make registerPlugin, @CapacitorPlugin(name), @PluginMethod and the MainActivity registration (above super.onCreate) agree',
   },
 ];

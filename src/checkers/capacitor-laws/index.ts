@@ -13,3 +13,4 @@ export { CapacitorPluginPlatformDeclarationsLaw } from './capacitor-plugin-platf
 export { CapacitorDeepLinkContractLaw } from './capacitor-deep-link-contract';
 export { CapacitorSyncArtefactsMatchDependenciesLaw } from './capacitor-sync-artefacts-match-dependencies';
 export { CapacitorAndroidBackHasOneOwnerLaw } from './capacitor-android-back-has-one-owner';
+export { CapacitorLocalPluginContractLaw } from './capacitor-local-plugin-contract';

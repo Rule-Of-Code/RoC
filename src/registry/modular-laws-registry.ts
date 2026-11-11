@@ -196,6 +196,7 @@ import {
 
 // Security Laws Modular Imports
 import {
+  ContentSecurityPolicyLaw,
   EnvironmentVariablesLaw,
   XSSPreventionLaw,
 } from '../checkers/security-laws';
@@ -517,7 +518,9 @@ export class ModularLawsRegistry {
     'APISecurityStandardsLaw.check': ApiSecurityStandardsLaw,
     'DependencySecurityScanningLaw.check': DependencySecurityScanningLaw,
     checkSecurityTestingRequirements: SecurityTestingRequirementsLaw,
-    checkSecurityStandards: XSSPreventionLaw,
+    // legacyId 44 judges the CSP; the sinks are legacyId 43's (one defect, one result)
+    checkSecurityStandards: ContentSecurityPolicyLaw,
+    'ContentSecurityPolicyLaw.check': ContentSecurityPolicyLaw,
     'XSSPreventionLaw.check': XSSPreventionLaw,
 
     // Performance Laws

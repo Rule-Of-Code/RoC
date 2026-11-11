@@ -431,6 +431,25 @@ export interface RuleOfCodeConfig {
        */
       specRequiredMinLoc?: number;
     };
+    security?: {
+      /**
+       * HTML sanitizers, as the callee is written at the call site
+       * (`DOMPurify.sanitize`, `sanitizeHtml`, `purify.sanitize`). A sink whose
+       * value passes through one of them is not an XSS finding: XSS Prevention
+       * reads it in the sink's statement, react-dangerous-html-guarded as the
+       * `__html` value. `DOMPurify.sanitize` is recognised without this key.
+       */
+      htmlSanitizers?: string[];
+      /**
+       * Files (relative to the project root) that declare the
+       * Content-Security-Policy for the whole site — a server or hosting
+       * config the law does not know by name (nginx.conf, a Helm values file).
+       * Each listed file must exist and set the header, or that is the
+       * violation. firebase.json, vercel.json and netlify.toml are read
+       * without this key.
+       */
+      cspFiles?: string[];
+    };
     frontend?: {
       /**
        * Globs (relative to the project root) of the feature layer, read by

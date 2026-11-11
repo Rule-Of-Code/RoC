@@ -231,4 +231,42 @@ export const CAPACITOR_BRIDGE_LAWS: EnhancedConstitutionalLaw[] = [
     remediation:
       'Back the store with @capacitor/preferences on native, or declare its keys in thresholds.capacitor.disposableStorageKeys',
   },
+  {
+    id: generateLawId(
+      'Capacitor Plugin Stub Has Contract Test',
+      'Capacitor plugins stubbed workspace-wide in Jest or Vitest have one contract test that loads the real package',
+      'capacitor'
+    ),
+    legacyId: 446,
+    article: 'IV',
+    subsection: '4.75',
+    title: 'Capacitor Plugin Stub Has Contract Test',
+    rationale:
+      "A workspace-wide moduleNameMapper stub for a Capacitor plugin makes every test prove the app's branches against a hand-written object; nothing sees the real plugin, and coverage still counts the lines. Measured: the real Firebase Authentication web plugin (@capacitor-firebase/authentication web.js getCurrentUser) reads auth.currentUser synchronously, before the SDK restores the session (65-91 ms), so a read in that window can see no user, while every test against the stub was green.",
+    satisfiedBy: {
+      capacitor:
+        'Keep the stub for unit tests, and add one contract test per stubbed plugin that loads the real package (jest.requireActual, a config without the mapping, or a browser probe of the real bundle) for the methods the app depends on.',
+    },
+    detectionLimits: [
+      NEEDS_TYPESCRIPT,
+      'Stubs are found in moduleNameMapper (jest.config.*, jest.preset.*, package.json "jest") and Vitest alias (object or find/replacement array) of the root and each workspace project, read regardless of ignores; per-file jest.mock() calls are not counted as workspace stubs, and a mapper built by a function call is not read.',
+      'A contract test is a test that calls jest.requireActual / vi.importActual on the package, or a file under thresholds.capacitor.contractTests that imports or requires it; a spec that imports the real package under a config without the mapping is recognised only through that declaration. Whether it exercises the method that matters is not judged.',
+      'Native implementations are out of reach of any JS test; this law is about the web implementation and the stub agreeing. The methods listed are named-import call sites in non-test source.',
+    ],
+    emoji: '🧪',
+    description:
+      'Capacitor plugins stubbed workspace-wide in Jest or Vitest have one contract test that loads the real package',
+    priority: 'LOW',
+    category: 'TESTING',
+    stack: 'frontend',
+    requires: REQUIRES_CAPACITOR,
+    defaultEnabled: true,
+    defaultSeverity: 'info',
+    automation: 'AUTOMATED',
+    checkFunction: 'CapacitorPluginStubHasContractTestLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.75: a stubbed Capacitor plugin has no contract test against the real package',
+    remediation:
+      'Add a contract test that loads the real plugin (jest.requireActual or a probe declared in thresholds.capacitor.contractTests)',
+  },
 ];

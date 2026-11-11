@@ -463,6 +463,14 @@ export interface RuleOfCodeConfig {
        * WebView Storage. Keys built at runtime are never matched.
        */
       disposableStorageKeys?: string[];
+      /**
+       * Globs (relative to the workspace root) of contract tests and probes
+       * that load a real Capacitor plugin outside the stubbing test config
+       * (a browser probe of the real bundle, a Jest project without the
+       * mapping). A file matching one that imports a stubbed plugin is that
+       * plugin's contract test for Capacitor Plugin Stub Has Contract Test.
+       */
+      contractTests?: string[];
     };
     testing?: {
       /** Minimum test coverage percentage (0-100) */

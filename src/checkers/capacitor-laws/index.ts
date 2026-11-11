@@ -17,3 +17,4 @@ export { CapacitorLocalPluginContractLaw } from './capacitor-local-plugin-contra
 export { CapacitorListenerHandlesReleasedLaw } from './capacitor-listener-handles-released';
 export { CapacitorServiceWorkerNativeDecisionLaw } from './capacitor-service-worker-native-decision';
 export { CapacitorDurableStateOffWebviewStorageLaw } from './capacitor-durable-state-off-webview-storage';
+export { CapacitorPluginStubHasContractTestLaw } from './capacitor-plugin-stub-has-contract-test';

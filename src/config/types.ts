@@ -491,6 +491,29 @@ export interface RuleOfCodeConfig {
        */
       contractTests?: string[];
     };
+    ionic?: {
+      /**
+       * The project's self-drawn edge containers — its own top bar, bottom
+       * bar, sheets — each with the edge it touches. Read by
+       * ionic-edge-chrome-pays-safe-area: when set, it REPLACES the
+       * position-based heuristic with this closed list, and each selector
+       * must be found in the project's CSS with the last padding / margin /
+       * top / bottom / inset declaration on that edge reading
+       * `--ion-safe-area-<edge>` (or `safe-area-inset-<edge>`). A selector
+       * not found in any stylesheet is a violation, so the list cannot go
+       * stale silently.
+       */
+      edgeContainers?: Array<{ selector: string; edge: 'top' | 'bottom' }>;
+      /**
+       * Regular-expression source (case-insensitive) for the class names of
+       * floating UI — toasts, floating actions, sticky calls to action — that
+       * ionic-fixed-content-in-fixed-slot looks for inside ion-content's
+       * scroller. Default: `toast|snackbar|fab|floating|sticky-cta`. Replaces
+       * the default rather than adding to it. An invalid expression is
+       * reported, never replaced by the default.
+       */
+      fixedContentPattern?: string;
+    };
     testing?: {
       /** Minimum test coverage percentage (0-100) */
       minCoveragePercent?: number;

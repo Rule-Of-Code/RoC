@@ -195,14 +195,22 @@ import {
 // Ionic Laws Modular Imports — gated by `requires` on an Ionic binding
 import {
   IonicE2eLocatorsTargetTheShownPageLaw,
+  IonicEdgeChromePaysSafeAreaLaw,
+  IonicFixedContentInFixedSlotLaw,
+  IonicGestureTouchActionLaw,
+  IonicIconsRegisteredLaw,
   IonicLeaveCancelsWhatEnterStartedLaw,
   IonicNavigationSpecsMountTheOutletLaw,
   IonicNoSkipLocationChangeLaw,
   IonicPageStateReadOnEnterLaw,
   IonicRouteReuseStrategyProvidedLaw,
+  IonicScrollThroughIonContentLaw,
   IonicSessionExitUsesNavigateRootLaw,
+  IonicSingleBuildSystemLaw,
   IonicUniqueUrlKeyPerViewLaw,
+  IonicViewHooksOnlyOnPagesLaw,
   IonicViewLifecycleInterfacesLaw,
+  IonicViewportFitCoverLaw,
 } from '../checkers/ionic-laws';
 
 // Security Laws Modular Imports
@@ -528,6 +536,16 @@ export class ModularLawsRegistry {
     'IonicRouteReuseStrategyProvidedLaw.check': IonicRouteReuseStrategyProvidedLaw,
     'IonicNavigationSpecsMountTheOutletLaw.check': IonicNavigationSpecsMountTheOutletLaw,
     'IonicE2eLocatorsTargetTheShownPageLaw.check': IonicE2eLocatorsTargetTheShownPageLaw,
+
+    // Ionic rendering-model laws (gated on an Ionic binding)
+    'IonicViewHooksOnlyOnPagesLaw.check': IonicViewHooksOnlyOnPagesLaw,
+    'IonicSingleBuildSystemLaw.check': IonicSingleBuildSystemLaw,
+    'IonicIconsRegisteredLaw.check': IonicIconsRegisteredLaw,
+    'IonicScrollThroughIonContentLaw.check': IonicScrollThroughIonContentLaw,
+    'IonicViewportFitCoverLaw.check': IonicViewportFitCoverLaw,
+    'IonicEdgeChromePaysSafeAreaLaw.check': IonicEdgeChromePaysSafeAreaLaw,
+    'IonicGestureTouchActionLaw.check': IonicGestureTouchActionLaw,
+    'IonicFixedContentInFixedSlotLaw.check': IonicFixedContentInFixedSlotLaw,
 
     // Security Laws
     checkEnvironmentVariables: EnvironmentVariablesLaw,

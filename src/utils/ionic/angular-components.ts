@@ -95,6 +95,10 @@ export function propertyOf(
   return undefined;
 }
 
+/** Parsed scans by file-list signature; a handful covers one audit's laws. */
+const SCAN_CACHE = new Map<string, AngularScan>();
+const SCAN_CACHE_LIMIT = 4;
+
 export class AngularComponents {
   /** Non-test .ts source through the normal scan, so `ignores` apply. */
   static tsFiles(context: LawCheckContext): string[] {
@@ -102,8 +106,37 @@ export class AngularComponents {
       .filter(file => !TEST_FILE.test(file) && !file.endsWith('.d.ts'));
   }
 
+  /**
+   * The scan, parsed once per audit. Seven template laws read the same
+   * components, and each parsed every non-test .ts file again — about 3–4 s
+   * per law on a 2,000-file app. The key is the exact file list (it follows
+   * each law's own ignores) with every file's mtime and size, so an edited
+   * file is parsed again; callers get their own arrays.
+   */
   static scan(context: LawCheckContext): AngularScan {
     const files = this.tsFiles(context);
+    const signature = `${context.projectRoot}\n${files
+      .map(file => {
+        try {
+          const stat = fs.statSync(file);
+          return `${file}:${stat.mtimeMs}:${stat.size}`;
+        } catch {
+          return `${file}:missing`;
+        }
+      })
+      .join('\n')}`;
+    let scan = SCAN_CACHE.get(signature);
+    if (!scan) {
+      scan = this.scanFiles(context, files);
+      SCAN_CACHE.set(signature, scan);
+      while (SCAN_CACHE.size > SCAN_CACHE_LIMIT) {
+        SCAN_CACHE.delete(SCAN_CACHE.keys().next().value as string);
+      }
+    }
+    return { components: [...scan.components], sources: [...scan.sources], unread: [...scan.unread] };
+  }
+
+  private static scanFiles(context: LawCheckContext, files: string[]): AngularScan {
     const scan: AngularScan = { components: [], sources: [], unread: [] };
     if (files.length === 0) return scan;
     const ts = loadTypeScript(context.projectRoot);

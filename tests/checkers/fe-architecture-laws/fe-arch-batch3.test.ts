@@ -162,8 +162,13 @@ describe('batch 3 without Angular (#210)', () => {
     expect(lawRequirementsMet(card?.requires, fixture({}))).toBe(true);
   });
 
-  it('No Risk Literals stays gated on Angular', () => {
+  // #214 row 54: opt-in by domain, not gated by framework — once a project
+  // enables it, it reads that project whatever its UI framework.
+  it('No Risk Literals is opt-in and, once enabled, judges a non-Angular project', () => {
+    const card = FE_ARCHITECTURE_LAWS.find(law => law.title === 'No Risk Literals');
+    expect(card?.defaultEnabled).toBe(false);
+    expect(card?.requires).toBeUndefined();
     const dir = fixture({ 'libs/a/x.ts': 'const equityFloor = 450;' }, false);
-    expect(NoRiskLiteralsLaw.check(ctx(dir, 'python')).passed).toBe(true);
+    expect(NoRiskLiteralsLaw.check(ctx(dir, 'react')).passed).toBe(false);
   });
 });

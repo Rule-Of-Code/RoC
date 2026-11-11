@@ -1,0 +1,8 @@
+/**
+ * Next.js Laws — the server side of a Next app: Server Actions, route
+ * handlers, the proxy, error boundaries, what reaches the browser bundle, and
+ * the environment Next inlines at build. Selected only where a workspace
+ * package declares `next` (Client IP Single Boundary: any Node HTTP server).
+ */
+
+export { NextServerActionAuthorizesLaw } from './next-server-action-authorizes';

@@ -169,6 +169,11 @@ import {
   TimerCleanupLaw,
 } from '../checkers/fe-architecture-laws';
 
+// Next.js Laws Modular Imports — gated by `requires` on next (Client IP: Node HTTP servers)
+import {
+  NextServerActionAuthorizesLaw,
+} from '../checkers/next-laws';
+
 // Capacitor Laws Modular Imports — gated by `requires` on @capacitor/core + a config
 import {
   CapacitorDeepLinkContractLaw,
@@ -482,6 +487,9 @@ export class ModularLawsRegistry {
     'NoPassthroughCastLaw.check': NoPassthroughCastLaw,
     'TimerCleanupLaw.check': TimerCleanupLaw,
     'NoRiskLiteralsLaw.check': NoRiskLiteralsLaw,
+
+    // Next.js Laws (gated on next; Client IP Single Boundary on any Node HTTP server)
+    'NextServerActionAuthorizesLaw.check': NextServerActionAuthorizesLaw,
 
     // Capacitor Laws (gated on @capacitor/core + a Capacitor config)
     'CapacitorLoggingNeverProductionLaw.check': CapacitorLoggingNeverProductionLaw,

@@ -11,9 +11,15 @@
  * reports what it could not read as a violation. legacyId range: 531–549.
  */
 
-import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
+import type { EnhancedConstitutionalLaw, LawRequirement } from '../types/enhanced-law.types';
 import { REQUIRES_NEXT } from '../utils/framework-requirements';
 import { generateLawId } from '../utils/id-generator';
+
+/** The App Router laws: `next` declared, and an app/ or src/app/ directory present. */
+const REQUIRES_NEXT_APP_ROUTER: LawRequirement = {
+  anyDependency: ['next'],
+  anyFile: ['app', 'src/app'],
+};
 
 const PARSER_LIMIT =
   "Parses with the project's own TypeScript (ts.createSourceFile, no type checker); without it every file is reported unread, never passed.";
@@ -219,5 +225,43 @@ export const NEXT_SERVER_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article XXIII.23.5: the Next proxy is misplaced, duplicated, or has no literal matcher',
     remediation:
       'Place proxy.ts beside the router directory, drop middleware.ts, export one function and a literal config.matcher',
+  },
+
+  {
+    id: generateLawId(
+      'Next Error Boundaries Declared',
+      'The root App Router directory declares not-found, error and global-error, as Next requires them',
+      'next'
+    ),
+    legacyId: 536,
+    article: 'XXIII',
+    subsection: '23.6',
+    title: 'Next Error Boundaries Declared',
+    rationale:
+      'error.js "does not wrap the layout.js or template.js above it in the same segment. To handle errors in the root layout, use global-error.js", which "must define its own <html> and <body> tags"; error boundaries "must be Client Components" (next/dist/docs/01-app/03-api-reference/03-file-conventions/error.md). Absent files fall back to the framework default and nothing fails.',
+    satisfiedBy: {
+      react:
+        "Add app/not-found.tsx, app/error.tsx and app/global-error.tsx; open error.tsx and global-error.tsx with 'use client'; render `<html><body>…</body></html>` in global-error.tsx.",
+    },
+    detectionLimits: [
+      'Root segment only: nested segments that need their own error.tsx are not judged, nor the quality of the UI.',
+      'Selected where an app/ or src/app/ directory exists in a workspace package; a Next app with only a Pages Router is not selected.',
+      ROUTER_LIMIT,
+      PARSER_LIMIT,
+    ],
+    emoji: '🧯',
+    description: 'The root App Router directory declares not-found, error and global-error, as Next requires them',
+    priority: 'MEDIUM',
+    category: 'FRAMEWORK',
+    stack: 'frontend',
+    requires: REQUIRES_NEXT_APP_ROUTER,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'NextErrorBoundariesDeclaredLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXIII.23.6: the root App Router lacks a declared error boundary',
+    remediation:
+      "Add app/not-found, app/error and app/global-error ('use client'; global-error renders <html> and <body>)",
   },
 ];

@@ -11,11 +11,17 @@
 
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
-import { REQUIRES_JS_TEST_RUNNER } from '../utils/testing/test-sources';
+import {
+  REQUIRES_JS_TEST_RUNNER,
+  REQUIRES_PLAYWRIGHT,
+} from '../utils/testing/test-sources';
 
 /** The limit every law that parses test files shares. */
 const PARSED_WITH_PROJECT_TYPESCRIPT =
   "Parses with the project's own `typescript` (no type checker); without it installed the law reports that it could not read the files rather than passing.";
+/** How the Playwright laws find Playwright files. */
+const PLAYWRIGHT_FILES =
+  'Playwright files are those under a playwright.config.* `testDir` (a string literal; otherwise the config\'s directory) that are tests or import @playwright/test, plus any test file importing it. A custom `testMatch` is not read, and a helper outside `testDir` that does not import the runner is not seen.';
 
 export const TEST_INTEGRITY_LAWS: EnhancedConstitutionalLaw[] = [
   {
@@ -54,5 +60,42 @@ export const TEST_INTEGRITY_LAWS: EnhancedConstitutionalLaw[] = [
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article VII.26.1: A focused test narrows the run',
     remediation: 'Remove .only / fit / fdescribe; set forbidOnly (Playwright) or --forbid-only (Mocha) in CI',
+  },
+
+  {
+    id: generateLawId(
+      'Playwright No Fixed Wait',
+      'Playwright tests wait for a state, not for a fixed time',
+      'testing'
+    ),
+    legacyId: 572,
+    article: 'VII',
+    subsection: '26.2',
+    title: 'Playwright No Fixed Wait',
+    rationale:
+      "page.waitForTimeout(ms) waits for time, not for the state the test needs: where the app is slower the state is not there yet and the test fails, where it is faster the test idles. Playwright's own documentation of the method says it should only be used for debugging and that tests using the timer in production are going to be flaky.",
+    satisfiedBy: {
+      typescript:
+        "Wait for the state itself: await expect(locator).toBeVisible(), page.waitForURL(), page.waitForResponse(). Where 'nothing happens within N ms' is the check, keep the pause and say why in a comment above it.",
+    },
+    detectionLimits: [
+      'Finds `x.waitForTimeout(…)` calls; a sleep written as `new Promise(r => setTimeout(r, ms))` or a polling helper is not seen.',
+      'A comment on the call\'s line or ending on the line directly above its statement exempts the call; whether the reason is true is not judged. An eslint directive counts only for the text after its `--`.',
+      PLAYWRIGHT_FILES,
+      PARSED_WITH_PROJECT_TYPESCRIPT,
+    ],
+    emoji: '⏱️',
+    description: 'Playwright tests wait for a state, not for a fixed time',
+    priority: 'MEDIUM',
+    category: 'TESTING',
+    stack: 'frontend',
+    requires: REQUIRES_PLAYWRIGHT,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'PlaywrightNoFixedWaitLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article VII.26.2: A Playwright test waits for a fixed time',
+    remediation: 'Replace waitForTimeout with a web-first assertion or a wait for the event; explain the pauses that stay',
   },
 ];

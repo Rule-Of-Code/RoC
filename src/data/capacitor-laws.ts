@@ -115,7 +115,7 @@ export const CAPACITOR_LAWS: EnhancedConstitutionalLaw[] = [
       RESOLVED_ON_THIS_MACHINE,
       NEEDS_THE_CLI,
       'allowNavigation has legitimate production uses (an OAuth flow that must stay in the WebView); the law follows Capacitor\'s own statement and expects such a project to park the key in laws.notApplicable with the reason.',
-      'Does not read the native source sets, so a cleartext permission committed in the release manifest is not seen.',
+      'Reads the resolved config only; a cleartext opening in the Android source sets (usesCleartextTraffic, a network security config) is judged by Capacitor Android Cleartext Debug Only.',
     ],
     emoji: '🚧',
     description:

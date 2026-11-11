@@ -22,6 +22,8 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
     satisfiedBy: {
       angular: 'Add a Lighthouse config with a >=90 threshold, angular.json/webpack budgets, web-vitals tracking, lazy-loading and image optimization.',
       react: 'Run Lighthouse from a script or CI step with a performance threshold, declare one enforced budget (Lighthouse assertions or a size-limit check that a script runs), report Web Vitals with useReportWebVitals or web-vitals, and render images with next/image. A Next build already optimizes and caches hashed assets unless next.config turns that off.',
+      capacitor:
+        'No service worker is needed for caching in the shell; if the web build registers one, disable it on native or handle SwUpdate (#268).',
     },
     detectionLimits: [
       'Configuration and source evidence only — it never measures a real Lighthouse score, LCP or CLS. On Angular, "web-vitals usage" is a substring match in main.ts / app.component.ts / *monitoring*.ts; on React/Next it is a parsed CALL of useReportWebVitals or a web-vitals metric function.',
@@ -29,6 +31,7 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
       'Next.js / Vite bundle optimization and Next caching are credited to the framework defaults (read in next/dist and vite types): it checks only that next.config / vite.config does not turn minification off or set output: "export". Values imported into the config from another module are not resolved.',
       'next/image counts as image optimization without resolving `src` (Next serves an SVG unoptimized); only the element\'s `unoptimized` prop and next.config images.unoptimized are read.',
       'TypeScript/JavaScript only — no Python path, so a backend fails all six checks.',
+      'A project declaring @capacitor/core in any workspace manifest is exempt from the caching-strategy check. A service worker such an app does register runs in the native WebView too and can serve the previous release on the first cold start after an update; that is not judged here (#268).',
     ],
     stack: 'frontend',
     emoji: '⚡',

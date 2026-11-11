@@ -2,7 +2,14 @@ import { CONFIG_FILES } from '../../constants';
 import { FileSystemOperations } from '../../file-system-operations';
 import { FileUtils } from '../../file-utils';
 import { PathOperations } from '../../path-operations';
+import { declaredDependencies } from '../../law-requirements';
 import { ProjectTypeDetectorConfiguration } from './project-type-detector-configuration';
+
+/** Types a declared dependency identifies, most specific first (Ionic sits on Angular/React/Vue). */
+const FRAMEWORK_TYPES = ['ionic', 'angular', 'react', 'vue', 'node'] as const;
+
+/** Types identified by a marker file at the root, strongest first. */
+const MARKER_ORDER = ['ionic', 'angular', 'react', 'vue', 'node', 'python', 'typescript'] as const;
 
 /**
  * ProjectTypeDetectorValidation
@@ -12,42 +19,53 @@ export class ProjectTypeDetectorValidation {
   /**
    * Execute complete project type detection workflow
    */
+  /**
+   * The project type, from evidence in order of strength.
+   *
+   * 1. A framework declared by ANY workspace manifest — the same reading
+   *    `requires` uses, so the two cannot disagree about one repository. A
+   *    monorepo that declares `next` only in `apps/web/package.json` is a
+   *    React project, not the `typescript` its root manifest suggests.
+   * 2. Marker files at the root: a framework's own config, then Python's
+   *    project files, then a tsconfig. Python comes before `typescript` here:
+   *    `pyproject.toml` names the project, a tsconfig or a `typescript`
+   *    devDependency is tooling a Python repository may carry too.
+   */
   static executeProjectTypeDetectionWorkflow(
     projectRoot: string
   ): string | null {
-    const detectionOrder =
-      ProjectTypeDetectorConfiguration.getProjectTypeDetectionOrder(undefined);
-
-    for (const type of detectionOrder.types) {
-      if (this.isProjectOfType(projectRoot, type)) {
-        return type;
-      }
+    const declared = declaredDependencies(projectRoot);
+    for (const type of FRAMEWORK_TYPES) {
+      const patterns = this.patternsFor(type);
+      if (patterns.dependencies.some(name => declared.has(name))) return type;
     }
-
+    for (const type of MARKER_ORDER) {
+      if (this.hasAnyFile(projectRoot, this.patternsFor(type).files)) return type;
+    }
+    if (declared.has('typescript')) return 'typescript';
     return null;
   }
 
-  /**
-   * Check if project matches specific type
-   */
-  private static isProjectOfType(projectRoot: string, type: string): boolean {
+  private static patternsFor(type: string): {
+    files: readonly string[];
+    dependencies: readonly string[];
+  } {
+    const C = ProjectTypeDetectorConfiguration;
     switch (type) {
       case 'ionic':
-        return this.isIonicProject(projectRoot);
+        return C.getIonicProjectPatterns(undefined);
       case 'angular':
-        return this.isAngularProject(projectRoot);
+        return C.getAngularProjectPatterns(undefined);
       case 'react':
-        return this.isReactProject(projectRoot);
+        return C.getReactProjectPatterns(undefined);
       case 'vue':
-        return this.isVueProject(projectRoot);
+        return C.getVueProjectPatterns(undefined);
       case 'node':
-        return this.isNodeProject(projectRoot);
-      case 'typescript':
-        return this.isTypeScriptProject(projectRoot);
+        return C.getNodeProjectPatterns(undefined);
       case 'python':
-        return this.isPythonProject(projectRoot);
+        return C.getPythonProjectPatterns(undefined);
       default:
-        return false;
+        return C.getTypeScriptProjectPatterns(undefined);
     }
   }
 
@@ -79,7 +97,8 @@ export class ProjectTypeDetectorValidation {
       return true;
     }
 
-    return this.hasPackageDependency(projectRoot, patterns.dependencies);
+    const declared = declaredDependencies(projectRoot);
+    return patterns.dependencies.some(name => declared.has(name));
   }
 
   /**
@@ -141,7 +160,8 @@ export class ProjectTypeDetectorValidation {
     if (this.hasAnyFile(projectRoot, patterns.files)) {
       return true;
     }
-    return this.hasPackageDependency(projectRoot, patterns.dependencies);
+    const declared = declaredDependencies(projectRoot);
+    return patterns.dependencies.some(name => declared.has(name));
   }
 
   /**

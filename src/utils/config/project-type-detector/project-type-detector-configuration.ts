@@ -24,13 +24,14 @@ export class ProjectTypeDetectorConfiguration {
     ] as readonly string[],
   } as const;
 
+  /**
+   * Angular: its workspace file or an NgModule root. `nx.json` and
+   * `src/main.ts` used to be listed, and both are framework-neutral — an Nx
+   * workspace of React apps, or a Vite app's `src/main.ts`, was typed Angular
+   * and audited with every Angular law. The dependency is the evidence.
+   */
   static readonly ANGULAR_PROJECT_PATTERNS = {
-    files: [
-      CONFIG_FILES.ANGULAR_JSON,
-      CONFIG_FILES.NXCONFIG, // Nx workspace with Angular
-      'src/main.ts',
-      'src/app/app.module.ts',
-    ] as readonly string[],
+    files: [CONFIG_FILES.ANGULAR_JSON, 'src/app/app.module.ts'] as readonly string[],
     dependencies: ['@angular/core', '@angular/cli'] as readonly string[],
   } as const;
 
@@ -46,6 +47,7 @@ export class ProjectTypeDetectorConfiguration {
     dependencies: [
       'react',
       'react-dom',
+      'next',
       'create-react-app',
     ] as readonly string[],
   } as const;

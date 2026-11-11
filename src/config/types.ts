@@ -463,6 +463,12 @@ export interface RuleOfCodeConfig {
        * followed by `.replace(/</g, '\\u003c')` is recognised without this key.
        */
       jsonSerializers?: string[];
+      /**
+       * URL guards, as the callee is written: an `<a href>` / `<iframe src>`
+       * whose value is a call to one of them is accepted by React Href Scheme
+       * Guarded.
+       */
+      urlGuards?: string[];
     };
     frontend?: {
       /**

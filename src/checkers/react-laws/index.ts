@@ -5,3 +5,4 @@
  */
 
 export { ReactDangerousHtmlGuardedLaw } from './react-dangerous-html-guarded';
+export { ReactHrefSchemeGuardedLaw } from './react-href-scheme-guarded';

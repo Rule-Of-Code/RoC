@@ -182,7 +182,10 @@ import {
 } from '../checkers/capacitor-laws';
 
 // React Laws Modular Imports — gated by `requires` on react / next
-import { ReactDangerousHtmlGuardedLaw } from '../checkers/react-laws';
+import {
+  ReactDangerousHtmlGuardedLaw,
+  ReactHrefSchemeGuardedLaw,
+} from '../checkers/react-laws';
 
 // Ionic Laws Modular Imports — gated by `requires` on an Ionic binding
 import {
@@ -499,6 +502,7 @@ export class ModularLawsRegistry {
 
     // React Laws (gated on react / next)
     'ReactDangerousHtmlGuardedLaw.check': ReactDangerousHtmlGuardedLaw,
+    'ReactHrefSchemeGuardedLaw.check': ReactHrefSchemeGuardedLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

@@ -58,4 +58,44 @@ export const REACT_SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
     remediation:
       'Sanitize the __html at the sink, escape < in serialized JSON, or render text instead',
   },
+
+  {
+    id: generateLawId(
+      'React Href Scheme Guarded',
+      'A non-literal href on <a> or src on <iframe> has a scheme fixed by code or passes a configured URL guard',
+      'react'
+    ),
+    legacyId: 582,
+    section: '25',
+    subsection: '25.2',
+    title: 'React Href Scheme Guarded',
+    rationale:
+      "A URL from a user or an API placed in <a href> or <iframe src> decides where a click goes and what a frame runs. react-dom 19 replaces a javascript: URL in these attributes with one that throws (sanitizeURL, read in react-dom 19.3.0), but a data: or vbscript: URL, or the attacker's own https: page, passes through as written — the profile link that opens a phishing page, the embed that runs a data: document.",
+    satisfiedBy: {
+      react:
+        'Build links from a fixed prefix — href={`/users/${id}`}, href={`https://maps.example.com/?q=${q}`} — and pass any user-supplied URL through one guard that allows only http(s)/mailto, named in thresholds.react.urlGuards.',
+    },
+    detectionLimits: [
+      "Only <a href> and <iframe src> written in JSX with a {…} value; <Link>, other elements, srcDoc, values set through a spread ({...props}) and string attributes are not judged.",
+      'Accepted without review: a literal; a template or a + chain whose static start is a path (/, ./, ../, #, ?), a relative path with a / before any colon, or an http/https/mailto/tel/sms scheme; null/undefined; a call to a guard named in thresholds.react.urlGuards (by callee name — what the guard does is not seen).',
+      'Without data flow it cannot tell a constant from user input: href={SITE_URL} is flagged like href={user.website}, so most findings need review — hence warning. ' + NO_CROSS_FILE_FLOW,
+      "React's own javascript: blocking was read in react-dom 19.3.0 only; earlier majors were not checked here.",
+      NEEDS_THE_PARSER,
+    ],
+    emoji: '🔗',
+    description:
+      'A non-literal href on <a> or src on <iframe> has a scheme fixed by code or passes a configured URL guard',
+    priority: 'MEDIUM',
+    category: 'SECURITY',
+    stack: 'frontend',
+    requires: REQUIRES_REACT,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'ReactHrefSchemeGuardedLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Section 25.2: a link or frame URL whose scheme the code does not fix',
+    remediation:
+      'Build the URL from a fixed prefix, or pass it through a configured URL guard',
+  },
 ];

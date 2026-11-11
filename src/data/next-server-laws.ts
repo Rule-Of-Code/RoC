@@ -143,4 +143,42 @@ export const NEXT_SERVER_LAWS: EnhancedConstitutionalLaw[] = [
     remediation:
       "Remove server imports from the client graph and add import 'server-only' to modules that import a server module",
   },
+
+  {
+    id: generateLawId(
+      'Next Client Env Public Only',
+      'Code bundled for the browser reads only NEXT_PUBLIC_ environment variables',
+      'next'
+    ),
+    legacyId: 534,
+    article: 'XXIII',
+    subsection: '23.4',
+    title: 'Next Client Env Public Only',
+    rationale:
+      'In code bundled for the browser, "only environment variables prefixed with NEXT_PUBLIC_ are included in the client bundle. If variables are not prefixed, Next.js replaces them with an empty string" (next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md). The client code runs with a blank value and raises nothing: the flag is off, the URL is empty, and server-side tests never see it.',
+    satisfiedBy: {
+      react:
+        'Read server-only variables in a Server Component, route handler or action and pass the value down as a prop; name a variable NEXT_PUBLIC_ only when every visitor may see it.',
+    },
+    detectionLimits: [
+      GRAPH_LIMIT,
+      "Sees process.env.X and process.env['X']; an env read through a helper that takes the name as an argument is not seen. Computed access is Next Public Env Is Build Time's rule.",
+      "NODE_ENV and the keys of a literal `env` object in next.config are accepted, because Next inlines those; a next.config `env` that is not a literal is not read and is named in the message.",
+      PARSER_LIMIT,
+    ],
+    emoji: '🫥',
+    description: 'Code bundled for the browser reads only NEXT_PUBLIC_ environment variables',
+    priority: 'HIGH',
+    category: 'FRAMEWORK',
+    stack: 'frontend',
+    requires: REQUIRES_NEXT,
+    defaultEnabled: true,
+    defaultSeverity: 'error',
+    automation: 'AUTOMATED',
+    checkFunction: 'NextClientEnvPublicOnlyLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXIII.23.4: browser code reads a non-public environment variable',
+    remediation:
+      'Read the variable on the server and pass it down, or rename it NEXT_PUBLIC_ if it is public',
+  },
 ];

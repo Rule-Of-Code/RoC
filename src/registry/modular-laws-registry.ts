@@ -171,6 +171,7 @@ import {
 
 // Next.js Laws Modular Imports — gated by `requires` on next (Client IP: Node HTTP servers)
 import {
+  NextClientEnvPublicOnlyLaw,
   NextRouteHandlerGuardedLaw,
   NextServerActionAuthorizesLaw,
   NextServerOnlyBoundaryLaw,
@@ -494,6 +495,7 @@ export class ModularLawsRegistry {
     'NextServerActionAuthorizesLaw.check': NextServerActionAuthorizesLaw,
     'NextRouteHandlerGuardedLaw.check': NextRouteHandlerGuardedLaw,
     'NextServerOnlyBoundaryLaw.check': NextServerOnlyBoundaryLaw,
+    'NextClientEnvPublicOnlyLaw.check': NextClientEnvPublicOnlyLaw,
 
     // Capacitor Laws (gated on @capacitor/core + a Capacitor config)
     'CapacitorLoggingNeverProductionLaw.check': CapacitorLoggingNeverProductionLaw,

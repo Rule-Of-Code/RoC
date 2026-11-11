@@ -173,6 +173,7 @@ import {
 import {
   CapacitorAndroidBackHasOneOwnerLaw,
   CapacitorDeepLinkContractLaw,
+  CapacitorListenerHandlesReleasedLaw,
   CapacitorLocalPluginContractLaw,
   CapacitorLoggingNeverProductionLaw,
   CapacitorNoDevOnlyServerKeysLaw,
@@ -498,6 +499,7 @@ export class ModularLawsRegistry {
     // Capacitor bridge laws (back button, local plugins, listeners, web-side decisions)
     'CapacitorAndroidBackHasOneOwnerLaw.check': CapacitorAndroidBackHasOneOwnerLaw,
     'CapacitorLocalPluginContractLaw.check': CapacitorLocalPluginContractLaw,
+    'CapacitorListenerHandlesReleasedLaw.check': CapacitorListenerHandlesReleasedLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

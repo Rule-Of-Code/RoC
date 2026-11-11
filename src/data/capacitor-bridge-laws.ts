@@ -108,4 +108,44 @@ export const CAPACITOR_BRIDGE_LAWS: EnhancedConstitutionalLaw[] = [
     remediation:
       'Make registerPlugin, @CapacitorPlugin(name), @PluginMethod and the MainActivity registration (above super.onCreate) agree',
   },
+  {
+    id: generateLawId(
+      'Capacitor Listener Handles Released',
+      'Capacitor plugin listeners registered by components and pages keep their handle and remove it on teardown',
+      'capacitor'
+    ),
+    legacyId: 443,
+    article: 'IV',
+    subsection: '4.72',
+    title: 'Capacitor Listener Handles Released',
+    rationale:
+      "A Capacitor plugin listener lives as long as the WebView and ends only through its PluginListenerHandle.remove() or removeAllListeners(). Registered from a component or page that drops the handle, it adds one more live listener per instance, and under ion-router-outlet a new page instance comes with every forward navigation. Handlers run N times and the page leaks, and the RxJS, timer and addEventListener cleanup laws do not see plugin listeners.",
+    satisfiedBy: {
+      capacitor:
+        'Register plugin listeners in a root service or app initializer and expose them as an Observable/signal; if a component must register one, keep the handle and remove() it in DestroyRef.onDestroy (or ionViewWillLeave for per-visit listeners).',
+      angular:
+        "Plugin listeners belong to providedIn: 'root' services or provideAppInitializer factories; a component that registers one releases it through DestroyRef.onDestroy.",
+    },
+    detectionLimits: [
+      NEEDS_TYPESCRIPT,
+      'Recognises plugins by import source (@capacitor/*, @capacitor-*/*, @capawesome/*) and registerPlugin(); a plugin re-exported under another name from a local barrel is followed one import deep only.',
+      "Judges classes decorated @Component / @Directive / @Pipe, page classes (a .page.ts file or a template with ion-content / ion-header), and @Injectable classes without providedIn 'root' / 'platform' — such a service listed in a root providers array is still judged as short-lived. Module functions, token factories and root services are app-lifetime and not judged; React and Vue components are not read.",
+      'Removal is matched by name in the same class: a remove() in ngOnDestroy, ionViewWillLeave, ionViewDidLeave or a DestroyRef.onDestroy callback that mentions the handle, or any removeAllListeners() there; a handle passed to a helper that removes it is not seen, and a handle returned to the caller belongs to the caller.',
+    ],
+    emoji: '🎧',
+    description:
+      'Capacitor plugin listeners registered by components and pages keep their handle and remove it on teardown',
+    priority: 'HIGH',
+    category: 'PERFORMANCE',
+    stack: 'frontend',
+    requires: REQUIRES_CAPACITOR,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'CapacitorListenerHandlesReleasedLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.72: a plugin listener registered by a component or page is never removed',
+    remediation:
+      'Keep the PluginListenerHandle and remove() it on teardown, or move the listener to a root service',
+  },
 ];

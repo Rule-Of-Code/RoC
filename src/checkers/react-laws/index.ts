@@ -5,4 +5,5 @@
  * project declares react (or next).
  */
 
+export { ReactEffectResourceCleanupLaw } from './react-effect-resource-cleanup';
 export { ReactHooksLintEnforcedLaw } from './react-hooks-lint-enforced';

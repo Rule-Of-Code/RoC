@@ -16,6 +16,14 @@ import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { REQUIRES_REACT } from '../utils/framework-requirements';
 import { generateLawId } from '../utils/id-generator';
 
+/** The limits every law reading source through the parse shares. */
+const PARSED_SOURCE_ONLY =
+  'Reads non-test .tsx/.jsx/.ts/.js/.mjs source through the normal scan (ignores apply), parsed with the project\'s own TypeScript; without it the files are reported as not read, never passed.';
+const NO_CROSS_FILE =
+  'Single-file and syntactic: no type checker and no import following — a resource, fetch or global reached through a helper in another file is invisible.';
+const ONLY_INLINE_SETUP =
+  'Judges effects whose setup is written inline (`useEffect(() => …)`); a setup passed by reference (`useEffect(subscribe, [])`) is not read.';
+
 export const REACT_LAWS: EnhancedConstitutionalLaw[] = [
   {
     id: generateLawId(
@@ -54,5 +62,44 @@ export const REACT_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article XXII.22.1: eslint-plugin-react-hooks is not enforced',
     remediation:
       'Enable eslint-plugin-react-hooks recommended (or eslint-config-next) and keep its core rules on',
+  },
+
+  {
+    id: generateLawId(
+      'React Effect Resource Cleanup',
+      'An effect that starts an interval, listener, observer, socket or subscription returns a cleanup',
+      'react'
+    ),
+    legacyId: 502,
+    article: 'XXII',
+    subsection: '22.2',
+    title: 'React Effect Resource Cleanup',
+    rationale:
+      'React runs the function an effect returns before the next run and on unmount; it is the only place a resource the effect started is stopped. An effect that starts setInterval, addEventListener, an Observer, a WebSocket, an EventSource, a subscription or a requestAnimationFrame and returns nothing leaves it running after the component is gone — and under StrictMode, which mounts every effect twice in development, two of them run from the first render.',
+    satisfiedBy: {
+      react:
+        'Return a cleanup that stops what the effect started: `const id = setInterval(tick, 1000); return () => clearInterval(id);` — removeEventListener, disconnect(), close(), unsubscribe(), cancelAnimationFrame alike. For a bounded one-shot resource, write `// roc-allow-effect-without-cleanup: <reason>` above the effect.',
+    },
+    detectionLimits: [
+      PARSED_SOURCE_ONLY,
+      NO_CROSS_FILE,
+      ONLY_INLINE_SETUP,
+      'Any returned function counts as the cleanup; whether it frees the right resource (removes the same listener, clears the same id) is not checked.',
+      'setTimeout is not a starter; `{ once: true }` listeners and one-shot frames are flagged and need the inline reason.',
+    ],
+    emoji: '🧹',
+    description:
+      'An effect that starts an interval, listener, observer, socket or subscription returns a cleanup',
+    priority: 'MEDIUM',
+    category: 'CODE_QUALITY',
+    stack: 'frontend',
+    requires: REQUIRES_REACT,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'ReactEffectResourceCleanupLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXII.22.2: Effect starts a resource and returns no cleanup',
+    remediation: 'Return a cleanup from the effect that stops what it started',
   },
 ];

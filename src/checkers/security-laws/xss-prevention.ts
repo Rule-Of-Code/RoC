@@ -1,200 +1,138 @@
 /**
- * XSS Prevention Law
- * Prevents Cross-Site Scripting vulnerabilities
+ * XSS Prevention Law — the DOM sinks.
+ *
+ * Flags each place code writes markup or code into the page: an `innerHTML` /
+ * `outerHTML` assignment, `insertAdjacentHTML`, `document.write`, `eval`,
+ * Angular's `bypassSecurityTrust*` and the `[innerHTML]` template binding. One
+ * sink is one violation, with its line.
+ *
+ * An HTML sink whose value is passed through a sanitizer IN THE SAME
+ * STATEMENT is not flagged: `el.innerHTML = DOMPurify.sanitize(html)`. The
+ * sanitizer is judged at the sink — a sanitizer imported somewhere else in the
+ * repository protects nothing here. `eval` is always flagged: no sanitizer
+ * makes it safe.
+ *
+ * The matches are case-sensitive and anchored on the property access, so
+ * React's `dangerouslySetInnerHTML` is NOT read as an `innerHTML` assignment
+ * and `retrieval(` is not `eval(`. React's sink has its own law
+ * (react-dangerous-html-guarded), which judges the `__html` value on the
+ * syntax tree. The Content-Security-Policy is judged by its own law
+ * (ContentSecurityPolicyLaw), so one defect never produces two results.
  */
 
-import type {
-  LawCheckContext,
-  LawResult,
-  RuleOfCodeConfig,
-} from '../../types/law.types';
+import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { CheckerUtils } from '../../utils/checker-utils';
-import { CodeText } from '../../utils/code-text';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 import { SecurityLawBase } from './security-law-base';
+
+interface Sink {
+  name: string;
+  pattern: RegExp;
+  /** Whether a sanitizer at the sink makes it safe (HTML sinks yes, eval no). */
+  sanitizable: boolean;
+}
+
+const SINKS: Sink[] = [
+  { name: 'innerHTML/outerHTML assignment', pattern: /\.(?:inner|outer)HTML\s*\+?=(?!=)/g, sanitizable: true },
+  { name: 'insertAdjacentHTML', pattern: /\.insertAdjacentHTML\s*\(/g, sanitizable: true },
+  { name: 'document.write', pattern: /\bdocument\.write(?:ln)?\s*\(/g, sanitizable: true },
+  { name: 'bypassSecurityTrust*', pattern: /\bbypassSecurityTrust(?:Html|Script|Style|Url|ResourceUrl)\s*\(/g, sanitizable: true },
+  // The Angular BINDING — the `=` is required: a bare `[innerHTML]` with no
+  // assignment is a mention (a doc string, prose), never a real binding.
+  { name: '[innerHTML] binding', pattern: /\[innerHTML\]\s*=/g, sanitizable: true },
+  { name: 'eval', pattern: /(?<![\w$])eval\s*\(/g, sanitizable: false },
+];
+
+/** Sanitizers recognised without configuration, as callee text. */
+export const DEFAULT_HTML_SANITIZERS = ['DOMPurify.sanitize'];
+
+/** Angular's DomSanitizer.sanitize(SecurityContext.HTML, value). */
+const ANGULAR_SANITIZE = /\.sanitize\s*\(\s*SecurityContext\.HTML\b/;
+
+const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** Comments blanked to spaces, newlines kept — line numbers stay true. */
+function blankComments(content: string): string {
+  const blank = (match: string): string => match.replace(/[^\n]/g, ' ');
+  return content
+    .replace(/\/\*[\s\S]*?\*\//g, blank)
+    .replace(/<!--[\s\S]*?-->/g, blank)
+    .replace(/(^|[^:\\])(\/\/[^\n]*)/g, (_m, lead: string, comment: string) => lead + blank(comment));
+}
+
+/** The configured sanitizers plus the defaults, as callee text. */
+export function htmlSanitizers(context: LawCheckContext): string[] {
+  const configured = context.config.thresholds?.security?.htmlSanitizers ?? [];
+  return [...DEFAULT_HTML_SANITIZERS, ...configured.filter(name => typeof name === 'string' && name.trim())];
+}
+
 export class XSSPreventionLaw {
   static check(context: LawCheckContext): LawResult {
     const violations: string[] = [];
-    const suggestions: string[] = [];
-
-    // Check for XSS vulnerabilities in source files
-    const xssViolations = this.checkXSSPatterns(
-      context.projectRoot,
-      context.config
+    const sanitizers = htmlSanitizers(context).map(
+      name => new RegExp(`(?<![\\w$.])${escapeRegExp(name)}\\s*\\(`)
     );
-    violations.push(...xssViolations.violations);
-    suggestions.push(...xssViolations.suggestions);
+    const sanitizedAt = (statement: string): boolean =>
+      ANGULAR_SANITIZE.test(statement) || sanitizers.some(re => re.test(statement));
 
-    // Check for proper sanitization
-    const sanitizationViolations = this.checkSanitization(
-      context.projectRoot,
-      context.config
-    );
-    violations.push(...sanitizationViolations.violations);
-    suggestions.push(...sanitizationViolations.suggestions);
-
-    // Check for Content Security Policy
-    const cspViolations = this.checkContentSecurityPolicy(context.projectRoot);
-    violations.push(...cspViolations.violations);
-    suggestions.push(...cspViolations.suggestions);
+    for (const file of this.getSourceFiles(context)) {
+      const code = blankComments(FileUtils.readFile(file) ?? '');
+      const rel = PathOperations.getRelative(context.projectRoot, file);
+      for (const sink of SINKS) {
+        violations.push(...this.unsanitized(code, rel, sink, sanitizedAt));
+      }
+    }
 
     return SecurityLawBase.createResult(
       violations,
       'XSS Prevention Policy',
       'SECURITY',
-      suggestions
+      violations.length > 0
+        ? [
+            'Render text with textContent / interpolation instead of writing HTML',
+            'Where HTML must be rendered, sanitize it at the sink: DomSanitizer.sanitize(SecurityContext.HTML, v) or DOMPurify.sanitize(v); name other sanitizers in thresholds.security.htmlSanitizers',
+          ]
+        : [],
+      context
     );
   }
 
-  private static checkXSSPatterns(
-    projectRoot: string,
-    config: RuleOfCodeConfig
-  ): {
-    violations: string[];
-    suggestions: string[];
-  } {
-    const violations: string[] = [];
-    const suggestions: string[] = [];
-
-    // Dangerous XSS patterns
-    const dangerousPatterns = [
-      /innerHTML\s*=/gi,
-      /outerHTML\s*=/gi,
-      /insertAdjacentHTML/gi,
-      /document\.write/gi,
-      /eval\s*\(/gi,
-      /bypassSecurityTrust/gi,
-      /\[innerHTML\]\s*=/gi, // Angular innerHTML BINDING — the `=` is required;
-      // bare `[innerHTML]` with no assignment is a mention (a doc string, prose),
-      // never a real binding, so requiring `=` drops that false positive while
-      // still catching every real binding, inline template included.
-    ];
-
-    // Get source files
-    const sourceFiles = this.getSourceFiles(projectRoot, config);
-
-    for (const file of sourceFiles) {
-      try {
-        // Strip comments so a `// [innerHTML]` note is not read as a binding —
-        // a consumer who removed the real binding and left a comment was being
-        // failed for the comment (FE finding). Strings are NOT stripped: an
-        // inline template ('<div [innerHTML]="x">') is a real sink.
-        const content = CodeText.stripComments(FileUtils.readFile(file));
-        const relativePath = PathOperations.getRelative(projectRoot, file);
-
-        // Check for dangerous patterns
-        for (const pattern of dangerousPatterns) {
-          const matches = content.match(pattern);
-          if (matches) {
-            violations.push(
-              `XSS risk in ${relativePath}: ${pattern.source} usage detected`
-            );
-            suggestions.push(
-              `Replace ${pattern.source} with safe alternatives like textContent`
-            );
-          }
-        }
-      } catch (_error) {
-        continue;
-      }
-    }
-
-    return { violations, suggestions };
-  }
-
-  private static checkSanitization(
-    projectRoot: string,
-    config: RuleOfCodeConfig
-  ): {
-    violations: string[];
-    suggestions: string[];
-  } {
-    const violations: string[] = [];
-    const suggestions: string[] = [];
-
-    const sourceFiles = this.getSourceFiles(projectRoot, config);
-
-    // Sanitization is only REQUIRED where untrusted HTML is rendered. This used
-    // to fire on any project with source files that lacked the word DomSanitizer
-    // — a near-universal false failure for every TS repo that never renders raw
-    // HTML. It now demands a sanitizer only when an HTML-injection sink is
-    // actually present. (eval is excluded — DomSanitizer does not address it.)
-    const HTML_SINK =
-      /innerHTML\s*=|outerHTML\s*=|insertAdjacentHTML|document\.write|bypassSecurityTrust|\[innerHTML\]\s*=/i;
-
-    let hasSanitization = false;
-    let hasHtmlSink = false;
-    for (const file of sourceFiles) {
-      try {
-        const raw = FileUtils.readFile(file);
-        // The SINK must be real code, not a comment/string mention — strip.
-        const code = CodeText.stripComments(raw);
-        if (HTML_SINK.test(code)) hasHtmlSink = true;
-        // The SANITIZER check reads RAW: an import path like
-        // '@angular/platform-browser' is a STRING literal — stripping its
-        // contents would hide a sanitizer that is genuinely present.
-        if (
-          (raw.includes('@angular/platform-browser') &&
-            raw.includes('DomSanitizer')) ||
-          raw.includes('sanitizeHtml') ||
-          raw.includes('sanitizeUrl') ||
-          raw.includes('SecurityService')
-        ) {
-          hasSanitization = true;
-        }
-      } catch (_error) {
-        continue;
-      }
-    }
-
-    if (hasHtmlSink && !hasSanitization) {
-      violations.push(
-        'HTML is rendered (innerHTML/bypassSecurityTrust/…) but no sanitizer was found - untrusted HTML must be sanitized'
-      );
-      suggestions.push(
-        'Sanitize rendered HTML via DomSanitizer from @angular/platform-browser (or prefer interpolation / textContent)'
-      );
-    }
-
-    return { violations, suggestions };
-  }
-
-  private static checkContentSecurityPolicy(projectRoot: string): {
-    violations: string[];
-    suggestions: string[];
-  } {
-    const violations: string[] = [];
-    const suggestions: string[] = [];
-
-    const indexHtml = PathOperations.join(projectRoot, 'src/index.html');
-    if (FileUtils.exists(indexHtml)) {
-      try {
-        const content = FileUtils.readFile(indexHtml);
-        if (!content.includes('Content-Security-Policy')) {
-          violations.push(
-            'No Content Security Policy (CSP) found in index.html'
-          );
-          suggestions.push('Add CSP meta tag to prevent XSS attacks');
-        }
-      } catch (_error) {
-        // Continue if can't read index.html
-      }
-    }
-
-    return { violations, suggestions };
-  }
-
-  private static getSourceFiles(
-    projectRoot: string,
-    config: RuleOfCodeConfig
+  /** One violation per occurrence of `sink` in `code` that is not sanitized at the sink. */
+  private static unsanitized(
+    code: string,
+    rel: string,
+    sink: Sink,
+    sanitizedAt: (statement: string) => boolean
   ): string[] {
-    const tsFiles = CheckerUtils.findTypeScriptFiles(projectRoot, config);
-    const htmlFiles = CheckerUtils.findFilesByExtension(
+    const found: string[] = [];
+    sink.pattern.lastIndex = 0;
+    let match: RegExpExecArray | null;
+    while ((match = sink.pattern.exec(code)) !== null) {
+      if (sink.sanitizable && sanitizedAt(this.statementFrom(code, match.index))) continue;
+      const line = code.slice(0, match.index).split('\n').length;
+      found.push(
+        sink.sanitizable
+          ? `XSS risk in ${rel}:${line}: ${sink.name} not sanitized at the sink — render text instead, or pass the value through a sanitizer in the same statement`
+          : `XSS risk in ${rel}:${line}: ${sink.name} executes a string as code — no sanitizer makes it safe; remove it`
+      );
+    }
+    return found;
+  }
+
+  /** The rest of the statement a sink starts: up to `;`, or the end of the line. */
+  private static statementFrom(code: string, index: number): string {
+    const end = code.slice(index).search(/;|\n/);
+    return end === -1 ? code.slice(index) : code.slice(index, index + end);
+  }
+
+  private static getSourceFiles(context: LawCheckContext): string[] {
+    const { projectRoot, config, lawId } = context;
+    return CheckerUtils.findFilesByExtension(
       projectRoot,
-      ['html'],
-      config
+      ['.ts', '.tsx', '.jsx', '.html'],
+      config,
+      lawId
     );
-    return [...tsFiles, ...htmlFiles];
   }
 }

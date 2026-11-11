@@ -5,6 +5,7 @@
 
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
+import { REQUIRES_ANGULAR } from '../utils/framework-requirements';
 
 export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
   {
@@ -126,6 +127,7 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
       'Angular-gated; string matching, no AST.',
     ],
     stack: 'frontend',
+    requires: REQUIRES_ANGULAR,
     emoji: '🔬',
     description:
       'Use TestBed properly, mock dependencies, test user interactions and edge cases',
@@ -153,11 +155,15 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Professional Component Testing Policy',
     rationale:
       'A component test that does not configure a TestBed, assert an output, or exercise an interaction is testing that the component can be constructed, not that it works. This law asks for tests that actually drive it.',
-    satisfiedBy: { angular: 'Give each *.component.ts a spec that configures TestBed, renders via ComponentFixture, and asserts on inputs/outputs or user interaction.' },
+    satisfiedBy: {
+      angular: 'Give each *.component.ts a spec that configures TestBed, renders via ComponentFixture, and asserts on inputs/outputs or user interaction.',
+      react:
+        'Give each client component X.tsx a co-located X.test.tsx (or __tests__/X.test.tsx) with at least two tests that query by role (screen.getByRole) and assert on what the user sees.',
+    },
     detectionLimits: [
-      'Only *.component.ts / *.component.spec.ts naming — a component test under another name is invisible, and non-Angular component tests are out of scope.',
-      'All regex over spec text (a TestBed in a comment counts); test coverage defaults to 100% when no components are found.',
-      'Angular component naming only — no Python, and no non-Angular component frameworks.',
+      'Angular: only *.component.ts / *.component.spec.ts naming under src/, apps/, libs/ — a component test under another name (Angular 20 *.ts without the suffix) is invisible.',
+      'React: every non-test .tsx/.jsx is a component (stories and Next route files under app/ excluded), so a .tsx helper with no JSX is asked for a test too; a test elsewhere than the sibling or __tests__/ is not found. React test quality is regex over the test text: two it()/test() calls, an expect(, a *ByRole query — a role query in a comment counts.',
+      'All regex over spec text (a TestBed in a comment counts). A project with no component file at all fails as judged-nothing. No Python, no Vue.',
     ],
     stack: 'frontend',
     emoji: '🧩',
@@ -282,7 +288,11 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Performance Test Requirements',
     rationale:
       'A feature that is correct but slow still fails the user. Performance tests turn "it feels fast" into a number that a regression cannot quietly cross.',
-    satisfiedBy: { angular: 'Add perf/load tests (k6/artillery), a bundle-size budget, and web-vitals (LCP/CLS/INP) tracking for critical flows.' },
+    satisfiedBy: {
+      angular: 'Add perf/load tests (k6/artillery), a bundle-size budget, and web-vitals (LCP/CLS/INP) tracking for critical flows.',
+      react:
+        'Add a perf spec named *.perf.spec.ts or *.perf.test.ts under src/, tests/, test/, e2e/ or an {apps,libs,packages}/**/src directory, exercising a critical flow (login, checkout, payment). Declare size-limit or @next/bundle-analyzer, and web-vitals or Lighthouse, in the ROOT package.json: a workspace package manifest is not read.',
+    },
     detectionLimits: [
       'Entirely presence-of-tooling by keyword — it measures no actual performance number.',
       'Bundle-size and web-vitals are browser-only and there is NO Python path, so a Python service is scored on browser concerns it cannot have.',

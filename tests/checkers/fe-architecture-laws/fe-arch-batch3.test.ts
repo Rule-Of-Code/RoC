@@ -1,6 +1,7 @@
 /**
  * FE Architecture laws — batch 3 (ROC-FE-06/07/09/11), B-tier / warn-first.
- * Regex/string; gated on Angular (stack: frontend). Real temp fixtures, no mocks.
+ * Regex/string (fetch casts: syntax tree); stack: frontend, Timer Cleanup gated
+ * on @angular/core by `requires`. Real temp fixtures, no mocks.
  */
 import fs from 'fs';
 import os from 'os';
@@ -9,7 +10,9 @@ import { DefensiveArrayCoercionLaw } from '../../../src/checkers/fe-architecture
 import { NoPassthroughCastLaw } from '../../../src/checkers/fe-architecture-laws/no-passthrough-cast';
 import { NoRiskLiteralsLaw } from '../../../src/checkers/fe-architecture-laws/no-risk-literals';
 import { TimerCleanupLaw } from '../../../src/checkers/fe-architecture-laws/timer-cleanup';
+import { FE_ARCHITECTURE_LAWS } from '../../../src/data/fe-architecture-laws';
 import { FileUtils } from '../../../src/utils/file-utils';
+import { lawRequirementsMet } from '../../../src/utils/law-requirements';
 import type { LawCheckContext } from '../../../src/types';
 
 const NG = {
@@ -134,20 +137,38 @@ describe('ROC-FE-11 No Risk Literals', () => {
   });
 });
 
-describe('batch 3 gates off on a non-Angular project', () => {
-  it('all four no-op on a Python project', () => {
-    const dir = fixture(
+describe('batch 3 without Angular (#210)', () => {
+  const nonAngular = (): string =>
+    fixture(
       {
-        'pyproject.toml': "[project]\nname='x'\n",
-        'libs/a/data-access/api.ts': 'function m(r: RawX){ return r.items.map(x=>x); }',
+        'package.json': JSON.stringify({ dependencies: { react: '19.0.0' } }),
+        'libs/a/data-access/api.ts':
+          'function m(r: RawX){ return r.items.map(x=>x); }\nconst u = http.get<User>("/u");',
         'libs/a/x.component.ts': 'setInterval(()=>{},1)',
       },
       false
     );
-    const c = (): LawCheckContext => ctx(dir, 'python');
-    expect(DefensiveArrayCoercionLaw.check(c()).passed).toBe(true);
-    expect(NoPassthroughCastLaw.check(c()).passed).toBe(true);
-    expect(TimerCleanupLaw.check(c()).passed).toBe(true);
-    expect(NoRiskLiteralsLaw.check(c()).passed).toBe(true);
+
+  it('Defensive Array Coercion and No Passthrough Cast judge it (framework-neutral)', () => {
+    const dir = nonAngular();
+    expect(DefensiveArrayCoercionLaw.check(ctx(dir, 'react')).passed).toBe(false);
+    expect(NoPassthroughCastLaw.check(ctx(dir, 'react')).passed).toBe(false);
+  });
+
+  it('Timer Cleanup is not selected: its requires asks for @angular/core', () => {
+    const card = FE_ARCHITECTURE_LAWS.find(law => law.title === 'Timer Cleanup');
+    expect(card?.requires).toEqual({ anyDependency: ['@angular/core'] });
+    expect(lawRequirementsMet(card?.requires, nonAngular())).toBe(false);
+    expect(lawRequirementsMet(card?.requires, fixture({}))).toBe(true);
+  });
+
+  // #214 row 54: opt-in by domain, not gated by framework — once a project
+  // enables it, it reads that project whatever its UI framework.
+  it('No Risk Literals is opt-in and, once enabled, judges a non-Angular project', () => {
+    const card = FE_ARCHITECTURE_LAWS.find(law => law.title === 'No Risk Literals');
+    expect(card?.defaultEnabled).toBe(false);
+    expect(card?.requires).toBeUndefined();
+    const dir = fixture({ 'libs/a/x.ts': 'const equityFloor = 450;' }, false);
+    expect(NoRiskLiteralsLaw.check(ctx(dir, 'react')).passed).toBe(false);
   });
 });

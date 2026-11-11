@@ -5,6 +5,12 @@
  * `cancelAnimationFrame`, or cleanup tied to `DestroyRef`/`takeUntilDestroyed`.
  * (RAF loop termination is not fully statically checkable, so this only requires
  * the cleanup mechanism to be present.)
+ *
+ * An Angular law: the file kinds and the DestroyRef credit are Angular's. It is
+ * selected by the card's `requires` (@angular/core in any workspace manifest),
+ * not by a gate in here, which read the root manifest only. React effects are
+ * judged per effect by a law of their own (react-effect-resource-cleanup),
+ * where this law's file-level clearInterval credit would be far too loose.
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
@@ -20,17 +26,9 @@ export class TimerCleanupLaw extends FeArchLawBase {
 
   static check(context: LawCheckContext): LawResult {
     const { projectRoot, config } = context;
-    const early = this.createAngularRequiredResult(
-      this.LAW_NAME,
-      projectRoot,
-      root => this.hasAngularProject(root),
-      context
-    );
-    if (early) return early;
-
     const violations: string[] = [];
 
-    for (const file of CheckerUtils.findTypeScriptFiles(projectRoot, config)) {
+    for (const file of CheckerUtils.findTypeScriptFiles(projectRoot, config, context.lawId)) {
       if (!/\.(component|service|directive|store)\.ts$/.test(file.replace(/\\/g, '/'))) {
         continue;
       }
@@ -57,7 +55,7 @@ export class TimerCleanupLaw extends FeArchLawBase {
     return this.createResult(
       violations,
       this.LAW_NAME,
-      'ANGULAR_LAW',
+      'FE_ARCHITECTURE',
       [
         'Pair setInterval/RAF with clearInterval/cancelAnimationFrame',
         'Tie cleanup to DestroyRef (inject(DestroyRef).onDestroy) or takeUntilDestroyed',

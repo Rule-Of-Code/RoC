@@ -5,6 +5,7 @@
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { ProjectTypeDetector } from '../../utils/config/project-type-detector';
+import { declaredDependencies } from '../../utils/law-requirements';
 import { LawBase } from '../law-base';
 
 export class AngularLawBase extends LawBase {
@@ -12,10 +13,9 @@ export class AngularLawBase extends LawBase {
     return ProjectTypeDetector.isAngularProject(projectRoot);
   }
 
+  /** Declared by any workspace manifest — the same reading as the `requires` gate. */
   protected static hasNgrxStore(projectRoot: string): boolean {
-    return ProjectTypeDetector.hasPackageDependency(projectRoot, [
-      '@ngrx/store',
-    ]);
+    return declaredDependencies(projectRoot).has('@ngrx/store');
   }
 
   protected static isAngularSourceFile(filePath: string): boolean {
@@ -51,8 +51,13 @@ export class AngularLawBase extends LawBase {
   }
 
   /**
-   * Create early return for Angular requirement check
-   * Used when a law requires Angular to be present
+   * The verdict of an Angular law whose subject is absent.
+   *
+   * The framework laws are gated by `requires`, so the engine does not select
+   * them where Angular or NgRx is not declared, and this path is reached only
+   * by a direct call. It used to return an empty result — score 100,
+   * "compliance verified" — for a check that inspected nothing. It now says
+   * that nothing was checked, and why.
    */
   protected static createAngularRequiredResult(
     lawName: string,
@@ -60,9 +65,15 @@ export class AngularLawBase extends LawBase {
     checkMethod: (projectRoot: string) => boolean,
     context: LawCheckContext
   ): LawResult | null {
-    if (!checkMethod(projectRoot)) {
-      return this.createResult([], lawName, 'ANGULAR_LAW', [], context);
-    }
-    return null;
+    if (checkMethod(projectRoot)) return null;
+    return {
+      lawName: lawName.toLowerCase().replace(/\s+/g, '-'),
+      passed: true,
+      message: `${lawName}: not applicable — the framework this law is about is not declared by any workspace package.json, so nothing was checked`,
+      violations: [],
+      suggestions: [],
+      score: 100,
+      config: context.config,
+    };
   }
 }

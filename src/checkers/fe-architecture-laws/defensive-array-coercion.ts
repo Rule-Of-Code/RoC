@@ -8,10 +8,13 @@
  *
  * RoC has no type-checker, so the envelope is keyed by the TYPE-token in the
  * parameter annotation (per the FE naming convention), not by the param name.
+ *
+ * Framework-neutral (any .ts/.tsx/.jsx in the data-access layer, which is
+ * configurable); a project with no file in that layer is told the law judged
+ * nothing rather than passed.
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { CheckerUtils } from '../../utils/checker-utils';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 import { FeArchLawBase } from './fe-arch-law-base';
@@ -22,20 +25,14 @@ export class DefensiveArrayCoercionLaw extends FeArchLawBase {
   private static readonly RAW_PARAM = /\(\s*(\w+)\s*:\s*[A-Za-z]*Raw[A-Z]\w*/g;
 
   static check(context: LawCheckContext): LawResult {
-    const { projectRoot, config } = context;
-    const early = this.createAngularRequiredResult(
-      this.LAW_NAME,
-      projectRoot,
-      root => this.hasAngularProject(root),
-      context
+    const { projectRoot } = context;
+    const dataAccess = this.sourceFiles(context).filter(file =>
+      this.inLayer(context, file, 'dataAccess')
     );
-    if (early) return early;
+    const violations: string[] =
+      dataAccess.length === 0 ? [this.emptyLayer(context, ['dataAccess'])] : [];
 
-    const violations: string[] = [];
-
-    for (const file of CheckerUtils.findTypeScriptFiles(projectRoot, config)) {
-      const norm = file.replace(/\\/g, '/');
-      if (!/\/data-access\//.test(norm)) continue; // mappers live in data-access
+    for (const file of dataAccess) {
       const content = FileUtils.readFile(file);
       // "Raw" as an internal token (RawX prefix OR FuturesRawX infix) — no \b,
       // per the FE naming convention (else the futures infix form is missed).
@@ -68,7 +65,7 @@ export class DefensiveArrayCoercionLaw extends FeArchLawBase {
     return this.createResult(
       violations,
       this.LAW_NAME,
-      'ANGULAR_LAW',
+      'FE_ARCHITECTURE',
       [
         'Guard: (Array.isArray(r.items) ? r.items : []).map(...)',
         'Or a shared coerceArray() at the mapper boundary — not ?? []',

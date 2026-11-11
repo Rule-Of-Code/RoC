@@ -196,6 +196,7 @@ import {
 
 // React Laws Modular Imports — gated by `requires` on react (or next)
 import {
+  ReactEffectFetchRaceGuardedLaw,
   ReactEffectResourceCleanupLaw,
   ReactHooksLintEnforcedLaw,
 } from '../checkers/react-laws';
@@ -502,6 +503,7 @@ export class ModularLawsRegistry {
     // React Laws (gated on react; React Render No Browser Global on next)
     'ReactHooksLintEnforcedLaw.check': ReactHooksLintEnforcedLaw,
     'ReactEffectResourceCleanupLaw.check': ReactEffectResourceCleanupLaw,
+    'ReactEffectFetchRaceGuardedLaw.check': ReactEffectFetchRaceGuardedLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

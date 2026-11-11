@@ -102,4 +102,44 @@ export const REACT_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article XXII.22.2: Effect starts a resource and returns no cleanup',
     remediation: 'Return a cleanup from the effect that stops what it started',
   },
+
+  {
+    id: generateLawId(
+      'React Effect Fetch Race Guarded',
+      'A fetch in an effect is aborted in its cleanup or guarded by an ignore flag the cleanup sets',
+      'react'
+    ),
+    legacyId: 503,
+    article: 'XXII',
+    subsection: '22.3',
+    title: 'React Effect Fetch Race Guarded',
+    rationale:
+      "An effect that fetches when a dependency changes starts a new request on every change, and responses arrive in whatever order the network returns them: the slower, older one is written last and the screen shows data for an input the user has already left. The React documentation's fetching example guards this with a cleanup — `let ignore = false; … return () => { ignore = true; }` — and an AbortController aborted in the cleanup does the same and also cancels the request.",
+    satisfiedBy: {
+      react:
+        'Either `const controller = new AbortController(); fetch(url, { signal: controller.signal }); return () => controller.abort();` or `let ignore = false; fetch(url).then(r => r.json()).then(d => { if (!ignore) setData(d); }); return () => { ignore = true; };`. A data library (TanStack Query, SWR) handles this for you.',
+    },
+    detectionLimits: [
+      PARSED_SOURCE_ONLY,
+      NO_CROSS_FILE,
+      ONLY_INLINE_SETUP,
+      'A signal counts only when passed in an inline init object (`fetch(url, { signal })`) and the cleanup calls abort(); an init built elsewhere is not read.',
+      'An ignore flag is a `let` declared in the setup (or a property of an object it declares), assigned in the cleanup and read in the setup; that the read actually guards the state update is not checked.',
+      'Judges the fetches an effect run starts: a fetch inside a callback handed to setInterval, setTimeout, requestAnimationFrame, addEventListener, subscribe or an Observer runs later and is not judged. Races in event handlers are out of scope.',
+    ],
+    emoji: '🏁',
+    description:
+      'A fetch in an effect is aborted in its cleanup or guarded by an ignore flag the cleanup sets',
+    priority: 'MEDIUM',
+    category: 'CODE_QUALITY',
+    stack: 'frontend',
+    requires: REQUIRES_REACT,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'ReactEffectFetchRaceGuardedLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXII.22.3: Effect fetch can be overwritten by a stale response',
+    remediation: 'Abort the request in the cleanup, or guard the update with an ignore flag',
+  },
 ];

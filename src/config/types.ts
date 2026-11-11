@@ -458,6 +458,13 @@ export interface RuleOfCodeConfig {
        */
       playwrightUserFacingLocatorPercent?: number;
       /**
+       * No Test-Only Leakage: globs (from the project root) naming the files
+       * that exist for tests only — fakes, mocks, test routes. Added to the
+       * law's defaults; a file they match must not be reachable from a Next
+       * route without an environment gate on the way.
+       */
+      testOnlyPaths?: string[];
+      /**
        * Real-data testing mode. When true, the checks that REQUIRE mocking
        * ("dependencies found but no mocking detected") and that forbid inline
        * real data ("hardcoded test data") are skipped — for projects that

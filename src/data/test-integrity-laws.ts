@@ -10,6 +10,7 @@
  */
 
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
+import { REQUIRES_NEXT } from '../utils/framework-requirements';
 import { generateLawId } from '../utils/id-generator';
 import {
   REQUIRES_JS_TEST_RUNNER,
@@ -174,5 +175,42 @@ export const TEST_INTEGRITY_LAWS: EnhancedConstitutionalLaw[] = [
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article VII.26.4: Too few Testing Library queries are user-facing',
     remediation: 'Replace getByTestId and querySelector with getByRole / getByLabelText / getByText where the element has them',
+  },
+
+  {
+    id: generateLawId(
+      'No Test-Only Leakage',
+      'No test-only file is reachable from a Next route without an environment gate',
+      'testing'
+    ),
+    legacyId: 575,
+    article: 'VII',
+    subsection: '26.5',
+    title: 'No Test-Only Leakage',
+    rationale:
+      'A fake auth provider, a mock API or a /api/test/seed route ships to production the moment a route imports it and nothing ties it to an environment — and no test catches it, because under test the fake is exactly what should run. The gate has to be on the way from the route to the fake.',
+    satisfiedBy: {
+      react:
+        "Use the fake only under an environment condition — {process.env.NEXT_PUBLIC_E2E === 'true' && <FakeAuthProvider />} or an import() inside that branch — and make a test-only route stop itself: if (process.env.NODE_ENV === 'production') notFound().",
+    },
+    detectionLimits: [
+      'Test-only files are matched by path from the project root: __mocks__, __fixtures__, mocks, test-utils, *.mock/mocks/fake/fakes/fixture/fixtures.*, and test/tests/e2e/__test__ segments under app/ or pages/, plus thresholds.testing.testOnlyPaths. A fake named otherwise is not seen.',
+      'Routes are every non-test file under app/, src/app, pages/ and src/pages of each package declaring next, plus middleware/proxy/instrumentation. Imports are resolved by the TypeScript resolver with the app\'s tsconfig; an import it cannot resolve, a package, and a computed import() are not followed.',
+      'A gate is a use of the imported names (or an import()) only inside an if/?:/&& branch whose condition reads process.env, or a test-only file that returns, throws or calls notFound() under such an if. Whether the condition is right, or always true, is not judged; a re-export or side-effect import is never gated.',
+      PARSED_WITH_PROJECT_TYPESCRIPT,
+    ],
+    emoji: '🧪',
+    description: 'No test-only file is reachable from a Next route without an environment gate',
+    priority: 'HIGH',
+    category: 'SECURITY',
+    stack: 'frontend',
+    requires: REQUIRES_NEXT,
+    defaultEnabled: true,
+    defaultSeverity: 'error',
+    automation: 'CONFIGURABLE',
+    checkFunction: 'NoTestOnlyLeakageLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article VII.26.5: A test-only file reaches the production build',
+    remediation: 'Gate the use of the test-only file on process.env, or make it stop itself outside tests',
   },
 ];

@@ -5,6 +5,7 @@
 
 export * from './jest-unit-test-100-coverage-mandate';
 export * from './no-focused-tests';
+export * from './no-test-only-leakage';
 export * from './playwright-locators-user-facing';
 export * from './playwright-no-fixed-wait';
 export * from './rtl-query-by-role';

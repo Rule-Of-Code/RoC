@@ -235,6 +235,7 @@ import { NgRxStateNormalizationMandateLaw } from '../laws/angular/ngrx-state-nor
 import {
   JestUnitTest100CoverageMandateLaw,
   NoFocusedTestsLaw,
+  NoTestOnlyLeakageLaw,
   PlaywrightLocatorsUserFacingLaw,
   PlaywrightNoFixedWaitLaw,
   RtlQueryByRoleLaw,
@@ -561,6 +562,7 @@ export class ModularLawsRegistry {
     'PlaywrightNoFixedWaitLaw.check': PlaywrightNoFixedWaitLaw,
     'PlaywrightLocatorsUserFacingLaw.check': PlaywrightLocatorsUserFacingLaw,
     'RtlQueryByRoleLaw.check': RtlQueryByRoleLaw,
+    'NoTestOnlyLeakageLaw.check': NoTestOnlyLeakageLaw,
 
     // Deployment Laws
     checkEnvironmentParityStandards: EnvironmentParityStandardsLaw,

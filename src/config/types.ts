@@ -29,6 +29,7 @@ export interface RuleOfCodeConfig {
       | 'node'
       | 'python'
       | 'react'
+      | 'typescript'
       | 'vue';
     /** Framework-specific settings */
     framework?: {
@@ -378,6 +379,24 @@ export interface RuleOfCodeConfig {
        * template a11y rule set in their ESLint config. Default: true.
        */
       requireAngularTemplateA11y?: boolean;
+      /**
+       * Modal Dialog Accessibility: element names of the project's own dialog
+       * components that render role="dialog", aria-modal="true" and a focus
+       * trap themselves — an HTML tag (`app-modal`, matched case-insensitively)
+       * in templates, a JSX tag as written (`Modal`, `Dialog.Content`) in
+       * .tsx/.jsx. A modal template that uses one of these, or JSX inside
+       * one, is compliant without repeating the three. Default: none — no
+       * component is trusted until the project names it.
+       */
+      accessibleDialogComponents?: string[];
+      /**
+       * Modal Dialog Accessibility: names that count as the dialog's focus
+       * trap, besides `cdkTrapFocus` in templates — an element tag
+       * (`FocusTrap`, `app-focus-trap`) or an attribute name (`appTrapFocus`)
+       * anywhere in the dialog's file. Template names match
+       * case-insensitively, JSX names as written. Default: none.
+       */
+      focusTrapTokens?: string[];
     };
     performance?: {
       /** Maximum module lines before requiring lazy loading */
@@ -398,7 +417,7 @@ export interface RuleOfCodeConfig {
       minServicesForBarrel?: number;
       /**
        * Additional valid component selector prefixes beyond project.componentPrefix
-       * (e.g. ["t3"] for a design-system library, like Material's "mat").
+       * (e.g. ["ui"] for a design-system library, like Material's "mat").
        */
       allowedComponentPrefixes?: string[];
       /** Extra callee names allowed in template bindings (e.g. ["$any"]). */
@@ -439,6 +458,38 @@ export interface RuleOfCodeConfig {
        * only when exactly one project directory imports Capacitor.
        */
       boundary?: string[];
+      /**
+       * Identifier or property names that are true in the native shell (a
+       * function, constant or DI token the project defines, e.g.
+       * "IS_NATIVE"). A service worker whose `enabled` expression mentions
+       * one is accepted as off on native by Capacitor Service Worker Native
+       * Decision, like Capacitor.isNativePlatform(). Absent: only
+       * Capacitor.isNativePlatform() / Capacitor.getPlatform() count.
+       */
+      nativeFlag?: string[];
+      /**
+       * Import specifiers of native-backed stores, in addition to
+       * @capacitor/preferences (e.g. "@capacitor-community/sqlite"). A
+       * WebView storage writer whose file, port file or provider file
+       * imports one has a native branch for Capacitor Durable State Off
+       * WebView Storage.
+       */
+      durableStores?: string[];
+      /**
+       * localStorage keys and IndexedDB database names whose loss is
+       * acceptable (caches, UI conveniences, drafts). A writer whose every
+       * key is listed here is accepted by Capacitor Durable State Off
+       * WebView Storage. Keys built at runtime are never matched.
+       */
+      disposableStorageKeys?: string[];
+      /**
+       * Globs (relative to the workspace root) of contract tests and probes
+       * that load a real Capacitor plugin outside the stubbing test config
+       * (a browser probe of the real bundle, a Jest project without the
+       * mapping). A file matching one that imports a stubbed plugin is that
+       * plugin's contract test for Capacitor Plugin Stub Has Contract Test.
+       */
+      contractTests?: string[];
     };
     ionic?: {
       /**
@@ -655,7 +706,11 @@ export const DEFAULT_CONFIG: RuleOfCodeConfig = {
   project: {
     name: 'Workspace',
     componentPrefix: 'app',
-    type: 'angular',
+    // Not a framework. The loader writes the DETECTED type here; this was
+    // 'angular', and since the engine trusts any configured type, a project
+    // whose type the detector did not map to defaults (Python, TypeScript,
+    // Node, or an undetected React monorepo) was audited as Angular.
+    type: 'generic',
   },
 
   ignores: {

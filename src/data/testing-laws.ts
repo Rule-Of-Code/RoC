@@ -192,6 +192,7 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
       'Project-wide OR: a SINGLE file with beforeEach marks the whole project as having setup.',
       'Hardcoded-data detection is a crude 20-char-string-literal heuristic; factory detection keys off filenames (factory/builder/fixture/mock/test-data).',
       'JS/TS .spec/.test files only — no Python. realDataMode suppresses the hardcoded-data finding.',
+      'Test files are the .spec/.test (.ts, .tsx, .js, .jsx) and .e2e-spec files under src/, apps/, libs/, test/, tests/ and e2e/, found with the project’s ignores and includes matched from the project root — the same discovery as test-isolation-enforcement. A test file outside those six roots (a packages/ workspace, a Jest __tests__ file without the suffix) is not read.',
     ],
     emoji: '📊',
     description: 'Proper test data setup and teardown procedures',
@@ -222,7 +223,7 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Shared mutable state is a module-scope let, or a module-scope const that is later written to (push, property or index assignment); the analysis is regex over code with comments stripped, not a data-flow trace.',
       'External resources are read from code, not comments, and each offending file is named. Browser storage in a Playwright spec whose tests destructure a fixture is not counted — every test gets its own BrowserContext — unless a beforeAll could share a page; databases, sockets and network calls still count.',
-      'Test files are looked for under src/, apps/ and libs/ only; a root-level e2e/, test/ or tests/ directory is not read.',
+      'Test files are the .spec/.test (.ts, .tsx, .js, .jsx) and .e2e-spec files under src/, apps/, libs/, test/, tests/ and e2e/, found with the project’s ignores and includes matched from the project root — the same discovery as test-data-management, which carries the same resource check. A test file outside those six roots (a packages/ workspace, a Jest __tests__ file without the suffix) is not read.',
       'it.only/fit are flagged as an order dependency (really a focus/CI concern), and a lone describe() satisfies "framework isolation".',
       'Regex over JS/TS test files only — no Python.',
     ],

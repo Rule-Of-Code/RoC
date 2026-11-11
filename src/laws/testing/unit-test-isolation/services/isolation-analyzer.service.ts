@@ -191,17 +191,14 @@ export class UnitTestIsolationAnalyzerService {
   }
 
   /**
-   * Find all test files in project
+   * Find all test files in project — the same discovery, roots and config as
+   * test-data-management, which carries the same resource check (#192).
    */
   private static findTestFiles(
     projectRoot: string,
     config: RuleOfCodeConfig
   ): string[] {
-    return TestFileDiscovery.findTestFiles(projectRoot, config, [
-      PathOperations.join(projectRoot, 'src'),
-      PathOperations.join(projectRoot, 'apps'),
-      PathOperations.join(projectRoot, 'libs'),
-    ]);
+    return TestFileDiscovery.findTestFiles(projectRoot, config);
   }
 
   /**

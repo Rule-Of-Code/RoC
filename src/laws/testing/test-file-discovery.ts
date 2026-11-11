@@ -4,36 +4,53 @@ import { CheckerUtils } from '../../utils/checker-utils';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 
+/** The law id discovery scans under, for the scanner's per-law ignores. */
+const DISCOVERY_LAW_ID = 'test-file-discovery';
+
+/** Where test files are looked for, relative to the project root. */
+const DEFAULT_TEST_ROOTS = ['src', 'apps', 'libs', 'test', 'tests', 'e2e'];
+
+/** Every extension a test file is written in (the TEST_FILE_GLOBS spellings). */
+const TEST_FILE_EXTENSIONS = ['ts', 'tsx', 'js', 'jsx'];
+
 /**
- * Shared test file discovery logic used across all test analyzers
+ * Shared test file discovery logic used across all test analyzers.
+ *
+ * Laws that judge the same thing must read the same files: two laws with one
+ * check and two discoveries pass and fail the same file depending on which of
+ * them looks (#192). Callers pass the project's own config and let discovery
+ * choose the roots.
  */
 export class TestFileDiscovery {
   /**
-   * Find all test files in project
+   * Find all test files under the standard test roots, with the project's
+   * ignores matched against the path from the project root.
    */
   static findTestFiles(
     projectRoot: string,
     config: RuleOfCodeConfig,
     customSearchDirs?: string[]
   ): string[] {
+    const searchDirs = (
+      customSearchDirs ??
+      DEFAULT_TEST_ROOTS.map(dir => PathOperations.join(projectRoot, dir))
+    ).filter(dir => FileUtils.exists(dir));
+    if (searchDirs.length === 0) return [];
+
+    // One scan from the PROJECT root, then keep what lies under a search
+    // root. Scanning each root on its own matched the project's patterns
+    // against the path from that root: an `ignores.global` entry like
+    // `src/vendor/**` was compared with `vendor/c.spec.ts` and never matched,
+    // and an `includes.global` entry like `apps/**` matched nothing at all.
+    const prefixes = searchDirs.map(dir =>
+      `${PathOperations.getRelative(projectRoot, dir)}/`
+    );
     const testFiles: string[] = [];
-
-    const searchDirs = customSearchDirs ?? [
-      PathOperations.join(projectRoot, 'src'),
-      PathOperations.join(projectRoot, 'apps'),
-      PathOperations.join(projectRoot, 'libs'),
-      PathOperations.join(projectRoot, 'test'),
-      PathOperations.join(projectRoot, 'tests'),
-      PathOperations.join(projectRoot, 'e2e'),
-    ];
-
-    for (const searchDir of searchDirs) {
-      if (FileUtils.exists(searchDir)) {
-        this.findTestFilesRecursively(searchDir, testFiles, config);
-      }
-    }
-
-    return testFiles;
+    this.findTestFilesRecursively(projectRoot, testFiles, config);
+    return testFiles.filter(file => {
+      const relative = PathOperations.getRelative(projectRoot, file);
+      return prefixes.some(prefix => prefix === '/' || relative.startsWith(prefix));
+    });
   }
 
   static findTestFilesRecursively(
@@ -42,11 +59,13 @@ export class TestFileDiscovery {
     config: RuleOfCodeConfig
   ): void {
     try {
+      // `.test.tsx` / `.spec.jsx` are test names (TEST_FILE_NAME), but a scan
+      // for `ts`/`js` alone never offered those files to the name check.
       const files = CheckerUtils.findFilesByExtension(
         dir,
-        ['ts', 'js'],
+        TEST_FILE_EXTENSIONS,
         config,
-        'test-file-discovery', // Pass law ID for debugging
+        DISCOVERY_LAW_ID, // Pass law ID for debugging
         true // includeTests = true - this is crucial for finding test files!
       );
 

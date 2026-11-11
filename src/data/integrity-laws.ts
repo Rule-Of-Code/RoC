@@ -13,6 +13,7 @@
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
 import {
+  REQUIRES_DRIZZLE,
   REQUIRES_DRIZZLE_MIGRATIONS,
   REQUIRES_SQL_FILES,
   REQUIRES_TSCONFIG,
@@ -188,5 +189,45 @@ export const INTEGRITY_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article XXVII.27.4: an excluded directory is type-checked by no tsconfig',
     remediation:
       'Include the excluded files in a tsconfig of their own and run it, or stop excluding them',
+  },
+
+  {
+    id: generateLawId(
+      'Retention Registry Covers Schema',
+      'Every table of the Drizzle schema is in the retention registry or in its noPersonalData list with a reason',
+      'integrity'
+    ),
+    legacyId: 595,
+    article: 'XXVII',
+    subsection: '27.5',
+    title: 'Retention Registry Covers Schema',
+    rationale:
+      'GDPR art. 5(1)(e), storage limitation: personal data is kept no longer than necessary. A project declares what it deletes and when; a new table holding personal data lands in a feature branch, tests pass, review reads the feature, and no rule ever deletes those rows. It surfaces at an audit or a data-subject request, because nothing connects the schema to the retention decision.',
+    satisfiedBy: {
+      typescript:
+        'Set `thresholds.integrity.retentionRegistry` to a JSON file `{ "tables": { "users": "deleted 30 days after account closure (jobs/purge-users.ts)" }, "noPersonalData": { "countries": "ISO reference data" } }`, and add every new table to one of the two in the same change that creates it.',
+    },
+    detectionLimits: [
+      'Opt-in (disabled by default): enable it and set thresholds.integrity.retentionRegistry to the registry path, relative to the project root. Enabled without that key, or with a registry that does not exist or is not valid JSON, it fails.',
+      'Reads declarations only: whether the listed deletion really runs, and whether "no personal data" is true, are not checked — a person made that claim, and it is visible for review.',
+      'Tables are Drizzle table builders imported from drizzle-orm/*-core with ES imports: pgTable, mysqlTable, sqliteTable, singlestoreTable, `<schema>.table(…)` of a pgSchema/mysqlSchema, and the builder a *TableCreator returns (the name as written, before the creator\'s prefix). Tables declared by SQL alone, or by another ORM, are not seen.',
+      'A table whose name is not a string literal is reported as unreadable.',
+      'Personal data outside the database (files, logs, backups) is out of scope.',
+    ],
+    emoji: '🗑️',
+    description:
+      'Every table of the Drizzle schema is in the retention registry or in its noPersonalData list with a reason',
+    priority: 'HIGH',
+    category: 'SECURITY',
+    stack: 'typescript',
+    requires: REQUIRES_DRIZZLE,
+    defaultEnabled: false,
+    defaultSeverity: 'warning',
+    automation: 'CONFIGURABLE',
+    checkFunction: 'RetentionRegistryCoversSchemaLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXVII.27.5: a table is in neither the retention registry nor noPersonalData',
+    remediation:
+      'Add the table to the registry with its deletion rule, or to noPersonalData with the reason it holds none',
   },
 ];

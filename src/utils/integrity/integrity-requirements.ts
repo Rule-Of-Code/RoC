@@ -35,3 +35,8 @@ export const REQUIRES_TSCONFIG: LawRequirement = {
   anyDependency: ['typescript'],
   anyFile: ['tsconfig.json'],
 };
+
+/** A Drizzle schema: the table builders are drizzle-orm's. */
+export const REQUIRES_DRIZZLE: LawRequirement = {
+  anyDependency: ['drizzle-orm'],
+};

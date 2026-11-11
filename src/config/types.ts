@@ -448,6 +448,14 @@ export interface RuleOfCodeConfig {
        * check, schedule. Must be a non-empty list of identifier prefixes.
        */
       guardPrefixes?: string[];
+      /**
+       * Path, relative to the project root, of the JSON retention registry
+       * Retention Registry Covers Schema reads:
+       * `{ "tables": { "<table>": "<deletion rule>" },
+       *    "noPersonalData": { "<table>": "<why it holds none>" } }`.
+       * Required when that opt-in law is enabled; it fails without it.
+       */
+      retentionRegistry?: string;
     };
     testing?: {
       /** Minimum test coverage percentage (0-100) */

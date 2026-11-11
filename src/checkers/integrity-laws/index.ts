@@ -6,5 +6,6 @@
 
 export { DrizzleMigrationJournalIntegrityLaw } from './drizzle-migration-journal-integrity';
 export { GuardFunctionHasProductionCallerLaw } from './guard-function-has-production-caller';
+export { RetentionRegistryCoversSchemaLaw } from './retention-registry-covers-schema';
 export { SqlCheckConstraintNullPassesLaw } from './sql-check-constraint-null-passes';
 export { TsconfigExcludeLeavesCodeUntypedLaw } from './tsconfig-exclude-leaves-code-untyped';

@@ -26,6 +26,7 @@ import * as fs from 'fs';
 import { FileSystemOperations } from '../file-system-operations';
 import { NxWorkspace } from '../nx-workspace';
 import { PathOperations } from '../path-operations';
+import { filesUnder } from './native-plugins';
 
 /** In the order Capacitor's own loader tries them (config.js loadExtConfig). */
 export const CAPACITOR_CONFIG_FILES: readonly string[] = [
@@ -168,6 +169,7 @@ export class CapacitorProjects {
         PathOperations.join(PathOperations.getDirectory(native.androidAppBuildGradle), GOOGLE_SERVICES_JSON),
         ...this.entitlementFiles(native),
         ...this.sourceSetInputs(native),
+        ...this.nativeSourceFiles(native),
       ];
     });
   }
@@ -210,6 +212,20 @@ export class CapacitorProjects {
     } catch {
       return [];
     }
+  }
+
+  /**
+   * The shells' own source: Java and Kotlin under the Android app's main
+   * source set, Swift under the iOS target. Local plugins and the
+   * BridgeActivity that registers them live here.
+   */
+  static nativeSourceFiles(native: CapacitorNativePaths): string[] {
+    const srcMain = PathOperations.getDirectory(native.androidManifest);
+    return [
+      ...filesUnder(PathOperations.join(srcMain, 'java'), ['.java', '.kt']),
+      ...filesUnder(PathOperations.join(srcMain, 'kotlin'), ['.java', '.kt']),
+      ...filesUnder(native.iosTargetDir, ['.swift']),
+    ];
   }
 
   /** Forget memoised resolutions (tests; a long-lived process after edits). */

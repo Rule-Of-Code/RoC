@@ -176,11 +176,17 @@ import {
   CapacitorDeepLinkContractLaw,
   CapacitorFirebaseNativeConfigNotSkippedLaw,
   CapacitorIosPrivacyManifestDeclaredLaw,
+  CapacitorAndroidBackHasOneOwnerLaw,
+  CapacitorDurableStateOffWebviewStorageLaw,
+  CapacitorListenerHandlesReleasedLaw,
+  CapacitorLocalPluginContractLaw,
   CapacitorLoggingNeverProductionLaw,
   CapacitorSigningSecretsOutsideRepoLaw,
   CapacitorNoDevOnlyServerKeysLaw,
   CapacitorPluginConfigDeclaredLaw,
   CapacitorPluginPlatformDeclarationsLaw,
+  CapacitorPluginStubHasContractTestLaw,
+  CapacitorServiceWorkerNativeDecisionLaw,
   CapacitorSinglePlatformBoundaryLaw,
   CapacitorSyncArtefactsMatchDependenciesLaw,
   CapacitorWebviewOriginDeclaredLaw,
@@ -503,6 +509,14 @@ export class ModularLawsRegistry {
     'CapacitorAndroidBackupScopedLaw.check': CapacitorAndroidBackupScopedLaw,
     'CapacitorIosPrivacyManifestDeclaredLaw.check': CapacitorIosPrivacyManifestDeclaredLaw,
     'CapacitorSigningSecretsOutsideRepoLaw.check': CapacitorSigningSecretsOutsideRepoLaw,
+
+    // Capacitor bridge laws (back button, local plugins, listeners, web-side decisions)
+    'CapacitorAndroidBackHasOneOwnerLaw.check': CapacitorAndroidBackHasOneOwnerLaw,
+    'CapacitorLocalPluginContractLaw.check': CapacitorLocalPluginContractLaw,
+    'CapacitorListenerHandlesReleasedLaw.check': CapacitorListenerHandlesReleasedLaw,
+    'CapacitorServiceWorkerNativeDecisionLaw.check': CapacitorServiceWorkerNativeDecisionLaw,
+    'CapacitorDurableStateOffWebviewStorageLaw.check': CapacitorDurableStateOffWebviewStorageLaw,
+    'CapacitorPluginStubHasContractTestLaw.check': CapacitorPluginStubHasContractTestLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

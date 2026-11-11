@@ -9,7 +9,7 @@
  */
 
 import type { LawRequirement } from '../../types/enhanced-law.types';
-import type { LawCheckContext } from '../../types/law.types';
+import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../file-utils';
 import { PathOperations } from '../path-operations';
 import {
@@ -117,5 +117,21 @@ export function projectsWithPlatform(
     notRead: [
       `@capacitor/${platform} is declared but no ${platform}/ shell exists (looked for ${looked}) — this law reads the committed native shell and does not pass without it; run \`npx cap add ${platform}\` and commit the shell, or remove the platform package`,
     ],
+  };
+}
+
+/**
+ * A result with advisory notes: findings a law reports without failing on
+ * them (a PARTIAL sub-rule, an info-level observation). They go first in the
+ * suggestions and in the details, and the message says how many there are,
+ * so a passing law still tells the reader what it noticed.
+ */
+export function withNotes(result: LawResult, notes: readonly string[]): LawResult {
+  if (notes.length === 0) return result;
+  return {
+    ...result,
+    message: `${result.message} (${notes.length} note${notes.length === 1 ? '' : 's'})`,
+    suggestions: [...notes, ...(result.suggestions ?? [])],
+    details: [...(result.details ?? []), ...notes],
   };
 }

@@ -17,3 +17,9 @@ export { CapacitorFirebaseNativeConfigNotSkippedLaw } from './capacitor-firebase
 export { CapacitorAndroidBackupScopedLaw } from './capacitor-android-backup-scoped';
 export { CapacitorIosPrivacyManifestDeclaredLaw } from './capacitor-ios-privacy-manifest-declared';
 export { CapacitorSigningSecretsOutsideRepoLaw } from './capacitor-signing-secrets-outside-repo';
+export { CapacitorAndroidBackHasOneOwnerLaw } from './capacitor-android-back-has-one-owner';
+export { CapacitorLocalPluginContractLaw } from './capacitor-local-plugin-contract';
+export { CapacitorListenerHandlesReleasedLaw } from './capacitor-listener-handles-released';
+export { CapacitorServiceWorkerNativeDecisionLaw } from './capacitor-service-worker-native-decision';
+export { CapacitorDurableStateOffWebviewStorageLaw } from './capacitor-durable-state-off-webview-storage';
+export { CapacitorPluginStubHasContractTestLaw } from './capacitor-plugin-stub-has-contract-test';

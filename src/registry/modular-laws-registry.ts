@@ -201,6 +201,7 @@ import {
   ReactEffectFetchRaceGuardedLaw,
   ReactEffectResourceCleanupLaw,
   ReactHooksLintEnforcedLaw,
+  ReactListKeyStabilityLaw,
   ReactPollVisibilityGatedLaw,
   ReactRenderNoBrowserGlobalLaw,
   ReactStoreSubscriptionUsesSyncExternalStoreLaw,
@@ -515,6 +516,7 @@ export class ModularLawsRegistry {
     'ReactRenderNoBrowserGlobalLaw.check': ReactRenderNoBrowserGlobalLaw,
     'ClientFetchResponseCheckedLaw.check': ClientFetchResponseCheckedLaw,
     'ReactPollVisibilityGatedLaw.check': ReactPollVisibilityGatedLaw,
+    'ReactListKeyStabilityLaw.check': ReactListKeyStabilityLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

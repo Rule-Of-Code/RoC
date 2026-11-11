@@ -331,4 +331,40 @@ export const REACT_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article XXII.22.8: Polling continues while the page is hidden',
     remediation: 'Pause polling on visibilitychange, or poll through the sanctioned helper',
   },
+
+  {
+    id: generateLawId(
+      'React List Key Stability',
+      'A list item key is not the .map index',
+      'react'
+    ),
+    legacyId: 509,
+    article: 'XXII',
+    subsection: '22.9',
+    title: 'React List Key Stability',
+    rationale:
+      "React matches list items between renders by key. With the array index as the key, inserting, removing or reordering an item hands the remaining items each other's keys, and React keeps the wrong row's state — a typed value, a checked box, an open panel — on the row that moved into its place. The React documentation warns that index keys lead to exactly these bugs.",
+    satisfiedBy: {
+      react:
+        "Key each row by a stable id from the data: `items.map(item => <Row key={item.id} …/>)`. For a list that never reorders, write `// roc-allow-index-key: <why the list is static>` on the line above the element.",
+    },
+    detectionLimits: [
+      PARSED_SOURCE_ONLY,
+      'Flags key={i}, a template whose only interpolations are the index, String(i) and i.toString(), where i is the second parameter of the enclosing .map callback; a key that mixes the index with item data is not flagged.',
+      'Cannot know whether the list ever changes order: a static list is flagged and needs the inline reason. Array.from and other iterators are not read.',
+    ],
+    emoji: '🔑',
+    description: 'A list item key is not the .map index',
+    priority: 'LOW',
+    category: 'CODE_QUALITY',
+    stack: 'frontend',
+    requires: REQUIRES_REACT,
+    defaultEnabled: true,
+    defaultSeverity: 'info',
+    automation: 'AUTOMATED',
+    checkFunction: 'ReactListKeyStabilityLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXII.22.9: List key is the array index',
+    remediation: 'Key list items by a stable id from the data',
+  },
 ];

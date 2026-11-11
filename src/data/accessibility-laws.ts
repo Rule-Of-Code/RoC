@@ -17,11 +17,9 @@ const UNREADABLE_JSX =
 
 export const ACCESSIBILITY_LAWS: EnhancedConstitutionalLaw[] = [
   {
-    id: generateLawId(
-      'Accessibility Linting Enforcement',
-      'Projects with Angular templates must enable the @angular-eslint template a11y rule set',
-      'accessibility'
-    ),
+    // Pinned: the generated id came from the Angular-only description, and the
+    // id is public (laws --json, the site). The description now covers JSX too.
+    id: 'accessibility_dc4a588a',
     legacyId: 90,
     article: 'XI',
     subsection: '11.1',
@@ -44,7 +42,7 @@ export const ACCESSIBILITY_LAWS: EnhancedConstitutionalLaw[] = [
     ],
     emoji: '♿',
     description:
-      'Projects with Angular templates must enable the @angular-eslint template a11y rule set',
+      'Angular templates are linted by the @angular-eslint template a11y rule set, and JSX by eslint-plugin-jsx-a11y',
     priority: 'HIGH',
     category: 'ACCESSIBILITY',
     stack: 'frontend',

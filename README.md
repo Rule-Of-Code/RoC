@@ -108,7 +108,8 @@ onto a stack. Measured against the shipped registry:
 | `typescript` | 71 | 12 `typescript` + 59 universal |
 | `python` | 69 | 37 `python` + 32 universal |
 | `angular` | 63 | 55 `frontend` + 3 `typescript` + 5 universal |
-| `ionic` | 9 | 9 `frontend` |
+| `react` | 5 | 5 `frontend` |
+| `ionic` | 14 | 14 `frontend` |
 | `capacitor` | 10 | 8 `frontend` + 2 universal |
 
 `angular` appearing on TypeScript-stack and universal laws is the clearest evidence:
@@ -144,13 +145,14 @@ point at — another reason to iterate `keys`.
 
 ### Where the guidance is missing, say so
 
-The 25 `frontend` laws without a `requires` carry only `satisfiedBy.angular`. **There is no React or Vue
-guidance yet** ([#12](https://github.com/Rule-Of-Code/RoC/issues/12)). A React project
-matches `stack: "frontend"`, so those laws run — but the only remediation text we have
-is Angular's.
+The 25 `frontend` laws without a `requires` carry only `satisfiedBy.angular`. React guidance
+(`satisfiedBy.react`) is being written law by law — the `react` row above counts it — and
+there is **no Vue guidance yet** ([#12](https://github.com/Rule-Of-Code/RoC/issues/12)). A
+React project matches `stack: "frontend"`, so a law without a `react` key still runs there
+— but the only remediation text it has is Angular's.
 
 If you render law cards, say that plainly ("written for Angular — no React/Vue
-instructions yet") rather than presenting Angular steps as if they were universal. The
+instructions for this law yet") rather than presenting Angular steps as if they were universal. The
 same honesty `detectionLimits` applies to detection, applied to remediation.
 
 ### The other authored fields

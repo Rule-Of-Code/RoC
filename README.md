@@ -58,9 +58,16 @@ stack do not run and are not counted:
 
 Of the frontend laws, **9** run only where an Ionic binding is declared and **8** only
 where Capacitor is — see [`requires`](#requires-a-law-about-a-toolkit-runs-only-where-the-toolkit-is).
+The laws about one framework are gated the same way: **19** run only where `@angular/core`
+is declared, **10** only where `@ngrx/store` is, and **1** only where `rxjs` is. A React
+project does not run OnPush or NgRx laws, and an Angular app without a store does not run
+the NgRx ones.
 
-The project type comes from `project.type` in the config, or is detected from the
-filesystem.
+The project type comes from `project.type` in the config, or is detected: first from the
+frameworks declared by any workspace `package.json` (the same reading `requires` uses, so
+a monorepo that declares `next` only in `apps/web` is a React project), then from marker
+files at the root (`angular.json`, `pyproject.toml`, a tsconfig). When nothing is
+recognised the type is `generic` — never a framework by default.
 
 ## 🗂️ Law card schema (`roc laws --json`)
 
@@ -101,7 +108,8 @@ onto a stack. Measured against the shipped registry:
 | `typescript` | 71 | 12 `typescript` + 59 universal |
 | `python` | 69 | 37 `python` + 32 universal |
 | `angular` | 63 | 55 `frontend` + 3 `typescript` + 5 universal |
-| `ionic` | 9 | 9 `frontend` |
+| `react` | 5 | 5 `frontend` |
+| `ionic` | 14 | 14 `frontend` |
 | `capacitor` | 10 | 8 `frontend` + 2 universal |
 
 `angular` appearing on TypeScript-stack and universal laws is the clearest evidence:
@@ -137,13 +145,14 @@ point at — another reason to iterate `keys`.
 
 ### Where the guidance is missing, say so
 
-The 55 `frontend` laws without a `requires` carry only `satisfiedBy.angular`. **There is no React or Vue
-guidance yet** ([#12](https://github.com/Rule-Of-Code/RoC/issues/12)). A React project
-matches `stack: "frontend"`, so those laws run — but the only remediation text we have
-is Angular's.
+The 25 `frontend` laws without a `requires` carry only `satisfiedBy.angular`. React guidance
+(`satisfiedBy.react`) is being written law by law — the `react` row above counts it — and
+there is **no Vue guidance yet** ([#12](https://github.com/Rule-Of-Code/RoC/issues/12)). A
+React project matches `stack: "frontend"`, so a law without a `react` key still runs there
+— but the only remediation text it has is Angular's.
 
 If you render law cards, say that plainly ("written for Angular — no React/Vue
-instructions yet") rather than presenting Angular steps as if they were universal. The
+instructions for this law yet") rather than presenting Angular steps as if they were universal. The
 same honesty `detectionLimits` applies to detection, applied to remediation.
 
 ### The other authored fields

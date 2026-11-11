@@ -9,6 +9,7 @@
 
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
+import { REQUIRES_ANGULAR } from '../utils/framework-requirements';
 
 export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
   {
@@ -35,6 +36,7 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
     priority: 'HIGH',
     category: 'FRAMEWORK',
     stack: 'frontend',
+    requires: REQUIRES_ANGULAR,
     defaultEnabled: true,
     defaultSeverity: 'warning',
     automation: 'AUTOMATED',
@@ -69,6 +71,7 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
     priority: 'MEDIUM',
     category: 'FRAMEWORK',
     stack: 'frontend',
+    requires: REQUIRES_ANGULAR,
     defaultEnabled: true,
     defaultSeverity: 'warning',
     automation: 'AUTOMATED',
@@ -340,9 +343,9 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
       'A bare 450 next to the word equityFloor is a business rule hidden in a literal — the reader cannot tell a deliberate risk limit from a typo, and the next editor changes it blind. Named constants carry the intent, and dollar amounts in a template almost always belong in config.',
     satisfiedBy: { angular: 'Name risk/limit/floor/equity/leverage values as constants from config, not inline literals; keep hardcoded $amounts out of templates.' },
     detectionLimits: [
-      'The .ts branch does NOT strip comments or strings — a `// risk = 700` or a string literal is a false positive; the token match is a case-insensitive SUBSTRING, so delimiter/unlimited/rateLimit/floorplan all fire (a known high false-positive class).',
+      'Opt-in (defaultEnabled: false): its vocabulary — floor, risk, limit, equity, stake, pnl, leverage, target — is the vocabulary of a trading domain, not of a framework, so it is enabled by the projects whose domain it is rather than run on every UI.',
+      'The .ts branch strips comments and string contents, but the token match is a case-insensitive SUBSTRING of the identifier, so delimiter/unlimited/rateLimit/floorplan all fire (a known high false-positive class). .tsx/.jsx are not scanned.',
       'The .html branch flags any line with `$` followed by a digit (Angular interpolation is skipped, but literal `$5` text fires); .scss is not scanned.',
-      'Angular only (it does not scan .scss) — a non-Angular project passes vacuously.',
     ],
     emoji: '💵',
     description:
@@ -350,7 +353,7 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
     priority: 'LOW',
     category: 'CODE_QUALITY',
     stack: 'frontend',
-    defaultEnabled: true,
+    defaultEnabled: false,
     defaultSeverity: 'warning',
     automation: 'AUTOMATED',
     checkFunction: 'NoRiskLiteralsLaw.check',

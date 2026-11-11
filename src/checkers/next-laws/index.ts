@@ -11,3 +11,4 @@ export { NextServerOnlyBoundaryLaw } from './next-server-only-boundary';
 export { NextClientEnvPublicOnlyLaw } from './next-client-env-public-only';
 export { NextProxyPlacementAndMatcherLaw } from './next-proxy-placement-and-matcher';
 export { NextErrorBoundariesDeclaredLaw } from './next-error-boundaries-declared';
+export { NextPublicEnvIsBuildTimeLaw } from './next-public-env-is-build-time';

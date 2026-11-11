@@ -174,6 +174,7 @@ import {
   NextClientEnvPublicOnlyLaw,
   NextErrorBoundariesDeclaredLaw,
   NextProxyPlacementAndMatcherLaw,
+  NextPublicEnvIsBuildTimeLaw,
   NextRouteHandlerGuardedLaw,
   NextServerActionAuthorizesLaw,
   NextServerOnlyBoundaryLaw,
@@ -500,6 +501,7 @@ export class ModularLawsRegistry {
     'NextClientEnvPublicOnlyLaw.check': NextClientEnvPublicOnlyLaw,
     'NextProxyPlacementAndMatcherLaw.check': NextProxyPlacementAndMatcherLaw,
     'NextErrorBoundariesDeclaredLaw.check': NextErrorBoundariesDeclaredLaw,
+    'NextPublicEnvIsBuildTimeLaw.check': NextPublicEnvIsBuildTimeLaw,
 
     // Capacitor Laws (gated on @capacitor/core + a Capacitor config)
     'CapacitorLoggingNeverProductionLaw.check': CapacitorLoggingNeverProductionLaw,

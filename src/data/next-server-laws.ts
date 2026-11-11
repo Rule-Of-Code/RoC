@@ -264,4 +264,44 @@ export const NEXT_SERVER_LAWS: EnhancedConstitutionalLaw[] = [
     remediation:
       "Add app/not-found, app/error and app/global-error ('use client'; global-error renders <html> and <body>)",
   },
+
+  {
+    id: generateLawId(
+      'Next Public Env Is Build Time',
+      'NEXT_PUBLIC_ variables are declared where next build runs, read literally, and never named like secrets',
+      'next'
+    ),
+    legacyId: 537,
+    article: 'XXIII',
+    subsection: '23.7',
+    title: 'Next Public Env Is Build Time',
+    rationale:
+      'Next replaces process.env.NEXT_PUBLIC_X with the value present at next build; "after being built, your app will no longer respond to changes to these environment variables", and "dynamic lookups will not be inlined" (next/dist/docs/01-app/02-guides/environment-variables.md). A value given only to the running container changes nothing and the deploy is green. Whatever is named NEXT_PUBLIC_ is in the JavaScript every visitor downloads.',
+    satisfiedBy: {
+      react:
+        'Declare each NEXT_PUBLIC_* as `ARG NEXT_PUBLIC_X` before `RUN npm run build` in the Dockerfile (or in the CI build step env); for a hosted build, say where in `thresholds.next.publicEnvBuildSource`. Read it as `process.env.NEXT_PUBLIC_X`, never `process.env[name]`. A publishable key goes in `thresholds.next.publicEnvAllowed` with the reason.',
+    },
+    detectionLimits: [
+      'Build stages are read from Dockerfiles (a RUN with next build, or a package-manager/turbo/nx build in a Dockerfile that mentions .next) and, when there are none, from CI files (.github/workflows, .gitlab-ci.yml, bitbucket-pipelines.yml, azure-pipelines.yml) that build; a CI file is read as a whole, not per job.',
+      'A committed .env or .env.production of the app counts as declared for every build. Whether the value at build time is the right one is not judged.',
+      "Secret-looking names are found by the words SECRET, TOKEN, PASSWORD, PRIVATE and KEY in the name; a secret with an innocent name is not seen.",
+      GRAPH_LIMIT,
+      PARSER_LIMIT,
+    ],
+    emoji: '🧊',
+    description:
+      'NEXT_PUBLIC_ variables are declared where next build runs, read literally, and never named like secrets',
+    priority: 'HIGH',
+    category: 'SECURITY',
+    stack: 'frontend',
+    requires: REQUIRES_NEXT,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'NextPublicEnvIsBuildTimeLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXIII.23.7: a NEXT_PUBLIC_ variable is missing at build, read dynamically, or named like a secret',
+    remediation:
+      'Declare NEXT_PUBLIC_* where next build runs, read them literally, and keep secrets out of NEXT_PUBLIC_',
+  },
 ];

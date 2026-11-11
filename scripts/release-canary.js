@@ -84,6 +84,30 @@ const STACKS = {
     // Proof through the CLI that `requires` admits them where the toolkit is declared.
     mustRun: ['Ionic No Skip Location Change', 'Capacitor Logging Never Production'],
   },
+  react: {
+    floor: 100, // frontend + typescript + universal + the React/Next laws `requires` admits
+    files: {
+      'package.json': JSON.stringify({
+        name: 'canary-react',
+        dependencies: { next: '^16.0.0', react: '^19.0.0', 'react-dom': '^19.0.0' },
+        devDependencies: { typescript: '^5.0.0' },
+      }),
+      'tsconfig.json': JSON.stringify({ compilerOptions: { jsx: 'preserve', strict: true } }),
+      'src/app/layout.tsx':
+        "export const metadata = { title: 'canary' };\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\n  return <html lang=\"en\"><body>{children}</body></html>;\n}\n",
+      'src/app/page.tsx': 'export default function Page() {\n  return <main>ok</main>;\n}\n',
+    },
+    redFile: {
+      'src/app/raw.tsx':
+        'export default function Raw({ html }: { html: string }) {\n  return <div dangerouslySetInnerHTML={{ __html: html }} />;\n}\n',
+    },
+    redLaw: 'React Dangerous HTML Guarded',
+    redThresholds: undefined,
+    projectType: 'react',
+    // The React/Next laws run here, and the Angular/NgRx/Ionic ones do not.
+    mustRun: ['React Dangerous HTML Guarded', 'Next Server Only Boundary'],
+    mustNotRun: ['OnPush Change Detection Strategy', 'NgRx Store Pattern Mandate (SACRED LAW)', 'Ionic No Skip Location Change'],
+  },
   node: {
     floor: 55, // typescript + universal (75 applicable on 2026-07-10)
     files: {
@@ -115,7 +139,14 @@ function resolveCli() {
   if (!TARBALL) return { cmd: process.execPath, baseArgs: [path.join(REPO, 'dist', 'cli.js')] };
   const consumer = makeTempDir('roc-canary-consumer-');
   fs.writeFileSync(path.join(consumer, 'package.json'), JSON.stringify({ name: 'canary-consumer', private: true }));
-  execSync(`npm install --no-audit --no-fund "${TARBALL}"`, { cwd: consumer, stdio: 'pipe' });
+  // `typescript` beside it, as a React/TS consumer has it: the React laws parse
+  // .tsx with the PROJECT's compiler and say they could not read without one.
+  const tsVersion = JSON.parse(fs.readFileSync(path.join(REPO, 'package.json'), 'utf8'))
+    .devDependencies.typescript;
+  execSync(`npm install --no-audit --no-fund "${TARBALL}" "typescript@${tsVersion}"`, {
+    cwd: consumer,
+    stdio: 'pipe',
+  });
   // Resolve the installed CLI from the package's OWN name, never a hard-coded one.
   // RoC ships under more than one name (unscoped `ruleofcode`, scoped
   // `@ruleofcode/core`), and the literal path here reported the shipped CLI as
@@ -239,7 +270,10 @@ function main() {
       laws: { notApplicable: waivers, severity: { [stack.redLaw]: 'error' } },
       thresholds: stack.redThresholds,
     });
-    const red = runAudit(cli, dir);
+    const red = runAudit(cli, dir, ['--export', 'json']);
+    // Exit 1 alone proves only that SOMETHING failed; the planted violation
+    // must be what failed, or the red pass is green by accident.
+    const redLawFired = (failedLawTitles(dir) ?? []).includes(stack.redLaw);
 
     // ZERO: empty allowlist must refuse (fail-closed).
     writeConfig(dir, stackKey, stack, { laws: { enabled: {} } });
@@ -248,7 +282,7 @@ function main() {
 
     const floorOk = floorCount !== null && floorCount >= stack.floor;
     const greenOk = green.code === 0;
-    const redOk = red.code === 1;
+    const redOk = red.code === 1 && redLawFired;
     const zeroOk = zero.code === 1 && zeroRefused;
     // Runtime errors in checkers reduce coverage silently (QA-3) — any
     // TypeError in any run is a canary failure even when exit codes look right.

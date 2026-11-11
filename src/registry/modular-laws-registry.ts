@@ -177,6 +177,7 @@ import {
   CapacitorFirebaseNativeConfigNotSkippedLaw,
   CapacitorIosPrivacyManifestDeclaredLaw,
   CapacitorLoggingNeverProductionLaw,
+  CapacitorSigningSecretsOutsideRepoLaw,
   CapacitorNoDevOnlyServerKeysLaw,
   CapacitorPluginConfigDeclaredLaw,
   CapacitorPluginPlatformDeclarationsLaw,
@@ -501,6 +502,7 @@ export class ModularLawsRegistry {
     'CapacitorFirebaseNativeConfigNotSkippedLaw.check': CapacitorFirebaseNativeConfigNotSkippedLaw,
     'CapacitorAndroidBackupScopedLaw.check': CapacitorAndroidBackupScopedLaw,
     'CapacitorIosPrivacyManifestDeclaredLaw.check': CapacitorIosPrivacyManifestDeclaredLaw,
+    'CapacitorSigningSecretsOutsideRepoLaw.check': CapacitorSigningSecretsOutsideRepoLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

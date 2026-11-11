@@ -12,6 +12,7 @@
 
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import {
+  REQUIRES_CAPACITOR,
   REQUIRES_CAPACITOR_ANDROID,
   REQUIRES_CAPACITOR_IOS,
 } from '../utils/capacitor/capacitor-law-support';
@@ -189,5 +190,44 @@ export const CAPACITOR_NATIVE_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article IV.4.63: iOS privacy manifest missing a category an installed plugin needs',
     remediation:
       'Add PrivacyInfo.xcprivacy to the App target with an NSPrivacyAccessedAPIType and reason for each listed plugin',
+  },
+
+  {
+    id: generateLawId(
+      'Capacitor Signing Secrets Outside Repo',
+      'Capacitor signing keys and their passwords are not in the repository, and the release build never falls back to the debug key',
+      'capacitor'
+    ),
+    legacyId: 435,
+    article: 'IV',
+    subsection: '4.64',
+    title: 'Capacitor Signing Secrets Outside Repo',
+    rationale:
+      "A Capacitor shell's release keystore and passwords are the app's store identity: lose them and the app cannot be updated, leak them and someone else can publish an update that installs over it. A tracked .jks/.p12, a storePassword literal in build.gradle or a tracked keystore.properties publishes them with the repository, and no source scanner reads Gradle or binaries. A release build type that falls back to the debug key installs fine and then fails to update on users' phones.",
+    satisfiedBy: {
+      capacitor:
+        'Keep key material out of git (secret manager or CI secret), read paths and passwords through project properties or environment variables, and leave a release build unsigned, never debug-signed, when they are absent.',
+    },
+    detectionLimits: [
+      'Asks git (tracked, or present and not ignored) for *.jks, *.keystore, *.p12, *.mobileprovision and *.p8 anywhere in the repository; a key renamed to another extension is not seen. A committed debug.keystore is flagged like any other keystore.',
+      'Gradle scripts and .properties files under each android/ shell are read as text from where git would publish them (the index for tracked files); a password assembled from pieces, a GString with interpolation, or one from a buildSrc helper is not seen.',
+      'The debug-key fallback is found as a signingConfigs.debug reference inside buildTypes.release; #265 rates it warning-grade, but a law carries one severity, so it fails this error law.',
+      'Does not read iOS signing settings (Xcode automatic signing keeps no secret in the project). Outside a git work tree the key-material and properties checks cannot run and the law fails, saying so.',
+    ],
+    emoji: '🔑',
+    description:
+      'Capacitor signing keys and their passwords are not in the repository, and the release build never falls back to the debug key',
+    priority: 'CRITICAL',
+    category: 'SECURITY',
+    stack: 'frontend',
+    requires: REQUIRES_CAPACITOR,
+    defaultEnabled: true,
+    defaultSeverity: 'error',
+    automation: 'AUTOMATED',
+    checkFunction: 'CapacitorSigningSecretsOutsideRepoLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.64: Signing secret in the repository, or release signed with the debug key',
+    remediation:
+      'Remove key material and password literals from git, rotate them, and leave release unsigned when the key is absent',
   },
 ];

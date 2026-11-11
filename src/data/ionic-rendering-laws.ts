@@ -20,6 +20,9 @@ import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
 import { REQUIRES_IONIC_ANGULAR } from '../utils/ionic/ionic-project';
 
+const TEMPLATES_ANGULAR_ONLY =
+  'Angular templates only (inline `template` and `templateUrl`); @ionic/react and @ionic/vue are not selected because JSX and SFC templates are not read.';
+
 export const IONIC_RENDERING_LAWS: EnhancedConstitutionalLaw[] = [
   {
     id: generateLawId(
@@ -97,5 +100,44 @@ export const IONIC_RENDERING_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article IV.4.81: Both @ionic/angular builds imported in one app',
     remediation:
       "Import every Ionic symbol from one entry; in a standalone app, '@ionic/angular/standalone'",
+  },
+
+  {
+    id: generateLawId(
+      'Ionic Icons Registered',
+      'Every ion-icon name a standalone template uses is registered with addIcons',
+      'ionic'
+    ),
+    legacyId: 413,
+    article: 'IV',
+    subsection: '4.82',
+    title: 'Ionic Icons Registered',
+    rationale:
+      'In the standalone (custom elements) build an <ion-icon name="x"> finds its SVG only in the map addIcons fills; the asset-path fallback throws there and the only signal is a console warning (ionicons getNamedUrl). The name is lower-cased before the lookup, and addIcons({ trashOutline }) registers "trashOutline" and "trash-outline". The registration is camelCase, usually in a constructor, and the template is kebab-case in another file, so a rename on either side is silent.',
+    satisfiedBy: {
+      ionic:
+        "Register every icon a template names with addIcons({ camelCaseName }) from 'ionicons/icons', in the component that renders it, and change both in one commit.",
+    },
+    detectionLimits: [
+      'Literal names only (name / ios / md, a non-URL icon, and [name]="\'x\'"); a computed name is reported as not judged. An icon passed as [icon]="svgData" bypasses the map and is not this law.',
+      'Registration is matched project-wide, not per component: an icon registered in another lazy chunk passes even if that chunk has not loaded when the template renders.',
+      "addIcons called with a namespace import of 'ionicons/icons' counts as registering every icon; any other non-literal argument is reported as not read.",
+      'Applies only to projects that import @ionic/angular/standalone; the module build resolves names through its asset path. Read in ionicons 8.1.0 only.',
+      TEMPLATES_ANGULAR_ONLY,
+    ],
+    emoji: '🖼️',
+    description:
+      'Every ion-icon name a standalone template uses is registered with addIcons',
+    priority: 'MEDIUM',
+    category: 'FRAMEWORK',
+    stack: 'frontend',
+    requires: REQUIRES_IONIC_ANGULAR,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'IonicIconsRegisteredLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.82: ion-icon name not registered with addIcons',
+    remediation: "Register the icon: addIcons({ camelCaseName }) from 'ionicons/icons'",
   },
 ];

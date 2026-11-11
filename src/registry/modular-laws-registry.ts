@@ -184,6 +184,7 @@ import {
 // Ionic Laws Modular Imports — gated by `requires` on an Ionic binding
 import {
   IonicE2eLocatorsTargetTheShownPageLaw,
+  IonicIconsRegisteredLaw,
   IonicLeaveCancelsWhatEnterStartedLaw,
   IonicNavigationSpecsMountTheOutletLaw,
   IonicNoSkipLocationChangeLaw,
@@ -509,6 +510,7 @@ export class ModularLawsRegistry {
     // Ionic rendering-model laws (gated on an Ionic binding)
     'IonicViewHooksOnlyOnPagesLaw.check': IonicViewHooksOnlyOnPagesLaw,
     'IonicSingleBuildSystemLaw.check': IonicSingleBuildSystemLaw,
+    'IonicIconsRegisteredLaw.check': IonicIconsRegisteredLaw,
 
     // Security Laws
     checkEnvironmentVariables: EnvironmentVariablesLaw,

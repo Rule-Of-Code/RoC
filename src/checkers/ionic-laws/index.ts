@@ -14,3 +14,4 @@ export { IonicNavigationSpecsMountTheOutletLaw } from './ionic-navigation-specs-
 export { IonicE2eLocatorsTargetTheShownPageLaw } from './ionic-e2e-locators-target-the-shown-page';
 export { IonicViewHooksOnlyOnPagesLaw } from './ionic-view-hooks-only-on-pages';
 export { IonicSingleBuildSystemLaw } from './ionic-single-build-system';
+export { IonicIconsRegisteredLaw } from './ionic-icons-registered';

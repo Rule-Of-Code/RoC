@@ -6,3 +6,4 @@
  */
 
 export { NextServerActionAuthorizesLaw } from './next-server-action-authorizes';
+export { NextRouteHandlerGuardedLaw } from './next-route-handler-guarded';

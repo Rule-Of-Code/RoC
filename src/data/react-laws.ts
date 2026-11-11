@@ -179,4 +179,42 @@ export const REACT_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article XXII.22.4: Context provider value is a new object every render',
     remediation: 'Memoize the provider value with useMemo',
   },
+
+  {
+    id: generateLawId(
+      'React Store Subscription Uses Sync External Store',
+      'An external source is read with useSyncExternalStore, not copied into state from an effect subscription',
+      'react'
+    ),
+    legacyId: 505,
+    article: 'XXII',
+    subsection: '22.5',
+    title: 'React Store Subscription Uses Sync External Store',
+    rationale:
+      "Subscribing to an external source in an effect and copying each update into useState renders the stale value first (the effect runs after paint), can tear under concurrent rendering — two components reading different versions of the same source in one render — and has nothing to render on the server. useSyncExternalStore is React's API for exactly this: it subscribes, reads the snapshot during render, and takes a separate server snapshot.",
+    satisfiedBy: {
+      react:
+        'Replace `useEffect(() => store.subscribe(() => setValue(store.get())), [])` with `const value = useSyncExternalStore(store.subscribe, store.get, getServerSnapshot)`; browser APIs (online status, media queries, window size) the same way.',
+    },
+    detectionLimits: [
+      PARSED_SOURCE_ONLY,
+      ONLY_INLINE_SETUP,
+      'Flags a .subscribe(cb) or .addEventListener(type, cb) inside an effect whose inline callback is one call of a useState setter; a callback that does anything else, or is passed by name, is not flagged.',
+      'A DOM event that is genuinely an event (a keypress closing a menu) and not a value is flagged the same way.',
+    ],
+    emoji: '🔌',
+    description:
+      'An external source is read with useSyncExternalStore, not copied into state from an effect subscription',
+    priority: 'LOW',
+    category: 'CODE_QUALITY',
+    stack: 'frontend',
+    requires: REQUIRES_REACT,
+    defaultEnabled: true,
+    defaultSeverity: 'info',
+    automation: 'AUTOMATED',
+    checkFunction: 'ReactStoreSubscriptionUsesSyncExternalStoreLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXII.22.5: External source copied into state from an effect',
+    remediation: 'Read the external source with useSyncExternalStore',
+  },
 ];

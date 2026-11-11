@@ -200,6 +200,7 @@ import {
   ReactEffectFetchRaceGuardedLaw,
   ReactEffectResourceCleanupLaw,
   ReactHooksLintEnforcedLaw,
+  ReactStoreSubscriptionUsesSyncExternalStoreLaw,
 } from '../checkers/react-laws';
 
 // Security Laws Modular Imports
@@ -506,6 +507,8 @@ export class ModularLawsRegistry {
     'ReactEffectResourceCleanupLaw.check': ReactEffectResourceCleanupLaw,
     'ReactEffectFetchRaceGuardedLaw.check': ReactEffectFetchRaceGuardedLaw,
     'ReactContextValueStableLaw.check': ReactContextValueStableLaw,
+    'ReactStoreSubscriptionUsesSyncExternalStoreLaw.check':
+      ReactStoreSubscriptionUsesSyncExternalStoreLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

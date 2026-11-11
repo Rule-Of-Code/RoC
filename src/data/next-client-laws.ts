@@ -176,4 +176,42 @@ export const NEXT_CLIENT_LAWS: EnhancedConstitutionalLaw[] = [
     violationMessage: 'CONSTITUTIONAL VIOLATION Article XXIV.24.4: undeclared third-party script',
     remediation: 'Declare the script host with a reason in thresholds.next.thirdPartyScripts',
   },
+
+  {
+    id: generateLawId(
+      'HTML Lang Declared',
+      'The root layout <html> (or pages/_document <Html>) of a Next app declares a non-empty lang',
+      'next'
+    ),
+    legacyId: 555,
+    article: 'XXIV',
+    subsection: '24.5',
+    title: 'HTML Lang Declared',
+    rationale:
+      'Without `lang` on `<html>` a screen reader guesses the language of every page and reads it with the wrong pronunciation rules, and the browser offers to translate a page already in the reader\'s language (WCAG 2.x SC 3.1.1 Language of Page). In a Next app it is one attribute in one file: the root layout\'s `<html>`, or `pages/_document`\'s `<Html>`, which Next fills from the i18n locale when i18n is configured (next/dist/pages/_document.js: `lang: props.lang || locale`).',
+    satisfiedBy: {
+      react:
+        'App Router: `<html lang="en">` in the root layout (`lang={locale}` under a `[locale]` segment). Pages Router: `<Html lang="en">` in pages/_document, or `i18n` in next.config.',
+    },
+    detectionLimits: [
+      'Does not know whether the language is the right one, nor per-section `lang` on inner elements.',
+      'A `lang={expression}` is accepted without evaluating it; a `<html>` with a {...spread} and no lang is flagged.',
+      'A root layout that renders `<html>` through another component is not followed and is reported as not found. Plain index.html documents (Vite, CRA) are out of scope: the law is selected by `next`.',
+      'Pages Router: `i18n` is detected as a key anywhere in next.config.*; its value is not read.',
+      UNREAD_FAILS,
+    ],
+    emoji: '🗣️',
+    description:
+      'The root layout <html> (or pages/_document <Html>) of a Next app declares a non-empty lang',
+    priority: 'MEDIUM',
+    category: 'ACCESSIBILITY',
+    stack: 'frontend',
+    requires: REQUIRES_NEXT,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'HtmlLangDeclaredLaw.check',
+    violationMessage: 'CONSTITUTIONAL VIOLATION Article XXIV.24.5: <html> without lang',
+    remediation: 'Set lang on the root layout <html> (Pages Router: _document <Html>)',
+  },
 ];

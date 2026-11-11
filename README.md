@@ -1,7 +1,7 @@
 # 🏛️ RuleOfCode (RoC)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-gold.svg)](https://opensource.org/licenses/MIT)
-[![Constitutional Laws](https://img.shields.io/badge/Constitutional%20Laws-186-red.svg)](#-laws-and-scope)
+[![Constitutional Laws](https://img.shields.io/badge/Constitutional%20Laws-237-red.svg)](#-laws-and-scope)
 [![Tests](https://img.shields.io/badge/Tests-14%2C300%2B%20passing-success.svg)](#-development-and-release)
 [![Fail Closed](https://img.shields.io/badge/Gate-fail--closed-blue.svg)](#-severity-semantics-and-fail-closed-guarantees)
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-Strict%20Mode-blue.svg)](https://www.typescriptlang.org/)
@@ -46,21 +46,28 @@ npx ruleofcode laws --list   # the law catalog with canonical names
 
 ## ⚖️ Laws and scope
 
-**186 laws**, scoped per stack via automatic stack gating — laws outside the project's
+**237 laws**, scoped per stack via automatic stack gating — laws outside the project's
 stack do not run and are not counted:
 
 | Scope | Laws | Applies to |
 |---|---|---|
 | Universal | 62 | every project |
-| Frontend (Angular/NgRx, FE architecture, Ionic/Capacitor) | 72 | angular / react / vue / ionic |
+| Frontend (Angular/NgRx, FE architecture, Ionic/Capacitor) | 122 | angular / react / vue / ionic |
 | Python (FastAPI, Clean Architecture/CQRS) | 37 | python |
-| TypeScript | 15 | all TS/JS projects |
+| TypeScript | 16 | all TS/JS projects |
 
-Of the frontend laws, **9** run only where an Ionic binding is declared and **8** only
+Of the frontend laws, **18** run only where an Ionic binding is declared and **18** only
 where Capacitor is — see [`requires`](#requires-a-law-about-a-toolkit-runs-only-where-the-toolkit-is).
+The laws about one framework are gated the same way: **19** run only where `@angular/core`
+is declared, **10** only where `@ngrx/store` is, and **1** only where `rxjs` is. A React
+project does not run OnPush or NgRx laws, and an Angular app without a store does not run
+the NgRx ones.
 
-The project type comes from `project.type` in the config, or is detected from the
-filesystem.
+The project type comes from `project.type` in the config, or is detected: first from the
+frameworks declared by any workspace `package.json` (the same reading `requires` uses, so
+a monorepo that declares `next` only in `apps/web` is a React project), then from marker
+files at the root (`angular.json`, `pyproject.toml`, a tsconfig). When nothing is
+recognised the type is `generic` — never a framework by default.
 
 ## 🗂️ Law card schema (`roc laws --json`)
 
@@ -72,7 +79,7 @@ IDE panel, a dashboard. It is versioned by `schemaVersion` (currently `2`).
   "schemaVersion": 2,
   "tool": "ruleofcode",          // the package name this build was published under
   "version": "7.25.0",
-  "registryTotal": 186,
+  "registryTotal": 237,
   "satisfiedByStacks": {          // the mapping described below — read it, don't hardcode it
     "keys": ["typescript", "angular", "react", "python", "ionic", "capacitor"],
     "stackToKey": { "frontend": "angular", "typescript": "typescript", "python": "python" },
@@ -98,11 +105,12 @@ onto a stack. Measured against the shipped registry:
 
 | key | laws | spread across stacks |
 |---|---|---|
-| `typescript` | 71 | 12 `typescript` + 59 universal |
+| `typescript` | 72 | 13 `typescript` + 59 universal |
+| `angular` | 65 | 57 `frontend` + 3 `typescript` + 5 universal |
+| `react` | 55 | 54 `frontend` + 1 `typescript` |
 | `python` | 69 | 37 `python` + 32 universal |
-| `angular` | 63 | 55 `frontend` + 3 `typescript` + 5 universal |
-| `ionic` | 9 | 9 `frontend` |
-| `capacitor` | 10 | 8 `frontend` + 2 universal |
+| `ionic` | 23 | 23 `frontend` |
+| `capacitor` | 23 | 21 `frontend` + 2 universal |
 
 `angular` appearing on TypeScript-stack and universal laws is the clearest evidence:
 it names the technology the advice is written in, not the projects the law applies to.
@@ -137,13 +145,14 @@ point at — another reason to iterate `keys`.
 
 ### Where the guidance is missing, say so
 
-The 55 `frontend` laws without a `requires` carry only `satisfiedBy.angular`. **There is no React or Vue
-guidance yet** ([#12](https://github.com/Rule-Of-Code/RoC/issues/12)). A React project
-matches `stack: "frontend"`, so those laws run — but the only remediation text we have
-is Angular's.
+The 24 `frontend` laws without a `requires` carry only `satisfiedBy.angular`. React guidance
+(`satisfiedBy.react`) is being written law by law — the `react` row above counts it — and
+there is **no Vue guidance yet** ([#12](https://github.com/Rule-Of-Code/RoC/issues/12)). A
+React project matches `stack: "frontend"`, so a law without a `react` key still runs there
+— but the only remediation text it has is Angular's.
 
 If you render law cards, say that plainly ("written for Angular — no React/Vue
-instructions yet") rather than presenting Angular steps as if they were universal. The
+instructions for this law yet") rather than presenting Angular steps as if they were universal. The
 same honesty `detectionLimits` applies to detection, applied to remediation.
 
 ### The other authored fields

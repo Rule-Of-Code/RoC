@@ -1,6 +1,7 @@
 import type { RuleOfCodeConfig } from '../../../../types/law.types';
 import { CheckerUtils, FileUtils, PathOperations } from '../../../../utils';
 import { ProjectTypeDetectorValidation } from '../../../../utils/config/project-type-detector/project-type-detector-validation';
+import type { ReactPerformanceEvidence } from '../../../../utils/react/react-performance-source';
 import {
   PerformanceBudgetComplianceCheckConstants,
   PerformanceBudgetComplianceFileDiscoveryConstants,
@@ -19,9 +20,15 @@ export class ProductionMonitoringAnalyzerService {
    */
   static analyze(
     projectRoot: string,
-    config: RuleOfCodeConfig
+    config: RuleOfCodeConfig,
+    react?: ReactPerformanceEvidence
   ): { monitored: boolean; services: string[] } {
     const services: string[] = [];
+
+    // React/Next: Web Vitals reported from real users' browsers
+    // (`useReportWebVitals`, or a web-vitals metric call) in the parsed source.
+    const report = react?.webVitalsReports[0];
+    if (report) services.push(`Web Vitals reported (${report})`);
 
     // Use ProjectTypeDetectorValidation utility for safe package.json reading
     const allDeps =

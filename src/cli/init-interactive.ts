@@ -46,6 +46,7 @@ async function getProjectType(
     'node',
     'python',
     'react',
+    'typescript',
     'vue',
   ] as const;
 
@@ -72,6 +73,7 @@ async function getProjectType(
         { name: '🟢 Node.js/Express Server', value: 'node' },
         { name: '🐍 Python (FastAPI + Clean Architecture/CQRS)', value: 'python' },
         { name: '📚 TypeScript Library', value: 'library' },
+        { name: '🟦 TypeScript Project (no UI framework)', value: 'typescript' },
         { name: '🔧 Generic TypeScript Project', value: 'generic' },
       ],
       default: detected,

@@ -1,3 +1,7 @@
+import {
+  type BundlerReport,
+  WebBundlerConfig,
+} from '../../../../utils/react/web-bundler-config';
 import { BundleOptimizationStrategyCheckConstants } from '../constants';
 import { BundleOptimizationBaseAnalyzer } from './base.analyzer';
 
@@ -12,7 +16,10 @@ export class CriticalCSSAnalyzerService {
   /**
    * Analyze critical CSS extraction
    */
-  static analyze(projectRoot: string): {
+  static analyze(
+    projectRoot: string,
+    bundler?: BundlerReport
+  ): {
     isConfigured: boolean;
     strategies: string[];
   } {
@@ -25,6 +32,18 @@ export class CriticalCSSAnalyzerService {
       BundleOptimizationStrategyCheckConstants.STRATEGY_MESSAGES
         .CRITICAL_CSS_TOOLS_AVAILABLE
     );
+
+    // Next.js: `experimental.optimizeCss` inlines critical CSS through
+    // critters (`next/dist/server/post-process.js`). Off by default, so a Next
+    // app declares it — there is no inference from the framework here.
+    const report = bundler ?? WebBundlerConfig.inspect(projectRoot);
+    for (const app of report.apps) {
+      if (app.kind === 'next' && app.optimizeCss) {
+        result.messages.push(
+          `${WebBundlerConfig.label(projectRoot, app)}: experimental.optimizeCss`
+        );
+      }
+    }
 
     return {
       isConfigured: result.messages.length > 0,

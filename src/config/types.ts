@@ -29,6 +29,7 @@ export interface RuleOfCodeConfig {
       | 'node'
       | 'python'
       | 'react'
+      | 'typescript'
       | 'vue';
     /** Framework-specific settings */
     framework?: {
@@ -378,6 +379,24 @@ export interface RuleOfCodeConfig {
        * template a11y rule set in their ESLint config. Default: true.
        */
       requireAngularTemplateA11y?: boolean;
+      /**
+       * Modal Dialog Accessibility: element names of the project's own dialog
+       * components that render role="dialog", aria-modal="true" and a focus
+       * trap themselves — an HTML tag (`app-modal`, matched case-insensitively)
+       * in templates, a JSX tag as written (`Modal`, `Dialog.Content`) in
+       * .tsx/.jsx. A modal template that uses one of these, or JSX inside
+       * one, is compliant without repeating the three. Default: none — no
+       * component is trusted until the project names it.
+       */
+      accessibleDialogComponents?: string[];
+      /**
+       * Modal Dialog Accessibility: names that count as the dialog's focus
+       * trap, besides `cdkTrapFocus` in templates — an element tag
+       * (`FocusTrap`, `app-focus-trap`) or an attribute name (`appTrapFocus`)
+       * anywhere in the dialog's file. Template names match
+       * case-insensitively, JSX names as written. Default: none.
+       */
+      focusTrapTokens?: string[];
     };
     performance?: {
       /** Maximum module lines before requiring lazy loading */
@@ -398,7 +417,7 @@ export interface RuleOfCodeConfig {
       minServicesForBarrel?: number;
       /**
        * Additional valid component selector prefixes beyond project.componentPrefix
-       * (e.g. ["t3"] for a design-system library, like Material's "mat").
+       * (e.g. ["ui"] for a design-system library, like Material's "mat").
        */
       allowedComponentPrefixes?: string[];
       /** Extra callee names allowed in template bindings (e.g. ["$any"]). */
@@ -431,6 +450,190 @@ export interface RuleOfCodeConfig {
        */
       specRequiredMinLoc?: number;
     };
+    next?: {
+      /**
+       * Names of the functions that establish who the caller is and what they
+       * may do (`requireUser`, `auth.requireRole`). A call matches when its
+       * callee is the name or ends with `.<name>`; a wrapper built from one
+       * (`withAuth(handler)`, `authClient.action(fn)`) counts too. Read by
+       * Next Server Action Authorizes and Next Route Handler Guarded; absent
+       * while there are actions or mutating handlers to judge, both fail.
+       */
+      authGuards?: string[];
+      /**
+       * Names of the calls that validate a request body (`parse`,
+       * `safeParse`). A route handler that reads `.json()`/`.formData()` must
+       * call one, or narrow with `typeof` (Next Route Handler Guarded).
+       */
+      bodyValidators?: string[];
+      /**
+       * Route handlers that are deliberately public (a signed webhook, a public
+       * read), by route path as the filesystem gives it (`/api/hooks/[id]`),
+       * each with the reason. Exempts the handler from the guard rule only.
+       */
+      publicRoutes?: Array<{ route: string; reason: string }>;
+      /**
+       * Modules that must never reach a 'use client' module graph, ADDED to
+       * the built-in list (unpolyfilled Node built-ins and database drivers).
+       * A package name also covers its subpaths (Next Server Only Boundary).
+       */
+      serverModules?: string[];
+      /**
+       * Whether a module the server graph imports, which imports a server
+       * module directly, must carry `import 'server-only'`. Default true; false
+       * turns that second rule of Next Server Only Boundary off (for code that
+       * plain Node test runners import, where `server-only` throws).
+       */
+      requireServerOnlyMarker?: boolean;
+      /**
+       * The reason a proxy (middleware) deliberately runs on every request,
+       * static files included. Absent: a proxy without a literal
+       * `config.matcher` fails Next Proxy Placement And Matcher.
+       */
+      proxyWithoutMatcher?: string;
+      /**
+       * Where `next build` gets its NEXT_PUBLIC_* values when no Dockerfile or
+       * CI file in the repository runs it (a hosting dashboard). Absent while
+       * such a value is read and no build is found: Next Public Env Is Build
+       * Time fails, because it could not see the build.
+       */
+      publicEnvBuildSource?: string;
+      /**
+       * NEXT_PUBLIC_* names that look secret (KEY, TOKEN, …) and are public by
+       * design (a publishable key), each with the reason.
+       */
+      publicEnvAllowed?: Array<{ name: string; reason: string }>;
+      /**
+       * The exemption lists of security guards (CSRF, auth, rate limit): the
+       * file, the top-level constant, and how the guard matches a pattern
+       * against a path. `[]` declares there are none. Absent: Guard Exemption
+       * Matches A Route fails, asking for the declaration.
+       */
+      guardExemptions?: Array<{
+        file: string;
+        constant: string;
+        match: 'exact' | 'glob' | 'prefix' | 'regex';
+      }>;
+      /**
+       * App Router routes that need no metadata of their own (Next Metadata
+       * Declared), as globs over the route path: `/admin/**`, `/internal`.
+       * Route groups `(x)` and slots `@x` are not part of the path.
+       */
+      metadataExemptRoutes?: string[];
+      /**
+       * Module specifiers that must not be imported statically by a module in
+       * the client bundle (Next Heavy Lib In Client Graph), as globs over the
+       * specifier: `moment`, `three/**`. REPLACES the built-in list rather than
+       * adding to it, so a project can also drop an entry it has measured.
+       */
+      heavyClientLibraries?: string[];
+      /**
+       * External script hosts the app loads on purpose (Next Third Party
+       * Script Declared), each with the reason it is worth its cost. An entry
+       * without a reason is reported, not honoured.
+       */
+      thirdPartyScripts?: Array<{ host: string; reason: string }>;
+      /**
+       * Root-relative links that must do a full page load (Next Internal Link
+       * Component), as globs over the href path, each with its reason — a
+       * recovery page that resets client state. An entry without a reason is
+       * reported, not honoured.
+       */
+      fullReloadLinks?: Array<{ path: string; reason: string }>;
+      /**
+       * Largest first-load JavaScript a route may ship, in kilobytes of 1024
+       * bytes, uncompressed — the `firstLoadUncompressedJsBytes` Next writes to
+       * .next/diagnostics/route-bundle-stats.json (Next Route JS Budget).
+       * No default: the law is opt-in and fails until a budget is declared.
+       */
+      routeJsBudgetKb?: number;
+    };
+    clientIp?: {
+      /**
+       * The ONE module (path relative to the workspace root) allowed to read
+       * x-forwarded-for, forwarded, x-real-ip and cf-connecting-ip
+       * (Client IP Single Boundary).
+       */
+      module?: string;
+      /**
+       * The reason the project does not use client IP addresses at all. Any
+       * read of those headers then fails.
+       */
+      notUsed?: string;
+    };
+    security?: {
+      /**
+       * HTML sanitizers, as the callee is written at the call site
+       * (`DOMPurify.sanitize`, `sanitizeHtml`, `purify.sanitize`). A sink whose
+       * value passes through one of them is not an XSS finding: XSS Prevention
+       * reads it in the sink's statement, react-dangerous-html-guarded as the
+       * `__html` value. `DOMPurify.sanitize` is recognised without this key.
+       */
+      htmlSanitizers?: string[];
+      /**
+       * Files (relative to the project root) that declare the
+       * Content-Security-Policy for the whole site — a server or hosting
+       * config the law does not know by name (nginx.conf, a Helm values file).
+       * Each listed file must exist and set the header, or that is the
+       * violation. firebase.json, vercel.json and netlify.toml are read
+       * without this key.
+       */
+      cspFiles?: string[];
+    };
+    react?: {
+      /**
+       * Functions whose output may be rendered as HTML although they are not
+       * sanitizers — a renderer that escapes its input — each with the reason.
+       * An entry without a reason is reported, not honoured.
+       */
+      trustedHtmlFunctions?: Array<{ name: string; reason: string }>;
+      /**
+       * Serializers that escape `<` for a `<script>` body (e.g. `serialize`
+       * from serialize-javascript), as the callee is written. JSON.stringify
+       * followed by `.replace(/</g, '\\u003c')` is recognised without this key.
+       */
+      jsonSerializers?: string[];
+      /**
+       * URL guards, as the callee is written: an `<a href>` / `<iframe src>`
+       * whose value is a call to one of them is accepted by React Href Scheme
+       * Guarded.
+       */
+      urlGuards?: string[];
+      /**
+       * Redirect-target guards, as the callee is written: a redirect whose
+       * target passes through one of them is accepted by Next Open Redirect
+       * Guarded.
+       */
+      redirectGuards?: string[];
+      /**
+       * Module names (as imported in eslint.config.*, or as written in an
+       * .eslintrc `extends`) of shared ESLint presets that enable
+       * eslint-plugin-react-hooks' rules-of-hooks and exhaustive-deps — read by
+       * React Hooks Lint Enforced, which cannot read inside a package's preset.
+       * eslint-config-next is already known. Default: none.
+       */
+      hooksLintPresets?: string[];
+      /**
+       * Globs (relative to the workspace root) of the project's sanctioned
+       * poll helper — the file that owns visibility-gated polling. React Poll
+       * Visibility Gated does not judge a setInterval inside it. Default: none.
+       */
+      pollHelpers?: string[];
+    };
+    frontend?: {
+      /**
+       * Globs (relative to the project root) of the feature layer, read by
+       * Stores In Data Access and Requires Spec. Absent: a `/feature*\/`
+       * directory (the Nx convention).
+       */
+      featureLayers?: string[];
+      /**
+       * Globs (relative to the project root) of the data-access layer, read
+       * by Requires Spec, Defensive Array Coercion and No Passthrough Cast.
+       * Absent: a `/data-access/` directory (the Nx convention).
+       */
+      dataAccessLayers?: string[];
+    };
     capacitor?: {
       /**
        * Globs (relative to the workspace root) of the one place allowed to
@@ -439,6 +642,61 @@ export interface RuleOfCodeConfig {
        * only when exactly one project directory imports Capacitor.
        */
       boundary?: string[];
+      /**
+       * Identifier or property names that are true in the native shell (a
+       * function, constant or DI token the project defines, e.g.
+       * "IS_NATIVE"). A service worker whose `enabled` expression mentions
+       * one is accepted as off on native by Capacitor Service Worker Native
+       * Decision, like Capacitor.isNativePlatform(). Absent: only
+       * Capacitor.isNativePlatform() / Capacitor.getPlatform() count.
+       */
+      nativeFlag?: string[];
+      /**
+       * Import specifiers of native-backed stores, in addition to
+       * @capacitor/preferences (e.g. "@capacitor-community/sqlite"). A
+       * WebView storage writer whose file, port file or provider file
+       * imports one has a native branch for Capacitor Durable State Off
+       * WebView Storage.
+       */
+      durableStores?: string[];
+      /**
+       * localStorage keys and IndexedDB database names whose loss is
+       * acceptable (caches, UI conveniences, drafts). A writer whose every
+       * key is listed here is accepted by Capacitor Durable State Off
+       * WebView Storage. Keys built at runtime are never matched.
+       */
+      disposableStorageKeys?: string[];
+      /**
+       * Globs (relative to the workspace root) of contract tests and probes
+       * that load a real Capacitor plugin outside the stubbing test config
+       * (a browser probe of the real bundle, a Jest project without the
+       * mapping). A file matching one that imports a stubbed plugin is that
+       * plugin's contract test for Capacitor Plugin Stub Has Contract Test.
+       */
+      contractTests?: string[];
+    };
+    ionic?: {
+      /**
+       * The project's self-drawn edge containers — its own top bar, bottom
+       * bar, sheets — each with the edge it touches. Read by
+       * ionic-edge-chrome-pays-safe-area: when set, it REPLACES the
+       * position-based heuristic with this closed list, and each selector
+       * must be found in the project's CSS with the last padding / margin /
+       * top / bottom / inset declaration on that edge reading
+       * `--ion-safe-area-<edge>` (or `safe-area-inset-<edge>`). A selector
+       * not found in any stylesheet is a violation, so the list cannot go
+       * stale silently.
+       */
+      edgeContainers?: Array<{ selector: string; edge: 'top' | 'bottom' }>;
+      /**
+       * Regular-expression source (case-insensitive) for the class names of
+       * floating UI — toasts, floating actions, sticky calls to action — that
+       * ionic-fixed-content-in-fixed-slot looks for inside ion-content's
+       * scroller. Default: `toast|snackbar|fab|floating|sticky-cta`. Replaces
+       * the default rather than adding to it. An invalid expression is
+       * reported, never replaced by the default.
+       */
+      fixedContentPattern?: string;
     };
     testing?: {
       /** Minimum test coverage percentage (0-100) */
@@ -645,7 +903,11 @@ export const DEFAULT_CONFIG: RuleOfCodeConfig = {
   project: {
     name: 'Workspace',
     componentPrefix: 'app',
-    type: 'angular',
+    // Not a framework. The loader writes the DETECTED type here; this was
+    // 'angular', and since the engine trusts any configured type, a project
+    // whose type the detector did not map to defaults (Python, TypeScript,
+    // Node, or an undetected React monorepo) was audited as Angular.
+    type: 'generic',
   },
 
   ignores: {

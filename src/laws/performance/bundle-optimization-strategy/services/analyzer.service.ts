@@ -1,4 +1,6 @@
 import type { RuleOfCodeConfig } from '../../../../types/law.types';
+import type { ReactPerformanceEvidence } from '../../../../utils/react/react-performance-source';
+import type { BundlerReport } from '../../../../utils/react/web-bundler-config';
 import {
   BundleOptimizationStrategyTypesConstants,
   type ViolationConfig,
@@ -24,62 +26,80 @@ export class BundleOptimizationStrategyAnalyzerService {
    */
   static analyzeCodeSplitting(
     projectRoot: string,
-    config: RuleOfCodeConfig
+    config: RuleOfCodeConfig,
+    react?: ReactPerformanceEvidence,
+    bundler?: BundlerReport
   ): {
     isConfigured: boolean;
     strategies: string[];
   } {
-    return CodeSplittingAnalyzerService.analyze(projectRoot, config);
+    return CodeSplittingAnalyzerService.analyze(projectRoot, config, react, bundler);
   }
 
   /**
    * Analyze tree shaking
    */
-  static analyzeTreeShaking(projectRoot: string): {
+  static analyzeTreeShaking(
+    projectRoot: string,
+    bundler?: BundlerReport
+  ): {
     isEnabled: boolean;
     configurations: string[];
   } {
-    return TreeShakingAnalyzerService.analyze(projectRoot);
+    return TreeShakingAnalyzerService.analyze(projectRoot, bundler);
   }
 
   /**
    * Analyze minification
    */
-  static analyzeMinification(projectRoot: string): {
+  static analyzeMinification(
+    projectRoot: string,
+    bundler?: BundlerReport
+  ): {
     isOptimal: boolean;
     configurations: string[];
   } {
-    return MinificationAnalyzerService.analyze(projectRoot);
+    return MinificationAnalyzerService.analyze(projectRoot, bundler);
   }
 
   /**
    * Analyze critical CSS
    */
-  static analyzeCriticalCSS(projectRoot: string): {
+  static analyzeCriticalCSS(
+    projectRoot: string,
+    bundler?: BundlerReport
+  ): {
     isConfigured: boolean;
     strategies: string[];
   } {
-    return CriticalCSSAnalyzerService.analyze(projectRoot);
+    return CriticalCSSAnalyzerService.analyze(projectRoot, bundler);
   }
 
   /**
    * Analyze vendor chunk optimization
    */
-  static analyzeVendorChunk(projectRoot: string): {
+  static analyzeVendorChunk(
+    projectRoot: string,
+    bundler?: BundlerReport
+  ): {
     isOptimized: boolean;
     optimizations: string[];
   } {
-    return VendorChunkAnalyzerService.analyze(projectRoot);
+    return VendorChunkAnalyzerService.analyze(projectRoot, bundler);
   }
 
   /**
    * Analyze bundle analysis setup
    */
-  static analyzeBundleAnalysis(projectRoot: string): {
+  static analyzeBundleAnalysis(
+    projectRoot: string,
+    config?: RuleOfCodeConfig,
+    bundler?: BundlerReport
+  ): {
     isSetup: boolean;
     tools: string[];
   } {
-    return BundleAnalysisAnalyzerService.analyze(projectRoot);
+    return BundleAnalysisAnalyzerService.analyze(projectRoot, config, bundler);
   }
 
   /**

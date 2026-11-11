@@ -2,13 +2,21 @@
  * FE Architecture Laws Data Module
  * From the frontend architecture audit. Turns the
  * root-cause findings (fragmented polling, eternal root polls, state leaking into
- * feature layer) into statically enforceable laws. Regex/string detection on
- * .ts (RoC has no AST); gated on an Angular project (stack: frontend). Rolled out
- * warn-first warn-first. legacyId range: 301+ (maps to ROC-FE-NN).
+ * feature layer) into statically enforceable laws (stack: frontend), rolled out
+ * warn-first. Most are framework-neutral and run on any frontend; the layer
+ * laws read thresholds.frontend.featureLayers / dataAccessLayers and report a
+ * project with no file in the layer as judged-nothing, not as a pass. Timer
+ * Cleanup is about Angular classes and is gated by `requires`. legacyId range:
+ * 301+ (maps to ROC-FE-NN).
  */
 
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
+import { REQUIRES_ANGULAR } from '../utils/framework-requirements';
 import { generateLawId } from '../utils/id-generator';
+
+/** Shared by the four laws that judge a layer. */
+const LAYER_IS_CONFIGURABLE =
+  'Layers are directories: by default a /feature*/ or /data-access/ path segment (the Nx convention), or the globs in thresholds.frontend.featureLayers / dataAccessLayers. A project with no file in the layer gets one violation saying the law judged nothing — it does not pass.';
 
 export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
   {
@@ -35,6 +43,7 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
     priority: 'HIGH',
     category: 'FRAMEWORK',
     stack: 'frontend',
+    requires: REQUIRES_ANGULAR,
     defaultEnabled: true,
     defaultSeverity: 'warning',
     automation: 'AUTOMATED',
@@ -69,6 +78,7 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
     priority: 'MEDIUM',
     category: 'FRAMEWORK',
     stack: 'frontend',
+    requires: REQUIRES_ANGULAR,
     defaultEnabled: true,
     defaultSeverity: 'warning',
     automation: 'AUTOMATED',
@@ -91,15 +101,19 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Stores In Data Access',
     rationale:
       'A store defined in the UI or util layer couples state to the wrong place and is where a feature\'s data logic quietly escapes its boundary. This law asks that stores live in the data-access layer.',
-    satisfiedBy: { angular: 'Define signalStore/createFeature/createReducer stores (and *.store.ts) in the data-access layer, not in feature/ui/util.' },
+    satisfiedBy: {
+      angular: 'Define signalStore/createFeature/createReducer stores (and *.store.ts) in the data-access layer, not in feature/ui/util.',
+      react:
+        'Keep shared stores (Redux Toolkit createSlice, zustand create) in the data layer; feature components consume them. Declare where your layers live in thresholds.frontend.featureLayers / dataAccessLayers.',
+    },
     detectionLimits: [
-      'Only checks the feature* layer — a store misplaced in ui/, util/, shared/ or core/ is never caught.',
-      'Detection is by CONTENT — a real signalStore(/createFeature(/createReducer( call in code (comments and strings stripped) — so the filename does not matter and a re-export or empty *.store.ts stub is not flagged.',
-      'Angular-gated (vacuous pass on non-Angular).',
+      'Only checks the feature layer — a store misplaced in ui/, util/, shared/ or core/ is never caught.',
+      "Detection is by CONTENT — a signalStore(/createFeature(/createReducer( call in code (comments and strings stripped), or a call to createSlice imported from @reduxjs/toolkit or create imported from zustand (resolved through the imports with the project's TypeScript). Other store libraries (Jotai, MobX, Valtio, React context stores) are not recognised.",
+      LAYER_IS_CONFIGURABLE,
     ],
     emoji: '🗄️',
     description:
-      'State stores (*.store.ts / signalStore / createFeature) live in data-access, not in the feature layer',
+      'State stores (signalStore / createFeature / createSlice / zustand create) live in data-access, not in the feature layer',
     priority: 'HIGH',
     category: 'FRAMEWORK',
     stack: 'frontend',
@@ -128,15 +142,17 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
     satisfiedBy: {
       angular:
         'Add a co-located *.spec.ts for money-adjacent (*actions*) services and any feature/data-access file over the LOC threshold.',
+      react:
+        'Large or money-adjacent client components (.tsx/.jsx in the feature or data-access layer) have a colocated test: Basket.tsx next to Basket.test.tsx or Basket.spec.tsx.',
     },
     detectionLimits: [
-      'Checks that a spec FILE exists, not its content — an empty *.spec.ts satisfies it.',
+      'Checks that a test FILE exists next to the source (same base name, .spec/.test infix, any TS/JS extension), not its content — an empty one satisfies it; a test under __tests__/ or elsewhere is not credited.',
       '"Money-adjacent" is a filename substring or the literal X-Control-Pass string (a comment mentioning it triggers it); LOC is a raw line count including blanks and comments.',
-      'Only files under /feature*/ or /data-access/ paths, and Angular only — a money service elsewhere, or a non-Angular repo, is not checked.',
+      'Candidates are *.component.ts, *.service.ts, .tsx and .jsx files in the feature or data-access layer only — a money service elsewhere is not checked. ' + LAYER_IS_CONFIGURABLE,
     ],
     emoji: '🧪',
     description:
-      'Money-adjacent write services (*actions*/X-Control-Pass) and large components have a co-located *.spec.ts',
+      'Money-adjacent write services (*actions*/X-Control-Pass) and large components have a co-located *.spec.* / *.test.*',
     priority: 'HIGH',
     category: 'TESTING',
     stack: 'frontend',
@@ -165,11 +181,12 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
     satisfiedBy: {
       angular:
         'Animate transform and opacity, not layout properties; never transition width/height/top/left/margin/padding.',
+      react: 'Animate transform and opacity, not layout properties, in your .css/.scss (CSS Modules included).',
     },
     detectionLimits: [
       'Regex over .scss/.css text, no AST — `transition: all` is NOT flagged (it animates layout props but names no layout keyword), and a transition inside a CSS comment is a false positive.',
-      'Only .scss/.css files — inline style= in templates and CSS-in-JS are not scanned.',
-      'Covers transition / transition-property only; animation and @keyframes on layout props are out of scope. Angular only.',
+      'Only .scss/.css files — inline style= in templates, style={{...}} in JSX and CSS-in-JS (styled-components, Emotion) are not scanned.',
+      'Covers transition / transition-property only; animation and @keyframes on layout props are out of scope. Framework-neutral; a project with no stylesheet has nothing for it to judge and passes.',
     ],
     emoji: '🎞️',
     description:
@@ -202,11 +219,12 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
     satisfiedBy: {
       angular:
         'Branch on injected configuration / environment, never on location.hostname. Reading the hostname is fine; comparing it to decide behaviour is not.',
+      react: 'Branch on injected configuration (an env value read at build time), not on location.hostname.',
     },
     detectionLimits: [
-      'Literal-token, single-line match on .ts/.tsx — aliasing defeats it: `const h = location.hostname; if (h === "demo")` is not flagged.',
+      'Literal-token, single-line match on .ts/.tsx/.js/.jsx/.mjs — aliasing defeats it: `const h = location.hostname; if (h === "demo")` is not flagged.',
       'Matches four comparison operators and six string methods; switch(location.hostname), location.host, location.href.includes(...) and gating inside templates are invisible.',
-      'Angular only — auto-passes every non-Angular repo; no comment stripping.',
+      'No comment stripping, so a comparison in a comment is flagged. Framework-neutral; a project with no such comparison passes.',
     ],
     emoji: '🚧',
     description:
@@ -236,11 +254,15 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Defensive Array Coercion',
     rationale:
       'A raw API envelope whose "array" field arrives as null, or as a single object, turns `data.items.map(...)` into a runtime crash on the one payload you did not see in dev. Coercing to an array at the boundary makes the shape safe before the code trusts it.',
-    satisfiedBy: { angular: 'In data-access, coerce raw fields before iterating: (Array.isArray(x) ? x : []).map(...); do not .map/.filter/.reduce a Raw* field directly.' },
+    satisfiedBy: {
+      angular: 'In data-access, coerce raw fields before iterating: (Array.isArray(x) ? x : []).map(...); do not .map/.filter/.reduce a Raw* field directly.',
+      react:
+        'Coerce untrusted arrays at the boundary — (Array.isArray(x) ? x : []) — or parse with a schema. The law judges parameters typed Raw* in the data-access layer.',
+    },
     detectionLimits: [
-      'Scans only /data-access/ files with a Raw* type token, and only a single property hop — p.data.items.map() and an aliased receiver are false negatives.',
-      'Reads RAW .ts (no comment/string stripping), so a p.items.map( inside a comment or string is a false positive.',
-      'Angular only, and only /data-access/ files — a non-Angular project passes without a check.',
+      'Only parameters annotated with a Raw* type token, and only a single property hop — p.data.items.map(), an aliased receiver, or an envelope typed without the Raw marker are false negatives (it stays silent on a project that does not use that naming).',
+      'Reads RAW source (no comment/string stripping), so a p.items.map( inside a comment or string is a false positive.',
+      LAYER_IS_CONFIGURABLE,
     ],
     emoji: '🛟',
     description:
@@ -270,15 +292,19 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'No Passthrough Cast',
     rationale:
       'http.get<RawDto>(url) that flows straight into the app hands the unvalidated wire shape to code that trusts it — the boundary that should have parsed and narrowed just relabelled `any`. Typing the call to the DOMAIN type forces a real transform.',
-    satisfiedBy: { angular: 'Type the HTTP call to a validated domain type, not the Raw envelope; map/parse Raw* into the domain model at the boundary.' },
+    satisfiedBy: {
+      angular: 'Type the HTTP call to a validated domain type, not the Raw envelope; map/parse Raw* into the domain model at the boundary.',
+      react:
+        'Parse response bodies; do not cast res.json() to a domain type. Read it as unknown and parse it (a schema, or a mapper over a Raw* type).',
+    },
     detectionLimits: [
-      'The receiver is not verified to be HttpClient — any .get<T>() / .post<T>() matches (a builder, a typed Map), and a wrapped generic .get<ApiResponse<Foo>>() is missed.',
-      'Scans only /data-access/ files, reads RAW .ts (no stripping) so a generic in a comment/string is flagged; /Raw/ is a case-sensitive allow.',
-      'Angular only, scoped to the /data-access/ layer — outside Angular it passes untested.',
+      'HttpClient shape: the receiver is not verified to be HttpClient — any .get<T>() / .post<T>() matches (a builder, a typed Map), a wrapped generic .get<ApiResponse<Foo>>() is missed, and it reads RAW source, so a generic in a comment/string is flagged.',
+      "fetch shape (syntax tree, the project's TypeScript): `(await r.json()) as T`, `r.json() as Promise<T>`, `... as unknown as T` and `const x: T = await r.json()`. Any zero-argument .json() call counts, whatever the receiver; a body passed through a helper before the cast is not followed. /Raw/ and unknown/any are allowed.",
+      LAYER_IS_CONFIGURABLE,
     ],
     emoji: '🎭',
     description:
-      'HTTP generics are Raw*/unknown, converted in a mapper — no passthrough cast to a domain model',
+      'HTTP generics and res.json() bodies are Raw*/unknown, converted in a mapper — no passthrough cast to a domain model',
     priority: 'MEDIUM',
     category: 'CODE_QUALITY',
     stack: 'frontend',
@@ -308,7 +334,7 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Whole-file token presence: ANY clearInterval/DestroyRef anywhere in the file (even a comment/string, or an unrelated timer) suppresses the violation — a false negative.',
       'Reads raw .ts (no stripping), so a setInterval( in a comment/string with no cleanup is a false positive; setTimeout is not checked.',
-      'Angular only, files matching .component/.service/.directive/.store.ts; vacuous pass on non-Angular.',
+      "Angular only (selected where a workspace manifest declares @angular/core), files matching .component/.service/.directive/.store.ts. React effects are a separate law's subject: a file-level clearInterval credit is too loose to judge them.",
     ],
     emoji: '🧹',
     description:
@@ -316,6 +342,7 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
     priority: 'MEDIUM',
     category: 'CODE_QUALITY',
     stack: 'frontend',
+    requires: REQUIRES_ANGULAR,
     defaultEnabled: true,
     defaultSeverity: 'warning',
     automation: 'AUTOMATED',
@@ -340,9 +367,9 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
       'A bare 450 next to the word equityFloor is a business rule hidden in a literal — the reader cannot tell a deliberate risk limit from a typo, and the next editor changes it blind. Named constants carry the intent, and dollar amounts in a template almost always belong in config.',
     satisfiedBy: { angular: 'Name risk/limit/floor/equity/leverage values as constants from config, not inline literals; keep hardcoded $amounts out of templates.' },
     detectionLimits: [
-      'The .ts branch does NOT strip comments or strings — a `// risk = 700` or a string literal is a false positive; the token match is a case-insensitive SUBSTRING, so delimiter/unlimited/rateLimit/floorplan all fire (a known high false-positive class).',
+      'Opt-in (defaultEnabled: false): its vocabulary — floor, risk, limit, equity, stake, pnl, leverage, target — is the vocabulary of a trading domain, not of a framework, so it is enabled by the projects whose domain it is rather than run on every UI.',
+      'The .ts branch strips comments and string contents, but the token match is a case-insensitive SUBSTRING of the identifier, so delimiter/unlimited/rateLimit/floorplan all fire (a known high false-positive class). .tsx/.jsx are not scanned.',
       'The .html branch flags any line with `$` followed by a digit (Angular interpolation is skipped, but literal `$5` text fires); .scss is not scanned.',
-      'Angular only (it does not scan .scss) — a non-Angular project passes vacuously.',
     ],
     emoji: '💵',
     description:
@@ -350,7 +377,7 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
     priority: 'LOW',
     category: 'CODE_QUALITY',
     stack: 'frontend',
-    defaultEnabled: true,
+    defaultEnabled: false,
     defaultSeverity: 'warning',
     automation: 'AUTOMATED',
     checkFunction: 'NoRiskLiteralsLaw.check',

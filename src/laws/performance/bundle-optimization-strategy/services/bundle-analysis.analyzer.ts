@@ -1,5 +1,13 @@
+import type { RuleOfCodeConfig } from '../../../../types/law.types';
 import { ProjectTypeDetectorValidation } from '../../../../utils/config/project-type-detector/project-type-detector-validation';
 import { NxWorkspace } from '../../../../utils/nx-workspace';
+import { PerformanceBudgetGates } from '../../../../utils/performance-budget-gates';
+import {
+  BUNDLE_ANALYZER_COMMAND,
+  type BundlerReport,
+  WebBundlerConfig,
+} from '../../../../utils/react/web-bundler-config';
+import { WorkspaceManifests } from '../../../../utils/workspace-manifests';
 import { BundleOptimizationStrategyCheckConstants } from '../constants';
 
 /**
@@ -10,55 +18,70 @@ import { BundleOptimizationStrategyCheckConstants } from '../constants';
  * - Verify bundle monitoring setup
  */
 export class BundleAnalysisAnalyzerService {
+  // Analyzers for the bundlers people actually use, not only webpack.
+  private static readonly BUNDLE_TOOLS = [
+    'webpack-bundle-analyzer',
+    'bundlesize',
+    'bundle-buddy',
+    'source-map-explorer',
+    'esbuild-visualizer',
+    'rollup-plugin-visualizer',
+    'vite-bundle-visualizer',
+    '@next/bundle-analyzer',
+  ];
+
   /**
    * Analyze bundle analysis setup
    */
-  static analyze(projectRoot: string): {
+  static analyze(
+    projectRoot: string,
+    config?: RuleOfCodeConfig,
+    bundler?: BundlerReport
+  ): {
     isSetup: boolean;
     tools: string[];
   } {
-    const tools: string[] = [];
-
-    // Check for bundle analysis tools using ProjectTypeDetector utility
-    const allDeps =
+    // The root manifest and every workspace manifest: a monorepo app declares
+    // its analyzer in its own package.json, not the workspace root's.
+    const rootDeps =
       ProjectTypeDetectorValidation.getProjectDependencies(projectRoot);
+    const tools = this.BUNDLE_TOOLS.filter(
+      tool => Boolean(rootDeps[tool]) || WorkspaceManifests.declares(projectRoot, tool)
+    );
 
-    // Analyzers for the bundlers people actually use, not only webpack.
-    const bundleTools = [
-      'webpack-bundle-analyzer',
-      'bundlesize',
-      'bundle-buddy',
-      'source-map-explorer',
-      'esbuild-visualizer',
-      'rollup-plugin-visualizer',
-      'vite-bundle-visualizer',
-      '@next/bundle-analyzer',
+    // A script that RUNS an analyzer. This used to accept any script whose
+    // text contained "bundle" — `bundle exec`, `build:bundle`, a smoke test's
+    // filename — which says nothing about measuring a bundle.
+    const scripts = [
+      ...Object.values(
+        ProjectTypeDetectorValidation.getPackageScripts(projectRoot) ?? {}
+      ),
+      ...WorkspaceManifests.scriptCommands(projectRoot),
     ];
+    if (
+      scripts.some(
+        command =>
+          typeof command === 'string' && BUNDLE_ANALYZER_COMMAND.test(command)
+      )
+    ) {
+      tools.push(
+        BundleOptimizationStrategyCheckConstants.STRATEGY_MESSAGES
+          .BUNDLE_ANALYSIS_SCRIPT
+      );
+    }
 
-    for (const tool of bundleTools) {
-      if (allDeps[tool]) {
-        tools.push(tool);
+    // @next/bundle-analyzer wired into next.config (enabled from a script by
+    // an env var, so the script itself never names the tool).
+    const report = bundler ?? WebBundlerConfig.inspect(projectRoot);
+    for (const app of report.apps) {
+      if (app.bundleAnalyzer) {
+        tools.push(`${WebBundlerConfig.label(projectRoot, app)}: @next/bundle-analyzer in next.config`);
       }
     }
 
-    // Check scripts for bundle analysis commands
-    const scripts =
-      ProjectTypeDetectorValidation.getPackageScripts(projectRoot) ?? {};
-
-    for (const script of Object.values(scripts)) {
-      if (
-        typeof script === 'string' &&
-        script.includes(
-          BundleOptimizationStrategyCheckConstants.BUNDLE_ANALYSIS_SCRIPT_PATTERN
-        )
-      ) {
-        tools.push(
-          BundleOptimizationStrategyCheckConstants.STRATEGY_MESSAGES
-            .BUNDLE_ANALYSIS_SCRIPT
-        );
-        break;
-      }
-    }
+    // A size-limit check that something runs measures the bundle and fails on it.
+    const sizeLimit = PerformanceBudgetGates.enforcedSizeLimit(projectRoot, config);
+    if (sizeLimit) tools.push(sizeLimit);
 
     // Declared budgets ARE a bundle-size policy, and an enforced one: the build
     // fails on them. On the esbuild builder there is no webpack analyzer to

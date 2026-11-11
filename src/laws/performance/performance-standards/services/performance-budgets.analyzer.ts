@@ -1,4 +1,6 @@
+import type { RuleOfCodeConfig } from '../../../../config/types';
 import { FileUtils, PathOperations } from '../../../../utils';
+import { PerformanceBudgetGates } from '../../../../utils/performance-budget-gates';
 import { NxWorkspace } from '../../../../utils/nx-workspace';
 import { PerformanceBudgetsConstants } from '../constants';
 
@@ -8,7 +10,7 @@ import { PerformanceBudgetsConstants } from '../constants';
  * Single Responsibility: Analyzing performance budget configuration
  */
 export class PerformanceBudgetsAnalyzer {
-  static analyze(projectRoot: string): string[] {
+  static analyze(projectRoot: string, config?: RuleOfCodeConfig): string[] {
     const violations: string[] = [];
 
     // Angular budgets — from the root `angular.json` AND every monorepo
@@ -39,6 +41,13 @@ export class PerformanceBudgetsAnalyzer {
       ) {
         return violations;
       }
+    }
+
+    // Toolchain-neutral budgets: a size-limit check or Lighthouse assertions
+    // that something actually runs. Without these, a Next or Vite project
+    // could only satisfy this by adding a webpack config it does not use.
+    if (PerformanceBudgetGates.enforcedBudgets(projectRoot, config).length > 0) {
+      return violations;
     }
 
     violations.push('Performance budgets not configured');

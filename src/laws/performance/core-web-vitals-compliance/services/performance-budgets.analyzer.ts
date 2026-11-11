@@ -1,4 +1,6 @@
+import type { RuleOfCodeConfig } from '../../../../config/types';
 import { FileSystemOperations } from '../../../../utils';
+import { PerformanceBudgetGates } from '../../../../utils/performance-budget-gates';
 import { FileUtils } from '../../../../utils/file-utils';
 import { NxWorkspace } from '../../../../utils/nx-workspace';
 import { CoreWebVitalsFileDiscoveryConstants as FileDiscovery } from '../constants/file-discovery';
@@ -8,7 +10,10 @@ import type {
 } from '../constants/types';
 
 export class PerformanceBudgetsAnalyzerService {
-  static analyze(projectRoot: string): PerformanceBudgetsResult {
+  static analyze(
+    projectRoot: string,
+    config?: RuleOfCodeConfig
+  ): PerformanceBudgetsResult {
     const budgetFiles: string[] = [];
 
     // Check angular.json
@@ -36,6 +41,10 @@ export class PerformanceBudgetsAnalyzerService {
         budgetFiles.push('webpack.config.js');
       }
     }
+
+    // Toolchain-neutral budgets that something runs (size-limit, Lighthouse
+    // assertions): the only kind a Next or Vite project has.
+    budgetFiles.push(...PerformanceBudgetGates.enforcedBudgets(projectRoot, config));
 
     return {
       hasBudgets: budgetFiles.length > 0,

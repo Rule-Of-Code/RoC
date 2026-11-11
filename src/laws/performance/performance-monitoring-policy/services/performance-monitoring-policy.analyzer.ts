@@ -1,4 +1,6 @@
 import type { RuleOfCodeConfig } from '../../../../config/types';
+import { ReactPerformanceSource } from '../../../../utils/react/react-performance-source';
+import { ErrorTrackingPolicyConstants } from '../constants/error-tracking-policy.constants';
 import { CoreWebVitalsPolicyAnalyzerService } from './core-web-vitals-policy.analyzer';
 import { ErrorTrackingPolicyAnalyzerService } from './error-tracking-policy.analyzer';
 import { PerformanceAlertingPolicyAnalyzerService } from './performance-alerting-policy.analyzer';
@@ -14,7 +16,8 @@ import { RealUserMonitoringPolicyAnalyzerService } from './real-user-monitoring-
 export class PerformanceMonitoringPolicyAnalyzerService {
   static async analyzeMonitoringPolicy(
     projectRoot: string,
-    config?: RuleOfCodeConfig
+    config?: RuleOfCodeConfig,
+    lawId?: string
   ): Promise<{
     realUserMonitoring: { hasRUM: boolean; tools: string[] };
     performanceBudget: { configured: boolean; budgetSources: string[] };
@@ -22,20 +25,32 @@ export class PerformanceMonitoringPolicyAnalyzerService {
     performanceAlerting: { hasAlerts: boolean; alertSources: string[] };
     coreWebVitals: { monitored: boolean; implementations: string[] };
     performanceDashboards: { hasDashboards: boolean; dashboardTypes: string[] };
+    unread: string[];
   }> {
+    // React/Next source, read once: Web Vitals reporting (`useReportWebVitals`,
+    // web-vitals calls) and imports of an error-tracking SDK - in the root
+    // layout, `instrumentation*.ts` or anywhere else. Does not run on a project
+    // that declares neither react nor next.
+    const react = ReactPerformanceSource.scan(
+      { projectRoot, config: config as RuleOfCodeConfig, lawId },
+      ErrorTrackingPolicyConstants.ERROR_TRACKING_TOOLS
+    );
     return {
       realUserMonitoring:
         RealUserMonitoringPolicyAnalyzerService.checkRealUserMonitoring(
-          projectRoot
+          projectRoot,
+          react
         ),
       performanceBudget:
         PerformanceBudgetPolicyAnalyzerService.checkPerformanceBudget(
-          projectRoot
+          projectRoot,
+          config
         ),
       errorTracking:
         await ErrorTrackingPolicyAnalyzerService.checkErrorAndPerformanceTracking(
           projectRoot,
-          config
+          config,
+          react
         ),
       performanceAlerting:
         PerformanceAlertingPolicyAnalyzerService.checkPerformanceAlerting(
@@ -44,12 +59,14 @@ export class PerformanceMonitoringPolicyAnalyzerService {
       coreWebVitals:
         await CoreWebVitalsPolicyAnalyzerService.checkCoreWebVitalsMonitoring(
           projectRoot,
-          config
+          config,
+          react
         ),
       performanceDashboards:
         PerformanceDashboardsPolicyAnalyzerService.checkPerformanceDashboards(
           projectRoot
         ),
+      unread: react.unread,
     };
   }
 }

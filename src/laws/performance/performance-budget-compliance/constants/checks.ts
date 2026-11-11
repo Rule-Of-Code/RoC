@@ -39,6 +39,7 @@ export class PerformanceBudgetComplianceCheckConstants {
     'bundlesize',
     'bundle-buddy',
     'source-map-explorer',
+    'size-limit',
   ];
 
   // Monitoring services
@@ -46,6 +47,8 @@ export class PerformanceBudgetComplianceCheckConstants {
     'web-vitals',
     '@sentry/browser',
     '@sentry/angular',
+    '@sentry/nextjs',
+    '@sentry/react',
     '@newrelic/browser',
     'firebase',
   ];

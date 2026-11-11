@@ -179,6 +179,7 @@ describe('TreeShakingAnalyzerService', () => {
         name: 'test-project',
         dependencies: {
           'ngx-translate': '^10.0.0',
+          '@angular/core': '^15.0.0',
         },
       });
       FileUtils.writeFile(packageJsonPath, packageJsonContent);
@@ -201,6 +202,7 @@ describe('TreeShakingAnalyzerService', () => {
         name: 'test-project',
         dependencies: {
           'ng-bootstrap': '^12.0.0',
+          '@angular/core': '^15.0.0',
         },
       });
       FileUtils.writeFile(packageJsonPath, packageJsonContent);
@@ -215,6 +217,34 @@ describe('TreeShakingAnalyzerService', () => {
 
       expect(result.isEnabled).toBe(true);
       expect(result.configurations).toContain('ES6 modules configured');
+    });
+
+    it('does not count a scoped dependency as tree-shaking outside Angular', () => {
+      // `@types/node` contains '@' — the name heuristic passed every project
+      // that had one. Outside Angular, tree-shaking is read from the build.
+      FileUtils.writeFile(
+        PathOperations.join(tempDir, 'package.json'),
+        JSON.stringify({ devDependencies: { '@types/node': '^20.0.0' } })
+      );
+
+      expect(TreeShakingAnalyzerService.analyze(tempDir).isEnabled).toBe(false);
+    });
+
+    it('counts a Next.js app built by next build, unless usedExports is off', () => {
+      FileUtils.writeFile(
+        PathOperations.join(tempDir, 'package.json'),
+        JSON.stringify({
+          scripts: { build: 'next build' },
+          dependencies: { next: '16.4.6', react: '19.3.0' },
+        })
+      );
+      expect(TreeShakingAnalyzerService.analyze(tempDir).isEnabled).toBe(true);
+
+      FileUtils.writeFile(
+        PathOperations.join(tempDir, 'next.config.js'),
+        'module.exports = { webpack(config) { config.optimization.usedExports = false; return config; } };'
+      );
+      expect(TreeShakingAnalyzerService.analyze(tempDir).isEnabled).toBe(false);
     });
 
     it('should detect both Angular optimization and ES6 modules', () => {

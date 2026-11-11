@@ -74,8 +74,10 @@ IDE panel, a dashboard. It is versioned by `schemaVersion` (currently `2`).
   "version": "7.25.0",
   "registryTotal": 186,
   "satisfiedByStacks": {          // the mapping described below — read it, don't hardcode it
-    "keys": ["typescript", "angular", "python", "ionic", "capacitor"],
-    "stackToKey": { "frontend": "angular", "typescript": "typescript", "python": "python" }
+    "keys": ["typescript", "angular", "react", "python", "ionic", "capacitor"],
+    "stackToKey": { "frontend": "angular", "typescript": "typescript", "python": "python" },
+    "projectTypeToKey": { "angular": "angular", "react": "react", "ionic": "ionic",
+                          "python": "python", "typescript": "typescript", "node": "typescript" }
   },
   "laws": [ /* … */ ]
 }
@@ -88,8 +90,8 @@ This is the part that looks like an inconsistency and is not:
 | field | question it answers | values |
 |---|---|---|
 | `stack` | **selection** — does this law run on this project at all? | `frontend`, `typescript`, `python`, or absent (universal) |
-| `satisfiedBy` keys | **guidance** — which technology are these instructions written for? | `typescript`, `angular`, `python`, `ionic`, `capacitor` |
-| `requires` | **selection, finer** — does the project declare the toolkit this law is about? | `{ anyDependency, anyFile }`, or `null` |
+| `satisfiedBy` keys | **guidance** — which technology are these instructions written for? | `typescript`, `angular`, `react`, `python`, `ionic`, `capacitor` |
+| `requires` | **selection, finer** — does the project declare the toolkit this law is about? | `{ anyDependency, allDependencies, anyFile }`, or `null` |
 
 **They are orthogonal. A `satisfiedBy` key is not a stack label**, and no key maps 1:1
 onto a stack. Measured against the shipped registry:
@@ -105,8 +107,10 @@ onto a stack. Measured against the shipped registry:
 `angular` appearing on TypeScript-stack and universal laws is the clearest evidence:
 it names the technology the advice is written in, not the projects the law applies to.
 
-**Render by the key, not by the stack.** `satisfiedByStacks.stackToKey` gives the
-default key for a stacked law; universal laws carry whichever keys have been authored.
+**Render by the key, not by the stack.** `satisfiedByStacks.projectTypeToKey` gives the
+key for a known project type — `stack: "frontend"` covers Angular and React alike, so a
+React project reads `react` and an Angular one `angular`. `stackToKey` gives the default
+key when only the stack is known; universal laws carry whichever keys have been authored.
 Read that object rather than hardcoding a table — if a key is ever added, your renderer
 picks it up.
 
@@ -125,7 +129,9 @@ carries `requires`, and where the project does not declare what it names, the la
 
 Dependencies are read from every workspace `package.json` (root, `apps/*`, `libs/*/*`,
 `packages/*`); files from the root and the same project directories. Every listed
-condition must hold; within a list, one entry is enough. The guidance of such a law sits
+condition must hold; within `anyDependency` and `anyFile` one entry is enough, and within
+`allDependencies` every entry is required — "Ionic **and** the Android platform" is
+`{ "anyDependency": ["@ionic/angular", …], "allDependencies": ["@capacitor/android"] }`. The guidance of such a law sits
 under the key named for the toolkit (`ionic`, `capacitor`), which `stackToKey` cannot
 point at — another reason to iterate `keys`.
 

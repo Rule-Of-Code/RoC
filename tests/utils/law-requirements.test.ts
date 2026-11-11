@@ -78,6 +78,63 @@ describe('lawRequirementsMet', () => {
   });
 });
 
+describe('allDependencies', () => {
+  const IONIC_ANDROID = {
+    anyDependency: ['@ionic/angular', '@ionic/react'],
+    allDependencies: ['@capacitor/core', '@capacitor/android'],
+  };
+
+  it('is met only when every listed package is declared', () => {
+    const both = project({
+      'package.json': manifest({
+        '@ionic/angular': '8',
+        '@capacitor/core': '8',
+        '@capacitor/android': '8',
+      }),
+    });
+    expect(lawRequirementsMet(IONIC_ANDROID, both)).toBe(true);
+  });
+
+  it('one missing package fails it — an iOS-only shell is not Android', () => {
+    const iosOnly = project({
+      'package.json': manifest({
+        '@ionic/angular': '8',
+        '@capacitor/core': '8',
+        '@capacitor/ios': '8',
+      }),
+    });
+    expect(lawRequirementsMet(IONIC_ANDROID, iosOnly)).toBe(false);
+  });
+
+  it('still requires anyDependency alongside it', () => {
+    const noIonic = project({
+      'package.json': manifest({ '@capacitor/core': '8', '@capacitor/android': '8' }),
+    });
+    expect(lawRequirementsMet(IONIC_ANDROID, noIonic)).toBe(false);
+  });
+
+  it('counts packages split across workspace manifests', () => {
+    const split = project({
+      'package.json': manifest({ '@capacitor/core': '8' }),
+      'apps/mobile/package.json': manifest({
+        '@ionic/react': '8',
+        '@capacitor/android': '8',
+      }),
+    });
+    expect(lawRequirementsMet(IONIC_ANDROID, split)).toBe(true);
+  });
+
+  it('an empty list asks for nothing', () => {
+    expect(lawRequirementsMet({ allDependencies: [] }, project({}))).toBe(true);
+  });
+
+  it('is named in words', () => {
+    expect(describeRequirement({ allDependencies: ['@capacitor/core', '@capacitor/android'] })).toBe(
+      'dependencies on @capacitor/core and @capacitor/android'
+    );
+  });
+});
+
 describe('declaredDependencies', () => {
   it('unions every workspace manifest', () => {
     const root = project({

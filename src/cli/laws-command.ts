@@ -88,6 +88,7 @@ export interface SerializedLaw {
 export const SATISFIED_BY_KEYS: readonly (keyof SatisfiedByGuidance)[] = [
   'typescript',
   'angular',
+  'react',
   'python',
   'ionic',
   'capacitor',
@@ -132,10 +133,16 @@ export interface LawsJson {
    * `"ionic"` and `"capacitor"` are carried by `stack: "frontend"` laws whose
    * `requires` names those toolkits — `stackToKey` cannot point at them, which
    * is why a renderer must iterate `keys`.
+   *
+   * `projectTypeToKey` is the finer mapping: `stack: "frontend"` covers Angular
+   * and React alike, so a React project reads `satisfiedBy.react` and an
+   * Angular one `satisfiedBy.angular`. Prefer it when the project type is
+   * known; `stackToKey` stays for consumers that only know the stack.
    */
   satisfiedByStacks: {
     keys: string[];
     stackToKey: Record<string, string>;
+    projectTypeToKey: Record<string, string>;
   };
   laws: SerializedLaw[];
 }
@@ -282,6 +289,14 @@ export function buildLawsJson(
         frontend: 'angular',
         typescript: 'typescript',
         python: 'python',
+      },
+      projectTypeToKey: {
+        angular: 'angular',
+        react: 'react',
+        ionic: 'ionic',
+        python: 'python',
+        typescript: 'typescript',
+        node: 'typescript',
       },
     },
     laws: laws.map(serializeLaw),

@@ -200,6 +200,7 @@ import {
   ReactEffectFetchRaceGuardedLaw,
   ReactEffectResourceCleanupLaw,
   ReactHooksLintEnforcedLaw,
+  ReactRenderNoBrowserGlobalLaw,
   ReactStoreSubscriptionUsesSyncExternalStoreLaw,
 } from '../checkers/react-laws';
 
@@ -509,6 +510,7 @@ export class ModularLawsRegistry {
     'ReactContextValueStableLaw.check': ReactContextValueStableLaw,
     'ReactStoreSubscriptionUsesSyncExternalStoreLaw.check':
       ReactStoreSubscriptionUsesSyncExternalStoreLaw,
+    'ReactRenderNoBrowserGlobalLaw.check': ReactRenderNoBrowserGlobalLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

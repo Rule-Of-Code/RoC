@@ -13,7 +13,7 @@
  */
 
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
-import { REQUIRES_REACT } from '../utils/framework-requirements';
+import { REQUIRES_NEXT, REQUIRES_REACT } from '../utils/framework-requirements';
 import { generateLawId } from '../utils/id-generator';
 
 /** The limits every law reading source through the parse shares. */
@@ -216,5 +216,44 @@ export const REACT_LAWS: EnhancedConstitutionalLaw[] = [
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article XXII.22.5: External source copied into state from an effect',
     remediation: 'Read the external source with useSyncExternalStore',
+  },
+
+  {
+    id: generateLawId(
+      'React Render No Browser Global',
+      'A client component does not read window, document or Web Storage while rendering',
+      'react'
+    ),
+    legacyId: 506,
+    article: 'XXII',
+    subsection: '22.6',
+    title: 'React Render No Browser Global',
+    rationale:
+      "Next pre-renders Client Components on the server before hydrating them, and renders every Pages Router page there too. window, document, localStorage and sessionStorage do not exist on the server, so reading one while rendering throws there — or, behind a check that makes the server and browser renders differ, produces a hydration mismatch. Effects and event handlers run only in the browser; that is where a browser read belongs.",
+    satisfiedBy: {
+      react:
+        'Move the read into useEffect and render a neutral value first, or into the event handler that needs it; for a value that must render in the browser, use useSyncExternalStore with a server snapshot, or next/dynamic with { ssr: false }.',
+    },
+    detectionLimits: [
+      PARSED_SOURCE_ONLY,
+      NO_CROSS_FILE,
+      "Reads files with a 'use client' directive and files under a Pages Router directory (pages/api excluded); a component without the directive that is imported by a client file is not read.",
+      'Render scope is the body of a top-level component (PascalCase), hook (use…), default export or memo/forwardRef function, plus useState/useMemo/useReducer initializers and IIFEs; class components and nested component definitions are not read.',
+      "A read under a typeof check of a browser global (if, ?:, &&, or after an early return) is accepted as the issue asks, although a guarded read can still mismatch on hydration.",
+    ],
+    emoji: '🪟',
+    description:
+      'A client component does not read window, document or Web Storage while rendering',
+    priority: 'MEDIUM',
+    category: 'FRAMEWORK',
+    stack: 'frontend',
+    requires: REQUIRES_NEXT,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'ReactRenderNoBrowserGlobalLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXII.22.6: Browser global read while rendering on the server',
+    remediation: 'Read browser globals in useEffect or an event handler, not during render',
   },
 ];

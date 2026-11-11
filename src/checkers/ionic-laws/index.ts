@@ -18,3 +18,4 @@ export { IonicIconsRegisteredLaw } from './ionic-icons-registered';
 export { IonicScrollThroughIonContentLaw } from './ionic-scroll-through-ion-content';
 export { IonicViewportFitCoverLaw } from './ionic-viewport-fit-cover';
 export { IonicEdgeChromePaysSafeAreaLaw } from './ionic-edge-chrome-pays-safe-area';
+export { IonicGestureTouchActionLaw } from './ionic-gesture-touch-action';

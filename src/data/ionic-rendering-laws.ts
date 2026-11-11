@@ -256,4 +256,43 @@ export const IONIC_RENDERING_LAWS: EnhancedConstitutionalLaw[] = [
     remediation:
       'Read var(--ion-safe-area-<edge>) in the padding of every self-drawn edge container',
   },
+
+  {
+    id: generateLawId(
+      'Ionic Gesture Touch Action',
+      'A pointer-event gesture inside ion-content sets touch-action on its element, host or the scroll part',
+      'ionic'
+    ),
+    legacyId: 417,
+    article: 'IV',
+    subsection: '4.86',
+    title: 'Ionic Gesture Touch Action',
+    rationale:
+      "ion-content's .inner-scroll declares touch-action: pan-x pan-y pinch-zoom (@ionic/core content.css), so a horizontal drag built from raw pointerdown/pointerup is taken by the browser and ends in pointercancel; the swipe works with a mouse and never with a finger, and a jsdom test with MouseEvent cannot tell. Measured in Chromium with CDP touch input: touch → pointerdown, pointercancel, screen stuck; mouse → works; touch with ion-content::part(scroll){touch-action:pan-y} → works.",
+    satisfiedBy: {
+      ionic:
+        "Set touch-action (pan-y for horizontal swipes) on ion-content::part(scroll) of the page that hosts the handler, or on the element / :host, or build the gesture with Ionic's createGesture instead of raw pointer events; test with touch input, not MouseEvent.",
+    },
+    detectionLimits: [
+      'A component is judged when it binds pointerdown and pointermove or pointerup (template, host metadata, @HostListener, addEventListener, fromEvent, renderer.listen) and has an ion-content or is placed inside one; createGesture elsewhere in the same component is not credited, because its raw pointer handlers are still raw (and that createGesture itself survives the scroller was not measured).',
+      'A touch-action rule (other than auto) is matched by selector: in the component\'s own styles on :host, ::part(scroll) or a class/tag of the binding element; in any stylesheet on ::part(scroll), the component\'s element selector or those classes. A rule that matches through the cascade another way is reported as missing (false warning).',
+      'Cannot tell whether the gesture is horizontal or vertical; it only asks that some touch-action be chosen. Gestures from third-party libraries are not judged. WebKit was not measured.',
+      TEMPLATES_ANGULAR_ONLY,
+    ],
+    emoji: '👆',
+    description:
+      'A pointer-event gesture inside ion-content sets touch-action on its element, host or the scroll part',
+    priority: 'MEDIUM',
+    category: 'FRAMEWORK',
+    stack: 'frontend',
+    requires: REQUIRES_IONIC_ANGULAR,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'IonicGestureTouchActionLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.86: Pointer gesture inside ion-content without touch-action',
+    remediation:
+      'Set touch-action: pan-y on ion-content::part(scroll) of the page, or use createGesture',
+  },
 ];

@@ -185,6 +185,7 @@ import {
 import {
   IonicE2eLocatorsTargetTheShownPageLaw,
   IonicEdgeChromePaysSafeAreaLaw,
+  IonicGestureTouchActionLaw,
   IonicIconsRegisteredLaw,
   IonicLeaveCancelsWhatEnterStartedLaw,
   IonicNavigationSpecsMountTheOutletLaw,
@@ -517,6 +518,7 @@ export class ModularLawsRegistry {
     'IonicScrollThroughIonContentLaw.check': IonicScrollThroughIonContentLaw,
     'IonicViewportFitCoverLaw.check': IonicViewportFitCoverLaw,
     'IonicEdgeChromePaysSafeAreaLaw.check': IonicEdgeChromePaysSafeAreaLaw,
+    'IonicGestureTouchActionLaw.check': IonicGestureTouchActionLaw,
 
     // Security Laws
     checkEnvironmentVariables: EnvironmentVariablesLaw,

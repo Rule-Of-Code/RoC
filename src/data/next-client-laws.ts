@@ -365,4 +365,42 @@ export const NEXT_CLIENT_LAWS: EnhancedConstitutionalLaw[] = [
     violationMessage: 'CONSTITUTIONAL VIOLATION Article XXIV.24.9: route JavaScript over budget or not measured',
     remediation: 'Build with Turbopack before the audit and keep every route under thresholds.next.routeJsBudgetKb',
   },
+
+  {
+    id: generateLawId(
+      'Next Segment Config Consistent',
+      "A segment exporting dynamic = 'force-static' or a positive revalidate does not read cookies() or headers()",
+      'next'
+    ),
+    legacyId: 560,
+    article: 'XXIV',
+    subsection: '24.10',
+    title: 'Next Segment Config Consistent',
+    rationale:
+      "Without Cache Components, `dynamic = 'force-static'` forces prerendering and makes `cookies()` and `headers()` return empty values (next/dist/docs: caching-without-cache-components) — a segment that reads them under force-static silently reads nothing. A positive `revalidate` asks for a page regenerated on an interval, while reading cookies()/headers() renders the route per request. With Cache Components (`cacheComponents: true`, the create-next-app default in next@16.4.6) both exports are removed and a segment that still exports them errors (next/dist/docs: migrating-to-cache-components). Either way the file contradicts itself, and a reader will not notice.",
+    satisfiedBy: {
+      react:
+        "Remove `dynamic = 'force-static'` / `revalidate` from a segment that reads cookies() or headers(), or move the read into a segment that is dynamic. With Cache Components: `'use cache'` + `cacheLife` for the cached part, and the request-time read inside `<Suspense>`.",
+    },
+    detectionLimits: [
+      'Same file only: cookies()/headers() called in an imported module or a child component are not seen.',
+      "Recognises `cookies`/`headers` imported from next/headers (named or as a namespace) and the literal exports `dynamic = 'force-static'` and `revalidate = <positive number>`; `use cache` scopes, `connection()`, `draftMode()` and `useSearchParams()` are not read.",
+      'Does not read next.config, so the message covers both caching models instead of naming the one in use.',
+      PAGE_EXTENSIONS,
+      UNREAD_FAILS,
+    ],
+    emoji: '🧭',
+    description:
+      "A segment exporting dynamic = 'force-static' or a positive revalidate does not read cookies() or headers()",
+    priority: 'MEDIUM',
+    category: 'FRAMEWORK',
+    stack: 'frontend',
+    requires: REQUIRES_NEXT,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'NextSegmentConfigConsistentLaw.check',
+    violationMessage: 'CONSTITUTIONAL VIOLATION Article XXIV.24.10: segment config contradicts a request-time API',
+    remediation: "Drop force-static/revalidate from the segment, or move the cookies()/headers() read",
+  },
 ];

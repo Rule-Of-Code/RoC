@@ -203,6 +203,7 @@ import {
   NextInternalLinkComponentLaw,
   NextMetadataDeclaredLaw,
   NextRouteJsBudgetLaw,
+  NextSegmentConfigConsistentLaw,
   NextThirdPartyScriptDeclaredLaw,
   NextUseClientAtLeavesLaw,
 } from '../checkers/next-laws';
@@ -516,6 +517,7 @@ export class ModularLawsRegistry {
     'NextUseClientAtLeavesLaw.check': NextUseClientAtLeavesLaw,
     'NextClientPropsSerializableLaw.check': NextClientPropsSerializableLaw,
     'NextRouteJsBudgetLaw.check': NextRouteJsBudgetLaw,
+    'NextSegmentConfigConsistentLaw.check': NextSegmentConfigConsistentLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

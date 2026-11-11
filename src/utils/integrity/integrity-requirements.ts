@@ -24,3 +24,8 @@ export const REQUIRES_DRIZZLE_MIGRATIONS: LawRequirement = {
 export const REQUIRES_SQL_FILES: LawRequirement = {
   anyFile: ['**/*.sql'],
 };
+
+/** A TypeScript project: it declares the compiler. */
+export const REQUIRES_TYPESCRIPT: LawRequirement = {
+  anyDependency: ['typescript'],
+};

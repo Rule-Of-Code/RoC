@@ -15,6 +15,7 @@ import { generateLawId } from '../utils/id-generator';
 import {
   REQUIRES_DRIZZLE_MIGRATIONS,
   REQUIRES_SQL_FILES,
+  REQUIRES_TYPESCRIPT,
 } from '../utils/integrity/integrity-requirements';
 
 /** The laws that judge the committed tree say so once. */
@@ -105,5 +106,46 @@ export const INTEGRITY_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article XXVII.27.2: a CHECK constraint accepts NULL for a nullable column it compares',
     remediation:
       'Add an explicit IS NULL / IS NOT NULL branch for each nullable column the CHECK compares, or make the column NOT NULL',
+  },
+
+  {
+    id: generateLawId(
+      'Guard Function Has Production Caller',
+      'An exported guard function (assert*, require*, enforce*, verify*, check*, schedule*) is referenced outside the tests',
+      'integrity'
+    ),
+    legacyId: 593,
+    article: 'XXVII',
+    subsection: '27.3',
+    title: 'Guard Function Has Production Caller',
+    rationale:
+      'A function such as requirePermission or scheduleDeletion gets written and thoroughly tested: coverage is high and review is green. The call in the real path never lands, because it was on another branch or was dropped in a conflict. The suite proves the guard works; nothing proves the guard runs. Unused-export tools stay quiet because the test file imports it, and Dead Code Elimination checks for that tooling, not for who calls what.',
+    satisfiedBy: {
+      typescript:
+        'Call the guard on the path it protects (`requirePermission(user, "admin")` in the handler), or delete it with the feature it belonged to. Name the prefixes your project uses in `thresholds.integrity.guardPrefixes` (default: assert, require, enforce, verify, check, schedule).',
+    },
+    detectionLimits: [
+      'Presence is not coverage: a guard called on one path and missing on another passes, and so does a call behind a condition that is never true.',
+      'Only exported function declarations and exported `const x = () => …` / function expressions whose name is a prefix followed by an upper-case letter, digit, _ or $ (requireAdmin, not requirement); class methods and default-exported functions imported under another name are not followed.',
+      'Names outside the prefix list are not checked. thresholds.integrity.guardPrefixes replaces the default list; it must be a non-empty list of identifier prefixes, and an invalid or empty list is a finding.',
+      'References are matched by name in the syntax tree (comments and strings never count; import/export lists, declarations, object keys and recursion inside the guard do not count). Two guards with one name share their callers, and an unrelated `obj.requireX` counts as a reference.',
+      'A function passed by reference counts as referenced (dynamic dispatch is not followed further).',
+      'Test files are *.spec|test|cy|e2e.* and *.stories.* files, and anything under a __tests__, __mocks__, __fixtures__, test, tests, e2e, cypress, spec or specs directory; a test helper elsewhere counts as production.',
+    ],
+    emoji: '🛡️',
+    description:
+      'An exported guard function (assert*, require*, enforce*, verify*, check*, schedule*) is referenced outside the tests',
+    priority: 'MEDIUM',
+    category: 'CODE_QUALITY',
+    stack: 'typescript',
+    requires: REQUIRES_TYPESCRIPT,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'GuardFunctionHasProductionCallerLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXVII.27.3: a guard function is referenced only by tests',
+    remediation:
+      'Call the guard on the real path it protects, or delete it',
   },
 ];

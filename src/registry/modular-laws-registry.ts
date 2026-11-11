@@ -184,6 +184,7 @@ import {
 // Integrity Laws Modular Imports — migrations, CHECKs, guards, tsconfig, retention
 import {
   DrizzleMigrationJournalIntegrityLaw,
+  GuardFunctionHasProductionCallerLaw,
   SqlCheckConstraintNullPassesLaw,
 } from '../checkers/integrity-laws';
 
@@ -502,6 +503,7 @@ export class ModularLawsRegistry {
     // Integrity Laws (migrations, CHECKs, guards, tsconfig, retention)
     'DrizzleMigrationJournalIntegrityLaw.check': DrizzleMigrationJournalIntegrityLaw,
     'SqlCheckConstraintNullPassesLaw.check': SqlCheckConstraintNullPassesLaw,
+    'GuardFunctionHasProductionCallerLaw.check': GuardFunctionHasProductionCallerLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

@@ -184,6 +184,7 @@ import {
 // Ionic Laws Modular Imports — gated by `requires` on an Ionic binding
 import {
   IonicE2eLocatorsTargetTheShownPageLaw,
+  IonicEdgeChromePaysSafeAreaLaw,
   IonicIconsRegisteredLaw,
   IonicLeaveCancelsWhatEnterStartedLaw,
   IonicNavigationSpecsMountTheOutletLaw,
@@ -515,6 +516,7 @@ export class ModularLawsRegistry {
     'IonicIconsRegisteredLaw.check': IonicIconsRegisteredLaw,
     'IonicScrollThroughIonContentLaw.check': IonicScrollThroughIonContentLaw,
     'IonicViewportFitCoverLaw.check': IonicViewportFitCoverLaw,
+    'IonicEdgeChromePaysSafeAreaLaw.check': IonicEdgeChromePaysSafeAreaLaw,
 
     // Security Laws
     checkEnvironmentVariables: EnvironmentVariablesLaw,

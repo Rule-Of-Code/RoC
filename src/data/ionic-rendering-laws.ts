@@ -22,6 +22,8 @@ import { REQUIRES_IONIC, REQUIRES_IONIC_ANGULAR } from '../utils/ionic/ionic-pro
 
 const TEMPLATES_ANGULAR_ONLY =
   'Angular templates only (inline `template` and `templateUrl`); @ionic/react and @ionic/vue are not selected because JSX and SFC templates are not read.';
+const CSS_BY_CLASS_NAME =
+  'CSS is matched to templates by class name (and :host / ::part), without resolving the cascade, specificity or which stylesheet is loaded where.';
 
 export const IONIC_RENDERING_LAWS: EnhancedConstitutionalLaw[] = [
   {
@@ -213,5 +215,45 @@ export const IONIC_RENDERING_LAWS: EnhancedConstitutionalLaw[] = [
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article IV.4.84: index.html viewport without viewport-fit=cover',
     remediation: 'Add viewport-fit=cover to the <meta name="viewport"> content of index.html',
+  },
+
+  {
+    id: generateLawId(
+      'Ionic Edge Chrome Pays Safe Area',
+      'Every self-drawn edge container reads the safe-area inset of the edge it touches',
+      'ionic'
+    ),
+    legacyId: 416,
+    article: 'IV',
+    subsection: '4.85',
+    title: 'Ionic Edge Chrome Pays Safe Area',
+    rationale:
+      "ion-header pays the top inset and ion-footer / ion-tab-bar the bottom one by themselves (@ionic/core header, footer and tab-bar CSS read --ion-safe-area-*); a project's own top bar, bottom bar or sheet must read --ion-safe-area-top/bottom on the edge it touches, and forgetting is invisible in desktop Chromium, device emulation and screenshot gates, which render with no status bar. Measured on an app with its own top bar: --ion-safe-area-bottom read in 6 places, --ion-safe-area-top in 0, content under the status bar on every screen of an Android 16 / targetSdk 36 phone (inset 36px).",
+    satisfiedBy: {
+      ionic:
+        'Use ion-header/ion-footer, or make every self-drawn edge container read var(--ion-safe-area-<edge>) in its padding on that edge; keep the list of edge containers closed (thresholds.ionic.edgeContainers: [{ selector, edge }]) so a new one has to be declared.',
+    },
+    detectionLimits: [
+      'Edge asymmetry (one inset read in the project CSS, the other never, with no ion-header / ion-footer / ion-tab-bar in any template) is the reliable part. The container part is a heuristic: a class used by a template whose rule is position fixed|sticky at top: 0 / bottom: 0 and no rule for that class reads the inset on that edge; a container styled through :host or an element selector is not seen, and an inner element of a host that already pays the inset is reported.',
+      'With thresholds.ionic.edgeContainers the heuristic is replaced by the closed list: each selector must exist in the CSS and the last padding / margin / offset declaration on its edge must read the inset (an inset read and then overridden is seen only in this mode).',
+      'Checks that the variable is read, never its value. Inline styles and styles set from TS are not read. Judged only when an index.html declares viewport-fit=cover (otherwise ionic-viewport-fit-cover fires first). iOS was not measured.',
+      CSS_BY_CLASS_NAME,
+      TEMPLATES_ANGULAR_ONLY,
+    ],
+    emoji: '📱',
+    description:
+      'Every self-drawn edge container reads the safe-area inset of the edge it touches',
+    priority: 'HIGH',
+    category: 'FRAMEWORK',
+    stack: 'frontend',
+    requires: REQUIRES_IONIC_ANGULAR,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'IonicEdgeChromePaysSafeAreaLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.85: Self-drawn edge container does not read the safe-area inset',
+    remediation:
+      'Read var(--ion-safe-area-<edge>) in the padding of every self-drawn edge container',
   },
 ];

@@ -440,6 +440,20 @@ export interface RuleOfCodeConfig {
        */
       boundary?: string[];
     };
+    ionic?: {
+      /**
+       * The project's self-drawn edge containers — its own top bar, bottom
+       * bar, sheets — each with the edge it touches. Read by
+       * ionic-edge-chrome-pays-safe-area: when set, it REPLACES the
+       * position-based heuristic with this closed list, and each selector
+       * must be found in the project's CSS with the last padding / margin /
+       * top / bottom / inset declaration on that edge reading
+       * `--ion-safe-area-<edge>` (or `safe-area-inset-<edge>`). A selector
+       * not found in any stylesheet is a violation, so the list cannot go
+       * stale silently.
+       */
+      edgeContainers?: Array<{ selector: string; edge: 'top' | 'bottom' }>;
+    };
     testing?: {
       /** Minimum test coverage percentage (0-100) */
       minCoveragePercent?: number;

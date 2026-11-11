@@ -19,3 +19,8 @@ export const REQUIRES_DRIZZLE_MIGRATIONS: LawRequirement = {
   anyDependency: ['drizzle-orm'],
   anyFile: [DRIZZLE_JOURNAL_PATTERN],
 };
+
+/** A .sql file anywhere in the tree (the law then reads the ones git tracks). */
+export const REQUIRES_SQL_FILES: LawRequirement = {
+  anyFile: ['**/*.sql'],
+};

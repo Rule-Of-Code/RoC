@@ -5,3 +5,4 @@
  */
 
 export { DrizzleMigrationJournalIntegrityLaw } from './drizzle-migration-journal-integrity';
+export { SqlCheckConstraintNullPassesLaw } from './sql-check-constraint-null-passes';

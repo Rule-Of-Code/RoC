@@ -14,6 +14,7 @@ import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
 import {
   REQUIRES_DRIZZLE_MIGRATIONS,
+  REQUIRES_SQL_FILES,
 } from '../utils/integrity/integrity-requirements';
 
 /** The laws that judge the committed tree say so once. */
@@ -60,5 +61,49 @@ export const INTEGRITY_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article XXVII.27.1: the drizzle migration journal is out of order or inconsistent',
     remediation:
       'Regenerate the colliding migration on the merged tree; keep idx contiguous, one .sql per tag, an unbroken prevId chain',
+  },
+
+  {
+    id: generateLawId(
+      'SQL Check Constraint NULL Passes',
+      'A CHECK constraint on a nullable column says what NULL means: IS NULL, IS NOT NULL or COALESCE for every nullable column it compares',
+      'integrity'
+    ),
+    legacyId: 592,
+    article: 'XXVII',
+    subsection: '27.2',
+    title: 'SQL Check Constraint NULL Passes',
+    rationale:
+      "A CHECK fails only when its expression is FALSE, and NULL is not FALSE (SQL standard; PostgreSQL, MySQL and SQLite all behave this way). `CHECK (status = 'x' OR kind = 'y')` on nullable columns holding NULL evaluates to NULL and the row is accepted. The constraint is present, reviewed and green, and guards nothing for exactly the row nobody thought about — a disarmed gate written in SQL.",
+    satisfiedBy: {
+      typescript:
+        "In the migration: `CHECK (status IS NULL OR status IN ('a','b'))` when NULL is allowed, `CHECK (status IS NOT NULL AND status IN ('a','b'))` when it is not — or declare the column NOT NULL.",
+      python:
+        "In the migration: `CHECK (status IS NULL OR status IN ('a','b'))` when NULL is allowed, `CHECK (status IS NOT NULL AND status IN ('a','b'))` when it is not — or declare the column NOT NULL.",
+    },
+    detectionLimits: [
+      TRACKED_ONLY,
+      'Replays the tracked .sql files in natural path order (0001_, 0002_ …; V2 before V10); a chain whose order is not its path order is replayed in the wrong order.',
+      'Reads the DDL migration tools write: CREATE TABLE, ALTER TABLE ADD / ALTER COLUMN SET|DROP NOT NULL / DROP / RENAME / MODIFY / CHANGE, DROP TABLE, CREATE and ALTER DOMAIN. A CHECK in any other statement is reported as unread, never skipped.',
+      'A column reached through a function, a cast or arithmetic is reported as unread (it may pass NULL through); so is an identifier that is not a column the migrations define, which includes every column of a table created outside the tracked migrations.',
+      'Nullability changed outside the tracked migrations (by hand, by an ORM at runtime, by Python migration code) is not seen.',
+      'A deliberate "NULL is allowed" written without an explicit IS NULL branch is reported; the explicit branch is what makes it pass.',
+      'A comparison inside a CASE WHEN condition is reported even though CASE sends NULL to ELSE.',
+      'Migrations written as code (Alembic, Knex, TypeORM) are not read; only .sql files are.',
+    ],
+    emoji: '🕳️',
+    description:
+      'A CHECK constraint on a nullable column says what NULL means: IS NULL, IS NOT NULL or COALESCE for every nullable column it compares',
+    priority: 'HIGH',
+    category: 'CODE_QUALITY',
+    requires: REQUIRES_SQL_FILES,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'SqlCheckConstraintNullPassesLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXVII.27.2: a CHECK constraint accepts NULL for a nullable column it compares',
+    remediation:
+      'Add an explicit IS NULL / IS NOT NULL branch for each nullable column the CHECK compares, or make the column NOT NULL',
   },
 ];

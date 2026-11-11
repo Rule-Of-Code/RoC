@@ -450,6 +450,65 @@ export interface RuleOfCodeConfig {
        */
       specRequiredMinLoc?: number;
     };
+    security?: {
+      /**
+       * HTML sanitizers, as the callee is written at the call site
+       * (`DOMPurify.sanitize`, `sanitizeHtml`, `purify.sanitize`). A sink whose
+       * value passes through one of them is not an XSS finding: XSS Prevention
+       * reads it in the sink's statement, react-dangerous-html-guarded as the
+       * `__html` value. `DOMPurify.sanitize` is recognised without this key.
+       */
+      htmlSanitizers?: string[];
+      /**
+       * Files (relative to the project root) that declare the
+       * Content-Security-Policy for the whole site — a server or hosting
+       * config the law does not know by name (nginx.conf, a Helm values file).
+       * Each listed file must exist and set the header, or that is the
+       * violation. firebase.json, vercel.json and netlify.toml are read
+       * without this key.
+       */
+      cspFiles?: string[];
+    };
+    react?: {
+      /**
+       * Functions whose output may be rendered as HTML although they are not
+       * sanitizers — a renderer that escapes its input — each with the reason.
+       * An entry without a reason is reported, not honoured.
+       */
+      trustedHtmlFunctions?: Array<{ name: string; reason: string }>;
+      /**
+       * Serializers that escape `<` for a `<script>` body (e.g. `serialize`
+       * from serialize-javascript), as the callee is written. JSON.stringify
+       * followed by `.replace(/</g, '\\u003c')` is recognised without this key.
+       */
+      jsonSerializers?: string[];
+      /**
+       * URL guards, as the callee is written: an `<a href>` / `<iframe src>`
+       * whose value is a call to one of them is accepted by React Href Scheme
+       * Guarded.
+       */
+      urlGuards?: string[];
+      /**
+       * Redirect-target guards, as the callee is written: a redirect whose
+       * target passes through one of them is accepted by Next Open Redirect
+       * Guarded.
+       */
+      redirectGuards?: string[];
+    };
+    frontend?: {
+      /**
+       * Globs (relative to the project root) of the feature layer, read by
+       * Stores In Data Access and Requires Spec. Absent: a `/feature*\/`
+       * directory (the Nx convention).
+       */
+      featureLayers?: string[];
+      /**
+       * Globs (relative to the project root) of the data-access layer, read
+       * by Requires Spec, Defensive Array Coercion and No Passthrough Cast.
+       * Absent: a `/data-access/` directory (the Nx convention).
+       */
+      dataAccessLayers?: string[];
+    };
     capacitor?: {
       /**
        * Globs (relative to the workspace root) of the one place allowed to

@@ -522,6 +522,8 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'localStorage sprinkled through components is untyped, unversioned global state with no single place to change a key or clear on logout. A storage boundary turns "a string under a magic key" into a typed, testable seam.',
     satisfiedBy: {
       angular: 'Access localStorage/sessionStorage only through a service (*.service.ts); wrap reads/writes in a typed API.',
+      react:
+        'Put every web-storage call in one small module named *.service.ts (a plain TS module; that suffix is the only place this detector exempts) and read it through a hook. Guard it for server rendering and for blocked storage.',
       capacitor:
         'Wrap storage in a service and, on native, back durable keys with @capacitor/preferences; declare WebView-only keys as disposable (#269).',
     },

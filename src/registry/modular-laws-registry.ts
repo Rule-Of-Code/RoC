@@ -192,6 +192,13 @@ import {
   CapacitorWebviewOriginDeclaredLaw,
 } from '../checkers/capacitor-laws';
 
+// React Laws Modular Imports — gated by `requires` on react / next
+import {
+  NextOpenRedirectGuardedLaw,
+  ReactDangerousHtmlGuardedLaw,
+  ReactHrefSchemeGuardedLaw,
+} from '../checkers/react-laws';
+
 // Ionic Laws Modular Imports — gated by `requires` on an Ionic binding
 import {
   IonicE2eLocatorsTargetTheShownPageLaw,
@@ -215,6 +222,7 @@ import {
 
 // Security Laws Modular Imports
 import {
+  ContentSecurityPolicyLaw,
   EnvironmentVariablesLaw,
   XSSPreventionLaw,
 } from '../checkers/security-laws';
@@ -526,6 +534,11 @@ export class ModularLawsRegistry {
     'CapacitorDurableStateOffWebviewStorageLaw.check': CapacitorDurableStateOffWebviewStorageLaw,
     'CapacitorPluginStubHasContractTestLaw.check': CapacitorPluginStubHasContractTestLaw,
 
+    // React Laws (gated on react / next)
+    'ReactDangerousHtmlGuardedLaw.check': ReactDangerousHtmlGuardedLaw,
+    'ReactHrefSchemeGuardedLaw.check': ReactHrefSchemeGuardedLaw,
+    'NextOpenRedirectGuardedLaw.check': NextOpenRedirectGuardedLaw,
+
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,
     'IonicPageStateReadOnEnterLaw.check': IonicPageStateReadOnEnterLaw,
@@ -560,7 +573,9 @@ export class ModularLawsRegistry {
     'APISecurityStandardsLaw.check': ApiSecurityStandardsLaw,
     'DependencySecurityScanningLaw.check': DependencySecurityScanningLaw,
     checkSecurityTestingRequirements: SecurityTestingRequirementsLaw,
-    checkSecurityStandards: XSSPreventionLaw,
+    // legacyId 44 judges the CSP; the sinks are legacyId 43's (one defect, one result)
+    checkSecurityStandards: ContentSecurityPolicyLaw,
+    'ContentSecurityPolicyLaw.check': ContentSecurityPolicyLaw,
     'XSSPreventionLaw.check': XSSPreventionLaw,
 
     // Performance Laws

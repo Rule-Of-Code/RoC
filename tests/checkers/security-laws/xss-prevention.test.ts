@@ -337,73 +337,20 @@ describe('XSSPreventionLaw', () => {
       });
     });
 
-    describe('Content Security Policy detection', () => {
-      it('should detect CSP in index.html', () => {
-        const srcDir = PathOperations.join(tempDir, 'src');
-        FileUtils.createDirectory(srcDir);
-        FileUtils.writeFile(
-          PathOperations.join(srcDir, 'index.html'),
-          `
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <meta http-equiv="Content-Security-Policy" content="default-src 'self'">
-            </head>
-            <body></body>
-            </html>
-          `
-        );
+    // The Content-Security-Policy moved to its own law (legacyId 44,
+    // ContentSecurityPolicyLaw, #212): one defect, one result. Its tests are in
+    // xss-sinks-and-csp.test.ts. This law no longer reads index.html for it.
+    it('does not judge the CSP any more — that is ContentSecurityPolicyLaw', () => {
+      const srcDir = PathOperations.join(tempDir, 'src');
+      FileUtils.createDirectory(srcDir);
+      FileUtils.writeFile(
+        PathOperations.join(srcDir, 'index.html'),
+        '<html><head><title>My App</title></head><body></body></html>'
+      );
 
-        const result = XSSPreventionLaw.check(context);
+      const result = XSSPreventionLaw.check(context);
 
-        expect(result).toBeDefined();
-        // Should not have CSP violation
-        expect(
-          (result.violations ?? []).some(v =>
-            v.includes('Content Security Policy')
-          )
-        ).toBe(false);
-      });
-
-      it('should flag missing CSP in index.html', () => {
-        const srcDir = PathOperations.join(tempDir, 'src');
-        FileUtils.createDirectory(srcDir);
-        FileUtils.writeFile(
-          PathOperations.join(srcDir, 'index.html'),
-          `
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <title>My App</title>
-            </head>
-            <body></body>
-            </html>
-          `
-        );
-
-        const result = XSSPreventionLaw.check(context);
-
-        expect(result).toBeDefined();
-        expect(
-          (result.violations ?? []).some(v =>
-            v.includes('Content Security Policy')
-          )
-        ).toBe(true);
-      });
-
-      it('should not flag CSP if index.html does not exist', () => {
-        // No index.html file created
-        const result = XSSPreventionLaw.check(context);
-
-        expect(result).toBeDefined();
-        // Should not have CSP violation when there's no index.html
-        expect(
-          (result.violations ?? []).some(
-            v =>
-              v.includes('Content Security Policy') && v.includes('index.html')
-          )
-        ).toBe(false);
-      });
+      expect(result.violations).toEqual([]);
     });
 
     describe('suggestions for dangerous patterns', () => {
@@ -453,21 +400,6 @@ describe('XSSPreventionLaw', () => {
         expect(
           (result.violations ?? []).some(v => /saniti/i.test(v))
         ).toBe(false);
-      });
-
-      it('should suggest adding CSP meta tag', () => {
-        const srcDir = PathOperations.join(tempDir, 'src');
-        FileUtils.createDirectory(srcDir);
-        FileUtils.writeFile(
-          PathOperations.join(srcDir, 'index.html'),
-          `<html><head></head><body></body></html>`
-        );
-
-        const result = XSSPreventionLaw.check(context);
-
-        expect((result.suggestions ?? []).some(s => s.includes('CSP'))).toBe(
-          true
-        );
       });
     });
 

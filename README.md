@@ -145,9 +145,10 @@ point at — another reason to iterate `keys`.
 
 ### Where the guidance is missing, say so
 
-The 24 `frontend` laws without a `requires` carry only `satisfiedBy.angular`. React guidance
-(`satisfiedBy.react`) is being written law by law — the `react` row above counts it — and
-there is **no Vue guidance yet** ([#12](https://github.com/Rule-Of-Code/RoC/issues/12)). A
+The `frontend` laws that run on every UI project (no `requires`) carry React guidance
+(`satisfiedBy.react`, counted in the `react` row above) — except No Risk Literals, the opt-in
+1 `frontend` law without a `requires` that carries only `satisfiedBy.angular`.
+There is **no Vue guidance yet** ([#12](https://github.com/Rule-Of-Code/RoC/issues/12)). A
 React project matches `stack: "frontend"`, so a law without a `react` key still runs there
 — but the only remediation text it has is Angular's.
 

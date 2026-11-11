@@ -112,13 +112,21 @@ where Capacitor is`
       }
     });
 
+    // Counted by what the law CARRIES. This used to count every frontend law
+    // without `requires`, which stopped meaning "Angular only" as soon as
+    // React guidance was written for some of them.
     it('states how many frontend laws carry only Angular guidance', () => {
       const angularOnly = laws.filter(
-        law => law.stack === 'frontend' && law.requires === undefined
+        law =>
+          law.stack === 'frontend' &&
+          law.requires === undefined &&
+          Object.keys(law.satisfiedBy ?? {}).join() === 'angular'
       ).length;
 
       expect(readme()).toContain(
-        `The ${angularOnly} \`frontend\` laws without a \`requires\` carry only \`satisfiedBy.angular\`.`
+        angularOnly === 1
+          ? '1 `frontend` law without a `requires` that carries only `satisfiedBy.angular`'
+          : `The ${angularOnly} \`frontend\` laws without a \`requires\` carry only \`satisfiedBy.angular\`.`
       );
     });
   });

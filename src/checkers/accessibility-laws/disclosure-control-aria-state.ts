@@ -17,7 +17,9 @@
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
+import { jsxAttribute, type JsxElementInfo } from '../../utils/react/tsx-source';
 import { AccessibilityLawBase } from './accessibility-law-base';
+import { JsxSources, type JsxFile } from './jsx-sources';
 import { TemplateMarkup, type MarkupElement } from './template-markup';
 
 /** Keywords in a click handler that strongly imply a disclosure toggle. */
@@ -41,17 +43,77 @@ export class DisclosureControlAriaStateLaw extends AccessibilityLawBase {
         );
       }
     }
+    violations.push(...this.checkJsx(context));
 
     return this.createResult(
       violations,
       'Disclosure Control ARIA State',
       [
-        'Bind [attr.aria-expanded] to the open/closed signal on the toggle button',
+        'Bind [attr.aria-expanded] (JSX: aria-expanded={open}) to the open/closed state on the toggle button',
         'Add aria-haspopup / role="menu" when it opens a menu',
         'Ionic: use ion-accordion, or a native <button> for the toggle',
       ],
       context
     );
+  }
+
+  /**
+   * JSX: a native `<button>` whose `onClick` handler text reads as a
+   * disclosure toggle (`() => setOpen(o => !o)`, `toggleMenu`), without
+   * aria-expanded (or aria-pressed, which makes it a toggle button). With a
+   * `{...spread}` it is reported as not readable: the spread may carry the
+   * state.
+   */
+  private static checkJsx(context: LawCheckContext): string[] {
+    const jsx = JsxSources.read(context);
+    const violations = [...jsx.unread];
+    for (const file of jsx.files) {
+      const toggles = file.elements.filter(element => this.isJsxToggleWithoutState(file, element));
+      const missing = toggles.filter(el => !el.hasSpread).map(el => el.line);
+      const spread = toggles.filter(el => el.hasSpread).map(el => el.line);
+      if (missing.length > 0) {
+        violations.push(
+          `${file.relative}: ${missing.length} disclosure button(s) toggling a panel/menu without aria-expanded at ${this.lines(missing)} — bind aria-expanded={open} so the state is announced.`
+        );
+      }
+      if (spread.length > 0) {
+        violations.push(
+          `${file.relative}: ${spread.length} disclosure button(s) with a {...spread} and no aria-expanded written at ${this.lines(spread)} — whether the spread sets it cannot be read; write aria-expanded here.`
+        );
+      }
+    }
+    return violations;
+  }
+
+  private static isJsxToggleWithoutState(file: JsxFile, element: JsxElementInfo): boolean {
+    if (!JsxSources.isIntrinsic(element, 'button')) return false;
+    const onClick = jsxAttribute(element, 'onClick');
+    if (!onClick || !DISCLOSURE_INTENT.test(onClick.value)) return false;
+    if (this.setsALiteral(file, element)) return false;
+    return !JsxSources.has(element, 'aria-expanded') && !JsxSources.has(element, 'aria-pressed');
+  }
+
+  /**
+   * `onClick={() => setOpen(false)}` closes, `() => setOpen(true)` opens:
+   * a button that sets a literal does not toggle, so it is no disclosure
+   * control (an opener of a dialog takes aria-haspopup, not aria-expanded).
+   */
+  private static setsALiteral(file: JsxFile, element: JsxElementInfo): boolean {
+    const ts = file.source.ts;
+    for (const property of element.node.attributes.properties) {
+      if (!ts.isJsxAttribute(property) || property.name.getText(file.source.sourceFile) !== 'onClick') {
+        continue;
+      }
+      const initializer = property.initializer;
+      const handler = initializer && ts.isJsxExpression(initializer) ? initializer.expression : undefined;
+      if (!handler || !ts.isArrowFunction(handler) || !ts.isCallExpression(handler.body)) return false;
+      const args = handler.body.arguments;
+      return (
+        args.length === 1 &&
+        (args[0]?.kind === ts.SyntaxKind.TrueKeyword || args[0]?.kind === ts.SyntaxKind.FalseKeyword)
+      );
+    }
+    return false;
   }
 
   /** Toggles without the state, and Ionic toggles whose state cannot follow. */

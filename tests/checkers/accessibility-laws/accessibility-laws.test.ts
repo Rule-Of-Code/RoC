@@ -145,6 +145,7 @@ describe('DisclosureControlAriaStateLaw', () => {
 describe('AccessibilityLintingEnforcementLaw', () => {
   it('flags templates project whose ESLint lacks the a11y plugin', () => {
     const dir = fixture({
+      'package.json': JSON.stringify({ dependencies: { '@angular/core': '^20.0.0' } }),
       'a.component.html': '<div>t</div>\n',
       'eslint.config.mjs': 'export default [{ rules: {} }];\n',
     });
@@ -152,6 +153,7 @@ describe('AccessibilityLintingEnforcementLaw', () => {
   });
   it('passes when the a11y plugin + core rules are configured', () => {
     const dir = fixture({
+      'package.json': JSON.stringify({ dependencies: { '@angular/core': '^20.0.0' } }),
       'a.component.html': '<div>t</div>\n',
       'eslint.config.mjs':
         "import t from '@angular-eslint/eslint-plugin-template';\nexport default [{ rules: { 'click-events-have-key-events':'error','label-has-associated-control':'error','valid-aria':'error','alt-text':'error','role-has-required-aria':'error' } }];\n",

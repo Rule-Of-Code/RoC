@@ -10,7 +10,11 @@
  *   accessible-by-construction modal);
  * - Ionic's `ion-modal` — inline, or a component shown through
  *   `ModalController.create` (see IonicDialogReader), unless that
- *   presentation turns `focusTrap` off.
+ *   presentation turns `focusTrap` off;
+ * - in JSX, a native `<dialog>` opened with `showModal()` (see ModalDialogJsx).
+ *
+ * The focus trap is `cdkTrapFocus`, or an element or attribute the project
+ * names in `thresholds.accessibility.focusTrapTokens`.
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
@@ -21,21 +25,24 @@ import {
   type IonicDialogs,
   type IonicPresentation,
 } from './ionic-dialogs';
+import { CONFIG_KEY, DIALOG_ROLES, ModalDialogJsx } from './modal-dialog-jsx';
 import { TemplateMarkup, type MarkupDocument, type MarkupElement } from './template-markup';
 
 const ROLE_DIALOG = 'role="dialog"';
 const ARIA_MODAL = 'aria-modal="true"';
 const FOCUS_TRAP = 'a focus trap (cdkTrapFocus)';
-const DIALOG_ROLES = ['dialog', 'alertdialog'];
-const CONFIG_KEY = 'thresholds.accessibility.accessibleDialogComponents';
 
 export class ModalDialogAccessibilityLaw extends AccessibilityLawBase {
   static check(context: LawCheckContext): LawResult {
     const { templates, unread } = this.readTemplates(context);
     const violations: string[] = [...unread];
-    const accessible = (
-      context.config.thresholds?.accessibility?.accessibleDialogComponents ?? []
-    ).map(name => name.toLowerCase());
+    const settings = context.config.thresholds?.accessibility;
+    const accessible = (settings?.accessibleDialogComponents ?? []).map(name =>
+      name.toLowerCase()
+    );
+    const trapTokens = ['cdktrapfocus', ...(settings?.focusTrapTokens ?? [])].map(name =>
+      name.toLowerCase()
+    );
 
     let ionic: IonicDialogs | null = null;
     const presentationOf = (template: ReadTemplate): IonicPresentation | undefined => {
@@ -48,7 +55,7 @@ export class ModalDialogAccessibilityLaw extends AccessibilityLawBase {
       const elements = template.document.elements;
       if (elements.some(el => accessible.includes(el.tag))) continue;
 
-      const missing = this.missing(elements);
+      const missing = this.missing(elements, trapTokens);
       if (missing.length === 0) continue;
       const presentation = presentationOf(template);
       const stillMissing = presentation
@@ -57,6 +64,11 @@ export class ModalDialogAccessibilityLaw extends AccessibilityLawBase {
       if (stillMissing.length === 0) continue;
       violations.push(this.message(template, stillMissing, presentation, ionic));
     }
+    violations.push(
+      ...ModalDialogJsx.check(context, settings?.accessibleDialogComponents ?? [], [
+        ...(settings?.focusTrapTokens ?? []),
+      ])
+    );
 
     return this.createResult(
       violations,
@@ -83,7 +95,7 @@ export class ModalDialogAccessibilityLaw extends AccessibilityLawBase {
     });
   }
 
-  private static missing(elements: MarkupElement[]): string[] {
+  private static missing(elements: MarkupElement[], trapTokens: string[]): string[] {
     const ionModals = elements.filter(el => el.tag === 'ion-modal');
     const inlineIonModal = ionModals.length > 0;
     const ionTrapOff = ionModals.some(el => {
@@ -100,7 +112,11 @@ export class ModalDialogAccessibilityLaw extends AccessibilityLawBase {
       return written !== undefined && (written.value ?? '').trim() === 'true';
     });
     if (!hasAriaModal && !inlineIonModal) missing.push(ARIA_MODAL);
-    const hasTrap = elements.some(el => TemplateMarkup.has(el, 'cdkTrapFocus'));
+    const hasTrap = elements.some(
+      el =>
+        trapTokens.includes(el.tag) ||
+        trapTokens.some(token => TemplateMarkup.has(el, token))
+    );
     if (!hasTrap && (!inlineIonModal || ionTrapOff)) missing.push(FOCUS_TRAP);
     return missing;
   }

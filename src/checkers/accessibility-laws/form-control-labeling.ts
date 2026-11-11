@@ -5,6 +5,10 @@
  * wrapping `<label>`, an `aria-label`, or an `aria-labelledby`. Credential
  * inputs without one are unusable with a screen reader.
  *
+ * In JSX an `id` counts only when an element in the same file points at it
+ * with `htmlFor`, so an orphan id is reported; a control with a `{...spread}`
+ * and no name written is reported as not readable.
+ *
  * Ionic form controls are custom elements, and each takes its name from its
  * own places (read in @ionic/core 8.8.17):
  * - ion-input / ion-textarea: the `label` property or a `slot="label"` child
@@ -20,7 +24,9 @@
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
+import { jsxAttribute, type JsxElementInfo } from '../../utils/react/tsx-source';
 import { AccessibilityLawBase } from './accessibility-law-base';
+import { JsxSources, type JsxFile } from './jsx-sources';
 import { TemplateMarkup, type MarkupElement } from './template-markup';
 
 const ARIA_LABEL = 'aria-label';
@@ -67,16 +73,83 @@ export class FormControlLabelingLaw extends AccessibilityLawBase {
         );
       }
     }
+    violations.push(...this.checkJsx(context));
 
     return this.createResult(
       violations,
       'Form Control Labeling',
       [
-        'Associate a <label for> via id, wrap the control in a <label>, or add aria-label / aria-labelledby',
+        'Associate a <label for> (JSX: <label htmlFor>) via id, wrap the control in a <label>, or add aria-label / aria-labelledby',
         'Ionic: label="…" or slot="label" on ion-input/ion-select/ion-textarea/ion-range; slot text on ion-checkbox/ion-toggle/ion-radio',
         'Do not rely on placeholder as the accessible name',
       ],
       context
+    );
+  }
+
+  private static checkJsx(context: LawCheckContext): string[] {
+    const jsx = JsxSources.read(context);
+    const violations = [...jsx.unread];
+    for (const file of jsx.files) {
+      const found = this.unnamedInJsx(file);
+      if (found.unnamed.length > 0) {
+        violations.push(
+          `${file.relative}: ${found.unnamed.length} form control(s) without an accessible label (<label htmlFor>/wrapping <label>/aria-label/aria-labelledby) at ${this.lines(found.unnamed)} — placeholder does not count.`
+        );
+      }
+      if (found.orphans.length > 0) {
+        violations.push(
+          `${file.relative}: ${found.orphans.length} control id(s) that no htmlFor in this file points at (${found.orphans.join(', ')}) — add a <label htmlFor>, wrap the control in a <label>, or use aria-labelledby.`
+        );
+      }
+      if (found.spread.length > 0) {
+        violations.push(
+          `${file.relative}: ${found.spread.length} form control(s) with a {...spread} and no label written at ${this.lines(found.spread)} — whether the spread names it cannot be read; write the label here.`
+        );
+      }
+    }
+    return violations;
+  }
+
+  /**
+   * JSX controls without a name. An `id` names a control only when an
+   * element in the same file points at it with `htmlFor` — the same literal,
+   * or the same expression (`htmlFor={id}` … `id={id}`).
+   */
+  private static unnamedInJsx(file: JsxFile): {
+    unnamed: number[];
+    orphans: string[];
+    spread: number[];
+  } {
+    const targets = new Set(
+      file.elements.flatMap(el => {
+        const htmlFor = jsxAttribute(el, 'htmlFor');
+        return htmlFor ? [`${htmlFor.kind}:${htmlFor.value}`] : [];
+      })
+    );
+    const result = { unnamed: [] as number[], orphans: [] as string[], spread: [] as number[] };
+    for (const element of file.elements) {
+      if (!this.isJsxControl(element) || this.jsxHasName(file, element)) continue;
+      const id = jsxAttribute(element, 'id');
+      if (id && targets.has(`${id.kind}:${id.value}`)) continue;
+      if (element.hasSpread) result.spread.push(element.line);
+      else if (id) result.orphans.push(`id ${id.kind === 'string' ? `"${id.value}"` : `{${id.value}}`} line ${element.line}`);
+      else result.unnamed.push(element.line);
+    }
+    return result;
+  }
+
+  private static isJsxControl(element: JsxElementInfo): boolean {
+    if (!NATIVE_CONTROLS.some(tag => JsxSources.isIntrinsic(element, tag))) return false;
+    const type = JsxSources.stringValue(element, 'type');
+    return type === undefined || !this.EXEMPT_TYPES.test(type);
+  }
+
+  private static jsxHasName(file: JsxFile, element: JsxElementInfo): boolean {
+    return (
+      JsxSources.has(element, ARIA_LABEL) ||
+      JsxSources.has(element, ARIA_LABELLEDBY) ||
+      JsxSources.ancestorTags(file.source, element).includes('label')
     );
   }
 

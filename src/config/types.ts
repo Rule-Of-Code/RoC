@@ -382,11 +382,20 @@ export interface RuleOfCodeConfig {
        * Modal Dialog Accessibility: element names of the project's own dialog
        * components that render role="dialog", aria-modal="true" and a focus
        * trap themselves — an HTML tag (`app-modal`, matched case-insensitively)
-       * in templates. A modal template that uses one of these is compliant
-       * without repeating the three. Default: none — no component is trusted
-       * until the project names it.
+       * in templates, a JSX tag as written (`Modal`, `Dialog.Content`) in
+       * .tsx/.jsx. A modal template that uses one of these, or JSX inside
+       * one, is compliant without repeating the three. Default: none — no
+       * component is trusted until the project names it.
        */
       accessibleDialogComponents?: string[];
+      /**
+       * Modal Dialog Accessibility: names that count as the dialog's focus
+       * trap, besides `cdkTrapFocus` in templates — an element tag
+       * (`FocusTrap`, `app-focus-trap`) or an attribute name (`appTrapFocus`)
+       * anywhere in the dialog's file. Template names match
+       * case-insensitively, JSX names as written. Default: none.
+       */
+      focusTrapTokens?: string[];
     };
     performance?: {
       /** Maximum module lines before requiring lazy loading */

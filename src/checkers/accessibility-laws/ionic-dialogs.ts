@@ -27,6 +27,7 @@ import {
   TsxSource,
   type TypeScriptModule,
 } from '../../utils/react/tsx-source';
+import { parseErrors } from './jsx-sources';
 import { TemplateMarkup, type MarkupDocument } from './template-markup';
 
 /** How a template is presented by ion-modal. */
@@ -57,21 +58,8 @@ export function templateKey(file: string): string {
   const unix = PathOperations.toUnixStyle(PathOperations.resolve(file));
   return process.platform === 'win32' ? unix.toLowerCase() : unix;
 }
-const ION_MODAL = 'ion-modal';
 
-/** Parse diagnostics a TypeScript SourceFile carries (internal, present since TS 1.x). */
-export function parseErrors(ts: TypeScriptModule, sourceFile: TS.SourceFile): string[] {
-  const diagnostics =
-    (sourceFile as unknown as { parseDiagnostics?: readonly TS.Diagnostic[] })
-      .parseDiagnostics ?? [];
-  return diagnostics.map(diagnostic => {
-    const line =
-      diagnostic.start === undefined
-        ? 0
-        : sourceFile.getLineAndCharacterOfPosition(diagnostic.start).line + 1;
-    return `line ${line}: ${ts.flattenDiagnosticMessageText(diagnostic.messageText, ' ')}`;
-  });
-}
+const ION_MODAL = 'ion-modal';
 
 export class IonicDialogReader {
   /**

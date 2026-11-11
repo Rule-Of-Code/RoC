@@ -282,7 +282,11 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Performance Test Requirements',
     rationale:
       'A feature that is correct but slow still fails the user. Performance tests turn "it feels fast" into a number that a regression cannot quietly cross.',
-    satisfiedBy: { angular: 'Add perf/load tests (k6/artillery), a bundle-size budget, and web-vitals (LCP/CLS/INP) tracking for critical flows.' },
+    satisfiedBy: {
+      angular: 'Add perf/load tests (k6/artillery), a bundle-size budget, and web-vitals (LCP/CLS/INP) tracking for critical flows.',
+      react:
+        'Add a perf spec named *.perf.spec.ts or *.perf.test.ts under src/, tests/, test/, e2e/ or an {apps,libs,packages}/**/src directory, exercising a critical flow (login, checkout, payment). Declare size-limit or @next/bundle-analyzer, and web-vitals or Lighthouse, in the ROOT package.json: a workspace package manifest is not read.',
+    },
     detectionLimits: [
       'Entirely presence-of-tooling by keyword — it measures no actual performance number.',
       'Bundle-size and web-vitals are browser-only and there is NO Python path, so a Python service is scored on browser concerns it cannot have.',

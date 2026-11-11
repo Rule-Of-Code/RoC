@@ -171,11 +171,17 @@ import {
 
 // Capacitor Laws Modular Imports — gated by `requires` on @capacitor/core + a config
 import {
+  CapacitorAndroidBackHasOneOwnerLaw,
   CapacitorDeepLinkContractLaw,
+  CapacitorDurableStateOffWebviewStorageLaw,
+  CapacitorListenerHandlesReleasedLaw,
+  CapacitorLocalPluginContractLaw,
   CapacitorLoggingNeverProductionLaw,
   CapacitorNoDevOnlyServerKeysLaw,
   CapacitorPluginConfigDeclaredLaw,
   CapacitorPluginPlatformDeclarationsLaw,
+  CapacitorPluginStubHasContractTestLaw,
+  CapacitorServiceWorkerNativeDecisionLaw,
   CapacitorSinglePlatformBoundaryLaw,
   CapacitorSyncArtefactsMatchDependenciesLaw,
   CapacitorWebviewOriginDeclaredLaw,
@@ -492,6 +498,14 @@ export class ModularLawsRegistry {
     'CapacitorPluginPlatformDeclarationsLaw.check': CapacitorPluginPlatformDeclarationsLaw,
     'CapacitorDeepLinkContractLaw.check': CapacitorDeepLinkContractLaw,
     'CapacitorSyncArtefactsMatchDependenciesLaw.check': CapacitorSyncArtefactsMatchDependenciesLaw,
+
+    // Capacitor bridge laws (back button, local plugins, listeners, web-side decisions)
+    'CapacitorAndroidBackHasOneOwnerLaw.check': CapacitorAndroidBackHasOneOwnerLaw,
+    'CapacitorLocalPluginContractLaw.check': CapacitorLocalPluginContractLaw,
+    'CapacitorListenerHandlesReleasedLaw.check': CapacitorListenerHandlesReleasedLaw,
+    'CapacitorServiceWorkerNativeDecisionLaw.check': CapacitorServiceWorkerNativeDecisionLaw,
+    'CapacitorDurableStateOffWebviewStorageLaw.check': CapacitorDurableStateOffWebviewStorageLaw,
+    'CapacitorPluginStubHasContractTestLaw.check': CapacitorPluginStubHasContractTestLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

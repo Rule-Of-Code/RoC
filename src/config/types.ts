@@ -458,6 +458,38 @@ export interface RuleOfCodeConfig {
        * only when exactly one project directory imports Capacitor.
        */
       boundary?: string[];
+      /**
+       * Identifier or property names that are true in the native shell (a
+       * function, constant or DI token the project defines, e.g.
+       * "IS_NATIVE"). A service worker whose `enabled` expression mentions
+       * one is accepted as off on native by Capacitor Service Worker Native
+       * Decision, like Capacitor.isNativePlatform(). Absent: only
+       * Capacitor.isNativePlatform() / Capacitor.getPlatform() count.
+       */
+      nativeFlag?: string[];
+      /**
+       * Import specifiers of native-backed stores, in addition to
+       * @capacitor/preferences (e.g. "@capacitor-community/sqlite"). A
+       * WebView storage writer whose file, port file or provider file
+       * imports one has a native branch for Capacitor Durable State Off
+       * WebView Storage.
+       */
+      durableStores?: string[];
+      /**
+       * localStorage keys and IndexedDB database names whose loss is
+       * acceptable (caches, UI conveniences, drafts). A writer whose every
+       * key is listed here is accepted by Capacitor Durable State Off
+       * WebView Storage. Keys built at runtime are never matched.
+       */
+      disposableStorageKeys?: string[];
+      /**
+       * Globs (relative to the workspace root) of contract tests and probes
+       * that load a real Capacitor plugin outside the stubbing test config
+       * (a browser probe of the real bundle, a Jest project without the
+       * mapping). A file matching one that imports a stubbed plugin is that
+       * plugin's contract test for Capacitor Plugin Stub Has Contract Test.
+       */
+      contractTests?: string[];
     };
     testing?: {
       /** Minimum test coverage percentage (0-100) */

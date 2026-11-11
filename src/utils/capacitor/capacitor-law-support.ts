@@ -9,7 +9,7 @@
  */
 
 import type { LawRequirement } from '../../types/enhanced-law.types';
-import type { LawCheckContext } from '../../types/law.types';
+import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { PathOperations } from '../path-operations';
 import {
   CAPACITOR_CONFIG_FILES,
@@ -68,4 +68,20 @@ export function resolvedProjects(context: LawCheckContext): {
     }
   }
   return { resolved, unresolved };
+}
+
+/**
+ * A result with advisory notes: findings a law reports without failing on
+ * them (a PARTIAL sub-rule, an info-level observation). They go first in the
+ * suggestions and in the details, and the message says how many there are,
+ * so a passing law still tells the reader what it noticed.
+ */
+export function withNotes(result: LawResult, notes: readonly string[]): LawResult {
+  if (notes.length === 0) return result;
+  return {
+    ...result,
+    message: `${result.message} (${notes.length} note${notes.length === 1 ? '' : 's'})`,
+    suggestions: [...notes, ...(result.suggestions ?? [])],
+    details: [...(result.details ?? []), ...notes],
+  };
 }

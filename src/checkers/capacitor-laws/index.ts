@@ -12,3 +12,9 @@ export { CapacitorSinglePlatformBoundaryLaw } from './capacitor-single-platform-
 export { CapacitorPluginPlatformDeclarationsLaw } from './capacitor-plugin-platform-declarations';
 export { CapacitorDeepLinkContractLaw } from './capacitor-deep-link-contract';
 export { CapacitorSyncArtefactsMatchDependenciesLaw } from './capacitor-sync-artefacts-match-dependencies';
+export { CapacitorAndroidBackHasOneOwnerLaw } from './capacitor-android-back-has-one-owner';
+export { CapacitorLocalPluginContractLaw } from './capacitor-local-plugin-contract';
+export { CapacitorListenerHandlesReleasedLaw } from './capacitor-listener-handles-released';
+export { CapacitorServiceWorkerNativeDecisionLaw } from './capacitor-service-worker-native-decision';
+export { CapacitorDurableStateOffWebviewStorageLaw } from './capacitor-durable-state-off-webview-storage';
+export { CapacitorPluginStubHasContractTestLaw } from './capacitor-plugin-stub-has-contract-test';

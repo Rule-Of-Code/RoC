@@ -15,3 +15,4 @@ export { CapacitorSyncArtefactsMatchDependenciesLaw } from './capacitor-sync-art
 export { CapacitorAndroidBackHasOneOwnerLaw } from './capacitor-android-back-has-one-owner';
 export { CapacitorLocalPluginContractLaw } from './capacitor-local-plugin-contract';
 export { CapacitorListenerHandlesReleasedLaw } from './capacitor-listener-handles-released';
+export { CapacitorServiceWorkerNativeDecisionLaw } from './capacitor-service-worker-native-decision';

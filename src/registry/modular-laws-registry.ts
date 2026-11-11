@@ -179,6 +179,7 @@ import {
   CapacitorNoDevOnlyServerKeysLaw,
   CapacitorPluginConfigDeclaredLaw,
   CapacitorPluginPlatformDeclarationsLaw,
+  CapacitorServiceWorkerNativeDecisionLaw,
   CapacitorSinglePlatformBoundaryLaw,
   CapacitorSyncArtefactsMatchDependenciesLaw,
   CapacitorWebviewOriginDeclaredLaw,
@@ -500,6 +501,7 @@ export class ModularLawsRegistry {
     'CapacitorAndroidBackHasOneOwnerLaw.check': CapacitorAndroidBackHasOneOwnerLaw,
     'CapacitorLocalPluginContractLaw.check': CapacitorLocalPluginContractLaw,
     'CapacitorListenerHandlesReleasedLaw.check': CapacitorListenerHandlesReleasedLaw,
+    'CapacitorServiceWorkerNativeDecisionLaw.check': CapacitorServiceWorkerNativeDecisionLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

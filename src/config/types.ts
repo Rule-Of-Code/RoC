@@ -439,6 +439,15 @@ export interface RuleOfCodeConfig {
        * only when exactly one project directory imports Capacitor.
        */
       boundary?: string[];
+      /**
+       * Identifier or property names that are true in the native shell (a
+       * function, constant or DI token the project defines, e.g.
+       * "IS_NATIVE"). A service worker whose `enabled` expression mentions
+       * one is accepted as off on native by Capacitor Service Worker Native
+       * Decision, like Capacitor.isNativePlatform(). Absent: only
+       * Capacitor.isNativePlatform() / Capacitor.getPlatform() count.
+       */
+      nativeFlag?: string[];
     };
     testing?: {
       /** Minimum test coverage percentage (0-100) */

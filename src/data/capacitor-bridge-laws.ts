@@ -148,4 +148,48 @@ export const CAPACITOR_BRIDGE_LAWS: EnhancedConstitutionalLaw[] = [
     remediation:
       'Keep the PluginListenerHandle and remove() it on teardown, or move the listener to a root service',
   },
+  {
+    id: generateLawId(
+      'Capacitor Service Worker Native Decision',
+      'Capacitor apps with an Angular service worker turn it off on native, or handle SwUpdate so a store update is not served stale',
+      'capacitor'
+    ),
+    legacyId: 444,
+    article: 'IV',
+    subsection: '4.73',
+    title: 'Capacitor Service Worker Native Decision',
+    rationale:
+      'A Capacitor shell already serves the bundle from the app package; an Angular service worker enabled by !isDevMode() (SwRegistrationOptions.enabled defaults to true) is active in the native WebView too and keeps the previous release across an in-place store update. Measured: after installing a release candidate over the previous release, cold start 1 drew the old texts and cold start 2 the new ones, while versionName and the APK hash already said "new".',
+    satisfiedBy: {
+      capacitor:
+        'Disable the service worker on native (enabled: !isDevMode() && !Capacitor.isNativePlatform()), or, if you keep it in the shell on purpose, handle SwUpdate VERSION_READY (reload at a safe moment) and unrecoverable, and prove on a device which bundle the WebView ran.',
+      angular:
+        "SwUpdate.activateUpdate()'s own documentation says to update a client by reloading the page; a VERSION_READY handler that reloads, plus an unrecoverable handler, is the Angular half of the decision.",
+    },
+    detectionLimits: [
+      NEEDS_TYPESCRIPT,
+      'Reads the enabled expression of provideServiceWorker / ServiceWorkerModule.register (an object literal or a same-file const); it is accepted as off on native when it mentions Capacitor.isNativePlatform / Capacitor.getPlatform or a name in thresholds.capacitor.nativeFlag. A flag computed in a helper is accepted only when declared there.',
+      'The SwUpdate side is matched across the project: versionUpdates and the VERSION_READY literal in one file, a <...>location.reload() call and an unrecoverable access anywhere; whether VERSION_READY actually reaches the reload is not followed (PARTIAL). With them the law passes with a note that the first stale start remains.',
+      'Angular service worker only; Workbox or a hand-written worker is not judged. Cannot tell whether keeping the worker on native is right for the product; it asks for a stated decision, not a particular one.',
+    ],
+    emoji: '🗃️',
+    description:
+      'Capacitor apps with an Angular service worker turn it off on native, or handle SwUpdate so a store update is not served stale',
+    priority: 'MEDIUM',
+    category: 'PERFORMANCE',
+    stack: 'frontend',
+    requires: {
+      anyDependency: ['@capacitor/core'],
+      allDependencies: ['@angular/service-worker'],
+      anyFile: CAPACITOR_CONFIG_FILES,
+    },
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'CapacitorServiceWorkerNativeDecisionLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.73: an Angular service worker runs in the native shell with no update decision',
+    remediation:
+      'Turn the service worker off on native, or handle SwUpdate VERSION_READY with a reload and unrecoverable',
+  },
 ];

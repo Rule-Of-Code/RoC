@@ -698,6 +698,23 @@ export interface RuleOfCodeConfig {
        */
       fixedContentPattern?: string;
     };
+    integrity?: {
+      /**
+       * Name prefixes of the guard functions Guard Function Has Production
+       * Caller checks (a prefix followed by an upper-case letter, digit, _ or
+       * $). Replaces the default list: assert, require, enforce, verify,
+       * check, schedule. Must be a non-empty list of identifier prefixes.
+       */
+      guardPrefixes?: string[];
+      /**
+       * Path, relative to the project root, of the JSON retention registry
+       * Retention Registry Covers Schema reads:
+       * `{ "tables": { "<table>": "<deletion rule>" },
+       *    "noPersonalData": { "<table>": "<why it holds none>" } }`.
+       * Required when that opt-in law is enabled; it fails without it.
+       */
+      retentionRegistry?: string;
+    };
     testing?: {
       /** Minimum test coverage percentage (0-100) */
       minCoveragePercent?: number;

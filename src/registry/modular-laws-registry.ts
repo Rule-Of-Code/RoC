@@ -205,6 +205,14 @@ import {
   CapacitorWebviewOriginDeclaredLaw,
 } from '../checkers/capacitor-laws';
 
+// Integrity Laws Modular Imports — migrations, CHECKs, guards, tsconfig, retention
+import {
+  DrizzleMigrationJournalIntegrityLaw,
+  GuardFunctionHasProductionCallerLaw,
+  RetentionRegistryCoversSchemaLaw,
+  SqlCheckConstraintNullPassesLaw,
+  TsconfigExcludeLeavesCodeUntypedLaw,
+} from '../checkers/integrity-laws';
 // React Laws Modular Imports — gated by `requires` on react / next
 import {
   NextOpenRedirectGuardedLaw,
@@ -619,6 +627,13 @@ export class ModularLawsRegistry {
     'NextRouteJsBudgetLaw.check': NextRouteJsBudgetLaw,
     'NextSegmentConfigConsistentLaw.check': NextSegmentConfigConsistentLaw,
     'NextLoadingForAsyncPageLaw.check': NextLoadingForAsyncPageLaw,
+
+    // Integrity Laws (migrations, CHECKs, guards, tsconfig, retention)
+    'DrizzleMigrationJournalIntegrityLaw.check': DrizzleMigrationJournalIntegrityLaw,
+    'SqlCheckConstraintNullPassesLaw.check': SqlCheckConstraintNullPassesLaw,
+    'GuardFunctionHasProductionCallerLaw.check': GuardFunctionHasProductionCallerLaw,
+    'TsconfigExcludeLeavesCodeUntypedLaw.check': TsconfigExcludeLeavesCodeUntypedLaw,
+    'RetentionRegistryCoversSchemaLaw.check': RetentionRegistryCoversSchemaLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

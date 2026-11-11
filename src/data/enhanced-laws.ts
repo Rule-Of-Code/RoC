@@ -18,6 +18,7 @@ import {
   PROJECT_LAWS,
 } from './pareto-optimization';
 import { FE_ARCHITECTURE_LAWS } from './fe-architecture-laws';
+import { INTEGRITY_LAWS } from './integrity-laws';
 import { IONIC_LAWS } from './ionic-laws';
 import { NEXT_SERVER_LAWS } from './next-server-laws';
 import { IONIC_RENDERING_LAWS } from './ionic-rendering-laws';
@@ -51,6 +52,7 @@ export const ALL_ENHANCED_CONSTITUTIONAL_LAWS: EnhancedConstitutionalLaw[] = [
   ...IONIC_LAWS, // 📱 Ionic laws (frontend, requires an Ionic binding; IDs 401+)
   ...IONIC_RENDERING_LAWS, // 🖌️ Ionic rendering-model laws (frontend, requires an Ionic binding; IDs 411+)
   ...CAPACITOR_LAWS, // 🔌 Capacitor laws (frontend, requires @capacitor/core + config; IDs 421+)
+  ...INTEGRITY_LAWS, // 🧾 Integrity laws (migrations, CHECKs, guards, tsconfig, retention; IDs 591+)
   ...TEST_INTEGRITY_LAWS, // 🔦 Test integrity laws (requires the runner or library they read; IDs 571+)
   ...NEXT_SERVER_LAWS, // ▲ Next.js server laws (requires next; IDs 531+)
   ...NEXT_CLIENT_LAWS, // ▲ Next.js client laws (frontend, requires next; IDs 551–569)
@@ -71,6 +73,7 @@ export {
   DEPLOYMENT_LAWS,
   DOCUMENTATION_LAWS,
   FE_ARCHITECTURE_LAWS,
+  INTEGRITY_LAWS,
   IONIC_LAWS,
   IONIC_RENDERING_LAWS,
   META_GATE_LAWS,

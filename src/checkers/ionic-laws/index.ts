@@ -19,3 +19,4 @@ export { IonicScrollThroughIonContentLaw } from './ionic-scroll-through-ion-cont
 export { IonicViewportFitCoverLaw } from './ionic-viewport-fit-cover';
 export { IonicEdgeChromePaysSafeAreaLaw } from './ionic-edge-chrome-pays-safe-area';
 export { IonicGestureTouchActionLaw } from './ionic-gesture-touch-action';
+export { IonicFixedContentInFixedSlotLaw } from './ionic-fixed-content-in-fixed-slot';

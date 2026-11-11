@@ -453,6 +453,15 @@ export interface RuleOfCodeConfig {
        * stale silently.
        */
       edgeContainers?: Array<{ selector: string; edge: 'top' | 'bottom' }>;
+      /**
+       * Regular-expression source (case-insensitive) for the class names of
+       * floating UI — toasts, floating actions, sticky calls to action — that
+       * ionic-fixed-content-in-fixed-slot looks for inside ion-content's
+       * scroller. Default: `toast|snackbar|fab|floating|sticky-cta`. Replaces
+       * the default rather than adding to it. An invalid expression is
+       * reported, never replaced by the default.
+       */
+      fixedContentPattern?: string;
     };
     testing?: {
       /** Minimum test coverage percentage (0-100) */

@@ -295,4 +295,42 @@ export const IONIC_RENDERING_LAWS: EnhancedConstitutionalLaw[] = [
     remediation:
       'Set touch-action: pan-y on ion-content::part(scroll) of the page, or use createGesture',
   },
+
+  {
+    id: generateLawId(
+      'Ionic Fixed Content In Fixed Slot',
+      'Floating UI inside ion-content is placed in its fixed slot, not in the scroller',
+      'ionic'
+    ),
+    legacyId: 418,
+    article: 'IV',
+    subsection: '4.87',
+    title: 'Ionic Fixed Content In Fixed Slot',
+    rationale:
+      "ion-content projects its default slot inside a shadow .inner-scroll and its fixed slot outside it (@ionic/core content.js); Ionic documents the fixed slot as the place for content 'that should not scroll', and ion-fab's edge doc says 'Should be used with a fixed slot'. A toast or floating action placed as an ordinary child scrolls away or anchors to the content bottom. Measured: a 'copied' toast visible 100% at 393x852 and 0-43% at 1366x657, 1280x720, 320x568 and landscape; 13/13 visible once moved to slot=\"fixed\".",
+    satisfiedBy: {
+      ionic:
+        'Put floating UI as a direct child of ion-content with slot="fixed" (or use ToastController / ion-toast), and measure visibility against the viewport at several sizes, not by querySelector.',
+    },
+    detectionLimits: [
+      'ion-fab inside an ion-content scroller (not through slot="fixed") is checked reliably. Other floating elements are found by a class name matching thresholds.ionic.fixedContentPattern (default toast|snackbar|fab|floating|sticky-cta) whose CSS rule is position fixed|absolute with top/bottom/inset; a differently named one is missed and an absolutely positioned decoration can be flagged.',
+      '"Inside the scroller" follows components by element selector: an element in a child component\'s template counts when the child\'s host is placed inside an ion-content (or inside a component that is). ng-container / ng-template are transparent; control flow creates no element.',
+      'An element made fixed outside ion-content (in ion-app) is out of scope. Only Chromium was measured; position: fixed inside the scroller on WebKit was not.',
+      CSS_BY_CLASS_NAME,
+      TEMPLATES_ANGULAR_ONLY,
+    ],
+    emoji: '📌',
+    description: 'Floating UI inside ion-content is placed in its fixed slot, not in the scroller',
+    priority: 'MEDIUM',
+    category: 'FRAMEWORK',
+    stack: 'frontend',
+    requires: REQUIRES_IONIC_ANGULAR,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'IonicFixedContentInFixedSlotLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.87: Floating UI inside the ion-content scroller',
+    remediation: 'Make it a direct child of ion-content with slot="fixed", or use ToastController',
+  },
 ];

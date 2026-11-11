@@ -192,4 +192,43 @@ export const CAPACITOR_BRIDGE_LAWS: EnhancedConstitutionalLaw[] = [
     remediation:
       'Turn the service worker off on native, or handle SwUpdate VERSION_READY with a reload and unrecoverable',
   },
+  {
+    id: generateLawId(
+      'Capacitor Durable State Off WebView Storage',
+      'Capacitor localStorage and IndexedDB writers have a native durable branch, or their keys are declared disposable',
+      'capacitor'
+    ),
+    legacyId: 445,
+    article: 'IV',
+    subsection: '4.74',
+    title: 'Capacitor Durable State Off WebView Storage',
+    rationale:
+      "Capacitor's storage guide (capacitorjs.com/docs/guides/storage) says WebView storage 'must be considered transient' because 'the OS will reclaim local storage from Web Views if a device is running low on space' (IndexedDB too, at least on iOS), and recommends its native Preferences API for durable data; WebView storage is also keyed by the app origin, so a hostname or scheme change orphans it on every device. A storage service that wraps localStorage satisfies Web Storage Encapsulation in full while holding data the server cannot give back.",
+    satisfiedBy: {
+      capacitor:
+        'Back durable values with @capacitor/preferences on native (behind the same storage port the web build uses), and declare WebView-only keys as disposable in thresholds.capacitor.disposableStorageKeys.',
+    },
+    detectionLimits: [
+      NEEDS_TYPESCRIPT,
+      'Cannot know which values are durable; without the disposable-keys declaration every localStorage / IndexedDB writer without a native branch is a warning, which is the cost of asking for the decision.',
+      'Writers: localStorage.setItem, indexedDB.open in a file that also creates an object store or puts/adds to one (an open that only reads is not a writer), new Dexie, openDB from idb, localforage.setItem / createInstance. A Storage object passed in as a parameter is not followed. sessionStorage is only a note.',
+      'A native branch is an import of @capacitor/preferences or a thresholds.capacitor.durableStores module in the file of the writer, the file of a class it extends or implements (one import away), or another file that mentions the class; a native store chosen by a DI token in another library must be declared.',
+      'Keys are matched against the disposable list only when they are string literals or same-file consts; a generic wrapper whose keys come from its callers cannot be declared disposable key by key.',
+    ],
+    emoji: '💾',
+    description:
+      'Capacitor localStorage and IndexedDB writers have a native durable branch, or their keys are declared disposable',
+    priority: 'MEDIUM',
+    category: 'FRAMEWORK',
+    stack: 'frontend',
+    requires: REQUIRES_CAPACITOR,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'CapacitorDurableStateOffWebviewStorageLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article IV.4.74: durable state kept only in WebView storage',
+    remediation:
+      'Back the store with @capacitor/preferences on native, or declare its keys in thresholds.capacitor.disposableStorageKeys',
+  },
 ];

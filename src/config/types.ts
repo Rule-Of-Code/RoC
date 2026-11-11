@@ -448,6 +448,21 @@ export interface RuleOfCodeConfig {
        * Capacitor.isNativePlatform() / Capacitor.getPlatform() count.
        */
       nativeFlag?: string[];
+      /**
+       * Import specifiers of native-backed stores, in addition to
+       * @capacitor/preferences (e.g. "@capacitor-community/sqlite"). A
+       * WebView storage writer whose file, port file or provider file
+       * imports one has a native branch for Capacitor Durable State Off
+       * WebView Storage.
+       */
+      durableStores?: string[];
+      /**
+       * localStorage keys and IndexedDB database names whose loss is
+       * acceptable (caches, UI conveniences, drafts). A writer whose every
+       * key is listed here is accepted by Capacitor Durable State Off
+       * WebView Storage. Keys built at runtime are never matched.
+       */
+      disposableStorageKeys?: string[];
     };
     testing?: {
       /** Minimum test coverage percentage (0-100) */

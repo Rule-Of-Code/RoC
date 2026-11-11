@@ -16,3 +16,4 @@ export { CapacitorAndroidBackHasOneOwnerLaw } from './capacitor-android-back-has
 export { CapacitorLocalPluginContractLaw } from './capacitor-local-plugin-contract';
 export { CapacitorListenerHandlesReleasedLaw } from './capacitor-listener-handles-released';
 export { CapacitorServiceWorkerNativeDecisionLaw } from './capacitor-service-worker-native-decision';
+export { CapacitorDurableStateOffWebviewStorageLaw } from './capacitor-durable-state-off-webview-storage';

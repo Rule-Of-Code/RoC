@@ -431,6 +431,20 @@ export interface RuleOfCodeConfig {
        */
       specRequiredMinLoc?: number;
     };
+    frontend?: {
+      /**
+       * Globs (relative to the project root) of the feature layer, read by
+       * Stores In Data Access and Requires Spec. Absent: a `/feature*\/`
+       * directory (the Nx convention).
+       */
+      featureLayers?: string[];
+      /**
+       * Globs (relative to the project root) of the data-access layer, read
+       * by Requires Spec, Defensive Array Coercion and No Passthrough Cast.
+       * Absent: a `/data-access/` directory (the Nx convention).
+       */
+      dataAccessLayers?: string[];
+    };
     capacitor?: {
       /**
        * Globs (relative to the workspace root) of the one place allowed to

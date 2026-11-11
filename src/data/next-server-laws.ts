@@ -21,6 +21,16 @@ const REQUIRES_NEXT_APP_ROUTER: LawRequirement = {
   anyFile: ['app', 'src/app'],
 };
 
+/**
+ * Client IP handling is a concern of any server that answers HTTP, not of
+ * Next alone. A dependency is the only thing `requires` can read, so the law
+ * is selected by the common Node HTTP frameworks; a server built on bare
+ * `node:http` declares none of them and is not selected.
+ */
+const REQUIRES_NODE_HTTP_SERVER: LawRequirement = {
+  anyDependency: ['next', 'express', 'fastify', 'koa', 'hono', '@nestjs/core', '@hapi/hapi'],
+};
+
 const PARSER_LIMIT =
   "Parses with the project's own TypeScript (ts.createSourceFile, no type checker); without it every file is reported unread, never passed.";
 const GRAPH_LIMIT =
@@ -343,5 +353,46 @@ export const NEXT_SERVER_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article XXIII.23.8: a guard exemption pattern matches no route, or the list cannot be read',
     remediation:
       'Declare each exemption list in thresholds.next.guardExemptions and fix every pattern that matches no route',
+  },
+
+  {
+    id: generateLawId(
+      'Client IP Single Boundary',
+      'Client IP forwarding headers are read in exactly one declared module',
+      'next'
+    ),
+    legacyId: 539,
+    article: 'XXIII',
+    subsection: '23.9',
+    title: 'Client IP Single Boundary',
+    rationale:
+      "The forwarding headers have one correct reading per deployment, set by how many proxies sit in front. Next even fills x-forwarded-for from the socket when it is absent (`req.headers['x-forwarded-for'] ??= …remoteAddress`, next/dist/server/base-server.js), so the header's presence proves nothing about a proxy. Spread across handlers, each reading drifts on its own, and a client can write the value a rate limit or an abuse log trusts.",
+    satisfiedBy: {
+      react:
+        'Read x-forwarded-for/forwarded/x-real-ip/cf-connecting-ip in one module (`getClientIp(request)`) and declare it in `thresholds.clientIp.module`; or declare `thresholds.clientIp.notUsed` with the reason.',
+      typescript:
+        'Read the forwarding headers in one module (`getClientIp(req)`), call it from every handler, and declare it in `thresholds.clientIp.module`; or declare `thresholds.clientIp.notUsed` with the reason.',
+    },
+    detectionLimits: [
+      'Whether the one reading is right for the real proxy chain is a deployment fact and is not judged.',
+      "Finds string literals of x-forwarded-for, x-real-ip and cf-connecting-ip anywhere, and 'forwarded' where it is looked up (call argument, element key, destructured key); a header name built at runtime is not seen.",
+      "Framework helpers that read the headers for you (Express's req.ip with trust proxy) are not seen.",
+      'Selected by a dependency on next, express, fastify, koa, hono, @nestjs/core or @hapi/hapi; a server on bare node:http is not selected.',
+      PARSER_LIMIT,
+    ],
+    emoji: '📍',
+    description: 'Client IP forwarding headers are read in exactly one declared module',
+    priority: 'HIGH',
+    category: 'SECURITY',
+    stack: 'typescript',
+    requires: REQUIRES_NODE_HTTP_SERVER,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'ClientIpSingleBoundaryLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXIII.23.9: client IP headers are read outside one declared module',
+    remediation:
+      'Read the forwarding headers in one module and declare it in thresholds.clientIp.module (or declare notUsed)',
   },
 ];

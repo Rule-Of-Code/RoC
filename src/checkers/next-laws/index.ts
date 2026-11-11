@@ -13,3 +13,4 @@ export { NextProxyPlacementAndMatcherLaw } from './next-proxy-placement-and-matc
 export { NextErrorBoundariesDeclaredLaw } from './next-error-boundaries-declared';
 export { NextPublicEnvIsBuildTimeLaw } from './next-public-env-is-build-time';
 export { GuardExemptionMatchesARouteLaw } from './guard-exemption-matches-a-route';
+export { ClientIpSingleBoundaryLaw } from './client-ip-single-boundary';

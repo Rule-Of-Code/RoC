@@ -153,11 +153,15 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Professional Component Testing Policy',
     rationale:
       'A component test that does not configure a TestBed, assert an output, or exercise an interaction is testing that the component can be constructed, not that it works. This law asks for tests that actually drive it.',
-    satisfiedBy: { angular: 'Give each *.component.ts a spec that configures TestBed, renders via ComponentFixture, and asserts on inputs/outputs or user interaction.' },
+    satisfiedBy: {
+      angular: 'Give each *.component.ts a spec that configures TestBed, renders via ComponentFixture, and asserts on inputs/outputs or user interaction.',
+      react:
+        'Give each client component X.tsx a co-located X.test.tsx (or __tests__/X.test.tsx) with at least two tests that query by role (screen.getByRole) and assert on what the user sees.',
+    },
     detectionLimits: [
-      'Only *.component.ts / *.component.spec.ts naming — a component test under another name is invisible, and non-Angular component tests are out of scope.',
-      'All regex over spec text (a TestBed in a comment counts); test coverage defaults to 100% when no components are found.',
-      'Angular component naming only — no Python, and no non-Angular component frameworks.',
+      'Angular: only *.component.ts / *.component.spec.ts naming under src/, apps/, libs/ — a component test under another name (Angular 20 *.ts without the suffix) is invisible.',
+      'React: every non-test .tsx/.jsx is a component (stories and Next route files under app/ excluded), so a .tsx helper with no JSX is asked for a test too; a test elsewhere than the sibling or __tests__/ is not found. React test quality is regex over the test text: two it()/test() calls, an expect(, a *ByRole query — a role query in a comment counts.',
+      'All regex over spec text (a TestBed in a comment counts). A project with no component file at all fails as judged-nothing. No Python, no Vue.',
     ],
     stack: 'frontend',
     emoji: '🧩',

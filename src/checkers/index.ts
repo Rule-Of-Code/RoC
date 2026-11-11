@@ -14,6 +14,7 @@ export * from './capacitor-laws';
 export * from './code-quality-laws';
 export * from './documentation-laws';
 export * from './git-laws';
+export * from './integrity-laws';
 export * from './ionic-laws';
 export * from './sacred-laws';
 export * from './testing-laws';

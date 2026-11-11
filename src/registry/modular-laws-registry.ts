@@ -181,6 +181,11 @@ import {
   CapacitorWebviewOriginDeclaredLaw,
 } from '../checkers/capacitor-laws';
 
+// Integrity Laws Modular Imports — migrations, CHECKs, guards, tsconfig, retention
+import {
+  DrizzleMigrationJournalIntegrityLaw,
+} from '../checkers/integrity-laws';
+
 // Ionic Laws Modular Imports — gated by `requires` on an Ionic binding
 import {
   IonicE2eLocatorsTargetTheShownPageLaw,
@@ -492,6 +497,9 @@ export class ModularLawsRegistry {
     'CapacitorPluginPlatformDeclarationsLaw.check': CapacitorPluginPlatformDeclarationsLaw,
     'CapacitorDeepLinkContractLaw.check': CapacitorDeepLinkContractLaw,
     'CapacitorSyncArtefactsMatchDependenciesLaw.check': CapacitorSyncArtefactsMatchDependenciesLaw,
+
+    // Integrity Laws (migrations, CHECKs, guards, tsconfig, retention)
+    'DrizzleMigrationJournalIntegrityLaw.check': DrizzleMigrationJournalIntegrityLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

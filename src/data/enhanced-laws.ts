@@ -16,6 +16,7 @@ import {
   PROJECT_LAWS,
 } from './pareto-optimization';
 import { FE_ARCHITECTURE_LAWS } from './fe-architecture-laws';
+import { INTEGRITY_LAWS } from './integrity-laws';
 import { IONIC_LAWS } from './ionic-laws';
 import { META_GATE_LAWS } from './meta-gate-laws';
 import { PERFORMANCE_LAWS } from './performance-laws';
@@ -42,6 +43,7 @@ export const ALL_ENHANCED_CONSTITUTIONAL_LAWS: EnhancedConstitutionalLaw[] = [
   ...FE_ARCHITECTURE_LAWS, // 🏛️ FE architecture audit laws (frontend; IDs 301+)
   ...IONIC_LAWS, // 📱 Ionic laws (frontend, requires an Ionic binding; IDs 401+)
   ...CAPACITOR_LAWS, // 🔌 Capacitor laws (frontend, requires @capacitor/core + config; IDs 421+)
+  ...INTEGRITY_LAWS, // 🧾 Integrity laws (migrations, CHECKs, guards, tsconfig, retention; IDs 591+)
 ];
 
 // Re-export for easy access
@@ -53,6 +55,7 @@ export {
   DEPLOYMENT_LAWS,
   DOCUMENTATION_LAWS,
   FE_ARCHITECTURE_LAWS,
+  INTEGRITY_LAWS,
   IONIC_LAWS,
   META_GATE_LAWS,
   FRAMEWORK_LAWS,

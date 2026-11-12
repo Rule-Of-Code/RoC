@@ -24,6 +24,7 @@ import { CheckerUtils } from '../../utils/checker-utils';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
+import { AngularComponentFiles } from '../../utils/angular-component-files';
 
 const LAW_NAME = 'Memory Management Law';
 
@@ -72,9 +73,9 @@ export class MemoryManagementLaw {
     const violations: string[] = [];
 
     for (const file of componentFiles) {
-      if (!file.endsWith('.component.ts') && !file.endsWith('.directive.ts')) {
-        continue; // native DOM resources are a component/directive concern
-      }
+      // Native DOM resources are a component/directive concern — by suffix or,
+      // for Angular 20's `hero.ts`, by decorator (#336).
+      if (!AngularComponentFiles.isKind(file, ['component', 'directive'])) continue;
       const raw = FileUtils.readFileContentSync(file);
       if (!raw) continue;
       const content = raw

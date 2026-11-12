@@ -9,6 +9,7 @@ import type {
   RuleOfCodeConfig,
 } from './shared-imports';
 import { findE2ESpecs } from '../../utils/testing/e2e-specs';
+import { AngularComponentFiles } from '../../utils/angular-component-files';
 import {
   AngularLawBase,
   CheckerUtils,
@@ -113,8 +114,15 @@ export class AngularTestingExcellenceLaw extends AngularLawBase {
     const content = FileUtils.readFile(testFile);
     const relativePath = PathOperations.getRelative(projectRoot, testFile);
 
-    // Check component tests
-    this.checkComponentTest(content, relativePath, violations);
+    // Check component tests — `hero.component.spec.ts`, or Angular 20's
+    // `hero.spec.ts` beside a `hero.ts` that is a component (#336).
+    const testedSource = testFile.replace(/\.(?:spec|test)\.ts$/, '.ts');
+    const isComponentSpec =
+      relativePath.includes('.component.spec.ts') ||
+      (testedSource !== testFile &&
+        FileUtils.exists(testedSource) &&
+        AngularComponentFiles.isKind(testedSource, ['component']));
+    if (isComponentSpec) this.checkComponentTest(content, relativePath, violations);
 
     // Check service tests
     this.checkServiceTest(content, relativePath, violations);
@@ -131,7 +139,7 @@ export class AngularTestingExcellenceLaw extends AngularLawBase {
     relativePath: string,
     violations: string[]
   ): void {
-    if (relativePath.includes('.component.spec.ts')) {
+    {
       if (!content.includes('TestBed')) {
         violations.push(
           `Component test missing TestBed configuration: ${relativePath}`

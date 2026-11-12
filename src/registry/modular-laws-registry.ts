@@ -790,9 +790,10 @@ export class ModularLawsRegistry {
    */
   static lawAppliesToProjectType(
     stack: string | undefined,
-    projectType: string | undefined
+    projectType: string | undefined,
+    projectRoot?: string
   ): boolean {
-    return LawIdentity.lawAppliesToProjectType(stack, projectType);
+    return LawIdentity.lawAppliesToProjectType(stack, projectType, projectRoot);
   }
 
   /** Identity keys that resolve to exactly ONE law — the only ones a config may use. */

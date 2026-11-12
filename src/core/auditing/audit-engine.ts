@@ -305,7 +305,8 @@ export class RuleOfCodeAuditor {
     const stackApplicable = selected.filter(law =>
       ModularLawsRegistry.lawAppliesToProjectType(
         (law as { stack?: string }).stack,
-        projectType
+        projectType,
+        this.projectRoot
       )
     );
 
@@ -489,7 +490,7 @@ export class RuleOfCodeAuditor {
           `⚠️  laws.severity: unknown law '${key}' — this override gates nothing. Check the name with 'roc laws --list'.`
         );
       } else if (
-        !ModularLawsRegistry.lawAppliesToProjectType(law.stack, projectType)
+        !ModularLawsRegistry.lawAppliesToProjectType(law.stack, projectType, this.projectRoot)
       ) {
         console.warn(
           `ℹ️  laws.severity: '${key}' exists but does not apply to this project type (${projectType ?? 'unknown'}) — stack-gated, kept for shared configs.`
@@ -598,7 +599,7 @@ export class RuleOfCodeAuditor {
       const law = known.get(key);
       if (
         law &&
-        !ModularLawsRegistry.lawAppliesToProjectType(law.stack, projectType)
+        !ModularLawsRegistry.lawAppliesToProjectType(law.stack, projectType, this.projectRoot)
       ) {
         console.warn(
           `ℹ️  laws.notApplicable: '${key}' is already stack-gated off this project type (${projectType ?? 'unknown'}) — the waiver is redundant here.`
@@ -1049,7 +1050,8 @@ export class RuleOfCodeAuditor {
         law =>
           ModularLawsRegistry.lawAppliesToProjectType(
             law.stack,
-            this.detectProjectType()
+            this.detectProjectType(),
+            this.projectRoot
           ) && lawRequirementsMet(law.requires, this.projectRoot)
       ).length;
       console.log(

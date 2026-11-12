@@ -4,6 +4,10 @@ import { UnitTestDataManagementAnalyzerService } from './unit-test-data-manageme
 import { namedFiles } from '../../utils/testing/fixture-isolation';
 import { TestFileDiscovery } from './test-file-discovery';
 
+/** Said when no test imports an external client, so mocking was not judged. */
+export const MOCKING_NOT_JUDGED =
+  'Mocking not judged: no test file imports a filesystem, network, database or process client, so there is nothing to mock';
+
 /**
  * Test Data Management Law
  *
@@ -27,7 +31,8 @@ export class TestDataManagementLaw {
       const suggestions: string[] = [];
       let score = 100;
       const { projectRoot, config } = context;
-      if (TestFileDiscovery.findTestFiles(projectRoot, config).length === 0) {
+      const testFiles = TestFileDiscovery.findTestFiles(projectRoot, config);
+      if (testFiles.length === 0) {
         const nothing = TestFileDiscovery.nothingToJudge('Test Data Management');
         return LawBase.buildDetailedResult({
           passed: false,
@@ -66,6 +71,13 @@ export class TestDataManagementLaw {
           config.thresholds?.testing?.testData?.minFactoryCoverage ?? 50,
       };
 
+      // 0. A file no check could read was not judged — say which.
+      const unreadable = TestFileDiscovery.unreadable(projectRoot, testFiles);
+      if (unreadable.length > 0) {
+        violations.push(TestFileDiscovery.unreadableViolation(unreadable));
+        suggestions.push('Make the named test files readable (permissions, encoding, broken links)');
+      }
+
       // 1. Check test files for proper data management patterns
       const testDataPatterns =
         UnitTestDataManagementAnalyzerService.analyzeTestDataPatterns(
@@ -73,7 +85,9 @@ export class TestDataManagementLaw {
           config
         );
       if (!testDataPatterns.hasProperSetup) {
-        violations.push('Test files missing proper setup/teardown patterns');
+        violations.push(
+          `Test files share module-scope mutable state with no beforeEach/afterEach to reset it: ${namedFiles(testDataPatterns.missingSetupFiles)}`
+        );
         suggestions.push('Implement beforeEach/afterEach for test data setup');
         score -= thresholds.missingSetupDeduction;
       }
@@ -140,8 +154,11 @@ export class TestDataManagementLaw {
       if (!mockingUsage.hasProperMocking) {
         // A deduction that changes the verdict must be visible as a violation —
         // otherwise the law fails with zero findings and a "✅ Excellent"
-        // message (QA-7). What costs you the gate must be printable.
-        violations.push('External dependencies are not properly mocked in tests');
+        // message (QA-7). What costs you the gate must be printable, and
+        // the files it is about must be named (#310).
+        violations.push(
+          `Tests import external clients and no test uses a test double (mock, spy, network interceptor): ${namedFiles(mockingUsage.externalImports)}`
+        );
         suggestions.push(
           'Improve mocking strategies for external dependencies'
         );
@@ -177,7 +194,7 @@ export class TestDataManagementLaw {
         dataStructure
       );
 
-      return LawBase.buildDetailedResult({
+      const result = LawBase.buildDetailedResult({
         passed,
         message,
         violations,
@@ -185,6 +202,11 @@ export class TestDataManagementLaw {
         score: finalScore,
         context,
       });
+      if (!mockingUsage.judged) {
+        // Not a pass of the mocking check — there was nothing for it to judge.
+        result.details = [...(result.details ?? []), MOCKING_NOT_JUDGED];
+      }
+      return result;
     } catch (error: unknown) {
       return LawBase.createErrorResult('Test Data Management', error, context);
     }

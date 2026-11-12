@@ -5,6 +5,8 @@
  * checkers — a cycle).
  */
 
+import { hasJsTsToolchain } from './law-requirements';
+
 /** The audit output prints slugged law names — same transform as law-base. */
 export function slugifyLawName(name: string): string {
   return name.toLowerCase().replace(/\s+/g, '-');
@@ -124,15 +126,27 @@ export const STACK_PROJECT_TYPES: Record<string, string[]> = {
  * Whether a law applies to a project type given its stack scope. Universal laws
  * (no stack) always apply; an unknown project type is treated permissively
  * (everything applies) so detection gaps never silently drop coverage.
+ *
+ * `generic` is not evidence of TypeScript: it is the config default and what
+ * remains when the detector recognised nothing — a Go module, a static site.
+ * Given the project root, a `stack: typescript` law applies to a `generic`
+ * project only when it carries a JavaScript/TypeScript toolchain (#303).
+ * Without the root the table alone answers, as before.
  */
 export function lawAppliesToProjectType(
   stack: string | undefined,
-  projectType: string | undefined
+  projectType: string | undefined,
+  projectRoot?: string
 ): boolean {
   if (!stack) return true; // universal
   if (!projectType) return true; // unknown type → don't drop coverage
   const types = STACK_PROJECT_TYPES[stack];
-  return types ? types.includes(projectType) : true;
+  if (!types) return true;
+  if (!types.includes(projectType)) return false;
+  if (stack === 'typescript' && projectType === 'generic' && projectRoot !== undefined) {
+    return hasJsTsToolchain(projectRoot);
+  }
+  return true;
 }
 
 /**

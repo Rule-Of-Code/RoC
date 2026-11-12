@@ -22,7 +22,8 @@ import { TestFileDiscovery } from './test-file-discovery';
 export class TestIsolationEnforcementLaw {
   static check(context: LawCheckContext): LawResult {
     try {
-      if (TestFileDiscovery.findTestFiles(context.projectRoot, context.config).length === 0) {
+      const testFiles = TestFileDiscovery.findTestFiles(context.projectRoot, context.config);
+      if (testFiles.length === 0) {
         return this.buildFinalResult(context, {
           violations: [TestFileDiscovery.nothingToJudge('Test Isolation Enforcement')],
           suggestions: [],
@@ -32,6 +33,12 @@ export class TestIsolationEnforcementLaw {
         });
       }
       const analysisResult = this.runAllAnalyses(context);
+      // A file no check could read was not judged — the same rule as the
+      // twin (Test Data Management), from the same discovery.
+      const unreadable = TestFileDiscovery.unreadable(context.projectRoot, testFiles);
+      if (unreadable.length > 0) {
+        analysisResult.violations.unshift(TestFileDiscovery.unreadableViolation(unreadable));
+      }
       return this.buildFinalResult(context, analysisResult);
     } catch (error: unknown) {
       return this.buildErrorResult(context, error);

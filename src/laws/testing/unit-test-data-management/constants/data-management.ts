@@ -119,9 +119,26 @@ export class UnitTestDataManagementConstants {
     // above missed — so a suite that mocks localStorage/Document/matchMedia via
     // Object.defineProperty + jest.fn() is no longer reported as "not mocked".
     JEST_FN: /jest\.fn\(/,
+    VI_FN: /\bvi\.fn\(/,
     MOCK_IMPL: /mockImplementation|mockReturnValue|mockResolvedValue|mockRejectedValue/,
     DEFINE_PROPERTY: /Object\.defineProperty/,
+    // Network doubles that intercept requests instead of replacing a module.
+    NETWORK_DOUBLE: /\bsetupServer\s*\(|\bnock\s*\(/,
   };
+
+  /**
+   * Modules whose import means a test reaches outside its own process: the
+   * filesystem, the network, a database, a broker, a process. A test that
+   * imports only the code under test has nothing to mock, and the mocking
+   * check must not read "any import" as "an external dependency" (#310).
+   * Matched against the module specifier, whole.
+   */
+  static readonly EXTERNAL_CLIENT_MODULE =
+    /^(?:node:)?(?:fs|fs\/promises|http|https|http2|net|tls|dgram|dns|child_process)$|^(?:axios|node-fetch|cross-fetch|got|superagent|undici|ky|pg|mysql|mysql2|mongodb|mongoose|redis|ioredis|sequelize|typeorm|knex|@prisma\/client|kafkajs|amqplib|ws|socket\.io-client|nodemailer|firebase|firebase-admin|@supabase\/supabase-js|@angular\/common\/http)$|^(?:@aws-sdk|@google-cloud|@azure)\/|^firebase\//;
+
+  /** Module specifiers in `import … from`, side-effect imports, `import()` and `require()`. */
+  private static readonly MODULE_SPECIFIER =
+    /\bfrom\s*['"]([^'"]+)['"]|\bimport\s*\(?\s*['"]([^'"]+)['"]|\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
 
   // ============================================
   // 8. Test Structure Patterns
@@ -205,17 +222,43 @@ export class UnitTestDataManagementConstants {
   }
 
   /**
-   * Check if content has proper mocking
+   * The external clients a test file imports (module specifiers, from its
+   * code — an import inside a comment is not one).
+   */
+  static externalClientsImported(content: string): string[] {
+    const code = CodeText.stripComments(content);
+    const found = new Set<string>();
+    for (const match of code.matchAll(this.MODULE_SPECIFIER)) {
+      const specifier = match[1] ?? match[2] ?? match[3];
+      if (specifier && this.EXTERNAL_CLIENT_MODULE.test(specifier)) {
+        found.add(specifier);
+      }
+    }
+    return [...found];
+  }
+
+  /**
+   * Whether a test file replaces something with a test double: a mocking
+   * framework, a network interceptor, or Angular's HTTP testing backend.
+   */
+  static hasTestDouble(content: string): boolean {
+    const code = CodeText.stripComments(content);
+    return (
+      Object.values(this.MOCKING_PATTERNS).some(pattern =>
+        PatternMatchingUtils.hasRegexPattern(code, pattern)
+      ) || FixtureIsolation.replacesHttpBackend(code)
+    );
+  }
+
+  /**
+   * Proper mocking for one file: nothing external imported, or a double in
+   * place. An import of the code under test is not an external dependency.
    */
   static hasProperMocking(content: string): boolean {
-    const hasMockingFramework = Object.values(this.MOCKING_PATTERNS).some(
-      pattern => PatternMatchingUtils.hasRegexPattern(content, pattern)
+    return (
+      this.externalClientsImported(content).length === 0 ||
+      this.hasTestDouble(content)
     );
-
-    const hasExternalDependencies =
-      content.includes('import') && content.includes('from');
-
-    return !hasExternalDependencies || hasMockingFramework;
   }
 
   /**

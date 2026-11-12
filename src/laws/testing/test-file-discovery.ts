@@ -29,7 +29,8 @@ export class TestFileDiscovery {
   static findTestFiles(
     projectRoot: string,
     config: RuleOfCodeConfig,
-    customSearchDirs?: string[]
+    customSearchDirs?: string[],
+    isTestName: (fileName: string) => boolean = name => TestFileDiscovery.isTestFile(name)
   ): string[] {
     const searchDirs = (
       customSearchDirs ??
@@ -46,7 +47,7 @@ export class TestFileDiscovery {
       `${PathOperations.getRelative(projectRoot, dir)}/`
     );
     const testFiles: string[] = [];
-    this.findTestFilesRecursively(projectRoot, testFiles, config);
+    this.findTestFilesRecursively(projectRoot, testFiles, config, isTestName);
     return testFiles.filter(file => {
       const relative = PathOperations.getRelative(projectRoot, file);
       return prefixes.some(prefix => prefix === '/' || relative.startsWith(prefix));
@@ -63,10 +64,33 @@ export class TestFileDiscovery {
     return `${lawName}: no JS/TS test file found under ${DEFAULT_TEST_ROOTS.join(', ')} after the project's ignores — nothing was judged. If tests exist, keep them out of ignores.global (ignores.tests hides them from source scans only); if the project has none, that is the finding`;
   }
 
+  /**
+   * The test files (project-relative) that could not be read. A file the law
+   * could not open was not judged, and a verdict that leaves it out reads as
+   * if it had been: the law names it instead of passing over it.
+   */
+  static unreadable(projectRoot: string, files: string[]): string[] {
+    const failed: string[] = [];
+    for (const file of files) {
+      try {
+        FileUtils.readFile(file, { encoding: 'utf8' });
+      } catch {
+        failed.push(PathOperations.getRelative(projectRoot, file));
+      }
+    }
+    return failed;
+  }
+
+  /** The violation naming test files no check could read. */
+  static unreadableViolation(files: string[]): string {
+    return `Test files could not be read, so nothing in them was judged: ${files.join('; ')}`;
+  }
+
   static findTestFilesRecursively(
     dir: string,
     testFiles: string[],
-    config: RuleOfCodeConfig
+    config: RuleOfCodeConfig,
+    isTestName: (fileName: string) => boolean = name => TestFileDiscovery.isTestFile(name)
   ): void {
     try {
       // `.test.tsx` / `.spec.jsx` are test names (TEST_FILE_NAME), but a scan
@@ -83,7 +107,7 @@ export class TestFileDiscovery {
         // PROFESSIONAL FIX: Use getFilename() to preserve extension (.spec.ts/.test.ts)
         // getBasename() strips extension, but isTestFile() needs full filename with extension
         const fileName = PathOperations.getFilename(file);
-        if (this.isTestFile(fileName)) {
+        if (isTestName(fileName)) {
           testFiles.push(file);
         }
       }

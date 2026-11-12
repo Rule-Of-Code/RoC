@@ -24,11 +24,12 @@ export class UnitTestDataManagementAnalyzerService {
     hasHardcodedData: boolean;
     hasSharedState: boolean;
     /** The files behind each finding — a finding must say what to fix. */
+    missingSetupFiles: string[];
     hardcodedDataFiles: string[];
     sharedStateFiles: string[];
   } {
     const testFiles = this.findTestFiles(projectRoot, config);
-    let hasProperSetup = false;
+    const missingSetupFiles: string[] = [];
     const hardcodedDataFiles: string[] = [];
     const sharedStateFiles: string[] = [];
 
@@ -37,8 +38,16 @@ export class UnitTestDataManagementAnalyzerService {
         const content = FileUtils.readFile(testFile, { encoding: 'utf8' });
         const relative = PathOperations.getRelative(projectRoot, testFile);
 
-        if (UnitTestDataManagementConstants.hasProperSetupTeardown(content)) {
-          hasProperSetup = true;
+        // A setup/teardown hook exists to reset what tests share. A file
+        // with no module-scope mutable state has nothing to reset — the
+        // twin's rule (Test Isolation Enforcement). This used to pass the
+        // whole project when ANY file had a hook and fail it, naming no
+        // file, when none did — a pure-function spec included (#310).
+        if (
+          UnitTestDataManagementConstants.hasSharedMutableState(content) &&
+          !UnitTestDataManagementConstants.hasProperSetupTeardown(content)
+        ) {
+          missingSetupFiles.push(relative);
         }
 
         if (UnitTestDataManagementConstants.hasHardcodedTestData(content)) {
@@ -54,9 +63,10 @@ export class UnitTestDataManagementAnalyzerService {
     }
 
     return {
-      hasProperSetup: hasProperSetup || testFiles.length === 0,
+      hasProperSetup: missingSetupFiles.length === 0,
       hasHardcodedData: hardcodedDataFiles.length > 0,
       hasSharedState: sharedStateFiles.length > 0,
+      missingSetupFiles,
       hardcodedDataFiles,
       sharedStateFiles,
     };
@@ -130,23 +140,44 @@ export class UnitTestDataManagementAnalyzerService {
     config: RuleOfCodeConfig
   ): {
     hasProperMocking: boolean;
+    /** False when no test imports an external client: nothing to judge. */
+    judged: boolean;
+    /** `path (module, …)` for every test that imports an external client. */
+    externalImports: string[];
   } {
-    const testFiles = this.findTestFiles(projectRoot, config);
-    let hasMockingFramework = false;
+    // Judged only where a test imports an external client. Before, any
+    // `import … from` counted as an external dependency, so a spec importing
+    // only the code under test failed "not properly mocked" (#310). The
+    // suite-level reading stays: a project whose tests use doubles somewhere
+    // has a mocking strategy, and some tests may use a real in-memory
+    // implementation on purpose (#29).
+    const externalImports: string[] = [];
+    let anyDouble = false;
 
-    for (const testFile of testFiles) {
+    for (const testFile of this.findTestFiles(projectRoot, config)) {
       try {
         const content = FileUtils.readFile(testFile, { encoding: 'utf8' });
-        if (UnitTestDataManagementConstants.hasProperMocking(content)) {
-          hasMockingFramework = true;
-          break;
+        if (UnitTestDataManagementConstants.hasTestDouble(content)) {
+          anyDouble = true;
+        }
+        const clients =
+          UnitTestDataManagementConstants.externalClientsImported(content);
+        if (clients.length > 0) {
+          externalImports.push(
+            `${PathOperations.getRelative(projectRoot, testFile)} (${clients.join(', ')})`
+          );
         }
       } catch (_error) {
-        // Skip files that can't be read
+        // Named by the law as unreadable (TestFileDiscovery.unreadable).
       }
     }
 
-    return { hasProperMocking: hasMockingFramework || testFiles.length === 0 };
+    const judged = externalImports.length > 0;
+    return {
+      hasProperMocking: !judged || anyDouble,
+      judged,
+      externalImports,
+    };
   }
 
   /**

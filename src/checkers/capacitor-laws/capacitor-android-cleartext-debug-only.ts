@@ -124,7 +124,11 @@ export class CapacitorAndroidCleartextDebugOnlyLaw extends LawBase {
         shipped: SHIPPED_SOURCE_SETS.includes(planned.set),
         shippedBy: planned.shippedBy,
       };
-      violations.push(...this.checkManifest(context, native, shell, read.text, judged, planned.required));
+      // Only the main manifest must carry <application>. Another source set's
+      // manifest — redirected or not — is an overlay the merger folds into
+      // main, and an overlay that only removes a permission has none.
+      const needsApplication = planned.required && planned.set === 'main';
+      violations.push(...this.checkManifest(context, native, shell, read.text, judged, needsApplication));
     }
     return violations;
   }

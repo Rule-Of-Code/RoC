@@ -110,6 +110,25 @@ describe('#298 cleartext: redirected, missing and resource-valued manifests are 
     expect(result.violations).toEqual([]);
   });
 
+  it('green: a release overlay without <application> (it only removes a permission) is not a finding', () => {
+    // A real app's shape: the release source set's manifest is an overlay the
+    // merger folds into main; it has no <application> and needs none.
+    const result = cleartext({
+      [MANIFEST]: app(),
+      'android/app/build.gradle': "android {\n  sourceSets.release.manifest.srcFile 'src/noBackground/AndroidManifest.xml'\n}\n",
+      'android/app/src/noBackground/AndroidManifest.xml':
+        '<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">\n  <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" tools:node="remove" />\n</manifest>',
+    });
+    expect(result.violations).toEqual([]);
+  });
+
+  it('control: a main manifest without <application> is still a finding', () => {
+    const result = cleartext({
+      [MANIFEST]: '<manifest xmlns:android="http://schemas.android.com/apk/res/android"></manifest>',
+    });
+    expect(result.violations).toEqual([expect.stringContaining('no readable <application> element')]);
+  });
+
   it('control: a redirect inside app/src is still judged once, as shipped', () => {
     const result = cleartext({
       [MANIFEST]: app(),

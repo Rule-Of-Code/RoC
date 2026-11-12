@@ -10,6 +10,7 @@ import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 import { AngularLawBase } from './angular-law-base';
+import { AngularComponentFiles } from '../../utils/angular-component-files';
 
 export class InjectOverConstructorDiLaw extends AngularLawBase {
   // A constructor whose parameter list declares a parameter-property (access
@@ -27,13 +28,8 @@ export class InjectOverConstructorDiLaw extends AngularLawBase {
       context.config,
       undefined,
       false
-    ).filter(
-      f =>
-        f.endsWith('.component.ts') ||
-        f.endsWith('.directive.ts') ||
-        f.endsWith('.service.ts') ||
-        f.endsWith('.pipe.ts') ||
-        f.endsWith('.guard.ts')
+    ).filter(f =>
+      AngularComponentFiles.isKind(f, ['component', 'directive', 'service', 'pipe', 'guard'])
     );
 
     for (const file of files) {

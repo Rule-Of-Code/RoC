@@ -5,6 +5,30 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.26.1] - 2026-11-12
+
+One defect, found by running the 7.26.0 package against a real consumer
+before it was published. Publish 7.26.1; 7.26.0 is tagged but superseded.
+
+### 🐛 Fixed
+
+**Ignore patterns matched the directories above the project.** Ignores are
+written relative to the project, but the scans that pass absolute paths
+matched them against the whole path — so `**/tmp/**` or the default
+`**/build/**` also matched a `tmp` or `build` directory the project merely
+sits in. A project checked out under `/tmp` (common on CI) or a `build`
+folder had every file ignored by those scans: Professional Component Testing
+found 0 of a real Nx app's 117 Angular components. Before 7.26.0 that read
+as a silent 100; 7.26.0's "judged nothing" turned it into a false red.
+Ignores are now matched against the path inside the project; a `tmp/`
+directory *inside* the project is still ignored, and the include whitelist
+is unchanged.
+
+Also: the 7.26.0 release notes are right that a Python project selects two
+fewer laws — and its liveness floor counts without the two meta-gates, so a
+Python config whose `minLawsChecked` equals its current count must be
+lowered by 2 (measured on a real Python API: 88 → 86).
+
 ## [7.26.0] - 2026-11-12
 
 React and Next.js become a stack RuleOfCode actually reads, Ionic/Capacitor

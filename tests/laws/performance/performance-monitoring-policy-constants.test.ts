@@ -280,9 +280,9 @@ describe('ErrorTrackingPolicyConstants', () => {
 });
 
 describe('PerformanceAlertingConstants', () => {
-  describe('GITHUB_WORKFLOWS_PATTERN', () => {
+  describe('WORKFLOWS_DIR', () => {
     it('should match GitHub workflows', () => {
-      expect(PerformanceAlertingConstants.GITHUB_WORKFLOWS_PATTERN).toContain(
+      expect(PerformanceAlertingConstants.WORKFLOWS_DIR).toContain(
         '.github/workflows'
       );
     });
@@ -302,7 +302,7 @@ describe('PerformanceAlertingConstants', () => {
     });
 
     it('should include .lighthouserc.js', () => {
-      expect(PerformanceAlertingConstants.MONITORING_CONFIG_FILES).toContain(
+      expect(PerformanceAlertingConstants.LIGHTHOUSE_CI_FILES).toContain(
         '.lighthouserc.js'
       );
     });

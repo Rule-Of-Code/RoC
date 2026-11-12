@@ -14,7 +14,7 @@
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { ALL_ENHANCED_CONSTITUTIONAL_LAWS } from '../../data/enhanced-laws';
-import { lawAppliesToProjectType } from '../../utils/law-identity';
+import { lawAppliesToProjectType, runsWithoutAllowlist } from '../../utils/law-identity';
 import { lawRequirementsMet } from '../../utils/law-requirements';
 import { LawBase } from '../law-base';
 
@@ -46,9 +46,13 @@ export class AuditLivenessLaw extends LawBase {
       const projectType = config.project?.type;
       // Requirement-gated laws (Ionic, Capacitor) count only where the project
       // declares their subject — the same rule the selector applies, so the
-      // floor is a fraction of what can actually run.
+      // floor is a fraction of what can actually run. An opt-in law
+      // (`defaultEnabled: false`) counts when its severity turns it on — the
+      // selector's own rule, so the floor and the run never disagree.
+      const severity = (config.laws as { severity?: Record<string, unknown> }).severity;
       const applicable = ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(
         l =>
+          runsWithoutAllowlist({ name: l.title, id: l.id, defaultEnabled: l.defaultEnabled }, severity) &&
           lawAppliesToProjectType(l.stack, projectType) &&
           lawRequirementsMet(l.requires, context.projectRoot)
       ).length;

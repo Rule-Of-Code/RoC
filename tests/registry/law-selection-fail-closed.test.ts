@@ -9,7 +9,8 @@ import { ANGULAR_CONFIG, DEFAULT_CONFIG, REACT_CONFIG } from '../../src/config/t
 import { ConfigFileUtils } from '../../src/utils/config-file-utils';
 import type { RuleOfCodeConfig } from '../../src/types';
 
-const ALL = ModularLawsRegistry.getAll().length;
+// Every law that runs without an allowlist: all but the opt-in ones (defaultEnabled: false).
+const ALL = ModularLawsRegistry.getAll().filter(l => l.defaultEnabled !== false).length;
 
 const configWith = (laws: Record<string, unknown>): RuleOfCodeConfig => {
   const config = ConfigFileUtils.getMinimalDefaultConfig();
@@ -27,7 +28,7 @@ describe('law selection fail-closed (falsy matrix)', () => {
     ['0', 0],
     ['null', null],
     ['absent', undefined],
-  ])('paretoMode=%s selects ALL laws, never an empty set', (_label, value) => {
+  ])('paretoMode=%s selects every law that is not opt-in, never an empty set', (_label, value) => {
     const laws = { severity: {} } as Record<string, unknown>;
     if (value !== undefined) laws.paretoMode = value;
     const selected = ModularLawsRegistry.getEnabled(configWith(laws));

@@ -1,0 +1,5 @@
+# One sha1 per tag on any machine: LF in the repository and in every checkout,
+# whatever core.autocrlf says. Without it a tag packed to two tarballs and the
+# shipped one carried CRLF in 13 files (#307); the provenance gate compares
+# bytes, so it depends on this (#296).
+* text=auto eol=lf

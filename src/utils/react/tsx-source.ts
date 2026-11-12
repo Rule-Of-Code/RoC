@@ -113,6 +113,66 @@ export class TsxSource {
     );
   }
 
+  /**
+   * The parser's syntax errors, as `line N: message`. `createSourceFile` never
+   * throws: on an error it folds the rest of the file into the bad node, so a
+   * law that walks the tree without asking here reads half a file and passes.
+   * (`parseDiagnostics` is internal, present since TS 1.x.)
+   */
+  parseErrors(): string[] {
+    const diagnostics =
+      (this.sourceFile as unknown as { parseDiagnostics?: readonly TS.Diagnostic[] })
+        .parseDiagnostics ?? [];
+    return diagnostics.map(diagnostic => {
+      const line =
+        diagnostic.start === undefined
+          ? 0
+          : this.sourceFile.getLineAndCharacterOfPosition(diagnostic.start).line + 1;
+      return `line ${line}: ${this.ts.flattenDiagnosticMessageText(diagnostic.messageText, ' ')}`;
+    });
+  }
+
+  private valueNames?: ReadonlySet<string>;
+
+  /**
+   * Every name this file uses as a VALUE — what survives compilation.
+   *
+   * A name used only where a type goes (an annotation, `as T`, a generic
+   * argument, `implements`, `typeof x` inside a type, an interface or a type
+   * alias) is erased, and so is an import none of whose bindings is used as a
+   * value: TypeScript and SWC drop it from the emitted module even without the
+   * `type` keyword. `class A extends B` keeps `B` (a value).
+   *
+   * Over-approximates: every identifier outside a type counts, a property
+   * name included. That can only keep an import, never drop one that runs.
+   */
+  valueReferences(): ReadonlySet<string> {
+    if (this.valueNames) return this.valueNames;
+    const ts = this.ts;
+    const names = new Set<string>();
+    const recurse = (node: TS.Node): void => {
+      if (
+        ts.isImportDeclaration(node) ||
+        ts.isInterfaceDeclaration(node) ||
+        ts.isTypeAliasDeclaration(node)
+      ) {
+        return;
+      }
+      if (ts.isHeritageClause(node) && node.token === ts.SyntaxKind.ImplementsKeyword) return;
+      if (ts.isExpressionWithTypeArguments(node)) {
+        // `extends Base<T>`: Base is a value, T is a type.
+        recurse(node.expression);
+        return;
+      }
+      if (ts.isTypeNode(node)) return;
+      if (ts.isIdentifier(node)) names.add(node.text);
+      ts.forEachChild(node, recurse);
+    };
+    recurse(this.sourceFile);
+    this.valueNames = names;
+    return names;
+  }
+
   /** Visit every node, depth first. */
   walk(visit: (node: TS.Node) => void): void {
     const recurse = (node: TS.Node): void => {

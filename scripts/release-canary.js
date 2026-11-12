@@ -23,6 +23,7 @@
  */
 
 const { execFileSync, execSync } = require('child_process');
+const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -56,6 +57,7 @@ const STACKS = {
       'libs/bot/src/ok.ts': 'export const ok = 1;\n',
     },
     redFile: { 'libs/bot/src/risk.ts': 'export const equityFloor = 450;\n' },
+    // Opt-in: the red pass's `laws.severity` entry is what turns it on.
     redLaw: 'No Risk Literals',
     redThresholds: undefined,
     projectType: 'angular',
@@ -105,8 +107,14 @@ const STACKS = {
     redThresholds: undefined,
     projectType: 'react',
     // The React/Next laws run here, and the Angular/NgRx/Ionic ones do not.
+    // Next Route JS Budget is opt-in (defaultEnabled: false): never by default.
     mustRun: ['React Dangerous HTML Guarded', 'Next Server Only Boundary'],
-    mustNotRun: ['OnPush Change Detection Strategy', 'NgRx Store Pattern Mandate (SACRED LAW)', 'Ionic No Skip Location Change'],
+    mustNotRun: [
+      'OnPush Change Detection Strategy',
+      'NgRx Store Pattern Mandate (SACRED LAW)',
+      'Ionic No Skip Location Change',
+      'Next Route JS Budget',
+    ],
   },
   node: {
     floor: 55, // typescript + universal (75 applicable on 2026-07-10)
@@ -300,9 +308,12 @@ function main() {
     const prov = verifyProvenance(TARBALL);
     ok = ok && prov.ok;
     rows.push(
-      `provenance | shipped=${prov.shipped} files | fresh=${prov.fresh} files | ghosts=${prov.ghosts.length} ${prov.ok ? '✅' : '❌'}`
+      `provenance | shipped=${prov.shipped} files | fresh=${prov.fresh} files | ghosts=${prov.ghosts.length} | content differs=${prov.changed.length} ${prov.ok ? '✅' : '❌'}`
     );
     if (!prov.ok) {
+      prov.changed
+        .slice(0, 10)
+        .forEach(c => rows.push(`           | ≠ same name, different bytes than a clean build: ${c}`));
       prov.ghosts
         .slice(0, 10)
         .forEach(g => rows.push(`           | 👻 shipped but not in a clean build: ${g}`));
@@ -328,21 +339,37 @@ function main() {
  * fail for a reason that has nothing to do with the artifact — a false red is as
  * useless as a false green.
  */
+/**
+ * Every regular file in a .tgz → the sha256 of its bytes.
+ *
+ * Names longer than 100 bytes live in the ustar `prefix` field or in a PAX
+ * `path=` record; reading only the 100-byte field truncated them.
+ */
 function listTarEntries(tgz) {
   const buf = zlib.gunzipSync(fs.readFileSync(tgz));
-  const entries = new Set();
+  const entries = new Map();
+  const field = (start, length) => buf.toString('utf8', start, start + length).replace(/\0.*$/s, '');
+  let paxPath = null;
 
   for (let offset = 0; offset + 512 <= buf.length; ) {
-    const name = buf.toString('utf8', offset, offset + 100).replace(/\0.*$/, '');
-    if (!name) break; // two zero blocks terminate the archive
+    const shortName = field(offset, 100);
+    if (!shortName) break; // two zero blocks terminate the archive
 
-    const size = parseInt(
-      buf.toString('utf8', offset + 124, offset + 136).replace(/\0.*$/, '').trim() || '0',
-      8
-    );
+    const size = parseInt(field(offset + 124, 12).trim() || '0', 8);
     const type = buf.toString('utf8', offset + 156, offset + 157);
+    const prefix = field(offset + 257, 6).startsWith('ustar') ? field(offset + 345, 155) : '';
+    const body = buf.subarray(offset + 512, offset + 512 + size);
 
-    if (type === '0' || type === '') entries.add(name); // regular files only
+    if (type === 'x') {
+      const match = /(?:^|\n)\d+ path=([^\n]*)\n/.exec(body.toString('utf8'));
+      paxPath = match ? match[1] : null;
+    } else {
+      const name = paxPath ?? (prefix ? `${prefix}/${shortName}` : shortName);
+      paxPath = null;
+      if (type === '0' || type === '') {
+        entries.set(name, crypto.createHash('sha256').update(body).digest('hex'));
+      }
+    }
 
     offset += 512 + Math.ceil(size / 512) * 512;
   }
@@ -357,7 +384,8 @@ function listTarEntries(tgz) {
  * packed on top of a stale dist/. The ghosts were unreachable, so nothing broke
  * — but "the delivered artifact is the tagged code" stopped being a guarantee
  * and became a hope. QA caught it by hashing a fresh pack against the shipped
- * one; that comparison now runs before every tag.
+ * one; that comparison now runs before every tag — names AND bytes (until
+ * 7.26.2 it compared only names, #296).
  *
  * A green build is not evidence — the same lesson, one level up, at the package.
  */
@@ -396,15 +424,23 @@ function verifyProvenance(tarball) {
     const shipped = listTarEntries(tarball);
     const fresh = listTarEntries(path.join(out, packed));
 
-    const ghosts = [...shipped].filter(f => !fresh.has(f)).sort();
-    const missing = [...fresh].filter(f => !shipped.has(f)).sort();
+    const ghosts = [...shipped.keys()].filter(f => !fresh.has(f)).sort();
+    const missing = [...fresh.keys()].filter(f => !shipped.has(f)).sort();
+    // Same names are not the same code: a tarball with one line appended to
+    // dist/cli.js printed GREEN while only names were compared (#296). The
+    // repository's .gitattributes keeps every checkout LF, so a byte compare
+    // holds across machines (#307).
+    const changed = [...shipped.keys()]
+      .filter(f => fresh.has(f) && fresh.get(f) !== shipped.get(f))
+      .sort();
 
     return {
-      ok: ghosts.length === 0 && missing.length === 0,
+      ok: ghosts.length === 0 && missing.length === 0 && changed.length === 0,
       shipped: shipped.size,
       fresh: fresh.size,
       ghosts,
       missing,
+      changed,
     };
   } catch (error) {
     return {
@@ -413,6 +449,7 @@ function verifyProvenance(tarball) {
       fresh: 0,
       ghosts: [`provenance check failed: ${error.message}`],
       missing: [],
+      changed: [],
     };
   } finally {
     try {

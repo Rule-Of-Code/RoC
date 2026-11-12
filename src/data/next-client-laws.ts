@@ -346,7 +346,7 @@ export const NEXT_CLIENT_LAWS: EnhancedConstitutionalLaw[] = [
         'Enable the law, declare `"thresholds": { "next": { "routeJsBudgetKb": 500 } }`, and run `next build` (Turbopack) before the audit in CI. Over budget: move client code behind next/dynamic or into Server Components.',
     },
     detectionLimits: [
-      'Measures a build, so it cannot pass without one: a missing stats file (no build, a webpack build, or a custom `distDir` — only .next is read), one older than any scanned source file of the app, or an unknown format is reported as NOT measured. That is why it is opt-in (defaultEnabled: false).',
+      'Measures a build, so it cannot pass without one: a missing stats file (no build, a webpack build, or a custom `distDir` — only .next is read), one older than any scanned source file of the app, or an unknown format is reported as NOT measured. That is why it is opt-in (defaultEnabled: false). Turn it on with a severity in laws.severity (e.g. "Next Route JS Budget": "error") or by listing it in laws.enabled.',
       'Bytes are uncompressed, as Next writes them; transfer size (gzip/brotli) is smaller. Runtime metrics (LCP, INP) are not measured.',
       'The stats format is the one next@16.4.6 writes; the law refuses a file whose rows are not { route, firstLoadUncompressedJsBytes } rather than guessing.',
       'One budget for every route; no per-route budgets.',

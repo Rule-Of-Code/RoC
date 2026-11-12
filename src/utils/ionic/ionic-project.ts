@@ -24,6 +24,17 @@ export const REQUIRES_IONIC: LawRequirement = {
   anyDependency: ['@ionic/angular', '@ionic/react', '@ionic/vue'],
 };
 
+/**
+ * Any Ionic binding, OR the Capacitor iOS platform: the laws about the iOS
+ * WebView itself (the viewport meta), which a Capacitor iOS app without Ionic
+ * has too. `requires` has no "or" across fields; `@capacitor/ios` declares
+ * `@capacitor/core` as its peer, so naming it in `anyDependency` is
+ * "Capacitor with the iOS platform".
+ */
+export const REQUIRES_IONIC_OR_CAPACITOR_IOS: LawRequirement = {
+  anyDependency: [...(REQUIRES_IONIC.anyDependency ?? []), '@capacitor/ios'],
+};
+
 const OUTLET = /<ion-router-outlet\b/;
 const PAGE_MARKUP = /<ion-(?:content|header)\b/;
 

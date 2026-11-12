@@ -62,15 +62,18 @@ export class DefensiveArrayCoercionLaw extends FeArchLawBase {
       }
     }
 
-    return this.createResult(
-      violations,
-      this.LAW_NAME,
-      'FE_ARCHITECTURE',
-      [
-        'Guard: (Array.isArray(r.items) ? r.items : []).map(...)',
-        'Or a shared coerceArray() at the mapper boundary — not ?? []',
-      ],
-      context
+    return this.layerResult(
+      this.createResult(
+        violations,
+        this.LAW_NAME,
+        'FE_ARCHITECTURE',
+        [
+          'Guard: (Array.isArray(r.items) ? r.items : []).map(...)',
+          'Or a shared coerceArray() at the mapper boundary — not ?? []',
+        ],
+        context
+      ),
+      dataAccess.length === 0
     );
   }
 }

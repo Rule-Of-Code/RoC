@@ -4,7 +4,8 @@
 
 import chalk from 'chalk';
 import type { RuleOfCodeConfig } from '../../types';
-import type { AuditResult, AuditStats } from './audit-types';
+import { normalizeJudgedNothing } from '../../utils/judged-nothing';
+import type { AuditRefusal, AuditResult, AuditStats } from './audit-types';
 
 export class AuditResultProcessor {
   /**
@@ -21,6 +22,14 @@ export class AuditResultProcessor {
       !failOnWarnings &&
       (lawResult.severity === 'warning' || lawResult.severity === 'info')
     );
+  }
+
+  /**
+   * A law that judged nothing is a failure scored 0, whatever it computed —
+   * see utils/judged-nothing (#302).
+   */
+  static normalizeJudgedNothing<T>(lawResult: T): T {
+    return normalizeJudgedNothing(lawResult);
   }
 
   /**
@@ -216,6 +225,7 @@ export class AuditResultProcessor {
    */
   static generateStats(result: AuditResult): AuditStats {
     return {
+      executedLaws: result.results.size,
       totalLaws: result.totalLaws,
       passedLaws: result.passedLaws,
       failedLaws: result.failedLaws,
@@ -251,10 +261,19 @@ export class AuditResultProcessor {
     }
   }
 
+  /** One sentence for a refused run, shared by the CSV and HTML exports. */
+  private static describeRefusal(refused: AuditRefusal): string {
+    return refused.reason === 'no-laws'
+      ? 'Audit refused: no laws selected — no law ran'
+      : `Audit refused: ${refused.selectedLaws} laws selected — below the liveness floor (laws.minLawsChecked: ${refused.floor}) — no law ran`;
+  }
+
   private static exportToJson(result: AuditResult): string {
     const exportData = {
       passed: result.passed,
       score: result.score,
+      // Present only when the engine refused to run: no law was judged.
+      ...(result.refused ? { refused: result.refused } : {}),
       stats: this.generateStats(result),
       results: Array.from(result.results.entries()).map(([id, resUnknown]) => {
         const res = resUnknown as {
@@ -295,7 +314,8 @@ export class AuditResultProcessor {
     <p>Score: ${stats.score}%</p>
     <p>Passed: ${stats.passedLaws}/${stats.totalLaws}</p>
     <p>Duration: ${stats.duration}ms</p>
-  </div>
+  </div>${result.refused ? `
+  <p class="failed">${this.describeRefusal(result.refused)}</p>` : ''}
   <h2>Results</h2>
   ${results
     .map(([id, resUnknown]) => {
@@ -317,6 +337,14 @@ export class AuditResultProcessor {
   private static exportToCsv(result: AuditResult): string {
     const results = Array.from(result.results.entries());
     const lines = ['Law ID,Status,Message,Details'];
+
+    // A refused run has no law rows. A header alone reads as "nothing to
+    // report"; say instead that the audit did not run.
+    if (result.refused) {
+      lines.push(
+        `audit,REFUSED,${this.describeRefusal(result.refused).replace(/,/g, ';')},`
+      );
+    }
 
     for (const [id, resUnknown] of results) {
       const res = resUnknown as {

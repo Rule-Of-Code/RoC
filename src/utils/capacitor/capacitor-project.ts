@@ -24,6 +24,7 @@
 import { execFileSync } from 'child_process';
 import * as fs from 'fs';
 import { FileSystemOperations } from '../file-system-operations';
+import { resolveGitDir } from '../git/git-layout';
 import { NxWorkspace } from '../nx-workspace';
 import { PathOperations } from '../path-operations';
 import { filesUnder } from './native-plugins';
@@ -146,10 +147,20 @@ export class CapacitorProjects {
    * workspace. The audit cache keys on these: they sit outside the scanned
    * file set, so without them a cached verdict would survive an edit to the
    * manifest it was computed from.
+   *
+   * The paths are the ones the laws open: Capacitor's RESOLVED paths, which
+   * honour `android.path` / `ios.path` (the defaults only when the CLI cannot
+   * run, exactly as the laws fall back). Keying on the defaults alone let a
+   * project with a moved shell edit its manifest under a cached PASS.
    */
   static fixedPathInputs(projectRoot: string): string[] {
-    return this.find(projectRoot).flatMap(project => {
-      const native = this.defaultNativePaths(project.root);
+    const projects = this.find(projectRoot);
+    // The native-shell laws read tracked files from the index: staging or
+    // untracking a file changes their verdict without touching the disk copy.
+    const gitDir = projects.length > 0 ? resolveGitDir(projectRoot) : null;
+    const index = gitDir ? [PathOperations.join(gitDir, 'index')] : [];
+    return [...index, ...projects.flatMap(project => {
+      const native = this.nativePaths(project, projectRoot);
       return [
         project.configFile,
         native.androidManifest,
@@ -171,7 +182,7 @@ export class CapacitorProjects {
         ...this.sourceSetInputs(native),
         ...this.nativeSourceFiles(native),
       ];
-    });
+    })];
   }
 
   /**
@@ -191,13 +202,19 @@ export class CapacitorProjects {
       .filter(entry => entry.isDirectory())
       .flatMap(entry => {
         const set = PathOperations.join(src, entry.name);
-        const xmlDir = PathOperations.join(set, 'res', 'xml');
+        const res = PathOperations.join(set, 'res');
+        // res/xml (network security config, backup rules) and res/values* (a `@bool/…` manifest value).
+        const resourceDirs = list(res)
+          .filter(dir => dir.isDirectory() && (dir.name === 'xml' || dir.name === 'values' || dir.name.startsWith('values-')))
+          .map(dir => PathOperations.join(res, dir.name));
         return [
           PathOperations.join(set, ANDROID_MANIFEST),
           PathOperations.join(set, GOOGLE_SERVICES_JSON),
-          ...list(xmlDir)
-            .filter(file => file.isFile() && file.name.endsWith('.xml'))
-            .map(file => PathOperations.join(xmlDir, file.name)),
+          ...resourceDirs.flatMap(dir =>
+            list(dir)
+              .filter(file => file.isFile() && file.name.endsWith('.xml'))
+              .map(file => PathOperations.join(dir, file.name))
+          ),
         ];
       });
   }
@@ -218,13 +235,19 @@ export class CapacitorProjects {
    * The shells' own source: Java and Kotlin under the Android app's main
    * source set, Swift under the iOS target. Local plugins and the
    * BridgeActivity that registers them live here.
+   *
+   * `list` lists a directory's files: the disk by default (the audit cache
+   * keys), or a committed view's tracked files (the laws' verdict).
    */
-  static nativeSourceFiles(native: CapacitorNativePaths): string[] {
+  static nativeSourceFiles(
+    native: CapacitorNativePaths,
+    list: (dir: string, extensions: readonly string[]) => string[] = filesUnder
+  ): string[] {
     const srcMain = PathOperations.getDirectory(native.androidManifest);
     return [
-      ...filesUnder(PathOperations.join(srcMain, 'java'), ['.java', '.kt']),
-      ...filesUnder(PathOperations.join(srcMain, 'kotlin'), ['.java', '.kt']),
-      ...filesUnder(native.iosTargetDir, ['.swift']),
+      ...list(PathOperations.join(srcMain, 'java'), ['.java', '.kt']),
+      ...list(PathOperations.join(srcMain, 'kotlin'), ['.java', '.kt']),
+      ...list(native.iosTargetDir, ['.swift']),
     ];
   }
 

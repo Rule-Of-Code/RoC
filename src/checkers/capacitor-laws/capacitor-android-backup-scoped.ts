@@ -11,6 +11,10 @@
  * The law asks only that the decision be written: backup off, or on with
  * both rule files (dataExtractionRules for API 31+, fullBackupContent for
  * API 30 and lower) present. What the rules exclude is reported, not judged.
+ *
+ * The manifest and the rules are read as the commit holds them
+ * (CommittedShell): a manifest on this disk that git does not track is not
+ * what a clean checkout builds.
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
@@ -20,7 +24,7 @@ import {
   projectsWithPlatform,
   relative,
 } from '../../utils/capacitor/capacitor-law-support';
-import { CapacitorProjects } from '../../utils/capacitor/capacitor-project';
+import { notReadReason } from '../../utils/capacitor/committed-shell';
 import { LawBase } from '../law-base';
 
 const ALLOW_BACKUP = 'android:allowBackup';
@@ -58,8 +62,15 @@ export class CapacitorAndroidBackupScopedLaw extends LawBase {
 
   private static checkProject(context: LawCheckContext, { native }: PlatformProject): ProjectVerdict {
     const where = relative(context, native.androidManifest);
-    const manifest = CapacitorProjects.readNative(native.androidManifest);
-    const attributes = manifest === null ? null : AndroidShell.applicationAttributes(manifest);
+    const shell = AndroidShell.committed(context.projectRoot, native);
+    const read = shell.read(native.androidManifest);
+    if (read.state !== 'read') {
+      return {
+        violations: [`${where}: ${notReadReason(read)} — this law reads the committed main manifest and does not pass without it`],
+        decisions: [],
+      };
+    }
+    const attributes = AndroidShell.applicationAttributes(read.text);
     if (!attributes) {
       return {
         violations: [`${where}: no readable <application> element — this law reads the main manifest and does not pass without it`],
@@ -80,7 +91,7 @@ export class CapacitorAndroidBackupScopedLaw extends LawBase {
     const decisions: string[] = [];
     for (const { attribute, api } of RULE_ATTRIBUTES) {
       const reference = attributes.get(attribute);
-      const resource = reference === undefined ? null : AndroidShell.xmlResource(native, 'main', reference);
+      const resource = reference === undefined ? null : AndroidShell.xmlResource(native, shell, 'main', reference);
       if (!resource) {
         missing.push(reference === undefined ? `${attribute} (${api})` : `${attribute}="${reference}" (no such res/xml file)`);
         continue;

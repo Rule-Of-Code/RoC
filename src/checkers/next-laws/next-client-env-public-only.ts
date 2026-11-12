@@ -9,14 +9,16 @@
  * notices.
  *
  * Every module in a client graph (see Next Server Only Boundary) is read;
- * `process.env.X` and `process.env['X']` must name NEXT_PUBLIC_*, NODE_ENV, or
- * a key of the literal `env` object in next.config — those three Next inlines.
- * Computed access is Next Public Env Is Build Time's concern.
+ * `process.env.X`, `process.env['X']` and a name destructured from
+ * `process.env` (`const { X } = process.env`) must name NEXT_PUBLIC_*,
+ * NODE_ENV, or a key of the literal `env` object in next.config — those three
+ * Next inlines. Computed access, and destructuring as such (never inlined,
+ * whatever the name), are Next Public Env Is Build Time's concern.
  */
 
 import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { clientGraph, envReads, type NextModuleGraph } from '../../utils/react/next-module-graph';
+import { clientGraph, type EnvRead, envReads, type NextModuleGraph } from '../../utils/react/next-module-graph';
 import { FileSystemOperations } from '../../utils/file-system-operations';
 import { PathOperations } from '../../utils/path-operations';
 import { ReactProject, type NextApp } from '../../utils/react/react-project';
@@ -44,21 +46,28 @@ export class NextClientEnvPublicOnlyLaw extends LawBase {
     const apps = ReactProject.nextApps(context.projectRoot);
     const client = clientGraph(graph, apps);
     const configEnv = this.configEnv(graph, apps);
+    const caveat = configEnv.unreadable.length
+      ? ` (the env of ${configEnv.unreadable.join(', ')} is not a literal object and was not read)`
+      : '';
     const violations: string[] = [];
     for (const [file, visit] of client.modules) {
       for (const read of envReads(visit.source)) {
         if (!read.name || read.name.startsWith('NEXT_PUBLIC_') || ALWAYS_INLINED.has(read.name)) continue;
         if (configEnv.keys.has(read.name)) continue;
-        const caveat = configEnv.unreadable.length
-          ? ` (the env of ${configEnv.unreadable.join(', ')} is not a literal object and was not read)`
-          : '';
         violations.push(
-          `${graph.relative(file)}:${read.line}: ${read.text} is read in browser code (through ${graph.chain(client.modules, file)}) — Next replaces it with an empty string there${caveat}. Read it on the server and pass the value down, or rename it NEXT_PUBLIC_ if it is public`
+          `${graph.relative(file)}:${read.line}: ${read.text} is read in browser code (through ${graph.chain(client.modules, file)}) — ${this.inBrowser(read)}${caveat}. Read it on the server and pass the value down, or rename it NEXT_PUBLIC_ if it is public`
         );
       }
     }
     violations.push(...client.unresolved.map(item => graph.describeUnresolved(item)), ...graph.unread);
     return this.result(violations, context);
+  }
+
+  /** What the browser sees: a destructured name is not inlined at all. */
+  private static inBrowser(read: EnvRead): string {
+    return read.inlined
+      ? 'Next replaces it with an empty string there'
+      : 'Next does not inline a destructured read, so it is undefined there';
   }
 
   private static result(violations: string[], context: LawCheckContext): LawResult {

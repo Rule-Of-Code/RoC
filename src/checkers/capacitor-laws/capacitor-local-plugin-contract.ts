@@ -12,7 +12,9 @@
  *
  * A `registerPlugin` name is local when no installed Capacitor plugin
  * package declares it in its Android sources. Native sources are opened by
- * fixed path, independent of `ignores`.
+ * fixed path, independent of `ignores`, and read as the commit holds them
+ * (CommittedShell): a plugin class on this disk that git does not track is
+ * not in a clean checkout, so it does not satisfy the contract.
  */
 
 import * as fs from 'fs';
@@ -20,6 +22,7 @@ import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { relative, withNotes } from '../../utils/capacitor/capacitor-law-support';
 import { CapacitorProjects } from '../../utils/capacitor/capacitor-project';
+import { CommittedShell } from '../../utils/capacitor/committed-shell';
 import {
   bridgeSources,
   CAPACITOR_PLUGIN_MODULE,
@@ -241,9 +244,11 @@ export class CapacitorLocalPluginContractLaw extends LawBase {
     const side: NativeSide = { androidPresent: false, android: [], activities: [], ios: [] };
     for (const project of CapacitorProjects.find(context.projectRoot)) {
       const native = CapacitorProjects.nativePaths(project, context.projectRoot);
-      if (fs.existsSync(native.androidDir)) side.androidPresent = true;
-      for (const file of CapacitorProjects.nativeSourceFiles(native)) {
-        const text = readText(file) ?? '';
+      // The native side as the commit holds it: an untracked plugin class or an ignored android/ is not in a clean checkout.
+      const shell = CommittedShell.of(context.projectRoot, [native.androidDir, native.iosTargetDir]);
+      if (shell.hasDir(native.androidDir)) side.androidPresent = true;
+      for (const file of CapacitorProjects.nativeSourceFiles(native, (dir, extensions) => shell.filesUnder(dir, extensions))) {
+        const text = shell.text(file) ?? '';
         if (file.endsWith('.swift')) {
           side.ios.push(...iosPluginClasses(file, text));
           continue;

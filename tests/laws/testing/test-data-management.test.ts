@@ -55,9 +55,10 @@ describe('TestDataManagementLaw', () => {
 
         const result = TestDataManagementLaw.check(context);
 
-        expect(result.violations).not.toContain(
-          'Test files missing proper setup/teardown patterns'
-        );
+        // The setup finding names its files since #310; match its wording.
+        expect(
+          (result.violations ?? []).some(v => v.includes('beforeEach/afterEach'))
+        ).toBe(false);
       });
 
       it('should flag tests without setup/teardown', () => {
@@ -621,9 +622,10 @@ describe('TestDataManagementLaw', () => {
 
         const result = TestDataManagementLaw.check(context);
 
-        expect(result.violations).not.toContain(
-          'Test files missing proper setup/teardown patterns'
-        );
+        // The setup finding names its files since #310; match its wording.
+        expect(
+          (result.violations ?? []).some(v => v.includes('beforeEach/afterEach'))
+        ).toBe(false);
         expect(result.violations).not.toContain(
           'Tests have shared mutable state issues'
         );

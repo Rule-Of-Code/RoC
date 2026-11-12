@@ -15,6 +15,7 @@
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
+import { markJudgedNothing } from '../../utils/judged-nothing';
 import { isClientModule, NextModuleGraph } from '../../utils/react/next-module-graph';
 import { routerLayout, specialFile } from '../../utils/react/next-routes';
 import { ReactProject } from '../../utils/react/react-project';
@@ -41,7 +42,7 @@ export class NextErrorBoundariesDeclaredLaw extends LawBase {
     const graph = NextModuleGraph.create(context);
     for (const appDir of appDirs) violations.push(...this.checkAppDir(appDir, graph, rel));
     if (typeof graph !== 'string') violations.push(...graph.unread);
-    return this.createResult(
+    const result = this.createResult(
       violations,
       this.LAW_NAME,
       'FRAMEWORK',
@@ -52,6 +53,8 @@ export class NextErrorBoundariesDeclaredLaw extends LawBase {
       ],
       context
     );
+    // No App Router: judged nothing, so failed with score 0 (#302).
+    return appDirs.length === 0 ? markJudgedNothing(result) : result;
   }
 
   private static checkAppDir(

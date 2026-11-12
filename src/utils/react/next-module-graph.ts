@@ -24,6 +24,7 @@ import { builtinModules } from 'module';
 import type * as TS from 'typescript';
 import type { LawCheckContext } from '../../types/law.types';
 import { PathOperations } from '../path-operations';
+import { CompiledImports } from './compiled-imports';
 import { loadTypeScript, parserUnavailable, TsxSource, type TypeScriptModule } from './tsx-source';
 import { ReactProject, type NextApp } from './react-project';
 import { routerLayout, specialFile } from './next-routes';
@@ -131,6 +132,7 @@ export class NextModuleGraph {
   private readonly resolutions = new Map<string, Resolution>();
   private readonly realRoot: string;
   private readonly rootKey: string;
+  private readonly compiled: CompiledImports;
 
   private constructor(
     readonly context: LawCheckContext,
@@ -138,6 +140,7 @@ export class NextModuleGraph {
   ) {
     this.realRoot = NextModuleGraph.canonical(context.projectRoot);
     this.rootKey = NextModuleGraph.key(this.realRoot);
+    this.compiled = new CompiledImports(ts);
   }
 
   /** A graph for the project, or the reason it cannot be built (no TypeScript). */
@@ -193,20 +196,16 @@ export class NextModuleGraph {
   }
 
   /**
-   * Every import that brings code in: static imports (not `import type`, not
-   * an import whose every binding is a type), `export … from`, side-effect
-   * imports, and `import('x')` / `require('x')` with a literal name.
-   *
-   * In a TypeScript file an import none of whose bindings is used as a value
-   * is erased by the compiler (`import { Row } from './db'` used only as
-   * `: Row`), so it is no edge — counted, it put a server module in the
-   * client bundle that never reaches it.
+   * Every import that brings code in: the static imports and `export … from`
+   * the compiler keeps (see CompiledImports — an import used only as a type
+   * is erased, so it is no edge), side-effect imports, and `import('x')` /
+   * `require('x')` with a literal name.
    */
   importsOf(source: TsxSource): ModuleImport[] {
     const ts = this.ts;
     const found: ModuleImport[] = [];
     for (const statement of source.sourceFile.statements) {
-      const module = this.staticSpecifier(statement, source);
+      const module = this.compiled.runtimeSpecifier(source, statement);
       if (module) found.push({ specifier: module, line: source.lineOf(statement) });
     }
     source.walk(node => {
@@ -218,65 +217,6 @@ export class NextModuleGraph {
       if (dynamicImport || requireCall) found.push({ specifier: first.text, line: source.lineOf(node) });
     });
     return found;
-  }
-
-  private staticSpecifier(statement: TS.Statement, source: TsxSource): string | null {
-    const ts = this.ts;
-    if (ts.isImportDeclaration(statement) && ts.isStringLiteral(statement.moduleSpecifier)) {
-      const clause = statement.importClause;
-      if (clause?.isTypeOnly) return null;
-      const bindings = clause?.namedBindings;
-      const onlyTypes =
-        clause !== undefined &&
-        !clause.name &&
-        bindings !== undefined &&
-        ts.isNamedImports(bindings) &&
-        bindings.elements.length > 0 &&
-        bindings.elements.every(element => element.isTypeOnly);
-      if (onlyTypes || (clause && this.erasedByCompiler(clause, source))) return null;
-      return statement.moduleSpecifier.text;
-    }
-    if (
-      ts.isExportDeclaration(statement) &&
-      !statement.isTypeOnly &&
-      statement.moduleSpecifier &&
-      ts.isStringLiteral(statement.moduleSpecifier)
-    ) {
-      return statement.moduleSpecifier.text;
-    }
-    return null;
-  }
-
-  /**
-   * True when a TypeScript file imports bindings and uses none of them as a
-   * value, so the emitted module has no such import. A JavaScript file keeps
-   * every import; an import with no bindings is a side-effect import and stays.
-   *
-   * `export { X } from './m'` stays an edge even when X is a type: under
-   * `isolatedModules` (which Next requires) re-exporting a type that way does
-   * not compile, so the form that compiles is `export type`, already skipped.
-   */
-  private erasedByCompiler(clause: TS.ImportClause, source: TsxSource): boolean {
-    const ts = this.ts;
-    if (/\.(?:[cm]?js|jsx)$/.test(source.fileName)) return false;
-    // verbatimModuleSyntax (and its predecessor preserveValueImports) keeps
-    // every import not written `import type` — the edge is real there.
-    const options = this.compilerOptions(source.fileName) as TS.CompilerOptions & {
-      preserveValueImports?: boolean;
-    };
-    if (options.verbatimModuleSyntax || options.preserveValueImports) return false;
-    const locals: string[] = [];
-    if (clause.name) locals.push(clause.name.text);
-    const bindings = clause.namedBindings;
-    if (bindings && ts.isNamespaceImport(bindings)) locals.push(bindings.name.text);
-    if (bindings && ts.isNamedImports(bindings)) {
-      for (const element of bindings.elements) {
-        if (!element.isTypeOnly) locals.push(element.name.text);
-      }
-    }
-    if (locals.length === 0) return false;
-    const used = source.valueReferences();
-    return !locals.some(name => used.has(name));
   }
 
   /** Where `specifier`, imported from `fromFile`, leads. */
@@ -467,12 +407,21 @@ export interface EnvRead {
   line: number;
   /** The expression as written, for messages. */
   text: string;
+  /**
+   * True only for `process.env.X` and `process.env['X']`, the forms Next
+   * replaces at build time. A destructured name is read, but never inlined:
+   * in the browser it is undefined.
+   */
+  inlined: boolean;
 }
 
 /**
  * Every use of `process.env` in a file: `process.env.X` and
- * `process.env['X']` give the name; `process.env[expr]`, destructuring and
- * passing `process.env` around give null — Next inlines only the literal forms.
+ * `process.env['X']` give the name (inlined); `const { X, Y: y } =
+ * process.env` (and the same assignment) gives X and Y, not inlined, with a
+ * rest element or a computed key as a null read; `process.env[expr]` and
+ * passing `process.env` around give null — Next inlines only the literal
+ * forms.
  */
 export function envReads(source: TsxSource): EnvRead[] {
   const ts = source.ts;
@@ -482,16 +431,65 @@ export function envReads(source: TsxSource): EnvRead[] {
     const parent = node.parent;
     const text = (n: TS.Node): string => n.getText(source.sourceFile);
     if (ts.isPropertyAccessExpression(parent) && parent.expression === node) {
-      reads.push({ name: parent.name.text, line: source.lineOf(parent), text: text(parent) });
+      reads.push({ name: parent.name.text, line: source.lineOf(parent), text: text(parent), inlined: true });
     } else if (ts.isElementAccessExpression(parent) && parent.expression === node) {
       const argument = parent.argumentExpression;
       const name = ts.isStringLiteralLike(argument) ? argument.text : null;
-      reads.push({ name, line: source.lineOf(parent), text: text(parent) });
+      reads.push({ name, line: source.lineOf(parent), text: text(parent), inlined: name !== null });
     } else {
-      reads.push({ name: null, line: source.lineOf(node), text: text(parent) });
+      const destructured = destructuredEnvReads(source, node);
+      reads.push(...(destructured ?? [{ name: null, line: source.lineOf(node), text: text(parent), inlined: false }]));
     }
   });
   return reads;
+}
+
+/**
+ * The names a destructuring of `process.env` reads — `const { A, B: b } =
+ * process.env` or `({ A } = process.env)`, through parentheses and `as` —
+ * or null when `env` is not destructured there.
+ */
+function destructuredEnvReads(source: TsxSource, env: TS.Expression): EnvRead[] | null {
+  const ts = source.ts;
+  let value: TS.Node = env;
+  while (
+    ts.isParenthesizedExpression(value.parent) ||
+    ts.isAsExpression(value.parent) ||
+    ts.isNonNullExpression(value.parent) ||
+    // By kind: the project's own TypeScript may predate `satisfies` (4.9).
+    value.parent.kind === ts.SyntaxKind.SatisfiesExpression
+  ) {
+    value = value.parent;
+  }
+  const holder = value.parent;
+  const elements: Array<{ key: TS.Node | undefined; rest: boolean; at: TS.Node }> = [];
+  if (ts.isVariableDeclaration(holder) && holder.initializer === value && ts.isObjectBindingPattern(holder.name)) {
+    for (const element of holder.name.elements) {
+      elements.push({ key: element.propertyName ?? element.name, rest: element.dotDotDotToken !== undefined, at: element });
+    }
+  } else if (
+    ts.isBinaryExpression(holder) &&
+    holder.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+    holder.right === value &&
+    ts.isObjectLiteralExpression(holder.left)
+  ) {
+    for (const property of holder.left.properties) {
+      elements.push({ key: property.name, rest: ts.isSpreadAssignment(property), at: property });
+    }
+  } else {
+    return null;
+  }
+  return elements.map(({ key, rest, at }) => {
+    const literal =
+      key && (ts.isIdentifier(key) || ts.isStringLiteralLike(key)) && !rest ? key.text : null;
+    const written = at.getText(source.sourceFile);
+    return {
+      name: literal,
+      line: source.lineOf(at),
+      text: literal ? `${literal} (destructured from process.env)` : `${written} (destructured from process.env)`,
+      inlined: false,
+    };
+  });
 }
 
 function isProcessEnv(ts: TypeScriptModule, node: TS.Node): node is TS.PropertyAccessExpression {

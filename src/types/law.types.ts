@@ -69,6 +69,13 @@ export interface LawResult {
   violationDetails?: ViolationDetail[]; // NEW: Structured violation information
   config: RuleOfCodeConfig; // Optional configuration information
   metrics?: Record<string, unknown>; // Optional metrics data
+  /**
+   * The law found nothing it could judge (no file in its layer, no entry
+   * document, no test file, …). The engine reports such a result as failed
+   * with score 0, whatever the law computed: a law that judged nothing has
+   * earned no score, and one value means one verdict across every law.
+   */
+  judgedNothing?: boolean;
 }
 
 export interface LawCheckContext {

@@ -249,7 +249,7 @@ export const CAPACITOR_BRIDGE_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       NEEDS_TYPESCRIPT,
-      'Stubs are found in moduleNameMapper (jest.config.*, jest.preset.*, package.json "jest") and Vitest alias (object or find/replacement array) of the root and each workspace project, read regardless of ignores; per-file jest.mock() calls are not counted as workspace stubs, and a mapper built by a function call is not read.',
+      'Stubs are found in moduleNameMapper (jest.config.*, jest.preset.*, package.json "jest") and Vitest alias (object or find/replacement array) of the root and each workspace project, read regardless of ignores; per-file jest.mock() calls are not counted as workspace stubs. A mapper held in a variable is read when it is a same-file const holding an object literal (spreads of such a const too); a mapper built by a function call, imported from another module or computed is not read, and is reported as a violation naming the config file whenever a Capacitor plugin is declared.',
       'A contract test is a test that calls jest.requireActual / vi.importActual on the package, or a file under thresholds.capacitor.contractTests that imports or requires it; a spec that imports the real package under a config without the mapping is recognised only through that declaration. Whether it exercises the method that matters is not judged.',
       'Native implementations are out of reach of any JS test; this law is about the web implementation and the stub agreeing. The methods listed are named-import call sites in non-test source.',
     ],

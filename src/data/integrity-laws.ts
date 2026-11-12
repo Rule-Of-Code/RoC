@@ -169,6 +169,7 @@ export const INTEGRITY_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       TRACKED_ONLY,
+      'ignores.global and ignores.byRule do not apply: what the compiler leaves out is the subject, so a file the audit ignores (a "**/jest.config.cts" glob) is still reported when a tsconfig excludes it and none includes it. Give such files a tsconfig, or waive the law with laws.notApplicable (with the reason) or a laws.severity override.',
       'Whether the tsconfig that includes a file is actually run by any script is not checked.',
       "Configs are resolved with the project's own TypeScript (extends, include, files, exclude, references). A config, an extends or a reference it cannot resolve is a finding, and the files it would have included are not counted as covered.",
       'A config that sets neither include nor files (itself or through extends) and is extended by another tsconfig is treated as a shared base: its implicit include of everything beneath it is not counted as covering.',

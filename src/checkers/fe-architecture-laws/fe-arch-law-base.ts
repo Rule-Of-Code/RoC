@@ -17,8 +17,9 @@
  */
 
 import { minimatch } from 'minimatch';
-import type { LawCheckContext } from '../../types/law.types';
+import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { DirectoryScanner } from '../../utils/directory-scanner';
+import { markJudgedNothing } from '../../utils/judged-nothing';
 import { PathOperations } from '../../utils/path-operations';
 import type { TsxSource } from '../../utils/react/tsx-source';
 import { AngularLawBase } from '../angular-laws/angular-law-base';
@@ -99,6 +100,15 @@ export class FeArchLawBase extends AngularLawBase {
     });
     const keys = layers.map(layer => `thresholds.frontend.${LAYERS[layer].key}`).join(' / ');
     return `no source file is in ${described.join(' or ')} — this law judged nothing. Declare where the layer lives in ${keys} (globs relative to the project root), or set the law to notApplicable with the reason`;
+  }
+
+  /**
+   * A layer law's result. With its layer empty the law judged nothing: it is
+   * a failure scored 0, the one verdict every law gives for that (it scored
+   * 90 here, beside 100 and 0 elsewhere).
+   */
+  protected static layerResult(result: LawResult, layerEmpty: boolean): LawResult {
+    return layerEmpty ? markJudgedNothing(result) : result;
   }
 
   /** Non-test source with `extensions`, honouring ignores (incl. byRule for this law). */

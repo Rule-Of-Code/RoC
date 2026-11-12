@@ -6,6 +6,7 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { ConfigHelper } from '../../utils/config-helper';
 import { FileUtils } from '../../utils/file-utils';
+import { markJudgedNothing } from '../../utils/judged-nothing';
 import { PathOperations } from '../../utils/path-operations';
 import { AsyncTestAnalyzer } from '../../utils/testing/async-test-analyzer';
 import { TestCoverageAnalyzer } from '../../utils/testing/test-coverage-analyzer';
@@ -21,19 +22,26 @@ export class UnitTestQualityLaw extends TestingLawBase {
     const testFiles = this.getTestFiles(context.projectRoot, config);
 
     if (testFiles.length === 0) {
+      // No test file: this law judged nothing. Same verdict, same score (0) as
+      // every other law that found nothing to judge (#302) — it scored 90.
       violations.push('No test files found');
       suggestions.push('Create unit tests for your application');
-      return TestingLawBase.createResult(
-        violations,
-        'Unit Test Quality',
-        'TESTING',
-        suggestions,
-        context
+      return markJudgedNothing(
+        TestingLawBase.createResult(
+          violations,
+          'Unit Test Quality',
+          'TESTING',
+          suggestions,
+          context
+        )
       );
     }
 
     // Analyze test quality
-    const qualityAnalysis = await this.analyzeTestQuality(testFiles);
+    const qualityAnalysis = await this.analyzeTestQuality(
+      context.projectRoot,
+      testFiles
+    );
     violations.push(...qualityAnalysis.violations);
     suggestions.push(...qualityAnalysis.suggestions);
 
@@ -67,7 +75,10 @@ export class UnitTestQualityLaw extends TestingLawBase {
     return result;
   }
 
-  private static async analyzeTestQuality(testFiles: string[]): Promise<{
+  private static async analyzeTestQuality(
+    projectRoot: string,
+    testFiles: string[]
+  ): Promise<{
     violations: string[];
     suggestions: string[];
     totalTests: number;
@@ -82,30 +93,35 @@ export class UnitTestQualityLaw extends TestingLawBase {
     let filesWithoutTests = 0;
 
     for (const file of testFiles) {
+      // Findings name the file from the project root, as the twins do — not
+      // the absolute path, and not with the platform's separators.
+      const shown = this.displayPath(projectRoot, file);
+      const named = (finding: string): string =>
+        finding.includes(shown) ? finding : `${finding} in ${shown}`;
       try {
         const content = FileUtils.readFile(file);
 
         // Test structure analysis
         const structureAnalysis = await TestStructureAnalyzer.analyzeTestFile(file);
         const structViolations = this.extractViolations(structureAnalysis);
-        violations.push(...structViolations);
+        violations.push(...structViolations.map(named));
         const structSuggestions = this.extractSuggestions(structureAnalysis);
         suggestions.push(...structSuggestions);
 
         // Async test analysis
         const asyncAnalysis = AsyncTestAnalyzer.analyzeAsyncPatterns(content);
         const asyncViolations = asyncAnalysis.asyncIssues;
-        violations.push(...asyncViolations);
+        violations.push(...asyncViolations.map(named));
         const asyncSuggestions = asyncAnalysis.recommendations;
         suggestions.push(...asyncSuggestions);
 
         // Coverage analysis
         const coverageAnalysis = TestCoverageAnalyzer.analyzeCoverage(
           content,
-          file
+          shown
         );
         const coverageViolations = this.extractViolations(coverageAnalysis);
-        violations.push(...coverageViolations);
+        violations.push(...coverageViolations.map(named));
         const coverageSuggestions = this.extractSuggestions(coverageAnalysis);
         suggestions.push(...coverageSuggestions);
 
@@ -124,8 +140,9 @@ export class UnitTestQualityLaw extends TestingLawBase {
           coverageAnalysis
         );
       } catch (_error) {
+        // The path, not the basename: two `index.spec.ts` are two files.
         violations.push(
-          `Could not analyze test file ${PathOperations.getBasename(file)}`
+          `Could not read test file ${shown}, so nothing in it was judged`
         );
       }
     }

@@ -13,6 +13,10 @@
  * present for a variant with no client for that variant's package.
  * A missing google-services.json is not red: it is ignored by design, and the
  * law judges the build that would run without it.
+ *
+ * The build script is read as the commit holds it (CommittedShell): a
+ * script on this disk that git does not track is not what a clean checkout
+ * builds. google-services.json, ignored by design, is read from disk.
  */
 
 import * as fs from 'fs';
@@ -24,6 +28,7 @@ import {
   relative,
 } from '../../utils/capacitor/capacitor-law-support';
 import { FIREBASE_ANDROID_DEPENDENCIES } from '../../utils/capacitor/capacitor-native-tables';
+import { CommittedShell, notReadReason } from '../../utils/capacitor/committed-shell';
 import { type GradleBlock, GradleText, gradleStringValue } from '../../utils/capacitor/gradle-text';
 import { declaredDependencies } from '../../utils/law-requirements';
 import { PathOperations } from '../../utils/path-operations';
@@ -76,10 +81,14 @@ export class CapacitorFirebaseNativeConfigNotSkippedLaw extends LawBase {
   }
 
   private static checkProject(context: LawCheckContext, { native }: PlatformProject, needing: string[]): Verdict {
-    const script = AndroidShell.buildScript(native);
-    const scriptPath = relative(context, native.androidAppBuildGradle);
-    if (!script) {
-      return { violations: [`${scriptPath}(.kts) does not exist — this law reads the app build script and does not pass without it`], notes: [] };
+    const script = AndroidShell.buildScript(native, AndroidShell.committed(context.projectRoot, native));
+    if ('notRead' in script) {
+      const scriptPath = relative(context, script.file);
+      const what = script.notRead.state === 'absent' ? `${relative(context, native.androidAppBuildGradle)}(.kts)` : scriptPath;
+      return {
+        violations: [`${what} ${notReadReason(script.notRead)} — this law reads the committed app build script and does not pass without it`],
+        notes: [],
+      };
     }
     const where = relative(context, script.file);
     const gradle = new GradleText(script.text);
@@ -135,7 +144,8 @@ export class CapacitorFirebaseNativeConfigNotSkippedLaw extends LawBase {
     gradle: GradleText
   ): Verdict {
     const appDir = AndroidShell.appDir(native);
-    const sets = AndroidShell.sourceSets(native)
+    // google-services.json is git-ignored by design: the copy a local build would use is the one on disk.
+    const sets = AndroidShell.sourceSets(native, CommittedShell.onDisk(context.projectRoot))
       .map(set => ({ name: set.name, file: PathOperations.join(set.dir, SERVICES_JSON) }))
       .filter(({ file }) => fs.existsSync(file));
     const root = PathOperations.join(appDir, SERVICES_JSON);

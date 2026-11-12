@@ -167,10 +167,13 @@ describe('#302 a law that judged nothing is a failure scored 0', () => {
   ];
 
   it('through the engine: every judged-nothing result is passed:false, score 0', async () => {
-    // The reporter's static site: an HTML page, no package.json, no config.
+    // The reporter's static site: an HTML page, no package.json. It used to be
+    // typed React from `public/index.html` alone; since #319 a file name is no
+    // framework evidence, so the frontend type these laws need is declared.
     const root = fixture(
       { 'public/index.html': '<html lang="en"></html>\n' },
       {
+        project: { type: 'react' },
         laws: {
           enabled: Object.fromEntries(JUDGED_NOTHING.map(name => [name, true])),
         },

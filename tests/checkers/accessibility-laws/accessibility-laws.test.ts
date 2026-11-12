@@ -160,8 +160,9 @@ describe('AccessibilityLintingEnforcementLaw', () => {
     });
     expect(AccessibilityLintingEnforcementLaw.check(ctx(dir)).passed).toBe(true);
   });
-  it('is N/A (passes) when the project has no templates', () => {
+  it('says it judged nothing when the project has no templates (#327)', () => {
+    // Was "is N/A (passes)": a green check over nothing judged.
     const dir = fixture({ 'x.ts': 'const a = 1;\n' });
-    expect(AccessibilityLintingEnforcementLaw.check(ctx(dir)).passed).toBe(true);
+    expect(AccessibilityLintingEnforcementLaw.check(ctx(dir))).toMatchObject({ passed: false, judgedNothing: true });
   });
 });

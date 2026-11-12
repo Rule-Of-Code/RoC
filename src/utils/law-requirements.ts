@@ -16,7 +16,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import type { LawRequirement } from '../types/enhanced-law.types';
+import { minimatch } from 'minimatch';
 import { FileSystemOperations } from './file-system-operations';
+import { trackedFiles } from './git/git-layout';
 import { NxWorkspace } from './nx-workspace';
 
 type Manifest = {
@@ -109,6 +111,10 @@ const NOT_PROJECT_SOURCE = new Set([
   'apidocs',
   'javadoc',
   'typedoc',
+  // Generated static-site output (Jekyll, Storybook): built from sources the
+  // walk already sees, never the pages a project authors (#326).
+  '_site',
+  'storybook-static',
 ]);
 
 /**
@@ -127,36 +133,60 @@ const NOT_PROJECT_SOURCE = new Set([
  */
 export function hasJsTsToolchain(projectRoot: string): boolean {
   if (presentRequiredFiles(projectRoot, JS_TS_MANIFESTS).length > 0) return true;
-  return holdsFileNamed(projectRoot, TS_SOURCE_NAME);
+  return walkFinds(projectRoot, relative => TS_SOURCE_NAME.test(relative));
 }
 
 /** An HTML document — not `coverage.html`, which `go tool cover -html` writes. */
 const HTML_DOCUMENT_NAME = /^(?!coverage\.html?$).+\.html?$/i;
 
 /**
- * Does the project hold an HTML document outside installed and built code?
- * A static site — HTML pages, a hosting config, no framework — is typed
- * `generic`, and the laws that read HTML and the hosting headers apply to it
- * (#323). An unreadable directory answers yes, as for the toolchain.
+ * Does the project hold an HTML document of its own? A static site — HTML
+ * pages, a hosting config, no framework — is typed `generic`, and the laws
+ * that read HTML and the hosting headers apply to it (#323).
+ *
+ * "Of its own" (#326): in a git working tree only TRACKED files count — a
+ * git-ignored build output (MkDocs `site/`) is on the disk here and absent on
+ * CI, so it must not decide which laws run. A path under installed, built,
+ * generated or hidden directories, or matched by `ignores` (the project's
+ * `ignores.global`), does not count either: ignoring the pages and then being
+ * judged on them is the one outcome a user cannot clear. Outside git, the
+ * disk is walked; an unreadable directory answers yes, as for the toolchain.
  */
-export function hasHtmlDocument(projectRoot: string): boolean {
-  return holdsFileNamed(projectRoot, HTML_DOCUMENT_NAME);
+export function hasHtmlDocument(projectRoot: string, ignores: readonly string[] = []): boolean {
+  const ownPage = (relative: string): boolean => {
+    const segments = relative.split('/');
+    const name = segments[segments.length - 1] ?? '';
+    if (!HTML_DOCUMENT_NAME.test(name)) return false;
+    if (segments.slice(0, -1).some(s => s.startsWith('.') || NOT_PROJECT_SOURCE.has(s))) return false;
+    return !ignores.some(pattern => minimatch(relative, pattern, { dot: true }));
+  };
+  const tracked = trackedFiles(projectRoot, ['*.html', '*.htm']);
+  if (tracked) return [...tracked].some(ownPage);
+  return walkFinds(projectRoot, ownPage);
 }
 
-/** Walk the project (not installed, built or hidden directories) for a file whose name matches. */
-function holdsFileNamed(projectRoot: string, name: RegExp): boolean {
+/**
+ * Walk the disk (not installed, built or hidden directories) for a file whose
+ * project-relative path `accept`s. An unreadable directory answers yes.
+ */
+function walkFinds(projectRoot: string, accept: (relative: string) => boolean): boolean {
   const pending = [projectRoot];
   for (let dir = pending.pop(); dir !== undefined; dir = pending.pop()) {
-    if (directoryHolds(dir, name, pending)) return true;
+    if (directoryHolds(projectRoot, dir, accept, pending)) return true;
   }
   return false;
 }
 
 /**
- * One step of the walk: true when `dir` holds a matching file or cannot be
+ * One step of the walk: true when `dir` holds an accepted file or cannot be
  * read; its own subdirectories are queued on `pending`.
  */
-function directoryHolds(dir: string, name: RegExp, pending: string[]): boolean {
+function directoryHolds(
+  projectRoot: string,
+  dir: string,
+  accept: (relative: string) => boolean,
+  pending: string[]
+): boolean {
   let entries: fs.Dirent[];
   try {
     entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -165,10 +195,11 @@ function directoryHolds(dir: string, name: RegExp, pending: string[]): boolean {
   }
   for (const entry of entries) {
     if (entry.name.startsWith('.')) continue;
+    const full = path.join(dir, entry.name);
     if (!entry.isDirectory()) {
-      if (name.test(entry.name)) return true;
+      if (accept(path.relative(projectRoot, full).split(path.sep).join('/'))) return true;
     } else if (!NOT_PROJECT_SOURCE.has(entry.name)) {
-      pending.push(path.join(dir, entry.name));
+      pending.push(full);
     }
   }
   return false;

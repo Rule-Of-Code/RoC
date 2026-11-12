@@ -21,6 +21,7 @@ import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { CheckerUtils } from '../../utils/checker-utils';
 import { FileUtils } from '../../utils/file-utils';
+import { markJudgedNothing } from '../../utils/judged-nothing';
 import { declaredDependencies } from '../../utils/law-requirements';
 import { PathOperations } from '../../utils/path-operations';
 import { ReactProject } from '../../utils/react/react-project';
@@ -75,7 +76,19 @@ export class AccessibilityLintingEnforcementLaw extends AccessibilityLawBase {
       declaredDependencies(projectRoot).has('@angular/core');
     const needsJsx = ReactProject.sourceFiles(context, JSX_EXTENSIONS).length > 0;
     if (!needsAngular && !needsJsx) {
-      return this.createResult(violations, this.LAW_NAME, [], context);
+      // Nothing this law knows how to judge: no Angular template with
+      // @angular/core declared, no .tsx/.jsx source. That is "judged nothing",
+      // never "compliance verified" (#327, the class of #302).
+      return markJudgedNothing(
+        this.createResult(
+          [
+            `${this.LAW_NAME}: nothing was judged — it asks for linter rules over Angular templates (with @angular/core declared) or .tsx/.jsx sources, and this project has neither`,
+          ],
+          this.LAW_NAME,
+          ['Declare the law not applicable (laws.notApplicable) with a reason if your markup is neither'],
+          context
+        )
+      );
     }
 
     const configs = this.readEslintConfigs(projectRoot, context);

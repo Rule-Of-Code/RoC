@@ -793,9 +793,10 @@ export class ModularLawsRegistry {
     stack: string | undefined,
     projectType: string | undefined,
     projectRoot?: string,
-    law?: { staticSiteHtml?: boolean }
+    law?: { staticSiteHtml?: boolean },
+    ignores?: readonly string[]
   ): boolean {
-    return LawIdentity.lawAppliesToProjectType(stack, projectType, projectRoot, law);
+    return LawIdentity.lawAppliesToProjectType(stack, projectType, projectRoot, law, ignores);
   }
 
   /** Identity keys that resolve to exactly ONE law — the only ones a config may use. */

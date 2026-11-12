@@ -5,6 +5,27 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.26.6] - 2026-11-12
+
+Two defects QA found on 7.26.5. Closes #326, #327. Publish 7.26.6.
+
+### 🐛 Fixed
+
+- **Only the project's own HTML makes it a static site (#326).** The
+  7.26.5 check walked the disk, so a git-ignored build output (MkDocs
+  `site/`) selected the HTML laws locally but not on CI, and pages the
+  config lists in `ignores.global` still selected them — after which the
+  CSP law judged nothing, as an error the user could not clear. In a git
+  working tree only tracked HTML counts; `ignores.global` applies; Jekyll's
+  `_site/` and `storybook-static/` are generated output, like `dist/`.
+- **Accessibility Linting Enforcement says when it judged nothing (#327).**
+  With no Angular template (and `@angular/core`) and no `.tsx`/`.jsx`
+  source — a Vue app, a React app written in `.js` — it returned
+  "compliance verified". It now reports that nothing was judged (score 0,
+  `judgedNothing: true`). Its severity is `warning`, so no build fails on
+  it. Form Control Labeling and Explicit Button Type are unchanged: on
+  pages they read and found no control, that is a verdict, not nothing.
+
 ## [7.26.5] - 2026-11-12
 
 A regression 7.26.4 introduced, found by QA before publication. Closes

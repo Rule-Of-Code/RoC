@@ -4,10 +4,10 @@
 import { PerformanceAlertingConstants } from '../../../src/laws/performance/performance-monitoring-policy/constants/performance-alerting.constants';
 
 describe('PerformanceAlertingConstants', () => {
-  describe('GITHUB_WORKFLOWS_PATTERN', () => {
+  describe('WORKFLOWS_DIR', () => {
     it('should match github workflows path', () => {
-      expect(PerformanceAlertingConstants.GITHUB_WORKFLOWS_PATTERN).toBe(
-        '.github/workflows/*.{yml,yaml}'
+      expect(PerformanceAlertingConstants.WORKFLOWS_DIR).toBe(
+        '.github/workflows'
       );
     });
   });
@@ -35,7 +35,7 @@ describe('PerformanceAlertingConstants', () => {
     });
 
     it('should include .lighthouserc.js', () => {
-      expect(PerformanceAlertingConstants.MONITORING_CONFIG_FILES).toContain(
+      expect(PerformanceAlertingConstants.LIGHTHOUSE_CI_FILES).toContain(
         '.lighthouserc.js'
       );
     });

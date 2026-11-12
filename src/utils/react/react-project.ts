@@ -87,7 +87,14 @@ export class ReactProject {
         unread.push(`${this.relative(context, file)}: could not be read`);
         continue;
       }
-      sources.push(TsxSource.parse(ts, file, text));
+      const source = TsxSource.parse(ts, file, text);
+      const [syntaxError] = source.parseErrors();
+      if (syntaxError) {
+        // Half a tree is not a reading: the code after the error is not in it.
+        unread.push(`${this.relative(context, file)}: could not be parsed (${syntaxError}) — its code was NOT read`);
+        continue;
+      }
+      sources.push(source);
     }
     return { sources, unread };
   }

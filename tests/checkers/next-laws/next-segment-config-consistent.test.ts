@@ -39,7 +39,7 @@ describe('NextSegmentConfigConsistentLaw (#242)', () => {
   });
 
   it('a non-segment module under app/ is not judged', () => {
-    expect(Law.check(nextCtx({ 'src/app/account/helpers.ts': `export const dynamic = 'force-static';\n${READS}` })).violations).toEqual([]);
+    expect(Law.check(nextCtx({ 'src/app/account/helpers.tsx': `export const dynamic = 'force-static';\n${READS}` })).violations).toEqual([]);
   });
 
   it('without an app/ directory it passes and says segment config does not exist here', () => {

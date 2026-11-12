@@ -21,11 +21,6 @@ export class InputValidationConstants {
     FORM_CONTROL_NO_VALIDATORS: /FormControl\s*\(/,
   };
 
-  static readonly SEARCH_FILES = {
-    COMPONENT: '*.component.ts',
-    SERVICE: '*.service.ts',
-  };
-
   static hasProperFormValidation(content: string): boolean {
     return (
       PatternMatchingUtils.hasRegexPattern(

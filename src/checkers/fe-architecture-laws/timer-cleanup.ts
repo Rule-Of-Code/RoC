@@ -18,6 +18,7 @@ import { CheckerUtils } from '../../utils/checker-utils';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 import { FeArchLawBase } from './fe-arch-law-base';
+import { AngularComponentFiles } from '../../utils/angular-component-files';
 
 export class TimerCleanupLaw extends FeArchLawBase {
   private static readonly LAW_NAME = 'Timer Cleanup';
@@ -29,7 +30,10 @@ export class TimerCleanupLaw extends FeArchLawBase {
     const violations: string[] = [];
 
     for (const file of CheckerUtils.findTypeScriptFiles(projectRoot, config, context.lawId)) {
-      if (!/\.(component|service|directive|store)\.ts$/.test(file.replace(/\\/g, '/'))) {
+      // A store file has no decorator (signal stores, NgRx) — its suffix stays;
+      // components, services and directives also by decorator (#336).
+      const isStore = /\.store\.ts$/.test(file.replace(/\\/g, '/'));
+      if (!isStore && !AngularComponentFiles.isKind(file, ['component', 'service', 'directive'])) {
         continue;
       }
       const content = FileUtils.readFile(file);

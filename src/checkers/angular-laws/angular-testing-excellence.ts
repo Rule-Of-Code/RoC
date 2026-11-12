@@ -9,6 +9,7 @@ import type {
   RuleOfCodeConfig,
 } from './shared-imports';
 import { findE2ESpecs } from '../../utils/testing/e2e-specs';
+import { AngularComponentFiles } from '../../utils/angular-component-files';
 import {
   AngularLawBase,
   CheckerUtils,
@@ -113,8 +114,15 @@ export class AngularTestingExcellenceLaw extends AngularLawBase {
     const content = FileUtils.readFile(testFile);
     const relativePath = PathOperations.getRelative(projectRoot, testFile);
 
-    // Check component tests
-    this.checkComponentTest(content, relativePath, violations);
+    // Check component tests — `hero.component.spec.ts`, or Angular 20's
+    // `hero.spec.ts` beside a `hero.ts` that is a component (#336).
+    const testedSource = testFile.replace(/\.(?:spec|test)\.ts$/, '.ts');
+    const isComponentSpec =
+      relativePath.includes('.component.spec.ts') ||
+      (testedSource !== testFile &&
+        FileUtils.exists(testedSource) &&
+        AngularComponentFiles.isKind(testedSource, ['component']));
+    if (isComponentSpec) this.checkComponentTest(content, relativePath, violations);
 
     // Check service tests
     this.checkServiceTest(content, relativePath, violations);
@@ -131,18 +139,26 @@ export class AngularTestingExcellenceLaw extends AngularLawBase {
     relativePath: string,
     violations: string[]
   ): void {
-    if (relativePath.includes('.component.spec.ts')) {
-      if (!content.includes('TestBed')) {
-        violations.push(
-          `Component test missing TestBed configuration: ${relativePath}`
-        );
-      }
+    // Angular Testing Library's render() and Spectator's factories configure
+    // TestBed and own the fixture, so either is evidence of both (#344).
+    const testingLibrary = /from\s+['"](?:@testing-library\/angular|@ngneat\/spectator(?:\/jest)?)['"]/.test(
+      content
+    );
+    if (!content.includes('TestBed') && !testingLibrary) {
+      violations.push(
+        `Component test missing TestBed configuration: ${relativePath}`
+      );
+    }
 
-      if (!content.includes('ComponentFixture')) {
-        violations.push(
-          `Component test missing ComponentFixture: ${relativePath}`
-        );
-      }
+    // `TestBed.createComponent(App)` RETURNS a ComponentFixture — the type is
+    // inferred, so the word need not appear. Requiring the word failed a
+    // correct spec the moment unsuffixed specs were read (#343).
+    const hasFixture =
+      content.includes('ComponentFixture') || /\bcreateComponent\s*\(/.test(content) || testingLibrary;
+    if (!hasFixture) {
+      violations.push(
+        `Component test missing ComponentFixture: ${relativePath}`
+      );
     }
   }
 

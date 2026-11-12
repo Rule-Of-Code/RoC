@@ -224,8 +224,11 @@ export class FileNamingValidation {
    * Check if this is an Angular file
    */
   static isAngularFile(baseName: string): boolean {
+    // A dot-separated segment (`hero.service`), not a substring anywhere — a
+    // `user-services-list` is not an Angular service file.
     const angularSuffixes = FileNamingConfiguration.getAngularSuffixes({});
-    return angularSuffixes.some(suffix => baseName.includes(suffix));
+    const segments = baseName.split('.').slice(1);
+    return angularSuffixes.some(suffix => segments.includes(suffix));
   }
 
   /**

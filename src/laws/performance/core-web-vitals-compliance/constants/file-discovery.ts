@@ -24,7 +24,6 @@ export class CoreWebVitalsFileDiscoveryConstants {
     '**/*app-routing.module.ts',
     '**/*routing.ts',
   ];
-  static readonly COMPONENT_FILE_PATTERNS = ['**/*.component.ts'];
   static readonly IMAGE_EXTENSIONS = ['*.webp', '*.avif'];
   static readonly SERVICE_WORKER_PATTERNS = [
     '**/sw.js',

@@ -81,15 +81,18 @@ export class NoPassthroughCastLaw extends FeArchLawBase {
       }
     }
 
-    return this.createResult(
-      violations,
-      this.LAW_NAME,
-      'FE_ARCHITECTURE',
-      [
-        'Type the HTTP call as Raw*/unknown; map to the domain model in a mapper',
-        'Parse res.json() with a schema (or a mapper over unknown) instead of casting it',
-      ],
-      context
+    return this.layerResult(
+      this.createResult(
+        violations,
+        this.LAW_NAME,
+        'FE_ARCHITECTURE',
+        [
+          'Type the HTTP call as Raw*/unknown; map to the domain model in a mapper',
+          'Parse res.json() with a schema (or a mapper over unknown) instead of casting it',
+        ],
+        context
+      ),
+      dataAccess.length === 0
     );
   }
 

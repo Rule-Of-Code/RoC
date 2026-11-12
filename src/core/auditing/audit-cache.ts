@@ -234,9 +234,21 @@ export class AuditCache {
    */
   static generateConfigHash(config: unknown): string {
     const hash = crypto.createHash('sha256');
-    hash.update(JSON.stringify(config));
+    hash.update(
+      JSON.stringify(config, (key, value: unknown) =>
+        AuditCache.RUN_DERIVED_KEYS.has(key) ? undefined : value
+      )
+    );
     return hash.digest('hex');
   }
+
+  /**
+   * Keys the engine writes INTO the config during a run. They are derived
+   * from the config, not inputs to it, so they must not change its hash: the
+   * engine injecting `laws.__plannedLawCount` made every key written differ
+   * from the key read, and the cache never hit (#305).
+   */
+  private static readonly RUN_DERIVED_KEYS = new Set(['__plannedLawCount']);
 
   private static getCachePath(projectRoot: string): string {
     return PathOperations.join(projectRoot, this.CACHE_DIR, this.CACHE_FILE);

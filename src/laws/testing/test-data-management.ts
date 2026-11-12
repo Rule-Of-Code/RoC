@@ -1,6 +1,7 @@
 import { LawBase } from '../../checkers/law-base';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { UnitTestDataManagementAnalyzerService } from './unit-test-data-management/services/data-management-analyzer.service';
+import { markJudgedNothing } from '../../utils/judged-nothing';
 import { namedFiles } from '../../utils/testing/fixture-isolation';
 import { TestFileDiscovery } from './test-file-discovery';
 
@@ -34,14 +35,16 @@ export class TestDataManagementLaw {
       const testFiles = TestFileDiscovery.findTestFiles(projectRoot, config);
       if (testFiles.length === 0) {
         const nothing = TestFileDiscovery.nothingToJudge('Test Data Management');
-        return LawBase.buildDetailedResult({
-          passed: false,
-          message: nothing,
-          violations: [nothing],
-          suggestions,
-          score: 0,
-          context,
-        });
+        return markJudgedNothing(
+          LawBase.buildDetailedResult({
+            passed: false,
+            message: nothing,
+            violations: [nothing],
+            suggestions,
+            score: 0,
+            context,
+          })
+        );
       }
       // Real-data mode: a project may deliberately use real inline data instead of
       // factories/mocks — don't flag that as a violation.

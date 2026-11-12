@@ -5,6 +5,50 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.26.4] - 2026-11-12
+
+Two more defects QA found on 7.26.3 the same day. Closes #319, #320.
+
+### ⚠️ Changes you will see
+
+- **A file name no longer decides React or Vue (#319).** `public/index.html`
+  (Firebase Hosting's default) typed a static site React, and `src/main.js`
+  (the vanilla Vite template) typed a Vite app Vue — the React/Vue and
+  TypeScript laws ran. The dependency decides; `vue.config.js` and a `.vue`
+  component still count for Vue. Measured with no config, 7.26.3 → 7.26.4:
+  a static site (`public/index.html`, with or without `firebase.json`)
+  100 → 60 laws; a vanilla Vite app (only `vite` declared) 100 → 77.
+  `src/App.tsx` / `src/App.jsx` without `react` no longer type React.
+- **The report says which project type selected the laws (#320).** The
+  audit result, `--export json` and `--json` carry
+  `project: { type, source }` — `detected`, `configured` or `default` —
+  and the console header prints `Project type: react (detected)`. Six law
+  results (the sacred laws and some older ones) echoed a minimal default
+  config saying `generic`; every result now echoes the config the law ran
+  with. The 7.26.0 line "the detected type is written into the base
+  config" is about the in-memory config the engine runs with; it was true,
+  but those six results did not show it.
+
+### Measured
+
+Real consumers (read-only clones), 7.26.3 → 7.26.4:
+
+| project | 7.26.3 | 7.26.4 |
+|---|---|---|
+| Angular/Ionic/Capacitor monorepo (type configured) | 147 laws, 23 failed | 147, the same 23 |
+| Python API (type detected) | refuses: 86 < floor 88 | the same |
+| Firebase static site — `public/index.html`, no `package.json`, no `.ts` | typed React: 100 laws, 41 failed | `generic (default)`: 60 laws, 24 failed |
+
+The static site's 17 dropped failures were laws it could never satisfy
+(TypeScript Strict Mode, Jest 100% Coverage, NX Commands Only, Test
+Isolation, Professional Component Testing, …). **It also stops getting
+the `stack: frontend` performance laws** (Core Web Vitals, Bundle Size
+Optimization, Performance Standards): those are scoped to framework
+apps, and there is no static-site type yet. A static site that wants them
+today has no way to select only them — a follow-up, not a regression of
+what was ever intended. Canary unchanged: python 97 · angular 120 ·
+ionic 150 · react 134 · node 77.
+
 ## [7.26.3] - 2026-11-12
 
 The rest of QA's 7.26.1 run: every issue filed that day that 7.26.2 left

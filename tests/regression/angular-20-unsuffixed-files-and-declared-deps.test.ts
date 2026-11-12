@@ -187,3 +187,38 @@ describe('init writes ruleofcode.config.json and honours --type (#332)', () => {
     expect(ConfigLoader.load(root).project.type).toBe('react');
   });
 });
+
+/**
+ * Found on a real Angular 20 app once unsuffixed files were read: a file that
+ * holds an @Injectable class also holds an in-memory fake built with `new`.
+ * Its `constructor(readonly seed = {})` is not DI — only a decorated class is
+ * constructed by the injector.
+ */
+describe('Inject Over Constructor DI judges decorated classes, not the file (#330)', () => {
+  const FILE = [
+    "import { Injectable, inject } from '@angular/core';",
+    "import { HttpClient } from '@angular/common/http';",
+    'export abstract class Repo { abstract all(): string[]; }',
+    'export class InMemoryRepo extends Repo {',
+    '  constructor(readonly seed: string[] = []) { super(); }',
+    '  all(): string[] { return this.seed; }',
+    '}',
+    '@Injectable()',
+    'export class HttpRepo extends Repo {',
+    '  readonly #http = inject(HttpClient);',
+    '  all(): string[] { return []; }',
+    '}',
+  ].join('\n');
+
+  it('a plain class with a parameter property beside an @Injectable class is not a finding', () => {
+    const root = fixture({ 'package.json': MANIFEST, 'src/app/repo.repository.ts': FILE, 'node_modules/.keep': '' });
+    // typescript resolves from this repository when the fixture has none
+    expect(InjectOverConstructorDiLaw.check(ctx(root)).violations ?? []).toEqual([]);
+  });
+
+  it('control: constructor DI on the @Injectable class is', () => {
+    const bad = FILE.replace('  readonly #http = inject(HttpClient);', '  constructor(private readonly http: HttpClient) { super(); }');
+    const root = fixture({ 'package.json': MANIFEST, 'src/app/repo.repository.ts': bad });
+    expect((InjectOverConstructorDiLaw.check(ctx(root)).violations ?? []).join('\n')).toMatch(/repo\.repository\.ts: 1 constructor/);
+  });
+});

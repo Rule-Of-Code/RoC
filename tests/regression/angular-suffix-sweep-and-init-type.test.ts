@@ -170,6 +170,12 @@ describe('#343 a fixture from createComponent() is a fixture', () => {
     expect(check(spec)).not.toMatch(/missing ComponentFixture|missing TestBed/);
   });
 
+  it('Spectator createComponentFactory counts for TestBed and the fixture (#344)', () => {
+    const spec =
+      "import { createComponentFactory } from '@ngneat/spectator/jest';\nimport { App } from './app';\ndescribe('App', () => {\n  const createComponent = createComponentFactory(App);\n  it('renders the page title', () => {\n    const spectator = createComponent();\n    expect(spectator.query('h1')).toBeTruthy();\n  });\n});\n";
+    expect(check(spec)).not.toMatch(/missing ComponentFixture|missing TestBed/);
+  });
+
   it('control: a spec that never creates the component is still a finding', () => {
     const spec = "describe('App', () => { it('has a name', () => { expect('App').toBe('App'); }); });\n";
     expect(check(spec)).toMatch(/missing ComponentFixture/);

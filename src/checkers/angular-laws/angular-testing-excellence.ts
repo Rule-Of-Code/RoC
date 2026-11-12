@@ -139,9 +139,11 @@ export class AngularTestingExcellenceLaw extends AngularLawBase {
     relativePath: string,
     violations: string[]
   ): void {
-    // Angular Testing Library's render() configures TestBed and owns the
-    // fixture, so it is evidence of both.
-    const testingLibrary = /from\s+['"]@testing-library\/angular['"]/.test(content);
+    // Angular Testing Library's render() and Spectator's factories configure
+    // TestBed and own the fixture, so either is evidence of both (#344).
+    const testingLibrary = /from\s+['"](?:@testing-library\/angular|@ngneat\/spectator(?:\/jest)?)['"]/.test(
+      content
+    );
     if (!content.includes('TestBed') && !testingLibrary) {
       violations.push(
         `Component test missing TestBed configuration: ${relativePath}`

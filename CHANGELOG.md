@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 QA's residuals of #330 on 7.26.7, and one false error the site found by
 auditing this release's candidate before it was tagged. Closes #336,
-#337, #338, #339, #343. Publish 7.26.9; 7.26.7 and 7.26.8 are tagged but
+#337, #338, #339, #343, #344. Publish 7.26.9; 7.26.7 and 7.26.8 are tagged but
 superseded.
 
 ### 🐛 Fixed
@@ -48,8 +48,8 @@ superseded.
   and asked for the WORD: `TestBed.createComponent(App)` returns a
   `ComponentFixture`, inferred, so a correct spec failed. A
   `createComponent(` call counts as the fixture, and Angular Testing
-  Library (`render()` from `@testing-library/angular`) counts for both
-  TestBed and the fixture.
+  Library (`@testing-library/angular`) or Spectator (`@ngneat/spectator`)
+  counts for both TestBed and the fixture (#344).
 - **`init` refuses an unknown `--type` (#339).** `--type ioinc` wrote the
   detected type with exit 0; it now exits 1, lists the valid types and
   writes nothing.

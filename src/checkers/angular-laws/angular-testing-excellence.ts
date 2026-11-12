@@ -8,6 +8,7 @@ import type {
   LawResult,
   RuleOfCodeConfig,
 } from './shared-imports';
+import { findE2ESpecs } from '../../utils/testing/e2e-specs';
 import {
   AngularLawBase,
   CheckerUtils,
@@ -298,25 +299,12 @@ export class AngularTestingExcellenceLaw extends AngularLawBase {
     projectRoot: string,
     _config: RuleOfCodeConfig
   ): string[] {
-    // Use glob directly (bypassing config include/ignore patterns) so E2E specs in
-    // e2e/cypress/tests dirs are found even when `includes.global` scopes the rest of
-    // the audit to lib source dirs. Accepts .e2e/.spec/.test/.cy naming.
-    const { glob } = require('glob');
-    const patterns = [
+    // The shared discovery (Nx's `apps/<name>-e2e/` included, #335), plus this
+    // law's own root-level `tests/` and `*.e2e.ts`, kept so nothing it found
+    // before is lost.
+    return findE2ESpecs(projectRoot, [
       '{e2e,cypress,tests}/**/*.e2e.{ts,js}',
-      '{e2e,cypress,tests}/**/*.spec.{ts,js}',
-      '{e2e,cypress,tests}/**/*.test.{ts,js}',
-      '{e2e,cypress,tests}/**/*.cy.{ts,js}',
-    ];
-    const e2eFiles = new Set<string>();
-    for (const pattern of patterns) {
-      const matches: string[] = glob.sync(pattern, {
-        cwd: projectRoot,
-        absolute: true,
-        ignore: ['**/node_modules/**', '**/dist/**'],
-      });
-      matches.forEach((file: string) => e2eFiles.add(file));
-    }
-    return [...e2eFiles];
+      '{e2e,cypress,tests}/**/*.{spec,test}.{ts,js}',
+    ]);
   }
 }

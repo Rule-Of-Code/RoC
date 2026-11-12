@@ -12,6 +12,7 @@ import path from 'path';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils/file-utils';
 import { TestingLawBase } from './testing-law-base';
+import { findE2ESpecs } from '../../utils/testing/e2e-specs';
 
 export class E2ETestingStandardsLaw extends TestingLawBase {
   private static readonly E2E_DEPS = [
@@ -113,27 +114,9 @@ export class E2ETestingStandardsLaw extends TestingLawBase {
     }
   }
 
+  /** The shared discovery — it also reads Nx's `apps/<name>-e2e/` (#335). */
   private static findE2ESpecs(projectRoot: string): string[] {
-    const { glob } = require('glob');
-    const patterns = [
-      '**/*.e2e-spec.ts',
-      '**/*.e2e.spec.ts',
-      '**/*.cy.ts',
-      '**/*.cy.js',
-      '**/e2e/**/*.spec.ts',
-      '**/e2e/**/*.test.ts',
-    ];
-    const found: string[] = [];
-    for (const pattern of patterns) {
-      found.push(
-        ...glob.sync(pattern, {
-          cwd: projectRoot,
-          absolute: true,
-          ignore: ['**/node_modules/**', '**/dist/**', '**/.angular/**'],
-        })
-      );
-    }
-    return found;
+    return findE2ESpecs(projectRoot);
   }
 
   private static result(

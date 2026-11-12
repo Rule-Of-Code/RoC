@@ -14,7 +14,8 @@
  *    each CI file that does), or a committed `.env`/`.env.production` of the
  *    app. When no build can be found in the repository, the law fails unless
  *    `thresholds.next.publicEnvBuildSource` says where the build gets them.
- * 2. No computed or whole-object `process.env` use in a client graph module.
+ * 2. No computed, destructured or whole-object `process.env` use in a client
+ *    graph module.
  * 3. No NEXT_PUBLIC_* name containing SECRET, TOKEN, PASSWORD, PRIVATE or KEY,
  *    unless listed in `thresholds.next.publicEnvAllowed` with the reason.
  */
@@ -55,7 +56,8 @@ export class NextPublicEnvIsBuildTimeLaw extends LawBase {
     const reads = new Map<string, string>();
     for (const file of sources) {
       for (const read of envReads(file)) {
-        if (read.name?.startsWith(PREFIX) && !reads.has(read.name)) {
+        // Only an inlined read takes its value from the build.
+        if (read.inlined && read.name?.startsWith(PREFIX) && !reads.has(read.name)) {
           reads.set(read.name, `${graph?.relative(file.fileName) ?? file.fileName}:${read.line}`);
         }
       }
@@ -80,14 +82,14 @@ export class NextPublicEnvIsBuildTimeLaw extends LawBase {
     );
   }
 
-  /** Rule 2: computed or whole-object process.env in a client graph module. */
+  /** Rule 2: computed, destructured or whole-object process.env in a client graph module. */
   private static computedInClient(graph: NextModuleGraph, context: LawCheckContext): string[] {
     const client = clientGraph(graph, ReactProject.nextApps(context.projectRoot));
     const violations: string[] = [];
     for (const [file, visit] of client.modules) {
-      for (const read of envReads(visit.source).filter(r => r.name === null)) {
+      for (const read of envReads(visit.source).filter(r => !r.inlined)) {
         violations.push(
-          `${graph.relative(file)}:${read.line}: ${read.text} — computed or whole-object process.env in browser code is never inlined; it is undefined there. Read each variable as process.env.NEXT_PUBLIC_NAME`
+          `${graph.relative(file)}:${read.line}: ${read.text} — computed, destructured or whole-object process.env in browser code is never inlined; it is undefined there. Read each variable as process.env.NEXT_PUBLIC_NAME`
         );
       }
     }

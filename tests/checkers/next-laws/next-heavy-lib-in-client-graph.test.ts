@@ -28,7 +28,8 @@ describe('NextHeavyLibInClientGraphLaw (#227)', () => {
       nextCtx({
         'src/components/chart.tsx': "'use client';\nimport { Bar } from '../charts';\nexport const C = () => <Bar />;",
         'src/charts/index.ts': "export { Bar } from './bar';",
-        'src/charts/bar.tsx': "import { Chart } from 'chart.js/auto';\nexport const Bar = () => null;",
+        // Chart is used as a value: an import nothing uses is erased by the compiler (#316).
+        'src/charts/bar.tsx': "import { Chart } from 'chart.js/auto';\nexport const Bar = () => String(Chart);",
       })
     );
     expect(result.violations).toEqual([expect.stringContaining("src/charts/bar.tsx:1: imports 'chart.js/auto' statically")]);

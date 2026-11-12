@@ -178,7 +178,7 @@ export const NEXT_SERVER_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       GRAPH_LIMIT,
-      "Sees process.env.X and process.env['X']; an env read through a helper that takes the name as an argument is not seen. Computed access is Next Public Env Is Build Time's rule.",
+      "Sees process.env.X, process.env['X'] and names destructured from process.env (const { X, Y: y } = process.env, and the same assignment); an env read through a helper that takes the name as an argument, or a copy of process.env destructured later (const env = process.env; const { X } = env), is not seen. Computed access, a rest element and destructuring as such (never inlined, even for a NEXT_PUBLIC_ name) are Next Public Env Is Build Time's rule.",
       "NODE_ENV and the keys of a literal `env` object in next.config are accepted, because Next inlines those; a next.config `env` that is not a literal is not read and is named in the message.",
       PARSER_LIMIT,
     ],
@@ -289,7 +289,7 @@ export const NEXT_SERVER_LAWS: EnhancedConstitutionalLaw[] = [
       'Next replaces process.env.NEXT_PUBLIC_X with the value present at next build; "after being built, your app will no longer respond to changes to these environment variables", and "dynamic lookups will not be inlined" (next/dist/docs/01-app/02-guides/environment-variables.md). A value given only to the running container changes nothing and the deploy is green. Whatever is named NEXT_PUBLIC_ is in the JavaScript every visitor downloads.',
     satisfiedBy: {
       react:
-        'Declare each NEXT_PUBLIC_* as `ARG NEXT_PUBLIC_X` before `RUN npm run build` in the Dockerfile (or in the CI build step env); for a hosted build, say where in `thresholds.next.publicEnvBuildSource`. Read it as `process.env.NEXT_PUBLIC_X`, never `process.env[name]`. A publishable key goes in `thresholds.next.publicEnvAllowed` with the reason.',
+        'Declare each NEXT_PUBLIC_* as `ARG NEXT_PUBLIC_X` before `RUN npm run build` in the Dockerfile (or in the CI build step env); for a hosted build, say where in `thresholds.next.publicEnvBuildSource`. Read it as `process.env.NEXT_PUBLIC_X`, never `process.env[name]` nor `const { NEXT_PUBLIC_X } = process.env`. A publishable key goes in `thresholds.next.publicEnvAllowed` with the reason.',
     },
     detectionLimits: [
       'Build stages are read from Dockerfiles (a RUN with next build, or a package-manager/turbo/nx build in a Dockerfile that mentions .next) and, when there are none, from CI files (.github/workflows, .gitlab-ci.yml, bitbucket-pipelines.yml, azure-pipelines.yml) that build; a CI file is read as a whole, not per job.',

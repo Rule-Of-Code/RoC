@@ -18,7 +18,7 @@
 
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
-import { REQUIRES_IONIC, REQUIRES_IONIC_ANGULAR } from '../utils/ionic/ionic-project';
+import { REQUIRES_IONIC_ANGULAR, REQUIRES_IONIC_OR_CAPACITOR_IOS } from '../utils/ionic/ionic-project';
 
 const TEMPLATES_ANGULAR_ONLY =
   'Angular templates only (inline `template` and `templateUrl`); @ionic/react and @ionic/vue are not selected because JSX and SFC templates are not read.';
@@ -200,6 +200,7 @@ export const IONIC_RENDERING_LAWS: EnhancedConstitutionalLaw[] = [
       "Reads the index the Angular application builder uses (the build target's index option, else <sourceRoot>/index.html) from angular.json and every project.json; without either, index.html, src/index.html or public/index.html. A meta tag injected at runtime is not seen.",
       'Only the last <meta name="viewport"> counts, as in browsers and Capacitor SystemBars; comments are ignored. user-scalable=no and maximum-scale ≤ 1 are reported as notes, not violations.',
       'Presence only; whether the app then reads the insets is ionic-edge-chrome-pays-safe-area. The zero inset on iOS without the tag follows from the CSS env() specification and was not measured on a device.',
+      'Selected where any @ionic/* binding is declared, or where @capacitor/ios is declared without Ionic: a Capacitor iOS WebView letterboxes the page the same way, and env(safe-area-inset-*) is 0 there too. The requirement is on the package, not on an ios/ directory.',
     ],
     emoji: '📐',
     description:
@@ -207,7 +208,7 @@ export const IONIC_RENDERING_LAWS: EnhancedConstitutionalLaw[] = [
     priority: 'MEDIUM',
     category: 'FRAMEWORK',
     stack: 'frontend',
-    requires: REQUIRES_IONIC,
+    requires: REQUIRES_IONIC_OR_CAPACITOR_IOS,
     defaultEnabled: true,
     defaultSeverity: 'warning',
     automation: 'AUTOMATED',

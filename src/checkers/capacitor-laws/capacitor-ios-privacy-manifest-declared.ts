@@ -10,6 +10,10 @@
  * Table-driven (capacitor-native-tables.ts): each row names the dependency,
  * the API category and the source it was read from. Presence of the category
  * and of a reason string is judged; whether the reason fits is reported only.
+ *
+ * The file must be TRACKED by git and is read from the index: a manifest on
+ * this disk that is untracked — ignored or not — is not in the upload a clean
+ * checkout builds.
  */
 
 import * as fs from 'fs';
@@ -20,8 +24,7 @@ import {
   relative,
 } from '../../utils/capacitor/capacitor-law-support';
 import { PRIVACY_MANIFEST_ROWS, type PrivacyManifestRow } from '../../utils/capacitor/capacitor-native-tables';
-import { CapacitorProjects } from '../../utils/capacitor/capacitor-project';
-import { type GitExposure, gitExposure } from '../../utils/git/git-layout';
+import { CommittedShell, notReadReason } from '../../utils/capacitor/committed-shell';
 import { declaredDependencies } from '../../utils/law-requirements';
 import { PathOperations } from '../../utils/path-operations';
 import { LawBase } from '../law-base';
@@ -77,11 +80,18 @@ export class CapacitorIosPrivacyManifestDeclaredLaw extends LawBase {
       ];
     }
     const where = relative(context, file);
-    const exposure = this.exposure(context.projectRoot, where);
-    if (exposure === 'ignored') {
-      return [`${where} exists here but git ignores it, so a clean checkout builds without it — commit it`];
+    const read = CommittedShell.of(context.projectRoot, [file]).read(file);
+    if (read.state === 'untracked') {
+      return [
+        read.ignored
+          ? `${where} exists here but git ignores it, so a clean checkout builds without it — commit it`
+          : `${where} exists here but is not tracked by git, so a clean checkout builds without it — commit it`,
+      ];
     }
-    const declared = this.accessedApis(CapacitorProjects.readNative(file) ?? '');
+    if (read.state !== 'read') {
+      return [`${where} ${notReadReason(read)} — this law reads the committed privacy manifest and does not pass without it`];
+    }
+    const declared = this.accessedApis(read.text);
     const violations: string[] = [];
     for (const row of rows) {
       const entry = declared.find(api => api.category === row.category);
@@ -118,10 +128,6 @@ export class CapacitorIosPrivacyManifestDeclaredLaw extends LawBase {
       return null;
     };
     return search(appDir, SEARCH_DEPTH);
-  }
-
-  private static exposure(projectRoot: string, file: string): GitExposure | undefined {
-    return gitExposure(projectRoot, [file])?.get(file);
   }
 
   /** Every NSPrivacyAccessedAPITypes entry of a privacy manifest (an XML property list). */

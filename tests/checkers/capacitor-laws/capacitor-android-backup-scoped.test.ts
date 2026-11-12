@@ -71,7 +71,11 @@ describe('CapacitorAndroidBackupScopedLaw (#260)', () => {
     expect(check({ [MANIFEST]: app('android:allowBackup="${backup}"') }).violations).toEqual([
       expect.stringContaining('is filled in by the build — not judged'),
     ]);
+    // #300: a missing file now says so; a manifest without <application> keeps the old message.
     expect(check({ 'android/app/build.gradle': '' }).violations).toEqual([
+      expect.stringContaining('AndroidManifest.xml: does not exist — this law reads the committed main manifest'),
+    ]);
+    expect(check({ [MANIFEST]: '<manifest></manifest>' }).violations).toEqual([
       expect.stringContaining('no readable <application> element'),
     ]);
     expect(check({}).violations).toEqual([expect.stringContaining('no android/ shell exists')]);

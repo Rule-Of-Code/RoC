@@ -57,7 +57,7 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
       'Default change detection re-checks every component on every event — fine for a small app, a bottleneck for a large one. OnPush tells Angular a component changes only when its inputs do, and that is most of a real app\'s performance budget.',
     satisfiedBy: { angular: 'Add changeDetection: ChangeDetectionStrategy.OnPush to components, especially presentational and @Input-driven ones.' },
     detectionLimits: [
-      'Substring-matches ChangeDetectionStrategy.OnPush (a match in a comment counts); only .component.ts.',
+      'Substring-matches ChangeDetectionStrategy.OnPush (a match in a comment counts); component files only — a *.component.ts, or a file with @Component (Angular 20).',
       'The "should use OnPush" heuristic fires on the bare word `async` anywhere in a component — a near-universal flag.',
       'A project with no components fails rather than passing; Angular-flavoured but not version-gated.',
     ],
@@ -785,7 +785,7 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Flags a file that contains BOTH a timer/stream call AND `.subscribe(` anywhere — an unrelated interval() and an unrelated subscribe() in the same component both trip it (false positive).',
       'The dispatch-in-subscribe check uses a 300-char window and a fragile single-level param match; strings not stripped.',
-      'Scans only .component.ts files — a stream side effect elsewhere is not seen.',
+      'Scans only component files (*.component.ts, or a file with @Component) — a stream side effect elsewhere is not seen.',
     ],
     emoji: '🌀',
     description:
@@ -855,7 +855,7 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Matches only the single-`.set()` callback shape; a multi-statement or non-.set mirror is missed (by design, low precision).',
       '`.set(` matches any .set (Map.set, Set.set) — a minor false positive; it is not signal-specific.',
-      'Advisory in intent but still fails the gate on a match; only .component.ts.',
+      'Advisory in intent but still fails the gate on a match; component files only (*.component.ts, or a file with @Component).',
     ],
     emoji: '📡',
     description:

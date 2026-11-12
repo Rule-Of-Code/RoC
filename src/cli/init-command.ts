@@ -3,7 +3,12 @@ import type { Command } from 'commander';
 import * as inquirer from 'inquirer';
 import { FileUtils } from '../utils/file-utils';
 import { PathOperations } from '../utils/path-operations';
-import { isInteractiveTerminal, setupQuickMode } from './init-helpers';
+import {
+  INIT_PROJECT_TYPES,
+  isInitProjectType,
+  isInteractiveTerminal,
+  setupQuickMode,
+} from './init-helpers';
 import { interactiveSetup } from './init-interactive';
 import { TOTAL_LAWS_COUNT, getVersion } from './utils';
 
@@ -40,6 +45,18 @@ export async function executeInitAction(
     }
 
     const root = projectRoot ?? process.cwd();
+
+    // An unknown --type is refused, never replaced by the detected type: a typo
+    // (`--type ioinc`) wrote another type with exit 0 (#339).
+    if (options.type !== undefined && !isInitProjectType(options.type)) {
+      console.error(
+        chalk.red(
+          `Unknown --type '${options.type}'. Valid types: ${INIT_PROJECT_TYPES.join(', ')}. Nothing was written.`
+        )
+      );
+      process.exitCode = 1;
+      return { success: false };
+    }
 
     console.log(
       chalk.cyan(`🏛️ RuleOfCode v${getVersion()} Professional Setup`)
@@ -141,7 +158,7 @@ export function initCommand(program: Command): void {
     .option('-f, --force', 'overwrite existing configuration')
     .option(
       '-t, --type <type>',
-      'project type: angular, ionic, react, vue, node, python, typescript, library, generic'
+      `project type: ${INIT_PROJECT_TYPES.join(', ')} (anything else is refused)`
     )
     .option('--no-hooks', 'skip git hooks installation')
     .option('--quick', 'quick setup with sensible defaults (recommended)')

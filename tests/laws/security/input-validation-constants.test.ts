@@ -72,20 +72,6 @@ describe('InputValidationConstants', () => {
     });
   });
 
-  describe('SEARCH_FILES', () => {
-    it('should have COMPONENT pattern', () => {
-      expect(InputValidationConstants.SEARCH_FILES.COMPONENT).toBe(
-        '*.component.ts'
-      );
-    });
-
-    it('should have SERVICE pattern', () => {
-      expect(InputValidationConstants.SEARCH_FILES.SERVICE).toBe(
-        '*.service.ts'
-      );
-    });
-  });
-
   describe('hasProperFormValidation()', () => {
     it('should return true for FormControl with Validators', () => {
       const content = 'new FormControl("", Validators.required)';

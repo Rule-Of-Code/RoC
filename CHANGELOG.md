@@ -5,6 +5,55 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.26.9] - 2026-11-12
+
+QA's residuals of #330 on 7.26.7, and one false error the site found by
+auditing this release's candidate before it was tagged. Closes #336,
+#337, #338, #339, #343, #344. Publish 7.26.9; 7.26.7 and 7.26.8 are tagged but
+superseded.
+
+### 🐛 Fixed
+
+- **The rest of the Angular 20 sweep (#336).** The same component named
+  `hero.ts` got no verdict where `hero.component.ts` got one:
+  - Memory Leak Prevention and Timer Cleanup now read components,
+    directives and services by decorator too (a `setInterval` with no
+    cleanup in `hero.ts` is now a finding);
+  - Angular Testing Excellence checks `hero.spec.ts` for TestBed and
+    ComponentFixture when `hero.ts` beside it is a component;
+  - Change Detection Optimization looks for `hero.html` beside `hero.ts`
+    (the old path replacement read `hero.ts` itself as the template);
+  - every analyzer on the shared Angular analysis base (dependency
+    injection, cleanup, lifecycle, OnDestroy, form validation) also reads
+    the unsuffixed file of each kind it lists, by decorator — still under
+    `src/` only, as before;
+  - two unused suffix constants are removed; the cards of OnPush, Side
+    Effects in NgRx Effects, Declarative Read Subscriptions and
+    Professional Component Testing no longer say "only .component.ts".
+  **Angular 20 projects can see new findings from these laws.**
+- **A component that injects a service is not a service (#337).** Angular
+  Service Layer Architecture counted any file with an exported class and
+  the text "Service" — every component that imports a service — as "a
+  service class without @Injectable". A service is now a class declared as
+  `…Service` (or already `@Injectable`) in a file that is not a component,
+  directive, pipe or module.
+- **`hero.component.spec.ts` follows the Angular naming convention
+  (#338).** Naming Convention Enforcement reported every
+  `*.component.spec.ts` / `*.service.spec.ts`; the pattern allows `.spec` /
+  `.test` and digits, and a name that merely contains "service"
+  (`user-services-list.ts`) is no longer treated as an Angular file.
+- **A fixture from `TestBed.createComponent()` is a fixture (#343).** Now
+  that `hero.spec.ts` beside a component is a component spec, Angular
+  Testing Excellence's "missing ComponentFixture" check (`error`) read it —
+  and asked for the WORD: `TestBed.createComponent(App)` returns a
+  `ComponentFixture`, inferred, so a correct spec failed. A
+  `createComponent(` call counts as the fixture, and Angular Testing
+  Library (`@testing-library/angular`) or Spectator (`@ngneat/spectator`)
+  counts for both TestBed and the fixture (#344).
+- **`init` refuses an unknown `--type` (#339).** `--type ioinc` wrote the
+  detected type with exit 0; it now exits 1, lists the valid types and
+  writes nothing.
+
 ## [7.26.8] - 2026-11-12
 
 A false error that 7.26.7 would have introduced, found by running the

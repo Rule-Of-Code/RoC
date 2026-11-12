@@ -288,10 +288,9 @@ export class ChangeDetectionOptimizationLaw {
   // shouldComponentUseOnPush removed - OnPush detection handled by OnPush Change Detection Law
 
   private static hasAsyncPipe(componentPath: string): boolean {
-    const templatePath = componentPath.replace(
-      '.component.ts',
-      '.component.html'
-    );
+    // `hero.component.ts` → `hero.component.html`, Angular 20's `hero.ts` →
+    // `hero.html`. Replacing '.component.ts' left `hero.ts` itself (#336).
+    const templatePath = componentPath.replace(/\.ts$/, '.html');
 
     if (FileUtils.exists(templatePath)) {
       try {

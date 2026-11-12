@@ -221,10 +221,14 @@ export class AngularDependencyInjectionConfiguration {
         ? constructorBlock.includes(this.PATTERNS.PRIVATE) ||
           constructorBlock.includes(this.PATTERNS.PUBLIC)
         : false,
+      // A service is a class DECLARED as `…Service` (or one already @Injectable),
+      // and not a component, directive, pipe or module. The text "Service"
+      // anywhere counted: every component that imports and injects a service
+      // was "a service class without @Injectable" (#337).
       hasServiceClass:
-        content.includes(this.PATTERNS.EXPORT_CLASS) &&
-        (content.includes(this.PATTERNS.SERVICE_SUFFIX) ||
-          content.includes(this.PATTERNS.INJECTABLE)),
+        (/\bexport\s+(?:abstract\s+)?class\s+\w*Service\b/.test(content) ||
+          content.includes(this.PATTERNS.INJECTABLE)) &&
+        !/@(?:Component|Directive|Pipe|NgModule)\s*\(/.test(content),
       hasInjectableDecorator: content.includes(this.PATTERNS.INJECTABLE),
       hasProvidedIn: content.includes(this.PATTERNS.PROVIDED_IN),
       hasComponentDecorator: content.includes(

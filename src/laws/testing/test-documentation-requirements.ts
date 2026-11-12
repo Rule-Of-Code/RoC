@@ -1,6 +1,7 @@
 import { LawBase } from '../../checkers/law-base';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { UnitTestDocumentationAnalyzerService } from './unit-test-documentation/services/documentation-analyzer.service';
+import { namedFiles } from '../../utils/testing/fixture-isolation';
 
 /**
  * Test Documentation Requirements Law
@@ -156,7 +157,7 @@ export class TestDocumentationRequirementsLaw {
     );
     if (testDescriptionsAnalysis.poorDescriptions > 0) {
       violations.push(
-        `${testDescriptionsAnalysis.poorDescriptions} test cases have unclear descriptions`
+        `${testDescriptionsAnalysis.poorDescriptions} test cases have unclear descriptions: ${namedFiles(testDescriptionsAnalysis.examples)}`
       );
       suggestions.push(
         'Write clear, descriptive test case names and descriptions'

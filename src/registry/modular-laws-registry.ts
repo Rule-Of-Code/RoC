@@ -980,10 +980,12 @@ export class ModularLawsRegistry {
       // because many checkers reconstruct the context without lawId along the
       // file-scanning chain. Safe: the audit is sequential (maxConcurrent: 1).
       FileFilterUtils.currentLawConfigKey = lawConfigKey;
+      FileFilterUtils.currentProjectRoot = projectRoot;
       try {
         return await this.executeLawCheck(law, context, config);
       } finally {
         FileFilterUtils.currentLawConfigKey = undefined;
+        FileFilterUtils.currentProjectRoot = undefined;
       }
     };
   }

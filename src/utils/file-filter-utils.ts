@@ -19,6 +19,35 @@ export class FileFilterUtils {
   static currentLawConfigKey: string | undefined;
 
   /**
+   * The audited project's root, set by the registry for the law that is
+   * running (same lifecycle as currentLawConfigKey). Ignore patterns are
+   * written relative to the project; matched against an ABSOLUTE path, a
+   * `**​/tmp/**` or `**​/build/**` pattern also matched the directories
+   * ABOVE the project, so a project checked out under /tmp or a CI `build`
+   * folder had every file ignored by the scans that pass absolute paths.
+   */
+  static currentProjectRoot: string | undefined;
+
+  /**
+   * An absolute path inside the project, made relative to its root; any other
+   * path unchanged. Without a running law the working directory stands in
+   * for the root (the CLI runs from the project root).
+   */
+  private static projectRelative(filePath: string): string {
+    const root = (FileFilterUtils.currentProjectRoot ?? process.cwd())
+      .replace(/\\/g, '/')
+      .replace(/\/$/, '');
+    if (!PathOperations.isAbsolute(filePath) || !root) return filePath;
+    const lowerPath = filePath.toLowerCase();
+    const lowerRoot = root.toLowerCase();
+    const caseInsensitive = process.platform === 'win32';
+    const inside = caseInsensitive
+      ? lowerPath === lowerRoot || lowerPath.startsWith(`${lowerRoot}/`)
+      : filePath === root || filePath.startsWith(`${root}/`);
+    return inside ? filePath.slice(root.length + 1) : filePath;
+  }
+
+  /**
    * Filter files based on includes/excludes configuration
    */
   static filterFilesByConfig(
@@ -158,6 +187,10 @@ export class FileFilterUtils {
     // are written with forward slashes. Normalize once, or the directory
     // prefix checks below silently skip whole trees.
     filePath = filePath.replace(/\\/g, '/');
+    // Ignores are matched against the path inside the project only; the
+    // include logic below keeps receiving the path as given (an absolute
+    // path is not judged by the root-relative include whitelist).
+    const ignorePath = FileFilterUtils.projectRelative(filePath);
 
     // ALWAYS check ignore patterns first regardless of includes
     const ignorePatterns = FileFilterUtils.getIgnorePatterns(
@@ -169,20 +202,20 @@ export class FileFilterUtils {
     // Check if file/directory matches ignore patterns
     const isIgnored = ignorePatterns.some(pattern => {
       // Direct match
-      if (minimatch(filePath, pattern)) {
+      if (minimatch(ignorePath, pattern)) {
         return true;
       }
 
       // For directories, also check if any file inside would be ignored
-      if (FileFilterUtils.isDirectory(filePath)) {
-        const dirPath = FileFilterUtils.normalizeDirPath(filePath);
+      if (FileFilterUtils.isDirectory(ignorePath)) {
+        const dirPath = FileFilterUtils.normalizeDirPath(ignorePath);
 
         // For node_modules check
         if (
           pattern === `**/${SKIP_DIRECTORIES.NODE_MODULES}/**` &&
-          (filePath === SKIP_DIRECTORIES.NODE_MODULES ||
-            filePath.endsWith(`/${SKIP_DIRECTORIES.NODE_MODULES}`) ||
-            filePath.includes(SKIP_DIRECTORIES.NODE_MODULES))
+          (ignorePath === SKIP_DIRECTORIES.NODE_MODULES ||
+            ignorePath.endsWith(`/${SKIP_DIRECTORIES.NODE_MODULES}`) ||
+            ignorePath.includes(SKIP_DIRECTORIES.NODE_MODULES))
         ) {
           return true;
         }

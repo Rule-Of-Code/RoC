@@ -96,11 +96,14 @@ export class UnitTestDocumentationAnalyzerService {
   ): {
     totalTestCases: number;
     poorDescriptions: number;
+    /** Where the poor descriptions are: `file: "title"`, so the finding can be acted on. */
+    examples: string[];
     descriptionQuality: number;
   } {
     const testFiles = this.findTestFiles(projectRoot, config);
     let totalTestCases = 0;
     let poorDescriptions = 0;
+    const examples: string[] = [];
 
     for (const testFile of testFiles) {
       try {
@@ -110,12 +113,15 @@ export class UnitTestDocumentationAnalyzerService {
           UnitTestDocumentationConstants.extractTestCases(content);
         totalTestCases += testCases.length;
 
-        poorDescriptions += testCases.filter(testCase =>
+        const poor = testCases.filter(testCase =>
           UnitTestDocumentationConstants.hasPoorDescription(
             testCase,
             config.thresholds?.testing?.minTestDescriptionLength ?? 10
           )
-        ).length;
+        );
+        poorDescriptions += poor.length;
+        const relative = PathOperations.getRelative(projectRoot, testFile);
+        for (const testCase of poor) examples.push(`${relative}: "${testCase}"`);
       } catch (_error) {
         // Skip files that can't be read
       }
@@ -124,6 +130,7 @@ export class UnitTestDocumentationAnalyzerService {
     return {
       totalTestCases,
       poorDescriptions,
+      examples,
       descriptionQuality: UnitTestDocumentationConstants.calculateCoverage(
         totalTestCases - poorDescriptions,
         totalTestCases

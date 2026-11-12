@@ -5,6 +5,176 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.26.0] - 2026-11-12
+
+React and Next.js become a stack RuleOfCode actually reads, Ionic/Capacitor
+gets its second wave (the native shell, the bridge and Ionic's rendering
+model), and every law about one framework now runs only where that framework
+is declared. 61 laws are added (186 → 247), none removed. 80 issues closed:
+#192, #195–#250 (React/Next, umbrella #250), #251–#272 (Ionic/Capacitor wave 2,
+umbrella #251), and the older #31.
+
+The headline defect, measured with the published 7.25.0 and **no config**: a
+Python project ran **132 laws — the Angular set** — instead of the Python
+ones, and a Next.js app or a Next npm-workspaces monorepo ran every
+Angular-era frontend law (OnPush, NgRx, `angular.json` budgets) and could not
+pass several of them.
+
+### ⚠️ BREAKING — which laws your project gets
+
+**Project type is detected, never defaulted to Angular (#203).** The default
+config said `type: 'angular'` and the engine trusts a configured type, so any
+project whose type the detector did not map to framework defaults was audited
+as Angular. Now the detected type is written into the base config for every
+type (default `generic`), frameworks are read from **every workspace
+`package.json`** first (the reader `requires` uses), `next` is a React marker,
+`nx.json` and `src/main.ts` no longer count as Angular evidence, and Python's
+project files outrank a tsconfig. `typescript` is a valid project type and
+selects the TypeScript laws (it was missing from that stack's list). A type
+your config declares still wins.
+
+**Framework laws are gated by `requires` (#214, #206, #31, #205, #207).** 19
+Angular laws require `@angular/core`, 10 NgRx laws `@ngrx/store`, Observable
+Cleanup `rxjs`, Timer Cleanup `@angular/core`. They are not selected — and not
+counted — where the package is not declared. An Angular app without a store no
+longer fails the NgRx laws.
+
+**Selected laws, measured** (published 7.25.0 → 7.26.0, same projects):
+
+| project | 7.25.0 | 7.26.0 |
+|---|---|---|
+| canary — Angular (no NgRx) | 132 | 121 |
+| canary — Angular + Ionic + Capacitor | 149 | 151 |
+| canary — Python | 99 | 97 |
+| canary — Node | 77 | 77 |
+| canary — Next.js (new arm) | — | 136 |
+| Next app, no config | 132 (as Angular) | 136 |
+| Next npm-workspaces monorepo, no config | 132 (as Angular) | 135 |
+| Python project, no config | 132 (as Angular) | 97 |
+| a real Angular + Ionic + Capacitor app (own config) | 131 | 147 |
+| a real Python API (own config) | 90 | 88 |
+
+**What to do:** re-read `laws.minLawsChecked` against the number the audit
+prints (`set laws.minLawsChecked against N`). A Python project loses two laws
+(below); a Python config whose floor equals today's count must be lowered by 2.
+An Ionic/Capacitor Android project gains several `error` laws (below).
+
+**Defaults that change:**
+- **Test Isolation Enforcement** and **Test Data Management** are
+  `stack: typescript` (were universal): they read only JS/TS test files and
+  passed on every Python project having read nothing. With no test file in
+  scope they now report "nothing was judged" — a violation — instead of 100.
+- **No Risk Literals** is opt-in (`defaultEnabled: false`) and no longer
+  gated by framework: its vocabulary is a trading domain's.
+- **Accessibility:** the `t3-modal` literal is gone. If you relied on it,
+  declare `thresholds.accessibility.accessibleDialogComponents: ["t3-modal"]`.
+
+**Verdicts that change in existing laws:**
+- **XSS:** legacy law 43 judges HTML **sinks** (case-sensitive, one finding
+  per sink, sanitizer read in the sink's own statement); legacy law 44
+  (`ContentSecurityPolicyLaw`) judges the **CSP** where it is declared —
+  `index.html` meta, `next.config`/`proxy`/`middleware`, `firebase.json` /
+  `vercel.json` / `netlify.toml` headers, or `thresholds.security.cspFiles`.
+  A Next app with no CSP, or an app whose `index.html` has none and no hosting
+  header sets one, now fails law 44 (before, the CSP was checked only when
+  `src/index.html` existed). Report-Only does not count. `eval` no longer
+  matches `retrieval(`.
+- **FE architecture (#210):** the four layer laws no longer need Angular, take
+  configurable layers (`thresholds.frontend.featureLayers` /
+  `dataAccessLayers`), and fail with "judged nothing" when no file is in a
+  layer.
+- **Performance (#211):** the six performance laws read `next.config` /
+  `vite.config` and React source with the project's TypeScript; a keyword in a
+  comment or an unrun config no longer passes, and a plain Next app can pass
+  once it declares a budget, Web Vitals and a gate.
+- **Accessibility (#209, #252):** the five laws read JSX and `ion-*`
+  components; unreadable files fail.
+- **Test isolation (#192):** the twins read the same file set from the project
+  root (root-relative `ignores.global` and `includes.global` apply), and every
+  finding names its files.
+- The pre-deployment build validator counts test files by name; it reported 0
+  for every `.spec.ts`, and its tests asserted that 0.
+
+### ✨ Added — 61 laws
+
+**React (9, `requires react` unless noted):** React Hooks Lint Enforced
+(error), React Effect Resource Cleanup, React Effect Fetch Race Guarded, React
+Context Value Stable (info), React Store Subscription Uses Sync External Store
+(info), React Render No Browser Global (`next`), Client Fetch Response Checked,
+React Poll Visibility Gated (info), React List Key Stability (info).
+
+**React security (3):** React Dangerous HTML Guarded (error), React Href Scheme
+Guarded, Next Open Redirect Guarded (`next`).
+
+**Next.js server (9, `requires next`):** Next Server Action Authorizes,
+Next Route Handler Guarded, Next Server Only Boundary, Next Client Env Public
+Only (all error), Next Proxy Placement And Matcher, Next Error Boundaries
+Declared, Next Public Env Is Build Time, Guard Exemption Matches A Route,
+Client IP Single Boundary (TypeScript stack; any Node HTTP framework).
+
+**Next.js client (11, `requires next`):** Next Metadata Declared, Next Heavy
+Lib In Client Graph, Next Image Has Dimensions, Next Third Party Script
+Declared, HTML Lang Declared, Next Internal Link Component (info), Next Use
+Client At Leaves, Next Client Props Serializable, Next Route JS Budget (error,
+**opt-in** — needs a Turbopack build's stats), Next Segment Config Consistent,
+Next Loading For Async Page (info).
+
+**Test integrity (5):** No Focused Tests (error; any JS test runner), Playwright
+No Fixed Wait, Playwright Locators User Facing (info), RTL Query By Role
+(info), No Test-Only Leakage (error, `next`).
+
+**Data and type integrity (5):** Drizzle Migration Journal Integrity (error),
+SQL Check Constraint NULL Passes (universal, where `.sql` files exist), Guard
+Function Has Production Caller, Tsconfig Exclude Leaves Code Untyped,
+Retention Registry Covers Schema (**opt-in**).
+
+**Ionic rendering model (8, `requires @ionic/angular` unless noted):** Ionic
+View Hooks Only On Pages, Ionic Single Build System (error), Ionic Icons
+Registered, Ionic Scroll Through Ion Content, Ionic Viewport Fit Cover (any
+binding), Ionic Edge Chrome Pays Safe Area, Ionic Gesture Touch Action, Ionic
+Fixed Content In Fixed Slot.
+
+**Capacitor native shell (5):** Capacitor Android Cleartext Debug Only (error),
+Capacitor Firebase Native Config Not Skipped (error), Capacitor Android Backup
+Scoped, Capacitor iOS Privacy Manifest Declared, Capacitor Signing Secrets
+Outside Repo (error). Native files are read by fixed path, independent of
+`ignores`; "is it in the repo" is asked of git.
+
+**Capacitor bridge (6):** Capacitor Android Back Has One Owner (error; Ionic
+and `@capacitor/android`), Capacitor Local Plugin Contract (error), Capacitor
+Listener Handles Released, Capacitor Service Worker Native Decision, Capacitor
+Durable State Off WebView Storage, Capacitor Plugin Stub Has Contract Test
+(info).
+
+Every new law: a card with `rationale`, `satisfiedBy` and `detectionLimits`,
+red and green tests, a "cannot read" test (it fails, never passes), and a
+selection test through its real `requires`. New `thresholds` keys are
+documented in `src/config/types.ts` and on the cards that read them.
+
+### 🧱 Foundations
+
+- `requires.allDependencies` — every listed package must be declared ("Ionic
+  **and** the Android platform").
+- `satisfiedBy.react`, and `laws --json` → `satisfiedByStacks.projectTypeToKey`
+  (the guidance key by project type; `stackToKey` is unchanged). 23 of the 24
+  frontend laws that run on every UI project now carry React guidance.
+- TSX is parsed with the **project's own `typescript`**; when it cannot be
+  loaded the files are reported as not read, never passed.
+- `.test.tsx` / `.spec.tsx` / `.jsx` are tests, from one `TEST_FILE_GLOBS` list.
+- The seven Ionic template laws share one parse per audit (first law ~12 s,
+  the rest ~1 s each on a 2 000-file app, instead of ~3–4 s each).
+- Canary: a React/Next arm, and the red pass now requires the planted law to
+  be the one that failed (exit 1 alone is any failure). Both checks were seen
+  red with a deliberately broken canary.
+
+### 🐛 Fixed in RuleOfCode itself
+
+- Its own audit judged none of its 577 tests: its config put them in
+  `ignores.global`. They are in `ignores.tests` now (hidden from source scans
+  only).
+- Guard Function Has Production Caller found a function nothing called
+  (`checkNpmRegistrySecurity`); it is removed.
+
 ## [7.25.0] - 2026-10-30
 
 Four reported defects, all of the same family: the tool answering a

@@ -749,6 +749,7 @@ export class ModularLawsRegistry {
       paretoCore: this.isParetoCore(law),
       alwaysEnabled: law.alwaysEnabled,
       defaultEnabled: law.defaultEnabled,
+      staticSiteHtml: law.staticSiteHtml,
       applicableFrameworks: this.getApplicableFrameworks(law),
       legacyId: law.legacyId,
       stack: law.stack,
@@ -791,9 +792,10 @@ export class ModularLawsRegistry {
   static lawAppliesToProjectType(
     stack: string | undefined,
     projectType: string | undefined,
-    projectRoot?: string
+    projectRoot?: string,
+    law?: { staticSiteHtml?: boolean }
   ): boolean {
-    return LawIdentity.lawAppliesToProjectType(stack, projectType, projectRoot);
+    return LawIdentity.lawAppliesToProjectType(stack, projectType, projectRoot, law);
   }
 
   /** Identity keys that resolve to exactly ONE law — the only ones a config may use. */

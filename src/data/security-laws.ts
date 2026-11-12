@@ -130,12 +130,14 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
       'XSS is the vulnerability that turns your users\' own browsers against them, and it almost always enters through a string that was rendered as HTML when it should have been text. This law flags the sinks and asks that untrusted HTML be sanitized.',
     satisfiedBy: {
       angular:
-        'Bind with interpolation or [textContent]; when you must render HTML, pass it through DomSanitizer; set a Content-Security-Policy in index.html.',
+        'Bind with interpolation or [textContent]; when you must render HTML, sanitize it in the same statement — DomSanitizer.sanitize(SecurityContext.HTML, v) — and never pass unsanitized input to bypassSecurityTrust*.',
+      react:
+        'Render text by default. When a ref must write HTML (el.innerHTML = ...), sanitize it in the same statement (DOMPurify.sanitize, or a sanitizer named in thresholds.security.htmlSanitizers). dangerouslySetInnerHTML is judged by react-dangerous-html-guarded.',
     },
     detectionLimits: [
-      'Regex over raw .ts/.html text with NO comment stripping and no data-flow — a sink in a comment triggers it, and it cannot tell a safely-sanitized innerHTML from a tainted one.',
-      'The sanitizer check is "does DomSanitizer / sanitizeHtml appear anywhere in the repo" — presence, not correct use at the sink.',
-      'CSP is checked only in src/index.html; TS/HTML only — no .js, no Python.',
+      'Regex over .ts/.tsx/.jsx/.html with comments stripped, case-sensitive and anchored on the property access (.innerHTML =, .insertAdjacentHTML(, document.write(, eval(, bypassSecurityTrust*(, [innerHTML]=) — dangerouslySetInnerHTML is not read as innerHTML; plain .js files are not scanned.',
+      'A sanitizer counts only in the sink\'s own statement (up to `;` or the end of the line), by callee name: DOMPurify.sanitize, DomSanitizer .sanitize(SecurityContext.HTML, …) and thresholds.security.htmlSanitizers. A value sanitized on an earlier line and assigned later is flagged; a weak sanitizer configuration is not seen. No data-flow.',
+      'An Angular [innerHTML] binding is flagged although Angular sanitizes it itself; eval is always flagged. The CSP is judged by Security Standards (XSS Prevention) Policy, not here.',
     ],
     stack: 'frontend',
     emoji: '🚫',
@@ -149,7 +151,7 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'checkXSSPrevention',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Section 6.5: Potential XSS vulnerability detected',
-    remediation: 'Use DomSanitizer properly or avoid innerHTML entirely',
+    remediation: 'Render text, or sanitize HTML in the sink\'s own statement; never eval',
   },
 
   {
@@ -163,20 +165,22 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '6.19',
     title: 'Security Standards (XSS Prevention) Policy',
     rationale:
-      'Untrusted input rendered as markup is how a comment box becomes a keylogger. This law flags the DOM sinks (innerHTML, document.write, eval, bypassSecurityTrust) and asks that HTML be sanitized before it reaches the page.',
+      'Untrusted input rendered as markup is how a comment box becomes a keylogger, and no review finds every sink. A Content-Security-Policy is the backstop: a script the page did not author does not run. This law asks that one be declared for every entry the project serves; the sinks themselves are the Angular Security XSS Prevention law\'s, so one defect gives one result.',
     satisfiedBy: {
       angular:
-        'Prefer interpolation / [textContent]; sanitize any HTML you must render via DomSanitizer; serve a Content-Security-Policy.',
+        "Serve a Content-Security-Policy: a <meta http-equiv> in index.html, or the hosting headers (firebase.json, vercel.json, netlify.toml); name any other server config in thresholds.security.cspFiles.",
+      react:
+        "Declare a CSP: in next.config.* headers() or proxy.ts for Next (as Next's CSP guide shows), in index.html or the hosting headers otherwise; name any other server config in thresholds.security.cspFiles.",
     },
     detectionLimits: [
-      'Runs the same detector as the Angular XSS law — regex over raw .ts/.html, no comment stripping, no data-flow, so a commented sink triggers and a sanitized one is not distinguished.',
-      'The sanitizer signal is a keyword present anywhere in the repo, not verified at the sink.',
-      'CSP checked only in src/index.html; TS/HTML only.',
+      'Checks that the Content-Security-Policy header is DECLARED (its name, outside comments; -Report-Only does not count), never what the policy allows — a policy of `*` passes.',
+      'Places read: <meta http-equiv> in each index.html the scan reaches (coverage/ and test reports excluded); next.config.*, proxy.* and middleware.* at each Next app root or its src/; firebase.json, vercel.json and netlify.toml in the root or a workspace project; thresholds.security.cspFiles. A header set in code elsewhere (a custom server, an edge function) is invisible unless named there.',
+      'A site-wide declaration (hosting config or cspFiles) is taken to cover every entry; which route a hosting rule matches is not checked. A project with neither an entry nor a declaration fails as judged-nothing.',
     ],
     stack: 'frontend',
     emoji: '🔒',
     description:
-      'Implement CSP headers, sanitize all user input, avoid dangerous Angular methods',
+      'A Content-Security-Policy is declared for every entry the project serves (meta tag, next.config/proxy, hosting headers or a named file)',
     priority: 'HIGH',
     category: 'SECURITY',
     automation: 'AUTOMATED',
@@ -184,8 +188,8 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
     defaultSeverity: 'error',
     checkFunction: 'checkSecurityStandards',
     violationMessage:
-      'CONSTITUTIONAL VIOLATION Section 6.19: Security vulnerability detected',
-    remediation: 'Implement proper input sanitization and CSP headers',
+      'CONSTITUTIONAL VIOLATION Section 6.19: No Content-Security-Policy declared',
+    remediation: 'Declare a Content-Security-Policy where the app is served',
   },
 
   // Extended Security Laws (45-49)

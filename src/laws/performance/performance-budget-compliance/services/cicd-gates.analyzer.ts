@@ -1,129 +1,31 @@
 import type { RuleOfCodeConfig } from '../../../../types/law.types';
-import { CheckerUtils, FileUtils, PathOperations } from '../../../../utils';
-import { PerformanceBudgetComplianceFileDiscoveryConstants } from '../constants';
+import { PerformanceBudgetGates } from '../../../../utils/performance-budget-gates';
 
 /**
  * CICDPerformanceGatesAnalyzerService
  *
  * Responsibility:
- * - Analyze CI/CD pipeline configuration
- * - Verify performance budget gates in GitHub Actions, GitLab CI, Bitbucket Pipelines
+ * - Find the gate that enforces a performance budget: a CI step, or — where
+ *   the project has no hosted CI — a git hook.
+ *
+ * This used to pass when a workflow contained any of `lighthouse`, `budget`,
+ * `performance` ANYWHERE, case-insensitively — a comment, a job name, the
+ * word in a URL. Now comments and step names are removed and the remaining
+ * commands must RUN a budget tool (lhci, size-limit, bundlesize, bundlewatch),
+ * directly or through package scripts, or run the Angular build when its
+ * budgets declare `maximumError` (that build fails on a breach). Every CI
+ * provider the shared CI reader knows, and `pathMappings.cicdConfig`, are read.
  */
 export class CICDPerformanceGatesAnalyzerService {
-  /**
-   * Analyze CI/CD performance gates
-   */
   static analyze(
     projectRoot: string,
     config: RuleOfCodeConfig
-  ): { configured: boolean; pipelines: string[] } {
-    const pipelines: string[] = [];
-
-    // Check each CI/CD platform
-    this.checkGitHubActions(projectRoot, config, pipelines);
-    this.checkGitLabCI(projectRoot, pipelines);
-    this.checkBitbucketPipelines(projectRoot, pipelines);
-
-    return { configured: pipelines.length > 0, pipelines };
-  }
-
-  /**
-   * Check GitHub Actions workflows
-   */
-  private static checkGitHubActions(
-    projectRoot: string,
-    config: RuleOfCodeConfig,
-    pipelines: string[]
-  ): void {
-    const githubWorkflowsPath = PathOperations.join(
-      projectRoot,
-      PerformanceBudgetComplianceFileDiscoveryConstants.CONFIG_FILE_PATTERNS
-        .CI_CD.GITHUB
-    );
-    if (!FileUtils.exists(githubWorkflowsPath)) {
-      return;
-    }
-
-    try {
-      const yamlFiles = CheckerUtils.findFilesByExtension(
-        githubWorkflowsPath,
-        ['.yml', '.yaml'],
-        config
-      );
-
-      for (const workflowPath of yamlFiles) {
-        const workflow = PathOperations.getBasename(workflowPath);
-        const content = FileUtils.readFile(workflowPath, { encoding: 'utf8' });
-
-        if (
-          PerformanceBudgetComplianceFileDiscoveryConstants.hasPerformanceKeywords(
-            content
-          )
-        ) {
-          pipelines.push(`GitHub Actions: ${workflow}`);
-        }
-      }
-    } catch {
-      // Ignore directory read errors
-    }
-  }
-
-  /**
-   * Check GitLab CI configuration
-   */
-  private static checkGitLabCI(projectRoot: string, pipelines: string[]): void {
-    const gitlabCIPath = PathOperations.join(
-      projectRoot,
-      PerformanceBudgetComplianceFileDiscoveryConstants.CONFIG_FILE_PATTERNS
-        .CI_CD.GITLAB
-    );
-    if (!FileUtils.exists(gitlabCIPath)) {
-      return;
-    }
-
-    try {
-      const content = FileUtils.readFile(gitlabCIPath, { encoding: 'utf8' });
-      if (
-        PerformanceBudgetComplianceFileDiscoveryConstants.hasPerformanceKeywords(
-          content
-        )
-      ) {
-        pipelines.push('GitLab CI');
-      }
-    } catch {
-      // Ignore file read errors
-    }
-  }
-
-  /**
-   * Check Bitbucket Pipelines configuration
-   */
-  private static checkBitbucketPipelines(
-    projectRoot: string,
-    pipelines: string[]
-  ): void {
-    const bitbucketPipelinesPath = PathOperations.join(
-      projectRoot,
-      PerformanceBudgetComplianceFileDiscoveryConstants.CONFIG_FILE_PATTERNS
-        .CI_CD.BITBUCKET
-    );
-    if (!FileUtils.exists(bitbucketPipelinesPath)) {
-      return;
-    }
-
-    try {
-      const content = FileUtils.readFile(bitbucketPipelinesPath, {
-        encoding: 'utf8',
-      });
-      if (
-        PerformanceBudgetComplianceFileDiscoveryConstants.hasPerformanceKeywords(
-          content
-        )
-      ) {
-        pipelines.push('Bitbucket Pipelines');
-      }
-    } catch {
-      // Ignore file read errors
-    }
+  ): { configured: boolean; pipelines: string[]; hostedCi: boolean } {
+    const status = PerformanceBudgetGates.budgetGates(projectRoot, config);
+    return {
+      configured: status.gates.length > 0,
+      pipelines: status.gates,
+      hostedCi: status.hostedCi,
+    };
   }
 }

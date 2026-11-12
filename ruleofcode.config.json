@@ -7,16 +7,19 @@
   "includes": {
     "global": [
       "src/**/*.ts",
-      "scripts/**/*.js"
+      "scripts/**/*.js",
+      "tests/**/*.ts"
     ]
   },
   "ignores": {
     "global": [
-      "**/*.spec.ts",
-      "**/*.test.ts",
       "dist/**",
       "coverage/**",
-      "node_modules/**",
+      "node_modules/**"
+    ],
+    "tests": [
+      "**/*.spec.ts",
+      "**/*.test.ts",
       "tests/**"
     ]
   },

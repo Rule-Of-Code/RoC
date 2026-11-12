@@ -1,6 +1,6 @@
 /**
  * FE Architecture laws — batch 2 (ROC-FE-04/08/10): required specs, no layout
- * CSS transitions, no hostname gating. Regex/string; gated on Angular (stack:
+ * CSS transitions, no hostname gating. Regex/string; framework-neutral (stack:
  * frontend). Real temp fixtures, no mocks.
  */
 import fs from 'fs';
@@ -99,19 +99,19 @@ describe('ROC-FE-10 No Hostname Gating', () => {
   });
 });
 
-describe('batch 2 gates off on a non-Angular project', () => {
-  it('all three no-op on a Python project', () => {
+describe('batch 2 is framework-neutral (#210): it runs without Angular', () => {
+  it('all three judge a project that declares no Angular', () => {
     const dir = fixture(
       {
-        'pyproject.toml': "[project]\nname='x'\n",
-        'libs/a/x.component.scss': '.p { transition: width 1s; }',
-        'libs/a/x.component.ts': "if (location.hostname === 'd') {}",
+        'package.json': JSON.stringify({ dependencies: { react: '19.0.0' } }),
+        'src/styles.css': '.p { transition: width 1s; }',
+        'src/feature-cart/Cart.tsx': "if (location.hostname === 'd') {}\n" + lines(250),
       },
       false
     );
-    const c = (): LawCheckContext => ctx(dir, { project: { type: 'python' } } as never);
-    expect(NoLayoutTransitionLaw.check(c()).passed).toBe(true);
-    expect(NoHostnameGatingLaw.check(c()).passed).toBe(true);
-    expect(RequiresSpecLaw.check(c()).passed).toBe(true);
+    const c = (): LawCheckContext => ctx(dir, { project: { type: 'react' } } as never);
+    expect(NoLayoutTransitionLaw.check(c()).passed).toBe(false);
+    expect(NoHostnameGatingLaw.check(c()).passed).toBe(false);
+    expect(RequiresSpecLaw.check(c()).passed).toBe(false);
   });
 });

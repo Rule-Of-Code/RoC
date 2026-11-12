@@ -52,9 +52,20 @@ export function lawRequirementsMet(
   projectRoot: string
 ): boolean {
   if (!requires) return true;
-  if (requires.anyDependency?.length) {
+  if (requires.anyDependency?.length || requires.allDependencies?.length) {
     const declared = declaredDependencies(projectRoot);
-    if (!requires.anyDependency.some(name => declared.has(name))) return false;
+    if (
+      requires.anyDependency?.length &&
+      !requires.anyDependency.some(name => declared.has(name))
+    ) {
+      return false;
+    }
+    if (
+      requires.allDependencies?.length &&
+      !requires.allDependencies.every(name => declared.has(name))
+    ) {
+      return false;
+    }
   }
   if (requires.anyFile?.length) {
     if (presentRequiredFiles(projectRoot, requires.anyFile).length === 0) {
@@ -69,6 +80,9 @@ export function describeRequirement(requires: LawRequirement): string {
   const parts: string[] = [];
   if (requires.anyDependency?.length) {
     parts.push(`a dependency on ${requires.anyDependency.join(' or ')}`);
+  }
+  if (requires.allDependencies?.length) {
+    parts.push(`dependencies on ${requires.allDependencies.join(' and ')}`);
   }
   if (requires.anyFile?.length) {
     parts.push(requires.anyFile.join(' or '));

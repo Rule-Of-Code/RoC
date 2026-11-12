@@ -63,6 +63,19 @@ export class FixtureIsolation {
   }
 
   /**
+   * Angular's HTTP testing backend: under `provideHttpClientTesting()` (or the
+   * older `HttpClientTestingModule`) the HttpClient a spec injects sends
+   * nothing over the network — every request is held by the
+   * HttpTestingController for the test to answer, and a fresh TestBed builds
+   * a fresh backend per test. The name `HttpClient` in such a spec is a test
+   * double, not an external resource; reading it as one flagged specs whose
+   * isolation is the framework's own.
+   */
+  static replacesHttpBackend(code: string): boolean {
+    return /\bprovideHttpClientTesting\s*\(|\bHttpClientTestingModule\b/.test(code);
+  }
+
+  /**
    * The external resources a test file reaches, as the matched text, from its
    * CODE — a comment describing a resource is not a test using one. Browser
    * storage is left out where the runner isolates it. Databases, sockets,
@@ -75,11 +88,13 @@ export class FixtureIsolation {
     content: string,
     patterns: Record<string, RegExp>
   ): string[] {
-    const code = CodeText.stripComments(content);
+    const code = CodeText.codeOnly(content);
     const storageIsolated = this.isolatesBrowserStorage(content);
+    const httpIsolated = this.replacesHttpBackend(code);
     const used = new Set<string>();
     for (const [kind, pattern] of Object.entries(patterns)) {
       if (kind === 'STORAGE' && storageIsolated) continue;
+      if (kind === 'HTTP_CLIENT' && httpIsolated) continue;
       const match = code.match(pattern);
       if (match) used.add(match[0]);
     }

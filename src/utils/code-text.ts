@@ -1,3 +1,5 @@
+import { loadTypeScript } from './react/tsx-source';
+
 /**
  * Strip COMMENTS from source text, so a pattern search sees code, not prose.
  *
@@ -42,5 +44,43 @@ export class CodeText {
       /'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"|`(?:\\.|[^`\\])*`/g,
       '""'
     );
+  }
+
+  /**
+   * The same result, with the string literals found by the TypeScript parser
+   * instead of a regex. The regex loses its place on nested quotes — a
+   * template literal holding `"it('…')"` — and from there reads code as text
+   * and text as code; a test file that keeps fixtures as source strings is
+   * exactly that shape. Strings are blanked first (from the parse, so a `//`
+   * or a quote inside one cannot mislead), then comments are stripped. Falls
+   * back to stripCommentsAndStrings when no `typescript` can be loaded.
+   */
+  static codeOnly(content: string, fileName = 'file.tsx', projectRoot = process.cwd()): string {
+    const ts = loadTypeScript(projectRoot);
+    if (!ts) return this.stripCommentsAndStrings(content);
+    const source = ts.createSourceFile(fileName, content, ts.ScriptTarget.Latest, true);
+    const ranges: Array<[number, number]> = [];
+    const visit = (node: import('typescript').Node): void => {
+      if (
+        ts.isStringLiteral(node) ||
+        ts.isNoSubstitutionTemplateLiteral(node) ||
+        ts.isTemplateHead(node) ||
+        ts.isTemplateMiddle(node) ||
+        ts.isTemplateTail(node) ||
+        ts.isRegularExpressionLiteral(node)
+      ) {
+        ranges.push([node.getStart(source), node.getEnd()]);
+        return;
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+    let blanked = content;
+    for (const [start, end] of ranges.reverse()) {
+      // Keep the line breaks a literal spans, so later line numbers hold.
+      const newlines = (blanked.slice(start, end).match(/\n/g) ?? []).join('');
+      blanked = `${blanked.slice(0, start)}""${newlines}${blanked.slice(end)}`;
+    }
+    return this.stripComments(blanked);
   }
 }

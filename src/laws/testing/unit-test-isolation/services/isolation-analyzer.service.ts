@@ -12,60 +12,68 @@ export class UnitTestIsolationAnalyzerService {
   /**
    * Analyze shared mutable state
    */
+  /**
+   * The test files (relative paths) whose content satisfies `predicate`, and
+   * how many test files were read. A finding that does not name its files
+   * cannot be acted on; each analysis below returns them, not only a flag.
+   */
+  private static filesWhere(
+    projectRoot: string,
+    config: RuleOfCodeConfig,
+    predicate: (content: string) => boolean
+  ): { files: string[]; read: number } {
+    const files: string[] = [];
+    let read = 0;
+    for (const testFile of this.findTestFiles(projectRoot, config)) {
+      try {
+        const content = FileUtils.readFile(testFile, { encoding: 'utf8' });
+        read++;
+        if (predicate(content)) files.push(PathOperations.getRelative(projectRoot, testFile));
+      } catch (_error) {
+        // Skip files that can't be read
+      }
+    }
+    return { files, read };
+  }
+
   static analyzeSharedState(
     projectRoot: string,
     config: RuleOfCodeConfig
   ): {
     hasSharedMutableState: boolean;
+    files: string[];
   } {
-    const testFiles = this.findTestFiles(projectRoot, config);
-    let hasSharedMutableState = false;
-
-    for (const testFile of testFiles) {
-      try {
-        const content = FileUtils.readFile(testFile, { encoding: 'utf8' });
-        if (UnitTestIsolationConstants.hasSharedMutableState(content)) {
-          hasSharedMutableState = true;
-          break;
-        }
-      } catch (_error) {
-        // Skip files that can't be read
-      }
-    }
-
-    return { hasSharedMutableState };
+    const { files } = this.filesWhere(projectRoot, config, content =>
+      UnitTestIsolationConstants.hasSharedMutableState(content)
+    );
+    return { hasSharedMutableState: files.length > 0, files };
   }
 
   /**
-   * Analyze setup/teardown isolation
+   * Analyze setup/teardown isolation. A hook exists to reset what tests share;
+   * a file with no module-scope mutable state has nothing to reset, and
+   * demanding a `beforeEach` there asks for ceremony (Angular's TestBed is
+   * torn down per test by the framework). So a file needs isolation only when
+   * it shares mutable state and has no hook. Fails below 70% of test files;
+   * `files` are the ones to fix.
    */
   static analyzeSetupTeardown(
     projectRoot: string,
     config: RuleOfCodeConfig
   ): {
     hasProperIsolation: boolean;
+    files: string[];
   } {
-    const testFiles = this.findTestFiles(projectRoot, config);
-    let testsWithProperIsolation = 0;
-    let totalTestFiles = 0;
-
-    for (const testFile of testFiles) {
-      try {
-        const content = FileUtils.readFile(testFile, { encoding: 'utf8' });
-        totalTestFiles++;
-
-        if (UnitTestIsolationConstants.hasProperSetupTeardown(content)) {
-          testsWithProperIsolation++;
-        }
-      } catch (_error) {
-        // Skip files that can't be read
-      }
-    }
-
+    const { files, read } = this.filesWhere(
+      projectRoot,
+      config,
+      content =>
+        UnitTestIsolationConstants.hasSharedMutableState(content) &&
+        !UnitTestIsolationConstants.hasProperSetupTeardown(content)
+    );
     return {
-      hasProperIsolation:
-        totalTestFiles === 0 ||
-        testsWithProperIsolation / totalTestFiles >= 0.7,
+      hasProperIsolation: read === 0 || (read - files.length) / read >= 0.7,
+      files,
     };
   }
 
@@ -77,23 +85,12 @@ export class UnitTestIsolationAnalyzerService {
     config: RuleOfCodeConfig
   ): {
     hasOrderDependencies: boolean;
+    files: string[];
   } {
-    const testFiles = this.findTestFiles(projectRoot, config);
-    let hasOrderDependencies = false;
-
-    for (const testFile of testFiles) {
-      try {
-        const content = FileUtils.readFile(testFile, { encoding: 'utf8' });
-        if (UnitTestIsolationConstants.hasTestOrderDependencies(content)) {
-          hasOrderDependencies = true;
-          break;
-        }
-      } catch (_error) {
-        // Skip files that can't be read
-      }
-    }
-
-    return { hasOrderDependencies };
+    const { files } = this.filesWhere(projectRoot, config, content =>
+      UnitTestIsolationConstants.hasTestOrderDependencies(content)
+    );
+    return { hasOrderDependencies: files.length > 0, files };
   }
 
   /**
@@ -140,23 +137,12 @@ export class UnitTestIsolationAnalyzerService {
     config: RuleOfCodeConfig
   ): {
     hasGlobalStatePollution: boolean;
+    files: string[];
   } {
-    const testFiles = this.findTestFiles(projectRoot, config);
-    let hasGlobalStatePollution = false;
-
-    for (const testFile of testFiles) {
-      try {
-        const content = FileUtils.readFile(testFile, { encoding: 'utf8' });
-        if (UnitTestIsolationConstants.modifiesGlobalState(content)) {
-          hasGlobalStatePollution = true;
-          break;
-        }
-      } catch (_error) {
-        // Skip files that can't be read
-      }
-    }
-
-    return { hasGlobalStatePollution };
+    const { files } = this.filesWhere(projectRoot, config, content =>
+      UnitTestIsolationConstants.modifiesGlobalState(content)
+    );
+    return { hasGlobalStatePollution: files.length > 0, files };
   }
 
   /**
@@ -191,17 +177,14 @@ export class UnitTestIsolationAnalyzerService {
   }
 
   /**
-   * Find all test files in project
+   * Find all test files in project — the same discovery, roots and config as
+   * test-data-management, which carries the same resource check (#192).
    */
   private static findTestFiles(
     projectRoot: string,
     config: RuleOfCodeConfig
   ): string[] {
-    return TestFileDiscovery.findTestFiles(projectRoot, config, [
-      PathOperations.join(projectRoot, 'src'),
-      PathOperations.join(projectRoot, 'apps'),
-      PathOperations.join(projectRoot, 'libs'),
-    ]);
+    return TestFileDiscovery.findTestFiles(projectRoot, config);
   }
 
   /**

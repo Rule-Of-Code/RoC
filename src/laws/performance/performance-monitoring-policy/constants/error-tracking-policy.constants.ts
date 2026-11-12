@@ -7,6 +7,8 @@ export class ErrorTrackingPolicyConstants {
   static readonly ERROR_TRACKING_TOOLS: string[] = [
     '@sentry/browser',
     '@sentry/angular',
+    '@sentry/nextjs',
+    '@sentry/react',
     'logrocket',
     'logrocket-react',
     'bugsnag',

@@ -174,19 +174,3 @@ export function performSecurityToolingAnalysis(
 
   return { violations, suggestions, score: Math.max(0, score) };
 }
-
-// ============================================================================
-// NPM Registry Check
-// ============================================================================
-
-export function checkNpmRegistrySecurity(
-  projectRoot: string
-): Config.ToolingAnalysisResult {
-  const suggestions: string[] = [];
-
-  if (Config.hasCustomNpmRegistry(projectRoot)) {
-    suggestions.push(Config.MESSAGES.reviewCustomRegistry);
-  }
-
-  return { violations: [], suggestions, score: 100 };
-}

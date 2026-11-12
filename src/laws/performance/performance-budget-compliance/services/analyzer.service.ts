@@ -1,4 +1,5 @@
 import type { RuleOfCodeConfig } from '../../../../types/law.types';
+import type { ReactPerformanceEvidence } from '../../../../utils/react/react-performance-source';
 import { AngularBudgetAnalyzerService } from './angular-budget.analyzer';
 import { BundleSizeAnalyzerService } from './bundle-size.analyzer';
 import { CICDPerformanceGatesAnalyzerService } from './cicd-gates.analyzer';
@@ -65,6 +66,7 @@ export class PerformanceBudgetComplianceAnalyzerService {
   ): {
     configured: boolean;
     pipelines: string[];
+    hostedCi: boolean;
   } {
     return CICDPerformanceGatesAnalyzerService.analyze(projectRoot, config);
   }
@@ -74,11 +76,12 @@ export class PerformanceBudgetComplianceAnalyzerService {
    */
   static analyzeProductionMonitoring(
     projectRoot: string,
-    config: RuleOfCodeConfig
+    config: RuleOfCodeConfig,
+    react?: ReactPerformanceEvidence
   ): {
     monitored: boolean;
     services: string[];
   } {
-    return ProductionMonitoringAnalyzerService.analyze(projectRoot, config);
+    return ProductionMonitoringAnalyzerService.analyze(projectRoot, config, react);
   }
 }

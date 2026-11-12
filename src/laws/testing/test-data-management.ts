@@ -2,6 +2,7 @@ import { LawBase } from '../../checkers/law-base';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { UnitTestDataManagementAnalyzerService } from './unit-test-data-management/services/data-management-analyzer.service';
 import { namedFiles } from '../../utils/testing/fixture-isolation';
+import { TestFileDiscovery } from './test-file-discovery';
 
 /**
  * Test Data Management Law
@@ -26,6 +27,17 @@ export class TestDataManagementLaw {
       const suggestions: string[] = [];
       let score = 100;
       const { projectRoot, config } = context;
+      if (TestFileDiscovery.findTestFiles(projectRoot, config).length === 0) {
+        const nothing = TestFileDiscovery.nothingToJudge('Test Data Management');
+        return LawBase.buildDetailedResult({
+          passed: false,
+          message: nothing,
+          violations: [nothing],
+          suggestions,
+          score: 0,
+          context,
+        });
+      }
       // Real-data mode: a project may deliberately use real inline data instead of
       // factories/mocks — don't flag that as a violation.
       const realDataMode =
@@ -57,7 +69,8 @@ export class TestDataManagementLaw {
       // 1. Check test files for proper data management patterns
       const testDataPatterns =
         UnitTestDataManagementAnalyzerService.analyzeTestDataPatterns(
-          projectRoot
+          projectRoot,
+          config
         );
       if (!testDataPatterns.hasProperSetup) {
         violations.push('Test files missing proper setup/teardown patterns');
@@ -66,7 +79,9 @@ export class TestDataManagementLaw {
       }
 
       if (testDataPatterns.hasHardcodedData && !realDataMode) {
-        violations.push('Found hardcoded test data in test files');
+        violations.push(
+          `Found hardcoded test data in test files: ${namedFiles(testDataPatterns.hardcodedDataFiles)}`
+        );
         suggestions.push(
           'Use test data factories or builders instead of hardcoded values'
         );
@@ -74,7 +89,9 @@ export class TestDataManagementLaw {
       }
 
       if (testDataPatterns.hasSharedState) {
-        violations.push('Tests have shared mutable state issues');
+        violations.push(
+          `Tests have shared mutable state issues: ${namedFiles(testDataPatterns.sharedStateFiles)}`
+        );
         suggestions.push('Ensure tests are isolated with proper cleanup');
         score -= thresholds.sharedStateDeduction;
       }
@@ -101,7 +118,8 @@ export class TestDataManagementLaw {
       // 3. Check for proper cleanup patterns
       const cleanupPatterns =
         UnitTestDataManagementAnalyzerService.analyzeCleanupPatterns(
-          projectRoot
+          projectRoot,
+          config
         );
       if (!cleanupPatterns.hasProperCleanup) {
         violations.push(
@@ -115,7 +133,10 @@ export class TestDataManagementLaw {
 
       // 4. Check mocking strategies
       const mockingUsage =
-        UnitTestDataManagementAnalyzerService.analyzeMockingUsage(projectRoot);
+        UnitTestDataManagementAnalyzerService.analyzeMockingUsage(
+          projectRoot,
+          config
+        );
       if (!mockingUsage.hasProperMocking) {
         // A deduction that changes the verdict must be visible as a violation —
         // otherwise the law fails with zero findings and a "✅ Excellent"
@@ -138,7 +159,8 @@ export class TestDataManagementLaw {
       // suggestion that costs neither the verdict nor the score.
       const factoryUsage =
         UnitTestDataManagementAnalyzerService.analyzeDataFactoryUsage(
-          projectRoot
+          projectRoot,
+          config
         );
       if (factoryUsage.factoryCoverage < thresholds.minFactoryCoverage) {
         suggestions.push(

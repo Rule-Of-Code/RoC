@@ -1,0 +1,11 @@
+/**
+ * Integrity Laws — where every gate is green and the thing it vouches for is
+ * not there: the migration journal, the CHECK constraint, the guard, the
+ * tsconfig, the retention registry.
+ */
+
+export { DrizzleMigrationJournalIntegrityLaw } from './drizzle-migration-journal-integrity';
+export { GuardFunctionHasProductionCallerLaw } from './guard-function-has-production-caller';
+export { RetentionRegistryCoversSchemaLaw } from './retention-registry-covers-schema';
+export { SqlCheckConstraintNullPassesLaw } from './sql-check-constraint-null-passes';
+export { TsconfigExcludeLeavesCodeUntypedLaw } from './tsconfig-exclude-leaves-code-untyped';

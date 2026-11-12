@@ -3,6 +3,7 @@ import { ProjectTypeDetectorValidation } from '../../../../utils/config/project-
 import { FileUtils } from '../../../../utils/file-utils';
 import { PathOperations } from '../../../../utils/path-operations';
 import { PathResolver } from '../../../../utils/path-resolver';
+import type { ReactPerformanceEvidence } from '../../../../utils/react/react-performance-source';
 import { ErrorTrackingPolicyConstants } from '../constants/error-tracking-policy.constants';
 
 /**
@@ -13,7 +14,8 @@ import { ErrorTrackingPolicyConstants } from '../constants/error-tracking-policy
 export class ErrorTrackingPolicyAnalyzerService {
   static async checkErrorAndPerformanceTracking(
     projectRoot: string,
-    config?: RuleOfCodeConfig
+    config?: RuleOfCodeConfig,
+    react?: ReactPerformanceEvidence
   ): Promise<{
     hasTracking: boolean;
     tools: string[];
@@ -21,8 +23,15 @@ export class ErrorTrackingPolicyAnalyzerService {
     const packageTools = this.checkTrackingInPackageJson(projectRoot);
     const configTools = this.checkTrackingConfigFiles(projectRoot);
     const appTools = await this.checkTrackingInAppFiles(projectRoot, config);
+    // React/Next: an error-tracking SDK imported by the source - typically
+    // `instrumentation.ts` / `instrumentation-client.ts` or the root layout.
+    // In a monorepo the SDK is declared by the app's own manifest, which the
+    // root package.json read above does not see.
+    const sourceTools = (react?.errorTrackingImports ?? [])
+      .slice(0, 1)
+      .map(entry => `Error tracking imported (${entry})`);
 
-    const allTools = [...packageTools, ...configTools, ...appTools];
+    const allTools = [...packageTools, ...configTools, ...appTools, ...sourceTools];
     const uniqueTools = [...new Set(allTools)];
 
     return {

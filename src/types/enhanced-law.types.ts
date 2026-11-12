@@ -37,11 +37,17 @@ export type LawStack = "frontend" | "python" | "typescript";
  * check.
  *
  * Every listed condition must hold; within `anyDependency` and `anyFile`, one
- * entry is enough.
+ * entry is enough; within `allDependencies`, every entry is required.
  */
 export interface LawRequirement {
   /** At least one of these packages is a dependency or devDependency of a workspace package.json. */
   anyDependency?: readonly string[];
+  /**
+   * Every one of these packages is declared. "Ionic AND the Android platform"
+   * cannot be said with `anyDependency`, and a law about Android's back button
+   * that runs in an iOS-only shell inspects nothing and reports green.
+   */
+  allDependencies?: readonly string[];
   /** At least one of these files exists at the workspace root or in a workspace project directory. */
   anyFile?: readonly string[];
 }
@@ -106,6 +112,8 @@ export interface EnhancedConstitutionalLaw {
 export interface SatisfiedByGuidance {
   typescript?: string;
   angular?: string;
+  /** React and the frameworks on it (Next.js); keyed by project type, not by stack. */
+  react?: string;
   python?: string;
   ionic?: string;
   capacitor?: string;

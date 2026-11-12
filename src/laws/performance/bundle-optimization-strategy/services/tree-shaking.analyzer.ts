@@ -1,6 +1,11 @@
 import { FileUtils, PathOperations } from '../../../../utils';
 import { ProjectTypeDetectorValidation } from '../../../../utils/config/project-type-detector/project-type-detector-validation';
 import {
+  type BundlerReport,
+  WebBundlerConfig,
+} from '../../../../utils/react/web-bundler-config';
+import { WorkspaceManifests } from '../../../../utils/workspace-manifests';
+import {
   type AngularJson,
   BundleOptimizationStrategyCheckConstants,
   type PackageJsonFile,
@@ -27,11 +32,17 @@ export class TreeShakingAnalyzerService {
   /**
    * Analyze tree shaking configuration
    */
-  static analyze(projectRoot: string): {
+  static analyze(
+    projectRoot: string,
+    bundler?: BundlerReport
+  ): {
     isEnabled: boolean;
     configurations: string[];
   } {
-    const configurations: string[] = [];
+    const configurations: string[] = this.buildToolConfigurations(
+      projectRoot,
+      bundler
+    );
 
     // Check Angular build configuration
     const angularJsonPath = PathOperations.join(
@@ -76,6 +87,29 @@ export class TreeShakingAnalyzerService {
       isEnabled: configurations.length > 0,
       configurations,
     };
+  }
+
+  /**
+   * Next.js / Vite production builds tree-shake unless the config turns it
+   * off (`usedExports = false`, Rolldown `treeshake: false`); a root webpack
+   * config in production mode does too (webpack's `usedExports` default).
+   */
+  private static buildToolConfigurations(
+    projectRoot: string,
+    bundler?: BundlerReport
+  ): string[] {
+    const configurations: string[] = [];
+    const report = bundler ?? WebBundlerConfig.inspect(projectRoot);
+    for (const app of report.apps) {
+      if (app.builds && !app.treeShakingOff) {
+        configurations.push(
+          `${WebBundlerConfig.label(projectRoot, app)} tree-shakes its production build`
+        );
+      }
+    }
+    const webpack = WebBundlerConfig.webpackProduction(projectRoot, []);
+    if (webpack) configurations.push(`${webpack} builds in production mode`);
+    return configurations;
   }
 
   /**
@@ -132,6 +166,13 @@ export class TreeShakingAnalyzerService {
         return true;
       }
 
+      // The dependency-name heuristic below ('@', 'ng-', 'ngx-') passes any
+      // project with a scoped package — `@types/node` is enough. It is kept
+      // for Angular projects only, where it has always been this law's answer;
+      // elsewhere a tree-shaking build is read from the build config above.
+      if (!WorkspaceManifests.declares(projectRoot, '@angular/core')) {
+        return false;
+      }
       const deps =
         ProjectTypeDetectorValidation.getProjectDependencies(projectRoot);
       return Object.keys(deps).some(dep =>

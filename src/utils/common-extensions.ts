@@ -38,7 +38,7 @@ export const COMMON_EXTENSIONS: CommonExtensions = {
     '.mjs',
   ],
   ANGULAR: ['.ts', '.html', '.scss', '.css'],
-  TESTS: ['.spec.ts', '.test.ts', '.spec.js', '.test.js'],
+  TESTS: ['.spec.ts', '.spec.tsx', '.test.ts', '.test.tsx', '.spec.js', '.spec.jsx', '.test.js', '.test.jsx'],
   ALL_CODE: ['.ts', '.tsx', '.js', '.jsx'],
   DOCUMENTATION: ['.md', '.txt', '.rst'],
 };

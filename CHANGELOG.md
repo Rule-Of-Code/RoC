@@ -27,7 +27,14 @@ Three defects the site's adoption of 7.26.6 found. Closes #330, #331,
   Prefix, plus the shared Angular source check. One helper now decides by
   suffix or decorator (`@Component`, `@Directive`, `@Injectable`, `@Pipe`,
   `@NgModule`, or a `CanActivateFn`-style guard type). **These laws can
-  newly report findings on Angular 20 projects.**
+  newly report findings on Angular 20 projects.** Inject Over Constructor
+  DI now counts constructors of decorated classes only (`@Component`,
+  `@Directive`, `@Injectable`, `@Pipe`): on a real Angular 20 app, reading
+  unsuffixed files flagged 12 in-memory fakes — plain classes built with
+  `new` beside an `@Injectable` class — whose `constructor(readonly seed)`
+  is not DI. Measured on that app, 7.26.6 → 7.26.7: 147 laws, the same 23
+  failures plus No Subscribe In Effect (two `effect()` bodies that call
+  `.then()`).
 - **The package declares every module it requires (#331).** `minimatch`
   (15 compiled files) and `rxjs` were required without being dependencies;
   they resolved only because `glob` and `inquirer` hoisted them. With

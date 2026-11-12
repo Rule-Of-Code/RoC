@@ -208,7 +208,7 @@ export const INTEGRITY_LAWS: EnhancedConstitutionalLaw[] = [
         'Set `thresholds.integrity.retentionRegistry` to a JSON file `{ "tables": { "users": "deleted 30 days after account closure (jobs/purge-users.ts)" }, "noPersonalData": { "countries": "ISO reference data" } }`, and add every new table to one of the two in the same change that creates it.',
     },
     detectionLimits: [
-      'Opt-in (disabled by default): enable it and set thresholds.integrity.retentionRegistry to the registry path, relative to the project root. Enabled without that key, or with a registry that does not exist or is not valid JSON, it fails.',
+      'Opt-in (disabled by default): turn it on with a severity in laws.severity (e.g. "Retention Registry Covers Schema": "error") or by listing it in laws.enabled, and set thresholds.integrity.retentionRegistry to the registry path, relative to the project root. Enabled without that key, or with a registry that does not exist or is not valid JSON, it fails.',
       'Reads declarations only: whether the listed deletion really runs, and whether "no personal data" is true, are not checked — a person made that claim, and it is visible for review.',
       'Tables are Drizzle table builders imported from drizzle-orm/*-core with ES imports: pgTable, mysqlTable, sqliteTable, singlestoreTable, `<schema>.table(…)` of a pgSchema/mysqlSchema, and the builder a *TableCreator returns (the name as written, before the creator\'s prefix). Tables declared by SQL alone, or by another ORM, are not seen.',
       'A table whose name is not a string literal is reported as unreadable.',

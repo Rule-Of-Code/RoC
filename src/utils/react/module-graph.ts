@@ -283,7 +283,9 @@ function edgesOf(
 
 function readSource(ts: TypeScriptModule, file: string): TsxSource | null {
   try {
-    return TsxSource.parse(ts, file, fs.readFileSync(file, 'utf8'));
+    const source = TsxSource.parse(ts, file, fs.readFileSync(file, 'utf8'));
+    // A file with a syntax error is half a tree: unread, like one that failed to load.
+    return source.parseErrors().length > 0 ? null : source;
   } catch {
     return null;
   }

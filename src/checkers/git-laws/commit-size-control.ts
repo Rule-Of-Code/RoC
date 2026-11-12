@@ -115,6 +115,7 @@ export class CommitSizeControlLaw extends GitLawBase {
         {
           cwd: projectRoot,
           encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'pipe'],
         }
       );
 
@@ -137,9 +138,21 @@ export class CommitSizeControlLaw extends GitLawBase {
           `Keep commits atomic: under ${maxFiles} files and ${maxLines} changed lines each`
         );
       }
-    } catch (_error) {
-      // Can't analyze commit history, might be a new repository
-      suggestions.push('Establish commit size guidelines for atomic commits');
+    } catch (error: unknown) {
+      // Fail closed, as the two commit-message laws do. A baseline ref missing
+      // from the checkout (CI with fetch-depth 1 has no origin/develop) made
+      // `git log` fail, and passing here hid every oversized commit.
+      const stderr = String((error as { stderr?: unknown }).stderr ?? '')
+        .trim()
+        .split(/\r?\n/)[0];
+      const baseline = git?.commitSize?.baseline;
+      violations.push(
+        `Unable to read git history${stderr ? ` (${stderr})` : ''}${
+          baseline
+            ? ` — is the baseline '${baseline}' in this checkout? A shallow CI checkout (fetch-depth: 1) does not have it`
+            : ''
+        }`
+      );
     }
 
     return { violations, suggestions };

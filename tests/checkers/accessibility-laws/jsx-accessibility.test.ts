@@ -31,7 +31,7 @@ describe('every JSX law reports a file it cannot parse', () => {
     const result = run(law, broken);
     expect(result.passed).toBe(false);
     expect(V(result)).toEqual([
-      expect.stringMatching(/src\/app\/broken\.tsx: could not be parsed \(line 1: .*\) — its JSX was NOT read/),
+      expect.stringMatching(/src\/app\/broken\.tsx: could not be parsed \(line 1: .*\) — its code was NOT read/),
     ]);
   });
 });

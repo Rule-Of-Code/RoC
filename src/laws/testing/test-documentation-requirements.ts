@@ -169,6 +169,13 @@ export class TestDocumentationRequirementsLaw {
       );
     }
 
+    // A test file that could not be read was not judged; it is not a pass.
+    if (testDescriptionsAnalysis.unread.length > 0) {
+      violations.push(
+        `${testDescriptionsAnalysis.unread.length} test files could not be read: ${namedFiles(testDescriptionsAnalysis.unread)}`
+      );
+    }
+
     // 4. Check for setup and teardown documentation
     const setupDocsAnalysis = analyzer.analyzeSetupDocumentation(
       projectRoot,

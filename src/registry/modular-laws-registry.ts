@@ -748,6 +748,7 @@ export class ModularLawsRegistry {
       impact: this.mapImpact(law.priority),
       paretoCore: this.isParetoCore(law),
       alwaysEnabled: law.alwaysEnabled,
+      defaultEnabled: law.defaultEnabled,
       applicableFrameworks: this.getApplicableFrameworks(law),
       legacyId: law.legacyId,
       stack: law.stack,
@@ -878,8 +879,17 @@ export class ModularLawsRegistry {
         return (lawConfig as { enabled?: boolean }).enabled !== false;
       }
 
-      // Default: return all laws if no laws.enabled specified (all 108 laws)
-      return true;
+      // Default (no laws.enabled): every law except the opt-in ones. An opt-in
+      // law (`defaultEnabled: false`) needs something a default project does not
+      // have — a build's stats, a domain vocabulary — and run anyway it reports
+      // "not measured" or judges a UI by words that are not its own. It runs
+      // when `laws.enabled` names it (the branch above) or when `laws.severity`
+      // gives it a severity — the way to turn one on without an allowlist, and
+      // what a config that already set its severity meant.
+      return LawIdentity.runsWithoutAllowlist(
+        law,
+        (config.laws as Record<string, unknown>).severity as Record<string, unknown> | undefined
+      );
     });
   }
 

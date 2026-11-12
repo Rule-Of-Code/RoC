@@ -4,12 +4,22 @@
  * Single Responsibility: Performance alerting configuration detection
  */
 export class PerformanceAlertingConstants {
-  static readonly GITHUB_WORKFLOWS_PATTERN = '.github/workflows/*.{yml,yaml}';
+  static readonly WORKFLOWS_DIR = '.github/workflows';
 
-  static readonly MONITORING_CONFIG_FILES: string[] = [
-    'newrelic.js',
-    'datadog.json',
+  static readonly MONITORING_CONFIG_FILES: string[] = ['newrelic.js', 'datadog.json'];
+
+  /** Lighthouse CI's config names; with `assert` in it, a regression fails CI. */
+  static readonly LIGHTHOUSE_CI_FILES: string[] = [
     '.lighthouserc.js',
+    '.lighthouserc.cjs',
+    '.lighthouserc.json',
+    '.lighthouserc.yml',
+    '.lighthouserc.yaml',
+    'lighthouserc.js',
+    'lighthouserc.cjs',
+    'lighthouserc.json',
+    'lighthouserc.yml',
+    'lighthouserc.yaml',
   ];
 
   static readonly ALERT_CONFIG_PATTERNS: string[] = [
@@ -35,12 +45,18 @@ export class PerformanceAlertingConstants {
     );
   }
 
+  static hasLighthouseAssertions(content: string): boolean {
+    return /\bassert(?:ions)?\b/.test(content);
+  }
+
+  /** A workflow that runs a performance check AND notifies someone. */
   static hasGithubAlerts(content: string): boolean {
+    const text = content.toLowerCase();
     const hasPerf = this.GITHUB_ALERT_PATTERNS.some(pattern =>
-      content.includes(pattern)
+      text.includes(pattern)
     );
     const hasNotif = this.NOTIFICATION_PATTERNS.some(pattern =>
-      content.includes(pattern)
+      text.includes(pattern)
     );
     return hasPerf && hasNotif;
   }

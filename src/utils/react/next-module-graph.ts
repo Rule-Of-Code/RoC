@@ -178,6 +178,11 @@ export class NextModuleGraph {
     } catch {
       this.unread.push(`${this.relative(normal)}: could not be read`);
     }
+    const syntaxError = parsed?.parseErrors()[0];
+    if (syntaxError) {
+      this.unread.push(`${this.relative(normal)}: could not be parsed (${syntaxError}) — its code was NOT read`);
+      parsed = null;
+    }
     this.sources.set(normal, parsed);
     return parsed;
   }
@@ -191,12 +196,17 @@ export class NextModuleGraph {
    * Every import that brings code in: static imports (not `import type`, not
    * an import whose every binding is a type), `export … from`, side-effect
    * imports, and `import('x')` / `require('x')` with a literal name.
+   *
+   * In a TypeScript file an import none of whose bindings is used as a value
+   * is erased by the compiler (`import { Row } from './db'` used only as
+   * `: Row`), so it is no edge — counted, it put a server module in the
+   * client bundle that never reaches it.
    */
   importsOf(source: TsxSource): ModuleImport[] {
     const ts = this.ts;
     const found: ModuleImport[] = [];
     for (const statement of source.sourceFile.statements) {
-      const module = this.staticSpecifier(statement);
+      const module = this.staticSpecifier(statement, source);
       if (module) found.push({ specifier: module, line: source.lineOf(statement) });
     }
     source.walk(node => {
@@ -210,7 +220,7 @@ export class NextModuleGraph {
     return found;
   }
 
-  private staticSpecifier(statement: TS.Statement): string | null {
+  private staticSpecifier(statement: TS.Statement, source: TsxSource): string | null {
     const ts = this.ts;
     if (ts.isImportDeclaration(statement) && ts.isStringLiteral(statement.moduleSpecifier)) {
       const clause = statement.importClause;
@@ -223,7 +233,8 @@ export class NextModuleGraph {
         ts.isNamedImports(bindings) &&
         bindings.elements.length > 0 &&
         bindings.elements.every(element => element.isTypeOnly);
-      return onlyTypes ? null : statement.moduleSpecifier.text;
+      if (onlyTypes || (clause && this.erasedByCompiler(clause, source))) return null;
+      return statement.moduleSpecifier.text;
     }
     if (
       ts.isExportDeclaration(statement) &&
@@ -234,6 +245,38 @@ export class NextModuleGraph {
       return statement.moduleSpecifier.text;
     }
     return null;
+  }
+
+  /**
+   * True when a TypeScript file imports bindings and uses none of them as a
+   * value, so the emitted module has no such import. A JavaScript file keeps
+   * every import; an import with no bindings is a side-effect import and stays.
+   *
+   * `export { X } from './m'` stays an edge even when X is a type: under
+   * `isolatedModules` (which Next requires) re-exporting a type that way does
+   * not compile, so the form that compiles is `export type`, already skipped.
+   */
+  private erasedByCompiler(clause: TS.ImportClause, source: TsxSource): boolean {
+    const ts = this.ts;
+    if (/\.(?:[cm]?js|jsx)$/.test(source.fileName)) return false;
+    // verbatimModuleSyntax (and its predecessor preserveValueImports) keeps
+    // every import not written `import type` — the edge is real there.
+    const options = this.compilerOptions(source.fileName) as TS.CompilerOptions & {
+      preserveValueImports?: boolean;
+    };
+    if (options.verbatimModuleSyntax || options.preserveValueImports) return false;
+    const locals: string[] = [];
+    if (clause.name) locals.push(clause.name.text);
+    const bindings = clause.namedBindings;
+    if (bindings && ts.isNamespaceImport(bindings)) locals.push(bindings.name.text);
+    if (bindings && ts.isNamedImports(bindings)) {
+      for (const element of bindings.elements) {
+        if (!element.isTypeOnly) locals.push(element.name.text);
+      }
+    }
+    if (locals.length === 0) return false;
+    const used = source.valueReferences();
+    return !locals.some(name => used.has(name));
   }
 
   /** Where `specifier`, imported from `fromFile`, leads. */

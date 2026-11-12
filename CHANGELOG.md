@@ -5,6 +5,41 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.26.5] - 2026-11-12
+
+A regression 7.26.4 introduced, found by QA before publication. Closes
+#323. Publish 7.26.5; 7.26.4 is tagged but superseded.
+
+### 🐛 Fixed
+
+**A static site lost the laws that read HTML (#323).** Since #319 a
+static site is typed `generic` (correctly), and the accessibility laws
+and the CSP law are `stack: frontend` — so a site with an unlabelled
+input, a `<button>` without `type` and no CSP got no finding at all. The
+7.26.4 entry below called every dropped law one the site "could never
+satisfy"; that was wrong for these.
+
+A card can now say `staticSiteHtml`: the law reads plain HTML (and the
+static-hosting header files), so it is also selected for a `generic`
+project that holds an HTML document. Three laws carry it, each measured on
+plain HTML: **Form Control Labeling**, **Explicit Button Type** and
+**Security Standards (XSS Prevention) Policy** (the CSP check that reads
+`firebase.json`, `vercel.json`, `netlify.toml`). Modal Dialog
+Accessibility, Disclosure Control ARIA State and Accessibility Linting
+Enforcement do not: on plain HTML they judge nothing (a `role="dialog"`
+with no name and a toggle with no `aria-expanded` both pass), so selecting
+them would only add green checks. `stack` itself is unchanged on every
+card. Generated HTML — `coverage.html`, `htmlcov/`, `apidocs/`,
+`javadoc/`, `typedoc/` (and `coverage/`, `dist/`, `build/` as before) —
+does not make a project a static site. The selector, the liveness floor,
+the config warnings and the Pareto count use the same rule.
+
+### Measured
+
+No config, 7.26.4 → 7.26.5: a static site 60 → 63 laws; a vanilla Vite
+app (an `index.html`) 77 → 80; a Go module with no HTML 60 → 60; a JS
+project with no HTML 77 → 77.
+
 ## [7.26.4] - 2026-11-12
 
 Two more defects QA found on 7.26.3 the same day. Closes #319, #320.

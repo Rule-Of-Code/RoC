@@ -53,7 +53,7 @@ export class AuditLivenessLaw extends LawBase {
       const applicable = ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(
         l =>
           runsWithoutAllowlist({ name: l.title, id: l.id, defaultEnabled: l.defaultEnabled }, severity) &&
-          lawAppliesToProjectType(l.stack, projectType, context.projectRoot) &&
+          lawAppliesToProjectType(l.stack, projectType, context.projectRoot, l) &&
           lawRequirementsMet(l.requires, context.projectRoot)
       ).length;
       const defaultFloor = deliberatelyNarrowed

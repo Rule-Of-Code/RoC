@@ -5,7 +5,7 @@
  * checkers — a cycle).
  */
 
-import { hasJsTsToolchain } from './law-requirements';
+import { hasHtmlDocument, hasJsTsToolchain } from './law-requirements';
 
 /** The audit output prints slugged law names — same transform as law-base. */
 export function slugifyLawName(name: string): string {
@@ -132,16 +132,29 @@ export const STACK_PROJECT_TYPES: Record<string, string[]> = {
  * Given the project root, a `stack: typescript` law applies to a `generic`
  * project only when it carries a JavaScript/TypeScript toolchain (#303).
  * Without the root the table alone answers, as before.
+ *
+ * A `stack: frontend` law whose card says `staticSiteHtml` reads plain HTML
+ * (and the static-hosting header files), not a framework: it also applies to
+ * a `generic` project that holds an HTML document — a static site (#323).
  */
 export function lawAppliesToProjectType(
   stack: string | undefined,
   projectType: string | undefined,
-  projectRoot?: string
+  projectRoot?: string,
+  law?: { staticSiteHtml?: boolean }
 ): boolean {
   if (!stack) return true; // universal
   if (!projectType) return true; // unknown type → don't drop coverage
   const types = STACK_PROJECT_TYPES[stack];
   if (!types) return true;
+  if (
+    stack === 'frontend' &&
+    projectType === 'generic' &&
+    law?.staticSiteHtml === true &&
+    projectRoot !== undefined
+  ) {
+    return hasHtmlDocument(projectRoot);
+  }
   if (!types.includes(projectType)) return false;
   if (stack === 'typescript' && projectType === 'generic' && projectRoot !== undefined) {
     return hasJsTsToolchain(projectRoot);

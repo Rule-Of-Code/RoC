@@ -178,6 +178,8 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
       'A site-wide declaration (hosting config or cspFiles) is taken to cover every entry; which route a hosting rule matches is not checked. A project with neither an entry nor a declaration fails as judged-nothing.',
     ],
     stack: 'frontend',
+    // Reads HTML and static-hosting headers (firebase.json, vercel.json, netlify.toml): a static site keeps it (#323).
+    staticSiteHtml: true,
     emoji: '🔒',
     description:
       'A Content-Security-Policy is declared for every entry the project serves (meta tag, next.config/proxy, hosting headers or a named file)',

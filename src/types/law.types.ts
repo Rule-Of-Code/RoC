@@ -21,6 +21,11 @@ export interface ConstitutionalLaw {
   paretoCore: boolean; // Is this part of the 20% that catches 80% of issues?
   /** Gate-of-the-gate: runs regardless of paretoMode / laws.enabled / notApplicable. */
   alwaysEnabled?: boolean;
+  /**
+   * False = opt-in: selected only when `laws.enabled` names it. Without
+   * `laws.enabled` the law is not run. See EnhancedConstitutionalLaw.defaultEnabled.
+   */
+  defaultEnabled?: boolean;
   applicableFrameworks: string[];
   /** What this law does NOT claim — see EnhancedConstitutionalLaw.detectionLimits. */
   detectionLimits?: string[];

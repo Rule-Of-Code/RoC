@@ -84,6 +84,30 @@ export function lawIdentityKeys(law: {
   return [...new Set(keys)];
 }
 
+/** The values `laws.severity` accepts. */
+const SEVERITIES = new Set(['error', 'warning', 'info']);
+
+/**
+ * Whether a law runs without `laws.enabled`: every law that is not opt-in,
+ * and an opt-in one (`defaultEnabled: false`) only when `laws.severity` gives
+ * it a severity. The selector and the liveness floor both ask here, so the
+ * floor counts exactly what runs.
+ *
+ * Only the name, its slugs and the law id turn a law on — never the
+ * `legacyId`, which is shared between laws, and never the `law-N` keys the
+ * default config generates for every law (no identity has that shape).
+ */
+export function runsWithoutAllowlist(
+  law: { name?: string; id?: string; defaultEnabled?: boolean },
+  severity: Record<string, unknown> | undefined
+): boolean {
+  if (law.defaultEnabled !== false) return true;
+  if (!severity) return false;
+  return lawIdentityKeys({ name: law.name, id: law.id }).some(key =>
+    SEVERITIES.has(String(severity[key]))
+  );
+}
+
 /**
  * Which project types each stack scope is meaningful for. A law with no stack
  * is universal (applies to every project type).

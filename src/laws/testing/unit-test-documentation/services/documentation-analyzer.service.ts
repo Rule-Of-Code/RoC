@@ -98,19 +98,25 @@ export class UnitTestDocumentationAnalyzerService {
     poorDescriptions: number;
     /** Where the poor descriptions are: `file: "title"`, so the finding can be acted on. */
     examples: string[];
+    /** Test files that could not be read — reported, never skipped in silence. */
+    unread: string[];
     descriptionQuality: number;
   } {
     const testFiles = this.findTestFiles(projectRoot, config);
     let totalTestCases = 0;
     let poorDescriptions = 0;
     const examples: string[] = [];
+    const unread: string[] = [];
 
     for (const testFile of testFiles) {
       try {
         const content = FileUtils.readFile(testFile, { encoding: 'utf8' });
 
-        const testCases =
-          UnitTestDocumentationConstants.extractTestCases(content);
+        const testCases = UnitTestDocumentationConstants.extractTestCases(
+          content,
+          testFile,
+          projectRoot
+        );
         totalTestCases += testCases.length;
 
         const poor = testCases.filter(testCase =>
@@ -123,7 +129,7 @@ export class UnitTestDocumentationAnalyzerService {
         const relative = PathOperations.getRelative(projectRoot, testFile);
         for (const testCase of poor) examples.push(`${relative}: "${testCase}"`);
       } catch (_error) {
-        // Skip files that can't be read
+        unread.push(PathOperations.getRelative(projectRoot, testFile));
       }
     }
 
@@ -131,6 +137,7 @@ export class UnitTestDocumentationAnalyzerService {
       totalTestCases,
       poorDescriptions,
       examples,
+      unread,
       descriptionQuality: UnitTestDocumentationConstants.calculateCoverage(
         totalTestCases - poorDescriptions,
         totalTestCases

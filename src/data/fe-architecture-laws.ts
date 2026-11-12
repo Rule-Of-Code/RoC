@@ -367,7 +367,7 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
       'A bare 450 next to the word equityFloor is a business rule hidden in a literal — the reader cannot tell a deliberate risk limit from a typo, and the next editor changes it blind. Named constants carry the intent, and dollar amounts in a template almost always belong in config.',
     satisfiedBy: { angular: 'Name risk/limit/floor/equity/leverage values as constants from config, not inline literals; keep hardcoded $amounts out of templates.' },
     detectionLimits: [
-      'Opt-in (defaultEnabled: false): its vocabulary — floor, risk, limit, equity, stake, pnl, leverage, target — is the vocabulary of a trading domain, not of a framework, so it is enabled by the projects whose domain it is rather than run on every UI.',
+      'Opt-in (defaultEnabled: false): its vocabulary — floor, risk, limit, equity, stake, pnl, leverage, target — is the vocabulary of a trading domain, not of a framework, so it is enabled by the projects whose domain it is rather than run on every UI. Turn it on with a severity in laws.severity (e.g. "No Risk Literals": "error") or by listing it in laws.enabled.',
       'The .ts branch strips comments and string contents, but the token match is a case-insensitive SUBSTRING of the identifier, so delimiter/unlimited/rateLimit/floorplan all fire (a known high false-positive class). .tsx/.jsx are not scanned.',
       'The .html branch flags any line with `$` followed by a digit (Angular interpolation is skipped, but literal `$5` text fires); .scss is not scanned.',
     ],

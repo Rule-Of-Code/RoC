@@ -143,3 +143,35 @@ describe('#339 init refuses an unknown --type', () => {
     expect(fs.existsSync(path.join(root, 'ruleofcode.config.json'))).toBe(false);
   });
 });
+
+/**
+ * #343: found by running the 7.26.9 candidate against the project's own
+ * Angular 20 site. `TestBed.createComponent(App)` returns a ComponentFixture;
+ * the type is inferred, so a correct spec never writes the word.
+ */
+describe('#343 a fixture from createComponent() is a fixture', () => {
+  const COMPONENT = "@Component({ selector: 'app-root', template: '<h1>x</h1>' })\nexport class App {}\n";
+  const check = (spec: string) =>
+    joined(
+      AngularTestingExcellenceLaw.check(
+        ctx(fixture({ 'package.json': MANIFEST, 'src/app/app.ts': COMPONENT, 'src/app/app.spec.ts': spec }))
+      )
+    );
+
+  it('TestBed.createComponent(App) with no ComponentFixture annotation passes the fixture check', () => {
+    const spec =
+      "import { TestBed } from '@angular/core/testing';\nimport { App } from './app';\ndescribe('App', () => {\n  it('renders the page title', async () => {\n    await TestBed.configureTestingModule({ imports: [App] }).compileComponents();\n    const fixture = TestBed.createComponent(App);\n    expect(fixture.nativeElement.textContent).toContain('x');\n  });\n});\n";
+    expect(check(spec)).not.toMatch(/missing ComponentFixture|missing TestBed/);
+  });
+
+  it('Angular Testing Library render() counts for TestBed and the fixture', () => {
+    const spec =
+      "import { render, screen } from '@testing-library/angular';\nimport { App } from './app';\ndescribe('App', () => {\n  it('renders the page title', async () => {\n    await render(App);\n    expect(screen.getByText('x')).toBeTruthy();\n  });\n});\n";
+    expect(check(spec)).not.toMatch(/missing ComponentFixture|missing TestBed/);
+  });
+
+  it('control: a spec that never creates the component is still a finding', () => {
+    const spec = "describe('App', () => { it('has a name', () => { expect('App').toBe('App'); }); });\n";
+    expect(check(spec)).toMatch(/missing ComponentFixture/);
+  });
+});

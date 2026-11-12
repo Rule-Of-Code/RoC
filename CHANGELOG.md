@@ -7,8 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [7.26.9] - 2026-11-12
 
-QA's residuals of #330 on 7.26.7. Closes #336, #337, #338, #339. Publish
-7.26.9; 7.26.7 and 7.26.8 are tagged but superseded.
+QA's residuals of #330 on 7.26.7, and one false error the site found by
+auditing this release's candidate before it was tagged. Closes #336,
+#337, #338, #339, #343. Publish 7.26.9; 7.26.7 and 7.26.8 are tagged but
+superseded.
 
 ### 🐛 Fixed
 
@@ -40,6 +42,14 @@ QA's residuals of #330 on 7.26.7. Closes #336, #337, #338, #339. Publish
   `*.component.spec.ts` / `*.service.spec.ts`; the pattern allows `.spec` /
   `.test` and digits, and a name that merely contains "service"
   (`user-services-list.ts`) is no longer treated as an Angular file.
+- **A fixture from `TestBed.createComponent()` is a fixture (#343).** Now
+  that `hero.spec.ts` beside a component is a component spec, Angular
+  Testing Excellence's "missing ComponentFixture" check (`error`) read it —
+  and asked for the WORD: `TestBed.createComponent(App)` returns a
+  `ComponentFixture`, inferred, so a correct spec failed. A
+  `createComponent(` call counts as the fixture, and Angular Testing
+  Library (`render()` from `@testing-library/angular`) counts for both
+  TestBed and the fixture.
 - **`init` refuses an unknown `--type` (#339).** `--type ioinc` wrote the
   detected type with exit 0; it now exits 1, lists the valid types and
   writes nothing.

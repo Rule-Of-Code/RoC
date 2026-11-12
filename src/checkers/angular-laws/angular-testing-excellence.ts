@@ -139,18 +139,24 @@ export class AngularTestingExcellenceLaw extends AngularLawBase {
     relativePath: string,
     violations: string[]
   ): void {
-    {
-      if (!content.includes('TestBed')) {
-        violations.push(
-          `Component test missing TestBed configuration: ${relativePath}`
-        );
-      }
+    // Angular Testing Library's render() configures TestBed and owns the
+    // fixture, so it is evidence of both.
+    const testingLibrary = /from\s+['"]@testing-library\/angular['"]/.test(content);
+    if (!content.includes('TestBed') && !testingLibrary) {
+      violations.push(
+        `Component test missing TestBed configuration: ${relativePath}`
+      );
+    }
 
-      if (!content.includes('ComponentFixture')) {
-        violations.push(
-          `Component test missing ComponentFixture: ${relativePath}`
-        );
-      }
+    // `TestBed.createComponent(App)` RETURNS a ComponentFixture — the type is
+    // inferred, so the word need not appear. Requiring the word failed a
+    // correct spec the moment unsuffixed specs were read (#343).
+    const hasFixture =
+      content.includes('ComponentFixture') || /\bcreateComponent\s*\(/.test(content) || testingLibrary;
+    if (!hasFixture) {
+      violations.push(
+        `Component test missing ComponentFixture: ${relativePath}`
+      );
     }
   }
 

@@ -95,7 +95,7 @@ export const DOCUMENTATION_LAWS: EnhancedConstitutionalLaw[] = [
     priority: "MEDIUM",
     category: "DOCUMENTATION",
     automation: "CONFIGURABLE",
-    defaultEnabled: false,
+    defaultEnabled: true,
     defaultSeverity: "warning",
     checkFunction: "checkMDFooterTemplate",
     violationMessage:
@@ -161,7 +161,7 @@ export const DOCUMENTATION_LAWS: EnhancedConstitutionalLaw[] = [
     priority: "MEDIUM",
     category: "DOCUMENTATION",
     automation: "CONFIGURABLE",
-    defaultEnabled: false,
+    defaultEnabled: true,
     defaultSeverity: "warning",
     checkFunction: "checkTODOManagementStandards",
     violationMessage:
@@ -194,7 +194,7 @@ export const DOCUMENTATION_LAWS: EnhancedConstitutionalLaw[] = [
     priority: "LOW",
     category: "DOCUMENTATION",
     automation: "CONFIGURABLE",
-    defaultEnabled: false,
+    defaultEnabled: true,
     defaultSeverity: "info",
     checkFunction: "checkMDFooterConsistency",
     violationMessage:
@@ -227,7 +227,7 @@ export const DOCUMENTATION_LAWS: EnhancedConstitutionalLaw[] = [
     priority: "MEDIUM",
     category: "DOCUMENTATION",
     automation: "MANUAL",
-    defaultEnabled: false,
+    defaultEnabled: true,
     defaultSeverity: "warning",
     checkFunction: "checkStrategicDocumentUpdates",
     violationMessage:
@@ -265,7 +265,7 @@ export const DOCUMENTATION_LAWS: EnhancedConstitutionalLaw[] = [
     priority: "HIGH",
     category: "DOCUMENTATION",
     automation: "CONFIGURABLE",
-    defaultEnabled: false, // Angular-specific
+    defaultEnabled: true, // Angular-specific
     defaultSeverity: "error",
     checkFunction: "checkInternationalization",
     violationMessage:

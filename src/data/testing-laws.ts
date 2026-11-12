@@ -134,7 +134,7 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     priority: 'HIGH',
     category: 'TESTING',
     automation: 'MANUAL',
-    defaultEnabled: false, // Angular-specific
+    defaultEnabled: true, // Angular-specific
     defaultSeverity: 'error',
     checkFunction: 'checkAngularTestingExcellence',
     violationMessage:
@@ -172,7 +172,7 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     priority: 'HIGH',
     category: 'TESTING',
     automation: 'AUTOMATED',
-    defaultEnabled: false, // Angular-specific
+    defaultEnabled: true, // Angular-specific
     defaultSeverity: 'error',
     checkFunction: 'checkComponentTesting',
     violationMessage:

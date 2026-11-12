@@ -1,4 +1,6 @@
+import type * as TS from 'typescript';
 import { PatternMatchingUtils } from '../../../../utils/pattern-matching-utils';
+import { loadTypeScript, type TypeScriptModule } from '../../../../utils/react/tsx-source';
 
 /**
  * Unit Test Documentation Constants
@@ -70,10 +72,11 @@ export class UnitTestDocumentationConstants {
 
   static readonly POOR_DESCRIPTION_PATTERNS = {
     GENERIC_TEST: /^test\s*\d*$/i,
-    VAGUE_SHOULD_WORK: /^should.*work$/i,
-    VAGUE_IT_WORKS: /^it.*works$/i,
-    GENERIC_BASIC: /^basic.*test$/i,
-    GENERIC_SIMPLE: /^simple.*test$/i,
+    // Whole words: "should … never the network" is not "should … work".
+    VAGUE_SHOULD_WORK: /^should\b.*\bwork$/i,
+    VAGUE_IT_WORKS: /^it\b.*\bworks$/i,
+    GENERIC_BASIC: /^basic\b.*\btest$/i,
+    GENERIC_SIMPLE: /^simple\b.*\btest$/i,
   };
 
   // ============================================
@@ -166,18 +169,96 @@ export class UnitTestDocumentationConstants {
   /**
    * Extract test cases from content
    */
-  static extractTestCases(content: string): string[] {
-    const itMatches = content.match(/it\s*\(\s*['"]([^'"]+)['"]/g) ?? [];
-    const testMatches = content.match(/test\s*\(\s*['"]([^'"]+)['"]/g) ?? [];
-
+  static extractTestCases(content: string, fileName?: string, projectRoot?: string): string[] {
+    const ts = projectRoot ? loadTypeScript(projectRoot) : null;
+    if (ts) return this.titlesFromSyntax(ts, content, fileName ?? 'test.ts');
+    // No parser: the regex below, which a comment such as
+    // "round to it (`toBlob`)" can still mislead.
     return [
-      ...itMatches.map(match => {
-        return match.match(/['"]([^'"]+)['"]/)?.[1] ?? '';
-      }),
-      ...testMatches.map(match => {
-        return match.match(/['"]([^'"]+)['"]/)?.[1] ?? '';
-      }),
+      ...this.titlesOf(content, UnitTestDocumentationConstants.IT_CALL),
+      ...this.titlesOf(content, UnitTestDocumentationConstants.TEST_CALL),
     ];
+  }
+
+  /**
+   * `it(` / `test(` as a CALL — not the tail of `split(` or `submit(`, which
+   * made `'\n'` a "test title" — then a title closed by the SAME quote that
+   * opened it, escapes included, so `"user's cart"` is not cut at the
+   * apostrophe. `xit`/`fit`, `.only`/`.skip`/`.todo`/`.concurrent`/`.failing`
+   * and template-literal titles count.
+   */
+  private static readonly TITLE =
+    String.raw`(?:\.(?:only|skip|todo|concurrent|failing|fixme|fail|slow))*\s*\(\s*(?:'((?:[^'\\\n]|\\.)*)'|"((?:[^"\\\n]|\\.)*)"|` +
+    '`' +
+    String.raw`((?:[^` +
+    '`' +
+    String.raw`\\]|\\.)*)` +
+    '`)';
+  private static readonly IT_CALL = new RegExp(
+    String.raw`(?<![\w$.])[xf]?it` + UnitTestDocumentationConstants.TITLE,
+    'g'
+  );
+  private static readonly TEST_CALL = new RegExp(
+    String.raw`(?<![\w$.])x?test` + UnitTestDocumentationConstants.TITLE,
+    'g'
+  );
+
+  private static readonly TEST_FUNCTIONS = new Set(['it', 'xit', 'fit', 'test', 'xtest']);
+  private static readonly TEST_MODIFIERS = new Set([
+    'only',
+    'skip',
+    'todo',
+    'concurrent',
+    'failing',
+    'fixme',
+    'fail',
+    'slow',
+  ]);
+
+  /**
+   * Titles from the parse: the first argument of a call to it/test (or
+   * `it.only`, `test.skip`, …) when it is a string or a template. Comments and
+   * strings that merely contain `it(` are not calls, so they are not read.
+   */
+  private static titlesFromSyntax(ts: TypeScriptModule, content: string, fileName: string): string[] {
+    const kind = /\.(?:tsx|jsx)$/.test(fileName) ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+    const source = ts.createSourceFile(fileName, content, ts.ScriptTarget.Latest, true, kind);
+    const titles: string[] = [];
+    // `test.only(…)` is a test; `test.describe(…)` / `test.step(…)` (Playwright)
+    // are not — only a chain of modifiers keeps it a test.
+    const calleeName = (callee: TS.Expression): string | null => {
+      let node = callee;
+      while (ts.isPropertyAccessExpression(node)) {
+        if (!UnitTestDocumentationConstants.TEST_MODIFIERS.has(node.name.text)) return null;
+        node = node.expression;
+      }
+      return ts.isIdentifier(node) ? node.text : null;
+    };
+    const visit = (node: TS.Node): void => {
+      if (ts.isCallExpression(node)) {
+        const name = calleeName(node.expression);
+        const [first] = node.arguments;
+        if (name && UnitTestDocumentationConstants.TEST_FUNCTIONS.has(name) && first) {
+          if (ts.isStringLiteral(first) || ts.isNoSubstitutionTemplateLiteral(first)) {
+            titles.push(first.text);
+          } else if (ts.isTemplateExpression(first)) {
+            titles.push(first.getText(source).slice(1, -1));
+          }
+        }
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+    return titles;
+  }
+
+  private static titlesOf(content: string, call: RegExp): string[] {
+    const titles: string[] = [];
+    for (const match of content.matchAll(call)) {
+      const raw = match[1] ?? match[2] ?? match[3] ?? '';
+      titles.push(raw.replace(/\\(.)/g, '$1'));
+    }
+    return titles;
   }
 
   /**

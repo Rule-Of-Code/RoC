@@ -9,6 +9,7 @@ import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 import { AngularLawBase } from './angular-law-base';
+import { AngularComponentFiles } from '../../utils/angular-component-files';
 
 export class NoSubscribeInEffectLaw extends AngularLawBase {
   // `effect(` whose body (within a bounded window) contains .subscribe(/.then(.
@@ -24,9 +25,7 @@ export class NoSubscribeInEffectLaw extends AngularLawBase {
       context.config,
       undefined,
       false
-    ).filter(
-      f => f.endsWith('.component.ts') || f.endsWith('.directive.ts') || f.endsWith('.service.ts')
-    );
+    ).filter(f => AngularComponentFiles.isKind(f, ['component', 'directive', 'service']));
 
     for (const file of files) {
       const content = FileUtils.readFileContentSync(file);

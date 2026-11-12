@@ -1,4 +1,5 @@
 import { PatternMatchingUtils } from '../../../../utils/pattern-matching-utils';
+import { AngularComponentFiles } from '../../../../utils/angular-component-files';
 
 /**
  * UnitTestProfessionalComponentTestingConstants
@@ -116,10 +117,10 @@ export class UnitTestProfessionalComponentTestingConstants {
    * Check if filename is a component file
    */
   static isComponentFile(filename: string): boolean {
-    return PatternMatchingUtils.hasRegexPattern(
-      filename,
-      this.COMPONENT_FILE_PATTERN
-    );
+    // The shared reading — the suffix, or @Component inside (Angular 20's
+    // `hero.ts`). This law's own suffix regex saw no Angular 20 component and
+    // then judged nothing, an error on every app made by the CLI (#330).
+    return AngularComponentFiles.isComponentFile(filename);
   }
 
   /**

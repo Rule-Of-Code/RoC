@@ -7,6 +7,7 @@ import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { ProjectTypeDetector } from '../../utils/config/project-type-detector';
 import { declaredDependencies } from '../../utils/law-requirements';
 import { LawBase } from '../law-base';
+import { AngularComponentFiles } from '../../utils/angular-component-files';
 
 export class AngularLawBase extends LawBase {
   protected static hasAngularProject(projectRoot: string): boolean {
@@ -18,15 +19,16 @@ export class AngularLawBase extends LawBase {
     return declaredDependencies(projectRoot).has('@ngrx/store');
   }
 
+  /** An Angular class by suffix or, for Angular 20's unsuffixed files, by decorator (#330). */
   protected static isAngularSourceFile(filePath: string): boolean {
-    return (
-      filePath.endsWith('.component.ts') ||
-      filePath.endsWith('.service.ts') ||
-      filePath.endsWith('.module.ts') ||
-      filePath.endsWith('.guard.ts') ||
-      filePath.endsWith('.pipe.ts') ||
-      filePath.endsWith('.directive.ts')
-    );
+    return AngularComponentFiles.isKind(filePath, [
+      'component',
+      'service',
+      'module',
+      'guard',
+      'pipe',
+      'directive',
+    ]);
   }
 
   protected static getAngularVersion(projectRoot: string): string | null {

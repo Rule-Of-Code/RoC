@@ -8,6 +8,7 @@ import * as path from 'path';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils/file-utils';
 import { AngularLawBase } from './angular-law-base';
+import { AngularComponentFiles } from '../../utils/angular-component-files';
 
 export class ComponentSelectorPrefixLaw {
   static check(context: LawCheckContext): LawResult {
@@ -38,17 +39,20 @@ export class ComponentSelectorPrefixLaw {
     }
 
     // Find all component TypeScript files
-    const componentFiles = glob.sync('**/*.component.ts', {
-      cwd: projectRoot,
-      ignore: [
-        '**/node_modules/**',
-        '**/dist/**',
-        '**/.nx/**',
-        '**/.angular/**',
-        '**/packages/ruleofcode/**',
-      ],
-      absolute: true,
-    });
+    // By decorator as well as by suffix: an Angular 20 component is `hero.ts` (#330).
+    const componentFiles = glob
+      .sync('**/*.ts', {
+        cwd: projectRoot,
+        ignore: [
+          '**/node_modules/**',
+          '**/dist/**',
+          '**/.nx/**',
+          '**/.angular/**',
+          '**/packages/ruleofcode/**',
+        ],
+        absolute: true,
+      })
+      .filter(file => AngularComponentFiles.isKind(file, ['component']));
 
     for (const filePath of componentFiles) {
       try {

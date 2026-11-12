@@ -204,7 +204,7 @@ describe('cli/init-helpers', () => {
     it('should create config file', async () => {
       await setupQuickMode(tempDir, { hooks: false });
 
-      const configPath = PathOperations.join(tempDir, 'ruleofcode.config.js');
+      const configPath = PathOperations.join(tempDir, 'ruleofcode.config.json');
       expect(FileUtils.exists(configPath)).toBe(true);
     });
 
@@ -220,7 +220,7 @@ describe('cli/init-helpers', () => {
     it('should set pareto mode in config', async () => {
       await setupQuickMode(tempDir, { hooks: false });
 
-      const configPath = PathOperations.join(tempDir, 'ruleofcode.config.js');
+      const configPath = PathOperations.join(tempDir, 'ruleofcode.config.json');
       const content = FileUtils.readFileSync(configPath);
       expect(content).toContain('paretoMode');
       expect(content).toContain('true');
@@ -265,7 +265,7 @@ describe('cli/init-helpers', () => {
       // Temp dir has no angular files
       await setupQuickMode(tempDir, { hooks: false });
 
-      const configPath = PathOperations.join(tempDir, 'ruleofcode.config.js');
+      const configPath = PathOperations.join(tempDir, 'ruleofcode.config.json');
       const content = FileUtils.readFileSync(configPath);
       expect(content).toContain('componentPrefix');
       expect(content).toContain('ui');
@@ -280,7 +280,7 @@ describe('cli/init-helpers', () => {
 
       await setupQuickMode(tempDir, { hooks: false });
 
-      const configPath = PathOperations.join(tempDir, 'ruleofcode.config.js');
+      const configPath = PathOperations.join(tempDir, 'ruleofcode.config.json');
       const content = FileUtils.readFileSync(configPath);
       expect(content).toContain('componentPrefix');
       // Project should be detected as angular type

@@ -34,10 +34,10 @@ export class UnitTestProfessionalComponentTestingAnalyzerService {
       const missingTestFiles: string[] = [];
 
       for (const componentFile of components) {
-        const expectedTestFile = componentFile.replace(
-          '.component.ts',
-          '.component.spec.ts'
-        );
+        // `hero.component.ts` → `hero.component.spec.ts`, and Angular 20's
+        // `hero.ts` → `hero.spec.ts`. Replacing '.component.ts' left `hero.ts`
+        // unchanged, so the component counted as its own test (#330).
+        const expectedTestFile = componentFile.replace(/\.ts$/, '.spec.ts');
 
         if (FileUtils.exists(expectedTestFile)) {
           testFiles.push(expectedTestFile);

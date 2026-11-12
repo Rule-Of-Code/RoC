@@ -11,6 +11,7 @@ import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 import { AngularLawBase } from './angular-law-base';
+import { AngularComponentFiles } from '../../utils/angular-component-files';
 
 export class DeclarativeReadSubscriptionsLaw extends AngularLawBase {
   // .subscribe(v => this.x.set(v))  /  .subscribe(v => { this.x.set(v); })
@@ -26,7 +27,7 @@ export class DeclarativeReadSubscriptionsLaw extends AngularLawBase {
       context.config,
       undefined,
       false
-    ).filter(f => f.endsWith('.component.ts'));
+    ).filter(f => AngularComponentFiles.isKind(f, ['component']));
 
     for (const file of files) {
       const content = FileUtils.readFileContentSync(file);

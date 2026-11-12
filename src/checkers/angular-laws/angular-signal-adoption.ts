@@ -10,6 +10,7 @@ import { PathOperations } from '../../utils/path-operations';
 import { AngularSignalImportsAnalyzer } from '../../utils/angular/angular-signal-imports';
 import { AngularSignalUsageAnalyzer } from '../../utils/angular/angular-signal-usage';
 import { AngularSignalPatternsAnalyzer } from '../../utils/angular/angular-signals';
+import { AngularComponentFiles } from '../../utils/angular-component-files';
 
 export class AngularSignalAdoptionLaw {
   private static readonly COMPONENT_STATE_SUBJECT =
@@ -83,10 +84,8 @@ export class AngularSignalAdoptionLaw {
     if (!this.isAngular16Plus(projectRoot)) return [];
 
     const violations: string[] = [];
-    const files = CheckerUtils.findFilesByExtension(
-      projectRoot,
-      ['.component.ts'],
-      config
+    const files = CheckerUtils.findFilesByExtension(projectRoot, ['.ts'], config).filter(file =>
+      AngularComponentFiles.isKind(file, ['component'])
     );
     for (const file of files) {
       const raw = FileUtils.readFileContentSync(file);

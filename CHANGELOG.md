@@ -5,6 +5,53 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.26.7] - 2026-11-12
+
+Three defects the site's adoption of 7.26.6 found. Closes #330, #331,
+#332.
+
+### 🐛 Fixed
+
+- **Angular 20 files without a suffix are read (#330).** `ng generate
+  component hero` writes `hero.ts`, not `hero.component.ts`. Professional
+  Component Testing used its own suffix regex, found no component and
+  reported that it judged nothing — an error on every Angular 20 app made
+  by the CLI. It now finds components by suffix or by `@Component`, and
+  pairs `hero.ts` with `hero.spec.ts` (the old pairing left `hero.ts`
+  unchanged, so a component would have counted as its own test). Seven
+  more laws picked their files with `endsWith('.component.ts')` (and
+  `.directive.ts`, `.service.ts`, `.pipe.ts`, `.guard.ts`) and passed
+  Angular 20 code in silence: Inject Over Constructor DI, Functional IO
+  Query API, Declarative Read Subscriptions, No Subscribe In Effect, Side
+  Effects In NgRx Effects, Angular Signal Adoption and Component Selector
+  Prefix, plus the shared Angular source check. One helper now decides by
+  suffix or decorator (`@Component`, `@Directive`, `@Injectable`, `@Pipe`,
+  `@NgModule`, or a `CanActivateFn`-style guard type). **These laws can
+  newly report findings on Angular 20 projects.** Inject Over Constructor
+  DI now counts constructors of decorated classes only (`@Component`,
+  `@Directive`, `@Injectable`, `@Pipe`): on a real Angular 20 app, reading
+  unsuffixed files flagged 12 in-memory fakes — plain classes built with
+  `new` beside an `@Injectable` class — whose `constructor(readonly seed)`
+  is not DI. Measured on that app, 7.26.6 → 7.26.7: 147 laws, the same 23
+  failures plus No Subscribe In Effect (two `effect()` bodies that call
+  `.then()`).
+- **The package declares every module it requires (#331).** `minimatch`
+  (15 compiled files) and `rxjs` were required without being dependencies;
+  they resolved only because `glob` and `inquirer` hoisted them. With
+  `npm install --install-strategy=nested`, 7.26.6 exited 1 with
+  "Cannot find module 'minimatch'"; 7.26.7 installs and audits. A test now
+  fails if the source imports a package that is not a dependency.
+- **`init` writes `ruleofcode.config.json` (#332).** It wrote
+  `ruleofcode.config.js` while the README, the guides and the templates
+  name `ruleofcode.config.json`, so the README's
+  `--config ruleofcode.config.json` pointed at a file that did not exist.
+  Both `init --quick` and the interactive setup now write `.json`. The
+  loader reads `.js` before `.json`, so an overwrite moves an old
+  `ruleofcode.config.js` to `ruleofcode.config.js.bak` and says so. A
+  project that keeps its `ruleofcode.config.js` is unaffected — it is
+  still read. `init --quick --type` was accepted and ignored; it is now
+  honoured, and `--type` lists `ionic`, `python` and `typescript` too.
+
 ## [7.26.6] - 2026-11-12
 
 Two defects QA found on 7.26.5. Closes #326, #327. Publish 7.26.6.

@@ -50,7 +50,8 @@ describe('InjectOverConstructorDiLaw', () => {
   it('flags constructor parameter-property DI', () => {
     const dir = fixture({
       'a.component.ts':
-        'export class A { constructor(private http: X, public y: Y) {} }\n',
+        // Decorated: only a class the injector constructs has DI (#330).
+        "@Component({ selector: 'a', template: '' })\nexport class A { constructor(private http: X, public y: Y) {} }\n",
     });
     expect(InjectOverConstructorDiLaw.check(ctx(dir)).passed).toBe(false);
   });

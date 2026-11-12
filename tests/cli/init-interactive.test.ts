@@ -39,7 +39,7 @@ describe('cli/init-interactive', () => {
 
       saveConfigAndShowSuccess(tempDir, configData);
 
-      const configPath = PathOperations.join(tempDir, 'ruleofcode.config.js');
+      const configPath = PathOperations.join(tempDir, 'ruleofcode.config.json');
       expect(FileUtils.exists(configPath)).toBe(true);
     });
 
@@ -72,7 +72,7 @@ describe('cli/init-interactive', () => {
 
       saveConfigAndShowSuccess(tempDir, configData);
 
-      const configPath = PathOperations.join(tempDir, 'ruleofcode.config.js');
+      const configPath = PathOperations.join(tempDir, 'ruleofcode.config.json');
       const content = FileUtils.readFileSync(configPath);
       expect(content).toContain('"paretoMode": false');
     });
@@ -89,7 +89,7 @@ describe('cli/init-interactive', () => {
 
       saveConfigAndShowSuccess(tempDir, configData);
 
-      const configPath = PathOperations.join(tempDir, 'ruleofcode.config.js');
+      const configPath = PathOperations.join(tempDir, 'ruleofcode.config.json');
       const content = FileUtils.readFileSync(configPath);
       expect(content).toContain('"name": "my-library"');
       expect(content).toContain('"type": "library"');
@@ -107,7 +107,7 @@ describe('cli/init-interactive', () => {
 
       saveConfigAndShowSuccess(tempDir, configData);
 
-      const configPath = PathOperations.join(tempDir, 'ruleofcode.config.js');
+      const configPath = PathOperations.join(tempDir, 'ruleofcode.config.json');
       const content = FileUtils.readFileSync(configPath);
       expect(content).toContain('"type": "react"');
     });
@@ -124,7 +124,7 @@ describe('cli/init-interactive', () => {
 
       saveConfigAndShowSuccess(tempDir, configData);
 
-      const configPath = PathOperations.join(tempDir, 'ruleofcode.config.js');
+      const configPath = PathOperations.join(tempDir, 'ruleofcode.config.json');
       const content = FileUtils.readFileSync(configPath);
       expect(content).toContain('"type": "vue"');
     });

@@ -5,6 +5,98 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.26.3] - 2026-11-12
+
+The rest of QA's 7.26.1 run: every issue filed that day that 7.26.2 left
+open. Closes #298, #299, #300, #301, #302, #303, #304, #305, #306, #308,
+#309, #310, #312, #313, #316. If 7.26.2 is not published yet, publish
+7.26.3 instead.
+
+### ⚠️ Changes you will see
+
+- **A non-JS `generic` project no longer gets the TypeScript laws (#303).**
+  A Go module or a static site with no `package.json`, `tsconfig*.json`,
+  `jsconfig.json`, `deno.json` and no `.ts` file was typed `generic` and
+  got all 23 `stack: typescript` laws. Measured with no config, it now
+  runs 60 laws instead of 77. A JS project with a `package.json` is
+  unchanged, as is every other project type.
+- **A law that judged nothing scores 0, not 100 or 90 (#302).** Such a
+  result carries `judgedNothing: true`, and the overall score no longer
+  counts it as perfect. Pass/fail is still decided by severity.
+- **A liveness-floor refusal reports what actually ran (#301).**
+  `totalLaws`/`passedLaws`/`failedLaws` are 0, a new `refused` object
+  gives the reason, the selection and the floor, and every JSON export
+  has `stats.executedLaws`. CSV and HTML show the refusal.
+- **`audit --json` writes only the JSON document to stdout (#306).** The
+  banner, progress and warnings go to stderr. A refusal, an error and the
+  self-exclusion skip also print a document.
+- **The audit cache actually hits (#305),** and its key now also covers
+  project files, CLI options, the git files laws read and Capacitor's
+  resolved native paths. The key includes the RoC version, so an upgrade
+  never reuses a verdict; a local build that keeps the same version
+  number does.
+- **`laws --json`:** `applicableFrameworks` now also comes from a law's
+  `requires`, so about 90 laws that said `["*"]` name their framework
+  (#308).
+
+### 🐛 Fixed — Capacitor / Ionic
+
+- **Cleartext Debug Only (#298):** a manifest redirected with
+  `sourceSets.<set>.manifest.srcFile` is judged where it points (block,
+  dotted, `getByName`, `["…"]` and `file(…)` forms); a missing target or a
+  path from a variable is "not judged". A missing or uncommitted main
+  manifest is reported. `usesCleartextTraffic="@bool/x"` is resolved
+  through `res/values*`. Another source set's manifest is an overlay and
+  needs no `<application>` — only main does (found on a real app whose
+  release overlay only removes a permission).
+- **Plugin Stub Has Contract Test (#299):** a `moduleNameMapper` held in a
+  same-file `const` (or a spread of one) is read; one built by a call or
+  imported is reported, not passed.
+- **Native-shell laws read the commit, not the disk (#300):** Backup
+  Scoped, Cleartext, Firebase (build script) and Local Plugin Contract
+  read tracked files from git; a shell file that exists only on disk is
+  reported. Privacy Manifest requires the file to be tracked.
+- **Viewport Fit Cover (#312)** also runs in a Capacitor iOS app without
+  Ionic.
+
+### 🐛 Fixed — testing laws
+
+- **Unit Test Quality Standards (#304)** applies the project's ignores
+  (root-relative too), names files from the project root, and reports an
+  unreadable test file. It now also reads `*.e2e-spec.*`.
+- **Test Data Management (#310):** both findings name their files; the
+  mocking finding fires only when a test imports a filesystem, network,
+  database, broker or process client, and names it. Setup/teardown is
+  required per file that holds module-level mutable state. Both twins
+  report an unreadable test file.
+
+### 🐛 Fixed — React / Next
+
+- **Imports used only as types (#316):** one rule now decides, for all
+  three import graphs, whether an import survives compilation — Next
+  Heavy Lib in Client Graph and No Test-Only Leakage stop counting a
+  type-only (or unused) import as a runtime edge. `verbatimModuleSyntax`,
+  `preserveValueImports` and `importsNotUsedAsValues: preserve|error` keep
+  it; an unreadable tsconfig keeps it (fail closed). Under
+  `verbatimModuleSyntax`, `import { type X } from 'm'` is an edge.
+  Module resolution is still separate per graph (#287 stays open).
+- **Next Client Env Public Only (#309)** sees `const { SECRET } =
+  process.env` (rename, default, assignment and cast forms) in client
+  code: Next does not inline a destructured read. Public Env Is Build Time
+  reports one finding per destructured name.
+- **Cards (#313):** Dangerous HTML names `thresholds.react.jsonSerializers`;
+  the tsconfig card says ignores do not apply and how to waive it. A test
+  now fails any React/Next card that omits a `thresholds` key its checker
+  reads.
+
+### Measured
+
+Real consumers (read-only clones), 7.26.2 → 7.26.3: an Angular/Ionic/
+Capacitor monorepo 147 laws, 23 failed → same 23; a web app 100 laws, 41
+failed → same 41; a Python API refuses on its floor of 88 with 86
+selected, as on 7.26.2. Canary: python 97 · angular 120 · ionic 150 ·
+react 134 · node 77 (unchanged).
+
 ## [7.26.2] - 2026-11-12
 
 QA ran the 7.26.1 package before publication and returned NO-GO on three

@@ -141,7 +141,7 @@ export function initCommand(program: Command): void {
     .option('-f, --force', 'overwrite existing configuration')
     .option(
       '-t, --type <type>',
-      'project type: angular, react, vue, node, library, generic'
+      'project type: angular, ionic, react, vue, node, python, typescript, library, generic'
     )
     .option('--no-hooks', 'skip git hooks installation')
     .option('--quick', 'quick setup with sensible defaults (recommended)')

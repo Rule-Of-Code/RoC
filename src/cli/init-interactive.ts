@@ -5,8 +5,9 @@ import { PathOperations } from '../utils/path-operations';
 import {
   type ProjectType,
   detectProjectType,
-  generateConfigFile,
   generateProConfig,
+  isInitProjectType,
+  writeInitConfig,
 } from './init-helpers';
 import { PARETO_LAWS_COUNT, TOTAL_LAWS_COUNT, getVersion } from './utils';
 
@@ -39,20 +40,7 @@ async function getProjectType(
 ): Promise<
   ProjectType
 > {
-  const validTypes = [
-    'angular',
-    'generic',
-    'library',
-    'node',
-    'python',
-    'react',
-    'typescript',
-    'vue',
-  ] as const;
-
-  if (initialType && (validTypes as readonly string[]).includes(initialType)) {
-    return initialType as ProjectType;
-  }
+  if (isInitProjectType(initialType)) return initialType;
 
   const detected = detectProjectType(projectRoot);
   console.log(chalk.cyan('📋 Step 1: Project Type'));
@@ -157,10 +145,7 @@ export function saveConfigAndShowSuccess(
   configData: ConfigData
 ): void {
   const config = generateProConfig(configData);
-  const configContent = generateConfigFile(config);
-  const configPath = PathOperations.join(projectRoot, 'ruleofcode.config.js');
-
-  FileUtils.writeFile(configPath, configContent);
+  const configPath = writeInitConfig(projectRoot, config);
 
   console.log(
     chalk.green(

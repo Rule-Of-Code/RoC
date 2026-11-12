@@ -98,7 +98,7 @@ export class ProfessionalComponentTestingPolicyLaw {
         componentAnalysis.totalComponents === 0 && react.components.length === 0;
       if (judgedNothing) {
         violations.push(
-          'found no component files (*.component.ts under src/, apps/, libs/; .tsx/.jsx through the scan) — this law judged nothing'
+          'found no component files (Angular components — *.component.ts or a file with @Component — under src/, apps/, libs/; .tsx/.jsx through the scan) — this law judged nothing'
         );
       }
 

@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import type { RuleOfCodeConfig } from '../config/types';
 import { DEFAULT_CONFIG } from '../config/types';
 import { CheckerUtils } from '../utils/checker-utils';
@@ -7,6 +8,50 @@ import { PathOperations } from '../utils/path-operations';
 
 /** The project types a config may declare — the one list, from the config schema. */
 export type ProjectType = RuleOfCodeConfig['project']['type'];
+
+/** The types `init --type` and the type prompt accept — every type detection can answer. */
+export const INIT_PROJECT_TYPES = [
+  'angular',
+  'generic',
+  'ionic',
+  'library',
+  'node',
+  'python',
+  'react',
+  'typescript',
+  'vue',
+] as const;
+
+export function isInitProjectType(type: string | undefined): type is ProjectType {
+  return type !== undefined && (INIT_PROJECT_TYPES as readonly string[]).includes(type);
+}
+
+/** The file `init` writes — the one the README, the guides and the templates name (#332). */
+export const INIT_CONFIG_FILE = 'ruleofcode.config.json';
+const LEGACY_INIT_CONFIG_FILE = 'ruleofcode.config.js';
+
+/**
+ * Write the config as `ruleofcode.config.json` and return its path.
+ *
+ * `init` used to write `ruleofcode.config.js` while every document said
+ * `.json`, so the README's `--config ruleofcode.config.json` pointed at a file
+ * that did not exist (#332). The loader reads `.js` BEFORE `.json`, so an old
+ * `.js` left next to the new file would silently win: an overwrite (`--force`
+ * or a confirmed prompt) moves it aside to `ruleofcode.config.js.bak`, and
+ * says so.
+ */
+export function writeInitConfig(projectRoot: string, config: RuleOfCodeConfig): string {
+  const configPath = PathOperations.join(projectRoot, INIT_CONFIG_FILE);
+  FileUtils.writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`);
+  const legacy = PathOperations.join(projectRoot, LEGACY_INIT_CONFIG_FILE);
+  if (FileUtils.exists(legacy)) {
+    fs.renameSync(legacy, `${legacy}.bak`);
+    console.log(
+      `Moved the previous ${LEGACY_INIT_CONFIG_FILE} to ${LEGACY_INIT_CONFIG_FILE}.bak — it would have taken precedence over ${INIT_CONFIG_FILE}.`
+    );
+  }
+  return configPath;
+}
 
 interface InitOptions {
   force?: boolean;
@@ -93,10 +138,12 @@ export async function setupQuickMode(
 ): Promise<void> {
   const { GitHooksInstaller } = await import('../hooks/installer');
   const projectName = PathOperations.getBasename(projectRoot);
-  const detected = detectProjectType(projectRoot);
+  // --type was accepted and ignored: quick mode always used the detected type.
+  const requested = isInitProjectType(options.type) ? options.type : undefined;
+  const detected = requested ?? detectProjectType(projectRoot);
 
   console.log(`Project: ${projectName}`);
-  console.log(`Type: ${detected} (auto-detected)`);
+  console.log(`Type: ${detected} (${requested ? 'from --type' : 'auto-detected'})`);
   console.log('Laws: Pareto mode (high-impact laws)');
   console.log('Hooks: Pre-commit + Pre-push enabled');
 
@@ -124,9 +171,8 @@ export async function setupQuickMode(
     },
   };
 
-  const configContent = generateConfigFile(config);
-  const configPath = PathOperations.join(projectRoot, 'ruleofcode.config.js');
-  FileUtils.writeFile(configPath, configContent);
+  const configPath = writeInitConfig(projectRoot, config);
+  console.log(`Configuration saved to ${PathOperations.getBasename(configPath)}`);
 
   if (options.hooks !== false) {
     console.log('Installing git hooks...');

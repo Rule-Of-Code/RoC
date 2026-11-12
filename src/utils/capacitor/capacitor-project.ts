@@ -146,10 +146,15 @@ export class CapacitorProjects {
    * workspace. The audit cache keys on these: they sit outside the scanned
    * file set, so without them a cached verdict would survive an edit to the
    * manifest it was computed from.
+   *
+   * The paths are the ones the laws open: Capacitor's RESOLVED paths, which
+   * honour `android.path` / `ios.path` (the defaults only when the CLI cannot
+   * run, exactly as the laws fall back). Keying on the defaults alone let a
+   * project with a moved shell edit its manifest under a cached PASS.
    */
   static fixedPathInputs(projectRoot: string): string[] {
     return this.find(projectRoot).flatMap(project => {
-      const native = this.defaultNativePaths(project.root);
+      const native = this.nativePaths(project, projectRoot);
       return [
         project.configFile,
         native.androidManifest,

@@ -6,6 +6,7 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { ConfigHelper } from '../../utils/config-helper';
 import { FileUtils } from '../../utils/file-utils';
+import { markJudgedNothing } from '../../utils/judged-nothing';
 import { PathOperations } from '../../utils/path-operations';
 import { AsyncTestAnalyzer } from '../../utils/testing/async-test-analyzer';
 import { TestCoverageAnalyzer } from '../../utils/testing/test-coverage-analyzer';
@@ -21,14 +22,18 @@ export class UnitTestQualityLaw extends TestingLawBase {
     const testFiles = this.getTestFiles(context.projectRoot, config);
 
     if (testFiles.length === 0) {
+      // No test file: this law judged nothing. Same verdict, same score (0) as
+      // every other law that found nothing to judge (#302) — it scored 90.
       violations.push('No test files found');
       suggestions.push('Create unit tests for your application');
-      return TestingLawBase.createResult(
-        violations,
-        'Unit Test Quality',
-        'TESTING',
-        suggestions,
-        context
+      return markJudgedNothing(
+        TestingLawBase.createResult(
+          violations,
+          'Unit Test Quality',
+          'TESTING',
+          suggestions,
+          context
+        )
       );
     }
 

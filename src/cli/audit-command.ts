@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import type { Command } from 'commander';
 import type { AuditResult } from '../core/auditing/audit-types';
-import { RuleOfCodeAuditor } from '../core/auditor';
+import { AuditResultProcessor, RuleOfCodeAuditor } from '../core/auditor';
 import { FileUtils } from '../utils/file-utils';
 import { TOTAL_LAWS_COUNT, getVersion, isRoCPath } from './utils';
 
@@ -22,6 +22,8 @@ interface AuditActionResult {
   exitCode: number;
   result?: AuditResult;
   error?: Error;
+  /** Why no audit ran at all (e.g. the RoC self-exclusion). */
+  skipped?: string;
 }
 
 /**
@@ -85,8 +87,90 @@ export function displayModeHeader(mode: string, paretoActive?: boolean): void {
 
 /**
  * Execute audit action (for testing)
+ *
+ * Under `--json`, stdout carries exactly ONE JSON document and nothing else.
+ * Everything human — the banner, the mode header, progress, config warnings,
+ * the result tables, anything a law itself prints — goes to stderr for the
+ * duration of the run. A consumer pipes `--json` into `jq` or `JSON.parse`;
+ * a banner in front of the document made every such pipe fail, so the flag
+ * delivered nothing it promised. Every exit path writes a document: the
+ * audit result, a skipped audit, or the error that stopped it.
  */
 export async function executeAuditAction(
+  options: AuditActionOptions,
+  projectRoot?: string,
+  injectedError?: Error
+): Promise<AuditActionResult> {
+  if (!options.json) {
+    return runAuditAction(options, projectRoot, injectedError);
+  }
+
+  const writeToStdout = process.stdout.write.bind(process.stdout);
+  const restoreStdout = routeStdoutToStderr();
+  let outcome: AuditActionResult;
+  try {
+    outcome = await runAuditAction(options, projectRoot, injectedError);
+  } finally {
+    restoreStdout();
+  }
+
+  const document = jsonDocumentFor(outcome);
+  // Wait for the write to land: the handler calls process.exit right after,
+  // and a large document on a pipe must not be cut short.
+  await new Promise<void>(resolve => {
+    writeToStdout(`${document}\n`, () => resolve());
+  });
+  return outcome;
+}
+
+/** Send every stdout write to stderr until the returned function is called. */
+function routeStdoutToStderr(): () => void {
+  const stdout = process.stdout;
+  const original = stdout.write;
+  const toStderr = (...args: unknown[]): boolean =>
+    (process.stderr.write as (...writeArgs: unknown[]) => boolean).apply(
+      process.stderr,
+      args
+    );
+  stdout.write = toStderr as typeof stdout.write;
+  return () => {
+    stdout.write = original;
+  };
+}
+
+/** The one JSON document a `--json` run prints, whichever way it ended. */
+function jsonDocumentFor(outcome: AuditActionResult): string {
+  if (outcome.result) {
+    return AuditResultProcessor.exportResults(outcome.result, 'json');
+  }
+  if (outcome.skipped) {
+    // Nothing was audited. Never compliance, whatever the exit code says.
+    return JSON.stringify(
+      {
+        passed: false,
+        score: 0,
+        skipped: { reason: outcome.skipped },
+        stats: { executedLaws: 0 },
+        results: [],
+      },
+      null,
+      2
+    );
+  }
+  return JSON.stringify(
+    {
+      passed: false,
+      score: 0,
+      error: outcome.error?.message ?? 'audit failed',
+      stats: { executedLaws: 0 },
+      results: [],
+    },
+    null,
+    2
+  );
+}
+
+async function runAuditAction(
   options: AuditActionOptions,
   projectRoot?: string,
   injectedError?: Error
@@ -127,7 +211,7 @@ export async function executeAuditAction(
           '🛡️ RoC SELF-EXCLUSION: Skipping audit (Constitutional system excludes itself)'
         )
       );
-      return { exitCode: 0 };
+      return { exitCode: 0, skipped: 'self-exclusion' };
     }
 
     const auditor = await RuleOfCodeAuditor.create({
@@ -151,12 +235,8 @@ export async function executeAuditAction(
       console.log(chalk.green(`📄 Report exported to ${filename}`));
     }
 
-    // JSON output
-    if (options.json) {
-      const jsonOutput = await auditor.exportResults(result, 'json');
-      console.log(jsonOutput);
-    }
-
+    // JSON output: written by executeAuditAction, once the run has finished
+    // and stdout is stdout again.
     return { exitCode: result.passed ? 0 : 1, result };
   } catch (_error) {
     const err = _error as Error;

@@ -1,5 +1,6 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { UnitTestIsolationAnalyzerService } from './unit-test-isolation/services/isolation-analyzer.service';
+import { markJudgedNothing } from '../../utils/judged-nothing';
 import { namedFiles } from '../../utils/testing/fixture-isolation';
 import { TestFileDiscovery } from './test-file-discovery';
 
@@ -23,13 +24,15 @@ export class TestIsolationEnforcementLaw {
   static check(context: LawCheckContext): LawResult {
     try {
       if (TestFileDiscovery.findTestFiles(context.projectRoot, context.config).length === 0) {
-        return this.buildFinalResult(context, {
-          violations: [TestFileDiscovery.nothingToJudge('Test Isolation Enforcement')],
-          suggestions: [],
-          score: 0,
-          sharedStateAnalysis: { hasSharedMutableState: false },
-          setupTeardownAnalysis: { hasProperIsolation: false },
-        });
+        return markJudgedNothing(
+          this.buildFinalResult(context, {
+            violations: [TestFileDiscovery.nothingToJudge('Test Isolation Enforcement')],
+            suggestions: [],
+            score: 0,
+            sharedStateAnalysis: { hasSharedMutableState: false },
+            setupTeardownAnalysis: { hasProperIsolation: false },
+          })
+        );
       }
       const analysisResult = this.runAllAnalyses(context);
       return this.buildFinalResult(context, analysisResult);

@@ -65,15 +65,18 @@ export class RequiresSpecLaw extends FeArchLawBase {
       if (violation) violations.push(violation);
     }
 
-    return this.createResult(
-      violations,
-      this.LAW_NAME,
-      'FE_ARCHITECTURE',
-      [
-        'Add a co-located test (*.spec.ts / *.test.tsx) — mandatory for money-adjacent write services',
-        'Split large components/services, or cover them with a test',
-      ],
-      context
+    return this.layerResult(
+      this.createResult(
+        violations,
+        this.LAW_NAME,
+        'FE_ARCHITECTURE',
+        [
+          'Add a co-located test (*.spec.ts / *.test.tsx) — mandatory for money-adjacent write services',
+          'Split large components/services, or cover them with a test',
+        ],
+        context
+      ),
+      layered.length === 0
     );
   }
 }

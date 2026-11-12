@@ -58,15 +58,18 @@ export class StoresInDataAccessLaw extends FeArchLawBase {
       }
     }
 
-    return this.createResult(
-      violations,
-      this.LAW_NAME,
-      'FE_ARCHITECTURE',
-      [
-        'Move the store definition into the data-access layer (thresholds.frontend.dataAccessLayers)',
-        'Feature/container components should consume state, not own it',
-      ],
-      context
+    return this.layerResult(
+      this.createResult(
+        violations,
+        this.LAW_NAME,
+        'FE_ARCHITECTURE',
+        [
+          'Move the store definition into the data-access layer (thresholds.frontend.dataAccessLayers)',
+          'Feature/container components should consume state, not own it',
+        ],
+        context
+      ),
+      featureFiles.length === 0
     );
   }
 

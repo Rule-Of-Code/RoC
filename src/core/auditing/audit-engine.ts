@@ -3,6 +3,8 @@
  */
 
 import chalk from 'chalk';
+import { execFileSync } from 'child_process';
+import * as fs from 'fs';
 import { ConfigLoader } from '../../config/loader';
 import { GitHooksInstaller } from '../../hooks/installer';
 import { ModularLawsRegistry } from '../../registry/modular-laws-registry';
@@ -150,9 +152,23 @@ export class RuleOfCodeAuditor {
     const incrementalEnabled =
       (this.config as any).performance?.incremental ?? false;
 
-    if (cacheEnabled) {
-      const filesHash = AuditCache.generateFilesHash(this.getProjectFiles());
-      const configHash = AuditCache.generateConfigHash(this.config);
+    // The key is computed ONCE, before the run, and the same key is written
+    // after it. Recomputing it after the run hashed the config the run had
+    // mutated (`__plannedLawCount`), so the key written never matched the key
+    // read and the cache never hit (#305). The CLI options are part of the
+    // key: `--fail-on-warnings` changes the verdict for the same files.
+    const cacheKey = cacheEnabled
+      ? {
+          filesHash: AuditCache.generateFilesHash(this.getProjectFiles()),
+          configHash: AuditCache.generateConfigHash({
+            config: this.config,
+            options: this.options,
+          }),
+        }
+      : undefined;
+
+    if (cacheKey) {
+      const { filesHash, configHash } = cacheKey;
       const cachedResult = AuditCache.get(
         this.projectRoot,
         filesHash,
@@ -200,13 +216,23 @@ export class RuleOfCodeAuditor {
             '   The law selection collapsed. Check laws.enabled / laws.paretoMode / laws.notApplicable and the detected project type. A shrunken audit is a disarmed gate, never PASSED.'
           )
         );
+        // No law ran, so no law passed AND no law failed. Reporting the
+        // selection as `failedLaws` told every dashboard and CI parser that
+        // N laws failed when none had been judged. The refusal is its own
+        // fact, carried in `refused` and never disguised as counts.
         return {
           passed: false,
           score: 0,
-          totalLaws: substantive.length,
+          totalLaws: 0,
           passedLaws: 0,
-          failedLaws: substantive.length,
+          failedLaws: 0,
           warningLaws: 0,
+          substantiveLaws: substantive.length,
+          refused: {
+            reason: substantive.length === 0 ? 'no-laws' : 'liveness-floor',
+            selectedLaws: substantive.length,
+            floor,
+          },
           results: new Map(),
           duration: 0,
           paretoMode: false,
@@ -244,15 +270,13 @@ export class RuleOfCodeAuditor {
         config: this.config,
       };
 
-      // Save to cache if enabled
-      if (cacheEnabled) {
-        const filesHash = AuditCache.generateFilesHash(this.getProjectFiles());
-        const configHash = AuditCache.generateConfigHash(this.config);
+      // Save to cache if enabled — under the key computed before the run.
+      if (cacheKey) {
         AuditCache.set(
           this.projectRoot,
           auditResult,
-          filesHash,
-          configHash,
+          cacheKey.filesHash,
+          cacheKey.configHash,
           this.mode
         );
       }
@@ -620,8 +644,9 @@ export class RuleOfCodeAuditor {
         const result = await law.check(this.projectRoot, this.config);
         // Ensure lawName is set + expose canonical registry identifiers so a
         // --json consumer can key `laws.notApplicable` (by lawId or legacyId)
-        // without dumping the registry separately.
-        return {
+        // without dumping the registry separately. A law that judged nothing
+        // is a failure scored 0, whatever it computed (#302).
+        return AuditResultProcessor.normalizeJudgedNothing({
           lawId: law.id,
           legacyId: law.legacyId,
           lawTitle: law.name,
@@ -633,7 +658,7 @@ export class RuleOfCodeAuditor {
           lawName: law.name
             ? LawIdentity.slugifyLawName(law.name)
             : (result.lawName ?? RuleOfCodeAuditor.UNKNOWN_LAW),
-        };
+        });
       } catch (error) {
         return {
           lawId: law.id,
@@ -1223,14 +1248,28 @@ export class RuleOfCodeAuditor {
    * Get all project files for cache hashing
    */
   private getProjectFiles(): string[] {
-    // For caching purposes, use a simple glob-based file collection
+    // For caching purposes, use a simple glob-based file collection.
+    //
+    // Every file in the project, of every type, whatever `includes`/`ignores`
+    // say: laws read .py, .html, .json, .yml and dotfiles, and many open
+    // files by fixed path regardless of the scan's ignores. The default
+    // `includes.global` is EMPTY ("scan everything minus ignores"), and an
+    // empty list is truthy, so the old `includes.global || ['**/*.ts…']`
+    // hashed NO scanned file at all — harmless only while the cache never
+    // hit (#305); once it hits, an edited file would be served the verdict
+    // computed before the edit. A key that is too wide costs a miss; a key
+    // that is too narrow serves a stale PASS.
     const glob = require('glob');
-    const patterns = (this.config as any).includes?.global || [
-      '**/*.{ts,js,tsx,jsx}',
-    ];
-    const ignorePatterns = (this.config as any).ignores?.global || [
+    const patterns = ['**/*'];
+    const ignorePatterns = [
+      // Installed packages are keyed by the lockfiles (getFixedPathInputs).
       '**/node_modules/**',
-      '**/dist/**',
+      // Never key on the cache's own file or RoC's own report, which this run
+      // writes, nor on git's object store (git state is keyed separately,
+      // and the git files laws read are fixed-path inputs).
+      '**/.ruleofcode-cache/**',
+      '**/.git/**',
+      'ruleofcode-report.*',
     ];
 
     const files: string[] = [];
@@ -1241,6 +1280,7 @@ export class RuleOfCodeAuditor {
           absolute: true,
           ignore: ignorePatterns,
           nodir: true,
+          dot: true,
         });
         files.push(...matches);
       } catch (error) {
@@ -1269,7 +1309,49 @@ export class RuleOfCodeAuditor {
       ...rootFiles,
       ...NxWorkspace.resolveSourceFiles(this.projectRoot, 'package.json'),
       ...CapacitorProjects.fixedPathInputs(this.projectRoot),
+      ...this.gitInputs(),
     ];
+  }
+
+  /**
+   * The files inside the git directory that laws read besides history: the
+   * hooks, the repo config, the index (what is staged) and MERGE_HEAD. The
+   * cache's `branch@sha` key does not move when any of these change.
+   * Resolved by git itself (`--git-path`), so a worktree, whose `.git` is a
+   * file, and a `core.hooksPath` are both followed.
+   */
+  private gitInputs(): string[] {
+    const names = ['hooks', 'config', 'index', 'MERGE_HEAD', 'HEAD'];
+    let printed: string[];
+    try {
+      printed = execFileSync(
+        'git',
+        ['rev-parse', ...names.flatMap(name => ['--git-path', name])],
+        {
+          cwd: this.projectRoot,
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'ignore'],
+        }
+      )
+        .split(/\r?\n/)
+        .filter(line => line.trim().length > 0);
+    } catch {
+      return []; // not a git repository: nothing here to key on
+    }
+    const resolved = printed.map(entry =>
+      PathOperations.resolve(this.projectRoot, entry.trim())
+    );
+    const [hooksDir, ...files] = resolved;
+    return [...files, ...(hooksDir ? this.filesIn(hooksDir) : [])];
+  }
+
+  /** The entries of a directory, as paths; none when it cannot be read. */
+  private filesIn(dir: string): string[] {
+    try {
+      return fs.readdirSync(dir).map(name => PathOperations.join(dir, name));
+    } catch {
+      return [];
+    }
   }
 
   private chunkArray<T>(array: T[], size: number): T[][] {

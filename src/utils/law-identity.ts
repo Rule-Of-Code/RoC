@@ -141,7 +141,8 @@ export function lawAppliesToProjectType(
   stack: string | undefined,
   projectType: string | undefined,
   projectRoot?: string,
-  law?: { staticSiteHtml?: boolean }
+  law?: { staticSiteHtml?: boolean },
+  ignores?: readonly string[]
 ): boolean {
   if (!stack) return true; // universal
   if (!projectType) return true; // unknown type → don't drop coverage
@@ -153,7 +154,7 @@ export function lawAppliesToProjectType(
     law?.staticSiteHtml === true &&
     projectRoot !== undefined
   ) {
-    return hasHtmlDocument(projectRoot);
+    return hasHtmlDocument(projectRoot, ignores);
   }
   if (!types.includes(projectType)) return false;
   if (stack === 'typescript' && projectType === 'generic' && projectRoot !== undefined) {

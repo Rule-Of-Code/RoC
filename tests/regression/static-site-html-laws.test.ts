@@ -101,3 +101,71 @@ describe('a static site keeps the laws that read HTML (#323)', () => {
     for (const law of HTML_LAWS) expect(names).toContain(law);
   });
 });
+
+/**
+ * #326: the HTML walk read the disk and ignored `ignores.global`. A git-ignored
+ * build output (MkDocs `site/`) selected the HTML laws locally but not on CI,
+ * and ignoring the pages still selected them — then CSP judged nothing, as an
+ * error the user could not clear.
+ */
+describe('only the project\'s own HTML makes it a static site (#326)', () => {
+  const git = (root: string, ...args: string[]): void => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require('child_process').execFileSync('git', args, {
+      cwd: root,
+      stdio: 'ignore',
+      env: { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@example.com', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@example.com' },
+    });
+  };
+
+  it('a git-ignored site/ (MkDocs output) does not select them', () => {
+    const root = fixture({ 'go.mod': 'module x\n', 'main.go': 'package main\n', '.gitignore': 'site/\n', 'site/index.html': PAGE });
+    git(root, 'init', '-q');
+    git(root, 'add', '-A');
+    git(root, 'commit', '-qm', 'init');
+    const names = selected(root);
+    for (const law of HTML_LAWS) expect(names).not.toContain(law);
+  });
+
+  it('a tracked page in a git repository selects them', () => {
+    const root = fixture({ 'public/index.html': PAGE, 'firebase.json': '{}' });
+    git(root, 'init', '-q');
+    git(root, 'add', '-A');
+    git(root, 'commit', '-qm', 'init');
+    const names = selected(root);
+    for (const law of HTML_LAWS) expect(names).toContain(law);
+  });
+
+  it('pages under ignores.global do not select them', () => {
+    const root = fixture({
+      'go.mod': 'module x\n',
+      'site/index.html': PAGE,
+      'ruleofcode.config.json': JSON.stringify({ ignores: { global: ['site/**'] } }),
+    });
+    const names = selected(root);
+    for (const law of HTML_LAWS) expect(names).not.toContain(law);
+  });
+
+  it.each([['_site/index.html'], ['storybook-static/index.html']])('generated output %s does not select them', file => {
+    const names = selected(fixture({ 'go.mod': 'module x\n', [file]: PAGE }));
+    for (const law of HTML_LAWS) expect(names).not.toContain(law);
+  });
+});
+
+/** #327: Accessibility Linting said "compliance verified" when it judged nothing. */
+describe('Accessibility Linting Enforcement judges something or says it did not (#327)', () => {
+  it('a frontend project with neither Angular templates nor .tsx/.jsx: judged nothing, not compliance', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { AccessibilityLintingEnforcementLaw } = require('../../src/checkers/accessibility-laws/accessibility-linting-enforcement');
+    const root = fixture({
+      'package.json': JSON.stringify({ name: 'v', dependencies: { vue: '3.5.0' } }),
+      'src/App.vue': '<template><button>x</button></template>\n',
+    });
+    const result = AccessibilityLintingEnforcementLaw.check({
+      projectRoot: root,
+      config: { ignores: { global: [], tests: [], build: [], design: [] }, thresholds: {}, includes: { global: [] }, laws: {} },
+    });
+    expect(result).toMatchObject({ passed: false, score: 0, judgedNothing: true });
+    expect(result.violations.join('\n')).toMatch(/nothing was judged/);
+  });
+});

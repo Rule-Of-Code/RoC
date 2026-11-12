@@ -134,3 +134,47 @@ describe('the gated set', () => {
     expect(law?.requires).toBeUndefined();
   });
 });
+
+/**
+ * #319: file names are not framework evidence. `public/index.html` (Firebase
+ * Hosting's default) typed a static site React, and `src/main.js` (the vanilla
+ * Vite template) typed a Vite app Vue — the React/Vue and TypeScript laws ran.
+ */
+describe('a file name is not framework evidence (#319)', () => {
+  type Detector = { detectProjectType(root: string): string };
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { ProjectTypeDetector } = require('../../src/utils/config/project-type-detector') as {
+    ProjectTypeDetector: Detector;
+  };
+
+  it.each([
+    ['a static site with only public/index.html', { 'public/index.html': '<html></html>' }],
+    ['a Firebase static site', { 'public/index.html': '<html></html>', 'firebase.json': '{"hosting":{"public":"public"}}' }],
+    ['src/App.tsx without react', { 'src/App.tsx': 'export const App = () => null;\n' }],
+  ])('%s is not react', (_label, files) => {
+    expect(ProjectTypeDetector.detectProjectType(project(files))).not.toBe('react');
+  });
+
+  it('a vanilla Vite app (vite, src/main.js, no vue) is not vue', () => {
+    const root = project({
+      'package.json': JSON.stringify({ name: 'c', version: '1.0.0', devDependencies: { vite: '5.4.0' } }),
+      'index.html': '<html></html>',
+      'src/main.js': 'console.log(1);\n',
+    });
+    expect(ProjectTypeDetector.detectProjectType(root)).not.toBe('vue');
+  });
+
+  it('a static site runs neither the React nor the TypeScript laws', () => {
+    const titles = selectedTitles(project({ 'public/index.html': '<html></html>', 'firebase.json': '{}' }));
+    expect(titles).not.toContain('Test Isolation Enforcement');
+    expect(titles).not.toContain('React Dangerous HTML Guarded');
+  });
+
+  it.each([
+    ['a react dependency', { 'package.json': manifest({ react: '19.3.0', 'react-dom': '19.3.0' }) }, 'react'],
+    ['a vue dependency', { 'package.json': manifest({ vue: '3.5.0' }) }, 'vue'],
+    ['a .vue component', { 'src/App.vue': '<template><p/></template>\n' }, 'vue'],
+  ])('control: %s still decides', (_label, files, type) => {
+    expect(ProjectTypeDetector.detectProjectType(project(files as Record<string, string>))).toBe(type);
+  });
+});

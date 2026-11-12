@@ -38,11 +38,11 @@ describe('ProjectTypeDetectorConfiguration', () => {
     });
 
     describe('REACT_PROJECT_PATTERNS', () => {
-      it('should have files array', () => {
+      it('has no file evidence: the dependency decides (#319)', () => {
         const patterns =
           ProjectTypeDetectorConfiguration.REACT_PROJECT_PATTERNS;
         expect(Array.isArray(patterns.files)).toBe(true);
-        expect(patterns.files.length).toBeGreaterThan(0);
+        expect(patterns.files).toEqual([]);
       });
 
       it('should have dependencies array', () => {

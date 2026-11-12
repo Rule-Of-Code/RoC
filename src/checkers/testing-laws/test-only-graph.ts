@@ -12,11 +12,14 @@
  * `if`, a `?:` or an `&&` whose condition reads `process.env`, or a dynamic
  * `import()` sits in such a branch. A re-export and a side-effect import
  * (`import './mocks'`) are never gated: they bring the module in whatever the
- * environment.
+ * environment. An import the compiler erases — used only as a type, or
+ * written `import type` / `export type … from` — is no edge at all
+ * (CompiledImports, the rule every import graph shares).
  */
 
 import type * as TS from 'typescript';
 import type { TsxSource, TypeScriptModule } from '../../utils/react/tsx-source';
+import { CompiledImports } from '../../utils/react/compiled-imports';
 import { PathOperations } from '../../utils/path-operations';
 
 export interface ImportEdge {
@@ -104,6 +107,7 @@ function stops(ts: TypeScriptModule, branch: TS.Node): boolean {
 
 export class ImportGraph {
   private readonly options: TS.CompilerOptions;
+  private readonly compiled: CompiledImports;
 
   constructor(
     private readonly ts: TypeScriptModule,
@@ -111,6 +115,7 @@ export class ImportGraph {
     private readonly projectRoot: string
   ) {
     this.options = ImportGraph.compilerOptions(ts, appRoot);
+    this.compiled = new CompiledImports(ts);
   }
 
   /** The app's compiler options from its tsconfig (extends followed), or none. */
@@ -136,15 +141,10 @@ export class ImportGraph {
       if (target) edges.push({ target, gated });
     };
     for (const statement of source.sourceFile.statements) {
-      if (ts.isImportDeclaration(statement) && ts.isStringLiteral(statement.moduleSpecifier)) {
-        add(statement.moduleSpecifier.text, this.importIsGated(source, statement));
-      } else if (
-        ts.isExportDeclaration(statement) &&
-        statement.moduleSpecifier &&
-        ts.isStringLiteral(statement.moduleSpecifier)
-      ) {
-        add(statement.moduleSpecifier.text, false);
-      }
+      // An import the compiler erases (used only as a type) loads nothing.
+      const specifier = this.compiled.runtimeSpecifier(source, statement);
+      if (specifier === null) continue;
+      add(specifier, ts.isImportDeclaration(statement) && this.importIsGated(source, statement));
     }
     source.walk(node => {
       const specifier = this.loadedModule(node);
@@ -168,13 +168,16 @@ export class ImportGraph {
   private importIsGated(source: TsxSource, statement: TS.ImportDeclaration): boolean {
     const ts = this.ts;
     const clause = statement.importClause;
-    if (!clause || clause.isTypeOnly) return clause?.isTypeOnly ?? false;
+    if (!clause) return false;
     const names = new Set<string>();
     if (clause.name) names.add(clause.name.text);
     const bindings = clause.namedBindings;
     if (bindings && ts.isNamespaceImport(bindings)) names.add(bindings.name.text);
     if (bindings && ts.isNamedImports(bindings)) {
-      for (const element of bindings.elements) names.add(element.name.text);
+      // `type` bindings are erased: where they are written gates nothing.
+      for (const element of bindings.elements) {
+        if (!element.isTypeOnly) names.add(element.name.text);
+      }
     }
     const uses: TS.Node[] = [];
     source.walk(node => {

@@ -196,6 +196,9 @@ function gitRun(
     encoding: 'utf8',
     windowsHide: true,
     input,
+    // A listing of a large tree outgrows the 1 MiB default; a truncated
+    // listing would silently drop files.
+    maxBuffer: 64 * 1024 * 1024,
   });
   if (result.error || result.status === null) return null;
   return { status: result.status, stdout: result.stdout ?? '' };
@@ -234,6 +237,24 @@ export function gitExposure(
     else states.set(p, 'absent');
   }
   return states;
+}
+
+/**
+ * The TRACKED files under the given paths (relative to `projectRoot`,
+ * forward slashes, as git prints them), or null when git cannot answer — no
+ * git binary, or not inside a working tree.
+ */
+export function trackedFiles(
+  projectRoot: string,
+  paths: readonly string[]
+): Set<string> | null {
+  const inside = gitRun(['rev-parse', '--is-inside-work-tree'], projectRoot);
+  if (!inside || inside.status !== 0 || inside.stdout.trim() !== 'true') {
+    return null;
+  }
+  const listed = gitRun(['ls-files', '-z', '--', ...paths], projectRoot);
+  if (!listed || listed.status !== 0) return null;
+  return new Set(listed.stdout.split('\0').filter(Boolean));
 }
 
 /**

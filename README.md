@@ -56,8 +56,9 @@ stack do not run and are not counted:
 | Python (FastAPI, Clean Architecture/CQRS) | 37 | python |
 | TypeScript | 23 | all TS/JS projects |
 
-Of the frontend laws, **18** run only where an Ionic binding is declared and **18** only
-where Capacitor is — see [`requires`](#requires-a-law-about-a-toolkit-runs-only-where-the-toolkit-is).
+Of the frontend laws, **18** run only where an Ionic binding is declared and **19** only
+where Capacitor is (one law, the viewport-fit one, runs where either Ionic or Capacitor iOS
+is declared, so it is in both counts) — see [`requires`](#requires-a-law-about-a-toolkit-runs-only-where-the-toolkit-is).
 The laws about one framework are gated the same way: **19** run only where `@angular/core`
 is declared, **10** only where `@ngrx/store` is, and **1** only where `rxjs` is. A React
 project does not run OnPush or NgRx laws, and an Angular app without a store does not run
@@ -78,7 +79,7 @@ IDE panel, a dashboard. It is versioned by `schemaVersion` (currently `2`).
 {
   "schemaVersion": 2,
   "tool": "ruleofcode",          // the package name this build was published under
-  "version": "7.26.2",
+  "version": "7.26.3",
   "registryTotal": 247,
   "satisfiedByStacks": {          // the mapping described below — read it, don't hardcode it
     "keys": ["typescript", "angular", "react", "python", "ionic", "capacitor"],

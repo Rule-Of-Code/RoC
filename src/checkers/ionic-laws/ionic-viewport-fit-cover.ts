@@ -14,6 +14,9 @@
  * otherwise.
  *
  * The tag lives in index.html, outside every TypeScript and template scan.
+ *
+ * A Capacitor iOS app without Ionic is selected too: its WebView letterboxes
+ * the page the same way, and its own safe-area CSS reads the same env().
  */
 
 import * as fs from 'fs';
@@ -21,6 +24,7 @@ import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { AppIndexes } from '../../utils/ionic/app-index';
 import { HtmlTemplate, type TemplateElement } from '../../utils/ionic/html-template';
 import { withNotes } from '../../utils/ionic/law-notes';
+import { declaredDependencies } from '../../utils/law-requirements';
 import { PathOperations } from '../../utils/path-operations';
 import { LawBase } from '../law-base';
 
@@ -32,6 +36,8 @@ export class IonicViewportFitCoverLaw extends LawBase {
   static check(context: LawCheckContext): LawResult {
     const violations: string[] = [];
     const notes: string[] = [];
+    // Selected for a Capacitor iOS app without Ionic too (#312): there are no --ion-safe-area-* to name.
+    const ionic = [...declaredDependencies(context.projectRoot)].some(name => name.startsWith('@ionic/'));
     const indexes = AppIndexes.find(context.projectRoot);
     if (indexes.length === 0) {
       violations.push(
@@ -47,7 +53,7 @@ export class IonicViewportFitCoverLaw extends LawBase {
         violations.push(`${where}: named by ${index.declaredIn} but could not be read — the viewport meta was NOT read`);
         continue;
       }
-      const verdict = this.judge(where, text);
+      const verdict = this.judge(where, text, ionic);
       violations.push(...verdict.violations);
       notes.push(...verdict.notes);
     }
@@ -65,7 +71,8 @@ export class IonicViewportFitCoverLaw extends LawBase {
   }
 
   /** The verdict on one index file's text. */
-  static judge(where: string, text: string): { violations: string[]; notes: string[] } {
+  static judge(where: string, text: string, ionic = true): { violations: string[]; notes: string[] } {
+    const inert = ionic ? '--ion-safe-area-* and every safe-area rule are inert' : 'every env(safe-area-inset-*) rule is inert';
     const metas = HtmlTemplate.elements(text).filter(
       element =>
         element.tag === 'meta' &&
@@ -76,7 +83,7 @@ export class IonicViewportFitCoverLaw extends LawBase {
     if (!meta) {
       return {
         violations: [
-          `${where}: no <meta name="viewport"> — env(safe-area-inset-*) stays 0 on notched devices, so --ion-safe-area-* and every safe-area rule are inert. Add one with viewport-fit=cover`,
+          `${where}: no <meta name="viewport"> — env(safe-area-inset-*) stays 0 on notched devices, so ${inert}. Add one with viewport-fit=cover`,
         ],
         notes: [],
       };
@@ -86,7 +93,7 @@ export class IonicViewportFitCoverLaw extends LawBase {
       content.get('viewport-fit') === 'cover'
         ? []
         : [
-            `${where}:${meta.line}: <meta name="viewport"> has no viewport-fit=cover — the WebView letterboxes the page and env(safe-area-inset-*) is 0, so --ion-safe-area-* and every safe-area rule are inert`,
+            `${where}:${meta.line}: <meta name="viewport"> has no viewport-fit=cover — the WebView letterboxes the page and env(safe-area-inset-*) is 0, so ${inert}`,
           ];
     const notes: string[] = [];
     if (content.get('user-scalable') === 'no' || content.get('user-scalable') === '0') {

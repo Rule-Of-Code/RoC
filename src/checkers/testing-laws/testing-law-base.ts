@@ -5,7 +5,11 @@
 
 import type { RuleOfCodeConfig } from '../../types/law.types';
 import { LawBase } from '../law-base';
-import { TEST_FILE_GLOBS } from '../../utils/constants';
+import { TestFileDiscovery } from '../../laws/testing/test-file-discovery';
+import { PathOperations } from '../../utils/path-operations';
+
+/** A Cypress spec, which the test-name pattern does not cover. */
+const CYPRESS_SPEC_NAME = /\.cy\.ts$/;
 
 export class TestingLawBase extends LawBase {
   // Inherits createResult() from LawBase
@@ -23,35 +27,31 @@ export class TestingLawBase extends LawBase {
   }
 
   /**
-   * Get test files from project
-   * RULE 2: Consolidated test file detection pattern used by multiple testing laws
-   * Note: Uses glob directly to find test files, bypassing normal ignore patterns
+   * The project's test files (absolute paths), read through the same
+   * discovery as the isolation twins: the project's `ignores` and
+   * `includes` apply, matched against the path from the project root.
+   *
+   * This used to be a glob with five fixed ignores and no config at all, so
+   * an `ignores.global` entry such as `src/vendor/**` hid nothing from the
+   * laws built on it (#304). The whole project is the search root here —
+   * unlike the twins, these laws never limited themselves to src/apps/libs —
+   * and Cypress `*.cy.ts` specs stay in, as they were.
    */
   protected static getTestFiles(
     projectRoot: string,
     config: RuleOfCodeConfig
   ): string[] {
-    // Use glob directly to find test files (*.spec.ts, *.test.ts, *.cy.ts)
-    const { glob } = require('glob');
-    const testPatterns = [...TEST_FILE_GLOBS, '**/*.cy.ts'];
+    return TestFileDiscovery.findTestFiles(
+      projectRoot,
+      config,
+      [projectRoot],
+      name => TestFileDiscovery.isTestFile(name) || CYPRESS_SPEC_NAME.test(name)
+    );
+  }
 
-    const testFiles: string[] = [];
-    for (const pattern of testPatterns) {
-      const files = glob.sync(pattern, {
-        cwd: projectRoot,
-        absolute: true,
-        ignore: [
-          '**/node_modules/**',
-          '**/dist/**',
-          '**/.nx/**',
-          '**/.angular/**',
-          '**/coverage/**',
-        ],
-      });
-      testFiles.push(...files);
-    }
-
-    return testFiles;
+  /** A path for findings: from the project root, with forward slashes. */
+  protected static displayPath(projectRoot: string, file: string): string {
+    return PathOperations.getRelative(projectRoot, file);
   }
 
   /**

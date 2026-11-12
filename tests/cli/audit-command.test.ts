@@ -309,18 +309,31 @@ describe('cli/audit-command', () => {
     }, 60000);
 
     it('should handle json option', async () => {
+      // #306: the document is the ONLY thing on stdout, written once the run
+      // is over — no longer through console.log, which is human output and
+      // goes to stderr for the duration of a --json run.
+      const written: string[] = [];
+      const stdoutSpy = jest
+        .spyOn(process.stdout, 'write')
+        .mockImplementation(((chunk: unknown, cb?: unknown) => {
+          written.push(String(chunk));
+          if (typeof cb === 'function') (cb as () => void)();
+          return true;
+        }) as typeof process.stdout.write);
       const options: AuditActionOptions = { json: true, mode: 'fast' };
 
-      const { exitCode, result } = await executeAuditAction(options, tempDir);
+      let outcome;
+      try {
+        outcome = await executeAuditAction(options, tempDir);
+      } finally {
+        stdoutSpy.mockRestore();
+      }
 
-      expect([0, 1]).toContain(exitCode);
-      expect(result).toBeDefined();
-      // JSON should be output to console
-      const hasJsonOutput = consoleSpy.mock.calls.some(c => {
-        const str = String(c[0] || '');
-        return str.includes('{') && str.includes('}');
-      });
-      expect(hasJsonOutput).toBe(true);
+      expect([0, 1]).toContain(outcome.exitCode);
+      expect(outcome.result).toBeDefined();
+      expect(written).toHaveLength(1);
+      const document = JSON.parse(written[0] ?? '');
+      expect(document.passed).toBe(outcome.result?.passed);
     }, 60000);
 
     it('should handle export json option', async () => {

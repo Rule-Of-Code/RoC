@@ -64,6 +64,18 @@ export interface StubMapping {
   config: string;
 }
 
+/** Where a mapper value is being read, and where an unreadable one is reported. */
+interface MapperSite {
+  config: string;
+  key: 'moduleNameMapper' | 'alias';
+  unread: string[];
+  /** Same-file const hops taken so far. */
+  depth: number;
+}
+
+/** `const a = b; const b = { … }` is followed this many hops, then reported as not read. */
+const MAX_CONST_HOPS = 3;
+
 export class CapacitorPluginStubHasContractTestLaw extends LawBase {
   static readonly LAW_NAME = 'Capacitor Plugin Stub Has Contract Test';
 
@@ -74,8 +86,11 @@ export class CapacitorPluginStubHasContractTestLaw extends LawBase {
     if (!ts && configs.some(file => !file.endsWith('.json'))) {
       violations.push(`test configs: ${parserUnavailable(context.projectRoot)} — module mappings in them were not read, so this law does not pass on them`);
     }
-    const mappings = configs.flatMap(file => this.mappings(context, ts, file, violations));
+    const unreadMappers: string[] = [];
+    const mappings = configs.flatMap(file => this.mappings(context, ts, file, violations, unreadMappers));
     const plugins = [...declaredDependencies(context.projectRoot)].filter(name => CAPACITOR_PLUGIN_MODULE.test(name)).sort();
+    // A mapper this law cannot read could stub any declared plugin.
+    if (plugins.length > 0) violations.push(...unreadMappers);
     const stubbed = plugins.flatMap(plugin => {
       const mapping = mappings.find(candidate => this.matches(candidate, plugin));
       return mapping ? [{ plugin, mapping }] : [];
@@ -116,7 +131,8 @@ export class CapacitorPluginStubHasContractTestLaw extends LawBase {
     context: LawCheckContext,
     ts: TypeScriptModule | null,
     file: string,
-    violations: string[]
+    violations: string[],
+    unread: string[]
   ): StubMapping[] {
     const config = relative(context, file);
     const text = readText(file);
@@ -125,7 +141,7 @@ export class CapacitorPluginStubHasContractTestLaw extends LawBase {
       return [];
     }
     if (file.endsWith('.json')) return this.jsonMappings(text, config, file.endsWith('package.json'));
-    return ts ? this.scriptMappings(TsxSource.parse(ts, file, text), config) : [];
+    return ts ? this.scriptMappings(TsxSource.parse(ts, file, text), config, unread) : [];
   }
 
   private static jsonMappings(text: string, config: string, packageJson: boolean): StubMapping[] {
@@ -145,32 +161,78 @@ export class CapacitorPluginStubHasContractTestLaw extends LawBase {
     }));
   }
 
-  /** `moduleNameMapper: { … }` and Vitest `alias: { … } | [{ find, replacement }]`, anywhere in the file. */
-  static scriptMappings(source: TsxSource, config: string): StubMapping[] {
+  /**
+   * `moduleNameMapper: { … }` and Vitest `alias: { … } | [{ find, replacement }]`,
+   * anywhere in the file. A value held in a same-file `const` (or spread from
+   * one) is followed; anything else — an import, a function call, a computed
+   * spread — is pushed to `unread`, because a stub inside it would go unseen.
+   */
+  static scriptMappings(source: TsxSource, config: string, unread: string[] = []): StubMapping[] {
     const ts = source.ts;
     const found: StubMapping[] = [];
     source.walk(node => {
       if (!ts.isPropertyAssignment(node) || !(ts.isIdentifier(node.name) || ts.isStringLiteral(node.name))) return;
       const key = node.name.text;
-      const value = node.initializer;
-      if (key === 'moduleNameMapper' && ts.isObjectLiteralExpression(value)) {
-        found.push(...this.objectEntries(source, value, config, true));
-      } else if (key === 'alias' && ts.isObjectLiteralExpression(value)) {
-        found.push(...this.objectEntries(source, value, config, false));
-      } else if (key === 'alias' && ts.isArrayLiteralExpression(value)) {
-        found.push(...this.aliasArray(source, value, config));
-      }
+      if (key !== 'moduleNameMapper' && key !== 'alias') return;
+      found.push(...this.mapperValue(source, node.initializer, { config, key, unread, depth: 0 }));
     });
     return found;
   }
 
-  private static objectEntries(source: TsxSource, object: TS.ObjectLiteralExpression, config: string, regex: boolean): StubMapping[] {
+  /** The mappings of a mapper / alias value: a literal, or a same-file const holding one. */
+  private static mapperValue(source: TsxSource, value: TS.Expression, at: MapperSite): StubMapping[] {
     const ts = source.ts;
+    const regex = at.key === 'moduleNameMapper';
+    const inner = this.unwrap(source, value);
+    if (ts.isObjectLiteralExpression(inner)) return this.objectEntries(source, inner, at);
+    if (at.key === 'alias' && ts.isArrayLiteralExpression(inner)) return this.aliasArray(source, inner, at.config);
+    const held = ts.isIdentifier(inner) && at.depth < MAX_CONST_HOPS ? this.sameFileConst(source, inner.text) : null;
+    if (held) return this.mapperValue(source, held, { ...at, depth: at.depth + 1 });
+    at.unread.push(
+      `${at.config}:${source.lineOf(value)}: ${at.key} is \`${this.excerpt(source, value)}\`, which this law cannot read (only an object literal${regex ? '' : ' or array'}, or a same-file const holding one, is read) — a Capacitor plugin stubbed in it would not be seen, so this law does not pass on it`
+    );
+    return [];
+  }
+
+  /** `x as T`, `x satisfies T`, `(x)` → `x`. */
+  private static unwrap(source: TsxSource, value: TS.Expression): TS.Expression {
+    const ts = source.ts;
+    let current = value;
+    while (ts.isAsExpression(current) || ts.isParenthesizedExpression(current) || ts.isSatisfiesExpression(current)) {
+      current = current.expression;
+    }
+    return current;
+  }
+
+  /** The initializer of a top-level `const name = …` in the same file; null when there is none. */
+  private static sameFileConst(source: TsxSource, name: string): TS.Expression | null {
+    const ts = source.ts;
+    for (const statement of source.sourceFile.statements) {
+      if (!ts.isVariableStatement(statement) || !(statement.declarationList.flags & ts.NodeFlags.Const)) continue;
+      for (const declaration of statement.declarationList.declarations) {
+        if (ts.isIdentifier(declaration.name) && declaration.name.text === name && declaration.initializer) {
+          return declaration.initializer;
+        }
+      }
+    }
+    return null;
+  }
+
+  private static excerpt(source: TsxSource, value: TS.Expression): string {
+    const text = value.getText(source.sourceFile).replace(/\s+/g, ' ');
+    return text.length > 60 ? `${text.slice(0, 57)}...` : text;
+  }
+
+  private static objectEntries(source: TsxSource, object: TS.ObjectLiteralExpression, at: MapperSite): StubMapping[] {
+    const ts = source.ts;
+    const regex = at.key === 'moduleNameMapper';
     return object.properties.flatMap(property => {
+      // `{ ...base, … }`: the spread is read like the value itself.
+      if (ts.isSpreadAssignment(property)) return this.mapperValue(source, property.expression, at);
       if (!ts.isPropertyAssignment(property)) return [];
       const name = property.name;
       const pattern = ts.isStringLiteral(name) || ts.isIdentifier(name) || ts.isNoSubstitutionTemplateLiteral(name) ? name.text : null;
-      return pattern === null ? [] : [{ pattern, regex, stub: this.stubText(source, property.initializer), config }];
+      return pattern === null ? [] : [{ pattern, regex, stub: this.stubText(source, property.initializer), config: at.config }];
     });
   }
 

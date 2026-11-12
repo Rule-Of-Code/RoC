@@ -23,6 +23,7 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { CheckerUtils } from '../../utils/checker-utils';
 import { FileUtils } from '../../utils/file-utils';
+import { markJudgedNothing } from '../../utils/judged-nothing';
 import { NxWorkspace } from '../../utils/nx-workspace';
 import { PathOperations } from '../../utils/path-operations';
 import { ReactProject } from '../../utils/react/react-project';
@@ -88,13 +89,14 @@ export class ContentSecurityPolicyLaw {
       );
     }
 
-    if (!covered && nextApps.length === 0 && entries.length === 0) {
+    const judgedNothing = !covered && nextApps.length === 0 && entries.length === 0;
+    if (judgedNothing) {
       violations.push(
         `found no entry document (index.html), no Next app and ${SITE_WIDE} — this law judged nothing. Declare the CSP where it is served and, if the law cannot see that place, name it in thresholds.security.cspFiles`
       );
     }
 
-    return SecurityLawBase.createResult(
+    const result = SecurityLawBase.createResult(
       violations,
       LAW_TITLE,
       'SECURITY',
@@ -106,6 +108,8 @@ export class ContentSecurityPolicyLaw {
         : [],
       context
     );
+    // Judged nothing: failed, score 0 — the one verdict for it (#302).
+    return judgedNothing ? markJudgedNothing(result) : result;
   }
 
   /** index.html files the scan reaches, outside Next apps and generated reports. */

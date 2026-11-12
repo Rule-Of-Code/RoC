@@ -24,6 +24,12 @@ export interface AuditResult {
    * They still count toward `substantiveLaws`, so one floor fits every mode.
    */
   deferredLaws?: number;
+  /**
+   * Set when the engine REFUSED to run the audit: the selection collapsed to
+   * nothing, or fell below `laws.minLawsChecked`. No law ran, so every count
+   * above is zero — a refusal is not "N laws failed", it is "no law ran".
+   */
+  refused?: AuditRefusal;
   results: Map<string, unknown>;
   duration: number;
   paretoMode: boolean;
@@ -51,7 +57,22 @@ export interface AuditOptions {
   excludePatterns?: string[];
 }
 
+export interface AuditRefusal {
+  /** `no-laws`: nothing selected. `liveness-floor`: fewer than the floor. */
+  reason: 'liveness-floor' | 'no-laws';
+  /** Substantive laws the config selected (what the floor is compared with). */
+  selectedLaws: number;
+  /** `laws.minLawsChecked` (0 when unset). */
+  floor: number;
+}
+
 export interface AuditStats {
+  /**
+   * Law results actually produced by this run — 0 on a refusal. Always set by
+   * generateStats; optional only so existing callers that build stats keep
+   * compiling.
+   */
+  executedLaws?: number;
   totalLaws: number;
   passedLaws: number;
   failedLaws: number;

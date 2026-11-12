@@ -1,5 +1,6 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { UnitTestIsolationAnalyzerService } from './unit-test-isolation/services/isolation-analyzer.service';
+import { markJudgedNothing } from '../../utils/judged-nothing';
 import { namedFiles } from '../../utils/testing/fixture-isolation';
 import { TestFileDiscovery } from './test-file-discovery';
 
@@ -22,16 +23,25 @@ import { TestFileDiscovery } from './test-file-discovery';
 export class TestIsolationEnforcementLaw {
   static check(context: LawCheckContext): LawResult {
     try {
-      if (TestFileDiscovery.findTestFiles(context.projectRoot, context.config).length === 0) {
-        return this.buildFinalResult(context, {
-          violations: [TestFileDiscovery.nothingToJudge('Test Isolation Enforcement')],
-          suggestions: [],
-          score: 0,
-          sharedStateAnalysis: { hasSharedMutableState: false },
-          setupTeardownAnalysis: { hasProperIsolation: false },
-        });
+      const testFiles = TestFileDiscovery.findTestFiles(context.projectRoot, context.config);
+      if (testFiles.length === 0) {
+        return markJudgedNothing(
+          this.buildFinalResult(context, {
+            violations: [TestFileDiscovery.nothingToJudge('Test Isolation Enforcement')],
+            suggestions: [],
+            score: 0,
+            sharedStateAnalysis: { hasSharedMutableState: false },
+            setupTeardownAnalysis: { hasProperIsolation: false },
+          })
+        );
       }
       const analysisResult = this.runAllAnalyses(context);
+      // A file no check could read was not judged — the same rule as the
+      // twin (Test Data Management), from the same discovery.
+      const unreadable = TestFileDiscovery.unreadable(context.projectRoot, testFiles);
+      if (unreadable.length > 0) {
+        analysisResult.violations.unshift(TestFileDiscovery.unreadableViolation(unreadable));
+      }
       return this.buildFinalResult(context, analysisResult);
     } catch (error: unknown) {
       return this.buildErrorResult(context, error);

@@ -94,7 +94,9 @@ export class ProfessionalComponentTestingPolicyLaw {
           react.lowQualityTests.length * thresholds.lowQualityTestDeduction
         );
       }
-      if (componentAnalysis.totalComponents === 0 && react.components.length === 0) {
+      const judgedNothing =
+        componentAnalysis.totalComponents === 0 && react.components.length === 0;
+      if (judgedNothing) {
         violations.push(
           'found no component files (*.component.ts under src/, apps/, libs/; .tsx/.jsx through the scan) — this law judged nothing'
         );
@@ -165,9 +167,12 @@ export class ProfessionalComponentTestingPolicyLaw {
       // score without a violation, so a spec passing every listed check but with
       // no proper TestBed returned passed:false, an EMPTY violation list, and a
       // green "✅ Excellent" message — a check-mark on a failing verdict.
-      const finalScore = Math.max(0, score);
+      // A law that judged nothing earns no score: it scored 100 here, which
+      // contradicted its own passed:false and counted as perfect overall.
+      const finalScore = judgedNothing ? 0 : Math.max(0, score);
 
       return {
+        ...(judgedNothing ? { judgedNothing: true } : {}),
         passed: violations.length === 0,
         message: this.generateMessage(
           violations.length,

@@ -30,6 +30,7 @@ chalk.level = 1;
 interface KnownLaw {
   stack?: string;
   requires?: LawRequirement;
+  staticSiteHtml?: boolean;
 }
 
 export class RuleOfCodeAuditor {
@@ -352,7 +353,8 @@ export class RuleOfCodeAuditor {
       ModularLawsRegistry.lawAppliesToProjectType(
         (law as { stack?: string }).stack,
         projectType,
-        this.projectRoot
+        this.projectRoot,
+        law as { staticSiteHtml?: boolean }
       )
     );
 
@@ -519,7 +521,7 @@ export class RuleOfCodeAuditor {
     const known = new Map<string, KnownLaw>();
     for (const law of ModularLawsRegistry.getAll()) {
       for (const key of ModularLawsRegistry.lawIdentityKeys(law)) {
-        known.set(key, { stack: law.stack, requires: law.requires });
+        known.set(key, { stack: law.stack, requires: law.requires, staticSiteHtml: law.staticSiteHtml });
       }
     }
 
@@ -536,7 +538,7 @@ export class RuleOfCodeAuditor {
           `⚠️  laws.severity: unknown law '${key}' — this override gates nothing. Check the name with 'roc laws --list'.`
         );
       } else if (
-        !ModularLawsRegistry.lawAppliesToProjectType(law.stack, projectType, this.projectRoot)
+        !ModularLawsRegistry.lawAppliesToProjectType(law.stack, projectType, this.projectRoot, law)
       ) {
         console.warn(
           `ℹ️  laws.severity: '${key}' exists but does not apply to this project type (${projectType ?? 'unknown'}) — stack-gated, kept for shared configs.`
@@ -645,7 +647,7 @@ export class RuleOfCodeAuditor {
       const law = known.get(key);
       if (
         law &&
-        !ModularLawsRegistry.lawAppliesToProjectType(law.stack, projectType, this.projectRoot)
+        !ModularLawsRegistry.lawAppliesToProjectType(law.stack, projectType, this.projectRoot, law)
       ) {
         console.warn(
           `ℹ️  laws.notApplicable: '${key}' is already stack-gated off this project type (${projectType ?? 'unknown'}) — the waiver is redundant here.`
@@ -1098,7 +1100,8 @@ export class RuleOfCodeAuditor {
           ModularLawsRegistry.lawAppliesToProjectType(
             law.stack,
             this.detectProjectType(),
-            this.projectRoot
+            this.projectRoot,
+            law
           ) && lawRequirementsMet(law.requires, this.projectRoot)
       ).length;
       console.log(

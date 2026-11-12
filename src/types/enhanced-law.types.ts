@@ -64,6 +64,12 @@ export interface EnhancedConstitutionalLaw {
   category: LawCategory;
   automation: AutomationType;
   defaultEnabled: boolean; // Pareto defaults
+  /**
+   * A `stack: "frontend"` law that reads plain HTML documents (and static-
+   * hosting header files), not a framework's code: it also runs on a
+   * `generic` project that holds an HTML document — a static site (#323).
+   */
+  staticSiteHtml?: boolean;
   /** Gate-of-the-gate: cannot be disabled by config (paretoMode/enabled/notApplicable). */
   alwaysEnabled?: boolean;
   defaultSeverity: LawSeverity;

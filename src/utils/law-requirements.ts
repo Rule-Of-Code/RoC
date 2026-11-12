@@ -103,6 +103,12 @@ const NOT_PROJECT_SOURCE = new Set([
   'coverage',
   'vendor',
   'target',
+  // Generated HTML reports and API docs: not the project's own pages, so a
+  // Go or Python project with a coverage report is not a static site (#323).
+  'htmlcov',
+  'apidocs',
+  'javadoc',
+  'typedoc',
 ]);
 
 /**
@@ -121,18 +127,36 @@ const NOT_PROJECT_SOURCE = new Set([
  */
 export function hasJsTsToolchain(projectRoot: string): boolean {
   if (presentRequiredFiles(projectRoot, JS_TS_MANIFESTS).length > 0) return true;
+  return holdsFileNamed(projectRoot, TS_SOURCE_NAME);
+}
+
+/** An HTML document — not `coverage.html`, which `go tool cover -html` writes. */
+const HTML_DOCUMENT_NAME = /^(?!coverage\.html?$).+\.html?$/i;
+
+/**
+ * Does the project hold an HTML document outside installed and built code?
+ * A static site — HTML pages, a hosting config, no framework — is typed
+ * `generic`, and the laws that read HTML and the hosting headers apply to it
+ * (#323). An unreadable directory answers yes, as for the toolchain.
+ */
+export function hasHtmlDocument(projectRoot: string): boolean {
+  return holdsFileNamed(projectRoot, HTML_DOCUMENT_NAME);
+}
+
+/** Walk the project (not installed, built or hidden directories) for a file whose name matches. */
+function holdsFileNamed(projectRoot: string, name: RegExp): boolean {
   const pending = [projectRoot];
   for (let dir = pending.pop(); dir !== undefined; dir = pending.pop()) {
-    if (directoryHoldsTypeScript(dir, pending)) return true;
+    if (directoryHolds(dir, name, pending)) return true;
   }
   return false;
 }
 
 /**
- * One step of the walk: true when `dir` holds a TypeScript file or cannot be
+ * One step of the walk: true when `dir` holds a matching file or cannot be
  * read; its own subdirectories are queued on `pending`.
  */
-function directoryHoldsTypeScript(dir: string, pending: string[]): boolean {
+function directoryHolds(dir: string, name: RegExp, pending: string[]): boolean {
   let entries: fs.Dirent[];
   try {
     entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -142,7 +166,7 @@ function directoryHoldsTypeScript(dir: string, pending: string[]): boolean {
   for (const entry of entries) {
     if (entry.name.startsWith('.')) continue;
     if (!entry.isDirectory()) {
-      if (TS_SOURCE_NAME.test(entry.name)) return true;
+      if (name.test(entry.name)) return true;
     } else if (!NOT_PROJECT_SOURCE.has(entry.name)) {
       pending.push(path.join(dir, entry.name));
     }

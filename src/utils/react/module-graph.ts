@@ -5,7 +5,8 @@
  * folders: a `'use client'` file pulls in everything it imports statically,
  * and everything those import. `import()`, `next/dynamic` and `React.lazy`
  * split the target into its own chunk, loaded on demand, so they are NOT
- * edges here.
+ * edges here. Neither is an import the compiler erases because it is used
+ * only as a type — the rule every import graph shares (CompiledImports).
  *
  * Specifiers are resolved by the project's own TypeScript
  * (`ts.resolveModuleName`) with the options of the nearest tsconfig.json —
@@ -20,6 +21,7 @@ import * as fs from 'fs';
 import type * as TS from 'typescript';
 import type { LawCheckContext } from '../../types/law.types';
 import { PathOperations } from '../path-operations';
+import { CompiledImports } from './compiled-imports';
 import { ReactProject } from './react-project';
 import { TsxSource, type TypeScriptModule } from './tsx-source';
 
@@ -177,39 +179,21 @@ export class ModuleResolver {
   }
 }
 
-/** The specifier and line of every static import and re-export in a module. */
-export function staticImports(source: TsxSource): Array<{ specifier: string; line: number; statement: TS.Statement }> {
-  const ts = source.ts;
+/**
+ * The specifier and line of every static import and re-export the compiler
+ * keeps (see CompiledImports: an import used only as a type is erased, so it
+ * pulls nothing into a bundle).
+ */
+export function staticImports(
+  source: TsxSource,
+  compiled: CompiledImports
+): Array<{ specifier: string; line: number; statement: TS.Statement }> {
   const found: Array<{ specifier: string; line: number; statement: TS.Statement }> = [];
   for (const statement of source.sourceFile.statements) {
-    if (ts.isImportDeclaration(statement)) {
-      if (isErasedImport(ts, statement) || !ts.isStringLiteral(statement.moduleSpecifier)) continue;
-      found.push({ specifier: statement.moduleSpecifier.text, line: source.lineOf(statement), statement });
-    } else if (
-      ts.isExportDeclaration(statement) &&
-      !statement.isTypeOnly &&
-      statement.moduleSpecifier &&
-      ts.isStringLiteral(statement.moduleSpecifier)
-    ) {
-      found.push({ specifier: statement.moduleSpecifier.text, line: source.lineOf(statement), statement });
-    }
+    const specifier = compiled.runtimeSpecifier(source, statement);
+    if (specifier !== null) found.push({ specifier, line: source.lineOf(statement), statement });
   }
   return found;
-}
-
-/** `import type …`, or an import whose every binding is `type`: erased by the compiler. */
-function isErasedImport(ts: TypeScriptModule, statement: TS.ImportDeclaration): boolean {
-  const clause = statement.importClause;
-  if (!clause) return false;
-  if (clause.isTypeOnly) return true;
-  const bindings = clause.namedBindings;
-  return (
-    !clause.name &&
-    bindings !== undefined &&
-    ts.isNamedImports(bindings) &&
-    bindings.elements.length > 0 &&
-    bindings.elements.every(element => element.isTypeOnly)
-  );
 }
 
 export interface GraphOptions {
@@ -234,6 +218,7 @@ export function buildModuleGraph(
 ): ModuleGraph {
   const nodes = new Map<string, GraphNode>();
   const unread: string[] = [];
+  const compiled = new CompiledImports(ts);
   const queue: Array<{ file: string; parent: string | null }> = entries.map(file => ({
     file: PathOperations.normalize(file),
     parent: null,
@@ -250,7 +235,7 @@ export function buildModuleGraph(
     const node: GraphNode = { source, edges: [], parent };
     nodes.set(file, node);
     if (options.stopAt?.(source, parent === null)) continue;
-    node.edges.push(...edgesOf(source, file, parent === null, resolver, options));
+    node.edges.push(...edgesOf(source, file, parent === null, resolver, compiled, options));
     for (const edge of node.edges) {
       const resolution = edge.resolution;
       if (resolution.kind === 'local') queue.push({ file: resolution.file, parent: file });
@@ -274,9 +259,10 @@ function edgesOf(
   file: string,
   isEntry: boolean,
   resolver: ModuleResolver,
+  compiled: CompiledImports,
   options: GraphOptions
 ): ImportEdge[] {
-  return staticImports(source)
+  return staticImports(source, compiled)
     .filter(({ statement }) => !options.skipEdge?.(source, statement, isEntry))
     .map(({ specifier, line }) => ({ specifier, line, resolution: resolver.resolve(specifier, file) }));
 }

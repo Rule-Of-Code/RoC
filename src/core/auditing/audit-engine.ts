@@ -354,7 +354,8 @@ export class RuleOfCodeAuditor {
         (law as { stack?: string }).stack,
         projectType,
         this.projectRoot,
-        law as { staticSiteHtml?: boolean }
+        law as { staticSiteHtml?: boolean },
+        this.globalIgnores()
       )
     );
 
@@ -397,6 +398,11 @@ export class RuleOfCodeAuditor {
   }
 
   /** Detected project type — config override first, then filesystem detection. */
+  /** `ignores.global`: what the project says is not its own code (#326). */
+  private globalIgnores(): readonly string[] {
+    return (this.config as { ignores?: { global?: readonly string[] } }).ignores?.global ?? [];
+  }
+
   private detectProjectType(): string | undefined {
     const configured = (this.config as { project?: { type?: string } }).project
       ?.type;
@@ -538,7 +544,7 @@ export class RuleOfCodeAuditor {
           `⚠️  laws.severity: unknown law '${key}' — this override gates nothing. Check the name with 'roc laws --list'.`
         );
       } else if (
-        !ModularLawsRegistry.lawAppliesToProjectType(law.stack, projectType, this.projectRoot, law)
+        !ModularLawsRegistry.lawAppliesToProjectType(law.stack, projectType, this.projectRoot, law, this.globalIgnores())
       ) {
         console.warn(
           `ℹ️  laws.severity: '${key}' exists but does not apply to this project type (${projectType ?? 'unknown'}) — stack-gated, kept for shared configs.`
@@ -647,7 +653,7 @@ export class RuleOfCodeAuditor {
       const law = known.get(key);
       if (
         law &&
-        !ModularLawsRegistry.lawAppliesToProjectType(law.stack, projectType, this.projectRoot, law)
+        !ModularLawsRegistry.lawAppliesToProjectType(law.stack, projectType, this.projectRoot, law, this.globalIgnores())
       ) {
         console.warn(
           `ℹ️  laws.notApplicable: '${key}' is already stack-gated off this project type (${projectType ?? 'unknown'}) — the waiver is redundant here.`
@@ -1101,7 +1107,8 @@ export class RuleOfCodeAuditor {
             law.stack,
             this.detectProjectType(),
             this.projectRoot,
-            law
+            law,
+            this.globalIgnores()
           ) && lawRequirementsMet(law.requires, this.projectRoot)
       ).length;
       console.log(

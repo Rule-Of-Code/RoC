@@ -36,14 +36,15 @@ export class ProjectTypeDetectorConfiguration {
   } as const;
 
   /**
-   * React project detection patterns (RULE 1: 100% internal coverage)
+   * React: the dependency is the evidence, never a file name (#319, the
+   * shape of #203 for Angular). `public/index.html` is Firebase Hosting's
+   * default and many static generators' output, and `src/App.tsx` /
+   * `src/App.jsx` are the templates of Preact, Solid and others — a static
+   * site with no package.json was typed React and ran the React and
+   * TypeScript laws.
    */
   static readonly REACT_PROJECT_PATTERNS = {
-    files: [
-      'src/App.tsx',
-      'src/App.jsx',
-      'public/index.html',
-    ] as readonly string[],
+    files: [] as readonly string[],
     dependencies: [
       'react',
       'react-dom',
@@ -53,10 +54,13 @@ export class ProjectTypeDetectorConfiguration {
   } as const;
 
   /**
-   * Vue project detection patterns (RULE 1: 100% internal coverage)
+   * Vue: the dependency, or a file only Vue reads — `vue.config.js` (Vue CLI)
+   * or a `.vue` single-file component. `src/main.js` was listed and is the
+   * vanilla Vite and Svelte template's entry, so a plain Vite app was typed
+   * Vue (#319).
    */
   static readonly VUE_PROJECT_PATTERNS = {
-    files: ['vue.config.js', 'src/main.js', 'src/App.vue'] as readonly string[],
+    files: ['vue.config.js', 'src/App.vue'] as readonly string[],
     dependencies: ['vue', '@vue/cli', 'nuxt'] as readonly string[],
   } as const;
 

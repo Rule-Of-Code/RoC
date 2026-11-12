@@ -30,6 +30,12 @@ export interface AuditResult {
    * above is zero — a refusal is not "N laws failed", it is "no law ran".
    */
   refused?: AuditRefusal;
+  /**
+   * The project type that selected this run's laws, and where it came from
+   * (#320). The config echoed in results cannot say this: a detected type is
+   * merged into it and looks configured.
+   */
+  project?: AuditProjectType;
   results: Map<string, unknown>;
   duration: number;
   paretoMode: boolean;
@@ -55,6 +61,18 @@ export interface AuditOptions {
   failOnWarnings?: boolean;
   categories?: string[];
   excludePatterns?: string[];
+}
+
+export interface AuditProjectType {
+  /** The type the law selection used (stack gating, framework defaults). */
+  type: string | undefined;
+  /**
+   * `detected`: from the project's dependencies and markers, with no type in
+   * any config (or a config that says `generic`). `configured`: a config
+   * names a type the detector would not have chosen. `default`: nothing was
+   * detected and no config names a type.
+   */
+  source: 'configured' | 'default' | 'detected';
 }
 
 export interface AuditRefusal {

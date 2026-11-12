@@ -20,7 +20,7 @@ import {
 import { NxWorkspace } from '../../utils/nx-workspace';
 import { PathOperations } from '../../utils/path-operations';
 import { AuditCache } from './audit-cache';
-import type { AuditOptions, AuditResult } from './audit-types';
+import type { AuditOptions, AuditProjectType, AuditResult } from './audit-types';
 import { AuditResultProcessor } from './result-processor';
 
 // Force chalk to use colors in all environments
@@ -240,6 +240,7 @@ export class RuleOfCodeAuditor {
           timestamp: new Date().toISOString(),
           projectRoot: this.projectRoot,
           config: this.config,
+          project: this.projectTypeInfo(),
         };
       }
 
@@ -268,6 +269,7 @@ export class RuleOfCodeAuditor {
         timestamp: new Date().toISOString(),
         projectRoot: this.projectRoot,
         config: this.config,
+        project: this.projectTypeInfo(),
       };
 
       // Save to cache if enabled — under the key computed before the run.
@@ -297,6 +299,26 @@ export class RuleOfCodeAuditor {
     );
     process.stdout.write(`${chalk.gray('Project:')} ${this.projectRoot}\n`);
     process.stdout.write(`${chalk.gray('Mode:')} ${this.mode}\n`);
+    const project = this.projectTypeInfo();
+    process.stdout.write(
+      `${chalk.gray('Project type:')} ${project.type ?? 'unknown'} (${project.source})\n`
+    );
+  }
+
+  /**
+   * The type that selects the laws, and its source (#320). A detected type is
+   * merged into the config, so the config alone cannot tell the two apart:
+   * the detector is asked again and compared.
+   */
+  private projectTypeInfo(): AuditProjectType {
+    const type = this.detectProjectType();
+    // The detector answers null (not undefined) when it recognises nothing.
+    const detected = ProjectTypeDetector.detectProjectType(this.projectRoot) ?? undefined;
+    if (detected !== undefined && detected === type) return { type, source: 'detected' };
+    if (detected === undefined && (type === undefined || type === 'generic')) {
+      return { type, source: 'default' };
+    }
+    return { type, source: 'configured' };
   }
 
   /** The laws this run executes: the selection, minus what the mode defers. */

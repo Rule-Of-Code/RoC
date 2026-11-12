@@ -272,6 +272,8 @@ export class AuditResultProcessor {
     const exportData = {
       passed: result.passed,
       score: result.score,
+      // The type that selected the laws, and its source (#320).
+      ...(result.project ? { project: result.project } : {}),
       // Present only when the engine refused to run: no law was judged.
       ...(result.refused ? { refused: result.refused } : {}),
       stats: this.generateStats(result),

@@ -993,7 +993,11 @@ export class ModularLawsRegistry {
       FileFilterUtils.currentLawConfigKey = lawConfigKey;
       FileFilterUtils.currentProjectRoot = projectRoot;
       try {
-        return await this.executeLawCheck(law, context, config);
+        const result = await this.executeLawCheck(law, context, config);
+        // Every result echoes the config the law RAN with. Some result
+        // builders filled in a minimal default config instead, so a Next app
+        // whose laws ran as `react` reported `generic` in six of them (#320).
+        return { ...result, config };
       } finally {
         FileFilterUtils.currentLawConfigKey = undefined;
         FileFilterUtils.currentProjectRoot = undefined;

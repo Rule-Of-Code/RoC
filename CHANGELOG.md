@@ -5,6 +5,89 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.26.2] - 2026-11-12
+
+QA ran the 7.26.1 package before publication and returned NO-GO on three
+defects; this release fixes them and four cheaper ones from the same run.
+Publish 7.26.2; 7.26.0 and 7.26.1 are tagged but superseded. Closes #292,
+#293, #294, #295, #296, #297, #307, #311.
+
+### 🐛 Fixed — the three blockers
+
+**Opt-in laws ran anyway (#292).** `defaultEnabled: false` was read by
+nothing that selects laws, so No Risk Literals, Retention Registry Covers
+Schema and Next Route JS Budget — documented as opt-in in 7.26.0 — ran on a
+project with no config, and the budget law failed "not measured". Without
+`laws.enabled` an opt-in law now runs only when `laws.severity` gives it a
+severity (`error` / `warning` / `info`); with `laws.enabled` it runs when
+listed there. A config that already set its severity keeps running it. Nine
+older cards also said `defaultEnabled: false` and ran by default; they now
+say `true`, so their behaviour does not change. The liveness floor counts
+laws that run by default.
+
+**An import used only as a type was a runtime edge (#293).** In the Next
+module graph `import { Row } from '../lib/db'` without `type`, used only in
+annotations, counted as bundling `../lib/db` for the browser; the compiler
+erases it. Next Server Only Boundary and Next Client Env Public Only reported
+server modules "bundled for the browser" that never reach it (8 false errors
+on a public Next starter). Such an import is no edge in TypeScript files —
+unless the tsconfig sets `verbatimModuleSyntax` (or `preserveValueImports`),
+which keeps it. `class A extends Imported` and JSX use count as values.
+
+**Test Documentation Requirements read titles that are not tests (#294).**
+`it\s*\(` matched the tail of `split(` and of `it (` in comments, and titles
+were cut at an inner quote: on a real Angular/Ionic monorepo 157 titles were
+"unclear", one truly. Titles are now read from the parse — the first argument
+of a call to `it` / `test` / `xit` / `fit` (and `.only`, `.skip`, …) — with a
+regex fallback that requires a call boundary and the same closing quote. The
+vague-title patterns match whole words ("… never the network" is not
+"… work"). A test file that cannot be read is reported, not skipped. Same
+monorepo: 157 → 5, one a genuine two-letter title.
+
+### 🐛 Fixed — fail-open and gates
+
+- **Commit Size Control (#295):** a `baseline` ref missing from the checkout
+  (CI with `fetch-depth: 1`) made `git log` fail and the law passed. It now
+  reports "Unable to read git history", as its two sibling laws do, and names
+  the baseline.
+- **React/Next laws (#297):** a `.tsx` TypeScript cannot parse was walked as
+  half a tree and passed. The shared loaders now report it as not read, with
+  the syntax error.
+- **Performance alerts (#311):** the CI-workflow route was dead code and
+  `.lighthouserc.js` could never count. A Lighthouse CI config with
+  assertions (any of its ten file names) and a workflow that runs a
+  performance check and notifies someone now satisfy Performance Monitoring
+  Policy, and Performance Monitoring Standards accepts the same routes.
+- **Release canary (#296):** provenance compared file names, not contents —
+  a tarball with a line appended to `dist/cli.js` printed GREEN. It now
+  compares the sha256 of every file and reads long tar names correctly.
+- **Packaging (#307):** no `.gitattributes`, so a tag packed to two sha1s by
+  `core.autocrlf` and the tarball shipped CRLF in 13 files. `* text=auto
+  eol=lf`; the six files the index held as CRLF were renormalized.
+
+### Numbers that move
+
+Selected laws, same fixtures, 7.26.1 → 7.26.2:
+
+| fixture | 7.26.1 | 7.26.2 |
+|---|---|---|
+| Next app, no config — `package.json` with next/react/react-dom only, no `typescript` | 133 | 131 |
+| Next npm-workspaces monorepo, no config — root declares `typescript`, `apps/web` declares next | 134 | 132 |
+| canary Angular (`project.type` set, its own config) | 121 | 120 |
+| canary Angular + Ionic + Capacitor | 151 | 150 |
+| canary Next.js (`typescript` declared, `tsconfig.json`) | 136 | 134 |
+| canary Python / Node | 97 / 77 | 97 / 77 |
+
+The difference is the opt-in laws (Next Route JS Budget, No Risk Literals).
+The 7.26.0 table's "Next app, no config 136" was measured on a fixture with
+`typescript` declared; the same plain fixture gives 133 on 7.26.1, so read a
+count together with the fixture's shape.
+
+**To keep an opt-in law,** give it a severity in `laws.severity` (for example
+`"No Risk Literals": "error"`) or list it in `laws.enabled`. A config whose
+`laws.minLawsChecked` equals today's count on a Next or Angular project must
+lower it by the laws above, unless it turns them on.
+
 ## [7.26.1] - 2026-11-12
 
 One defect, found by running the 7.26.0 package against a real consumer

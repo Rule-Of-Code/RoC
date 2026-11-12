@@ -222,3 +222,40 @@ describe('Inject Over Constructor DI judges decorated classes, not the file (#33
     expect((InjectOverConstructorDiLaw.check(ctx(root)).violations ?? []).join('\n')).toMatch(/repo\.repository\.ts: 1 constructor/);
   });
 });
+
+/**
+ * #335: reading unsuffixed Angular 20 sources made the "substantial app"
+ * guard (more than 5 sources) true for the first time, and the e2e lookup
+ * behind it read only root-level e2e/, cypress/ and tests/ — so a Playwright
+ * suite in Nx's apps/<name>-e2e/ was "No E2E tests found", an error.
+ */
+describe('e2e specs in apps/<name>-e2e/ are found (#335)', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { AngularTestingExcellenceLaw } = require('../../src/checkers/angular-laws/angular-testing-excellence');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { findE2ESpecs } = require('../../src/utils/testing/e2e-specs');
+  const app = (): Record<string, string> => {
+    const files: Record<string, string> = { 'package.json': MANIFEST };
+    for (let i = 0; i < 7; i++) {
+      files[`apps/web/src/app/page${i}.ts`] = `@Component({ selector: 'app-p${i}', template: '' })\nexport class Page${i} {}\n`;
+    }
+    return files;
+  };
+  const SPEC = "import { test, expect } from '@playwright/test';\ntest('home renders the title', async ({ page }) => { await expect(page).toHaveTitle(/x/); });\n";
+  const e2eFinding = (root: string): boolean =>
+    (AngularTestingExcellenceLaw.check(ctx(root)).violations ?? []).some((v: string) => /No E2E tests found/.test(v));
+
+  it('a Playwright suite in apps/web-e2e/src/ counts', () => {
+    const root = fixture({ ...app(), 'apps/web-e2e/src/home.spec.ts': SPEC });
+    expect(findE2ESpecs(root).map((f: string) => path.basename(f))).toEqual(['home.spec.ts']);
+    expect(e2eFinding(root)).toBe(false);
+  });
+
+  it('control: the same app with no e2e suite is still a finding', () => {
+    expect(e2eFinding(fixture(app()))).toBe(true);
+  });
+
+  it('control: a root-level e2e/ suite counts, as before', () => {
+    expect(e2eFinding(fixture({ ...app(), 'e2e/home.spec.ts': SPEC }))).toBe(false);
+  });
+});

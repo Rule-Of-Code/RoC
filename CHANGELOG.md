@@ -5,6 +5,28 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.26.8] - 2026-11-12
+
+A false error that 7.26.7 would have introduced, found by running the
+7.26.7 package against the project's own Angular 20 site before
+publication. Closes #335. Publish 7.26.8; 7.26.7 is tagged but superseded.
+
+### 🐛 Fixed
+
+**E2E specs in Nx's `apps/<name>-e2e/` are found (#335).** Angular Testing
+Excellence asks for an e2e suite once an app has more than 5 Angular
+sources. Since #330 counts Angular 20's unsuffixed files, that guard was
+true for the first time on such apps — and its lookup read only root-level
+`e2e/`, `cypress/` and `tests/`, so a Playwright suite of 93 tests in
+`apps/web-e2e/src/` was "No E2E tests found" at `error`. E2E Testing
+Standards had its own list with the same blind spot (only a directory
+named exactly `e2e`). Both now use one discovery: `*.e2e-spec.*`,
+`*.e2e.spec|test.*`, `*.cy.*`, `cypress/**`, `e2e/**` and `*-e2e/**`
+anywhere, read past `includes`/`ignores` as before. The other counts that
+the wider Angular source reading feeds were checked: the per-file
+standards already read by decorator, and the test-coverage ratio now
+counts every Angular source.
+
 ## [7.26.7] - 2026-11-12
 
 Three defects the site's adoption of 7.26.6 found. Closes #330, #331,

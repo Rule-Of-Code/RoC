@@ -90,8 +90,6 @@ export const ACCESSIBILITY_LAWS: EnhancedConstitutionalLaw[] = [
     priority: 'HIGH',
     category: 'ACCESSIBILITY',
     stack: 'frontend',
-    // Reads plain HTML too: a static site keeps it (#323).
-    staticSiteHtml: true,
     defaultEnabled: true,
     defaultSeverity: 'warning',
     automation: 'AUTOMATED',
@@ -223,8 +221,6 @@ export const ACCESSIBILITY_LAWS: EnhancedConstitutionalLaw[] = [
     priority: 'LOW',
     category: 'ACCESSIBILITY',
     stack: 'frontend',
-    // Reads plain HTML too: a static site keeps it (#323).
-    staticSiteHtml: true,
     defaultEnabled: true,
     defaultSeverity: 'warning',
     automation: 'AUTOMATED',

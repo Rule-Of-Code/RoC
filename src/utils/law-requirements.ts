@@ -103,6 +103,12 @@ const NOT_PROJECT_SOURCE = new Set([
   'coverage',
   'vendor',
   'target',
+  // Generated HTML reports and API docs: not the project's own pages, so a
+  // Go or Python project with a coverage report is not a static site (#323).
+  'htmlcov',
+  'apidocs',
+  'javadoc',
+  'typedoc',
 ]);
 
 /**
@@ -124,8 +130,8 @@ export function hasJsTsToolchain(projectRoot: string): boolean {
   return holdsFileNamed(projectRoot, TS_SOURCE_NAME);
 }
 
-/** An HTML document. */
-const HTML_DOCUMENT_NAME = /\.html?$/i;
+/** An HTML document — not `coverage.html`, which `go tool cover -html` writes. */
+const HTML_DOCUMENT_NAME = /^(?!coverage\.html?$).+\.html?$/i;
 
 /**
  * Does the project hold an HTML document outside installed and built code?

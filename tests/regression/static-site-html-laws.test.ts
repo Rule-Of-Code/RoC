@@ -51,13 +51,10 @@ const selected = (root: string): string[] =>
     .getSelectedLaws()
     .map(l => l.name);
 
-const HTML_LAWS = [
-  'Form Control Labeling',
-  'Explicit Button Type',
-  'Modal Dialog Accessibility',
-  'Disclosure Control ARIA State',
-  'Security Standards (XSS Prevention) Policy',
-];
+const HTML_LAWS = ['Form Control Labeling', 'Explicit Button Type', 'Security Standards (XSS Prevention) Policy'];
+
+/** Frontend laws that read framework code, not plain HTML: no flag, no static site. */
+const FRAMEWORK_ONLY = ['Accessibility Linting Enforcement', 'Modal Dialog Accessibility', 'Disclosure Control ARIA State'];
 
 const PAGE =
   '<!doctype html>\n<html><head><title>x</title></head>\n<body><form><input type="text" name="q"><button>go</button></form></body></html>\n';
@@ -83,8 +80,18 @@ describe('a static site keeps the laws that read HTML (#323)', () => {
     for (const law of HTML_LAWS) expect(names).not.toContain(law);
   });
 
-  it('the linter law, which reads no HTML, stays framework-scoped', () => {
-    expect(selected(fixture({ 'public/index.html': PAGE }))).not.toContain('Accessibility Linting Enforcement');
+  it('laws that read no plain HTML stay framework-scoped (they would pass on nothing)', () => {
+    const names = selected(fixture({ 'public/index.html': PAGE }));
+    for (const law of FRAMEWORK_ONLY) expect(names).not.toContain(law);
+  });
+
+  it.each([
+    ['a Go coverage report', { 'go.mod': 'module x\n', 'coverage.html': PAGE }],
+    ['a Python coverage report', { 'pyproject.toml': '[project]\nname="x"\n', 'htmlcov/index.html': PAGE }],
+    ['generated API docs', { 'go.mod': 'module x\n', 'apidocs/index.html': PAGE }],
+  ])('generated HTML (%s) does not make a project a static site', (_label, files) => {
+    const names = selected(fixture(files as Record<string, string>));
+    for (const law of HTML_LAWS) expect(names).not.toContain(law);
   });
 
   it('control: a framework project selects them as before', () => {

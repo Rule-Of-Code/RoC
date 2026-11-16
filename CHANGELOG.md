@@ -5,6 +5,52 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.26.10] - 2026-11-16
+
+Found by a clean install from the README's Quick start of 7.26.9, and QA's
+#345. Closes #345.
+
+### ⚠️ Changes you will see
+
+- **`init` writes the full law set (B3).** `init --quick`, the
+  non-interactive fallback and the interactive prompt's default wrote
+  `paretoMode: true`. The hooks inherit the config's scope, so every new
+  install gated commits and pushes on the Pareto subset — and a deliberate
+  Pareto config has a liveness floor of 0, so nothing flagged it. The README,
+  the site and the template all say Pareto is an explicit opt-in. New
+  configs now say `paretoMode: false`, and `npx ruleofcode audit` after
+  `init` runs `Mode: full`, as the README's comment says. **Existing
+  configs are not changed:** a config that says `paretoMode: true` keeps
+  the subset — set it to `false` to gate on the full set.
+
+### 🐛 Fixed
+
+- **The first commit of a fresh project no longer fails (B2).** The
+  pre-commit hook ran `npx lint-staged` unconditionally, while `init`
+  installs neither lint-staged nor a config; under husky's `sh -e` the
+  commit failed with "lint-staged could not find any valid configuration".
+  The hook runs lint-staged only when a config exists (`.lintstagedrc*`,
+  `lint-staged.config.*`, or a `lint-staged` key in `package.json`). It no
+  longer suggests `git commit --no-verify`, which CONTRIBUTING forbids; it
+  points to `laws.notApplicable` with a reason instead.
+- **TypeScript Strict Mode credits what `strict` turns on (B4).** A project
+  with `"strict": true` was told to enable `noImplicitAny` and
+  `noImplicitThis`, which `strict` already enables; and options inherited
+  through `extends` (an Nx `tsconfig.base.json`, `@tsconfig/strictest`)
+  were not read. The flags are now resolved by the project's own
+  TypeScript, and only an explicit `false` switches an implied one off.
+  `noImplicitReturns`, `noUnusedLocals` and the others `strict` does not
+  include are still required.
+- **Authentication Security says "insecure" only about insecure code
+  (B4).** "Insecure password handling detected" was reported whenever no
+  hashing library was found — including on code that handles no password.
+  It now needs an insecure pattern (md5/sha1/btoa of a password, plaintext);
+  code that handles passwords without a recognised hashing library gets a
+  finding that says exactly that.
+- **Component-spec evidence is read from code (#345).** A
+  `TestBed.createComponent(` in a comment, or a type-only
+  `@testing-library/angular` import, counted as test setup.
+
 ## [7.26.9] - 2026-11-12
 
 QA's residuals of #330 on 7.26.7, and one false error the site found by

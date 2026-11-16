@@ -98,8 +98,21 @@ export class GitHooksInstaller {
     }
 
     const hookContent = `# RuleOfCode v${this.VERSION} Constitutional Checkpoint (husky v9+ native hook)
-echo "🏛️ RuleOfCode v${this.VERSION} Constitutional Checkpoint with lint-staged"
-npx lint-staged
+echo "🏛️ RuleOfCode v${this.VERSION} Constitutional Checkpoint"
+
+# lint-staged only where the project configured it: init installs neither the
+# package nor a config, and husky runs this with sh -e, so an unconditional
+# call failed the very first commit of a fresh project (B2).
+roc_lint_staged=0
+for roc_f in .lintstagedrc .lintstagedrc.* lint-staged.config.*; do
+  if [ -e "$roc_f" ]; then roc_lint_staged=1; fi
+done
+if [ "$roc_lint_staged" = 0 ] && node -e "process.exit(require('./package.json')['lint-staged'] ? 0 : 1)" 2>/dev/null; then
+  roc_lint_staged=1
+fi
+if [ "$roc_lint_staged" = 1 ]; then
+  npx lint-staged
+fi
 
 # Run constitutional audit on staged files
 npx ruleofcode audit --mode=pre-commit --staged
@@ -108,8 +121,8 @@ npx ruleofcode audit --mode=pre-commit --staged
 if [ $? -ne 0 ]; then
     echo ""
     echo "❌ Constitutional violations detected - commit blocked"
-    echo "   Run 'npx ruleofcode audit --verbose' for details"
-    echo "   Or use 'git commit --no-verify' to bypass (not recommended)"
+    echo "   Run 'npx ruleofcode audit --verbose' for details, fix the cause, and commit again"
+    echo "   (a law that does not apply: laws.notApplicable with a reason — never --no-verify)"
     exit 1
 fi
 ${this.pythonHookBlock(config, this.PRE_COMMIT_HOOK)}

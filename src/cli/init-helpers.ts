@@ -144,7 +144,7 @@ export async function setupQuickMode(
 
   console.log(`Project: ${projectName}`);
   console.log(`Type: ${detected} (${requested ? 'from --type' : 'auto-detected'})`);
-  console.log('Laws: Pareto mode (high-impact laws)');
+  console.log('Laws: the full law set (Pareto is an opt-in: laws.paretoMode)');
   console.log('Hooks: Pre-commit + Pre-push enabled');
 
   const baseConfig = { ...DEFAULT_CONFIG };
@@ -159,9 +159,13 @@ export async function setupQuickMode(
           ? 'app'
           : 'ui',
     },
+    // The full law set (B3). The hooks inherit this scope, so `paretoMode: true`
+    // here made every quick install — and every non-interactive one — gate
+    // commits on the Pareto subset with no liveness floor, while the docs and
+    // the template say Pareto is an explicit opt-in.
     laws: {
       ...baseConfig.laws,
-      paretoMode: true,
+      paretoMode: false,
     },
     hooks: {
       ...baseConfig.hooks,

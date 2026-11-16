@@ -10,6 +10,7 @@ import type {
 } from './shared-imports';
 import { findE2ESpecs } from '../../utils/testing/e2e-specs';
 import { AngularComponentFiles } from '../../utils/angular-component-files';
+import { CodeText } from '../../utils/code-text';
 import {
   AngularLawBase,
   CheckerUtils,
@@ -139,12 +140,17 @@ export class AngularTestingExcellenceLaw extends AngularLawBase {
     relativePath: string,
     violations: string[]
   ): void {
+    // Evidence is read from CODE: a `TestBed.createComponent(` in a comment, or
+    // a type-only import, is no test setup (#345).
+    const code = CodeText.stripComments(content);
     // Angular Testing Library's render() and Spectator's factories configure
-    // TestBed and own the fixture, so either is evidence of both (#344).
-    const testingLibrary = /from\s+['"](?:@testing-library\/angular|@ngneat\/spectator(?:\/jest)?)['"]/.test(
-      content
-    );
-    if (!content.includes('TestBed') && !testingLibrary) {
+    // TestBed and own the fixture, so a value import of either is evidence of
+    // both (#344).
+    const testingLibrary =
+      /\bimport\s+(?!type\b)[^;]*?\bfrom\s+['"](?:@testing-library\/angular|@ngneat\/spectator(?:\/jest)?)['"]/.test(
+        code
+      );
+    if (!code.includes('TestBed') && !testingLibrary) {
       violations.push(
         `Component test missing TestBed configuration: ${relativePath}`
       );
@@ -154,7 +160,7 @@ export class AngularTestingExcellenceLaw extends AngularLawBase {
     // inferred, so the word need not appear. Requiring the word failed a
     // correct spec the moment unsuffixed specs were read (#343).
     const hasFixture =
-      content.includes('ComponentFixture') || /\bcreateComponent\s*\(/.test(content) || testingLibrary;
+      code.includes('ComponentFixture') || /\bcreateComponent\s*\(/.test(code) || testingLibrary;
     if (!hasFixture) {
       violations.push(
         `Component test missing ComponentFixture: ${relativePath}`

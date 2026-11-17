@@ -274,6 +274,8 @@ export class AuditResultProcessor {
       score: result.score,
       // The type that selected the laws, and its source (#320).
       ...(result.project ? { project: result.project } : {}),
+      // N of M: what ran, what applies, and whether that is partial (#348).
+      ...(result.scope ? { scope: result.scope } : {}),
       // Present only when the engine refused to run: no law was judged.
       ...(result.refused ? { refused: result.refused } : {}),
       stats: this.generateStats(result),

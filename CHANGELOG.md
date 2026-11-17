@@ -24,8 +24,14 @@ Found by a clean install from the README's Quick start of 7.26.9, and QA's
   narrowing (they change what applies). **The exit code is unchanged: 0
   when the selected laws pass**, so a gate on an explicit subset keeps
   working; only the words change. The JSON export and `--json` carry
-  `scope: { executedLaws, applicableLaws, narrowedBy, partial }` — the
-  "N of M". **Read `scope.partial`, not only `passed`:** `passed` follows
+  `scope: { executedLaws, selectedLaws, applicableLaws, narrowedBy,
+  partial }` — the "N of M". `selectedLaws` is the substantive laws the
+  config selected (what `partial` and the liveness floor compare);
+  `executedLaws` is the ones that ran — fewer in a pre-commit, which defers
+  the history laws, and **0 on a refusal**, with or without an allowlist.
+  A refusal is never `partial` (no law ran — read `refused`); `narrowedBy`
+  still says why the selection was small. **Read `scope.partial`, not only
+  `passed`:** `passed` follows
   the exit code and is `true` for a partial run whose selected laws pass; a
   badge or CI script that reads only `passed` counts a partial run as a
   pass. (An explicit verdict field is planned.) The banner says `🎯 ALLOWLIST — only the laws named in

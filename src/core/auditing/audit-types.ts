@@ -66,13 +66,15 @@ export interface AuditOptions {
 }
 
 export interface AuditScope {
-  /** Substantive laws selected for this run (the always-on meta-gates excluded). */
+  /** Substantive laws that RAN (the always-on meta-gates excluded): 0 on a refusal; a pre-commit's deferred history laws are not counted. */
   executedLaws: number;
+  /** Substantive laws the config selected — what the liveness floor and "partial" compare. */
+  selectedLaws: number;
   /** Substantive laws that apply with no allowlist and no Pareto — the "M" in "N of M". */
   applicableLaws: number;
   /** What narrowed the run, if anything. `laws.notApplicable` waivers do not: they change what applies. */
   narrowedBy: 'laws.enabled' | 'paretoMode' | undefined;
-  /** Narrowed AND fewer laws ran than apply: no compliance verdict is printed. */
+  /** Narrowed AND fewer laws selected than apply: no compliance verdict is printed. Always false on a refusal (no law ran; see `refused`). */
   partial: boolean;
 }
 

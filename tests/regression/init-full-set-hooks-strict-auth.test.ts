@@ -248,7 +248,7 @@ describe('#348 a narrowed run is PARTIAL N of M, never COMPLIANCE', () => {
   it('an allowlist of 2 passing laws: PARTIAL "2 of M", no COMPLIANCE, scope in JSON', async () => {
     const { result, text } = await audit({ enabled: { 'Semantic Versioning Standards': true, 'Data Encryption Standards': true } });
     expect(result.passed).toBe(true);
-    expect(result.scope).toMatchObject({ executedLaws: 2, narrowedBy: 'laws.enabled', partial: true });
+    expect(result.scope).toMatchObject({ executedLaws: 2, selectedLaws: 2, narrowedBy: 'laws.enabled', partial: true });
     expect(result.scope.applicableLaws).toBeGreaterThan(2);
     expect(text).toContain(
       `PARTIAL SCAN — 2 of ${result.scope.applicableLaws} applicable laws ran (narrowed by laws.enabled). The selected laws passed; no compliance verdict.`
@@ -256,6 +256,23 @@ describe('#348 a narrowed run is PARTIAL N of M, never COMPLIANCE', () => {
     expect(text).not.toMatch(/CONSTITUTIONAL COMPLIANCE: PASSED/);
     const json = JSON.parse(AuditResultProcessor.exportResults(result, 'json'));
     expect(json.scope).toMatchObject({ executedLaws: 2, partial: true, narrowedBy: 'laws.enabled' });
+  });
+
+  it('a refused audit ran nothing: scope.executedLaws 0, selectedLaws the selection, not partial', async () => {
+    const { result } = await audit({
+      minLawsChecked: 73,
+      enabled: { 'Semantic Versioning Standards': true, 'Data Encryption Standards': true },
+    });
+    expect(result.refused).toMatchObject({ reason: 'liveness-floor', selectedLaws: 2 });
+    expect(result.scope).toMatchObject({ executedLaws: 0, selectedLaws: 2, narrowedBy: 'laws.enabled', partial: false });
+  });
+
+  it('a refusal with no allowlist also ran nothing: executedLaws 0, not partial', async () => {
+    const { result } = await audit({ minLawsChecked: 9999 });
+    expect(result.refused).toMatchObject({ reason: 'liveness-floor' });
+    expect(result.scope).toMatchObject({ executedLaws: 0, narrowedBy: undefined, partial: false });
+    expect(result.scope.selectedLaws).toBe(result.refused.selectedLaws);
+    expect(result.scope.selectedLaws).toBe(result.scope.applicableLaws);
   });
 
   it('control: a waiver is not narrowing — no PARTIAL, M drops by the waived law', async () => {

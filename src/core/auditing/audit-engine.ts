@@ -242,7 +242,7 @@ export class RuleOfCodeAuditor {
           projectRoot: this.projectRoot,
           config: this.config,
           project: this.projectTypeInfo(),
-          scope: this.scopeOf(substantive.length),
+          scope: this.scopeOf(substantive.length, 0, true),
         };
       }
 
@@ -272,7 +272,10 @@ export class RuleOfCodeAuditor {
         projectRoot: this.projectRoot,
         config: this.config,
         project: this.projectTypeInfo(),
-        scope: this.scopeOf(substantive.length),
+        scope: this.scopeOf(
+          substantive.length,
+          laws.filter(law => !(law as { alwaysEnabled?: boolean }).alwaysEnabled).length
+        ),
       };
 
       // Save to cache if enabled — under the key computed before the run.
@@ -408,7 +411,11 @@ export class RuleOfCodeAuditor {
    * out of 77 printed "CONSTITUTIONAL COMPLIANCE: PASSED" and the victory art,
    * because only Pareto was treated as partial.
    */
-  private scopeOf(selectedSubstantive: number): AuditScope {
+  private scopeOf(
+    selectedSubstantive: number,
+    executedSubstantive: number,
+    refused = false
+  ): AuditScope {
     const laws = this.config.laws as Record<string, unknown>;
     const narrowedBy: AuditScope['narrowedBy'] =
       laws.paretoMode === true ? 'paretoMode' : laws.enabled !== undefined ? 'laws.enabled' : undefined;
@@ -420,10 +427,18 @@ export class RuleOfCodeAuditor {
       law => !(law as { alwaysEnabled?: boolean }).alwaysEnabled
     ).length;
     return {
-      executedLaws: selectedSubstantive,
+      // What actually ran: 0 on a refusal, the selection minus the history
+      // laws a pre-commit defers. Reporting the selection here said "2 ran"
+      // for a refused audit in which nothing ran.
+      executedLaws: executedSubstantive,
+      selectedLaws: selectedSubstantive,
       applicableLaws,
       narrowedBy,
-      partial: narrowedBy !== undefined && selectedSubstantive < applicableLaws,
+      // Partial is about the SELECTION: a pre-commit defers the history laws
+      // by design, which is not a narrowing. A refusal is not partial — no
+      // law ran at all; `refused` says so, and narrowedBy still says why the
+      // selection was small.
+      partial: !refused && narrowedBy !== undefined && selectedSubstantive < applicableLaws,
     };
   }
 

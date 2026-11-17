@@ -9,8 +9,8 @@ npx ruleofcode audit --mode=pre-commit --staged
 if [ $? -ne 0 ]; then
     echo ""
     echo "❌ Constitutional violations detected - commit blocked"
-    echo "   Run 'npx ruleofcode audit --verbose' for details"
-    echo "   Or use 'git commit --no-verify' to bypass (not recommended)"
+    echo "   Run 'npx ruleofcode audit --verbose' for details, fix the cause, and commit again"
+    echo "   (a law that does not apply: laws.notApplicable with a reason — never --no-verify)"
     exit 1
 fi
 

@@ -113,16 +113,19 @@ async function getLawsMode(
       type: 'list',
       name: 'lawsMode',
       message: 'Which constitutional enforcement level do you prefer?',
+      // Full is the default (B3): the hooks inherit this scope, and a Pareto
+      // default made every new install's pre-commit/pre-push gate a subset —
+      // with a liveness floor of 0, since Pareto is a deliberate narrowing.
       choices: [
         {
-          name: `🎯 PARETO MODE - ${PARETO_LAWS_COUNT} High-Impact Laws (Recommended)`,
-          value: 'pareto',
-          short: 'Pareto',
-        },
-        {
-          name: `🏦 FULL COMPLIANCE - All ${TOTAL_LAWS_COUNT} Constitutional Laws`,
+          name: `🏦 FULL COMPLIANCE - All ${TOTAL_LAWS_COUNT} Constitutional Laws (Recommended)`,
           value: 'full',
           short: 'Full',
+        },
+        {
+          name: `🎯 PARETO MODE - ${PARETO_LAWS_COUNT} High-Impact Laws (a subset — the hooks check only these)`,
+          value: 'pareto',
+          short: 'Pareto',
         },
         {
           name: "🔧 CUSTOM - I'll configure my own rules",
@@ -130,7 +133,7 @@ async function getLawsMode(
           short: 'Custom',
         },
       ],
-      default: 'pareto',
+      default: 'full',
     },
   ]);
 

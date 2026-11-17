@@ -32,10 +32,21 @@ export class AuthenticationChecker extends SecurityCheckerBase {
           violationMessage: 'No proper token management implementation found',
           suggestionMessage: 'Implement secure token storage and management',
         },
+        // "Insecure" only where an insecure pattern IS in the code (md5/sha1/btoa
+        // of a password, a plaintext one). Absent hashing used to be reported
+        // as "Insecure password handling detected" — on a 3-line project that
+        // handles no password at all (B4).
         {
-          validator: codeFiles => this.hasSecurePasswordHandling(codeFiles),
+          validator: codeFiles => !this.hasInsecurePasswordHandling(codeFiles),
           violationMessage: 'Insecure password handling detected',
           suggestionMessage: 'Use proper password hashing and validation',
+        },
+        {
+          validator: codeFiles =>
+            !this.handlesPasswords(codeFiles) || this.hasSecurePasswordHandling(codeFiles),
+          violationMessage:
+            'Passwords are handled without a recognised hashing library (bcrypt, scrypt, argon2, pbkdf2) or managed auth',
+          suggestionMessage: 'Hash passwords with bcrypt, scrypt or argon2, or delegate to a managed auth provider',
         },
       ]
     );
@@ -97,50 +108,52 @@ export class AuthenticationChecker extends SecurityCheckerBase {
     });
   }
 
-  private static hasSecurePasswordHandling(codeFiles: string[]): boolean {
-    const securePatterns = [
-      /bcrypt/,
-      /scrypt/,
-      /argon2/,
-      /pbkdf2/,
-      /crypto\.hash/,
-      /password.*hash/i,
-      /hash.*password/i,
-      // Firebase Auth handles passwords securely server-side
-      /firebase.*auth/i,
-      /@angular\/fire\/auth/,
-      /signInWithEmailAndPassword/,
-      /createUserWithEmailAndPassword/,
-    ];
+  private static readonly SECURE_PASSWORD_PATTERNS = [
+    /bcrypt/,
+    /scrypt/,
+    /argon2/,
+    /pbkdf2/,
+    /crypto\.hash/,
+    /password.*hash/i,
+    /hash.*password/i,
+    // Firebase Auth handles passwords securely server-side
+    /firebase.*auth/i,
+    /@angular\/fire\/auth/,
+    /signInWithEmailAndPassword/,
+    /createUserWithEmailAndPassword/,
+  ];
 
-    const insecurePatterns = [
-      /md5.*password/i,
-      /sha1.*password/i,
-      /btoa.*password/i,
-      /password.*plain/i,
-      /plaintext.*password/i,
-    ];
+  private static readonly INSECURE_PASSWORD_PATTERNS = [
+    /md5.*password/i,
+    /sha1.*password/i,
+    /btoa.*password/i,
+    /password.*plain/i,
+    /plaintext.*password/i,
+  ];
 
-    let hasSecure = false;
-    let hasInsecure = false;
-
-    for (const file of codeFiles) {
+  /** Does any file match any pattern? An unreadable file matches nothing. */
+  private static anyFileMatches(codeFiles: string[], patterns: readonly RegExp[]): boolean {
+    return codeFiles.some(file => {
       try {
         const content = FileUtils.readFile(file);
-
-        if (securePatterns.some(pattern => pattern.test(content))) {
-          hasSecure = true;
-        }
-
-        if (insecurePatterns.some(pattern => pattern.test(content))) {
-          hasInsecure = true;
-        }
+        return patterns.some(pattern => pattern.test(content));
       } catch (_error) {
-        // Continue checking other files
+        return false;
       }
-    }
+    });
+  }
 
-    return hasSecure && !hasInsecure;
+  private static hasSecurePasswordHandling(codeFiles: string[]): boolean {
+    return this.anyFileMatches(codeFiles, this.SECURE_PASSWORD_PATTERNS);
+  }
+
+  private static hasInsecurePasswordHandling(codeFiles: string[]): boolean {
+    return this.anyFileMatches(codeFiles, this.INSECURE_PASSWORD_PATTERNS);
+  }
+
+  /** The code handles passwords at all — the word as an identifier or key. */
+  private static handlesPasswords(codeFiles: string[]): boolean {
+    return this.anyFileMatches(codeFiles, [/\bpassword\b/i]);
   }
 
   private static hasOAuthIntegration(codeFiles: string[]): boolean {

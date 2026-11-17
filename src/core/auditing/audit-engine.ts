@@ -20,7 +20,7 @@ import {
 import { NxWorkspace } from '../../utils/nx-workspace';
 import { PathOperations } from '../../utils/path-operations';
 import { AuditCache } from './audit-cache';
-import type { AuditOptions, AuditProjectType, AuditResult } from './audit-types';
+import type { AuditOptions, AuditProjectType, AuditResult, AuditScope } from './audit-types';
 import { AuditResultProcessor } from './result-processor';
 
 // Force chalk to use colors in all environments
@@ -214,7 +214,7 @@ export class RuleOfCodeAuditor {
         );
         console.log(
           chalkForced.yellow(
-            '   The law selection collapsed. Check laws.enabled / laws.paretoMode / laws.notApplicable and the detected project type. A shrunken audit is a disarmed gate, never PASSED.'
+            '   The law selection collapsed. Check laws.enabled / laws.paretoMode / laws.notApplicable and the detected project type. A shrunken audit is a disarmed gate, never a compliance verdict.'
           )
         );
         // No law ran, so no law passed AND no law failed. Reporting the
@@ -242,6 +242,7 @@ export class RuleOfCodeAuditor {
           projectRoot: this.projectRoot,
           config: this.config,
           project: this.projectTypeInfo(),
+          scope: this.scopeOf(substantive.length, 0, true),
         };
       }
 
@@ -271,6 +272,10 @@ export class RuleOfCodeAuditor {
         projectRoot: this.projectRoot,
         config: this.config,
         project: this.projectTypeInfo(),
+        scope: this.scopeOf(
+          substantive.length,
+          laws.filter(law => !(law as { alwaysEnabled?: boolean }).alwaysEnabled).length
+        ),
       };
 
       // Save to cache if enabled — under the key computed before the run.
@@ -337,13 +342,13 @@ export class RuleOfCodeAuditor {
    * setting impossible to get right — the value printed by `--mode=full` broke
    * every pre-commit, and the value that passed pre-commit left slack in full.
    */
-  private getSelectedLaws(): unknown[] {
+  private getSelectedLaws(config: RuleOfCodeConfig = this.config): unknown[] {
     const registry = ModularLawsRegistry.getInstance();
 
     const selected =
       this.options.categories && this.options.categories.length > 0
         ? registry.getLawsByCategories(this.options.categories)
-        : ModularLawsRegistry.getEnabled(this.config);
+        : ModularLawsRegistry.getEnabled(config);
 
     // Stack gating: skip laws whose stack scope does not match the project type
     // (e.g. Core Web Vitals / NgRx never run on a Python backend, and the Python
@@ -398,6 +403,45 @@ export class RuleOfCodeAuditor {
   }
 
   /** Detected project type — config override first, then filesystem detection. */
+  /**
+   * How much of the applicable law set this run covers (#348). M is what the
+   * same selection gives with no `laws.enabled` allowlist and no Pareto — the
+   * laws that apply to this project; N is the substantive laws selected. A
+   * run narrowed either way, with N < M, is PARTIAL: an allowlist of 2 laws
+   * out of 77 printed "CONSTITUTIONAL COMPLIANCE: PASSED" and the victory art,
+   * because only Pareto was treated as partial.
+   */
+  private scopeOf(
+    selectedSubstantive: number,
+    executedSubstantive: number,
+    refused = false
+  ): AuditScope {
+    const laws = this.config.laws as Record<string, unknown>;
+    const narrowedBy: AuditScope['narrowedBy'] =
+      laws.paretoMode === true ? 'paretoMode' : laws.enabled !== undefined ? 'laws.enabled' : undefined;
+    const open = {
+      ...this.config,
+      laws: { ...laws, enabled: undefined, paretoMode: false },
+    } as unknown as RuleOfCodeConfig;
+    const applicableLaws = this.getSelectedLaws(open).filter(
+      law => !(law as { alwaysEnabled?: boolean }).alwaysEnabled
+    ).length;
+    return {
+      // What actually ran: 0 on a refusal, the selection minus the history
+      // laws a pre-commit defers. Reporting the selection here said "2 ran"
+      // for a refused audit in which nothing ran.
+      executedLaws: executedSubstantive,
+      selectedLaws: selectedSubstantive,
+      applicableLaws,
+      narrowedBy,
+      // Partial is about the SELECTION: a pre-commit defers the history laws
+      // by design, which is not a narrowing. A refusal is not partial — no
+      // law ran at all; `refused` says so, and narrowedBy still says why the
+      // selection was small.
+      partial: !refused && narrowedBy !== undefined && selectedSubstantive < applicableLaws,
+    };
+  }
+
   /** `ignores.global`: what the project says is not its own code (#326). */
   private globalIgnores(): readonly string[] {
     return (this.config as { ignores?: { global?: readonly string[] } }).ignores?.global ?? [];
@@ -1100,30 +1144,25 @@ export class RuleOfCodeAuditor {
     // consumer whose convenience script said PASSED over 13 of 100 laws had no
     // way to know the gate was disarmed (a backend consumer). Better to refuse the
     // word than to lie with it.
-    if (auditResult.passed && auditResult.paretoMode) {
-      const applicable = ModularLawsRegistry.getAll().filter(
-        law =>
-          ModularLawsRegistry.lawAppliesToProjectType(
-            law.stack,
-            this.detectProjectType(),
-            this.projectRoot,
-            law,
-            this.globalIgnores()
-          ) && lawRequirementsMet(law.requires, this.projectRoot)
-      ).length;
+    // Any narrowed run — Pareto OR a laws.enabled allowlist — that ran fewer
+    // substantive laws than apply is PARTIAL (#348). The word PASSED is not
+    // printed for it: "PARTIAL SCAN PASSED" and "never PASSED" were quoted
+    // against each other.
+    if (auditResult.passed && auditResult.scope?.partial) {
+      const { executedLaws, applicableLaws, narrowedBy } = auditResult.scope;
       console.log(
         chalk.yellowBright.bold(
-          `⚠️  PARTIAL SCAN PASSED — ${auditResult.totalLaws} of ${applicable} applicable laws (Pareto subset).`
+          `⚠️  PARTIAL SCAN — ${executedLaws} of ${applicableLaws} applicable laws ran (narrowed by ${narrowedBy}). The selected laws passed; no compliance verdict.`
         )
       );
       console.log(
         chalk.yellow(
-          '   This is NOT a compliance verdict: the laws that did not run cannot have passed.'
+          '   The laws that did not run cannot have passed.'
         )
       );
       console.log(
         chalk.gray(
-          '   Run the full audit (no --mode=fast, paretoMode: false) before you push.'
+          `   For a compliance verdict run the full set: ${narrowedBy === 'laws.enabled' ? 'remove the laws.enabled allowlist' : 'paretoMode: false and no --mode=fast'}.`
         )
       );
       console.log(chalk.cyan('═'.repeat(60)));

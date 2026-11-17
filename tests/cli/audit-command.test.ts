@@ -78,10 +78,19 @@ describe('cli/audit-command', () => {
         displayModeHeader(mode, false);
 
         const calls = consoleSpy.mock.calls.map(c => c[0]).join(' ');
-        expect(calls).toContain('FULL');
-        expect(calls).not.toContain('PARETO OPTIMIZATION ACTIVATED');
+        // pre-commit says the full law set runs on the staged files and that
+        // the git-history laws run at pre-push (#348) — still never Pareto.
+        expect(calls).toMatch(/FULL MODE|the full law set/);
+        expect(calls).not.toContain('PARETO');
       }
     );
+
+    it('an allowlist is announced as an allowlist, never as FULL MODE (#348)', () => {
+      displayModeHeader('full', false, true);
+      const calls = consoleSpy.mock.calls.map(c => c[0]).join(' ');
+      expect(calls).toContain('ALLOWLIST');
+      expect(calls).not.toContain('FULL MODE');
+    });
 
     it('the banner follows the EFFECTIVE law selection, not the mode string', () => {
       displayModeHeader('pre-push', true); // config has paretoMode: true

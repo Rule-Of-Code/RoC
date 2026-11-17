@@ -6,6 +6,8 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { ProjectTypeDetector } from '../../utils/config/project-type-detector';
 import { SacredLawBase } from './sacred-law-base';
+import { PathOperations } from '../../utils/path-operations';
+import { loadTypeScript } from '../../utils/react/tsx-source';
 
 export class TypeScriptStrictLaw {
   private static readonly STRICT_CHECKS = {
@@ -39,7 +41,7 @@ export class TypeScriptStrictLaw {
     if (tsConfig) {
       const compilerOptions = ((tsConfig as Record<string, unknown>)
         .compilerOptions ?? {}) as Record<string, unknown>;
-      this.validateCompilerOptions(compilerOptions, violations);
+      this.validateCompilerOptions(compilerOptions, violations, projectRoot);
     } else {
       // The file EXISTS (checked above) but did not parse. Fail closed: a strict
       // gate that cannot read the config it governs must not report compliance —
@@ -63,18 +65,57 @@ export class TypeScriptStrictLaw {
     );
   }
 
+  /** The options `strict: true` switches on (TypeScript's own list). */
+  private static readonly IMPLIED_BY_STRICT = new Set([
+    'noImplicitAny',
+    'noImplicitThis',
+    'alwaysStrict',
+    'strictNullChecks',
+    'strictFunctionTypes',
+    'strictBindCallApply',
+    'strictPropertyInitialization',
+    'useUnknownInCatchVariables',
+  ]);
+
+  /**
+   * tsconfig.json's compiler options as TypeScript resolves them (`extends`
+   * chain merged); null when typescript cannot be loaded or the file does not
+   * parse — the caller then reads the options as written.
+   */
+  private static resolvedFlags(projectRoot: string): Record<string, unknown> | null {
+    const ts = loadTypeScript(projectRoot);
+    if (!ts) return null;
+    const file = PathOperations.join(projectRoot, 'tsconfig.json');
+    const read = ts.readConfigFile(file, ts.sys.readFile);
+    if (read.error) return null;
+    const host = { ...ts.sys, readDirectory: (): string[] => [] };
+    const parsed = ts.parseJsonConfigFileContent(read.config, host, projectRoot, undefined, file);
+    return parsed.options as Record<string, unknown>;
+  }
+
   private static validateCompilerOptions(
     compilerOptions: Record<string, unknown>,
-    violations: string[]
+    violations: string[],
+    projectRoot: string
   ): void {
+    // The flags as the compiler resolves them — `extends` followed (an Nx
+    // tsconfig.base.json, @tsconfig/strictest) — or, without a loadable
+    // typescript, as written.
+    const flags = this.resolvedFlags(projectRoot) ?? compilerOptions;
+
     // Strict mode checks
-    if (!compilerOptions.strict) {
+    if (flags.strict !== true) {
       violations.push('TypeScript strict mode must be enabled');
     }
 
-    // Additional strict checks
+    // Additional strict checks. `strict: true` turns on noImplicitAny and
+    // noImplicitThis (and the strict* family): demanding them again failed a
+    // 3-line project that had `"strict": true` (B4). Only an explicit `false`
+    // switches one back off.
     for (const [check, required] of Object.entries(this.STRICT_CHECKS)) {
-      if (compilerOptions[check] !== required) {
+      const impliedByStrict =
+        this.IMPLIED_BY_STRICT.has(check) && flags.strict === true && flags[check] !== false;
+      if (flags[check] !== required && !impliedByStrict) {
         violations.push(`TypeScript ${check} must be ${required}`);
       }
     }

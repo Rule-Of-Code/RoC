@@ -25,7 +25,10 @@ Found by a clean install from the README's Quick start of 7.26.9, and QA's
   when the selected laws pass**, so a gate on an explicit subset keeps
   working; only the words change. The JSON export and `--json` carry
   `scope: { executedLaws, applicableLaws, narrowedBy, partial }` — the
-  "N of M". The banner says `🎯 ALLOWLIST — only the laws named in
+  "N of M". **Read `scope.partial`, not only `passed`:** `passed` follows
+  the exit code and is `true` for a partial run whose selected laws pass; a
+  badge or CI script that reads only `passed` counts a partial run as a
+  pass. (An explicit verdict field is planned.) The banner says `🎯 ALLOWLIST — only the laws named in
   laws.enabled will run.` for an allowlist, and `🏛️  PRE-COMMIT — the full
   law set on the staged files; the git-history laws run at pre-push.` in
   the pre-commit hook (both used to say FULL MODE). The refusal below the

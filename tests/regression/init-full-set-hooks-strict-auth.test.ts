@@ -202,3 +202,68 @@ describe('#345 component-spec evidence is read from code', () => {
     expect(check(spec)).not.toMatch(/missing ComponentFixture|missing TestBed/);
   });
 });
+
+/**
+ * #348: a laws.enabled allowlist of 2 laws out of the applicable set printed
+ * "✅ CONSTITUTIONAL COMPLIANCE: PASSED" and the victory art under "FULL MODE",
+ * because only Pareto was treated as partial.
+ */
+describe('#348 a narrowed run is PARTIAL N of M, never COMPLIANCE', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { ConfigLoader } = require('../../src/config/loader');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { RuleOfCodeAuditor } = require('../../src/core/auditing/audit-engine');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { AuditResultProcessor } = require('../../src/core/auditing/result-processor');
+  const PROJECT = {
+    'package.json': JSON.stringify({ name: 'a', version: '1.0.0', devDependencies: { typescript: '5.6.3' } }),
+    'tsconfig.json': JSON.stringify({ compilerOptions: { strict: true } }),
+    'src/index.ts': 'export const add = (a: number, b: number): number => a + b;\n',
+  };
+  const audit = async (laws: Record<string, unknown>) => {
+    const root = fixture({ ...PROJECT, 'ruleofcode.config.json': JSON.stringify({ project: { type: 'typescript' }, laws }) });
+    const out: string[] = [];
+    const capture = (chunk: unknown): boolean => {
+      out.push(String(chunk));
+      return true;
+    };
+    const spies = [
+      jest.spyOn(console, 'log').mockImplementation((...a) => {
+        out.push(a.map(String).join(' '));
+      }),
+      jest.spyOn(console, 'warn').mockImplementation(() => undefined),
+      jest.spyOn(process.stdout, 'write').mockImplementation(capture),
+      jest.spyOn(process.stderr, 'write').mockImplementation(capture),
+    ];
+    try {
+      const auditor = await RuleOfCodeAuditor.create({ projectRoot: root, config: ConfigLoader.load(root), mode: 'full' });
+      const result = await auditor.audit();
+      // eslint-disable-next-line no-control-regex
+      return { result, text: out.join('\n').replace(/\u001b\[[0-9;]*m/g, '') };
+    } finally {
+      for (const spy of spies) spy.mockRestore();
+    }
+  };
+
+  it('an allowlist of 2 passing laws: PARTIAL "2 of M", no COMPLIANCE, scope in JSON', async () => {
+    const { result, text } = await audit({ enabled: { 'Semantic Versioning Standards': true, 'Data Encryption Standards': true } });
+    expect(result.passed).toBe(true);
+    expect(result.scope).toMatchObject({ executedLaws: 2, narrowedBy: 'laws.enabled', partial: true });
+    expect(result.scope.applicableLaws).toBeGreaterThan(2);
+    expect(text).toContain(
+      `PARTIAL SCAN — 2 of ${result.scope.applicableLaws} applicable laws ran (narrowed by laws.enabled). The selected laws passed; no compliance verdict.`
+    );
+    expect(text).not.toMatch(/CONSTITUTIONAL COMPLIANCE: PASSED/);
+    const json = JSON.parse(AuditResultProcessor.exportResults(result, 'json'));
+    expect(json.scope).toMatchObject({ executedLaws: 2, partial: true, narrowedBy: 'laws.enabled' });
+  });
+
+  it('control: a waiver is not narrowing — no PARTIAL, M drops by the waived law', async () => {
+    const plain = await audit({});
+    const waived = await audit({ notApplicable: { 'Data Encryption Standards': 'no data at rest' } });
+    expect(plain.result.scope.partial).toBe(false);
+    expect(waived.result.scope).toMatchObject({ partial: false, narrowedBy: undefined });
+    expect(waived.result.scope.applicableLaws).toBe(plain.result.scope.applicableLaws - 1);
+    expect(waived.text).not.toMatch(/PARTIAL SCAN/);
+  });
+});

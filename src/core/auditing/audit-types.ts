@@ -36,6 +36,8 @@ export interface AuditResult {
    * merged into it and looks configured.
    */
   project?: AuditProjectType;
+  /** How much of the applicable law set ran, and whether that is partial (#348). */
+  scope?: AuditScope;
   results: Map<string, unknown>;
   duration: number;
   paretoMode: boolean;
@@ -61,6 +63,17 @@ export interface AuditOptions {
   failOnWarnings?: boolean;
   categories?: string[];
   excludePatterns?: string[];
+}
+
+export interface AuditScope {
+  /** Substantive laws selected for this run (the always-on meta-gates excluded). */
+  executedLaws: number;
+  /** Substantive laws that apply with no allowlist and no Pareto — the "M" in "N of M". */
+  applicableLaws: number;
+  /** What narrowed the run, if anything. `laws.notApplicable` waivers do not: they change what applies. */
+  narrowedBy: 'laws.enabled' | 'paretoMode' | undefined;
+  /** Narrowed AND fewer laws ran than apply: no compliance verdict is printed. */
+  partial: boolean;
 }
 
 export interface AuditProjectType {

@@ -57,8 +57,38 @@ export function paretoModeForCliMode(
  * Display audit mode header. The banner reflects the EFFECTIVE law selection,
  * never the mode string — otherwise it lies (QA-7).
  */
-export function displayModeHeader(mode: string, paretoActive?: boolean): void {
+export function displayModeHeader(mode: string, paretoActive?: boolean, allowlist = false): void {
   const isPareto = paretoActive ?? mode === 'fast';
+
+  if (!isPareto && allowlist) {
+    // A laws.enabled allowlist was announced as "FULL MODE — the whole
+    // applicable law set will run" while two laws ran (#348).
+    console.log(
+      chalk.yellowBright(
+        '🎯 ALLOWLIST — only the laws named in laws.enabled will run.'
+      )
+    );
+    console.log(
+      chalk.yellow(
+        '   Unless it names every applicable law, this cannot produce a compliance verdict.\n'
+      )
+    );
+    return;
+  }
+
+  if (!isPareto && mode === 'pre-commit') {
+    // The history laws (commit size and messages) run at pre-push, not on the
+    // way in: "the whole applicable law set will run" was not true here.
+    console.log(
+      chalk.greenBright(
+        '🏛️  PRE-COMMIT — the full law set on the staged files; the git-history laws run at pre-push.'
+      )
+    );
+    console.log(
+      chalk.gray('   The executed count is reported below, after config selection.\n')
+    );
+    return;
+  }
 
   if (isPareto) {
     console.log(
@@ -202,7 +232,7 @@ async function runAuditAction(
       config.laws.paretoMode
     );
 
-    displayModeHeader(finalMode, config.laws.paretoMode);
+    displayModeHeader(finalMode, config.laws.paretoMode, config.laws.enabled !== undefined);
 
     // 🛡️ RoC SELF-EXCLUSION CHECK
     if (isRoCPath(root)) {

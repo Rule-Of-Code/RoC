@@ -8,9 +8,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [7.26.10] - 2026-11-16
 
 Found by a clean install from the README's Quick start of 7.26.9, and QA's
-#345. Closes #345.
+#345 and #348. Closes #345, #348.
 
 ### ⚠️ Changes you will see
+
+- **A narrowed run is PARTIAL, never COMPLIANCE (#348).** A `laws.enabled`
+  allowlist of 2 laws out of 77 printed "✅ CONSTITUTIONAL COMPLIANCE:
+  PASSED" and the victory art under the banner "FULL MODE — the whole
+  applicable law set will run", because only Pareto was treated as partial.
+  Now any run narrowed by `laws.enabled` or Pareto that runs fewer
+  substantive laws than apply prints:
+  `⚠️  PARTIAL SCAN — N of M applicable laws ran (narrowed by laws.enabled). The selected laws passed; no compliance verdict.`
+  — no COMPLIANCE line, no victory art. M is what the same selection gives
+  with no allowlist and no Pareto; `laws.notApplicable` waivers are not
+  narrowing (they change what applies). **The exit code is unchanged: 0
+  when the selected laws pass**, so a gate on an explicit subset keeps
+  working; only the words change. The JSON export and `--json` carry
+  `scope: { executedLaws, applicableLaws, narrowedBy, partial }` — the
+  "N of M". The banner says `🎯 ALLOWLIST — only the laws named in
+  laws.enabled will run.` for an allowlist, and `🏛️  PRE-COMMIT — the full
+  law set on the staged files; the git-history laws run at pre-push.` in
+  the pre-commit hook (both used to say FULL MODE). The refusal below the
+  liveness floor ends "never a compliance verdict." (was "never PASSED."),
+  and the Pareto line no longer says "PARTIAL SCAN PASSED". A full run's
+  "✅ CONSTITUTIONAL COMPLIANCE: PASSED" and "refusing to report
+  compliance" are unchanged.
 
 - **`init` writes the full law set (B3).** `init --quick`, the
   non-interactive fallback and the interactive prompt's default wrote
@@ -25,7 +47,7 @@ Found by a clean install from the README's Quick start of 7.26.9, and QA's
 
 ### 🐛 Fixed
 
-- **The first commit of a fresh project no longer fails (B2).** The
+- **The first commit of a fresh project no longer fails on lint-staged (B2).** The
   pre-commit hook ran `npx lint-staged` unconditionally, while `init`
   installs neither lint-staged nor a config; under husky's `sh -e` the
   commit failed with "lint-staged could not find any valid configuration".

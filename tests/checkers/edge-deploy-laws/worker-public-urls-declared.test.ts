@@ -111,10 +111,16 @@ describe('#363 — secret upload before the first deploy', () => {
     expect(result.metrics).toMatchObject({ judged: 2 });
   });
 
-  it('another Worker deployed earlier does not count; no deploy of it in the file → a note, not judged', () => {
+  it('another Worker deployed earlier does not count; no deploy of it in the file → a note, and the read is a pass', () => {
     const sh = 'wrangler deploy --name a\nwrangler secret put K --name b\n';
     const result = check({ 'scripts/edge.sh': sh });
-    expect(result.judgedNothing).toBe(true);
+    expect(result.passed).toBe(true);
+    expect(result.judgedNothing).not.toBe(true);
+    expect(result.metrics).toMatchObject({
+      filesRead: 1,
+      judged: 0,
+      notJudged: 1,
+    });
     expect(result.suggestions?.join(' ')).toMatch(
       /scripts\/edge\.sh:2: .* no wrangler deploy of the same Worker/
     );

@@ -125,9 +125,18 @@ describe('#365 Test Builds Use Own Firebase Config — Android acceptance', () =
     ]);
   });
 
-  it('a module without a published Gradle script is not judged', () => {
+  it('a module without a published Gradle script is a note — a pass with the counter, never "judged nothing"', () => {
     const result = check({ 'android/app/google-services.json': services('p') });
-    expect(result.judgedNothing).toBe(true);
+    expect(result.passed).toBe(true);
+    expect(result.judgedNothing).not.toBe(true);
+    expect(result.metrics).toMatchObject({
+      filesRead: 1,
+      judged: 0,
+      notJudged: 1,
+    });
+    expect(result.suggestions?.join(' ')).toMatch(
+      /no build\.gradle\(\.kts\) for module android\/app/
+    );
   });
 });
 

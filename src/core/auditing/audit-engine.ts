@@ -318,6 +318,7 @@ export class RuleOfCodeAuditor {
         '   The law selection collapsed. Check laws.enabled / laws.paretoMode / laws.notApplicable and the detected project type. A shrunken audit is a disarmed gate, never a compliance verdict.'
       )
     );
+    this.displayUnknownCategories(chalkForced);
     return {
       passed: false,
       score: 0,
@@ -342,6 +343,27 @@ export class RuleOfCodeAuditor {
       project: this.projectTypeInfo(),
       scope,
     };
+  }
+
+  /**
+   * A `categories` value that matches no law selects nothing; say which one
+   * and what would match (#370). `roc laws --json` prints upper-case
+   * categories (PERFORMANCE), the option matches tiers (performance) and id
+   * words, so the mistake is an easy one.
+   */
+  private displayUnknownCategories(chalkForced: chalk.Chalk): void {
+    const unknown = ModularLawsRegistry.unknownCategories(
+      categoriesOf(this.config.laws)
+    );
+    if (unknown.length === 0) return;
+    const { tiers, idWords } = ModularLawsRegistry.categoryVocabulary();
+    for (const category of unknown) {
+      console.log(
+        chalkForced.yellow(
+          `   unknown category '${category}' — valid: ${tiers.join(', ')} (a law's tier), or a law-id word: ${idWords.join(', ')}`
+        )
+      );
+    }
   }
 
   private logAuditStart(): void {

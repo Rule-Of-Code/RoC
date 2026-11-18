@@ -286,6 +286,24 @@ describe('#370 narrowing by categories (public constructor)', () => {
     expect(run.ran).toEqual(expect.arrayContaining(META_GATES));
   }, 60000);
 
+  it('C9 — a category spelled as `laws --json` prints it (PERFORMANCE) → refused, and the refusal names it with the valid values', async () => {
+    const run = await audit(
+      fixture(TS_PROJECT, { project: { type: 'typescript' } }),
+      ['PERFORMANCE']
+    );
+    expect(run.json.verdict).toBe('refused');
+    expect(run.result.refused?.reason).toBe('no-laws');
+    expect(run.text).toMatch(
+      /unknown category 'PERFORMANCE' — valid: .*\bperformance\b.*\(a law's tier\), or a law-id word: .*\bdeployment\b/
+    );
+    // A valid one is not named.
+    const ok = await audit(
+      fixture(TS_PROJECT, { project: { type: 'typescript' } }),
+      [ONE]
+    );
+    expect(ok.text).not.toContain('unknown category');
+  }, 60000);
+
   it('C8 — no categories (and an empty list) → the default path, unchanged (golden: waivers-named-verdict-golden)', async () => {
     const root = fixture(TS_PROJECT, { project: { type: 'typescript' } });
     const none = await audit(root);

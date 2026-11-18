@@ -36,7 +36,7 @@ describe('InternationalizationCompliancePolicyLaw', () => {
       performance: {
         parallel: false,
         maxConcurrent: 3,
-        cache: true,
+        cache: true,
       },
     };
     mockContext = {
@@ -51,45 +51,53 @@ describe('InternationalizationCompliancePolicyLaw', () => {
 
   describe('check()', () => {
     it('should return a LawResult object', async () => {
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       expect(result).toBeDefined();
       expect(typeof result.passed).toBe('boolean');
     });
 
     it('should have violations array', async () => {
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       expect(Array.isArray(result.violations)).toBe(true);
     });
 
     it('should have suggestions array', async () => {
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       expect(Array.isArray(result.suggestions)).toBe(true);
     });
 
     it('should have score property', async () => {
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       expect(typeof result.score).toBe('number');
     });
 
     it('should have message property', async () => {
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       expect(typeof result.message).toBe('string');
     });
 
     it('should have fixable property', async () => {
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       expect(typeof result.fixable).toBe('boolean');
     });
 
     it('should return config in result', async () => {
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       expect(result.config).toBe(mockConfig);
     });
   });
 
   describe('i18n configuration analysis', () => {
     it('should report missing i18n config for empty project', async () => {
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       expect(result.violations).toContain('Missing Angular i18n configuration');
     });
 
@@ -109,7 +117,8 @@ describe('InternationalizationCompliancePolicyLaw', () => {
           },
         })
       );
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       // Should detect angular.json and process i18n config
       expect(result).toBeDefined();
     });
@@ -123,7 +132,8 @@ describe('InternationalizationCompliancePolicyLaw', () => {
           },
         })
       );
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       expect(result.violations).not.toContain(
         'Missing Angular i18n configuration'
       );
@@ -138,7 +148,8 @@ describe('InternationalizationCompliancePolicyLaw', () => {
           },
         })
       );
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       expect(result.violations).not.toContain(
         'Missing Angular i18n configuration'
       );
@@ -147,7 +158,8 @@ describe('InternationalizationCompliancePolicyLaw', () => {
 
   describe('translation files analysis', () => {
     it('should report missing translation files', async () => {
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       expect(result.violations).toContain('Missing i18n translation files');
     });
 
@@ -157,7 +169,8 @@ describe('InternationalizationCompliancePolicyLaw', () => {
         PathOperations.join(tempDir, 'src', 'locale', 'messages.de.xlf'),
         '<?xml version="1.0"?><xliff></xliff>'
       );
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       // Translation files should be detected
       expect(result).toBeDefined();
     });
@@ -168,7 +181,8 @@ describe('InternationalizationCompliancePolicyLaw', () => {
         PathOperations.join(tempDir, 'src', 'i18n', 'en.json'),
         JSON.stringify({ greeting: 'Hello' })
       );
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       // Translation files should be detected
       expect(result).toBeDefined();
     });
@@ -181,7 +195,8 @@ describe('InternationalizationCompliancePolicyLaw', () => {
         PathOperations.join(tempDir, 'src', 'assets', 'i18n', 'messages.json'),
         JSON.stringify({ welcome: 'Welcome' })
       );
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       // Translation files should be detected
       expect(result).toBeDefined();
     });
@@ -191,7 +206,8 @@ describe('InternationalizationCompliancePolicyLaw', () => {
         PathOperations.join(tempDir, 'messages.xlf'),
         '<?xml version="1.0"?><xliff></xliff>'
       );
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       expect(result.violations).not.toContain('Missing i18n translation files');
     });
   });
@@ -207,7 +223,8 @@ describe('InternationalizationCompliancePolicyLaw', () => {
   <input placeholder="Enter your name here">
 </div>`
       );
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       // May or may not detect hardcoded text depending on implementation details
       expect(result).toBeDefined();
     });
@@ -221,7 +238,8 @@ describe('InternationalizationCompliancePolicyLaw', () => {
   <p i18n>This text is marked for translation</p>
 </div>`
       );
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       // Check that the result is defined
       expect(result).toBeDefined();
     });
@@ -234,7 +252,8 @@ describe('InternationalizationCompliancePolicyLaw', () => {
   <h1>{{ 'WELCOME' | translate }}</h1>
 </div>`
       );
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       expect(result.violations).not.toContain(
         'Hardcoded text found in templates'
       );
@@ -243,7 +262,8 @@ describe('InternationalizationCompliancePolicyLaw', () => {
 
   describe('i18n directive usage', () => {
     it('should suggest i18n directives when not used', async () => {
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       expect(
         (result.suggestions ?? []).some(s => s.includes('i18n directives'))
       ).toBe(true);
@@ -255,7 +275,8 @@ describe('InternationalizationCompliancePolicyLaw', () => {
         PathOperations.join(tempDir, 'src', 'component.html'),
         '<p i18n="description">Localized text</p>'
       );
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       expect(
         (result.suggestions ?? []).some(s => s.includes('i18n directives'))
       ).toBe(false);
@@ -267,7 +288,8 @@ describe('InternationalizationCompliancePolicyLaw', () => {
         PathOperations.join(tempDir, 'src', 'component.html'),
         '<img i18n-alt="@@imageAlt" alt="Description" />'
       );
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       expect(
         (result.suggestions ?? []).some(s => s.includes('i18n directives'))
       ).toBe(false);
@@ -284,14 +306,16 @@ describe('InternationalizationCompliancePolicyLaw', () => {
         PathOperations.join(tempDir, 'src', 'component.html'),
         '<p>$localize template</p>'
       );
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       expect(result).toBeDefined();
     });
   });
 
   describe('locale configuration', () => {
     it('should suggest locale configuration when missing', async () => {
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       expect((result.suggestions ?? []).some(s => s.includes('locale'))).toBe(
         true
       );
@@ -308,7 +332,8 @@ import localeDe from '@angular/common/locales/de';
 registerLocaleData(localeDe);
 `
       );
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       // Locale detection may depend on specific file paths
       expect(result).toBeDefined();
     });
@@ -328,7 +353,8 @@ import { NgModule, LOCALE_ID } from '@angular/core';
 export class AppModule {}
 `
       );
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       // Locale detection works based on content patterns
       expect(result).toBeDefined();
     });
@@ -336,13 +362,15 @@ export class AppModule {}
 
   describe('score calculation', () => {
     it('should have score between 0 and 100', async () => {
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       expect(result.score).toBeGreaterThanOrEqual(0);
       expect(result.score).toBeLessThanOrEqual(100);
     });
 
     it('should have lower score for missing i18n setup', async () => {
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       expect(result.score).toBeLessThan(100);
     });
 
@@ -362,7 +390,8 @@ export class AppModule {}
         PathOperations.join(tempDir, 'src', 'locale', 'messages.xlf'),
         '<?xml version="1.0"?><xliff></xliff>'
       );
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       // Score should be at least reasonable with some config
       expect(result.score).toBeGreaterThanOrEqual(0);
     });
@@ -370,7 +399,8 @@ export class AppModule {}
 
   describe('message generation', () => {
     it('should generate warning message when violations exist', async () => {
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       expect(result.message).toContain('⚠️');
     });
 
@@ -398,7 +428,8 @@ export class AppModule {}
         PathOperations.join(tempDir, 'src', 'app.component.html'),
         '<p i18n>Text</p>'
       );
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       if (result.passed) {
         expect(result.message).toContain('✅');
       }
@@ -415,7 +446,8 @@ export class AppModule {}
           },
         })
       );
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       expect(result).toBeDefined();
     });
 
@@ -439,7 +471,8 @@ export class AppModule {}
           },
         })
       );
-      const result = await InternationalizationCompliancePolicyLaw.check(mockContext);
+      const result =
+        await InternationalizationCompliancePolicyLaw.check(mockContext);
       expect(result.violations).not.toContain(
         'Missing Angular i18n configuration'
       );

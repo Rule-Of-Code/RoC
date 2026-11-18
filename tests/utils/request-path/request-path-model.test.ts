@@ -46,15 +46,25 @@ describe('Python structural model', () => {
     ]);
     expect(load?.params).toEqual(['self', 'uid', 'limit']);
     expect(load?.transactional).toBe(true);
-    expect(module.imports).toEqual([{ local: 'ppl', module: 'app.repo', imported: 'people' }]);
+    expect(module.imports).toEqual([
+      { local: 'ppl', module: 'app.repo', imported: 'people' },
+    ]);
   });
 
   it('joins a bracketed call over three lines into one statement; literals and comments do not confuse it', () => {
     const [user] = at(8);
     expect(user?.endLine).toBe(10);
     expect(user?.bound).toEqual(['user']);
-    expect(user?.awaits[0]?.call?.callee).toBe('self.db.collection("users").document( uid ).get');
-    expect(user?.awaits[0]?.call?.chain.map(l => l.name)).toEqual(['self', 'db', 'collection', 'document', 'get']);
+    expect(user?.awaits[0]?.call?.callee).toBe(
+      'self.db.collection("users").document( uid ).get'
+    );
+    expect(user?.awaits[0]?.call?.chain.map(l => l.name)).toEqual([
+      'self',
+      'db',
+      'collection',
+      'document',
+      'get',
+    ]);
     expect(user?.awaits[0]?.call?.chain[2]?.args?.[0]?.literal).toBe('users');
   });
 
@@ -65,7 +75,9 @@ describe('Python structural model', () => {
   });
 
   it('records the awaits that run once per loop item, comprehension elements included', () => {
-    expect(load?.loopAwaits.map(l => [l.loopKind, l.site.line, l.site.call?.callee])).toEqual([
+    expect(
+      load?.loopAwaits.map(l => [l.loopKind, l.site.line, l.site.call?.callee])
+    ).toEqual([
       ['for', 13, 'ppl.get'],
       ['comprehension', 14, 'repo.get'],
       ['while', 16, 'cursor.fetch'],
@@ -78,7 +90,9 @@ describe('Python structural model', () => {
   });
 
   it('an async comprehension over a stream is an awaited step of its statement', () => {
-    expect(at(15)[0]?.awaits.map(a => [a.call?.callee, a.asyncIteration])).toEqual([['q.stream', true]]);
+    expect(
+      at(15)[0]?.awaits.map(a => [a.call?.callee, a.asyncIteration])
+    ).toEqual([['q.stream', true]]);
   });
 });
 
@@ -112,12 +126,24 @@ describe('TypeScript model', () => {
 
   it('binds declarations, destructuring and member targets', () => {
     const top = load?.blocks[0] ?? [];
-    expect(top.map(s => s.bound)).toEqual([['user'], ['a', 'b'], [], [], ['this.cache']]);
-    expect(top[0]?.awaits[0]?.call?.args[0]?.text).toBe('doc(this.db, "users", uid)');
+    expect(top.map(s => s.bound)).toEqual([
+      ['user'],
+      ['a', 'b'],
+      [],
+      [],
+      ['this.cache'],
+    ]);
+    expect(top[0]?.awaits[0]?.call?.args[0]?.text).toBe(
+      'doc(this.db, "users", uid)'
+    );
   });
 
   it('records loop awaits in the same function, and a .forEach callback as a loop', () => {
-    expect(load?.loopAwaits.map(l => [l.loopKind, l.site.call?.callee])).toEqual([['for-of', 'this.repo.findOne']]);
-    expect(callback?.loopAwaits.map(l => [l.loopKind, l.site.call?.callee])).toEqual([['forEach', 'getDoc']]);
+    expect(
+      load?.loopAwaits.map(l => [l.loopKind, l.site.call?.callee])
+    ).toEqual([['for-of', 'this.repo.findOne']]);
+    expect(
+      callback?.loopAwaits.map(l => [l.loopKind, l.site.call?.callee])
+    ).toEqual([['forEach', 'getDoc']]);
   });
 });

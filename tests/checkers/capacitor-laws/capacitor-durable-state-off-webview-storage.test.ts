@@ -19,15 +19,26 @@ const localService = (key = 'key') =>
     `  set(key: string, value: unknown): void { localStorage.setItem(${key}, JSON.stringify(value)); }`,
     '}',
   ].join('\n');
-const PORT = 'export abstract class LocalValueStore { abstract set(key: string, value: unknown): void; }';
-const run = (files: Record<string, string>, capacitor: Record<string, unknown> = {}) =>
-  CapacitorDurableStateOffWebviewStorageLaw.check(ctx(capacitorProject(files), { thresholds: { capacitor } }));
+const PORT =
+  'export abstract class LocalValueStore { abstract set(key: string, value: unknown): void; }';
+const run = (
+  files: Record<string, string>,
+  capacitor: Record<string, unknown> = {}
+) =>
+  CapacitorDurableStateOffWebviewStorageLaw.check(
+    ctx(capacitorProject(files), { thresholds: { capacitor } })
+  );
 
 describe('CapacitorDurableStateOffWebviewStorageLaw (#269)', () => {
   it('red: a localStorage service with no native branch (the measured shape)', () => {
-    const result = run({ [SERVICE]: localService(), 'src/app/storage/local-value-store.ts': PORT });
+    const result = run({
+      [SERVICE]: localService(),
+      'src/app/storage/local-value-store.ts': PORT,
+    });
     expect(result.violations).toEqual([
-      expect.stringMatching(/src\/app\/storage\/local-storage\.service\.ts \(LocalStorageService\): writes localStorage \(a runtime key \(line 3\)\) with no native branch — Capacitor's storage guide/),
+      expect.stringMatching(
+        /src\/app\/storage\/local-storage\.service\.ts \(LocalStorageService\): writes localStorage \(a runtime key \(line 3\)\) with no native branch — Capacitor's storage guide/
+      ),
     ]);
   });
 
@@ -36,7 +47,9 @@ describe('CapacitorDurableStateOffWebviewStorageLaw (#269)', () => {
       'src/app/db.ts':
         "export function open() { const r = indexedDB.open('app-db', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); return r; }",
     });
-    expect(result.violations).toEqual([expect.stringMatching(/src\/app\/db\.ts: writes IndexedDB \('app-db'\)/)]);
+    expect(result.violations).toEqual([
+      expect.stringMatching(/src\/app\/db\.ts: writes IndexedDB \('app-db'\)/),
+    ]);
   });
 
   it('green: an indexedDB.open that only reads is not a writer', () => {
@@ -78,32 +91,59 @@ describe('CapacitorDurableStateOffWebviewStorageLaw (#269)', () => {
   });
 
   it('green: a store declared in thresholds.capacitor.durableStores', () => {
-    const files = { [SERVICE]: `import { CapacitorSQLite } from '@capacitor-community/sqlite';\n${localService()}`, 'src/app/storage/local-value-store.ts': PORT };
+    const files = {
+      [SERVICE]: `import { CapacitorSQLite } from '@capacitor-community/sqlite';\n${localService()}`,
+      'src/app/storage/local-value-store.ts': PORT,
+    };
     expect(run(files).passed).toBe(false);
-    expect(run(files, { durableStores: ['@capacitor-community/sqlite'] }).violations).toEqual([]);
+    expect(
+      run(files, { durableStores: ['@capacitor-community/sqlite'] }).violations
+    ).toEqual([]);
   });
 
   it('green: every key declared disposable; a runtime key never matches', () => {
-    const literal = { [SERVICE]: localService("'ui.theme'"), 'src/app/storage/local-value-store.ts': PORT };
-    expect(run(literal, { disposableStorageKeys: ['ui.theme'] }).violations).toEqual([]);
-    expect(run(literal, { disposableStorageKeys: ['other'] }).passed).toBe(false);
-    const runtime = { [SERVICE]: localService(), 'src/app/storage/local-value-store.ts': PORT };
+    const literal = {
+      [SERVICE]: localService("'ui.theme'"),
+      'src/app/storage/local-value-store.ts': PORT,
+    };
+    expect(
+      run(literal, { disposableStorageKeys: ['ui.theme'] }).violations
+    ).toEqual([]);
+    expect(run(literal, { disposableStorageKeys: ['other'] }).passed).toBe(
+      false
+    );
+    const runtime = {
+      [SERVICE]: localService(),
+      'src/app/storage/local-value-store.ts': PORT,
+    };
     expect(run(runtime, { disposableStorageKeys: ['key'] }).passed).toBe(false);
   });
 
   it('note only: sessionStorage is transient by definition', () => {
-    const result = run({ 'src/app/return.service.ts': "export const save = (m: string) => sessionStorage.setItem('return', m);" });
+    const result = run({
+      'src/app/return.service.ts':
+        "export const save = (m: string) => sessionStorage.setItem('return', m);",
+    });
     expect(result.violations).toEqual([]);
-    expect(result.suggestions?.[0]).toMatch(/writes sessionStorage — transient by definition/);
+    expect(result.suggestions?.[0]).toMatch(
+      /writes sessionStorage — transient by definition/
+    );
   });
 
   it('green: no WebView storage writer at all', () => {
-    expect(run({ 'src/app/x.ts': "export const v = localStorage.getItem('k');" }).violations).toEqual([]);
+    expect(
+      run({ 'src/app/x.ts': "export const v = localStorage.getItem('k');" })
+        .violations
+    ).toEqual([]);
   });
 
   it('cannot read: no TypeScript to parse with — fails, never passes', () => {
     const root = capacitorProject({ [SERVICE]: localService() });
-    expect(withoutTypeScript(() => CapacitorDurableStateOffWebviewStorageLaw.check(ctx(root))).passed).toBe(false);
+    expect(
+      withoutTypeScript(() =>
+        CapacitorDurableStateOffWebviewStorageLaw.check(ctx(root))
+      ).passed
+    ).toBe(false);
   });
 
   describe('selection (requires)', () => {
@@ -111,7 +151,9 @@ describe('CapacitorDurableStateOffWebviewStorageLaw (#269)', () => {
       expect(selected(TITLE, { '@capacitor/core': '8.5.1' })).toBe(true);
     });
     it('not selected: a browser-only app', () => {
-      expect(selected(TITLE, { '@angular/core': '20' }, { 'src/main.ts': '' })).toBe(false);
+      expect(
+        selected(TITLE, { '@angular/core': '20' }, { 'src/main.ts': '' })
+      ).toBe(false);
     });
   });
 });

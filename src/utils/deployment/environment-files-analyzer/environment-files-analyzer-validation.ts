@@ -109,7 +109,9 @@ export class EnvironmentFilesAnalyzerValidation {
     // Check if .env is in git (it shouldn't be). Ask git: a .gitignore entry
     // does not untrack a file that is already committed, so reading the ignore
     // file passed a committed .env as long as .gitignore also listed it.
-    const envName = EnvironmentFilesAnalyzerConfiguration.ENV_FILE_ANALYSIS_PATTERNS.envFileName;
+    const envName =
+      EnvironmentFilesAnalyzerConfiguration.ENV_FILE_ANALYSIS_PATTERNS
+        .envFileName;
     const state = gitExposure(projectRoot, [envName])?.get(envName);
     const hasEnvInGit =
       state === undefined

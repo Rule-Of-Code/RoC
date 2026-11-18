@@ -47,7 +47,6 @@ export class PerformanceTestUtils {
       const passed = executionTime < maxExecutionTime;
 
       if (logMetrics) {
-         
         console.log(
           `Performance Test: ${testDescription} - ${executionTime}ms`
         );
@@ -126,7 +125,6 @@ export class PerformanceTestUtils {
     expect(executionTime).toBeLessThan(maxTime);
 
     if (executionTime > maxTime * 0.8) {
-       
       console.warn(
         `⚠️  ${message}: ${executionTime}ms is approaching the ${maxTime}ms limit`
       );

@@ -7,7 +7,12 @@ import fs from 'fs';
 import path from 'path';
 import { AngularComponents } from '../../src/utils/ionic/angular-components';
 import { TsxSource } from '../../src/utils/react/tsx-source';
-import { ctx, manifest, project, removeProjects } from '../checkers/toolkit-fixture';
+import {
+  ctx,
+  manifest,
+  project,
+  removeProjects,
+} from '../checkers/toolkit-fixture';
 
 afterAll(removeProjects);
 
@@ -27,7 +32,9 @@ describe('AngularComponents.scan cache', () => {
     const second = AngularComponents.scan(ctx(root));
     expect(parsedOnce).toBe(2);
     expect(parse.mock.calls.length).toBe(parsedOnce);
-    expect(second.components.map(c => c.selectors)).toEqual(first.components.map(c => c.selectors));
+    expect(second.components.map(c => c.selectors)).toEqual(
+      first.components.map(c => c.selectors)
+    );
     parse.mockRestore();
   });
 
@@ -36,12 +43,14 @@ describe('AngularComponents.scan cache', () => {
       'package.json': manifest({ '@ionic/angular': '8' }),
       'src/a.page.ts': component('app-a'),
     });
-    expect(AngularComponents.scan(ctx(root)).components.flatMap(c => c.selectors)).toEqual(['app-a']);
+    expect(
+      AngularComponents.scan(ctx(root)).components.flatMap(c => c.selectors)
+    ).toEqual(['app-a']);
     const file = path.join(root, 'src/a.page.ts');
     fs.writeFileSync(file, component('app-renamed-and-longer'));
-    expect(AngularComponents.scan(ctx(root)).components.flatMap(c => c.selectors)).toEqual([
-      'app-renamed-and-longer',
-    ]);
+    expect(
+      AngularComponents.scan(ctx(root)).components.flatMap(c => c.selectors)
+    ).toEqual(['app-renamed-and-longer']);
   });
 
   it('gives each caller its own arrays', () => {

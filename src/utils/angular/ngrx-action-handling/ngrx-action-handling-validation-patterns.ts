@@ -16,7 +16,10 @@ export class NgRxActionHandlingValidationPatterns extends AngularConfigurationBa
   private static readonly Config = NgRxActionHandlingConfiguration;
   private static readonly Messages = this.Config.VALIDATION_MESSAGES;
   private static readonly FILENAME_PLACEHOLDER = '{fileName}';
-  private static readonly ActionAnalysis = Object.create(null) as Record<string, unknown>;
+  private static readonly ActionAnalysis = Object.create(null) as Record<
+    string,
+    unknown
+  >;
 
   private static formatMessage(message: string, fileName: string): string {
     return message.replace(this.FILENAME_PLACEHOLDER, fileName);

@@ -64,7 +64,10 @@ describe('cli/init-helpers', () => {
       FileUtils.writeFileSync(
         PathOperations.join(tempDir, 'package.json'),
         JSON.stringify({
-          dependencies: { '@angular/core': '^20.0.0', '@ionic/angular': '^8.8.0' },
+          dependencies: {
+            '@angular/core': '^20.0.0',
+            '@ionic/angular': '^8.8.0',
+          },
         })
       );
       FileUtils.writeFileSync(
@@ -188,7 +191,11 @@ describe('cli/init-helpers', () => {
     execFileSync('git', ['init', '-q'], { cwd: dir, stdio: 'ignore' });
     fs.writeFileSync(
       path.join(dir, 'package.json'),
-      JSON.stringify({ name: 'test-project', version: '1.0.0', devDependencies: { husky: '^9.0.0' } })
+      JSON.stringify({
+        name: 'test-project',
+        version: '1.0.0',
+        devDependencies: { husky: '^9.0.0' },
+      })
     );
     fs.cpSync(
       path.resolve(__dirname, '..', '..', 'node_modules', 'husky'),

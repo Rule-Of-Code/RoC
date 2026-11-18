@@ -18,7 +18,12 @@
 
 import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { clientGraph, type EnvRead, envReads, type NextModuleGraph } from '../../utils/react/next-module-graph';
+import {
+  clientGraph,
+  type EnvRead,
+  envReads,
+  type NextModuleGraph,
+} from '../../utils/react/next-module-graph';
 import { FileSystemOperations } from '../../utils/file-system-operations';
 import { PathOperations } from '../../utils/path-operations';
 import { ReactProject, type NextApp } from '../../utils/react/react-project';
@@ -26,7 +31,13 @@ import { unwrap } from '../../utils/react/module-exports';
 import { LawBase } from '../law-base';
 import { readProject } from './next-server-support';
 
-const NEXT_CONFIG_FILES = ['next.config.ts', 'next.config.mts', 'next.config.js', 'next.config.mjs', 'next.config.cjs'];
+const NEXT_CONFIG_FILES = [
+  'next.config.ts',
+  'next.config.mts',
+  'next.config.js',
+  'next.config.mjs',
+  'next.config.cjs',
+];
 
 /** Names Next inlines into the client bundle whatever their prefix. */
 const ALWAYS_INLINED = new Set(['NODE_ENV']);
@@ -52,14 +63,22 @@ export class NextClientEnvPublicOnlyLaw extends LawBase {
     const violations: string[] = [];
     for (const [file, visit] of client.modules) {
       for (const read of envReads(visit.source)) {
-        if (!read.name || read.name.startsWith('NEXT_PUBLIC_') || ALWAYS_INLINED.has(read.name)) continue;
+        if (
+          !read.name ||
+          read.name.startsWith('NEXT_PUBLIC_') ||
+          ALWAYS_INLINED.has(read.name)
+        )
+          continue;
         if (configEnv.keys.has(read.name)) continue;
         violations.push(
           `${graph.relative(file)}:${read.line}: ${read.text} is read in browser code (through ${graph.chain(client.modules, file)}) — ${this.inBrowser(read)}${caveat}. Read it on the server and pass the value down, or rename it NEXT_PUBLIC_ if it is public`
         );
       }
     }
-    violations.push(...client.unresolved.map(item => graph.describeUnresolved(item)), ...graph.unread);
+    violations.push(
+      ...client.unresolved.map(item => graph.describeUnresolved(item)),
+      ...graph.unread
+    );
     return this.result(violations, context);
   }
 
@@ -70,7 +89,10 @@ export class NextClientEnvPublicOnlyLaw extends LawBase {
       : 'Next does not inline a destructured read, so it is undefined there';
   }
 
-  private static result(violations: string[], context: LawCheckContext): LawResult {
+  private static result(
+    violations: string[],
+    context: LawCheckContext
+  ): LawResult {
     return this.createResult(
       violations,
       this.LAW_NAME,
@@ -84,7 +106,10 @@ export class NextClientEnvPublicOnlyLaw extends LawBase {
   }
 
   /** The keys of the literal `env` object of each app's next.config. */
-  private static configEnv(graph: NextModuleGraph, apps: readonly NextApp[]): ConfigEnv {
+  private static configEnv(
+    graph: NextModuleGraph,
+    apps: readonly NextApp[]
+  ): ConfigEnv {
     const result: ConfigEnv = { keys: new Set(), unreadable: [] };
     for (const app of apps) {
       for (const name of NEXT_CONFIG_FILES) {
@@ -94,7 +119,11 @@ export class NextClientEnvPublicOnlyLaw extends LawBase {
         if (!source) continue;
         const ts = source.ts;
         source.walk(node => {
-          if (!ts.isPropertyAssignment(node) || node.name.getText(source.sourceFile) !== 'env') return;
+          if (
+            !ts.isPropertyAssignment(node) ||
+            node.name.getText(source.sourceFile) !== 'env'
+          )
+            return;
           const value = unwrap(ts, node.initializer);
           if (!ts.isObjectLiteralExpression(value)) {
             result.unreadable.push(graph.relative(file));
@@ -110,9 +139,13 @@ export class NextClientEnvPublicOnlyLaw extends LawBase {
     return result;
   }
 
-  private static propertyName(ts: typeof TS, property: TS.ObjectLiteralElementLike): string | null {
+  private static propertyName(
+    ts: typeof TS,
+    property: TS.ObjectLiteralElementLike
+  ): string | null {
     if (!property.name) return null;
-    if (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name)) return property.name.text;
+    if (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name))
+      return property.name.text;
     return null;
   }
 }

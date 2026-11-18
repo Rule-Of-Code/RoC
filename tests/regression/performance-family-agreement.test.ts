@@ -144,7 +144,10 @@ describe('the performance family agrees with itself', () => {
 
     it('finds hints stamped into the build output after bundling', () => {
       nxProjectWithBudgets();
-      write('apps/web/src/index.html', '<html><head><title>x</title></head></html>');
+      write(
+        'apps/web/src/index.html',
+        '<html><head><title>x</title></head></html>'
+      );
       write('dist/apps/web/browser/index.html', HASHED_PRELOAD);
 
       expect(ResourceHintsAnalyzerService.analyze(root).hasHints).toBe(true);
@@ -179,7 +182,10 @@ describe('the performance family agrees with itself', () => {
     // The red control: no hints in either place is still a finding.
     it('still reports a project with hints in neither source nor output', () => {
       nxProjectWithBudgets();
-      write('apps/web/src/index.html', '<html><head><title>x</title></head></html>');
+      write(
+        'apps/web/src/index.html',
+        '<html><head><title>x</title></head></html>'
+      );
       write('dist/apps/web/browser/index.html', '<html><head></head></html>');
 
       expect(ResourceHintsAnalyzerService.analyze(root).hasHints).toBe(false);

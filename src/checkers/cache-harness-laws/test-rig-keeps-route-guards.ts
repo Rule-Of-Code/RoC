@@ -18,16 +18,29 @@
  */
 
 import type * as TS from 'typescript';
-import type { FileContaining, LawRequirement } from '../../types/enhanced-law.types';
+import type {
+  FileContaining,
+  LawRequirement,
+} from '../../types/enhanced-law.types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { readFilesContaining, type ContainingFile } from '../../utils/law-requirements';
-import { loadTypeScript, parserUnavailable, type TypeScriptModule } from '../../utils/react/tsx-source';
+import {
+  readFilesContaining,
+  type ContainingFile,
+} from '../../utils/law-requirements';
+import {
+  loadTypeScript,
+  parserUnavailable,
+  type TypeScriptModule,
+} from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';
 import { GUARD_KEYS, routesIn, type RouteObject } from './route-objects';
 import { subjectResult } from './subject-result';
 
 const SCRIPT = '{ts,mts,cts,js,mjs,cjs}';
-const TEST_FILES = [`**/*.{spec,test,cy,e2e}.${SCRIPT}`, `**/{e2e,cypress,playwright,test,tests,testing,__tests__}/**/*.${SCRIPT}`];
+const TEST_FILES = [
+  `**/*.{spec,test,cy,e2e}.${SCRIPT}`,
+  `**/{e2e,cypress,playwright,test,tests,testing,__tests__}/**/*.${SCRIPT}`,
+];
 const ROUTER_SETUP = String.raw`(?:\bprovideRouter|\bRouterTestingModule\s*\.\s*withRoutes|\bRouterModule\s*\.\s*for(?:Root|Child))\s*\(`;
 
 /** A test file that sets up a router and writes a route path literally. */
@@ -59,18 +72,31 @@ interface Rig {
 
 function unwrap(ts: TypeScriptModule, node: TS.Expression): TS.Expression {
   let current = node;
-  while (ts.isAsExpression(current) || ts.isSatisfiesExpression(current) || ts.isParenthesizedExpression(current)) current = current.expression;
+  while (
+    ts.isAsExpression(current) ||
+    ts.isSatisfiesExpression(current) ||
+    ts.isParenthesizedExpression(current)
+  )
+    current = current.expression;
   return current;
 }
 
 function isRouterSetup(ts: TypeScriptModule, call: TS.CallExpression): boolean {
   const callee = call.expression;
   if (ts.isIdentifier(callee)) return callee.text === 'provideRouter';
-  return ts.isPropertyAccessExpression(callee) && SETUP_METHODS.has(callee.name.text) && SETUP_OWNERS.test(callee.expression.getText());
+  return (
+    ts.isPropertyAccessExpression(callee) &&
+    SETUP_METHODS.has(callee.name.text) &&
+    SETUP_OWNERS.test(callee.expression.getText())
+  );
 }
 
 /** The array a router setup is given: written in the call, or a variable of the same file bound to one. */
-function routeArray(ts: TypeScriptModule, sf: TS.SourceFile, call: TS.CallExpression): TS.Node | null {
+function routeArray(
+  ts: TypeScriptModule,
+  sf: TS.SourceFile,
+  call: TS.CallExpression
+): TS.Node | null {
   const arg = call.arguments[0] ? unwrap(ts, call.arguments[0]) : null;
   if (!arg) return null;
   if (ts.isArrayLiteralExpression(arg)) return arg;
@@ -78,7 +104,12 @@ function routeArray(ts: TypeScriptModule, sf: TS.SourceFile, call: TS.CallExpres
   let found: TS.Node | null = null;
   const visit = (node: TS.Node): void => {
     if (found) return;
-    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.name.text === arg.text && node.initializer) {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === arg.text &&
+      node.initializer
+    ) {
       const init = unwrap(ts, node.initializer);
       if (ts.isArrayLiteralExpression(init)) found = init;
     }
@@ -89,13 +120,21 @@ function routeArray(ts: TypeScriptModule, sf: TS.SourceFile, call: TS.CallExpres
 }
 
 function readRig(ts: TypeScriptModule, file: ContainingFile): Rig {
-  const sf = ts.createSourceFile(file.rel, file.content, ts.ScriptTarget.Latest, true);
+  const sf = ts.createSourceFile(
+    file.rel,
+    file.content,
+    ts.ScriptTarget.Latest,
+    true
+  );
   const rig: Rig = { setups: 0, routes: [] };
   const visit = (node: TS.Node): void => {
     if (ts.isCallExpression(node) && isRouterSetup(ts, node)) {
       rig.setups++;
       const array = routeArray(ts, sf, node);
-      if (array) rig.routes.push(...routesIn(ts, sf, array).map(route => ({ ...route, rel: file.rel })));
+      if (array)
+        rig.routes.push(
+          ...routesIn(ts, sf, array).map(route => ({ ...route, rel: file.rel }))
+        );
     }
     ts.forEachChild(node, visit);
   };
@@ -104,20 +143,34 @@ function readRig(ts: TypeScriptModule, file: ContainingFile): Rig {
 }
 
 /** Guarded app routes by full path. */
-function appRoutes(ts: TypeScriptModule, files: readonly ContainingFile[]): Map<string, Array<RouteObject & { rel: string }>> {
+function appRoutes(
+  ts: TypeScriptModule,
+  files: readonly ContainingFile[]
+): Map<string, Array<RouteObject & { rel: string }>> {
   const byPath = new Map<string, Array<RouteObject & { rel: string }>>();
   for (const file of files) {
-    const sf = ts.createSourceFile(file.rel, file.content, ts.ScriptTarget.Latest, true);
+    const sf = ts.createSourceFile(
+      file.rel,
+      file.content,
+      ts.ScriptTarget.Latest,
+      true
+    );
     for (const route of routesIn(ts, sf, sf)) {
       if (route.guards.size === 0) continue;
-      byPath.set(route.path, [...(byPath.get(route.path) ?? []), { ...route, rel: file.rel }]);
+      byPath.set(route.path, [
+        ...(byPath.get(route.path) ?? []),
+        { ...route, rel: file.rel },
+      ]);
     }
   }
   return byPath;
 }
 
 /** A hand-written route that drops guards an app route of the same path has. */
-function describeLostGuards(route: RouteObject & { rel: string }, app: ReadonlyArray<RouteObject & { rel: string }>): string | null {
+function describeLostGuards(
+  route: RouteObject & { rel: string },
+  app: ReadonlyArray<RouteObject & { rel: string }>
+): string | null {
   for (const appRoute of app) {
     const lost = [...appRoute.guards].filter(key => !route.guards.has(key));
     if (lost.length === 0) continue;
@@ -131,14 +184,21 @@ export class TestRigKeepsRouteGuardsLaw extends LawBase {
 
   static check(context: LawCheckContext): LawResult {
     const ignores = context.config.ignores?.global ?? [];
-    const specs = readFilesContaining(context.projectRoot, ROUTE_RIG_FILES, ignores);
+    const specs = readFilesContaining(
+      context.projectRoot,
+      ROUTE_RIG_FILES,
+      ignores
+    );
     const ts = loadTypeScript(context.projectRoot);
     const suggestions = [
       "Import the app's route objects (or the guard and resolver list) from its route file instead of copying paths and components",
-      'Where a test must stub a guard, keep the key and provide the stub (canMatch: [() => true]) so the shape stays the app\'s',
+      "Where a test must stub a guard, keep the key and provide the stub (canMatch: [() => true]) so the shape stays the app's",
     ];
     if (!ts) {
-      return subjectResult({ ...this.empty(context, suggestions), nothingJudged: `${specs.length} test file(s): ${parserUnavailable(context.projectRoot)}` });
+      return subjectResult({
+        ...this.empty(context, suggestions),
+        nothingJudged: `${specs.length} test file(s): ${parserUnavailable(context.projectRoot)}`,
+      });
     }
     const rigs = specs.map(file => readRig(ts, file));
     const setups = rigs.reduce((n, rig) => n + rig.setups, 0);
@@ -146,10 +206,23 @@ export class TestRigKeepsRouteGuardsLaw extends LawBase {
     const routes = rigs
       .flatMap(rig => rig.routes)
       .filter(route => route.path !== '' && route.path !== '**')
-      .filter((route, index, all) => all.findIndex(other => other.rel === route.rel && other.line === route.line && other.path === route.path) === index);
-    const app = appRoutes(ts, readFilesContaining(context.projectRoot, APP_ROUTE_FILES, ignores));
+      .filter(
+        (route, index, all) =>
+          all.findIndex(
+            other =>
+              other.rel === route.rel &&
+              other.line === route.line &&
+              other.path === route.path
+          ) === index
+      );
+    const app = appRoutes(
+      ts,
+      readFilesContaining(context.projectRoot, APP_ROUTE_FILES, ignores)
+    );
     const compared = routes.filter(route => app.has(route.path));
-    const findings = compared.flatMap(route => describeLostGuards(route, app.get(route.path) ?? []) ?? []);
+    const findings = compared.flatMap(
+      route => describeLostGuards(route, app.get(route.path) ?? []) ?? []
+    );
     return subjectResult({
       lawName: this.LAW_NAME,
       category: 'TESTING',
@@ -161,7 +234,12 @@ export class TestRigKeepsRouteGuardsLaw extends LawBase {
       passSummary: `${setups} router setup(s) in ${specs.length} test file(s), ${routes.length} route(s) declared by hand, ${compared.length} of them also a guarded app route (${[...app.values()].flat().length} guarded app route(s) read) — none drops a guard`,
       notSeen:
         'not seen: app routes loaded from another file through loadChildren (their paths are read without the parent prefix), routes built by a function, and test routes passed through a variable of another file',
-      metrics: { filesRead: specs.length, routerSetups: setups, handDeclaredRoutes: routes.length, comparedRoutes: compared.length },
+      metrics: {
+        filesRead: specs.length,
+        routerSetups: setups,
+        handDeclaredRoutes: routes.length,
+        comparedRoutes: compared.length,
+      },
     });
   }
 
@@ -175,7 +253,12 @@ export class TestRigKeepsRouteGuardsLaw extends LawBase {
       judged: 0,
       passSummary: '',
       notSeen: '',
-      metrics: { filesRead: 0, routerSetups: 0, handDeclaredRoutes: 0, comparedRoutes: 0 },
+      metrics: {
+        filesRead: 0,
+        routerSetups: 0,
+        handDeclaredRoutes: 0,
+        comparedRoutes: 0,
+      },
     };
   }
 }

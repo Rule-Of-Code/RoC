@@ -11,8 +11,11 @@ import { ctx, project, removeProjects } from '../toolkit-fixture';
 
 afterAll(removeProjects);
 
-const LAW = CACHE_HARNESS_LAWS.find(law => law.checkFunction === 'AsyncCacheSingleFlightLaw.check');
-const run = (files: Record<string, string>) => AsyncCacheSingleFlightLaw.check(ctx(project(files)));
+const LAW = CACHE_HARNESS_LAWS.find(
+  law => law.checkFunction === 'AsyncCacheSingleFlightLaw.check'
+);
+const run = (files: Record<string, string>) =>
+  AsyncCacheSingleFlightLaw.check(ctx(project(files)));
 
 /** Check, await on a miss, store the value: every concurrent caller misses. */
 const STORE_AFTER_AWAIT = `_profiles = {}
@@ -54,9 +57,32 @@ async def _load(uid):
 describe('AsyncCacheSingleFlightLaw (#374)', () => {
   it('is selected only where git publishes an async check-then-store cache', () => {
     expect(LAW?.requires).toBeDefined();
-    expect(lawRequirementsMet(LAW?.requires, project({ 'app/profiles.py': STORE_AFTER_AWAIT }))).toBe(true);
-    expect(lawRequirementsMet(LAW?.requires, project({ 'app/handler.py': 'async def handle(req):\n    headers = {}\n    headers["x"] = 1\n    return headers\n' }))).toBe(false);
-    expect(lawRequirementsMet(LAW?.requires, project({ 'app/sync.py': STORE_AFTER_AWAIT.replace('async def', 'def').replace('await ', '') }))).toBe(false);
+    expect(
+      lawRequirementsMet(
+        LAW?.requires,
+        project({ 'app/profiles.py': STORE_AFTER_AWAIT })
+      )
+    ).toBe(true);
+    expect(
+      lawRequirementsMet(
+        LAW?.requires,
+        project({
+          'app/handler.py':
+            'async def handle(req):\n    headers = {}\n    headers["x"] = 1\n    return headers\n',
+        })
+      )
+    ).toBe(false);
+    expect(
+      lawRequirementsMet(
+        LAW?.requires,
+        project({
+          'app/sync.py': STORE_AFTER_AWAIT.replace('async def', 'def').replace(
+            'await ',
+            ''
+          ),
+        })
+      )
+    ).toBe(false);
   });
 
   it('red: store-after-await — named at the store, with the check and the await', () => {
@@ -73,14 +99,25 @@ describe('AsyncCacheSingleFlightLaw (#374)', () => {
     const result = run({ 'app/profiles.py': SINGLE_FLIGHT });
     expect(result.violations).toEqual([]);
     expect(result.passed).toBe(true);
-    expect(result.message).toMatch(/1 check-then-store site\(s\) in 1 file\(s\): 1 shared cache\(s\) store the in-flight future\/promise and remove it on failure/);
-    expect(result.metrics).toMatchObject({ filesRead: 1, cacheSites: 1, inFlightSites: 1 });
+    expect(result.message).toMatch(
+      /1 check-then-store site\(s\) in 1 file\(s\): 1 shared cache\(s\) store the in-flight future\/promise and remove it on failure/
+    );
+    expect(result.metrics).toMatchObject({
+      filesRead: 1,
+      cacheSites: 1,
+      inFlightSites: 1,
+    });
   });
 
   it('red: the future is stored but never removed when it raises (a cached error)', () => {
-    const noRemoval = SINGLE_FLIGHT.replace('    try:\n        return await fut\n    except Exception:\n        _inflight.pop(uid, None)\n        raise\n', '    return await fut\n');
+    const noRemoval = SINGLE_FLIGHT.replace(
+      '    try:\n        return await fut\n    except Exception:\n        _inflight.pop(uid, None)\n        raise\n',
+      '    return await fut\n'
+    );
     expect(run({ 'app/profiles.py': noRemoval }).violations).toEqual([
-      expect.stringMatching(/^app\/profiles\.py:11: get_profile stores the in-flight future\/promise in _inflight but never removes it when it fails/),
+      expect.stringMatching(
+        /^app\/profiles\.py:11: get_profile stores the in-flight future\/promise in _inflight but never removes it when it fails/
+      ),
     ]);
   });
 
@@ -107,11 +144,18 @@ async def get_profile(uid):
   });
 
   it('a lock around the fetch alone (no check under it) still lets every waiter fetch in turn: reported', () => {
-    const lockedFetchOnly = STORE_AFTER_AWAIT.replace('_profiles = {}\n', '_profiles = {}\n_lock = asyncio.Lock()\n').replace(
+    const lockedFetchOnly = STORE_AFTER_AWAIT.replace(
+      '_profiles = {}\n',
+      '_profiles = {}\n_lock = asyncio.Lock()\n'
+    ).replace(
       '    snap = await db.collection("profiles").document(uid).get()\n    data = snap.to_dict()\n    _profiles[uid] = data\n',
       '    async with _lock:\n        snap = await db.collection("profiles").document(uid).get()\n        data = snap.to_dict()\n        _profiles[uid] = data\n'
     );
-    expect(run({ 'app/profiles.py': lockedFetchOnly }).violations).toEqual([expect.stringMatching(/^app\/profiles\.py:12: get_profile checks _profiles/)]);
+    expect(run({ 'app/profiles.py': lockedFetchOnly }).violations).toEqual([
+      expect.stringMatching(
+        /^app\/profiles\.py:12: get_profile checks _profiles/
+      ),
+    ]);
   });
 
   it('a memo the caller hands in as a parameter belongs to one call, not to concurrent requests: not reported', () => {
@@ -131,11 +175,16 @@ async def shared_zone(group_id):
         _shared[group_id] = await load_zone(group_id)
     return _shared[group_id]
 `;
-    expect(run({ 'app/items.py': perCall }).violations).toEqual([expect.stringMatching(/^app\/items\.py:14: shared_zone checks _shared \(line 13\)/)]);
+    expect(run({ 'app/items.py': perCall }).violations).toEqual([
+      expect.stringMatching(
+        /^app\/items\.py:14: shared_zone checks _shared \(line 13\)/
+      ),
+    ]);
   });
 
   it('a dict built inside the function is a per-call value: judged (counted), not reported', () => {
-    const local = 'async def collect(ids):\n    out = {}\n    for i in ids:\n        if i in out:\n            continue\n        out[i] = await fetch(i)\n    return out\n';
+    const local =
+      'async def collect(ids):\n    out = {}\n    for i in ids:\n        if i in out:\n            continue\n        out[i] = await fetch(i)\n    return out\n';
     const result = run({ 'app/collect.py': local });
     expect(result.violations).toEqual([]);
     expect(result.passed).toBe(true);
@@ -143,7 +192,8 @@ async def shared_zone(group_id):
   });
 
   it('judged nothing, never compliant, when the check and the store sit in two functions', () => {
-    const split = 'REGISTRY = {}\n\n\nasync def known(name):\n    return REGISTRY.get(name)\n\n\ndef register(name, value):\n    REGISTRY[name] = value\n';
+    const split =
+      'REGISTRY = {}\n\n\nasync def known(name):\n    return REGISTRY.get(name)\n\n\ndef register(name, value):\n    REGISTRY[name] = value\n';
     const result = run({ 'app/registry.py': split });
     expect(result.passed).toBe(false);
     expect(result.judgedNothing).toBe(true);
@@ -174,13 +224,19 @@ export function getProfile(id: string) {
 `;
 
     it('red: if (!cache.has(k)) { const v = await load(); cache.set(k, v) }', () => {
-      expect(run({ 'src/profiles.ts': STORE_AFTER_AWAIT_TS }).violations).toEqual([
-        expect.stringMatching(/^src\/profiles\.ts:6: getProfile checks profiles \(line 4\) and stores into it only after awaiting loadProfile\(…\) \(line 5\)/),
+      expect(
+        run({ 'src/profiles.ts': STORE_AFTER_AWAIT_TS }).violations
+      ).toEqual([
+        expect.stringMatching(
+          /^src\/profiles\.ts:6: getProfile checks profiles \(line 4\) and stores into it only after awaiting loadProfile\(…\) \(line 5\)/
+        ),
       ]);
     });
 
     it('green: the promise is stored before it settles and deleted in .catch', () => {
-      expect(run({ 'src/profiles.ts': SINGLE_FLIGHT_TS }).violations).toEqual([]);
+      expect(run({ 'src/profiles.ts': SINGLE_FLIGHT_TS }).violations).toEqual(
+        []
+      );
     });
 
     it('red: the promise is stored and never deleted when it rejects', () => {
@@ -189,7 +245,9 @@ export function getProfile(id: string) {
         'loadProfile(id).then(value => value);'
       );
       expect(run({ 'src/profiles.ts': cachedError }).violations).toEqual([
-        expect.stringMatching(/^src\/profiles\.ts:7: getProfile stores the in-flight future\/promise in inflight but never removes it when it fails/),
+        expect.stringMatching(
+          /^src\/profiles\.ts:7: getProfile stores the in-flight future\/promise in inflight but never removes it when it fails/
+        ),
       ]);
     });
   });

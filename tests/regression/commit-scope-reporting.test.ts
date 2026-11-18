@@ -52,7 +52,10 @@ describe('commit-history laws report the scope they resolved', () => {
     git('git config user.email t@example.com');
     git('git config user.name Test');
     write('package.json', '{"name":"p","version":"1.0.0"}');
-    write('CONTRIBUTING.md', '# Contributing\n\nAtomic commits: one per change.\n');
+    write(
+      'CONTRIBUTING.md',
+      '# Contributing\n\nAtomic commits: one per change.\n'
+    );
     git('git add -A');
     git('git commit -qm "chore: init"');
     git('git checkout -qb develop');

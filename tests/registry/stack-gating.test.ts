@@ -11,8 +11,10 @@ const law = (title: string): { stack?: string } | undefined =>
   ALL_ENHANCED_CONSTITUTIONAL_LAWS.find(l => l.title === title);
 
 describe('lawAppliesToProjectType', () => {
-  const applies = (stack: string | undefined, pt: string | undefined): boolean =>
-    ModularLawsRegistry.lawAppliesToProjectType(stack, pt);
+  const applies = (
+    stack: string | undefined,
+    pt: string | undefined
+  ): boolean => ModularLawsRegistry.lawAppliesToProjectType(stack, pt);
 
   it('universal laws (no stack) apply to every project type', () => {
     for (const pt of ['python', 'angular', 'node', 'generic']) {
@@ -100,7 +102,9 @@ describe('applicability matrix (enabled laws filtered by project type)', () => {
 
   it('a python project excludes all frontend and typescript laws', () => {
     const keptStacks = enabled
-      .filter(l => ModularLawsRegistry.lawAppliesToProjectType(l.stack, 'python'))
+      .filter(l =>
+        ModularLawsRegistry.lawAppliesToProjectType(l.stack, 'python')
+      )
       .map(l => l.stack);
     expect(keptStacks).not.toContain('frontend');
     expect(keptStacks).not.toContain('typescript');

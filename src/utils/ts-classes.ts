@@ -197,7 +197,12 @@ export class TsClasses {
   }
 
   /** At bracket depth 0: does a field end here (`;`, or a newline before the next member)? */
-  private static fieldStop(code: string, k: number, close: number, assigned: boolean): number {
+  private static fieldStop(
+    code: string,
+    k: number,
+    close: number,
+    assigned: boolean
+  ): number {
     if (code[k] === ';') return k + 1;
     if (code[k] === '\n' && assigned && this.nextStartsMember(code, k, close)) {
       return k; // a field without its `;` (ASI)
@@ -205,7 +210,11 @@ export class TsClasses {
     return -1;
   }
 
-  private static depthDelta(c: string | undefined, opens: string, closes: string): number {
+  private static depthDelta(
+    c: string | undefined,
+    opens: string,
+    closes: string
+  ): number {
     if (c === undefined) return 0;
     if (opens.includes(c)) return 1;
     return closes.includes(c) ? -1 : 0;
@@ -218,9 +227,15 @@ export class TsClasses {
   }
 
   /** After a newline: does the next line begin a new member rather than continue an expression? */
-  private static nextStartsMember(code: string, k: number, close: number): boolean {
+  private static nextStartsMember(
+    code: string,
+    k: number,
+    close: number
+  ): boolean {
     const rest = code.slice(k + 1, close).replace(/^\s+/, '');
-    return /^(?:@|(?:public|private|protected|readonly|static|async|override)\s|#?[A-Za-z_$][\w$]*\s*[(:=!?<])/.test(rest);
+    return /^(?:@|(?:public|private|protected|readonly|static|async|override)\s|#?[A-Za-z_$][\w$]*\s*[(:=!?<])/.test(
+      rest
+    );
   }
 
   private static describe(
@@ -230,13 +245,17 @@ export class TsClasses {
     end: number
   ): TsMember | null {
     const head = code.slice(start, end);
-    const decorators = /^(?:@[\w$.]+\s*(?:\((?:[^()]|\([^()]*\))*\))?\s*)*/.exec(head)?.[0] ?? '';
+    const decorators =
+      /^(?:@[\w$.]+\s*(?:\((?:[^()]|\([^()]*\))*\))?\s*)*/.exec(head)?.[0] ??
+      '';
     const modifiers =
       /^(?:(?:public|private|protected|static|readonly|async|override|declare|abstract|accessor|get|set)\s+(?=[#A-Za-z_$]))*/.exec(
         head.slice(decorators.length)
       )?.[0] ?? '';
     const nameStart = decorators.length + modifiers.length;
-    const nameMatch = /^(#?[A-Za-z_$][\w$]*)\s*(\??)\s*([(<:=!;]?)/.exec(head.slice(nameStart));
+    const nameMatch = /^(#?[A-Za-z_$][\w$]*)\s*(\??)\s*([(<:=!;]?)/.exec(
+      head.slice(nameStart)
+    );
     if (!nameMatch) return null;
     const name = nameMatch[1] ?? '';
     const follower = nameMatch[3] ?? '';
@@ -265,19 +284,32 @@ export class TsClasses {
   }
 
   /** A field's initializer: what follows its `=` at depth 0. */
-  private static initializerOf(content: string, code: string, start: number, end: number): string {
+  private static initializerOf(
+    content: string,
+    code: string,
+    start: number,
+    end: number
+  ): string {
     let depth = 0;
     for (let k = start; k < end; k++) {
       depth += this.depthDelta(code[k], '([{', ')]}');
       if (depth === 0 && code[k] === '=' && this.isAssignment(code, k)) {
-        return content.slice(k + 1, end).replace(/;\s*$/, '').trim();
+        return content
+          .slice(k + 1, end)
+          .replace(/;\s*$/, '')
+          .trim();
       }
     }
     return '';
   }
 
   /** A method's body: inside the first `{` outside its parameter list. */
-  private static blockOf(content: string, code: string, start: number, end: number): string {
+  private static blockOf(
+    content: string,
+    code: string,
+    start: number,
+    end: number
+  ): string {
     let paren = 0;
     for (let k = start; k < end; k++) {
       if (code[k] === '{' && paren === 0) {

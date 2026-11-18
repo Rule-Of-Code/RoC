@@ -23,8 +23,14 @@ import {
   projectsWithPlatform,
   relative,
 } from '../../utils/capacitor/capacitor-law-support';
-import { PRIVACY_MANIFEST_ROWS, type PrivacyManifestRow } from '../../utils/capacitor/capacitor-native-tables';
-import { CommittedShell, notReadReason } from '../../utils/capacitor/committed-shell';
+import {
+  PRIVACY_MANIFEST_ROWS,
+  type PrivacyManifestRow,
+} from '../../utils/capacitor/capacitor-native-tables';
+import {
+  CommittedShell,
+  notReadReason,
+} from '../../utils/capacitor/committed-shell';
 import { declaredDependencies } from '../../utils/law-requirements';
 import { PathOperations } from '../../utils/path-operations';
 import { LawBase } from '../law-base';
@@ -32,7 +38,14 @@ import { LawBase } from '../law-base';
 export const PRIVACY_MANIFEST = 'PrivacyInfo.xcprivacy';
 
 /** Directories under ios/App that hold build output or other packages' manifests, not the app's. */
-const NOT_THE_APP = new Set(['Pods', 'build', 'DerivedData', 'public', 'CapApp-SPM', 'node_modules']);
+const NOT_THE_APP = new Set([
+  'Pods',
+  'build',
+  'DerivedData',
+  'public',
+  'CapApp-SPM',
+  'node_modules',
+]);
 const SEARCH_DEPTH = 3;
 
 /** One NSPrivacyAccessedAPITypes entry: its category and reason strings. */
@@ -46,12 +59,19 @@ export class CapacitorIosPrivacyManifestDeclaredLaw extends LawBase {
 
   static check(context: LawCheckContext): LawResult {
     const installed = declaredDependencies(context.projectRoot);
-    const rows = PRIVACY_MANIFEST_ROWS.filter(row => installed.has(row.dependency));
-    const { projects, notRead } = rows.length > 0 ? projectsWithPlatform(context, 'ios') : { projects: [], notRead: [] };
+    const rows = PRIVACY_MANIFEST_ROWS.filter(row =>
+      installed.has(row.dependency)
+    );
+    const { projects, notRead } =
+      rows.length > 0
+        ? projectsWithPlatform(context, 'ios')
+        : { projects: [], notRead: [] };
     const reported: string[] = [];
     const violations = [
       ...notRead,
-      ...projects.flatMap(project => this.checkProject(context, project, rows, reported)),
+      ...projects.flatMap(project =>
+        this.checkProject(context, project, rows, reported)
+      ),
     ];
     const result = this.createResult(
       violations,
@@ -72,8 +92,14 @@ export class CapacitorIosPrivacyManifestDeclaredLaw extends LawBase {
     rows: readonly PrivacyManifestRow[],
     reported: string[]
   ): string[] {
-    const file = this.locate(native.iosTargetDir, PathOperations.getDirectory(native.iosTargetDir));
-    const needed = rows.map(row => `${row.dependency} → ${row.category} (e.g. ${row.exampleReason}; ${row.source})`);
+    const file = this.locate(
+      native.iosTargetDir,
+      PathOperations.getDirectory(native.iosTargetDir)
+    );
+    const needed = rows.map(
+      row =>
+        `${row.dependency} → ${row.category} (e.g. ${row.exampleReason}; ${row.source})`
+    );
     if (!file) {
       return [
         `${relative(context, PathOperations.join(native.iosTargetDir, PRIVACY_MANIFEST))} does not exist, and the installed plugins need it: ${needed.join('; ')}`,
@@ -89,18 +115,26 @@ export class CapacitorIosPrivacyManifestDeclaredLaw extends LawBase {
       ];
     }
     if (read.state !== 'read') {
-      return [`${where} ${notReadReason(read)} — this law reads the committed privacy manifest and does not pass without it`];
+      return [
+        `${where} ${notReadReason(read)} — this law reads the committed privacy manifest and does not pass without it`,
+      ];
     }
     const declared = this.accessedApis(read.text);
     const violations: string[] = [];
     for (const row of rows) {
       const entry = declared.find(api => api.category === row.category);
       if (!entry) {
-        violations.push(`${where}: no NSPrivacyAccessedAPITypes entry for ${row.category}, which ${row.dependency} uses (${row.source})`);
+        violations.push(
+          `${where}: no NSPrivacyAccessedAPITypes entry for ${row.category}, which ${row.dependency} uses (${row.source})`
+        );
       } else if (entry.reasons.length === 0) {
-        violations.push(`${where}: ${row.category} is declared without a reason in NSPrivacyAccessedAPITypeReasons (Capacitor's sample: ${row.exampleReason})`);
+        violations.push(
+          `${where}: ${row.category} is declared without a reason in NSPrivacyAccessedAPITypeReasons (Capacitor's sample: ${row.exampleReason})`
+        );
       } else {
-        reported.push(`${where}: ${row.category} declared with ${entry.reasons.join(', ')} (reason not judged)`);
+        reported.push(
+          `${where}: ${row.category} declared with ${entry.reasons.join(', ')} (reason not judged)`
+        );
       }
     }
     return violations;
@@ -117,11 +151,18 @@ export class CapacitorIosPrivacyManifestDeclaredLaw extends LawBase {
       } catch {
         return null;
       }
-      const file = entries.find(entry => entry.isFile() && entry.name === PRIVACY_MANIFEST);
+      const file = entries.find(
+        entry => entry.isFile() && entry.name === PRIVACY_MANIFEST
+      );
       if (file) return PathOperations.join(dir, file.name);
       if (depth === 0) return null;
       for (const entry of entries) {
-        if (!entry.isDirectory() || NOT_THE_APP.has(entry.name) || entry.name.startsWith('.')) continue;
+        if (
+          !entry.isDirectory() ||
+          NOT_THE_APP.has(entry.name) ||
+          entry.name.startsWith('.')
+        )
+          continue;
         const found = search(PathOperations.join(dir, entry.name), depth - 1);
         if (found) return found;
       }
@@ -133,14 +174,24 @@ export class CapacitorIosPrivacyManifestDeclaredLaw extends LawBase {
   /** Every NSPrivacyAccessedAPITypes entry of a privacy manifest (an XML property list). */
   static accessedApis(plist: string): AccessedApi[] {
     const text = plist.replace(/<!--[\s\S]*?-->/g, ' ');
-    const key = /<key>\s*NSPrivacyAccessedAPITypes\s*<\/key>\s*<array>/.exec(text);
+    const key = /<key>\s*NSPrivacyAccessedAPITypes\s*<\/key>\s*<array>/.exec(
+      text
+    );
     if (!key) return [];
     const types = this.arrayBody(text, key.index + key[0].length);
     return [...types.matchAll(/<dict>([\s\S]*?)<\/dict>/g)].map(([, entry]) => {
       const body = entry ?? '';
-      const category = /<key>\s*NSPrivacyAccessedAPIType\s*<\/key>\s*<string>\s*([^<]*?)\s*<\/string>/.exec(body)?.[1] ?? '';
-      const reasonList = /<key>\s*NSPrivacyAccessedAPITypeReasons\s*<\/key>\s*<array>([\s\S]*?)<\/array>/.exec(body)?.[1] ?? '';
-      const reasons = [...reasonList.matchAll(/<string>\s*([^<]*?)\s*<\/string>/g)]
+      const category =
+        /<key>\s*NSPrivacyAccessedAPIType\s*<\/key>\s*<string>\s*([^<]*?)\s*<\/string>/.exec(
+          body
+        )?.[1] ?? '';
+      const reasonList =
+        /<key>\s*NSPrivacyAccessedAPITypeReasons\s*<\/key>\s*<array>([\s\S]*?)<\/array>/.exec(
+          body
+        )?.[1] ?? '';
+      const reasons = [
+        ...reasonList.matchAll(/<string>\s*([^<]*?)\s*<\/string>/g),
+      ]
         .map(match => match[1] ?? '')
         .filter(Boolean);
       return { category, reasons };

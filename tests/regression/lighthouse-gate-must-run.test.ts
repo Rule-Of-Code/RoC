@@ -68,7 +68,10 @@ describe('a Lighthouse gate is something that runs', () => {
      * threshold clause was named after something it never checked.
      */
     it('a stray 90 in an unrelated file is not a threshold', () => {
-      write('package.json', '{"name":"site","scripts":{"start":"serve -p 9000"}}');
+      write(
+        'package.json',
+        '{"name":"site","scripts":{"start":"serve -p 9000"}}'
+      );
       write('.lighthouserc.json', '{"port":9000,"width":390}');
 
       expect(inspectLighthouseGate(root).declaresThreshold).toBe(false);
@@ -82,13 +85,17 @@ describe('a Lighthouse gate is something that runs', () => {
         'a package script',
       ],
       [
-        { 'package.json': '{"name":"s","devDependencies":{"@lhci/cli":"^0.13.0"}}' },
+        {
+          'package.json':
+            '{"name":"s","devDependencies":{"@lhci/cli":"^0.13.0"}}',
+        },
         'a declared dependency',
       ],
       [
         {
           'package.json': '{"name":"s"}',
-          '.github/workflows/ci.yml': 'jobs:\n  perf:\n    steps:\n      - run: lhci autorun\n',
+          '.github/workflows/ci.yml':
+            'jobs:\n  perf:\n    steps:\n      - run: lhci autorun\n',
         },
         'a CI step',
       ],

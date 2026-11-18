@@ -50,7 +50,11 @@ export class NextServerOnlyBoundaryLaw extends LawBase {
     const client = clientGraph(graph, apps);
     const unresolved: Unresolved[] = [...client.unresolved];
     for (const [file, visit] of client.modules) {
-      for (const specifier of this.serverImports(graph, visit.source, serverModules)) {
+      for (const specifier of this.serverImports(
+        graph,
+        visit.source,
+        serverModules
+      )) {
         violations.push(
           `${graph.relative(file)}:${specifier.line}: imports '${specifier.specifier}', and is bundled for the browser through ${graph.chain(client.modules, file)} — move the server code behind a Server Component, a route handler or a 'use server' action`
         );
@@ -60,7 +64,15 @@ export class NextServerOnlyBoundaryLaw extends LawBase {
       const entries = nextServerEntries(graph, apps);
       const server = graph.walk(entries, isClientModule);
       unresolved.push(...server.unresolved);
-      violations.push(...this.unmarked(graph, server.modules, new Set(entries), client.modules, serverModules));
+      violations.push(
+        ...this.unmarked(
+          graph,
+          server.modules,
+          new Set(entries),
+          client.modules,
+          serverModules
+        )
+      );
     }
     const seen = new Set<string>();
     for (const item of unresolved) {
@@ -71,13 +83,16 @@ export class NextServerOnlyBoundaryLaw extends LawBase {
     return this.result([...violations, ...graph.unread], context);
   }
 
-  private static result(violations: string[], context: LawCheckContext): LawResult {
+  private static result(
+    violations: string[],
+    context: LawCheckContext
+  ): LawResult {
     return this.createResult(
       violations,
       this.LAW_NAME,
       'SECURITY',
       [
-        'Keep database drivers and Node built-ins out of every module a \'use client\' file imports',
+        "Keep database drivers and Node built-ins out of every module a 'use client' file imports",
         "Add `import 'server-only'` to each module that imports one, so a client import of it fails the build",
         'Hand client components data as props, or call a Server Action, instead of importing server code',
       ],
@@ -90,7 +105,9 @@ export class NextServerOnlyBoundaryLaw extends LawBase {
     source: TsxSource,
     serverModules: readonly string[]
   ): Array<{ specifier: string; line: number }> {
-    return graph.importsOf(source).filter(item => isListedModule(item.specifier, serverModules));
+    return graph
+      .importsOf(source)
+      .filter(item => isListedModule(item.specifier, serverModules));
   }
 
   private static unmarked(
@@ -102,10 +119,17 @@ export class NextServerOnlyBoundaryLaw extends LawBase {
   ): string[] {
     const violations: string[] = [];
     for (const [file, visit] of modules) {
-      if (entries.has(file) || clientModules.has(file) || isServerModule(visit.source)) continue;
+      if (
+        entries.has(file) ||
+        clientModules.has(file) ||
+        isServerModule(visit.source)
+      )
+        continue;
       const imports = graph.importsOf(visit.source);
       if (imports.some(item => item.specifier === 'server-only')) continue;
-      const direct = imports.filter(item => isListedModule(item.specifier, serverModules));
+      const direct = imports.filter(item =>
+        isListedModule(item.specifier, serverModules)
+      );
       if (direct.length === 0) continue;
       violations.push(
         `${graph.relative(file)}:${direct[0]?.line ?? 1}: imports '${direct.map(d => d.specifier).join("', '")}' without import 'server-only' — the first client component that imports it ships it to the browser instead of failing the build (reached through ${graph.chain(modules, file)})`

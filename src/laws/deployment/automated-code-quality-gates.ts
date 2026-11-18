@@ -48,7 +48,10 @@ export class AutomatedCodeQualityGatesLaw {
     }
 
     // 2. Check for formatting gates
-    const formattingGates = this.analyzeFormattingGates(projectRoot, context.config);
+    const formattingGates = this.analyzeFormattingGates(
+      projectRoot,
+      context.config
+    );
     if (!formattingGates.hasFormattingGates) {
       violations.push('Missing automated code formatting gates');
       suggestions.push(
@@ -58,7 +61,10 @@ export class AutomatedCodeQualityGatesLaw {
     }
 
     // 3. Check for test coverage gates
-    const coverageGates = this.analyzeCoverageGates(projectRoot, context.config);
+    const coverageGates = this.analyzeCoverageGates(
+      projectRoot,
+      context.config
+    );
     if (!coverageGates.hasCoverageGates) {
       violations.push('Missing test coverage quality gates');
       suggestions.push('Configure minimum test coverage thresholds in CI/CD');
@@ -74,7 +80,10 @@ export class AutomatedCodeQualityGatesLaw {
     }
 
     // 5. Check for security scanning gates
-    const securityGates = this.analyzeSecurityGates(projectRoot, context.config);
+    const securityGates = this.analyzeSecurityGates(
+      projectRoot,
+      context.config
+    );
     if (!securityGates.hasSecurityGates) {
       violations.push('Missing security scanning quality gates');
       suggestions.push(
@@ -224,8 +233,7 @@ export class AutomatedCodeQualityGatesLaw {
     // Python formats with black / ruff format / isort, declared in pyproject and
     // enforced in pre-commit — not with a .prettierrc and an npm script.
     const hasFormattingGates =
-      (hasFormattingConfig &&
-        (hasFormattingInCICD || hasFormattingScripts)) ||
+      (hasFormattingConfig && (hasFormattingInCICD || hasFormattingScripts)) ||
       PythonSatisfaction.hasPythonFormatter(projectRoot);
 
     return {
@@ -413,49 +421,55 @@ export class AutomatedCodeQualityGatesLaw {
     projectRoot: string,
     config?: RuleOfCodeConfig
   ): boolean {
-    return this.checkPatternInPipelineFiles(projectRoot, [/lint/i, /eslint/i], config);
+    return this.checkPatternInPipelineFiles(
+      projectRoot,
+      [/lint/i, /eslint/i],
+      config
+    );
   }
 
   private static checkFormattingInPipeline(
     projectRoot: string,
     config?: RuleOfCodeConfig
   ): boolean {
-    return this.checkPatternInPipelineFiles(projectRoot, [
-      /prettier/i,
-      /format/i,
-    ], config);
+    return this.checkPatternInPipelineFiles(
+      projectRoot,
+      [/prettier/i, /format/i],
+      config
+    );
   }
 
   private static checkBuildInPipeline(
     projectRoot: string,
     config?: RuleOfCodeConfig
   ): boolean {
-    return this.checkPatternInPipelineFiles(projectRoot, [
-      /build/i,
-      /compile/i,
-    ], config);
+    return this.checkPatternInPipelineFiles(
+      projectRoot,
+      [/build/i, /compile/i],
+      config
+    );
   }
 
   private static checkSecurityInPipeline(
     projectRoot: string,
     config?: RuleOfCodeConfig
   ): boolean {
-    return this.checkPatternInPipelineFiles(projectRoot, [
-      /audit/i,
-      /security/i,
-      /vulnerability/i,
-    ], config);
+    return this.checkPatternInPipelineFiles(
+      projectRoot,
+      [/audit/i, /security/i, /vulnerability/i],
+      config
+    );
   }
 
   private static checkPerformanceInPipeline(
     projectRoot: string,
     config?: RuleOfCodeConfig
   ): boolean {
-    return this.checkPatternInPipelineFiles(projectRoot, [
-      /lighthouse/i,
-      /performance/i,
-      /BundleSizeAnalyzer.*bundle.*size/i,
-    ], config);
+    return this.checkPatternInPipelineFiles(
+      projectRoot,
+      [/lighthouse/i, /performance/i, /BundleSizeAnalyzer.*bundle.*size/i],
+      config
+    );
   }
 
   private static checkPatternInPipelineFiles(
@@ -511,8 +525,7 @@ export class AutomatedCodeQualityGatesLaw {
             packageJsonPath
           );
         const scriptObj = packageJson.scripts as
-          | Record<string, string>
-          | undefined;
+          Record<string, string> | undefined;
         if (scriptObj) {
           // Script NAMES as well as their commands. Only the commands were
           // scanned, so the conventional `"build": "tsc"` was invisible — the

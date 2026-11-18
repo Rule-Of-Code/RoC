@@ -18,7 +18,7 @@ import { generateLawId } from '../utils/id-generator';
 
 /** The limits every law reading source through the parse shares. */
 const PARSED_SOURCE_ONLY =
-  'Reads non-test .tsx/.jsx/.ts/.js/.mjs source through the normal scan (ignores apply), parsed with the project\'s own TypeScript; without it the files are reported as not read, never passed.';
+  "Reads non-test .tsx/.jsx/.ts/.js/.mjs source through the normal scan (ignores apply), parsed with the project's own TypeScript; without it the files are reported as not read, never passed.";
 const NO_CROSS_FILE =
   'Single-file and syntactic: no type checker and no import following — a resource, fetch or global reached through a helper in another file is invisible.';
 const ONLY_INLINE_SETUP =
@@ -36,7 +36,7 @@ export const REACT_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '22.1',
     title: 'React Hooks Lint Enforced',
     rationale:
-      "React relies on hooks being called in the same order on every render and on effects listing what they read; neither is checked at runtime — a conditional hook or a stale dependency shows up as state attached to the wrong hook or an effect reading an old value. eslint-plugin-react-hooks checks both (rules-of-hooks, exhaustive-deps), and its React Compiler rules (purity, immutability, set-state-in-effect, static-components) check pure render and state handling. RoC does not duplicate those rules as laws; this law makes sure they are on, because a green lint run proves nothing when the plugin is absent.",
+      'React relies on hooks being called in the same order on every render and on effects listing what they read; neither is checked at runtime — a conditional hook or a stale dependency shows up as state attached to the wrong hook or an effect reading an old value. eslint-plugin-react-hooks checks both (rules-of-hooks, exhaustive-deps), and its React Compiler rules (purity, immutability, set-state-in-effect, static-components) check pure render and state handling. RoC does not duplicate those rules as laws; this law makes sure they are on, because a green lint run proves nothing when the plugin is absent.',
     satisfiedBy: {
       react:
         "In eslint.config.mjs, spread reactHooks.configs.flat.recommended from eslint-plugin-react-hooks, or the eslint-config-next presets (they register the plugin and its recommended rules). Never set react-hooks/rules-of-hooks or exhaustive-deps to 'off'; disable a single line with a reason.",
@@ -140,7 +140,8 @@ export const REACT_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'ReactEffectFetchRaceGuardedLaw.check',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article XXII.22.3: Effect fetch can be overwritten by a stale response',
-    remediation: 'Abort the request in the cleanup, or guard the update with an ignore flag',
+    remediation:
+      'Abort the request in the cleanup, or guard the update with an ignore flag',
   },
 
   {
@@ -162,11 +163,12 @@ export const REACT_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       PARSED_SOURCE_ONLY,
       'Flags only an object or array literal written inline in value={…}; a value built earlier in render without useMemo is not seen.',
-      "A provider is a `*.Provider` tag, a tag bound by createContext in the same file, or a tag named `…Context` (React 19 renders the context itself); a non-context component named `…Context` with a value prop is flagged.",
+      'A provider is a `*.Provider` tag, a tag bound by createContext in the same file, or a tag named `…Context` (React 19 renders the context itself); a non-context component named `…Context` with a value prop is flagged.',
       'React Compiler, where enabled, memoizes such literals itself; the law does not detect it.',
     ],
     emoji: '🧬',
-    description: 'A context provider value is not an inline object or array literal',
+    description:
+      'A context provider value is not an inline object or array literal',
     priority: 'LOW',
     category: 'PERFORMANCE',
     stack: 'frontend',
@@ -229,7 +231,7 @@ export const REACT_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '22.6',
     title: 'React Render No Browser Global',
     rationale:
-      "Next pre-renders Client Components on the server before hydrating them, and renders every Pages Router page there too. window, document, localStorage and sessionStorage do not exist on the server, so reading one while rendering throws there — or, behind a check that makes the server and browser renders differ, produces a hydration mismatch. Effects and event handlers run only in the browser; that is where a browser read belongs.",
+      'Next pre-renders Client Components on the server before hydrating them, and renders every Pages Router page there too. window, document, localStorage and sessionStorage do not exist on the server, so reading one while rendering throws there — or, behind a check that makes the server and browser renders differ, produces a hydration mismatch. Effects and event handlers run only in the browser; that is where a browser read belongs.',
     satisfiedBy: {
       react:
         'Move the read into useEffect and render a neutral value first, or into the event handler that needs it; for a value that must render in the browser, use useSyncExternalStore with a server snapshot, or next/dynamic with { ssr: false }.',
@@ -239,7 +241,7 @@ export const REACT_LAWS: EnhancedConstitutionalLaw[] = [
       NO_CROSS_FILE,
       "Reads files with a 'use client' directive and files under a Pages Router directory (pages/api excluded); a component without the directive that is imported by a client file is not read.",
       'Render scope is the body of a top-level component (PascalCase), hook (use…), default export or memo/forwardRef function, plus useState/useMemo/useReducer initializers and IIFEs; class components and nested component definitions are not read.',
-      "A read under a typeof check of a browser global (if, ?:, &&, or after an early return) is accepted as the issue asks, although a guarded read can still mismatch on hydration.",
+      'A read under a typeof check of a browser global (if, ?:, &&, or after an early return) is accepted as the issue asks, although a guarded read can still mismatch on hydration.',
     ],
     emoji: '🪟',
     description:
@@ -254,7 +256,8 @@ export const REACT_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'ReactRenderNoBrowserGlobalLaw.check',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article XXII.22.6: Browser global read while rendering on the server',
-    remediation: 'Read browser globals in useEffect or an event handler, not during render',
+    remediation:
+      'Read browser globals in useEffect or an event handler, not during render',
   },
 
   {
@@ -281,7 +284,8 @@ export const REACT_LAWS: EnhancedConstitutionalLaw[] = [
       'As the issue states, a catch around the call (try block in the same function, .catch, or .then(ok, onRejected)) is accepted, although fetch resolves on HTTP errors: a caught but unchecked 500 passes. A failure that is caught and ignored passes.',
     ],
     emoji: '📮',
-    description: 'A fetch in client code reads res.ok or res.status, or is inside a catch',
+    description:
+      'A fetch in client code reads res.ok or res.status, or is inside a catch',
     priority: 'MEDIUM',
     category: 'CODE_QUALITY',
     stack: 'frontend',
@@ -306,7 +310,7 @@ export const REACT_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '22.8',
     title: 'React Poll Visibility Gated',
     rationale:
-      "A setInterval that fetches keeps fetching while the tab is hidden: nobody is looking, the battery, the network and the API quota are still spent, and browsers throttle hidden timers so requests bunch up and fire on return. The Page Visibility API tells the app when it is hidden (visibilitychange, document.visibilityState); a poll should pause or skip on it.",
+      'A setInterval that fetches keeps fetching while the tab is hidden: nobody is looking, the battery, the network and the API quota are still spent, and browsers throttle hidden timers so requests bunch up and fire on return. The Page Visibility API tells the app when it is hidden (visibilitychange, document.visibilityState); a poll should pause or skip on it.',
     satisfiedBy: {
       react:
         "In the polling hook, listen to visibilitychange: clear the interval when document.visibilityState === 'hidden' and restart it when visible. Or poll through one helper that does this and name it in thresholds.react.pollHelpers; TanStack Query's refetchInterval pauses in the background by default.",
@@ -329,7 +333,8 @@ export const REACT_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'ReactPollVisibilityGatedLaw.check',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article XXII.22.8: Polling continues while the page is hidden',
-    remediation: 'Pause polling on visibilitychange, or poll through the sanctioned helper',
+    remediation:
+      'Pause polling on visibilitychange, or poll through the sanctioned helper',
   },
 
   {
@@ -346,7 +351,7 @@ export const REACT_LAWS: EnhancedConstitutionalLaw[] = [
       "React matches list items between renders by key. With the array index as the key, inserting, removing or reordering an item hands the remaining items each other's keys, and React keeps the wrong row's state — a typed value, a checked box, an open panel — on the row that moved into its place. The React documentation warns that index keys lead to exactly these bugs.",
     satisfiedBy: {
       react:
-        "Key each row by a stable id from the data: `items.map(item => <Row key={item.id} …/>)`. For a list that never reorders, write `// roc-allow-index-key: <why the list is static>` on the line above the element.",
+        'Key each row by a stable id from the data: `items.map(item => <Row key={item.id} …/>)`. For a list that never reorders, write `// roc-allow-index-key: <why the list is static>` on the line above the element.',
     },
     detectionLimits: [
       PARSED_SOURCE_ONLY,

@@ -22,7 +22,12 @@
 import { apisFor, isDatabaseWrite, type ProjectClients } from './data-clients';
 import type { ModuleGraph } from './module-graph';
 import type { CallSite, FunctionModel, ModuleModel } from './model';
-import { functionText, lastSegment, type CacheFill, type CacheSite } from './read-caches';
+import {
+  functionText,
+  lastSegment,
+  type CacheFill,
+  type CacheSite,
+} from './read-caches';
 
 export interface FunctionRef {
   module: ModuleModel;
@@ -35,10 +40,13 @@ export interface UsageContext {
   clients: ProjectClients;
 }
 
-const escapeRe = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const escapeRe = (text: string): string =>
+  text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-const WRITE_ROUTE_PY = /\.(?:post|put|patch|delete)\s*\(|\bmethods\s*=\s*[[(][^\])]*["'](?:POST|PUT|PATCH|DELETE)["']/i;
-const WRITE_ROUTE_TS = /@(?:Post|Put|Patch|Delete)\s*\(|\.(?:post|put|patch|delete)\s*\(/;
+const WRITE_ROUTE_PY =
+  /\.(?:post|put|patch|delete)\s*\(|\bmethods\s*=\s*[[(][^\])]*["'](?:POST|PUT|PATCH|DELETE)["']/i;
+const WRITE_ROUTE_TS =
+  /@(?:Post|Put|Patch|Delete)\s*\(|\.(?:post|put|patch|delete)\s*\(/;
 const METHOD_BRANCH = /\.method\s*(?:!==?|===?|not\s+in\b|in\b)/;
 
 const AUTH_PY =
@@ -46,22 +54,32 @@ const AUTH_PY =
 const AUTH_TS =
   /\bthrow\s+new\s+\w*(?:Unauthorized|Forbidden)\w*|\.status\(\s*40[13]\s*\)|\bHttpStatus\.(?:UNAUTHORIZED|FORBIDDEN)\b|\bstatusCode\s*[:=]\s*40[13]\b|\bcanActivate\s*\(/;
 
-const USER_SEGMENT = /^(?:uid|user_?id|user|current_?user|account_?id|owner_?id|member_?id|principal|caller_?id)$/i;
+const USER_SEGMENT =
+  /^(?:uid|user_?id|user|current_?user|account_?id|owner_?id|member_?id|principal|caller_?id)$/i;
 
-const hasUserSegment = (name: string): boolean => name.split('.').some(segment => USER_SEGMENT.test(segment));
+const hasUserSegment = (name: string): boolean =>
+  name.split('.').some(segment => USER_SEGMENT.test(segment));
 
 function everyFunction(ctx: UsageContext): FunctionRef[] {
-  return ctx.modules.flatMap(module => module.functions.map(fn => ({ module, fn })));
+  return ctx.modules.flatMap(module =>
+    module.functions.map(fn => ({ module, fn }))
+  );
 }
 
 /** Is this function a write path: routed for a write method, a registry write, or a branch on the request method? */
-export function isWritePath(ref: FunctionRef, clients: ProjectClients): boolean {
+export function isWritePath(
+  ref: FunctionRef,
+  clients: ProjectClients
+): boolean {
   const { module, fn } = ref;
   const apis = apisFor(clients, module.language);
   if (fn.calls.some(call => isDatabaseWrite(call, apis))) return true;
   if (METHOD_BRANCH.test(functionText(module, fn))) return true;
-  if (module.language === 'python') return (fn.decorators ?? []).some(d => WRITE_ROUTE_PY.test(d));
-  const header = module.lines.slice(Math.max(0, fn.line - 4), fn.line).join('\n');
+  if (module.language === 'python')
+    return (fn.decorators ?? []).some(d => WRITE_ROUTE_PY.test(d));
+  const header = module.lines
+    .slice(Math.max(0, fn.line - 4), fn.line)
+    .join('\n');
   return WRITE_ROUTE_TS.test(header);
 }
 
@@ -69,7 +87,9 @@ export function isWritePath(ref: FunctionRef, clients: ProjectClients): boolean 
 export function invalidationPattern(site: CacheSite): RegExp {
   const name = escapeRe(site.name);
   if (site.kind === 'decorator') {
-    return new RegExp(String.raw`\b${name}\.(?:cache_clear|cache_invalidate)\s*\(|\b${name}\.cache\.(?:clear|delete)\s*\(`);
+    return new RegExp(
+      String.raw`\b${name}\.(?:cache_clear|cache_invalidate)\s*\(|\b${name}\.cache\.(?:clear|delete)\s*\(`
+    );
   }
   return new RegExp(
     String.raw`(?<![\w$])${name}\.(?:clear|pop|delete|invalidate)\s*\(|\bdel\s+(?:[\w.]*\.)?${name}\s*\[|^\s*(?:[\w.]*\.)?${name}\s*=\s*(?:\{\s*\}|dict\(\s*\)|new\s+Map\b)`,
@@ -80,11 +100,19 @@ export function invalidationPattern(site: CacheSite): RegExp {
 /** Functions that clear the cache (their own source holds the call). */
 function invalidators(site: CacheSite, ctx: UsageContext): FunctionRef[] {
   const pattern = invalidationPattern(site);
-  return everyFunction(ctx).filter(ref => ref.fn !== site.decorated && pattern.test(functionText(ref.module, ref.fn)));
+  return everyFunction(ctx).filter(
+    ref =>
+      ref.fn !== site.decorated &&
+      pattern.test(functionText(ref.module, ref.fn))
+  );
 }
 
 /** Does `ref` clear the cache itself, or call (one step deep) a function that does? */
-function reaches(ref: FunctionRef, clearing: readonly FunctionRef[], graph: ModuleGraph): boolean {
+function reaches(
+  ref: FunctionRef,
+  clearing: readonly FunctionRef[],
+  graph: ModuleGraph
+): boolean {
   if (clearing.some(c => c.fn === ref.fn)) return true;
   return ref.fn.calls.some(call => {
     const target = graph.resolve(ref.module, ref.fn, call);
@@ -100,23 +128,37 @@ export interface InvalidationVerdict {
 }
 
 /** The write call of a function that writes the given literal collection, or null. */
-function writeOfCollection(ref: FunctionRef, collection: string, clients: ProjectClients): CallSite | null {
+function writeOfCollection(
+  ref: FunctionRef,
+  collection: string,
+  clients: ProjectClients
+): CallSite | null {
   const text = functionText(ref.module, ref.fn);
-  const named = new RegExp(String.raw`\bcollection(?:_group|Group)?\(\s*(?:[\w.]+\s*,\s*)?["'\x60]${escapeRe(collection)}["'\x60]`);
+  const named = new RegExp(
+    String.raw`\bcollection(?:_group|Group)?\(\s*(?:[\w.]+\s*,\s*)?["'\x60]${escapeRe(collection)}["'\x60]`
+  );
   if (!named.test(text)) return null;
   const apis = apisFor(clients, ref.module.language);
   return ref.fn.calls.find(call => isDatabaseWrite(call, apis)) ?? null;
 }
 
-export function invalidationOf(site: CacheSite, collections: readonly string[], ctx: UsageContext): InvalidationVerdict {
+export function invalidationOf(
+  site: CacheSite,
+  collections: readonly string[],
+  ctx: UsageContext
+): InvalidationVerdict {
   const clearing = invalidators(site, ctx);
-  const writers = everyFunction(ctx).filter(ref => isWritePath(ref, ctx.clients));
+  const writers = everyFunction(ctx).filter(ref =>
+    isWritePath(ref, ctx.clients)
+  );
   const onWritePath = writers.some(ref => reaches(ref, clearing, ctx.graph));
   if (!onWritePath) return { onWritePath, staleWrites: [] };
   const staleWrites = collections.flatMap(collection =>
     everyFunction(ctx).flatMap(ref => {
       const write = writeOfCollection(ref, collection, ctx.clients);
-      return write && !reaches(ref, clearing, ctx.graph) ? [{ rel: ref.module.rel, line: write.line, collection }] : [];
+      return write && !reaches(ref, clearing, ctx.graph)
+        ? [{ rel: ref.module.rel, line: write.line, collection }]
+        : [];
     })
   );
   return { onWritePath, staleWrites };
@@ -125,28 +167,44 @@ export function invalidationOf(site: CacheSite, collections: readonly string[], 
 /** Is this function an authorization check: it refuses with 401/403, raises a permission error, or is a guard? */
 export function isAuthorizationCheck(ref: FunctionRef): boolean {
   const text = functionText(ref.module, ref.fn);
-  return ref.module.language === 'python' ? AUTH_PY.test(text) : AUTH_TS.test(text);
+  return ref.module.language === 'python'
+    ? AUTH_PY.test(text)
+    : AUTH_TS.test(text);
 }
 
 /** Where an authorization check reads through the cache: a call to the decorated function, or a read of the container. */
-export function authorizationUses(site: CacheSite, ctx: UsageContext): Array<{ rel: string; line: number; check: string }> {
+export function authorizationUses(
+  site: CacheSite,
+  ctx: UsageContext
+): Array<{ rel: string; line: number; check: string }> {
   const checks = everyFunction(ctx).filter(isAuthorizationCheck);
   if (site.kind === 'decorator') {
     const decorated = site.decorated;
     return checks.flatMap(ref => {
-      if (ref.fn === decorated) return [{ rel: ref.module.rel, line: ref.fn.line, check: ref.fn.name }];
+      if (ref.fn === decorated)
+        return [{ rel: ref.module.rel, line: ref.fn.line, check: ref.fn.name }];
       const call = ref.fn.calls.find(c => {
         const target = ctx.graph.resolve(ref.module, ref.fn, c);
-        return target !== null ? target.fn === decorated : c.method === site.name && c.chain.length === 1 && ref.module === site.module;
+        return target !== null
+          ? target.fn === decorated
+          : c.method === site.name &&
+              c.chain.length === 1 &&
+              ref.module === site.module;
       });
-      return call ? [{ rel: ref.module.rel, line: call.line, check: ref.fn.name }] : [];
+      return call
+        ? [{ rel: ref.module.rel, line: call.line, check: ref.fn.name }]
+        : [];
     });
   }
-  const read = new RegExp(String.raw`(?<![\w$])${escapeRe(site.name)}(?:\.(?:get|has)\s*\(|\s*\[)|\bin\s+(?:[\w.]*\.)?${escapeRe(site.name)}\b`);
+  const read = new RegExp(
+    String.raw`(?<![\w$])${escapeRe(site.name)}(?:\.(?:get|has)\s*\(|\s*\[)|\bin\s+(?:[\w.]*\.)?${escapeRe(site.name)}\b`
+  );
   return checks.flatMap(ref => {
     const lines = ref.module.lines.slice(ref.fn.line - 1, ref.fn.endLine);
     const index = lines.findIndex(line => read.test(line));
-    return index >= 0 ? [{ rel: ref.module.rel, line: ref.fn.line + index, check: ref.fn.name }] : [];
+    return index >= 0
+      ? [{ rel: ref.module.rel, line: ref.fn.line + index, check: ref.fn.name }]
+      : [];
   });
 }
 
@@ -156,13 +214,15 @@ function namesBehind(fn: FunctionModel, seed: readonly string[]): Set<string> {
   const statements = fn.blocks.flat();
   for (let pass = 0; pass < 4; pass++) {
     for (const s of statements) {
-      if (s.bound.some(name => names.has(name))) s.used.forEach(name => names.add(name));
+      if (s.bound.some(name => names.has(name)))
+        s.used.forEach(name => names.add(name));
     }
   }
   return names;
 }
 
-const identifiers = (text: string): string[] => text.match(/[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*/g) ?? [];
+const identifiers = (text: string): string[] =>
+  text.match(/[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*/g) ?? [];
 
 /** A container fill whose read uses a user id the key does not carry: the user id it names. */
 function containerKeyMissesUser(fill: CacheFill): string | null {
@@ -176,16 +236,38 @@ function containerKeyMissesUser(fill: CacheFill): string | null {
 function decoratedReadsAmbientUser(fill: CacheFill): string | null {
   const params = new Set(fill.fn.params);
   const bound = new Set(fill.fn.blocks.flat().flatMap(s => s.bound));
-  const used = namesBehind(fill.fn, fill.reads.flatMap(call => call.names));
-  const ambient = [...used].find(name => hasUserSegment(name) && !params.has(name.split('.')[0] as string) && !bound.has(name.split('.')[0] as string));
+  const used = namesBehind(
+    fill.fn,
+    fill.reads.flatMap(call => call.names)
+  );
+  const ambient = [...used].find(
+    name =>
+      hasUserSegment(name) &&
+      !params.has(name.split('.')[0] as string) &&
+      !bound.has(name.split('.')[0] as string)
+  );
   return ambient ?? null;
 }
 
 /** Fills keyed without the user whose data they store. */
-export function keysWithoutUser(site: CacheSite): Array<{ rel: string; line: number; user: string; key: string }> {
+export function keysWithoutUser(
+  site: CacheSite
+): Array<{ rel: string; line: number; user: string; key: string }> {
   return site.fills.flatMap(fill => {
     if (!fill.readsDatabase) return [];
-    const user = site.kind === 'decorator' ? decoratedReadsAmbientUser(fill) : containerKeyMissesUser(fill);
-    return user ? [{ rel: site.module.rel, line: fill.line, user, key: fill.key ?? `the arguments of ${lastSegment(fill.fn.name)}` }] : [];
+    const user =
+      site.kind === 'decorator'
+        ? decoratedReadsAmbientUser(fill)
+        : containerKeyMissesUser(fill);
+    return user
+      ? [
+          {
+            rel: site.module.rel,
+            line: fill.line,
+            user,
+            key: fill.key ?? `the arguments of ${lastSegment(fill.fn.name)}`,
+          },
+        ]
+      : [];
   });
 }

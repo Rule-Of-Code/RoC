@@ -14,7 +14,8 @@ import { PythonLawBase } from './python-law-base';
 
 export class DependencyInjectionViaDependsLaw extends PythonLawBase {
   private static readonly LAW_NAME = 'Dependency Injection Via Depends';
-  private static readonly ROUTE = /^\s*@[\w.]+\.(?:get|post|put|patch|delete)\s*\(/;
+  private static readonly ROUTE =
+    /^\s*@[\w.]+\.(?:get|post|put|patch|delete)\s*\(/;
   private static readonly DEF = /^(\s*)(?:async\s+)?def\s+\w+/;
   // Constructing a collaborator: `X = FooService(`, `BarRepository(`, etc.
   private static readonly INSTANTIATE =

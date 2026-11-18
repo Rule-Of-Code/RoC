@@ -100,9 +100,12 @@ export class AngularSignalImportsAnalyzer extends AngularSignalAnalyzerBase {
   private static importsSymbol(content: string, symbol: string): boolean {
     const blocks = content.matchAll(/import\s+(?:type\s+)?\{([^}]*)\}\s*from/g);
     for (const block of blocks) {
-      const specifiers = (block[1] ?? '')
-        .split(',')
-        .map(entry => entry.trim().split(/\s+as\s+/)[0]?.trim());
+      const specifiers = (block[1] ?? '').split(',').map(entry =>
+        entry
+          .trim()
+          .split(/\s+as\s+/)[0]
+          ?.trim()
+      );
       if (specifiers.includes(symbol)) {
         return true;
       }

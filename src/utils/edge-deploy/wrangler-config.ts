@@ -17,22 +17,41 @@
  */
 
 import { FileSystemOperations } from '../file-system-operations';
-import { commandsInText, flagValue, type FoundCommand } from '../deployment/deploy-commands';
+import {
+  commandsInText,
+  flagValue,
+  type FoundCommand,
+} from '../deployment/deploy-commands';
 
 export const PUBLIC_URL_KEYS = ['workers_dev', 'preview_urls'] as const;
 
 const RUNNER = String.raw`(?:(?:npx|bunx|pnpm(?:\s+(?:exec|dlx))?|yarn)\s+)?`;
-export const SECRET_UPLOAD = new RegExp(String.raw`\b${RUNNER}wrangler\s+secret\s+(?:put|bulk)\b`);
-const DEPLOY = new RegExp(String.raw`\b${RUNNER}wrangler\s+(?:deploy|publish)\b`);
+export const SECRET_UPLOAD = new RegExp(
+  String.raw`\b${RUNNER}wrangler\s+secret\s+(?:put|bulk)\b`
+);
+const DEPLOY = new RegExp(
+  String.raw`\b${RUNNER}wrangler\s+(?:deploy|publish)\b`
+);
 
 /** The keys a configuration sets at its top level, and the line to report; null when it cannot be read. */
-export function topLevelKeys(rel: string, text: string): { keys: Set<string>; line: number } | null {
+export function topLevelKeys(
+  rel: string,
+  text: string
+): { keys: Set<string>; line: number } | null {
   if (rel.endsWith('.toml')) return tomlTopLevel(text);
   try {
-    const parsed: unknown = JSON.parse(FileSystemOperations.stripJsonComments(text.replace(/^﻿/, '')));
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
-    const nameLine = text.split(/\r?\n/).findIndex(line => /^\s*"name"\s*:/.test(line));
-    return { keys: new Set(Object.keys(parsed)), line: nameLine >= 0 ? nameLine + 1 : 1 };
+    const parsed: unknown = JSON.parse(
+      FileSystemOperations.stripJsonComments(text.replace(/^﻿/, ''))
+    );
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
+      return null;
+    const nameLine = text
+      .split(/\r?\n/)
+      .findIndex(line => /^\s*"name"\s*:/.test(line));
+    return {
+      keys: new Set(Object.keys(parsed)),
+      line: nameLine >= 0 ? nameLine + 1 : 1,
+    };
   } catch {
     return null;
   }
@@ -46,7 +65,9 @@ function tomlTopLevel(text: string): { keys: Set<string>; line: number } {
   for (let i = 0; i < lines.length; i++) {
     const current = lines[i] ?? '';
     if (/^\s*\[/.test(current)) break;
-    const key = /^\s*(?:"([^"]+)"|'([^']+)'|([A-Za-z0-9_-]+))\s*=/.exec(current);
+    const key = /^\s*(?:"([^"]+)"|'([^']+)'|([A-Za-z0-9_-]+))\s*=/.exec(
+      current
+    );
     const name = key?.[1] ?? key?.[2] ?? key?.[3];
     if (!name) continue;
     keys.add(name);
@@ -57,7 +78,10 @@ function tomlTopLevel(text: string): { keys: Set<string>; line: number } {
 
 /** Which Worker a wrangler command acts on: --name, --env and --config as written. */
 function workerOf(command: FoundCommand): string {
-  const value = (...names: string[]): string => names.map(name => flagValue(command.text, name)).find(found => found !== null) ?? '';
+  const value = (...names: string[]): string =>
+    names
+      .map(name => flagValue(command.text, name))
+      .find(found => found !== null) ?? '';
   return `${value('--name')}|${value('--env', '-e')}|${value('--config', '-c')}`;
 }
 
@@ -69,11 +93,22 @@ export interface SecretOrder {
 
 /** Each secret upload in a script, against the deploys of the same Worker in the same file. */
 export function secretUploads(text: string): SecretOrder[] {
-  const deploys = commandsInText(text, DEPLOY).map(command => ({ line: command.line, worker: workerOf(command) }));
+  const deploys = commandsInText(text, DEPLOY).map(command => ({
+    line: command.line,
+    worker: workerOf(command),
+  }));
   return commandsInText(text, SECRET_UPLOAD).map(secret => {
     const same = deploys.filter(deploy => deploy.worker === workerOf(secret));
     const verdict: SecretOrder['verdict'] =
-      same.length === 0 ? 'no-deploy' : same.some(deploy => deploy.line < secret.line) ? 'after-deploy' : 'before-deploy';
-    return { line: secret.line, verdict, command: secret.text.trim().replace(/\s+/g, ' ').slice(0, 80) };
+      same.length === 0
+        ? 'no-deploy'
+        : same.some(deploy => deploy.line < secret.line)
+          ? 'after-deploy'
+          : 'before-deploy';
+    return {
+      line: secret.line,
+      verdict,
+      command: secret.text.trim().replace(/\s+/g, ' ').slice(0, 80),
+    };
   });
 }

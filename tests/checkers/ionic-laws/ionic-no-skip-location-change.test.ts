@@ -8,7 +8,10 @@ import { ctx, manifest, project, removeProjects } from '../toolkit-fixture';
 
 afterAll(removeProjects);
 
-const IONIC = manifest({ '@angular/core': '20.0.0', '@ionic/angular': '8.8.17' });
+const IONIC = manifest({
+  '@angular/core': '20.0.0',
+  '@ionic/angular': '8.8.17',
+});
 const OUTLET = {
   'src/app/app.component.ts':
     "@Component({ template: '<ion-app><ion-router-outlet></ion-router-outlet></ion-app>' })\nexport class AppComponent {}",
@@ -24,8 +27,10 @@ describe('IonicNoSkipLocationChangeLaw without an ion-router-outlet', () => {
       ctx(
         project({
           'package.json': IONIC,
-          'src/main.ts': 'bootstrapApplication(App, { providers: [provideRouter(routes)] });',
-          'src/app/a.ts': "router.navigate(['/x'], { skipLocationChange: true }); signOut();",
+          'src/main.ts':
+            'bootstrapApplication(App, { providers: [provideRouter(routes)] });',
+          'src/app/a.ts':
+            "router.navigate(['/x'], { skipLocationChange: true }); signOut();",
         })
       )
     );
@@ -38,7 +43,8 @@ describe('IonicNoSkipLocationChangeLaw without an ion-router-outlet', () => {
       ctx(
         project({
           'package.json': IONIC,
-          'src/app/app.component.ts': '// TODO: <ion-router-outlet>\nexport class AppComponent {}',
+          'src/app/app.component.ts':
+            '// TODO: <ion-router-outlet>\nexport class AppComponent {}',
         })
       )
     );
@@ -56,13 +62,18 @@ describe('IonicNoSkipLocationChangeLaw (#147)', () => {
     );
     expect(result.passed).toBe(false);
     expect(result.violations).toEqual([
-      expect.stringMatching(/wizard\.ts:1: skipLocationChange — .*Use replaceUrl/),
+      expect.stringMatching(
+        /wizard\.ts:1: skipLocationChange — .*Use replaceUrl/
+      ),
     ]);
   });
 
   it('red: the routerLink input in a template', () => {
     const result = IonicNoSkipLocationChangeLaw.check(
-      withOutlet({ 'src/app/a.html': '<a routerLink="/x" [skipLocationChange]="true">x</a>' })
+      withOutlet({
+        'src/app/a.html':
+          '<a routerLink="/x" [skipLocationChange]="true">x</a>',
+      })
     );
     expect(result.violations).toHaveLength(1);
   });
@@ -75,7 +86,8 @@ describe('IonicNoSkipLocationChangeLaw (#147)', () => {
           '// skipLocationChange: true was the bug',
           "this.router.navigate(['/y'], { skipLocationChange: false });",
         ].join('\n'),
-        'src/app/a.html': '<a routerLink="/x" [skipLocationChange]="false">x</a>',
+        'src/app/a.html':
+          '<a routerLink="/x" [skipLocationChange]="false">x</a>',
       })
     );
     expect(result.violations).toEqual([]);

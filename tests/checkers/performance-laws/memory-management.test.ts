@@ -287,9 +287,9 @@ export class PollComponent implements OnInit, OnDestroy {
       );
       const result = MemoryManagementLaw.check(context);
       expect(result.passed).toBe(false);
-      expect(
-        result.violations!.some(v => v.includes('clearInterval'))
-      ).toBe(true);
+      expect(result.violations!.some(v => v.includes('clearInterval'))).toBe(
+        true
+      );
     });
 
     it('passes setInterval() paired with clearInterval()', () => {
@@ -554,7 +554,9 @@ export class CommentedComponent {}`
       const result = MemoryManagementLaw.check(context);
 
       expect(
-        result.suggestions!.some(s => s.toLowerCase().includes('event listener'))
+        result.suggestions!.some(s =>
+          s.toLowerCase().includes('event listener')
+        )
       ).toBe(true);
     });
 

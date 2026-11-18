@@ -32,7 +32,10 @@ const START_SITE = (member: TsMember): string | null => {
   if (member.kind === 'constructor') return 'the constructor';
   if (member.kind === 'method') {
     if (member.name === 'ngOnInit') return 'ngOnInit';
-    if (member.name === 'ionViewWillEnter' || member.name === 'ionViewDidEnter') {
+    if (
+      member.name === 'ionViewWillEnter' ||
+      member.name === 'ionViewDidEnter'
+    ) {
       return member.name;
     }
     return null;
@@ -70,9 +73,9 @@ export class IonicLeaveCancelsWhatEnterStartedLaw extends LawBase {
         const site = START_SITE(member);
         if (!site) continue;
         const code = TsClasses.mask(member.body, 'commentsAndStrings');
-        const started = START_TOKENS.filter(([pattern]) => pattern.test(code)).map(
-          ([, token]) => token
-        );
+        const started = START_TOKENS.filter(([pattern]) =>
+          pattern.test(code)
+        ).map(([, token]) => token);
         if (started.length === 0) continue;
         violations.push(
           `${where}:${member.line}: ${cls.name} starts ${started.join(', ')} in ${site} and has no ionViewWillLeave — the outlet keeps a page on forward navigation, so ngOnDestroy-based cleanup does not run when the user leaves`

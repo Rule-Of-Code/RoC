@@ -3,7 +3,6 @@
  * Tests for the code quality laws checker
  */
 
-
 import { PathOperations } from '../../src/utils/path-operations';
 import { FileUtils } from '../../src/utils/file-utils';
 import { CodeQualityChecker } from '../../src/checkers/code-quality-checker';

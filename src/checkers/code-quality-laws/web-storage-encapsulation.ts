@@ -12,7 +12,8 @@ import { FileUtils } from '../../utils/file-utils';
 import { CodeQualityLawBase } from './code-quality-law-base';
 
 export class WebStorageEncapsulationLaw extends CodeQualityLawBase {
-  private static readonly WEB_STORAGE = /\b(localStorage|sessionStorage)\s*\.\s*(getItem|setItem|removeItem|clear|key)\s*\(/g;
+  private static readonly WEB_STORAGE =
+    /\b(localStorage|sessionStorage)\s*\.\s*(getItem|setItem|removeItem|clear|key)\s*\(/g;
 
   static check(context: LawCheckContext): LawResult {
     const { projectRoot } = context;

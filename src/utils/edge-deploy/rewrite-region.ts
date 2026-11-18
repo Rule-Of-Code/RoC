@@ -22,7 +22,14 @@
  * left unknown, never guessed.
  */
 
-import { argsCommands, commandsInText, flagValue, foldedLines, type FoundCommand, wordCount } from '../deployment/deploy-commands';
+import {
+  argsCommands,
+  commandsInText,
+  flagValue,
+  foldedLines,
+  type FoundCommand,
+  wordCount,
+} from '../deployment/deploy-commands';
 import { yamlEntries } from '../deployment/yaml-lines';
 import { lineAt } from './gate-files';
 
@@ -49,27 +56,44 @@ export const RUN_APP_URL = String.raw`https?://(?:[a-z0-9-]+---)?([a-z0-9][a-z0-
 const RUN_DEPLOY = /\bgcloud(?:\s+(?:alpha|beta))?\s+run\s+deploy\b/;
 const DEPLOY_ACTION = /^["']?google-github-actions\/deploy-cloudrun@/;
 
-type HostingSite = { rewrites?: Array<{ run?: { serviceId?: unknown; region?: unknown } }> };
+type HostingSite = {
+  rewrites?: Array<{ run?: { serviceId?: unknown; region?: unknown } }>;
+};
 
 /** Firebase Hosting `run` rewrites; null when firebase.json cannot be parsed. */
 export function firebaseRunRewrites(text: string): RewriteTarget[] | null {
   let parsed: { hosting?: HostingSite | HostingSite[] };
   try {
-    parsed = JSON.parse(text.replace(/^﻿/, '')) as { hosting?: HostingSite | HostingSite[] };
+    parsed = JSON.parse(text.replace(/^﻿/, '')) as {
+      hosting?: HostingSite | HostingSite[];
+    };
   } catch {
     return null;
   }
-  const sites = Array.isArray(parsed.hosting) ? parsed.hosting : parsed.hosting ? [parsed.hosting] : [];
-  const lines = [...text.matchAll(/"serviceId"\s*:/g)].map(match => lineAt(text, match.index ?? 0));
+  const sites = Array.isArray(parsed.hosting)
+    ? parsed.hosting
+    : parsed.hosting
+      ? [parsed.hosting]
+      : [];
+  const lines = [...text.matchAll(/"serviceId"\s*:/g)].map(match =>
+    lineAt(text, match.index ?? 0)
+  );
   let seen = 0;
   const targets: RewriteTarget[] = [];
-  for (const rewrite of sites.flatMap(site => (Array.isArray(site?.rewrites) ? site.rewrites : []))) {
+  for (const rewrite of sites.flatMap(site =>
+    Array.isArray(site?.rewrites) ? site.rewrites : []
+  )) {
     const run = rewrite?.run;
     if (!run || run.serviceId === undefined) continue;
     const line = lines[seen++] ?? 1;
     if (typeof run.serviceId !== 'string') continue;
     const region = typeof run.region === 'string' ? run.region : DEFAULT_REGION;
-    targets.push({ service: run.serviceId, region, defaulted: typeof run.region !== 'string', line });
+    targets.push({
+      service: run.serviceId,
+      region,
+      defaulted: typeof run.region !== 'string',
+      line,
+    });
   }
   return targets;
 }
@@ -85,23 +109,41 @@ export function runAppUrlRewrites(text: string): RewriteTarget[] {
 }
 
 /** A value as written, with `$VAR`-style references resolved from the same file; null when unknown. */
-export function resolveValue(raw: string | null | undefined, text: string, depth = 0): string | null {
+export function resolveValue(
+  raw: string | null | undefined,
+  text: string,
+  depth = 0
+): string | null {
   if (!raw) return null;
   const value = raw.replace(/^["']|["']$/g, '');
   if (!value.includes('$')) return value;
-  const reference = /^\$\{\{\s*env\.([A-Za-z_]\w*)\s*\}\}$|^\$\{([A-Za-z_]\w*)(?::?-([^}]*))?\}$|^\$([A-Za-z_]\w*)$/.exec(value);
+  const reference =
+    /^\$\{\{\s*env\.([A-Za-z_]\w*)\s*\}\}$|^\$\{([A-Za-z_]\w*)(?::?-([^}]*))?\}$|^\$([A-Za-z_]\w*)$/.exec(
+      value
+    );
   if (!reference || depth > 2) return null;
   const name = reference[1] ?? reference[2] ?? reference[4] ?? '';
-  const assigned = new RegExp(String.raw`^[ \t]*(?:-[ \t]+)?(?:export[ \t]+)?${name}[ \t]*[:=][ \t]*(["']?)([^\s"'#]+)\1`, 'm').exec(text);
+  const assigned = new RegExp(
+    String.raw`^[ \t]*(?:-[ \t]+)?(?:export[ \t]+)?${name}[ \t]*[:=][ \t]*(["']?)([^\s"'#]+)\1`,
+    'm'
+  ).exec(text);
   const resolved = assigned ? resolveValue(assigned[2], text, depth + 1) : null;
-  return resolved ?? (reference[3] !== undefined && reference[3] !== '' ? reference[3] : null);
+  return (
+    resolved ??
+    (reference[3] !== undefined && reference[3] !== '' ? reference[3] : null)
+  );
 }
 
 /** The first positional argument after the command words (`gcloud run deploy SERVICE`). */
 function firstPositional(command: FoundCommand): string | null {
-  const words = command.text.trim().split(/\s+/).slice(wordCount(command.text, RUN_DEPLOY));
+  const words = command.text
+    .trim()
+    .split(/\s+/)
+    .slice(wordCount(command.text, RUN_DEPLOY));
   const first = words[0];
-  return first && !first.startsWith('-') ? first.replace(/^["']|["']$/g, '') : null;
+  return first && !first.startsWith('-')
+    ? first.replace(/^["']|["']$/g, '')
+    : null;
 }
 
 function fromCommand(command: FoundCommand, text: string): DeployTarget {
@@ -115,18 +157,37 @@ function fromCommand(command: FoundCommand, text: string): DeployTarget {
 
 /** Every Cloud Run deploy target a file declares. */
 export function cloudRunDeploys(rel: string, text: string): DeployTarget[] {
-  if (!/\.ya?ml$/i.test(rel)) return commandsInText(text, RUN_DEPLOY).map(command => fromCommand(command, text));
+  if (!/\.ya?ml$/i.test(rel))
+    return commandsInText(text, RUN_DEPLOY).map(command =>
+      fromCommand(command, text)
+    );
   const entries = yamlEntries(text);
-  const commands = [...commandsInText(text, RUN_DEPLOY, foldedLines(entries)), ...argsCommands(entries).filter(command => RUN_DEPLOY.test(command.text))];
+  const commands = [
+    ...commandsInText(text, RUN_DEPLOY, foldedLines(entries)),
+    ...argsCommands(entries).filter(command => RUN_DEPLOY.test(command.text)),
+  ];
   const actions = entries
     .filter(entry => entry.key === 'uses' && DEPLOY_ACTION.test(entry.value))
     .flatMap(uses => {
       const input = (name: string): string | undefined =>
-        entries.find(entry => entry.item === uses.item && entry.path[entry.path.length - 2] === 'with' && entry.key === name)?.value;
+        entries.find(
+          entry =>
+            entry.item === uses.item &&
+            entry.path[entry.path.length - 2] === 'with' &&
+            entry.key === name
+        )?.value;
       const service = input('service');
       if (service === undefined) return [];
       const region = input('region');
-      return [{ service: resolveValue(service, text), region: region === undefined ? DEFAULT_REGION : resolveValue(region, text), line: uses.line, via: 'deploy-cloudrun' }];
+      return [
+        {
+          service: resolveValue(service, text),
+          region:
+            region === undefined ? DEFAULT_REGION : resolveValue(region, text),
+          line: uses.line,
+          via: 'deploy-cloudrun',
+        },
+      ];
     });
   return [...commands.map(command => fromCommand(command, text)), ...actions];
 }

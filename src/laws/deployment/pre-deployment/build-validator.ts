@@ -6,7 +6,13 @@ import { TEST_FILE_GLOBS } from '../../../utils/constants';
 import { FileUtils } from '../../../utils/file-utils';
 import { PathOperations } from '../../../utils/path-operations';
 
-const TEST_COUNT_IGNORES = ['**/node_modules/**', '**/dist/**', '**/coverage/**', '**/.nx/**', '**/.angular/**'];
+const TEST_COUNT_IGNORES = [
+  '**/node_modules/**',
+  '**/dist/**',
+  '**/coverage/**',
+  '**/.nx/**',
+  '**/.angular/**',
+];
 /**
  * Build Validation Checker
  * Validates build scripts and compilation setup

@@ -23,8 +23,13 @@ export const INIT_PROJECT_TYPES = [
   'vue',
 ] as const;
 
-export function isInitProjectType(type: string | undefined): type is ProjectType {
-  return type !== undefined && (INIT_PROJECT_TYPES as readonly string[]).includes(type);
+export function isInitProjectType(
+  type: string | undefined
+): type is ProjectType {
+  return (
+    type !== undefined &&
+    (INIT_PROJECT_TYPES as readonly string[]).includes(type)
+  );
 }
 
 /** The file `init` writes — the one the README, the guides and the templates name (#332). */
@@ -41,7 +46,10 @@ const LEGACY_INIT_CONFIG_FILE = 'ruleofcode.config.js';
  * or a confirmed prompt) moves it aside to `ruleofcode.config.js.bak`, and
  * says so.
  */
-export function writeInitConfig(projectRoot: string, config: RuleOfCodeConfig): string {
+export function writeInitConfig(
+  projectRoot: string,
+  config: RuleOfCodeConfig
+): string {
   const configPath = PathOperations.join(projectRoot, INIT_CONFIG_FILE);
   FileUtils.writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`);
   const legacy = PathOperations.join(projectRoot, LEGACY_INIT_CONFIG_FILE);
@@ -77,9 +85,7 @@ export function isInteractiveTerminal(): boolean {
 /**
  * Detect project type based on files present
  */
-export function detectProjectType(
-  projectRoot: string
-): ProjectType {
+export function detectProjectType(projectRoot: string): ProjectType {
   try {
     const detectedType = ProjectTypeDetector.detectProjectType(projectRoot);
 
@@ -156,7 +162,10 @@ function installHooksOrFail(
   installer.ensureHusky(projectRoot);
   installer.install({ projectRoot, config });
 
-  const { installed, problems } = installer.verifyInstalled(projectRoot, config);
+  const { installed, problems } = installer.verifyInstalled(
+    projectRoot,
+    config
+  );
   if (!installed) {
     throw new Error(
       `git hooks are NOT active in this repository: ${problems.join('; ')}. ` +
@@ -181,7 +190,9 @@ export async function setupQuickMode(
   const detected = requested ?? detectProjectType(projectRoot);
 
   console.log(`Project: ${projectName}`);
-  console.log(`Type: ${detected} (${requested ? 'from --type' : 'auto-detected'})`);
+  console.log(
+    `Type: ${detected} (${requested ? 'from --type' : 'auto-detected'})`
+  );
   console.log('Laws: the full law set (Pareto is an opt-in: laws.paretoMode)');
   console.log('Hooks: Pre-commit + Pre-push enabled');
 
@@ -214,7 +225,9 @@ export async function setupQuickMode(
   };
 
   const configPath = writeInitConfig(projectRoot, config);
-  console.log(`Configuration saved to ${PathOperations.getBasename(configPath)}`);
+  console.log(
+    `Configuration saved to ${PathOperations.getBasename(configPath)}`
+  );
 
   if (options.hooks !== false) {
     installHooksOrFail(GitHooksInstaller, projectRoot, config);

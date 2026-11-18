@@ -113,7 +113,9 @@ export class NxWorkspace {
     const documents: unknown[] = [];
     for (const p of this.buildConfigPaths(projectRoot)) {
       try {
-        documents.push(JSON.parse(fs.readFileSync(p, 'utf8').replace(/^﻿/, '')));
+        documents.push(
+          JSON.parse(fs.readFileSync(p, 'utf8').replace(/^﻿/, ''))
+        );
       } catch {
         // Unparseable or unreadable: not evidence either way.
       }

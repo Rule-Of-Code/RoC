@@ -80,7 +80,10 @@ describe('coverage gates are found where Jest keeps them', () => {
       'jest.config.ts',
       'export default async () => ({ projects: await getJestProjectsAsync() });'
     );
-    write('apps/web/jest.config.ts', 'export default { preset: "../../jest.preset.js" };');
+    write(
+      'apps/web/jest.config.ts',
+      'export default { preset: "../../jest.preset.js" };'
+    );
 
     expect(await reportsMissingGate()).toBe(true);
   });

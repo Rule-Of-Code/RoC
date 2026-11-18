@@ -15,12 +15,21 @@ import type { AuditResult } from '../../src/core/auditing/audit-types';
 import { AuditResultProcessor } from '../../src/core/auditing/result-processor';
 import { ModularLawsRegistry } from '../../src/registry/modular-laws-registry';
 
-export const GOLDEN_DIR = path.join(__dirname, '__golden__', 'waivers-named-verdict');
+export const GOLDEN_DIR = path.join(
+  __dirname,
+  '__golden__',
+  'waivers-named-verdict'
+);
 
 const PROJECT: Record<string, string> = {
-  'package.json': JSON.stringify({ name: 'neutral-fixture', version: '1.0.0', devDependencies: { typescript: '5.6.3' } }),
+  'package.json': JSON.stringify({
+    name: 'neutral-fixture',
+    version: '1.0.0',
+    devDependencies: { typescript: '5.6.3' },
+  }),
   'tsconfig.json': JSON.stringify({ compilerOptions: { strict: true } }),
-  'src/index.ts': 'export const add = (a: number, b: number): number => a + b;\n',
+  'src/index.ts':
+    'export const add = (a: number, b: number): number => a + b;\n',
 };
 
 /** The law forced to fail in the "fail" cells; empty string = all pass. */
@@ -50,8 +59,20 @@ export function stubLawChecks(): void {
               check: (async () =>
                 Promise.resolve(
                   law.name === state.failing
-                    ? { passed: false, score: 0, violations: ['forced failure (stub)'], suggestions: [], message: 'stub failure' }
-                    : { passed: true, score: 100, violations: [], suggestions: [], message: 'stub pass' }
+                    ? {
+                        passed: false,
+                        score: 0,
+                        violations: ['forced failure (stub)'],
+                        suggestions: [],
+                        message: 'stub failure',
+                      }
+                    : {
+                        passed: true,
+                        score: 100,
+                        violations: [],
+                        suggestions: [],
+                        message: 'stub pass',
+                      }
                 )) as unknown as typeof law.check,
             }
       )
@@ -60,14 +81,18 @@ export function stubLawChecks(): void {
   afterEach(() => setFailingLaw(''));
   afterEach(() => spy?.mockRestore());
   afterAll(() => {
-    for (const dir of made.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
+    for (const dir of made.splice(0))
+      fs.rmSync(dir, { recursive: true, force: true });
   });
 }
 
 export function makeFixture(config: Record<string, unknown>): string {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-350-'));
   made.push(root);
-  writeFiles(root, { ...PROJECT, 'ruleofcode.config.json': JSON.stringify(config, null, 2) });
+  writeFiles(root, {
+    ...PROJECT,
+    'ruleofcode.config.json': JSON.stringify(config, null, 2),
+  });
   return root;
 }
 
@@ -85,7 +110,8 @@ export function writeFiles(root: string, files: Record<string, string>): void {
  */
 function rewriteConfig(root: string, content: string): void {
   const file = path.join(root, 'ruleofcode.config.json');
-  if (fs.readFileSync(file, 'utf8') !== content) fs.writeFileSync(file, content);
+  if (fs.readFileSync(file, 'utf8') !== content)
+    fs.writeFileSync(file, content);
 }
 
 export interface AuditRun {
@@ -161,7 +187,11 @@ const VOLATILE_KEYS = new Set(['timestamp', 'duration', 'executionTime']);
  * golden is about what the engine REPORTS.
  */
 export function normalizeJson(value: unknown, root: string): any {
-  if (typeof value === 'string') return value.split(root).join('<root>').replace(/v\d+\.\d+\.\d+/g, 'v<version>');
+  if (typeof value === 'string')
+    return value
+      .split(root)
+      .join('<root>')
+      .replace(/v\d+\.\d+\.\d+/g, 'v<version>');
   if (Array.isArray(value)) return value.map(item => normalizeJson(item, root));
   if (value && typeof value === 'object') {
     const out: Record<string, unknown> = {};

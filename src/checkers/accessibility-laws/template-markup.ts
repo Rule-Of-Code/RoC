@@ -44,8 +44,20 @@ export interface MarkupDocument {
 }
 
 const VOID_ELEMENTS = new Set([
-  'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta',
-  'param', 'source', 'track', 'wbr',
+  'area',
+  'base',
+  'br',
+  'col',
+  'embed',
+  'hr',
+  'img',
+  'input',
+  'link',
+  'meta',
+  'param',
+  'source',
+  'track',
+  'wbr',
 ]);
 const RAW_TEXT_ELEMENTS = new Set(['script', 'style']);
 const TAG_NAME = /^[A-Za-z][\w:.-]*/;
@@ -53,7 +65,9 @@ const ATTRIBUTE_NAME_END = /[\s=>]/;
 
 /** Replace comments with blanks of the same shape, so lines stay where they were. */
 function blankComments(html: string): string {
-  return html.replace(/<!--[\s\S]*?-->/g, match => match.replace(/[^\n]/g, ' '));
+  return html.replace(/<!--[\s\S]*?-->/g, match =>
+    match.replace(/[^\n]/g, ' ')
+  );
 }
 
 class Tokenizer {
@@ -67,7 +81,14 @@ class Tokenizer {
 
   constructor(html: string) {
     this.text = blankComments(html);
-    this.root = { tag: '#root', attributes: [], parent: null, children: [], text: '', line: 1 };
+    this.root = {
+      tag: '#root',
+      attributes: [],
+      parent: null,
+      children: [],
+      text: '',
+      line: 1,
+    };
     this.stack = [this.root];
   }
 
@@ -167,7 +188,14 @@ class Tokenizer {
       if (attribute.name !== '') attributes.push(attribute);
     }
     const parent = this.current;
-    const element: MarkupElement = { tag, attributes, parent, children: [], text: '', line };
+    const element: MarkupElement = {
+      tag,
+      attributes,
+      parent,
+      children: [],
+      text: '',
+      line,
+    };
     parent.children.push(element);
     this.elements.push(element);
     if (selfClosing || VOID_ELEMENTS.has(tag)) return;
@@ -193,7 +221,10 @@ class Tokenizer {
       this.advanceTo(end + 1);
       return { name: '', value: null };
     }
-    while (end < this.text.length && !ATTRIBUTE_NAME_END.test(this.text.charAt(end))) {
+    while (
+      end < this.text.length &&
+      !ATTRIBUTE_NAME_END.test(this.text.charAt(end))
+    ) {
       if (this.text.startsWith('/>', end)) break;
       end++;
     }
@@ -213,7 +244,10 @@ class Tokenizer {
       return { name, value };
     }
     let valueEnd = this.position;
-    while (valueEnd < this.text.length && !/[\s>]/.test(this.text.charAt(valueEnd))) {
+    while (
+      valueEnd < this.text.length &&
+      !/[\s>]/.test(this.text.charAt(valueEnd))
+    ) {
       valueEnd++;
     }
     return { name, value: this.advanceTo(valueEnd) };
@@ -232,7 +266,10 @@ export class TemplateMarkup {
    * `name`, `[name]`, `[attr.name]` (case-insensitive, exact name — so
    * `data-type` is not `type`).
    */
-  static attribute(element: MarkupElement, name: string): MarkupAttribute | undefined {
+  static attribute(
+    element: MarkupElement,
+    name: string
+  ): MarkupAttribute | undefined {
     const wanted = name.toLowerCase();
     return element.attributes.find(attribute => {
       const written = attribute.name.toLowerCase();
@@ -256,7 +293,10 @@ export class TemplateMarkup {
   }
 
   /** The nearest ancestor whose tag is one of `tags`, or null. */
-  static ancestor(element: MarkupElement, tags: readonly string[]): MarkupElement | null {
+  static ancestor(
+    element: MarkupElement,
+    tags: readonly string[]
+  ): MarkupElement | null {
     for (let node = element.parent; node; node = node.parent) {
       if (tags.includes(node.tag)) return node;
     }
@@ -278,6 +318,8 @@ export class TemplateMarkup {
 
   /** The class tokens of a static `class="…"` attribute. */
   static classes(element: MarkupElement): string[] {
-    return (this.staticValue(element, 'class') ?? '').split(/\s+/).filter(Boolean);
+    return (this.staticValue(element, 'class') ?? '')
+      .split(/\s+/)
+      .filter(Boolean);
   }
 }

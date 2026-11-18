@@ -67,14 +67,20 @@ describe('SACRED detector bugs — JSONC + fail-closed + nesting', () => {
 
     it('TypeScript Strict passes a fully-strict tsconfig that has comments', () => {
       fs.writeFileSync(path.join(root, 'tsconfig.json'), STRICT_TSCONFIG_JSONC);
-      const result = TypeScriptStrictLaw.check({ projectRoot: root, config: config() });
+      const result = TypeScriptStrictLaw.check({
+        projectRoot: root,
+        config: config(),
+      });
       expect(result.violations).toEqual([]);
       expect(result.passed).toBe(true);
     });
 
     it('Zero Tolerance does not falsely flag strict on a commented tsconfig', () => {
       fs.writeFileSync(path.join(root, 'tsconfig.json'), STRICT_TSCONFIG_JSONC);
-      const result = ZeroToleranceLaw.check({ projectRoot: root, config: config() });
+      const result = ZeroToleranceLaw.check({
+        projectRoot: root,
+        config: config(),
+      });
       const strictish = (result.violations ?? []).filter(v =>
         /strict|noImplicitAny/i.test(v)
       );
@@ -88,7 +94,10 @@ describe('SACRED detector bugs — JSONC + fail-closed + nesting', () => {
         path.join(root, 'tsconfig.json'),
         '{\n  // not strict\n  "compilerOptions": { "strict": false, }\n}\n'
       );
-      const result = TypeScriptStrictLaw.check({ projectRoot: root, config: config() });
+      const result = TypeScriptStrictLaw.check({
+        projectRoot: root,
+        config: config(),
+      });
       expect(result.passed).toBe(false);
       expect((result.violations ?? []).some(v => /strict/i.test(v))).toBe(true);
     });
@@ -98,7 +107,10 @@ describe('SACRED detector bugs — JSONC + fail-closed + nesting', () => {
         path.join(root, 'tsconfig.json'),
         '{ "compilerOptions": { broken not json\n'
       );
-      const result = TypeScriptStrictLaw.check({ projectRoot: root, config: config() });
+      const result = TypeScriptStrictLaw.check({
+        projectRoot: root,
+        config: config(),
+      });
       expect(result.passed).toBe(false);
       expect(
         (result.violations ?? []).some(v => /could not be parsed/i.test(v))
@@ -108,8 +120,13 @@ describe('SACRED detector bugs — JSONC + fail-closed + nesting', () => {
 
   describe('Automation First checks build independently of format', () => {
     it('flags a missing build script even when a format script is present', () => {
-      fs.mkdirSync(path.join(root, '.github', 'workflows'), { recursive: true });
-      fs.writeFileSync(path.join(root, '.github', 'workflows', 'ci.yml'), 'on: push\n');
+      fs.mkdirSync(path.join(root, '.github', 'workflows'), {
+        recursive: true,
+      });
+      fs.writeFileSync(
+        path.join(root, '.github', 'workflows', 'ci.yml'),
+        'on: push\n'
+      );
       fs.writeFileSync(
         path.join(root, 'package.json'),
         JSON.stringify({
@@ -120,7 +137,10 @@ describe('SACRED detector bugs — JSONC + fail-closed + nesting', () => {
         })
       );
 
-      const result = AutomationFirstLaw.check({ projectRoot: root, config: config() });
+      const result = AutomationFirstLaw.check({
+        projectRoot: root,
+        config: config(),
+      });
       expect((result.violations ?? []).some(v => /build/i.test(v))).toBe(true);
     });
   });

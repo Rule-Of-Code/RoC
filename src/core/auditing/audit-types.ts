@@ -2,7 +2,7 @@
  * Audit types and interfaces
  */
 
-import type { RuleOfCodeConfig } from "../../types";
+import type { RuleOfCodeConfig } from '../../types';
 import type { LivenessFloor } from '../../utils/liveness-floor';
 
 /**
@@ -12,7 +12,8 @@ import type { LivenessFloor } from '../../utils/liveness-floor';
  * passed a narrowed subset; `failed` and `refused` say what they say. The exit
  * code does not depend on it: 0 for the three passes, 1 otherwise, as before.
  */
-export type AuditVerdict = 'compliance' | 'compliance-with-waivers' | 'failed' | 'partial' | 'refused';
+export type AuditVerdict =
+  'compliance' | 'compliance-with-waivers' | 'failed' | 'partial' | 'refused';
 
 /** A law `laws.notApplicable` took out of the run, with the reason given. */
 export interface WaivedLaw {

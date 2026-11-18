@@ -5,12 +5,18 @@
  * disarmed gate that still shows green.
  */
 import { ModularLawsRegistry } from '../../src/registry/modular-laws-registry';
-import { ANGULAR_CONFIG, DEFAULT_CONFIG, REACT_CONFIG } from '../../src/config/types';
+import {
+  ANGULAR_CONFIG,
+  DEFAULT_CONFIG,
+  REACT_CONFIG,
+} from '../../src/config/types';
 import { ConfigFileUtils } from '../../src/utils/config-file-utils';
 import type { RuleOfCodeConfig } from '../../src/types';
 
 // Every law that runs without an allowlist: all but the opt-in ones (defaultEnabled: false).
-const ALL = ModularLawsRegistry.getAll().filter(l => l.defaultEnabled !== false).length;
+const ALL = ModularLawsRegistry.getAll().filter(
+  l => l.defaultEnabled !== false
+).length;
 
 const configWith = (laws: Record<string, unknown>): RuleOfCodeConfig => {
   const config = ConfigFileUtils.getMinimalDefaultConfig();
@@ -28,12 +34,15 @@ describe('law selection fail-closed (falsy matrix)', () => {
     ['0', 0],
     ['null', null],
     ['absent', undefined],
-  ])('paretoMode=%s selects every law that is not opt-in, never an empty set', (_label, value) => {
-    const laws = { severity: {} } as Record<string, unknown>;
-    if (value !== undefined) laws.paretoMode = value;
-    const selected = ModularLawsRegistry.getEnabled(configWith(laws));
-    expect(selected.length).toBe(ALL);
-  });
+  ])(
+    'paretoMode=%s selects every law that is not opt-in, never an empty set',
+    (_label, value) => {
+      const laws = { severity: {} } as Record<string, unknown>;
+      if (value !== undefined) laws.paretoMode = value;
+      const selected = ModularLawsRegistry.getEnabled(configWith(laws));
+      expect(selected.length).toBe(ALL);
+    }
+  );
 
   it('paretoMode=true selects the Pareto core plus the always-on meta-gates', () => {
     const selected = ModularLawsRegistry.getEnabled(
@@ -59,9 +68,9 @@ describe('laws.enabled resolves through every law identity', () => {
     const selected = ModularLawsRegistry.getEnabled(
       configWith({ enabled: { [key]: true } })
     );
-    expect(
-      selected.filter(l => !l.alwaysEnabled).map(l => l.name)
-    ).toEqual(['Module Size']);
+    expect(selected.filter(l => !l.alwaysEnabled).map(l => l.name)).toEqual([
+      'Module Size',
+    ]);
   });
 
   it('a suffix-decorated name matches with and without the parenthetical', () => {
@@ -73,9 +82,9 @@ describe('laws.enabled resolves through every law identity', () => {
     const selected = ModularLawsRegistry.getEnabled(
       configWith({ enabled: { [stripped]: true } })
     );
-    expect(
-      selected.filter(l => !l.alwaysEnabled).map(l => l.name)
-    ).toEqual([sacred!.name]);
+    expect(selected.filter(l => !l.alwaysEnabled).map(l => l.name)).toEqual([
+      sacred!.name,
+    ]);
   });
 
   it('an allowlist with no matching keys selects no SUBSTANTIVE law (the audit then refuses)', () => {
@@ -108,10 +117,13 @@ describe('default configs never carry a law allowlist', () => {
     ['DEFAULT_CONFIG', DEFAULT_CONFIG],
     ['ANGULAR_CONFIG', ANGULAR_CONFIG],
     ['REACT_CONFIG', REACT_CONFIG],
-  ])('%s has no laws.enabled and does not force paretoMode on', (_name, config) => {
-    expect(config.laws?.enabled).toBeUndefined();
-    expect(config.laws?.paretoMode).toBe(false);
-  });
+  ])(
+    '%s has no laws.enabled and does not force paretoMode on',
+    (_name, config) => {
+      expect(config.laws?.enabled).toBeUndefined();
+      expect(config.laws?.paretoMode).toBe(false);
+    }
+  );
 
   it('DEFAULT_CONFIG does not whitelist scan paths (empty includes.global)', () => {
     expect(DEFAULT_CONFIG.includes?.global).toEqual([]);

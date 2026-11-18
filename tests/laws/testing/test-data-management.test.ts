@@ -57,7 +57,9 @@ describe('TestDataManagementLaw', () => {
 
         // The setup finding names its files since #310; match its wording.
         expect(
-          (result.violations ?? []).some(v => v.includes('beforeEach/afterEach'))
+          (result.violations ?? []).some(v =>
+            v.includes('beforeEach/afterEach')
+          )
         ).toBe(false);
       });
 
@@ -624,7 +626,9 @@ describe('TestDataManagementLaw', () => {
 
         // The setup finding names its files since #310; match its wording.
         expect(
-          (result.violations ?? []).some(v => v.includes('beforeEach/afterEach'))
+          (result.violations ?? []).some(v =>
+            v.includes('beforeEach/afterEach')
+          )
         ).toBe(false);
         expect(result.violations).not.toContain(
           'Tests have shared mutable state issues'

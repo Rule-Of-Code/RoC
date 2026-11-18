@@ -12,7 +12,10 @@ import { NgRxErrorHandlingConfiguration } from './ngrx-error-handling-configurat
  */
 export class NgRxErrorHandlingValidationPatterns {
   private static readonly Config = NgRxErrorHandlingConfiguration;
-  private static readonly ErrorAnalysis = Object.create(null) as Record<string, unknown>;
+  private static readonly ErrorAnalysis = Object.create(null) as Record<
+    string,
+    unknown
+  >;
   /**
    * Validate all NgRx error handling patterns in a project
    */

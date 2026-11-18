@@ -18,7 +18,10 @@ export class TimezoneAwareDatetimesLaw extends PythonLawBase {
   private static readonly LAW_NAME = 'Timezone-Aware Datetimes';
   private static readonly NAIVE_PATTERNS: { re: RegExp; what: string }[] = [
     { re: /\bdatetime\.now\(\s*\)/, what: 'datetime.now() without a timezone' },
-    { re: /\bdatetime\.utcnow\s*\(/, what: 'datetime.utcnow() (naive, deprecated since 3.12)' },
+    {
+      re: /\bdatetime\.utcnow\s*\(/,
+      what: 'datetime.utcnow() (naive, deprecated since 3.12)',
+    },
     { re: /\bdate\.today\s*\(/, what: 'date.today() (naive)' },
   ];
 

@@ -52,7 +52,10 @@ function sourceFiles(dir: string): string[] {
  * this class compare against `FILE_EXTENSIONS.*` / `*_DOT` constants).
  */
 function predicateChecksDots(name: string, texts: readonly string[]): boolean {
-  const definition = new RegExp(String.raw`\b${name}\s*\(\s*(\w+)\s*:\s*string\s*\)[^{]*\{`, 'g');
+  const definition = new RegExp(
+    String.raw`\b${name}\s*\(\s*(\w+)\s*:\s*string\s*\)[^{]*\{`,
+    'g'
+  );
   return texts.some(text =>
     [...text.matchAll(definition)].some(match => {
       const body = text
@@ -62,28 +65,51 @@ function predicateChecksDots(name: string, texts: readonly string[]): boolean {
         .join(' ');
       const param = match[1] ?? '';
       const literal = new RegExp(String.raw`\b${param}${CHECK}${DOTTED_ARG}`);
-      const constant = new RegExp(String.raw`\b${param}${CHECK}${CONSTANT_ARG}`);
-      const viaList = new RegExp(String.raw`\.some\(\s*\(?\s*(\w+)\s*\)?\s*=>\s*${param}\s*\.\s*endsWith\(\s*\1\s*\)`);
-      return literal.test(body) || constant.test(body) || (viaList.test(body) && /['"]\.\w+['"]/.test(body));
+      const constant = new RegExp(
+        String.raw`\b${param}${CHECK}${CONSTANT_ARG}`
+      );
+      const viaList = new RegExp(
+        String.raw`\.some\(\s*\(?\s*(\w+)\s*\)?\s*=>\s*${param}\s*\.\s*endsWith\(\s*\1\s*\)`
+      );
+      return (
+        literal.test(body) ||
+        constant.test(body) ||
+        (viaList.test(body) && /['"]\.\w+['"]/.test(body))
+      );
     })
   );
 }
 
-function findingsIn(file: string, root: string, texts: readonly string[]): Finding[] {
+function findingsIn(
+  file: string,
+  root: string,
+  texts: readonly string[]
+): Finding[] {
   const lines = fs.readFileSync(file, 'utf8').split(/\r?\n/);
   const out: Finding[] = [];
-  const direct = new RegExp(String.raw`getBasename\([^()]*(?:\([^()]*\))?[^()]*\)\s*${CHECK}${DOTTED_ARG}`);
+  const direct = new RegExp(
+    String.raw`getBasename\([^()]*(?:\([^()]*\))?[^()]*\)\s*${CHECK}${DOTTED_ARG}`
+  );
   const assigned = /(?:const|let)\s+(\w+)\s*=\s*(?:\w+\.)*getBasename\(/;
   const fedTo = (code: string, arg: RegExp): boolean =>
-    [...code.matchAll(new RegExp(PREDICATE_CALL, 'g'))].some(m => arg.test(m[2] ?? '') && predicateChecksDots(m[1] ?? '', texts));
+    [...code.matchAll(new RegExp(PREDICATE_CALL, 'g'))].some(
+      m => arg.test(m[2] ?? '') && predicateChecksDots(m[1] ?? '', texts)
+    );
 
   lines.forEach((text, index) => {
     if (!text.includes('getBasename(') || /^\s*(?:\/\/|\*)/.test(text)) return;
     const report = (): void => {
-      out.push({ file: path.relative(root, file).split(path.sep).join('/'), line: index + 1, text: text.trim() });
+      out.push({
+        file: path.relative(root, file).split(path.sep).join('/'),
+        line: index + 1,
+        text: text.trim(),
+      });
     };
     const window = lines.slice(index, index + WINDOW);
-    if (direct.test(window.slice(0, 3).join(' ')) || fedTo(text, /getBasename\(/)) {
+    if (
+      direct.test(window.slice(0, 3).join(' ')) ||
+      fedTo(text, /getBasename\(/)
+    ) {
       report();
       return;
     }
@@ -91,7 +117,11 @@ function findingsIn(file: string, root: string, texts: readonly string[]): Findi
     if (!name) return;
     const rest = window.slice(1).join(' ');
     const onName = new RegExp(String.raw`\b${name}${CHECK}${DOTTED_ARG}`);
-    if (onName.test(rest) || fedTo(rest, new RegExp(String.raw`^${name}\s*\)$`))) report();
+    if (
+      onName.test(rest) ||
+      fedTo(rest, new RegExp(String.raw`^${name}\s*\)$`))
+    )
+      report();
   });
   return out;
 }

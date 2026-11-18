@@ -214,10 +214,13 @@ export class PythonSatisfaction {
 
   /** API tests: a tests/api tree, or tests exercising a Flask/FastAPI client. */
   static hasApiTests(projectRoot: string): boolean {
-    const apiTestDirs = glob.sync('**/tests/**/{api,routes,endpoints}/**/*.py', {
-      cwd: projectRoot,
-      ignore: [NODE_MODULES, VENV],
-    });
+    const apiTestDirs = glob.sync(
+      '**/tests/**/{api,routes,endpoints}/**/*.py',
+      {
+        cwd: projectRoot,
+        ignore: [NODE_MODULES, VENV],
+      }
+    );
     if (apiTestDirs.length > 0) return true;
 
     return this.pythonFiles(projectRoot).some(file => {
@@ -300,8 +303,8 @@ export class PythonSatisfaction {
    */
   static hasPythonLinter(projectRoot: string): boolean {
     return (
-      ['ruff.toml', '.ruff.toml', '.flake8', '.pylintrc', 'mypy.ini'].some(rel =>
-        FileUtils.exists(PathOperations.join(projectRoot, rel))
+      ['ruff.toml', '.ruff.toml', '.flake8', '.pylintrc', 'mypy.ini'].some(
+        rel => FileUtils.exists(PathOperations.join(projectRoot, rel))
       ) ||
       /\[tool\.(ruff|mypy|flake8|pylint|black)\b/i.test(
         this.gateConfig(projectRoot)

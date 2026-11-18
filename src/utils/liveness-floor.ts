@@ -25,7 +25,8 @@ import { lawAppliesToProjectType, runsWithoutAllowlist } from './law-identity';
 import { lawRequirementsMet } from './law-requirements';
 import { selectionProjectType } from './selection-project-type';
 
-export type LivenessFloorSource = 'default-25%' | 'laws.minLawsChecked' | 'narrowed';
+export type LivenessFloorSource =
+  'default-25%' | 'laws.minLawsChecked' | 'narrowed';
 export type LawNarrowing = 'laws.enabled' | 'paretoMode' | 'categories';
 
 /**
@@ -69,7 +70,9 @@ interface LivenessLawsConfig {
 /** The categories the run is narrowed to; empty when it is not. */
 export function categoriesOf(laws: unknown): string[] {
   const value = ((laws ?? {}) as LivenessLawsConfig)[CATEGORIES_KEY];
-  return Array.isArray(value) ? value.filter((c): c is string => typeof c === 'string') : [];
+  return Array.isArray(value)
+    ? value.filter((c): c is string => typeof c === 'string')
+    : [];
 }
 
 /**
@@ -93,20 +96,38 @@ export function narrowingOf(laws: unknown): LawNarrowing | undefined {
  * The larger of the counts for the configured type and for the type the
  * selection uses (see the header).
  */
-export function livenessApplicableLaws(config: LivenessConfig, projectRoot: string): number {
+export function livenessApplicableLaws(
+  config: LivenessConfig,
+  projectRoot: string
+): number {
   const configured = config.project?.type;
   const selected = selectionProjectType(configured, projectRoot);
   const forConfigured = applicableLawsFor(configured, config, projectRoot);
-  return selected === configured ? forConfigured : Math.max(forConfigured, applicableLawsFor(selected, config, projectRoot));
+  return selected === configured
+    ? forConfigured
+    : Math.max(forConfigured, applicableLawsFor(selected, config, projectRoot));
 }
 
 /** L for one project type. */
-function applicableLawsFor(projectType: string | undefined, config: LivenessConfig, projectRoot: string): number {
+function applicableLawsFor(
+  projectType: string | undefined,
+  config: LivenessConfig,
+  projectRoot: string
+): number {
   const severity = (config.laws as LivenessLawsConfig | undefined)?.severity;
   return ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(
     l =>
-      runsWithoutAllowlist({ name: l.title, id: l.id, defaultEnabled: l.defaultEnabled }, severity) &&
-      lawAppliesToProjectType(l.stack, projectType, projectRoot, l, config.ignores?.global) &&
+      runsWithoutAllowlist(
+        { name: l.title, id: l.id, defaultEnabled: l.defaultEnabled },
+        severity
+      ) &&
+      lawAppliesToProjectType(
+        l.stack,
+        projectType,
+        projectRoot,
+        l,
+        config.ignores?.global
+      ) &&
       lawRequirementsMet(l.requires, projectRoot, config.ignores?.global)
   ).length;
 }
@@ -116,11 +137,18 @@ function applicableLawsFor(projectType: string | undefined, config: LivenessConf
  * a DELIBERATE narrowing: the default 25% would punish an explicit choice, so
  * there the project declares its own floor via `laws.minLawsChecked`.
  */
-export function livenessFloorOf(config: LivenessConfig, projectRoot: string): LivenessFloor {
+export function livenessFloorOf(
+  config: LivenessConfig,
+  projectRoot: string
+): LivenessFloor {
   const laws = (config.laws ?? {}) as LivenessLawsConfig;
   const applicableLaws = livenessApplicableLaws(config, projectRoot);
   if (laws.minLawsChecked !== undefined && laws.minLawsChecked !== null) {
-    return { applicableLaws, floor: laws.minLawsChecked, floorSource: 'laws.minLawsChecked' };
+    return {
+      applicableLaws,
+      floor: laws.minLawsChecked,
+      floorSource: 'laws.minLawsChecked',
+    };
   }
   if (narrowingOf(laws) !== undefined) {
     return { applicableLaws, floor: 0, floorSource: 'narrowed' };
@@ -133,7 +161,10 @@ export function livenessFloorOf(config: LivenessConfig, projectRoot: string): Li
 }
 
 /** One line: the floor and where it comes from. */
-export function describeLivenessFloor(floor: LivenessFloor, narrowedBy?: LawNarrowing): string {
+export function describeLivenessFloor(
+  floor: LivenessFloor,
+  narrowedBy?: LawNarrowing
+): string {
   switch (floor.floorSource) {
     case 'laws.minLawsChecked':
       return `floor ${floor.floor} — laws.minLawsChecked`;

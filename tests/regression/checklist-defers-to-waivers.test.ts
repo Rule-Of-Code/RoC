@@ -25,7 +25,9 @@ describe('checklist clauses defer to the law that owns the concern', () => {
     fs.writeFileSync(file, content);
   };
 
-  const withWaivers = (notApplicable: Record<string, string>): RuleOfCodeConfig => {
+  const withWaivers = (
+    notApplicable: Record<string, string>
+  ): RuleOfCodeConfig => {
     const config = FileUtils.getMinimalDefaultConfig();
     config.laws = { ...config.laws, notApplicable };
     return config;
@@ -78,7 +80,9 @@ describe('checklist clauses defer to the law that owns the concern', () => {
     });
 
     expect(
-      (await findings(config)).filter(v => /Health checks not configured/.test(v))
+      (await findings(config)).filter(v =>
+        /Health checks not configured/.test(v)
+      )
     ).toEqual([]);
   });
 

@@ -13,7 +13,10 @@ export function gitIn(root: string, ...args: string[]): void {
 }
 
 /** A project that is a git work tree, with `track` added to the index. */
-export function repo(files: Record<string, string>, track: readonly string[] = []): string {
+export function repo(
+  files: Record<string, string>,
+  track: readonly string[] = []
+): string {
   const root = project(files);
   gitIn(root, 'init', '-q');
   if (track.length > 0) gitIn(root, 'add', '--', ...track);

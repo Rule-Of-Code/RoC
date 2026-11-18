@@ -18,19 +18,26 @@ jest.mock('../../../src/utils/react/tsx-source', () => {
 afterAll(removeProjects);
 
 const lawOf = (checkFunction: string): Law =>
-  (laws as unknown as Record<string, Law>)[checkFunction.replace('.check', '')] as Law;
+  (laws as unknown as Record<string, Law>)[
+    checkFunction.replace('.check', '')
+  ] as Law;
 
 describe('without a parser every Next client law fails and says what it did not read', () => {
   beforeAll(() => (loadTypeScript as jest.Mock).mockReturnValue(null));
 
-  it.each(NEXT_CLIENT_LAWS.map(card => [card.title, card] as const))('%s', (_title, card) => {
-    const root = nextApp({ 'src/app/page.tsx': PAGE });
-    const result = lawOf(card.checkFunction as string).check(
-      ctx(root, { thresholds: { next: { routeJsBudgetKb: 10_000 } } })
-    );
-    expect(result.passed).toBe(false);
-    expect(result.violations).toEqual(
-      expect.arrayContaining([expect.stringContaining("could not load the 'typescript' package")])
-    );
-  });
+  it.each(NEXT_CLIENT_LAWS.map(card => [card.title, card] as const))(
+    '%s',
+    (_title, card) => {
+      const root = nextApp({ 'src/app/page.tsx': PAGE });
+      const result = lawOf(card.checkFunction as string).check(
+        ctx(root, { thresholds: { next: { routeJsBudgetKb: 10_000 } } })
+      );
+      expect(result.passed).toBe(false);
+      expect(result.violations).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining("could not load the 'typescript' package"),
+        ])
+      );
+    }
+  );
 });

@@ -32,9 +32,10 @@ export const PARETO_CATEGORIES: ParetoCategories = {
   // load time, and a list written here could not see a law added later.
   get HIGH_IMPACT(): string[] {
     if (!highImpact) {
-      const { ALL_ENHANCED_CONSTITUTIONAL_LAWS } = require('./enhanced-laws') as {
-        ALL_ENHANCED_CONSTITUTIONAL_LAWS: EnhancedConstitutionalLaw[];
-      };
+      const { ALL_ENHANCED_CONSTITUTIONAL_LAWS } =
+        require('./enhanced-laws') as {
+          ALL_ENHANCED_CONSTITUTIONAL_LAWS: EnhancedConstitutionalLaw[];
+        };
       highImpact = [...paretoCoreIds(ALL_ENHANCED_CONSTITUTIONAL_LAWS)];
     }
     return highImpact;

@@ -19,10 +19,13 @@ describe('edge cases are recognised in an integration suite’s vocabulary', () 
 
   describe('absence, as an integration test asserts it', () => {
     it.each([
-      ["expect(strangers).toEqual([]);", 'an empty list'],
+      ['expect(strangers).toEqual([]);', 'an empty list'],
       ["await expect(page.locator('.err')).toHaveCount(0);", 'a zero count'],
       ['expect(missing).toHaveLength(0);', 'a zero length'],
-      ["await expect(page.locator('.spinner')).not.toBeVisible();", 'a negated matcher'],
+      [
+        "await expect(page.locator('.spinner')).not.toBeVisible();",
+        'a negated matcher',
+      ],
     ])('reads %s — %s', (source, _label) => {
       expect(readsEdgeCases(source)).toBe(true);
     });
@@ -50,10 +53,18 @@ describe('edge cases are recognised in an integration suite’s vocabulary', () 
    */
   describe('a happy-path suite is still a happy-path suite', () => {
     it.each([
-      ["test('renders the header', async () => { await expect(h).toBeVisible(); });"],
-      ["test('navigates to start', async () => { await expect(page).toHaveURL(/start/); });"],
-      ["test('shows one description', async () => { await expect(d).toHaveCount(1); });"],
-      ["test('links to the law', async () => { await expect(a).toHaveAttribute('href', /x/); });"],
+      [
+        "test('renders the header', async () => { await expect(h).toBeVisible(); });",
+      ],
+      [
+        "test('navigates to start', async () => { await expect(page).toHaveURL(/start/); });",
+      ],
+      [
+        "test('shows one description', async () => { await expect(d).toHaveCount(1); });",
+      ],
+      [
+        "test('links to the law', async () => { await expect(a).toHaveAttribute('href', /x/); });",
+      ],
     ])('says nothing about %s', source => {
       expect(readsEdgeCases(source)).toBe(false);
     });

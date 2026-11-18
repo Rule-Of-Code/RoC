@@ -20,7 +20,9 @@ describe('CapacitorWebviewOriginDeclaredLaw without a runnable CLI', () => {
     const result = check(law, null);
     expect(result.passed).toBe(false);
     expect(result.violations).toEqual([
-      expect.stringMatching(/capacitor\.config\.ts: could not resolve the Capacitor config — @capacitor\/cli is not installed/),
+      expect.stringMatching(
+        /capacitor\.config\.ts: could not resolve the Capacitor config — @capacitor\/cli is not installed/
+      ),
     ]);
   });
 });
@@ -29,7 +31,9 @@ describe('CapacitorWebviewOriginDeclaredLaw (#154)', () => {
   it('red: nothing stated — the defaults differ per platform', () => {
     const result = check(CapacitorWebviewOriginDeclaredLaw, { appId: 'x' });
     expect(result.violations).toEqual([
-      expect.stringMatching(/server\.hostname, server\.androidScheme, server\.iosScheme not stated — .*orphans that storage/),
+      expect.stringMatching(
+        /server\.hostname, server\.androidScheme, server\.iosScheme not stated — .*orphans that storage/
+      ),
     ]);
   });
 
@@ -37,12 +41,18 @@ describe('CapacitorWebviewOriginDeclaredLaw (#154)', () => {
     const result = check(CapacitorWebviewOriginDeclaredLaw, {
       server: { hostname: 'app.example', androidScheme: 'https' },
     });
-    expect(result.violations).toEqual([expect.stringContaining('server.iosScheme not stated')]);
+    expect(result.violations).toEqual([
+      expect.stringContaining('server.iosScheme not stated'),
+    ]);
   });
 
   it('green: all three stated, even as the defaults', () => {
     const result = check(CapacitorWebviewOriginDeclaredLaw, {
-      server: { hostname: 'localhost', androidScheme: 'https', iosScheme: 'capacitor' },
+      server: {
+        hostname: 'localhost',
+        androidScheme: 'https',
+        iosScheme: 'capacitor',
+      },
     });
     expect(result.violations).toEqual([]);
   });

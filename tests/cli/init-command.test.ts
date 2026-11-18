@@ -254,7 +254,9 @@ describe('cli/init-command', () => {
       expect(calls).toContain('No interactive terminal detected');
       // It really ran the setup, rather than reporting success and doing nothing.
       expect(
-        FileUtils.exists(PathOperations.join(tempDir, 'ruleofcode.config.js')) ||
+        FileUtils.exists(
+          PathOperations.join(tempDir, 'ruleofcode.config.js')
+        ) ||
           FileUtils.exists(
             PathOperations.join(tempDir, 'ruleofcode.config.json')
           )
@@ -309,8 +311,12 @@ describe('cli/init-command', () => {
       expect(calls).not.toContain('Installing Husky');
       // The configuration is still written; only the hook claim is refused.
       expect(
-        FileUtils.exists(PathOperations.join(tempDir, 'ruleofcode.config.js')) ||
-          FileUtils.exists(PathOperations.join(tempDir, 'ruleofcode.config.json'))
+        FileUtils.exists(
+          PathOperations.join(tempDir, 'ruleofcode.config.js')
+        ) ||
+          FileUtils.exists(
+            PathOperations.join(tempDir, 'ruleofcode.config.json')
+          )
       ).toBe(true);
     });
 

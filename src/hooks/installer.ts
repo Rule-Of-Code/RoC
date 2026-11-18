@@ -611,7 +611,10 @@ echo "✅ Custom hook ${hookName} completed"
 
     if (!scripts.prepare) {
       scripts.prepare = 'husky';
-      FileUtils.writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2));
+      FileUtils.writeFile(
+        packageJsonPath,
+        JSON.stringify(packageJson, null, 2)
+      );
       console.log('✅ Added prepare script to package.json');
     }
   }

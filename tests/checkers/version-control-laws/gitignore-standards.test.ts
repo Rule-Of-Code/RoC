@@ -11,7 +11,9 @@ import { ctx, manifest, project, removeProjects } from '../toolkit-fixture';
 
 afterAll(removeProjects);
 
-const ROOT_IGNORE = ['node_modules', 'dist', '.env', '*.log', '.DS_Store'].join('\n');
+const ROOT_IGNORE = ['node_modules', 'dist', '.env', '*.log', '.DS_Store'].join(
+  '\n'
+);
 /** The lines `npx cap add android` writes (Capacitor 8.6.0), abridged to the ones that matter. */
 const ANDROID_IGNORE = [
   'build/',
@@ -23,7 +25,12 @@ const ANDROID_IGNORE = [
   'app/src/main/assets/capacitor.plugins.json',
 ].join('\n');
 /** The lines `npx cap add ios` writes (Capacitor 8.6.0). */
-const IOS_IGNORE = ['App/build', 'App/Pods', 'App/App/public', 'App/App/capacitor.config.json'].join('\n');
+const IOS_IGNORE = [
+  'App/build',
+  'App/Pods',
+  'App/App/public',
+  'App/App/capacitor.config.json',
+].join('\n');
 
 const git = (root: string, ...args: string[]) =>
   execFileSync('git', args, { cwd: root, stdio: 'ignore', windowsHide: true });
@@ -42,14 +49,23 @@ const capacitorApp = (files: Record<string, string>, withGit: boolean) => {
 
 describe('GitIgnoreStandardsLaw', () => {
   it('green: a Node project with the five essentials', () => {
-    const root = project({ 'package.json': manifest({}), '.gitignore': ROOT_IGNORE });
+    const root = project({
+      'package.json': manifest({}),
+      '.gitignore': ROOT_IGNORE,
+    });
     expect(Law.check(ctx(root)).violations).toEqual([]);
   });
 
   it('red: a missing essential', () => {
-    const root = project({ 'package.json': manifest({}), '.gitignore': 'node_modules\n.env' });
+    const root = project({
+      'package.json': manifest({}),
+      '.gitignore': 'node_modules\n.env',
+    });
     expect(Law.check(ctx(root)).violations).toEqual(
-      expect.arrayContaining(['Missing .gitignore entry: dist', 'Missing .gitignore entry: *.log'])
+      expect.arrayContaining([
+        'Missing .gitignore entry: dist',
+        'Missing .gitignore entry: *.log',
+      ])
     );
   });
 
@@ -59,7 +75,11 @@ describe('GitIgnoreStandardsLaw', () => {
   ])('a Capacitor project %s', (_, withGit) => {
     it('red: Capacitor’s own nested ignores, no line for the two credential files (the shipped templates)', () => {
       const root = capacitorApp(
-        { '.gitignore': ROOT_IGNORE, 'android/.gitignore': ANDROID_IGNORE, 'ios/.gitignore': IOS_IGNORE },
+        {
+          '.gitignore': ROOT_IGNORE,
+          'android/.gitignore': ANDROID_IGNORE,
+          'ios/.gitignore': IOS_IGNORE,
+        },
         withGit
       );
       expect(Law.check(ctx(root)).violations).toEqual([
@@ -82,7 +102,9 @@ describe('GitIgnoreStandardsLaw', () => {
 
     it('red: the nested ignore files deleted — every generated path is named', () => {
       const root = capacitorApp(
-        { '.gitignore': `${ROOT_IGNORE}\ngoogle-services.json\nGoogleService-Info.plist` },
+        {
+          '.gitignore': `${ROOT_IGNORE}\ngoogle-services.json\nGoogleService-Info.plist`,
+        },
         withGit
       );
       const violations = Law.check(ctx(root)).violations ?? [];
@@ -109,7 +131,9 @@ describe('GitIgnoreStandardsLaw', () => {
     );
     git(root, 'add', '-f', 'android/app/google-services.json');
     expect(Law.check(ctx(root)).violations).toEqual([
-      expect.stringMatching(/^Tracked credential file: android\/app\/google-services\.json — remove it from the index/),
+      expect.stringMatching(
+        /^Tracked credential file: android\/app\/google-services\.json — remove it from the index/
+      ),
     ]);
   });
 

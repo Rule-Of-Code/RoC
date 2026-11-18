@@ -92,7 +92,7 @@ describe('ComplianceCheckerBase', () => {
       performance: {
         parallel: false,
         maxConcurrent: 3,
-        cache: true,
+        cache: true,
       },
     },
   };

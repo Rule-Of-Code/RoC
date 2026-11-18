@@ -19,7 +19,10 @@ export class NgRxImmutabilityValidationPatterns extends AngularConfigurationBase
   /**
    * Type alias for immutability analysis result
    */
-  private static readonly ImmutabilityAnalysis = Object.create(null) as Record<string, unknown>;
+  private static readonly ImmutabilityAnalysis = Object.create(null) as Record<
+    string,
+    unknown
+  >;
 
   /**
    * Validate all NgRx immutability compliance patterns

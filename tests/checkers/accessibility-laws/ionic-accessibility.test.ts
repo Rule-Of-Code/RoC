@@ -23,14 +23,18 @@ const run = (
 
 describe('TemplateMarkup', () => {
   it('reads an attribute value that contains ">"', () => {
-    const doc = TemplateMarkup.parse('<button (click)="n > 0 && go()" type="button">x</button>');
+    const doc = TemplateMarkup.parse(
+      '<button (click)="n > 0 && go()" type="button">x</button>'
+    );
     expect(doc.error).toBeNull();
     expect(doc.elements.map(el => el.tag)).toEqual(['button']);
     expect(TemplateMarkup.has(doc.elements[0]!, 'type')).toBe(true);
   });
 
   it('does not take <button-group> for a button, nor data-type for type', () => {
-    const doc = TemplateMarkup.parse('<button-group></button-group><button data-type="x"></button>');
+    const doc = TemplateMarkup.parse(
+      '<button-group></button-group><button data-type="x"></button>'
+    );
     expect(doc.elements.map(el => el.tag)).toEqual(['button-group', 'button']);
     expect(TemplateMarkup.has(doc.elements[1]!, 'type')).toBe(false);
   });
@@ -47,14 +51,16 @@ describe('TemplateMarkup', () => {
     expect(TemplateMarkup.parse('<div>\n<button type="button"').error).toMatch(
       /line 2: <button> is never closed/
     );
-    expect(TemplateMarkup.parse('<input aria-label="never closed>').error).toMatch(
-      /value of aria-label on <input> never ends/
-    );
+    expect(
+      TemplateMarkup.parse('<input aria-label="never closed>').error
+    ).toMatch(/value of aria-label on <input> never ends/);
   });
 });
 
 describe('a template that cannot be read fails every template law', () => {
-  const broken = { 'src/app/broken.component.html': '<ion-input label="Name"\n' };
+  const broken = {
+    'src/app/broken.component.html': '<ion-input label="Name"\n',
+  };
   it.each([
     ['FormControlLabeling', FormControlLabelingLaw],
     ['ExplicitButtonType', ExplicitButtonTypeLaw],
@@ -63,7 +69,9 @@ describe('a template that cannot be read fails every template law', () => {
     const result = run(law, broken);
     expect(result.passed).toBe(false);
     expect(V(result)).toEqual([
-      expect.stringMatching(/broken\.component\.html: could not be read as markup .* NOT checked/),
+      expect.stringMatching(
+        /broken\.component\.html: could not be read as markup .* NOT checked/
+      ),
     ]);
   });
 
@@ -93,7 +101,15 @@ describe('FormControlLabelingLaw on ion-* controls (#252 row 1)', () => {
     expect(V(result)).toHaveLength(1);
     const [message] = V(result);
     expect(message).toContain('7 Ionic control(s) without an accessible name');
-    for (const tag of ['ion-input', 'ion-select', 'ion-textarea', 'ion-range', 'ion-checkbox', 'ion-toggle', 'ion-radio']) {
+    for (const tag of [
+      'ion-input',
+      'ion-select',
+      'ion-textarea',
+      'ion-range',
+      'ion-checkbox',
+      'ion-toggle',
+      'ion-radio',
+    ]) {
       expect(message).toContain(`<${tag}>`);
     }
   });
@@ -134,7 +150,9 @@ describe('FormControlLabelingLaw on ion-* controls (#252 row 1)', () => {
         '<ion-toggle><span slot="start">x</span></ion-toggle>',
       ].join('\n'),
     });
-    expect(V(result).join()).toContain('4 Ionic control(s) without an accessible name');
+    expect(V(result).join()).toContain(
+      '4 Ionic control(s) without an accessible name'
+    );
   });
 
   it('native controls: a wrapping <label> names the control; data-id is not an id', () => {
@@ -146,24 +164,30 @@ describe('FormControlLabelingLaw on ion-* controls (#252 row 1)', () => {
     const red = run(FormControlLabelingLaw, {
       'src/app/a.component.html': '<input data-id="x" placeholder="Name">',
     });
-    expect(V(red).join()).toContain('1 form control(s) without an accessible label');
+    expect(V(red).join()).toContain(
+      '1 form control(s) without an accessible label'
+    );
   });
 });
 
 describe('ExplicitButtonTypeLaw on Ionic (#252 row 2)', () => {
   it('does not read ion-button / ion-fab-button (both default to type="button")', () => {
     const result = run(ExplicitButtonTypeLaw, {
-      'src/app/a.page.html': '<ion-button>Save</ion-button><ion-fab-button>+</ion-fab-button>',
+      'src/app/a.page.html':
+        '<ion-button>Save</ion-button><ion-fab-button>+</ion-fab-button>',
     });
     expect(result.passed).toBe(true);
   });
 
   it('control: the same template with a native <button> is red', () => {
     const result = run(ExplicitButtonTypeLaw, {
-      'src/app/a.page.html': '<ion-button>Save</ion-button>\n<button>Go</button>',
+      'src/app/a.page.html':
+        '<ion-button>Save</ion-button>\n<button>Go</button>',
     });
     expect(V(result)).toEqual([
-      expect.stringContaining('1 <button> without an explicit type (defaults to submit) at line 2'),
+      expect.stringContaining(
+        '1 <button> without an explicit type (defaults to submit) at line 2'
+      ),
     ]);
   });
 });
@@ -177,7 +201,9 @@ describe('DisclosureControlAriaStateLaw on Ionic (#252 row 4)', () => {
       ].join('\n'),
     });
     expect(V(result)).toEqual([
-      expect.stringContaining('2 disclosure button(s) toggling a panel/menu without [attr.aria-expanded] at lines 1, 2'),
+      expect.stringContaining(
+        '2 disclosure button(s) toggling a panel/menu without [attr.aria-expanded] at lines 1, 2'
+      ),
     ]);
   });
 
@@ -189,7 +215,9 @@ describe('DisclosureControlAriaStateLaw on Ionic (#252 row 4)', () => {
       ].join('\n'),
     });
     expect(V(result)).toEqual([
-      expect.stringMatching(/aria-expanded on <ion-button> line 1, <ion-item> line 2 does not follow the state/),
+      expect.stringMatching(
+        /aria-expanded on <ion-button> line 1, <ion-item> line 2 does not follow the state/
+      ),
     ]);
   });
 
@@ -210,24 +238,35 @@ describe('DisclosureControlAriaStateLaw on Ionic (#252 row 4)', () => {
 });
 
 describe('ModalDialogAccessibilityLaw on Ionic (#252 row 3)', () => {
-  const sheet = '<ion-header><ion-toolbar><ion-title>Pick</ion-title></ion-toolbar></ion-header><ion-content>x</ion-content>\n';
+  const sheet =
+    '<ion-header><ion-toolbar><ion-title>Pick</ion-title></ion-toolbar></ion-header><ion-content>x</ion-content>\n';
   const component = (cls: string, selector: string, template: string) =>
     `import { Component } from '@angular/core';\n@Component({ selector: '${selector}', standalone: true, templateUrl: './${template}' })\nexport class ${cls} {}\n`;
 
   it('red control: a *-modal component nobody presents through ion-modal', () => {
     const result = run(ModalDialogAccessibilityLaw, {
       'src/app/pick/pick-modal.component.html': sheet,
-      'src/app/pick/pick-modal.component.ts': component('PickModalComponent', 'app-pick-modal', 'pick-modal.component.html'),
+      'src/app/pick/pick-modal.component.ts': component(
+        'PickModalComponent',
+        'app-pick-modal',
+        'pick-modal.component.html'
+      ),
     });
     expect(V(result)).toEqual([
-      expect.stringContaining('pick-modal.component.html: dialog without role="dialog" + aria-modal="true" + a focus trap (cdkTrapFocus)'),
+      expect.stringContaining(
+        'pick-modal.component.html: dialog without role="dialog" + aria-modal="true" + a focus trap (cdkTrapFocus)'
+      ),
     ]);
   });
 
   it('green: the same component opened by ModalController.create', () => {
     const result = run(ModalDialogAccessibilityLaw, {
       'src/app/pick/pick-modal.component.html': sheet,
-      'src/app/pick/pick-modal.component.ts': component('PickModalComponent', 'app-pick-modal', 'pick-modal.component.html'),
+      'src/app/pick/pick-modal.component.ts': component(
+        'PickModalComponent',
+        'app-pick-modal',
+        'pick-modal.component.html'
+      ),
       'src/app/home/home.page.ts': [
         "import { Component, inject } from '@angular/core';",
         "import { ModalController } from '@ionic/angular/standalone';",
@@ -249,7 +288,11 @@ describe('ModalDialogAccessibilityLaw on Ionic (#252 row 3)', () => {
   it('red: ModalController.create with focusTrap: false and no trap of its own', () => {
     const result = run(ModalDialogAccessibilityLaw, {
       'src/app/pick/pick-modal.component.html': sheet,
-      'src/app/pick/pick-modal.component.ts': component('PickModalComponent', 'app-pick-modal', 'pick-modal.component.html'),
+      'src/app/pick/pick-modal.component.ts': component(
+        'PickModalComponent',
+        'app-pick-modal',
+        'pick-modal.component.html'
+      ),
       'src/app/home/home.page.ts': [
         "import { ModalController } from '@ionic/angular';",
         "import { PickModalComponent } from '../pick/pick-modal.component';",
@@ -260,14 +303,20 @@ describe('ModalDialogAccessibilityLaw on Ionic (#252 row 3)', () => {
       ].join('\n'),
     });
     expect(V(result)).toEqual([
-      expect.stringMatching(/pick-modal\.component\.html: presented by ModalController\.create in src\/app\/home\/home\.page\.ts with focusTrap set to false/),
+      expect.stringMatching(
+        /pick-modal\.component\.html: presented by ModalController\.create in src\/app\/home\/home\.page\.ts with focusTrap set to false/
+      ),
     ]);
   });
 
   it('a create() call without a ModalController import is not taken for one', () => {
     const result = run(ModalDialogAccessibilityLaw, {
       'src/app/pick/pick-modal.component.html': sheet,
-      'src/app/pick/pick-modal.component.ts': component('PickModalComponent', 'app-pick-modal', 'pick-modal.component.html'),
+      'src/app/pick/pick-modal.component.ts': component(
+        'PickModalComponent',
+        'app-pick-modal',
+        'pick-modal.component.html'
+      ),
       'src/app/home/home.page.ts':
         "import { PickModalComponent } from '../pick/pick-modal.component';\nexport const x = (f: { create(o: unknown): void }) => f.create({ component: PickModalComponent });\n",
     });
@@ -277,7 +326,11 @@ describe('ModalDialogAccessibilityLaw on Ionic (#252 row 3)', () => {
   it('green: a component whose selector is nested in an inline <ion-modal>', () => {
     const result = run(ModalDialogAccessibilityLaw, {
       'src/app/pick/pick-modal.component.html': sheet,
-      'src/app/pick/pick-modal.component.ts': component('PickModalComponent', 'app-pick-modal', 'pick-modal.component.html'),
+      'src/app/pick/pick-modal.component.ts': component(
+        'PickModalComponent',
+        'app-pick-modal',
+        'pick-modal.component.html'
+      ),
       'src/app/home/home.page.html':
         '<ion-content><ion-modal [isOpen]="open"><ng-template><app-pick-modal></app-pick-modal></ng-template></ion-modal></ion-content>',
     });
@@ -285,10 +338,16 @@ describe('ModalDialogAccessibilityLaw on Ionic (#252 row 3)', () => {
   });
 
   it('inline <ion-modal> in the modal template itself: green, unless focusTrap is off', () => {
-    const own = '<div class="fixed inset-0"><ion-modal [isOpen]="true">x</ion-modal></div>';
-    expect(run(ModalDialogAccessibilityLaw, { 'src/app/a.page.html': own }).passed).toBe(true);
+    const own =
+      '<div class="fixed inset-0"><ion-modal [isOpen]="true">x</ion-modal></div>';
+    expect(
+      run(ModalDialogAccessibilityLaw, { 'src/app/a.page.html': own }).passed
+    ).toBe(true);
     const off = run(ModalDialogAccessibilityLaw, {
-      'src/app/a.page.html': own.replace('[isOpen]="true"', '[isOpen]="true" [focusTrap]="false"'),
+      'src/app/a.page.html': own.replace(
+        '[isOpen]="true"',
+        '[isOpen]="true" [focusTrap]="false"'
+      ),
     });
     expect(V(off)).toEqual([
       expect.stringContaining('dialog without a focus trap (cdkTrapFocus)'),
@@ -298,9 +357,12 @@ describe('ModalDialogAccessibilityLaw on Ionic (#252 row 3)', () => {
   it('a component file that cannot be parsed is named when it decides the verdict', () => {
     const result = run(ModalDialogAccessibilityLaw, {
       'src/app/pick/pick-modal.component.html': sheet,
-      'src/app/pick/pick-modal.component.ts': 'export class PickModalComponent { templateUrl = "x"; foo( }\n',
+      'src/app/pick/pick-modal.component.ts':
+        'export class PickModalComponent { templateUrl = "x"; foo( }\n',
     });
     expect(result.passed).toBe(false);
-    expect(V(result).join()).toMatch(/pick-modal\.component\.ts: could not be parsed/);
+    expect(V(result).join()).toMatch(
+      /pick-modal\.component\.ts: could not be parsed/
+    );
   });
 });

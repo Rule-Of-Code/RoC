@@ -53,14 +53,18 @@ function reactImports(source: TsxSource): ReactImports {
     if (info.module !== REACT_MODULE || info.typeOnly) continue;
     if (info.defaultName) imports.namespaces.add(info.defaultName);
     if (info.namespaceName) imports.namespaces.add(info.namespaceName);
-    for (const { imported, local } of info.named) imports.named.set(local, imported);
+    for (const { imported, local } of info.named)
+      imports.named.set(local, imported);
   }
   importsCache.set(source, imports);
   return imports;
 }
 
 /** The React export `call` invokes (`useState`, `useEffect`…), or null. */
-export function reactHookName(source: TsxSource, call: TS.CallExpression): string | null {
+export function reactHookName(
+  source: TsxSource,
+  call: TS.CallExpression
+): string | null {
   const ts = source.ts;
   const imports = reactImports(source);
   const callee = call.expression;
@@ -92,7 +96,9 @@ export function effectCalls(source: TsxSource): EffectCall[] {
     if (!hook || !EFFECT_HOOKS.includes(hook)) return;
     const first = node.arguments[0];
     const setup =
-      first && (ts.isArrowFunction(first) || ts.isFunctionExpression(first)) ? first : null;
+      first && (ts.isArrowFunction(first) || ts.isFunctionExpression(first))
+        ? first
+        : null;
     effects.push({ hook, call: node, setup, line: source.lineOf(node) });
   });
   return effects;
@@ -122,14 +128,18 @@ export function walkWithin(
 }
 
 /** The expressions a function returns, not counting nested functions' returns. */
-export function returnedValues(ts: TypeScriptModule, fn: SetupFunction): TS.Expression[] {
+export function returnedValues(
+  ts: TypeScriptModule,
+  fn: SetupFunction
+): TS.Expression[] {
   if (!ts.isBlock(fn.body)) return [fn.body];
   const values: TS.Expression[] = [];
   walkWithin(
     ts,
     fn.body,
     node => {
-      if (ts.isReturnStatement(node) && node.expression) values.push(node.expression);
+      if (ts.isReturnStatement(node) && node.expression)
+        values.push(node.expression);
     },
     node => node !== fn.body && isFunctionNode(ts, node)
   );
@@ -137,7 +147,10 @@ export function returnedValues(ts: TypeScriptModule, fn: SetupFunction): TS.Expr
 }
 
 /** Strip parentheses and type assertions: `(x as Y)` is `x`. */
-export function unwrap(ts: TypeScriptModule, expression: TS.Expression): TS.Expression {
+export function unwrap(
+  ts: TypeScriptModule,
+  expression: TS.Expression
+): TS.Expression {
   let current = expression;
   while (isWrapper(ts, current)) current = current.expression;
   return current;
@@ -173,7 +186,11 @@ export function localFunction(
   let found: TS.FunctionLikeDeclaration | null = null;
   walkWithin(ts, scope, node => {
     if (found) return;
-    if (ts.isFunctionDeclaration(node) && node.name?.text === name && node.body) {
+    if (
+      ts.isFunctionDeclaration(node) &&
+      node.name?.text === name &&
+      node.body
+    ) {
       found = node;
       return;
     }
@@ -184,7 +201,8 @@ export function localFunction(
       node.initializer
     ) {
       const value = unwrap(ts, node.initializer);
-      if (ts.isArrowFunction(value) || ts.isFunctionExpression(value)) found = value;
+      if (ts.isArrowFunction(value) || ts.isFunctionExpression(value))
+        found = value;
     }
   });
   return found;
@@ -194,7 +212,10 @@ export function localFunction(
  * The cleanup of an effect: what its setup returns, and the local function a
  * returned name is bound to (`const stop = () => …; return stop;`).
  */
-export function cleanupNodes(ts: TypeScriptModule, setup: SetupFunction): TS.Node[] {
+export function cleanupNodes(
+  ts: TypeScriptModule,
+  setup: SetupFunction
+): TS.Node[] {
   const nodes: TS.Node[] = [];
   for (const value of returnedValues(ts, setup)) {
     nodes.push(value);
@@ -233,13 +254,23 @@ const DEFERRING_CALLS = new Set([
  * `new ResizeObserver(() => …)`. What it does happens on a later tick, not
  * when the effect runs.
  */
-export function isDeferredCallback(ts: TypeScriptModule, node: TS.Node): boolean {
+export function isDeferredCallback(
+  ts: TypeScriptModule,
+  node: TS.Node
+): boolean {
   if (!ts.isArrowFunction(node) && !ts.isFunctionExpression(node)) return false;
   const parent = node.parent;
   if (ts.isNewExpression(parent)) {
-    return ts.isIdentifier(parent.expression) && /Observer$/.test(parent.expression.text);
+    return (
+      ts.isIdentifier(parent.expression) &&
+      /Observer$/.test(parent.expression.text)
+    );
   }
-  if (!ts.isCallExpression(parent) || !parent.arguments.includes(node as TS.Expression)) return false;
+  if (
+    !ts.isCallExpression(parent) ||
+    !parent.arguments.includes(node as TS.Expression)
+  )
+    return false;
   const name = callTarget(ts, parent)?.name;
   return name !== undefined && DEFERRING_CALLS.has(name);
 }
@@ -250,7 +281,10 @@ export interface CallTarget {
   receiver: TS.Expression | null;
 }
 
-export function callTarget(ts: TypeScriptModule, call: TS.CallExpression): CallTarget | null {
+export function callTarget(
+  ts: TypeScriptModule,
+  call: TS.CallExpression
+): CallTarget | null {
   const callee = unwrap(ts, call.expression);
   if (ts.isIdentifier(callee)) return { name: callee.text, receiver: null };
   if (ts.isPropertyAccessExpression(callee)) {
@@ -273,7 +307,10 @@ export function isGlobalCall(
 }
 
 /** `fetch(…)`, `window.fetch(…)`, `globalThis.fetch(…)`. */
-export function isFetchCall(ts: TypeScriptModule, node: TS.Node): node is TS.CallExpression {
+export function isFetchCall(
+  ts: TypeScriptModule,
+  node: TS.Node
+): node is TS.CallExpression {
   return ts.isCallExpression(node) && isGlobalCall(ts, node, 'fetch');
 }
 
@@ -295,7 +332,10 @@ export function stateSetters(source: TsxSource): Set<string> {
   return setters;
 }
 
-const commentsCache = new WeakMap<TsxSource, Array<{ line: number; text: string }>>();
+const commentsCache = new WeakMap<
+  TsxSource,
+  Array<{ line: number; text: string }>
+>();
 
 /**
  * Every comment of the file with the 1-based line it ends on. Read from the
@@ -339,15 +379,25 @@ function comments(source: TsxSource): Array<{ line: number; text: string }> {
  * with a non-empty reason — the inline answer a finding the law cannot judge
  * (a bounded one-shot timer, a list that never reorders) is given.
  */
-export function hasInlineReason(source: TsxSource, line: number, marker: string): boolean {
+export function hasInlineReason(
+  source: TsxSource,
+  line: number,
+  marker: string
+): boolean {
   const pattern = new RegExp(`${marker}\\s*:\\s*\\S`);
   return comments(source).some(
-    comment => (comment.line === line || comment.line === line - 1) && pattern.test(comment.text)
+    comment =>
+      (comment.line === line || comment.line === line - 1) &&
+      pattern.test(comment.text)
   );
 }
 
 /** `file:line` for a message, relative to the project root. */
-export function where(context: LawCheckContext, source: TsxSource, node: TS.Node): string {
+export function where(
+  context: LawCheckContext,
+  source: TsxSource,
+  node: TS.Node
+): string {
   return `${ReactProject.relative(context, source.fileName)}:${source.lineOf(node)}`;
 }
 
@@ -373,6 +423,8 @@ export function readReactSources(
   const { sources, unread } = ReactProject.parse(context, files);
   return {
     sources,
-    violations: unread.map(reason => `${reason} — ${lawName} did not inspect them`),
+    violations: unread.map(
+      reason => `${reason} — ${lawName} did not inspect them`
+    ),
   };
 }

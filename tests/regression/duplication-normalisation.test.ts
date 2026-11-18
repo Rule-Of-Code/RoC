@@ -96,7 +96,10 @@ describe('code duplication compares code, not what is left after eating it', () 
 
   it('still reports duplication when the copies carry different comments', () => {
     write('src/a.ts', `// first copy, documented one way\n${REAL_DUPLICATE}`);
-    write('src/b.ts', `// second copy, documented another way\n${REAL_DUPLICATE}`);
+    write(
+      'src/b.ts',
+      `// second copy, documented another way\n${REAL_DUPLICATE}`
+    );
 
     expect(duplicationFindings().length).toBeGreaterThan(0);
   });

@@ -9,10 +9,18 @@
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { type DumpVerdict, pythonDumps, shellDumps } from '../../utils/edge-deploy/definition-dumps';
+import {
+  type DumpVerdict,
+  pythonDumps,
+  shellDumps,
+} from '../../utils/edge-deploy/definition-dumps';
 import { gateFiles } from '../../utils/edge-deploy/gate-files';
 import { REQUIRES_DEFINITION_DUMP } from '../../utils/edge-deploy/requirements';
-import { EdgeDeployLawBase, newTally, type Tally } from './edge-deploy-law-base';
+import {
+  EdgeDeployLawBase,
+  newTally,
+  type Tally,
+} from './edge-deploy-law-base';
 
 export class JobDefinitionDumpsMaskedLaw extends EdgeDeployLawBase {
   static readonly LAW_NAME = 'Job Definition Dumps Masked';
@@ -22,7 +30,9 @@ export class JobDefinitionDumpsMaskedLaw extends EdgeDeployLawBase {
     const files = gateFiles(context, REQUIRES_DEFINITION_DUMP);
     let commands = 0;
     for (const file of files) {
-      const verdicts = file.rel.endsWith('.py') ? pythonDumps(file.content) : shellDumps(file.rel, file.content);
+      const verdicts = file.rel.endsWith('.py')
+        ? pythonDumps(file.content)
+        : shellDumps(file.rel, file.content);
       commands += verdicts.length;
       for (const verdict of verdicts) this.judge(file.rel, verdict, tally);
     }
@@ -33,7 +43,8 @@ export class JobDefinitionDumpsMaskedLaw extends EdgeDeployLawBase {
       filesRead: files.length,
       subject: 'a command that prints a job or scheduler definition',
       unit: 'definition dump command(s) judged',
-      notSeen: 'output captured into a variable and written later, cloud SDK clients (google-cloud-scheduler, boto3, azure-mgmt), commands built from strings at run time',
+      notSeen:
+        'output captured into a variable and written later, cloud SDK clients (google-cloud-scheduler, boto3, azure-mgmt), commands built from strings at run time',
       recommendations: [
         "Delete the secret fields before writing: gcloud scheduler jobs list --format=json | jq 'del(.[].httpTarget.headers)' > jobs.json",
         'Or print only what you need: --format="value(name,schedule,state)" / --query, or run the output through a mask/redact helper before it reaches a file or a log',
@@ -44,7 +55,9 @@ export class JobDefinitionDumpsMaskedLaw extends EdgeDeployLawBase {
 
   private static judge(rel: string, verdict: DumpVerdict, tally: Tally): void {
     if (verdict.verdict === 'unread') {
-      tally.notes.push(`${rel}:${verdict.line}: ${verdict.command} — ${verdict.detail}, not judged`);
+      tally.notes.push(
+        `${rel}:${verdict.line}: ${verdict.command} — ${verdict.detail}, not judged`
+      );
       return;
     }
     tally.judged++;

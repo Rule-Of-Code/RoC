@@ -49,13 +49,15 @@ describe('AsyncTestsAreMarkedLaw', () => {
   it('passes a marked async test', () => {
     const dir = fixture({
       'pyproject.toml': PY,
-      'tests/test_x.py': 'import pytest\n\n@pytest.mark.asyncio\nasync def test_foo():\n    assert 1\n',
+      'tests/test_x.py':
+        'import pytest\n\n@pytest.mark.asyncio\nasync def test_foo():\n    assert 1\n',
     });
     expect(AsyncTestsAreMarkedLaw.check(ctx(dir)).passed).toBe(true);
   });
   it('is satisfied by asyncio_mode = auto', () => {
     const dir = fixture({
-      'pyproject.toml': PY + '[tool.pytest.ini_options]\nasyncio_mode = "auto"\n',
+      'pyproject.toml':
+        PY + '[tool.pytest.ini_options]\nasyncio_mode = "auto"\n',
       'tests/test_x.py': 'async def test_foo():\n    assert 1\n',
     });
     expect(AsyncTestsAreMarkedLaw.check(ctx(dir)).passed).toBe(true);
@@ -66,15 +68,18 @@ describe('NoLiveNetworkInTestsLaw', () => {
   it('flags a real requests/httpx call in a unit test', () => {
     const dir = fixture({
       'pyproject.toml': PY,
-      'tests/test_n.py': 'import requests\n\ndef test_api():\n    r = requests.get("http://x")\n    assert r\n',
+      'tests/test_n.py':
+        'import requests\n\ndef test_api():\n    r = requests.get("http://x")\n    assert r\n',
     });
     expect(NoLiveNetworkInTestsLaw.check(ctx(dir)).passed).toBe(false);
   });
   it('passes mocked tests and exempts integration suites', () => {
     const dir = fixture({
       'pyproject.toml': PY,
-      'tests/test_n.py': 'import responses\n\n@responses.activate\ndef test_api():\n    assert True\n',
-      'tests/integration/test_live.py': 'import requests\n\ndef test_live():\n    requests.get("http://x")\n',
+      'tests/test_n.py':
+        'import responses\n\n@responses.activate\ndef test_api():\n    assert True\n',
+      'tests/integration/test_live.py':
+        'import requests\n\ndef test_live():\n    requests.get("http://x")\n',
     });
     expect(NoLiveNetworkInTestsLaw.check(ctx(dir)).passed).toBe(true);
   });

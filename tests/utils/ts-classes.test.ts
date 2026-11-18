@@ -2,7 +2,7 @@ import { TsClasses } from '../../src/utils/ts-classes';
 
 describe('TsClasses.mask', () => {
   it('keeps length and newlines, blanks comments', () => {
-    const src = "a(); // b()\n/* c()\n d() */ e();";
+    const src = 'a(); // b()\n/* c()\n d() */ e();';
     const masked = TsClasses.mask(src);
     expect(masked).toHaveLength(src.length);
     expect(masked.split('\n')).toHaveLength(3);
@@ -17,7 +17,10 @@ describe('TsClasses.mask', () => {
   });
 
   it('blanks string contents on request, keeping the quotes', () => {
-    const masked = TsClasses.mask("x('{ ionViewWillEnter }')", 'commentsAndStrings');
+    const masked = TsClasses.mask(
+      "x('{ ionViewWillEnter }')",
+      'commentsAndStrings'
+    );
     expect(masked).toBe("x('                    ')");
   });
 });
@@ -28,7 +31,7 @@ describe('TsClasses.parse', () => {
     '',
     '@Component({ selector: "app-a", template: "<ion-content>{{ x }}</ion-content>" })',
     'export class APage implements OnInit, ViewWillEnter {',
-    "  readonly #from = inject(Router).getCurrentNavigation()?.extras.state;",
+    '  readonly #from = inject(Router).getCurrentNavigation()?.extras.state;',
     '  private readonly svc = inject(Svc);',
     '  handler = (e: Event) => { this.go(e); };',
     "  @Input() label = '}';",
@@ -78,7 +81,9 @@ describe('TsClasses.parse', () => {
     const member = (name: string) => a?.members.find(m => m.name === name);
     expect(member('ngOnInit')?.body).toContain('route.snapshot');
     expect(member('ionViewWillEnter')?.body).toContain('await this.reload()');
-    expect(member('#from')?.body).toBe('inject(Router).getCurrentNavigation()?.extras.state');
+    expect(member('#from')?.body).toBe(
+      'inject(Router).getCurrentNavigation()?.extras.state'
+    );
     expect(member('constructor')?.body).toContain('this.r.navigate');
   });
 

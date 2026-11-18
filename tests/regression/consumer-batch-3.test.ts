@@ -11,7 +11,11 @@ import { FileUtils } from '../../src/utils';
 describe('consumer batch 3', () => {
   let root: string;
   const git = (command: string): string =>
-    execSync(command, { cwd: root, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
+    execSync(command, {
+      cwd: root,
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
 
   beforeEach(() => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-batch3-'));
@@ -127,7 +131,11 @@ describe('consumer batch 3', () => {
 
     it('invalidates an entry written before the mode key existed', () => {
       stored('full');
-      const cachePath = path.join(root, '.ruleofcode-cache', 'audit-results.json');
+      const cachePath = path.join(
+        root,
+        '.ruleofcode-cache',
+        'audit-results.json'
+      );
       const entry = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
       delete entry.mode;
       fs.writeFileSync(cachePath, JSON.stringify(entry));

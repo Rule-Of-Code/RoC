@@ -40,7 +40,10 @@ const NOT_OWN_CODE = [
 ];
 
 /** Every own file matching one of `patterns` (globs relative to the root), with its text. */
-export function readProjectFiles(projectRoot: string, patterns: readonly string[]): TextFile[] {
+export function readProjectFiles(
+  projectRoot: string,
+  patterns: readonly string[]
+): TextFile[] {
   const rels = new Set<string>();
   for (const pattern of patterns) {
     for (const rel of glob.sync(pattern, {
@@ -77,13 +80,22 @@ export function lineAt(content: string, index: number): number {
 }
 
 /** The first match of any pattern in the file: the pattern's text and its line, or null. */
-export function firstMatch(content: string, patterns: readonly RegExp[]): { text: string; line: number } | null {
+export function firstMatch(
+  content: string,
+  patterns: readonly RegExp[]
+): { text: string; line: number } | null {
   let best: { text: string; index: number } | null = null;
   for (const pattern of patterns) {
-    const match = new RegExp(pattern.source, pattern.flags.replace('g', '')).exec(content);
-    if (match && (best === null || match.index < best.index)) best = { text: match[0], index: match.index };
+    const match = new RegExp(
+      pattern.source,
+      pattern.flags.replace('g', '')
+    ).exec(content);
+    if (match && (best === null || match.index < best.index))
+      best = { text: match[0], index: match.index };
   }
-  return best === null ? null : { text: best.text, line: lineAt(content, best.index) };
+  return best === null
+    ? null
+    : { text: best.text, line: lineAt(content, best.index) };
 }
 
 /** A test file by its name or directory (test_x.py, x_test.py, x.spec.ts, x.test.js, tests/, __tests__/, conftest.py). */

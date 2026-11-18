@@ -79,7 +79,11 @@ export class QueriesAreReadOnlyLaw extends PythonLawBase {
     } else {
       for (const b of this.pythonClassBlocks(content)) {
         if (/query/i.test(b.name)) {
-          scopes.push({ label: `${rel} (class ${b.name})`, text: b.body, line: b.line });
+          scopes.push({
+            label: `${rel} (class ${b.name})`,
+            text: b.body,
+            line: b.line,
+          });
         }
       }
     }

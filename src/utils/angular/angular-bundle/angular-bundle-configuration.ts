@@ -115,17 +115,13 @@ export class AngularBundleConfiguration {
   ): Record<string, unknown> | null {
     const typedConfig = projectConfig as Record<string, unknown> | undefined;
     const architect = typedConfig?.[ANGULAR_CONSTANTS.ARCHITECT] as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     const build = architect?.[ANGULAR_CONSTANTS.BUILD] as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     const configurations = build?.[ANGULAR_CONSTANTS.CONFIGURATIONS] as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     const prodConfig = configurations?.[ANGULAR_CONSTANTS.PRODUCTION] as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
 
     return prodConfig ?? null;
   }

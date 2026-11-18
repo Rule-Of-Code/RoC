@@ -160,9 +160,7 @@ export class ProfessionalExcellenceLaw {
       );
       if (!present) {
         violations.push(`Missing ${concern.canonical}`);
-        suggestions.push(
-          `Create ${concern.canonical} for ${concern.purpose}`
-        );
+        suggestions.push(`Create ${concern.canonical} for ${concern.purpose}`);
       }
     }
 

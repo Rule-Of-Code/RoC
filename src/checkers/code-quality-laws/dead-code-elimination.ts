@@ -150,10 +150,7 @@ export class DeadCodeEliminationLaw extends CodeQualityLawBase {
     }
   }
 
-  private static checkUnreachableCode(
-    content: string,
-    issues: string[]
-  ): void {
+  private static checkUnreachableCode(content: string, issues: string[]): void {
     // Check for unreachable code after return (same indentation only)
     // Match multiline: return statement followed by code at same indent before closing brace
     // Improved pattern: captures indentation and requires matching indent for unreachable code

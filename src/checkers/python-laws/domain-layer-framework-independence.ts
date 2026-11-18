@@ -30,8 +30,8 @@ export class DomainLayerFrameworkIndependenceLaw extends PythonLawBase {
 
     const violations: string[] = [];
 
-    const domainFiles = this.getPythonFiles(projectRoot, context.config).filter(f =>
-      /(^|\/)domain(\/|$)/.test(f.replace(/\\/g, '/').toLowerCase())
+    const domainFiles = this.getPythonFiles(projectRoot, context.config).filter(
+      f => /(^|\/)domain(\/|$)/.test(f.replace(/\\/g, '/').toLowerCase())
     );
 
     for (const file of domainFiles) {

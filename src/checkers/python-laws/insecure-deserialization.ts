@@ -51,7 +51,8 @@ export class InsecureDeserializationLaw extends PythonLawBase {
         const open = this.YAML_LOAD.lastIndex - 1; // index of "("
         const args = this.readBalancedParens(content, open);
         const safe =
-          args !== null && /SafeLoader|CSafeLoader|Loader\s*=\s*\w*Safe/.test(args);
+          args !== null &&
+          /SafeLoader|CSafeLoader|Loader\s*=\s*\w*Safe/.test(args);
         if (!safe) {
           violations.push(
             `${rel}:${this.lineOf(content, m.index)}: yaml.load() without SafeLoader can execute arbitrary code — use yaml.safe_load() or Loader=SafeLoader`

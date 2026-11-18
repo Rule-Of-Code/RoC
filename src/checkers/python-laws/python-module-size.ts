@@ -38,7 +38,8 @@ export class PythonModuleSizeLaw extends PythonLawBase {
       if (!raw) continue;
       // CRLF-tolerant line count; ignore a single trailing newline.
       let lines = this.splitLines(raw);
-      if (lines.length > 0 && lines[lines.length - 1] === '') lines = lines.slice(0, -1);
+      if (lines.length > 0 && lines[lines.length - 1] === '')
+        lines = lines.slice(0, -1);
       const count = lines.length;
       const isTest = this.isTestFile(file);
       const limit = isTest ? maxTestLines : maxLines;

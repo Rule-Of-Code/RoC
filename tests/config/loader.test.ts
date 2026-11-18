@@ -149,7 +149,10 @@ describe('ConfigLoader', () => {
     };
 
     it('is typed ionic and keeps the Angular defaults it sits on', () => {
-      const dir = ionicProject({ '@angular/core': '20.0.0', '@ionic/angular': '8.8.17' });
+      const dir = ionicProject({
+        '@angular/core': '20.0.0',
+        '@ionic/angular': '8.8.17',
+      });
       try {
         const config = ConfigLoader.load(dir);
         expect(config.project.type).toBe('ionic');
@@ -205,9 +208,7 @@ describe('ConfigLoader', () => {
     });
 
     it('throws when the explicit file does not exist', () => {
-      expect(() => ConfigLoader.load(dir, 'missing.json')).toThrow(
-        /not found/
-      );
+      expect(() => ConfigLoader.load(dir, 'missing.json')).toThrow(/not found/);
     });
 
     it('throws when the explicit file cannot be parsed', () => {
@@ -234,7 +235,10 @@ describe('ConfigLoader', () => {
     it('warns loudly instead of silently skipping a corrupt discovered config', () => {
       const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
       const badDir = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-bad-'));
-      fs.writeFileSync(path.join(badDir, 'ruleofcode.config.json'), '{"laws": {,}');
+      fs.writeFileSync(
+        path.join(badDir, 'ruleofcode.config.json'),
+        '{"laws": {,}'
+      );
       ConfigLoader.load(badDir);
       expect(warnSpy).toHaveBeenCalledWith(
         expect.stringContaining('could not be parsed')

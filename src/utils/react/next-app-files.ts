@@ -39,7 +39,8 @@ export type AppFileKind =
   | 'route'
   | 'template';
 
-const APP_FILE = /^(page|layout|template|loading|error|global-error|not-found|route|default)\.(?:tsx|ts|jsx|js)$/;
+const APP_FILE =
+  /^(page|layout|template|loading|error|global-error|not-found|route|default)\.(?:tsx|ts|jsx|js)$/;
 const PAGES_SPECIAL = /^_(?:app|document|error)$/;
 const PAGE_EXTENSION = /\.(?:tsx|ts|jsx|js)$/;
 
@@ -95,7 +96,10 @@ export class NextAppFiles {
   }
 
   /** Every scanned file under an App Router directory of any Next app. */
-  static appFiles(apps: readonly NextApp[], files: readonly string[]): AppFile[] {
+  static appFiles(
+    apps: readonly NextApp[],
+    files: readonly string[]
+  ): AppFile[] {
     const found: AppFile[] = [];
     for (const file of files) {
       const owner = this.owningAppDir(apps, file);
@@ -107,7 +111,10 @@ export class NextAppFiles {
   }
 
   /** Every scanned page-extension file under a Pages Router directory. */
-  static pagesFiles(apps: readonly NextApp[], files: readonly string[]): PagesFile[] {
+  static pagesFiles(
+    apps: readonly NextApp[],
+    files: readonly string[]
+  ): PagesFile[] {
     const found: PagesFile[] = [];
     for (const app of apps) {
       for (const pagesDir of app.pagesDirs) {
@@ -121,12 +128,20 @@ export class NextAppFiles {
     return found;
   }
 
-  private static pagesFile(app: NextApp, pagesDir: string, file: string, rel: string): PagesFile {
+  private static pagesFile(
+    app: NextApp,
+    pagesDir: string,
+    file: string,
+    rel: string
+  ): PagesFile {
     const withoutExt = rel.replace(PAGE_EXTENSION, '');
     const special = PAGES_SPECIAL.test(withoutExt) ? withoutExt : null;
     const api = withoutExt === 'api' || withoutExt.startsWith('api/');
     const route =
-      special || api ? '' : `/${withoutExt.replace(/(?:^|\/)index$/, '')}`.replace(/\/$/, '') || '/';
+      special || api
+        ? ''
+        : `/${withoutExt.replace(/(?:^|\/)index$/, '')}`.replace(/\/$/, '') ||
+          '/';
     return { app, pagesDir, file, special, api, route };
   }
 
@@ -151,7 +166,8 @@ export class NextAppFiles {
     let dir = segmentDir;
     for (;;) {
       chain.push(dir);
-      if (PathOperations.normalize(dir) === PathOperations.normalize(appDir)) break;
+      if (PathOperations.normalize(dir) === PathOperations.normalize(appDir))
+        break;
       const parent = PathOperations.getDirectory(dir);
       if (parent === dir || inside(appDir, parent) === null) break;
       dir = parent;
@@ -164,15 +180,23 @@ export class NextAppFiles {
     const rel = inside(appDir, segmentDir) ?? '';
     const parts = rel
       .split('/')
-      .filter(part => part !== '' && !/^\(.*\)$/.test(part) && !part.startsWith('@'));
+      .filter(
+        part => part !== '' && !/^\(.*\)$/.test(part) && !part.startsWith('@')
+      );
     return `/${parts.join('/')}`;
   }
 
   /** The special file of `kind` directly in `dir`, among `appFiles`. */
-  static specialIn(appFiles: readonly AppFile[], dir: string, kind: AppFileKind): AppFile | undefined {
+  static specialIn(
+    appFiles: readonly AppFile[],
+    dir: string,
+    kind: AppFileKind
+  ): AppFile | undefined {
     const wanted = PathOperations.normalize(dir);
     return appFiles.find(
-      appFile => appFile.kind === kind && PathOperations.normalize(appFile.segmentDir) === wanted
+      appFile =>
+        appFile.kind === kind &&
+        PathOperations.normalize(appFile.segmentDir) === wanted
     );
   }
 
@@ -186,7 +210,11 @@ export class NextAppFiles {
    * router's directory: the subject does not exist, and the message says so
    * rather than "compliance verified".
    */
-  static withoutSubject(lawName: string, subject: string, context: LawCheckContext): LawResult {
+  static withoutSubject(
+    lawName: string,
+    subject: string,
+    context: LawCheckContext
+  ): LawResult {
     return {
       lawName: lawName.toLowerCase().replace(/\s+/g, '-'),
       passed: true,
@@ -214,10 +242,17 @@ export interface ExportedBinding {
 }
 
 /** The local top-level declaration named `name`: a function, class, or variable. */
-function localDeclaration(source: TsxSource, name: string): ExportedBinding | null {
+function localDeclaration(
+  source: TsxSource,
+  name: string
+): ExportedBinding | null {
   const ts = source.ts;
   for (const statement of source.sourceFile.statements) {
-    if ((ts.isFunctionDeclaration(statement) || ts.isClassDeclaration(statement)) && statement.name?.text === name) {
+    if (
+      (ts.isFunctionDeclaration(statement) ||
+        ts.isClassDeclaration(statement)) &&
+      statement.name?.text === name
+    ) {
       return { name, node: statement, value: statement };
     }
     if (!ts.isVariableStatement(statement)) continue;
@@ -231,36 +266,73 @@ function localDeclaration(source: TsxSource, name: string): ExportedBinding | nu
 }
 
 function hasExportModifier(ts: TsxSource['ts'], node: TS.Node): boolean {
-  const modifiers = ts.canHaveModifiers(node) ? ts.getModifiers(node) : undefined;
-  return modifiers?.some(modifier => modifier.kind === ts.SyntaxKind.ExportKeyword) ?? false;
+  const modifiers = ts.canHaveModifiers(node)
+    ? ts.getModifiers(node)
+    : undefined;
+  return (
+    modifiers?.some(
+      modifier => modifier.kind === ts.SyntaxKind.ExportKeyword
+    ) ?? false
+  );
 }
 
 function hasDefaultModifier(ts: TsxSource['ts'], node: TS.Node): boolean {
-  const modifiers = ts.canHaveModifiers(node) ? ts.getModifiers(node) : undefined;
-  return modifiers?.some(modifier => modifier.kind === ts.SyntaxKind.DefaultKeyword) ?? false;
+  const modifiers = ts.canHaveModifiers(node)
+    ? ts.getModifiers(node)
+    : undefined;
+  return (
+    modifiers?.some(
+      modifier => modifier.kind === ts.SyntaxKind.DefaultKeyword
+    ) ?? false
+  );
 }
 
-function exportsOfStatement(source: TsxSource, statement: TS.Statement): ExportedBinding[] {
+function exportsOfStatement(
+  source: TsxSource,
+  statement: TS.Statement
+): ExportedBinding[] {
   const ts = source.ts;
   if (ts.isExportAssignment(statement) && !statement.isExportEquals) {
     const expression = statement.expression;
-    const local = ts.isIdentifier(expression) ? localDeclaration(source, expression.text) : null;
-    return [{ name: 'default', node: local?.node ?? statement, value: local ? local.value : expression }];
+    const local = ts.isIdentifier(expression)
+      ? localDeclaration(source, expression.text)
+      : null;
+    return [
+      {
+        name: 'default',
+        node: local?.node ?? statement,
+        value: local ? local.value : expression,
+      },
+    ];
   }
   if (ts.isExportDeclaration(statement)) {
-    if (statement.isTypeOnly || !statement.exportClause || !ts.isNamedExports(statement.exportClause)) return [];
+    if (
+      statement.isTypeOnly ||
+      !statement.exportClause ||
+      !ts.isNamedExports(statement.exportClause)
+    )
+      return [];
     return statement.exportClause.elements
       .filter(element => !element.isTypeOnly)
       .map(element => {
         const local = statement.moduleSpecifier
           ? null
-          : localDeclaration(source, (element.propertyName ?? element.name).text);
-        return { name: element.name.text, node: local?.node ?? element, value: local?.value };
+          : localDeclaration(
+              source,
+              (element.propertyName ?? element.name).text
+            );
+        return {
+          name: element.name.text,
+          node: local?.node ?? element,
+          value: local?.value,
+        };
       });
   }
   if (!hasExportModifier(ts, statement)) return [];
   if (ts.isFunctionDeclaration(statement) || ts.isClassDeclaration(statement)) {
-    const name = hasDefaultModifier(ts, statement) ? 'default' : (statement.name?.text ?? 'default');
+    const name = hasDefaultModifier(ts, statement)
+      ? 'default'
+      : (statement.name?.text ?? 'default');
     return [{ name, node: statement, value: statement }];
   }
   if (ts.isVariableStatement(statement)) {
@@ -276,16 +348,22 @@ function exportsOfStatement(source: TsxSource, statement: TS.Statement): Exporte
 }
 
 /** Every value a module exports, by exported name (type-only exports excluded). */
-export function exportedBindings(source: TsxSource): Map<string, ExportedBinding> {
+export function exportedBindings(
+  source: TsxSource
+): Map<string, ExportedBinding> {
   const bindings = new Map<string, ExportedBinding>();
   for (const statement of source.sourceFile.statements) {
-    for (const binding of exportsOfStatement(source, statement)) bindings.set(binding.name, binding);
+    for (const binding of exportsOfStatement(source, statement))
+      bindings.set(binding.name, binding);
   }
   return bindings;
 }
 
 /** Peel parentheses, `as`, `satisfies` and `!` off an expression. */
-export function unwrapExpression(ts: TsxSource['ts'], node: TS.Node | undefined): TS.Node | undefined {
+export function unwrapExpression(
+  ts: TsxSource['ts'],
+  node: TS.Node | undefined
+): TS.Node | undefined {
   let current = node;
   while (
     current &&
@@ -301,24 +379,40 @@ export function unwrapExpression(ts: TsxSource['ts'], node: TS.Node | undefined)
 }
 
 /** True when a function-like node is declared `async`. */
-export function isAsyncFunction(ts: TsxSource['ts'], node: TS.Node | undefined): boolean {
+export function isAsyncFunction(
+  ts: TsxSource['ts'],
+  node: TS.Node | undefined
+): boolean {
   const fn = unwrapExpression(ts, node);
   if (
     !fn ||
-    !(ts.isFunctionDeclaration(fn) || ts.isFunctionExpression(fn) || ts.isArrowFunction(fn))
+    !(
+      ts.isFunctionDeclaration(fn) ||
+      ts.isFunctionExpression(fn) ||
+      ts.isArrowFunction(fn)
+    )
   ) {
     return false;
   }
-  return ts.getModifiers(fn)?.some(modifier => modifier.kind === ts.SyntaxKind.AsyncKeyword) ?? false;
+  return (
+    ts
+      .getModifiers(fn)
+      ?.some(modifier => modifier.kind === ts.SyntaxKind.AsyncKeyword) ?? false
+  );
 }
 
 /** The local names bound to `imported` (or the default, with 'default') from `module`. */
-export function importedNames(source: TsxSource, modules: readonly string[], imported: string): Set<string> {
+export function importedNames(
+  source: TsxSource,
+  modules: readonly string[],
+  imported: string
+): Set<string> {
   const names = new Set<string>();
   for (const info of source.imports()) {
     if (info.typeOnly || !modules.includes(info.module)) continue;
     if (imported === 'default' && info.defaultName) names.add(info.defaultName);
-    for (const named of info.named) if (named.imported === imported) names.add(named.local);
+    for (const named of info.named)
+      if (named.imported === imported) names.add(named.local);
   }
   return names;
 }

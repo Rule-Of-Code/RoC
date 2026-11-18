@@ -41,21 +41,24 @@ describe('QueriesAreReadOnlyLaw', () => {
   it('flags a persistence write in a query handler', () => {
     const dir = fixture({
       'pyproject.toml': PY,
-      'src/app/application/order_queries.py': 'class GetOrdersQueryHandler:\n    def handle(self, q):\n        self.repo.save(x)\n        return self.repo.all()\n',
+      'src/app/application/order_queries.py':
+        'class GetOrdersQueryHandler:\n    def handle(self, q):\n        self.repo.save(x)\n        return self.repo.all()\n',
     });
     expect(QueriesAreReadOnlyLaw.check(ctx(dir)).passed).toBe(false);
   });
   it('passes a read-only query handler', () => {
     const dir = fixture({
       'pyproject.toml': PY,
-      'src/app/application/order_queries.py': 'class GetOrdersQueryHandler:\n    def handle(self, q):\n        return self.repo.all()\n',
+      'src/app/application/order_queries.py':
+        'class GetOrdersQueryHandler:\n    def handle(self, q):\n        return self.repo.all()\n',
     });
     expect(QueriesAreReadOnlyLaw.check(ctx(dir)).passed).toBe(true);
   });
   it('does not flag a write in a command handler', () => {
     const dir = fixture({
       'pyproject.toml': PY,
-      'src/app/application/order_commands.py': 'class CreateOrderHandler:\n    def handle(self, c):\n        self.repo.save(c)\n',
+      'src/app/application/order_commands.py':
+        'class CreateOrderHandler:\n    def handle(self, c):\n        self.repo.save(c)\n',
     });
     expect(QueriesAreReadOnlyLaw.check(ctx(dir)).passed).toBe(true);
   });
@@ -65,14 +68,16 @@ describe('CommandsQueriesAreMessagesLaw', () => {
   it('flags a plain Command class', () => {
     const dir = fixture({
       'pyproject.toml': PY,
-      'src/app/application/commands.py': 'class CreateOrderCommand:\n    def __init__(self, id):\n        self.id = id\n',
+      'src/app/application/commands.py':
+        'class CreateOrderCommand:\n    def __init__(self, id):\n        self.id = id\n',
     });
     expect(CommandsQueriesAreMessagesLaw.check(ctx(dir)).passed).toBe(false);
   });
   it('passes dataclass/Pydantic messages and ignores handlers', () => {
     const dir = fixture({
       'pyproject.toml': PY,
-      'src/app/application/commands.py': 'from dataclasses import dataclass\nfrom pydantic import BaseModel\n\n@dataclass(frozen=True)\nclass CreateOrderCommand:\n    id: str\n\nclass GetOrderQuery(BaseModel):\n    id: str\n\nclass CreateOrderCommandHandler:\n    def handle(self, c):\n        ...\n',
+      'src/app/application/commands.py':
+        'from dataclasses import dataclass\nfrom pydantic import BaseModel\n\n@dataclass(frozen=True)\nclass CreateOrderCommand:\n    id: str\n\nclass GetOrderQuery(BaseModel):\n    id: str\n\nclass CreateOrderCommandHandler:\n    def handle(self, c):\n        ...\n',
     });
     expect(CommandsQueriesAreMessagesLaw.check(ctx(dir)).passed).toBe(true);
   });

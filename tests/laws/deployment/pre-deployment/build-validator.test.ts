@@ -42,7 +42,6 @@ describe('BuildValidationChecker', () => {
         parallel: false,
         maxConcurrent: 3,
         cache: true,
-
       },
     };
     mockContext = {
@@ -422,13 +421,18 @@ describe('BuildValidationChecker', () => {
         PathOperations.join(tempDir, 'src', 'Button.test.tsx'),
         'test("b", () => {});'
       );
-      FileUtils.writeFile(PathOperations.join(tempDir, 'src', 'Button.tsx'), 'export {};');
+      FileUtils.writeFile(
+        PathOperations.join(tempDir, 'src', 'Button.tsx'),
+        'export {};'
+      );
       const result = validator.checkTestingSetup(tempDir, mockContext);
       expect(result.testFiles).toBe(1);
     });
 
     it('does not count a test file inside node_modules', () => {
-      FileUtils.createDirectory(PathOperations.join(tempDir, 'node_modules', 'x'));
+      FileUtils.createDirectory(
+        PathOperations.join(tempDir, 'node_modules', 'x')
+      );
       FileUtils.writeFile(
         PathOperations.join(tempDir, 'node_modules', 'x', 'a.test.js'),
         'test("x", () => {});'

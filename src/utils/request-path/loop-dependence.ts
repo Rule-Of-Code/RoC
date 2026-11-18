@@ -14,12 +14,18 @@ function root(name: string): string {
   return name.split('.')[0] as string;
 }
 
-function touches(names: readonly string[], derived: ReadonlySet<string>): boolean {
+function touches(
+  names: readonly string[],
+  derived: ReadonlySet<string>
+): boolean {
   return names.some(name => derived.has(name) || derived.has(root(name)));
 }
 
 /** The loop's targets and every name the body derives from them (to a fixed point). */
-export function loopDerivedNames(targets: Iterable<string>, statements: readonly StatementModel[]): Set<string> {
+export function loopDerivedNames(
+  targets: Iterable<string>,
+  statements: readonly StatementModel[]
+): Set<string> {
   const derived = new Set(targets);
   let grew = derived.size > 0;
   while (grew) {
@@ -38,7 +44,10 @@ export function loopDerivedNames(targets: Iterable<string>, statements: readonly
 }
 
 /** Does the call read a name derived from the loop's item? */
-export function callDependsOn(call: CallSite | null, derived: ReadonlySet<string>): boolean {
+export function callDependsOn(
+  call: CallSite | null,
+  derived: ReadonlySet<string>
+): boolean {
   return call !== null && derived.size > 0 && touches(call.names, derived);
 }
 
@@ -55,5 +64,6 @@ export interface WalkedLoop {
 /** Once the body is walked: mark each await in the loop as depending on its item or not. */
 export function finishLoop(loop: WalkedLoop): void {
   const derived = loopDerivedNames(loop.targets, loop.statements);
-  for (const loopAwait of loop.awaits) loopAwait.dependsOnLoop = callDependsOn(loopAwait.site.call, derived);
+  for (const loopAwait of loop.awaits)
+    loopAwait.dependsOnLoop = callDependsOn(loopAwait.site.call, derived);
 }

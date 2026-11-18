@@ -31,7 +31,10 @@ export class ProjectTypeDetectorConfiguration {
    * and audited with every Angular law. The dependency is the evidence.
    */
   static readonly ANGULAR_PROJECT_PATTERNS = {
-    files: [CONFIG_FILES.ANGULAR_JSON, 'src/app/app.module.ts'] as readonly string[],
+    files: [
+      CONFIG_FILES.ANGULAR_JSON,
+      'src/app/app.module.ts',
+    ] as readonly string[],
     dependencies: ['@angular/core', '@angular/cli'] as readonly string[],
   } as const;
 

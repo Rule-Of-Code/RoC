@@ -127,8 +127,8 @@ export class UnitTestPerformanceTestingConstants {
    * Check if filename matches performance test patterns
    */
   static isPerformanceTestFile(filename: string): boolean {
-    return UnitTestPerformanceTestingConstants.PERFORMANCE_TEST_PATTERNS.some(pattern =>
-      pattern.test(filename)
+    return UnitTestPerformanceTestingConstants.PERFORMANCE_TEST_PATTERNS.some(
+      pattern => pattern.test(filename)
     );
   }
 
@@ -136,15 +136,17 @@ export class UnitTestPerformanceTestingConstants {
    * Check if content indicates load testing setup
    */
   static hasLoadTestingSetup(content: string): boolean {
-    return UnitTestPerformanceTestingConstants.LOAD_TESTING_TOOLS.some(pattern => pattern.test(content));
+    return UnitTestPerformanceTestingConstants.LOAD_TESTING_TOOLS.some(
+      pattern => pattern.test(content)
+    );
   }
 
   /**
    * Check if filename is load testing config
    */
   static isLoadTestingConfig(filename: string): boolean {
-    return UnitTestPerformanceTestingConstants.LOAD_TESTING_CONFIG_FILES.some(pattern =>
-      pattern.test(filename)
+    return UnitTestPerformanceTestingConstants.LOAD_TESTING_CONFIG_FILES.some(
+      pattern => pattern.test(filename)
     );
   }
 
@@ -152,15 +154,17 @@ export class UnitTestPerformanceTestingConstants {
    * Check if content indicates bundle size testing
    */
   static hasBundleSizeTesting(content: string): boolean {
-    return UnitTestPerformanceTestingConstants.BUNDLE_SIZE_TOOLS.some(pattern => pattern.test(content));
+    return UnitTestPerformanceTestingConstants.BUNDLE_SIZE_TOOLS.some(pattern =>
+      pattern.test(content)
+    );
   }
 
   /**
    * Check if filename is bundle size config
    */
   static isBundleSizeConfig(filename: string): boolean {
-    return UnitTestPerformanceTestingConstants.BUNDLE_SIZE_CONFIG_PATTERNS.some(pattern =>
-      pattern.test(filename)
+    return UnitTestPerformanceTestingConstants.BUNDLE_SIZE_CONFIG_PATTERNS.some(
+      pattern => pattern.test(filename)
     );
   }
 
@@ -168,15 +172,17 @@ export class UnitTestPerformanceTestingConstants {
    * Check if content indicates Web Vitals testing
    */
   static hasWebVitalsTesting(content: string): boolean {
-    return UnitTestPerformanceTestingConstants.WEB_VITALS_PATTERNS.some(pattern => pattern.test(content));
+    return UnitTestPerformanceTestingConstants.WEB_VITALS_PATTERNS.some(
+      pattern => pattern.test(content)
+    );
   }
 
   /**
    * Check if filename is Web Vitals config
    */
   static isWebVitalsConfig(filename: string): boolean {
-    return UnitTestPerformanceTestingConstants.WEB_VITALS_CONFIG_PATTERNS.some(pattern =>
-      pattern.test(filename)
+    return UnitTestPerformanceTestingConstants.WEB_VITALS_CONFIG_PATTERNS.some(
+      pattern => pattern.test(filename)
     );
   }
 
@@ -184,8 +190,8 @@ export class UnitTestPerformanceTestingConstants {
    * Check if content indicates performance monitoring
    */
   static hasPerformanceMonitoring(content: string): boolean {
-    return UnitTestPerformanceTestingConstants.PERFORMANCE_MONITORING_TOOLS.some(pattern =>
-      pattern.test(content)
+    return UnitTestPerformanceTestingConstants.PERFORMANCE_MONITORING_TOOLS.some(
+      pattern => pattern.test(content)
     );
   }
 
@@ -193,8 +199,8 @@ export class UnitTestPerformanceTestingConstants {
    * Check if filename is performance monitoring config
    */
   static isPerformanceMonitoringConfig(filename: string): boolean {
-    return UnitTestPerformanceTestingConstants.PERFORMANCE_MONITORING_CONFIG_PATTERNS.some(pattern =>
-      pattern.test(filename)
+    return UnitTestPerformanceTestingConstants.PERFORMANCE_MONITORING_CONFIG_PATTERNS.some(
+      pattern => pattern.test(filename)
     );
   }
 
@@ -202,7 +208,9 @@ export class UnitTestPerformanceTestingConstants {
    * Check if test content indicates critical flow testing
    */
   static hasCriticalFlowTesting(content: string): boolean {
-    return UnitTestPerformanceTestingConstants.CRITICAL_FLOW_KEYWORDS.some(pattern => pattern.test(content));
+    return UnitTestPerformanceTestingConstants.CRITICAL_FLOW_KEYWORDS.some(
+      pattern => pattern.test(content)
+    );
   }
 
   /**

@@ -181,7 +181,9 @@ describe('BundleAnalysisAnalyzerService', () => {
           ruby: 'bundle exec rake',
         });
 
-      expect(BundleAnalysisAnalyzerService.analyze(tempDir).isSetup).toBe(false);
+      expect(BundleAnalysisAnalyzerService.analyze(tempDir).isSetup).toBe(
+        false
+      );
     });
 
     it('should add script message only once with multiple analyzer scripts', () => {

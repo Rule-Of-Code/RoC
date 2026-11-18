@@ -51,7 +51,8 @@ interface Item {
 }
 
 const LINE = /^(\s*)((?:-(?:\s+|$))*)(.*)$/;
-const KEY = /^(?:"([^"]*)"|'([^']*)'|([^\s"'#[\]{}][^"'#]*?))\s*:(?:\s+|$)(.*)$/;
+const KEY =
+  /^(?:"([^"]*)"|'([^']*)'|([^\s"'#[\]{}][^"'#]*?))\s*:(?:\s+|$)(.*)$/;
 const BLOCK_SCALAR = /^[|>][-+0-9]*$/;
 
 /** A scalar as written, without its trailing comment and its quotes. */
@@ -85,7 +86,8 @@ export function flowItems(value: string): string[] {
   return items.filter(Boolean);
 }
 
-const bracketDepth = (text: string): number => (text.match(/\[/g) ?? []).length - (text.match(/\]/g) ?? []).length;
+const bracketDepth = (text: string): number =>
+  (text.match(/\[/g) ?? []).length - (text.match(/\]/g) ?? []).length;
 
 class Reader {
   readonly entries: YamlEntry[] = [];
@@ -107,8 +109,12 @@ class Reader {
   private readLine(index: number): number {
     const raw = (this.lines[index] ?? '').replace(/\r$/, '');
     const indent = raw.length - raw.trimStart().length;
-    if (this.blockOwner && (raw.trim() === '' || indent > this.blockOwner.indent)) {
-      if (raw.trim() !== '') this.blockOwner.block.push({ text: raw.trim(), line: index + 1 });
+    if (
+      this.blockOwner &&
+      (raw.trim() === '' || indent > this.blockOwner.indent)
+    ) {
+      if (raw.trim() !== '')
+        this.blockOwner.block.push({ text: raw.trim(), line: index + 1 });
       return index;
     }
     this.blockOwner = null;
@@ -117,7 +123,11 @@ class Reader {
     const key = KEY.exec(rest);
     if (dashes) this.closeItems(lead.length);
     if (!key) {
-      if (dashes) this.parentOf(lead.length)?.items.push({ text: unquote(rest), line: index + 1 });
+      if (dashes)
+        this.parentOf(lead.length)?.items.push({
+          text: unquote(rest),
+          line: index + 1,
+        });
       return index;
     }
     const keyIndent = lead.length + dashes.length;
@@ -126,11 +136,20 @@ class Reader {
     return this.addEntry(index, keyIndent, key);
   }
 
-  private addEntry(index: number, indent: number, key: RegExpExecArray): number {
-    while ((this.stack[this.stack.length - 1]?.indent ?? -1) >= indent) this.stack.pop();
+  private addEntry(
+    index: number,
+    indent: number,
+    key: RegExpExecArray
+  ): number {
+    while ((this.stack[this.stack.length - 1]?.indent ?? -1) >= indent)
+      this.stack.pop();
     let value = (key[4] ?? '').trim();
     let last = index;
-    while (value.startsWith('[') && bracketDepth(value) > 0 && last + 1 < this.lines.length) {
+    while (
+      value.startsWith('[') &&
+      bracketDepth(value) > 0 &&
+      last + 1 < this.lines.length
+    ) {
       last++;
       value += ` ${(this.lines[last] ?? '').trim()}`;
     }
@@ -155,12 +174,14 @@ class Reader {
 
   /** Close the list items whose keys sit deeper than `indent`. */
   private closeItems(indent: number): void {
-    while ((this.openItems[this.openItems.length - 1]?.indent ?? -1) > indent) this.openItems.pop();
+    while ((this.openItems[this.openItems.length - 1]?.indent ?? -1) > indent)
+      this.openItems.pop();
   }
 
   /** The key a scalar list item at `dashIndent` belongs to. */
   private parentOf(dashIndent: number): YamlEntry | undefined {
-    while ((this.stack[this.stack.length - 1]?.indent ?? -1) > dashIndent) this.stack.pop();
+    while ((this.stack[this.stack.length - 1]?.indent ?? -1) > dashIndent)
+      this.stack.pop();
     return this.stack[this.stack.length - 1]?.entry;
   }
 }
@@ -171,6 +192,14 @@ export function yamlEntries(text: string): YamlEntry[] {
 }
 
 /** Does any entry's path end with `suffix` (dotted segments compared one by one)? */
-export function hasPathSuffix(entries: YamlEntry[], suffix: readonly string[]): boolean {
-  return entries.some(entry => suffix.every((segment, i) => entry.path[entry.path.length - suffix.length + i] === segment));
+export function hasPathSuffix(
+  entries: YamlEntry[],
+  suffix: readonly string[]
+): boolean {
+  return entries.some(entry =>
+    suffix.every(
+      (segment, i) =>
+        entry.path[entry.path.length - suffix.length + i] === segment
+    )
+  );
 }

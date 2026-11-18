@@ -18,7 +18,8 @@ import { RuleOfCodeAuditor } from '../../src/core/auditing/audit-engine';
 
 const made: string[] = [];
 afterAll(() => {
-  for (const dir of made.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
+  for (const dir of made.splice(0))
+    fs.rmSync(dir, { recursive: true, force: true });
 });
 
 function fixture(files: Record<string, string>): string {
@@ -31,9 +32,16 @@ function fixture(files: Record<string, string>): string {
   return root;
 }
 
-const PYTHON = { 'pyproject.toml': '[project]\nname = "neutral-service"\nversion = "1.0.0"\n', 'app/main.py': 'x = 1\n' };
+const PYTHON = {
+  'pyproject.toml': '[project]\nname = "neutral-service"\nversion = "1.0.0"\n',
+  'app/main.py': 'x = 1\n',
+};
 const TYPESCRIPT = {
-  'package.json': JSON.stringify({ name: 'neutral-fixture', version: '1.0.0', devDependencies: { typescript: '5.6.3' } }),
+  'package.json': JSON.stringify({
+    name: 'neutral-fixture',
+    version: '1.0.0',
+    devDependencies: { typescript: '5.6.3' },
+  }),
   'tsconfig.json': '{}',
   'src/index.ts': 'export const a = 1;\n',
 };
@@ -43,7 +51,10 @@ describe('#387 load and loadConfig read the same project type', () => {
     ['only a project section', { project: { type: 'python' } }],
     ['a project and a laws section', { project: { type: 'python' }, laws: {} }],
   ])('python config with %s → python from both', (_name, config) => {
-    const root = fixture({ ...PYTHON, 'ruleofcode.config.json': JSON.stringify(config) });
+    const root = fixture({
+      ...PYTHON,
+      'ruleofcode.config.json': JSON.stringify(config),
+    });
     expect(ConfigLoader.load(root).project.type).toBe('python');
     expect(ConfigLoader.loadConfig(root).project.type).toBe('python');
   });
@@ -56,9 +67,16 @@ describe('#387 load and loadConfig read the same project type', () => {
 
   it('the constructor without a config object selects for the configured type, not for what is detected', () => {
     // A configured non-generic type wins in the engine; the detector would say typescript.
-    const root = fixture({ ...TYPESCRIPT, 'ruleofcode.config.json': JSON.stringify({ project: { type: 'node' } }) });
+    const root = fixture({
+      ...TYPESCRIPT,
+      'ruleofcode.config.json': JSON.stringify({ project: { type: 'node' } }),
+    });
     const auditor = new RuleOfCodeAuditor({}, root, false, 'full');
-    expect((auditor as unknown as { detectProjectType(): string | undefined }).detectProjectType()).toBe('node');
+    expect(
+      (
+        auditor as unknown as { detectProjectType(): string | undefined }
+      ).detectProjectType()
+    ).toBe('node');
     expect(ConfigLoader.loadConfig(root).project.root).toBe(root);
   });
 });

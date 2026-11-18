@@ -38,12 +38,23 @@ const HOOKS = new Set([
   'ionViewDidLeave',
   'ionViewWillUnload',
 ]);
-const HOOK_INTERFACES = new Set(['ViewWillEnter', 'ViewDidEnter', 'ViewWillLeave', 'ViewDidLeave']);
+const HOOK_INTERFACES = new Set([
+  'ViewWillEnter',
+  'ViewDidEnter',
+  'ViewWillLeave',
+  'ViewDidLeave',
+]);
 /** Arrays whose members a template renders. */
 const TEMPLATE_ARRAYS = new Set(['imports', 'declarations', 'exports']);
 /** ion-nav methods that create the component they are given. */
 const IMPLEMENTS = 'implements';
-const NAV_METHODS = new Set(['push', 'setRoot', 'insert', 'insertPages', 'setPages']);
+const NAV_METHODS = new Set([
+  'push',
+  'setRoot',
+  'insert',
+  'insertPages',
+  'setPages',
+]);
 
 interface HookClass {
   name: string;
@@ -72,9 +83,15 @@ export class IonicViewHooksOnlyOnPagesLaw extends LawBase {
     const scan = AngularComponents.scan(context);
     const violations = [...scan.unread];
     const notes: string[] = [];
-    const hookClasses = scan.sources.flatMap(source => this.hookClasses(context, source));
+    const hookClasses = scan.sources.flatMap(source =>
+      this.hookClasses(context, source)
+    );
     if (hookClasses.length > 0) {
-      const evidence = this.evidence(context, scan.sources, new Set(hookClasses.map(c => c.name)));
+      const evidence = this.evidence(
+        context,
+        scan.sources,
+        new Set(hookClasses.map(c => c.name))
+      );
       for (const cls of hookClasses) {
         const verdict = this.verdict(cls, evidence);
         if (verdict) (verdict.red ? violations : notes).push(verdict.text);
@@ -104,11 +121,15 @@ export class IonicViewHooksOnlyOnPagesLaw extends LawBase {
       const modifiers = node.modifiers ?? [];
       found.push({
         name: node.name.text,
-        label: hook.name.startsWith(IMPLEMENTS) ? `${node.name.text} ${hook.name}` : `${node.name.text}.${hook.name}`,
+        label: hook.name.startsWith(IMPLEMENTS)
+          ? `${node.name.text} ${hook.name}`
+          : `${node.name.text}.${hook.name}`,
         where: `${AngularComponents.relative(context, source.fileName)}:${source.lineOf(hook.node)}`,
         file: PathOperations.normalize(source.fileName),
         abstract: modifiers.some(m => m.kind === ts.SyntaxKind.AbstractKeyword),
-        defaultExport: modifiers.some(m => m.kind === ts.SyntaxKind.DefaultKeyword),
+        defaultExport: modifiers.some(
+          m => m.kind === ts.SyntaxKind.DefaultKeyword
+        ),
       });
     });
     return found;
@@ -119,25 +140,33 @@ export class IonicViewHooksOnlyOnPagesLaw extends LawBase {
     node: TS.ClassDeclaration
   ): { name: string; node: TS.Node } | null {
     for (const member of node.members) {
-      const name = member.name && ts.isIdentifier(member.name) ? member.name.text : '';
+      const name =
+        member.name && ts.isIdentifier(member.name) ? member.name.text : '';
       if (HOOKS.has(name)) return { name, node: member };
     }
     for (const clause of node.heritageClauses ?? []) {
       if (clause.token !== ts.SyntaxKind.ImplementsKeyword) continue;
       for (const type of clause.types) {
-        const name = type.expression.getText(node.getSourceFile()).split('.').pop() ?? '';
-        if (HOOK_INTERFACES.has(name)) return { name: `${IMPLEMENTS} ${name}`, node: type };
+        const name =
+          type.expression.getText(node.getSourceFile()).split('.').pop() ?? '';
+        if (HOOK_INTERFACES.has(name))
+          return { name: `${IMPLEMENTS} ${name}`, node: type };
       }
     }
     return null;
   }
 
-  private static verdict(cls: HookClass, evidence: Evidence): { red: boolean; text: string } | null {
-    if (cls.abstract || this.isGreen(cls.name, evidence, new Set())) return null;
+  private static verdict(
+    cls: HookClass,
+    evidence: Evidence
+  ): { red: boolean; text: string } | null {
+    if (cls.abstract || this.isGreen(cls.name, evidence, new Set()))
+      return null;
     if (cls.defaultExport && evidence.defaultLoads.has(cls.file)) return null;
     const composedAt = evidence.composed.get(cls.name);
     const valueAt = evidence.byValue.get(cls.name);
-    const loadedByDefault = cls.defaultExport && evidence.unresolvedDefaultLoads > 0;
+    const loadedByDefault =
+      cls.defaultExport && evidence.unresolvedDefaultLoads > 0;
     if (composedAt && !valueAt && !loadedByDefault) {
       return {
         red: true,
@@ -147,10 +176,17 @@ export class IonicViewHooksOnlyOnPagesLaw extends LawBase {
     const why = valueAt
       ? `it is passed by value at ${valueAt}, which this law does not follow`
       : 'no route, controller or template reference to it was found';
-    return { red: false, text: `${cls.where}: ${cls.label} not judged — ${why}` };
+    return {
+      red: false,
+      text: `${cls.where}: ${cls.label} not judged — ${why}`,
+    };
   }
 
-  private static isGreen(name: string, evidence: Evidence, seen: Set<string>): boolean {
+  private static isGreen(
+    name: string,
+    evidence: Evidence,
+    seen: Set<string>
+  ): boolean {
     if (evidence.created.has(name)) return true;
     if (seen.has(name)) return false;
     seen.add(name);
@@ -161,7 +197,11 @@ export class IonicViewHooksOnlyOnPagesLaw extends LawBase {
   }
 
   /** How every file refers to the hook classes (and which classes extend which). */
-  static evidence(context: LawCheckContext, sources: TsxSource[], names: Set<string>): Evidence {
+  static evidence(
+    context: LawCheckContext,
+    sources: TsxSource[],
+    names: Set<string>
+  ): Evidence {
     const evidence: Evidence = {
       created: new Set(),
       composed: new Map(),
@@ -173,21 +213,32 @@ export class IonicViewHooksOnlyOnPagesLaw extends LawBase {
     for (const source of sources) {
       const ts = source.ts;
       source.walk(node => {
-        if (ts.isClassDeclaration(node) && node.name) this.recordHeritage(ts, node, evidence);
-        if (ts.isPropertyAssignment(node) && this.keyOf(ts, node) === 'loadComponent') {
+        if (ts.isClassDeclaration(node) && node.name)
+          this.recordHeritage(ts, node, evidence);
+        if (
+          ts.isPropertyAssignment(node) &&
+          this.keyOf(ts, node) === 'loadComponent'
+        ) {
           this.recordDefaultLoad(source, node.initializer, evidence);
         }
-        if (ts.isIdentifier(node) && names.has(node.text)) this.recordUse(context, source, node, evidence);
+        if (ts.isIdentifier(node) && names.has(node.text))
+          this.recordUse(context, source, node, evidence);
       });
     }
     return evidence;
   }
 
-  private static recordHeritage(ts: typeof TS, node: TS.ClassDeclaration, evidence: Evidence): void {
+  private static recordHeritage(
+    ts: typeof TS,
+    node: TS.ClassDeclaration,
+    evidence: Evidence
+  ): void {
     for (const clause of node.heritageClauses ?? []) {
       if (clause.token !== ts.SyntaxKind.ExtendsKeyword) continue;
       for (const type of clause.types) {
-        const base = ts.isIdentifier(type.expression) ? type.expression.text : null;
+        const base = ts.isIdentifier(type.expression)
+          ? type.expression.text
+          : null;
         if (!base || !node.name) continue;
         const subs = evidence.subclasses.get(base) ?? new Set<string>();
         subs.add(node.name.text);
@@ -197,12 +248,23 @@ export class IonicViewHooksOnlyOnPagesLaw extends LawBase {
   }
 
   /** `loadComponent: () => import('./x')` (or `.then(m => m.default)`): the default export of x. */
-  private static recordDefaultLoad(source: TsxSource, initializer: TS.Expression, evidence: Evidence): void {
+  private static recordDefaultLoad(
+    source: TsxSource,
+    initializer: TS.Expression,
+    evidence: Evidence
+  ): void {
     const ts = source.ts;
     const visit = (node: TS.Node): void => {
-      if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) {
+      if (
+        ts.isCallExpression(node) &&
+        node.expression.kind === ts.SyntaxKind.ImportKeyword
+      ) {
         const spec = node.arguments[0];
-        if (spec && ts.isStringLiteralLike(spec) && this.loadsDefault(ts, node)) {
+        if (
+          spec &&
+          ts.isStringLiteralLike(spec) &&
+          this.loadsDefault(ts, node)
+        ) {
           const file = this.resolveModule(source.fileName, spec.text);
           if (file) evidence.defaultLoads.add(file);
           else evidence.unresolvedDefaultLoads++;
@@ -216,15 +278,24 @@ export class IonicViewHooksOnlyOnPagesLaw extends LawBase {
   /** The import() call is used for its default export: no `.then`, or `.then(m => m.default)`. */
   private static loadsDefault(ts: typeof TS, call: TS.CallExpression): boolean {
     const access = call.parent;
-    if (!ts.isPropertyAccessExpression(access) || access.name.text !== 'then') return true;
+    if (!ts.isPropertyAccessExpression(access) || access.name.text !== 'then')
+      return true;
     return access.parent.getText().includes('.default');
   }
 
   private static resolveModule(fromFile: string, spec: string): string | null {
     if (!spec.startsWith('.')) return null;
-    const base = PathOperations.resolve(PathOperations.getDirectory(fromFile), spec);
-    for (const candidate of [`${base}.ts`, PathOperations.join(base, 'index.ts'), base]) {
-      if (FileUtils.isFile(candidate)) return PathOperations.normalize(candidate);
+    const base = PathOperations.resolve(
+      PathOperations.getDirectory(fromFile),
+      spec
+    );
+    for (const candidate of [
+      `${base}.ts`,
+      PathOperations.join(base, 'index.ts'),
+      base,
+    ]) {
+      if (FileUtils.isFile(candidate))
+        return PathOperations.normalize(candidate);
     }
     return null;
   }
@@ -240,8 +311,10 @@ export class IonicViewHooksOnlyOnPagesLaw extends LawBase {
     const where = `${AngularComponents.relative(context, source.fileName)}:${source.lineOf(node)}`;
     const kind = this.useKind(ts, node, parent);
     if (kind === 'created') evidence.created.add(node.text);
-    if (kind === 'composed' && !evidence.composed.has(node.text)) evidence.composed.set(node.text, where);
-    if (kind === 'value' && !evidence.byValue.has(node.text)) evidence.byValue.set(node.text, where);
+    if (kind === 'composed' && !evidence.composed.has(node.text))
+      evidence.composed.set(node.text, where);
+    if (kind === 'value' && !evidence.byValue.has(node.text))
+      evidence.byValue.set(node.text, where);
   }
 
   /** What one occurrence of a hook class's name means; null when it is not a value use. */
@@ -258,7 +331,10 @@ export class IonicViewHooksOnlyOnPagesLaw extends LawBase {
     if (ts.isPropertyAssignment(parent) && parent.initializer === node) {
       return this.keyOf(ts, parent) === 'component' ? 'created' : 'value';
     }
-    if (ts.isCallExpression(parent) && parent.arguments.includes(node as TS.Expression)) {
+    if (
+      ts.isCallExpression(parent) &&
+      parent.arguments.includes(node as TS.Expression)
+    ) {
       return this.isNavCall(ts, parent) ? 'created' : 'value';
     }
     return this.inTemplateArray(ts, parent) ? 'composed' : 'value';
@@ -267,27 +343,55 @@ export class IonicViewHooksOnlyOnPagesLaw extends LawBase {
   /** `nav.push(X)`, `nav.setRoot(X)`, … — ion-nav creates what it is given. */
   private static isNavCall(ts: typeof TS, call: TS.CallExpression): boolean {
     const callee = call.expression;
-    return ts.isPropertyAccessExpression(callee) && NAV_METHODS.has(callee.name.text);
+    return (
+      ts.isPropertyAccessExpression(callee) && NAV_METHODS.has(callee.name.text)
+    );
   }
 
   /** An element of `imports: [...]` / `declarations: [...]` / `exports: [...]`. */
   private static inTemplateArray(ts: typeof TS, parent: TS.Node): boolean {
-    if (!ts.isArrayLiteralExpression(parent) || !ts.isPropertyAssignment(parent.parent)) return false;
+    if (
+      !ts.isArrayLiteralExpression(parent) ||
+      !ts.isPropertyAssignment(parent.parent)
+    )
+      return false;
     const key = this.keyOf(ts, parent.parent);
     return key !== null && TEMPLATE_ARRAYS.has(key);
   }
 
-  private static isDeclarationOrType(ts: typeof TS, node: TS.Identifier, parent: TS.Node): boolean {
-    if ((ts.isClassDeclaration(parent) || ts.isClassExpression(parent)) && parent.name === node) return true;
-    if (ts.isImportSpecifier(parent) || ts.isExportSpecifier(parent) || ts.isImportClause(parent)) return true;
-    if (ts.isExpressionWithTypeArguments(parent) || ts.isTypeReferenceNode(parent)) return true;
+  private static isDeclarationOrType(
+    ts: typeof TS,
+    node: TS.Identifier,
+    parent: TS.Node
+  ): boolean {
+    if (
+      (ts.isClassDeclaration(parent) || ts.isClassExpression(parent)) &&
+      parent.name === node
+    )
+      return true;
+    if (
+      ts.isImportSpecifier(parent) ||
+      ts.isExportSpecifier(parent) ||
+      ts.isImportClause(parent)
+    )
+      return true;
+    if (
+      ts.isExpressionWithTypeArguments(parent) ||
+      ts.isTypeReferenceNode(parent)
+    )
+      return true;
     // Any other node whose `name` this is — an interface, a variable, an object key — declares, not uses.
-    const named = !ts.isShorthandPropertyAssignment(parent) && !ts.isPropertyAccessExpression(parent);
+    const named =
+      !ts.isShorthandPropertyAssignment(parent) &&
+      !ts.isPropertyAccessExpression(parent);
     if (named && (parent as { name?: TS.Node }).name === node) return true;
     return ts.isQualifiedName(parent) || ts.isTypeQueryNode(parent);
   }
 
-  private static keyOf(ts: typeof TS, node: TS.PropertyAssignment): string | null {
+  private static keyOf(
+    ts: typeof TS,
+    node: TS.PropertyAssignment
+  ): string | null {
     const name = node.name;
     return ts.isIdentifier(name) || ts.isStringLiteral(name) ? name.text : null;
   }
@@ -295,7 +399,8 @@ export class IonicViewHooksOnlyOnPagesLaw extends LawBase {
   private static insideKey(ts: typeof TS, node: TS.Node, key: string): boolean {
     let current: TS.Node | undefined = node.parent;
     while (current && !ts.isSourceFile(current)) {
-      if (ts.isPropertyAssignment(current) && this.keyOf(ts, current) === key) return true;
+      if (ts.isPropertyAssignment(current) && this.keyOf(ts, current) === key)
+        return true;
       current = current.parent;
     }
     return false;

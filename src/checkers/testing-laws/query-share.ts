@@ -16,9 +16,19 @@ export type Floor = { ok: true; value: number } | { ok: false; reason: string };
  * A configured percentage floor, or the default when unset. A value that is
  * not a number from 0 to 100 is reported, never replaced by a guess.
  */
-export function percentFloor(configured: unknown, key: string, fallback: number): Floor {
-  if (configured === undefined || configured === null) return { ok: true, value: fallback };
-  if (typeof configured === 'number' && Number.isFinite(configured) && configured >= 0 && configured <= 100) {
+export function percentFloor(
+  configured: unknown,
+  key: string,
+  fallback: number
+): Floor {
+  if (configured === undefined || configured === null)
+    return { ok: true, value: fallback };
+  if (
+    typeof configured === 'number' &&
+    Number.isFinite(configured) &&
+    configured >= 0 &&
+    configured <= 100
+  ) {
     return { ok: true, value: configured };
   }
   return {
@@ -39,7 +49,10 @@ export function shareSummary(input: {
   userFacingNames: string;
   implementationNames: string;
 }): string | null {
-  const implementation = input.byFile.reduce((sum, entry) => sum + entry.count, 0);
+  const implementation = input.byFile.reduce(
+    (sum, entry) => sum + entry.count,
+    0
+  );
   const total = input.userFacing + implementation;
   if (total === 0) return null;
   const share = (input.userFacing / total) * 100;

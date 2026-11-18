@@ -30,14 +30,32 @@ export interface UpstreamCall {
   verdict: 'constant' | 'not-forwarded' | 'not-request' | 'escapes';
 }
 
-const REQUEST_NAME = /^(?:req|request|incoming|incomingRequest|inbound|event|evt|c|ctx|context)$/;
-const REQUEST_TYPE = /\b(?:Request|NextRequest|IncomingMessage|FastifyRequest|HonoRequest|FetchEvent|Context)\b/;
+const REQUEST_NAME =
+  /^(?:req|request|incoming|incomingRequest|inbound|event|evt|c|ctx|context)$/;
+const REQUEST_TYPE =
+  /\b(?:Request|NextRequest|IncomingMessage|FastifyRequest|HonoRequest|FetchEvent|Context)\b/;
 const SINK_NAMES = new Set(['fetch', 'axios', 'got', 'ky']);
 const SINK_OBJECTS = /^(?:axios|got|ky|undici|https?|globalThis|self|window)$/;
-const SINK_METHODS = new Set(['fetch', 'request', 'get', 'post', 'put', 'patch', 'delete', 'head', 'stream']);
+const SINK_METHODS = new Set([
+  'fetch',
+  'request',
+  'get',
+  'post',
+  'put',
+  'patch',
+  'delete',
+  'head',
+  'stream',
+]);
 const MAX_HOPS = 6;
 
-type Declaration = { name: string; node: TS.Node; container: TS.Node; init?: TS.Expression; param?: TS.ParameterDeclaration };
+type Declaration = {
+  name: string;
+  node: TS.Node;
+  container: TS.Node;
+  init?: TS.Expression;
+  param?: TS.ParameterDeclaration;
+};
 
 /** The analysis of one parsed file. */
 export class UpstreamUrlScan {
@@ -53,47 +71,79 @@ export class UpstreamUrlScan {
   calls(): UpstreamCall[] {
     const calls: UpstreamCall[] = [];
     this.source.walk(node => {
-      if (!this.ts.isNewExpression(node) || !this.isUrlConstructor(node)) return;
+      if (!this.ts.isNewExpression(node) || !this.isUrlConstructor(node))
+        return;
       const [input] = node.arguments ?? [];
       if (!input) return;
-      calls.push({ line: this.source.lineOf(node), input: this.text(input), verdict: this.verdict(node, input) });
+      calls.push({
+        line: this.source.lineOf(node),
+        input: this.text(input),
+        verdict: this.verdict(node, input),
+      });
     });
     return calls;
   }
 
-  private verdict(call: TS.NewExpression, input: TS.Expression): UpstreamCall['verdict'] {
-    if (this.ts.isStringLiteral(input) || this.ts.isNoSubstitutionTemplateLiteral(input)) return 'constant';
+  private verdict(
+    call: TS.NewExpression,
+    input: TS.Expression
+  ): UpstreamCall['verdict'] {
+    if (
+      this.ts.isStringLiteral(input) ||
+      this.ts.isNoSubstitutionTemplateLiteral(input)
+    )
+      return 'constant';
     if (!this.reachesSink(call)) return 'not-forwarded';
     return this.fromRequest(input, 0, new Set()) ? 'escapes' : 'not-request';
   }
 
   private isUrlConstructor(node: TS.NewExpression): boolean {
-    return this.ts.isIdentifier(node.expression) && node.expression.text === 'URL' && (node.arguments?.length ?? 0) >= 2;
+    return (
+      this.ts.isIdentifier(node.expression) &&
+      node.expression.text === 'URL' &&
+      (node.arguments?.length ?? 0) >= 2
+    );
   }
 
   private text(node: TS.Node): string {
-    return node.getText(this.source.sourceFile).replace(/\s+/g, ' ').slice(0, 80);
+    return node
+      .getText(this.source.sourceFile)
+      .replace(/\s+/g, ' ')
+      .slice(0, 80);
   }
 
   // ── declarations ──────────────────────────────────────────────────────
 
   private collect(node: TS.Node): void {
     const ts = this.ts;
-    if (ts.isVariableDeclaration(node)) this.bind(node.name, node, node.initializer, undefined);
+    if (ts.isVariableDeclaration(node))
+      this.bind(node.name, node, node.initializer, undefined);
     else if (ts.isParameter(node)) this.bind(node.name, node, undefined, node);
   }
 
   /** Record every name a binding introduces, with the expression it comes from. */
-  private bind(name: TS.BindingName, node: TS.Node, init: TS.Expression | undefined, param: TS.ParameterDeclaration | undefined): void {
+  private bind(
+    name: TS.BindingName,
+    node: TS.Node,
+    init: TS.Expression | undefined,
+    param: TS.ParameterDeclaration | undefined
+  ): void {
     const ts = this.ts;
     if (ts.isIdentifier(name)) {
       const list = this.declarations.get(name.text) ?? [];
-      list.push({ name: name.text, node, container: this.container(node), init, param });
+      list.push({
+        name: name.text,
+        node,
+        container: this.container(node),
+        init,
+        param,
+      });
       this.declarations.set(name.text, list);
       return;
     }
     for (const element of name.elements) {
-      if (ts.isBindingElement(element)) this.bind(element.name, node, init, param);
+      if (ts.isBindingElement(element))
+        this.bind(element.name, node, init, param);
     }
   }
 
@@ -102,25 +152,42 @@ export class UpstreamUrlScan {
     const ts = this.ts;
     let current: TS.Node | undefined = node.parent;
     if (ts.isParameter(node)) return node.parent;
-    while (current && !ts.isFunctionLike(current) && !ts.isSourceFile(current)) current = current.parent;
+    while (current && !ts.isFunctionLike(current) && !ts.isSourceFile(current))
+      current = current.parent;
     return current ?? node.getSourceFile();
   }
 
   /** The declaration a use of `name` refers to: the innermost one whose scope holds the use. */
   private resolve(name: string, use: TS.Node): Declaration | undefined {
-    const holds = (d: Declaration): boolean => d.container.pos <= use.pos && use.end <= d.container.end && d.node !== use.parent;
-    return (this.declarations.get(name) ?? []).filter(holds).sort((a, b) => a.container.end - a.container.pos - (b.container.end - b.container.pos))[0];
+    const holds = (d: Declaration): boolean =>
+      d.container.pos <= use.pos &&
+      use.end <= d.container.end &&
+      d.node !== use.parent;
+    return (this.declarations.get(name) ?? [])
+      .filter(holds)
+      .sort(
+        (a, b) =>
+          a.container.end -
+          a.container.pos -
+          (b.container.end - b.container.pos)
+      )[0];
   }
 
   // ── taint ─────────────────────────────────────────────────────────────
 
   /** Does the expression read the incoming request (directly or through locals)? */
-  private fromRequest(node: TS.Node, hops: number, seen: Set<TS.Node>): boolean {
+  private fromRequest(
+    node: TS.Node,
+    hops: number,
+    seen: Set<TS.Node>
+  ): boolean {
     const ts = this.ts;
     if (hops > MAX_HOPS || seen.has(node)) return false;
     seen.add(node);
-    if (ts.isIdentifier(node)) return this.identifierFromRequest(node, hops, seen);
-    if (ts.isPropertyAccessExpression(node)) return this.fromRequest(node.expression, hops, seen);
+    if (ts.isIdentifier(node))
+      return this.identifierFromRequest(node, hops, seen);
+    if (ts.isPropertyAccessExpression(node))
+      return this.fromRequest(node.expression, hops, seen);
     let found = false;
     ts.forEachChild(node, child => {
       found = found || this.fromRequest(child, hops, seen);
@@ -128,18 +195,29 @@ export class UpstreamUrlScan {
     return found;
   }
 
-  private identifierFromRequest(node: TS.Identifier, hops: number, seen: Set<TS.Node>): boolean {
+  private identifierFromRequest(
+    node: TS.Identifier,
+    hops: number,
+    seen: Set<TS.Node>
+  ): boolean {
     const declaration = this.resolve(node.text, node);
     if (!declaration) return false;
     if (declaration.param) return this.isRequestParameter(declaration.param);
-    return declaration.init ? this.fromRequest(declaration.init, hops + 1, seen) : false;
+    return declaration.init
+      ? this.fromRequest(declaration.init, hops + 1, seen)
+      : false;
   }
 
   /** A parameter that receives the incoming request. */
   private isRequestParameter(param: TS.ParameterDeclaration): boolean {
     const ts = this.ts;
-    if (ts.isIdentifier(param.name) && REQUEST_NAME.test(param.name.text)) return true;
-    if (param.type && REQUEST_TYPE.test(param.type.getText(this.source.sourceFile))) return true;
+    if (ts.isIdentifier(param.name) && REQUEST_NAME.test(param.name.text))
+      return true;
+    if (
+      param.type &&
+      REQUEST_TYPE.test(param.type.getText(this.source.sourceFile))
+    )
+      return true;
     const fn = param.parent;
     return fn.parameters[0] === param && this.isRequestHandler(fn);
   }
@@ -150,12 +228,22 @@ export class UpstreamUrlScan {
     const named = (fn as { name?: TS.Node }).name;
     if (named && ts.isIdentifier(named) && named.text === 'fetch') return true;
     const parent = fn.parent;
-    if (ts.isPropertyAssignment(parent) && ts.isIdentifier(parent.name) && parent.name.text === 'fetch') return true;
+    if (
+      ts.isPropertyAssignment(parent) &&
+      ts.isIdentifier(parent.name) &&
+      parent.name.text === 'fetch'
+    )
+      return true;
     if (!ts.isCallExpression(parent)) return false;
     const callee = parent.expression.getText(this.source.sourceFile);
     if (/(?:^|\.)serve$/.test(callee)) return true;
     const [first] = parent.arguments;
-    return /(?:^|\.)addEventListener$/.test(callee) && !!first && ts.isStringLiteral(first) && first.text === 'fetch';
+    return (
+      /(?:^|\.)addEventListener$/.test(callee) &&
+      !!first &&
+      ts.isStringLiteral(first) &&
+      first.text === 'fetch'
+    );
   }
 
   // ── sink ──────────────────────────────────────────────────────────────
@@ -166,9 +254,19 @@ export class UpstreamUrlScan {
     let node: TS.Node = call;
     while (this.carriesUrl(node.parent, node)) node = node.parent;
     const parent = node.parent;
-    if ((ts.isCallExpression(parent) || ts.isNewExpression(parent)) && this.isSink(parent) && parent.arguments?.includes(node as TS.Expression)) return true;
-    if (ts.isVariableDeclaration(parent) && ts.isIdentifier(parent.name)) return this.variableReachesSink(parent.name.text, parent);
-    if (ts.isBinaryExpression(parent) && parent.operatorToken.kind === ts.SyntaxKind.EqualsToken && ts.isIdentifier(parent.left)) {
+    if (
+      (ts.isCallExpression(parent) || ts.isNewExpression(parent)) &&
+      this.isSink(parent) &&
+      parent.arguments?.includes(node as TS.Expression)
+    )
+      return true;
+    if (ts.isVariableDeclaration(parent) && ts.isIdentifier(parent.name))
+      return this.variableReachesSink(parent.name.text, parent);
+    if (
+      ts.isBinaryExpression(parent) &&
+      parent.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+      ts.isIdentifier(parent.left)
+    ) {
       return this.variableReachesSink(parent.left.text, parent);
     }
     return false;
@@ -177,10 +275,22 @@ export class UpstreamUrlScan {
   /** Wrappers the URL passes through unchanged: parentheses, casts, .href / .toString(), a template. */
   private carriesUrl(parent: TS.Node, child: TS.Node): boolean {
     const ts = this.ts;
-    if (ts.isParenthesizedExpression(parent) || ts.isAsExpression(parent) || ts.isNonNullExpression(parent)) return true;
-    if (ts.isTemplateSpan(parent) || ts.isTemplateExpression(parent)) return true;
-    if (ts.isPropertyAccessExpression(parent) && parent.expression === child) return ['href', 'toString'].includes(parent.name.text);
-    return ts.isCallExpression(parent) && parent.expression === child && ts.isPropertyAccessExpression(child) && child.name.text === 'toString';
+    if (
+      ts.isParenthesizedExpression(parent) ||
+      ts.isAsExpression(parent) ||
+      ts.isNonNullExpression(parent)
+    )
+      return true;
+    if (ts.isTemplateSpan(parent) || ts.isTemplateExpression(parent))
+      return true;
+    if (ts.isPropertyAccessExpression(parent) && parent.expression === child)
+      return ['href', 'toString'].includes(parent.name.text);
+    return (
+      ts.isCallExpression(parent) &&
+      parent.expression === child &&
+      ts.isPropertyAccessExpression(child) &&
+      child.name.text === 'toString'
+    );
   }
 
   private variableReachesSink(name: string, declaration: TS.Node): boolean {
@@ -189,7 +299,11 @@ export class UpstreamUrlScan {
     let reached = false;
     const visit = (node: TS.Node): void => {
       if (reached) return;
-      if ((ts.isCallExpression(node) || ts.isNewExpression(node)) && node.pos > declaration.end && this.isSink(node)) {
+      if (
+        (ts.isCallExpression(node) || ts.isNewExpression(node)) &&
+        node.pos > declaration.end &&
+        this.isSink(node)
+      ) {
         reached = (node.arguments ?? []).some(arg => this.mentions(arg, name));
       }
       ts.forEachChild(node, visit);
@@ -201,7 +315,8 @@ export class UpstreamUrlScan {
   private mentions(node: TS.Node, name: string): boolean {
     const ts = this.ts;
     if (ts.isIdentifier(node)) return node.text === name;
-    if (ts.isPropertyAccessExpression(node)) return this.mentions(node.expression, name);
+    if (ts.isPropertyAccessExpression(node))
+      return this.mentions(node.expression, name);
     let found = false;
     ts.forEachChild(node, child => {
       found = found || this.mentions(child, name);
@@ -212,10 +327,15 @@ export class UpstreamUrlScan {
   private isSink(node: TS.CallExpression | TS.NewExpression): boolean {
     const ts = this.ts;
     const callee = node.expression;
-    if (ts.isNewExpression(node)) return ts.isIdentifier(callee) && callee.text === 'Request';
+    if (ts.isNewExpression(node))
+      return ts.isIdentifier(callee) && callee.text === 'Request';
     if (ts.isIdentifier(callee)) return SINK_NAMES.has(callee.text);
     if (!ts.isPropertyAccessExpression(callee)) return false;
     if (callee.name.text === 'fetch') return true;
-    return ts.isIdentifier(callee.expression) && SINK_OBJECTS.test(callee.expression.text) && SINK_METHODS.has(callee.name.text);
+    return (
+      ts.isIdentifier(callee.expression) &&
+      SINK_OBJECTS.test(callee.expression.text) &&
+      SINK_METHODS.has(callee.name.text)
+    );
   }
 }

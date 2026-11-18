@@ -29,9 +29,9 @@ const runs = (root: string): number => {
 describe('CapacitorProjects.find', () => {
   it('finds a config at the root', () => {
     const root = project({ 'capacitor.config.ts': 'export default {};' });
-    expect(CapacitorProjects.find(root).map(p => path.basename(p.configFile))).toEqual([
-      'capacitor.config.ts',
-    ]);
+    expect(
+      CapacitorProjects.find(root).map(p => path.basename(p.configFile))
+    ).toEqual(['capacitor.config.ts']);
   });
 
   it('prefers .ts over .json in the same directory, as Capacitor does', () => {
@@ -52,22 +52,29 @@ describe('CapacitorProjects.find', () => {
   });
 
   it('finds nothing in a project without one', () => {
-    expect(CapacitorProjects.find(project({ 'package.json': '{}' }))).toEqual([]);
+    expect(CapacitorProjects.find(project({ 'package.json': '{}' }))).toEqual(
+      []
+    );
   });
 });
 
 describe('CapacitorProjects.resolve', () => {
   it('returns app.extConfig as printed by `cap config --json`', () => {
     const root = project({ 'capacitor.config.ts': 'export default {};' });
-    const extConfig = { appId: 'com.example', android: { loggingBehavior: 'Production' } };
+    const extConfig = {
+      appId: 'com.example',
+      android: { loggingBehavior: 'Production' },
+    };
     fakeCapacitorCli(root, printedConfig(root, extConfig));
 
-    const resolution = CapacitorProjects.resolve(CapacitorProjects.find(root)[0]!);
+    const resolution = CapacitorProjects.resolve(
+      CapacitorProjects.find(root)[0]!
+    );
 
     expect(resolution).toMatchObject({ ok: true, config: extConfig });
-    expect(fs.readFileSync(path.join(root, 'cli-runs.log'), 'utf8').trim()).toBe(
-      'config --json'
-    );
+    expect(
+      fs.readFileSync(path.join(root, 'cli-runs.log'), 'utf8').trim()
+    ).toBe('config --json');
   });
 
   it('runs the CLI once per config, however many laws ask', () => {
@@ -84,15 +91,21 @@ describe('CapacitorProjects.resolve', () => {
 
   it('is not ok when @capacitor/cli is not installed — never an empty config', () => {
     const root = project({ 'capacitor.config.ts': 'export default {};' });
-    const resolution = CapacitorProjects.resolve(CapacitorProjects.find(root)[0]!);
+    const resolution = CapacitorProjects.resolve(
+      CapacitorProjects.find(root)[0]!
+    );
     expect(resolution.ok).toBe(false);
-    expect(resolution.ok === false && resolution.reason).toMatch(/@capacitor\/cli is not installed/);
+    expect(resolution.ok === false && resolution.reason).toMatch(
+      /@capacitor\/cli is not installed/
+    );
   });
 
   it('is not ok when the CLI fails, and carries its first stderr line', () => {
     const root = project({ 'capacitor.config.ts': 'export default {' });
     fakeCapacitorCli(root, null, 1);
-    const resolution = CapacitorProjects.resolve(CapacitorProjects.find(root)[0]!);
+    const resolution = CapacitorProjects.resolve(
+      CapacitorProjects.find(root)[0]!
+    );
     expect(resolution.ok).toBe(false);
     expect(resolution.ok === false && resolution.reason).toMatch(
       /Parsing capacitor\.config\.ts failed/
@@ -102,7 +115,9 @@ describe('CapacitorProjects.resolve', () => {
   it('is not ok when the CLI prints no extConfig', () => {
     const root = project({ 'capacitor.config.ts': 'export default {};' });
     fakeCapacitorCli(root, { android: {}, ios: {} });
-    expect(CapacitorProjects.resolve(CapacitorProjects.find(root)[0]!).ok).toBe(false);
+    expect(CapacitorProjects.resolve(CapacitorProjects.find(root)[0]!).ok).toBe(
+      false
+    );
   });
 
   it('finds the CLI installed at the workspace root for an app config', () => {
@@ -124,22 +139,38 @@ describe('CapacitorProjects.nativePaths', () => {
   it('uses the paths Capacitor resolved (they honour android.path / ios.path)', () => {
     const root = project({ 'capacitor.config.ts': 'export default {};' });
     const printed = printedConfig(root, {});
-    (printed.android as Record<string, string>).srcMainDirAbs = path.join(root, 'native', 'main');
+    (printed.android as Record<string, string>).srcMainDirAbs = path.join(
+      root,
+      'native',
+      'main'
+    );
     fakeCapacitorCli(root, printed);
 
-    const native = CapacitorProjects.nativePaths(CapacitorProjects.find(root)[0]!);
+    const native = CapacitorProjects.nativePaths(
+      CapacitorProjects.find(root)[0]!
+    );
 
     expect(native.androidManifest).toBe(
-      path.join(root, 'native', 'main', 'AndroidManifest.xml').replace(/\\/g, '/')
+      path
+        .join(root, 'native', 'main', 'AndroidManifest.xml')
+        .replace(/\\/g, '/')
     );
   });
 
   it("falls back to Capacitor's default layout when the CLI cannot run", () => {
     const root = project({ 'capacitor.config.json': '{}' });
-    const native = CapacitorProjects.nativePaths(CapacitorProjects.find(root)[0]!);
-    expect(native.androidManifest.endsWith('android/app/src/main/AndroidManifest.xml')).toBe(true);
+    const native = CapacitorProjects.nativePaths(
+      CapacitorProjects.find(root)[0]!
+    );
+    expect(
+      native.androidManifest.endsWith(
+        'android/app/src/main/AndroidManifest.xml'
+      )
+    ).toBe(true);
     expect(native.infoPlist.endsWith('ios/App/App/Info.plist')).toBe(true);
-    expect(native.xcodeProjectFile.endsWith('ios/App/App.xcodeproj/project.pbxproj')).toBe(true);
+    expect(
+      native.xcodeProjectFile.endsWith('ios/App/App.xcodeproj/project.pbxproj')
+    ).toBe(true);
   });
 
   it('lists the entitlements file of the iOS target', () => {
@@ -151,7 +182,7 @@ describe('CapacitorProjects.nativePaths', () => {
     expect(inputs.some(file => file.endsWith('App.entitlements'))).toBe(true);
   });
 
-  it('lists every Android source set\'s manifest and res/xml, and the iOS privacy manifest', () => {
+  it("lists every Android source set's manifest and res/xml, and the iOS privacy manifest", () => {
     const root = project({
       'capacitor.config.json': '{}',
       'android/app/src/debug/AndroidManifest.xml': '<manifest/>',
@@ -160,9 +191,13 @@ describe('CapacitorProjects.nativePaths', () => {
     const inputs = CapacitorProjects.fixedPathInputs(root);
     expect(inputs).toEqual(
       expect.arrayContaining([
-        expect.stringMatching(/android\/app\/src\/debug\/AndroidManifest\.xml$/),
+        expect.stringMatching(
+          /android\/app\/src\/debug\/AndroidManifest\.xml$/
+        ),
         expect.stringMatching(/android\/app\/src\/debug\/res\/xml\/dev\.xml$/),
-        expect.stringMatching(/android\/app\/src\/debug\/google-services\.json$/),
+        expect.stringMatching(
+          /android\/app\/src\/debug\/google-services\.json$/
+        ),
         expect.stringMatching(/ios\/App\/App\/PrivacyInfo\.xcprivacy$/),
         expect.stringMatching(/android\/app\/build\.gradle\.kts$/),
       ])

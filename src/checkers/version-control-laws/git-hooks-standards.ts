@@ -60,7 +60,11 @@ export class GitHooksStandardsLaw {
     );
     // Same basis statement as Git Hook Compliance (src/utils/git-hook-status.ts).
     const basis = hookVerdictBasis(statuses);
-    result.metrics = { ...result.metrics, hooks: statuses, checked: basis.checked };
+    result.metrics = {
+      ...result.metrics,
+      hooks: statuses,
+      checked: basis.checked,
+    };
     if (basis.note) result.message = `${result.message} (${basis.note})`;
     return result;
   }
@@ -222,8 +226,7 @@ export class GitHooksStandardsLaw {
           {}
         ) as Record<string, unknown>;
         const scripts = packageJson.scripts as
-          | Record<string, unknown>
-          | undefined;
+          Record<string, unknown> | undefined;
         if (!scripts) return { violations: [], suggestions };
 
         // Recommended scripts for Git workflow

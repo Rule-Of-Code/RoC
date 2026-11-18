@@ -21,19 +21,34 @@ function fixture(files: Record<string, string>): string {
   return dir;
 }
 const ctx = (dir: string): LawCheckContext =>
-  ({ projectRoot: dir, config: { project: { type: 'angular' }, laws: {} } }) as unknown as LawCheckContext;
+  ({
+    projectRoot: dir,
+    config: { project: { type: 'angular' }, laws: {} },
+  }) as unknown as LawCheckContext;
 
 const esbuildProject = (): string =>
   fixture({
     'nx.json': '{}',
-    'package.json': JSON.stringify({ name: 'ws', version: '1.0.0', dependencies: { '@angular/core': '20.0.0' } }),
+    'package.json': JSON.stringify({
+      name: 'ws',
+      version: '1.0.0',
+      dependencies: { '@angular/core': '20.0.0' },
+    }),
     'apps/web/project.json': JSON.stringify({
       name: 'web',
       targets: {
         build: {
           executor: '@angular-devkit/build-angular:application',
           configurations: {
-            production: { budgets: [{ type: 'initial', maximumWarning: '500kb', maximumError: '1mb' }] },
+            production: {
+              budgets: [
+                {
+                  type: 'initial',
+                  maximumWarning: '500kb',
+                  maximumError: '1mb',
+                },
+              ],
+            },
           },
         },
       },
@@ -53,7 +68,12 @@ describe('AngularBundleConfig', () => {
       'package.json': JSON.stringify({ name: 'ws', version: '1.0.0' }),
       'apps/web/project.json': JSON.stringify({
         name: 'web',
-        targets: { build: { executor: '@angular-devkit/build-angular:browser', options: {} } },
+        targets: {
+          build: {
+            executor: '@angular-devkit/build-angular:browser',
+            options: {},
+          },
+        },
       }),
     });
     expect(AngularBundleConfig.hasModernBundleSetup(dir)).toBe(false);
@@ -67,9 +87,7 @@ describe('BundleSizeOptimizationLaw on a modern esbuild+budgets project', () => 
     // bundle-analysis-tooling check is unaffected and not what this fixes.)
     const result = BundleSizeOptimizationLaw.check(ctx(esbuildProject()));
     expect(
-      (result.violations ?? []).some(v =>
-        /optimization config/i.test(v)
-      )
+      (result.violations ?? []).some(v => /optimization config/i.test(v))
     ).toBe(false);
   });
 });

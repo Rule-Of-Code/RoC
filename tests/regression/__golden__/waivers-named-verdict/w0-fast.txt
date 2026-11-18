@@ -52,7 +52,7 @@ Execution time: <n>ms
 19. Config Integrity Guard (Score: 100/100)
 
 ════════════════════════════════════════════════════════════
-⚠️  PARTIAL SCAN — 17 of 78 applicable laws ran (narrowed by paretoMode). The selected laws passed; no compliance verdict.
+⚠️  PARTIAL SCAN — 17 of 77 applicable laws ran (narrowed by paretoMode). The selected laws passed; no compliance verdict.
    The laws that did not run cannot have passed.
    For a compliance verdict run the full set: paretoMode: false and no --mode=fast.
 ════════════════════════════════════════════════════════════

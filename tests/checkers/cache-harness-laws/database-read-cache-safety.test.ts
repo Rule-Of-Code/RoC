@@ -198,6 +198,42 @@ async def patch_item(item_id: str, body: dict):
     ).toEqual([expect.stringMatching(/no write path clears it/)]);
   });
 
+  it('red: the authorization dependency reads the cache through a helper it calls (one step)', () => {
+    const helper = [
+      'from cachetools import TTLCache',
+      'from fastapi import Depends, HTTPException, Request',
+      'from google.cloud import firestore',
+      '',
+      'db = firestore.AsyncClient()',
+      'ROLE_CACHE = TTLCache(maxsize=512, ttl=3)',
+      '',
+      '',
+      'async def is_admin(uid):',
+      '    if uid in ROLE_CACHE:',
+      '        return ROLE_CACHE[uid]',
+      '    snap = await db.collection("roles").document(uid).get()',
+      '    ROLE_CACHE[uid] = snap.to_dict().get("admin", False)',
+      '    return ROLE_CACHE[uid]',
+      '',
+      '',
+      'async def require_admin(uid: str = Depends(current_uid)):',
+      '    if not await is_admin(uid):',
+      '        raise HTTPException(status_code=403, detail="admins only")',
+      '',
+      '',
+      'async def clear_on_write(request: Request, call_next):',
+      '    if request.method != "GET":',
+      '        ROLE_CACHE.clear()',
+      '    return await call_next(request)',
+      '',
+    ].join('\n');
+    expect(run({ 'app/roles.py': helper }).violations).toEqual([
+      expect.stringMatching(
+        /^app\/roles\.py:18: the authorization check require_admin \(through is_admin\) reads through the cache at app\/roles\.py:6/
+      ),
+    ]);
+  });
+
   it('red even with a TTL: a cached read used inside an authorization dependency that raises 403', () => {
     const result = run({ 'app/auth.py': CACHED_AUTH });
     expect(result.passed).toBe(false);

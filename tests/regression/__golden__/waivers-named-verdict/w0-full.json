@@ -6,15 +6,15 @@
     "source": "detected"
   },
   "scope": {
-    "executedLaws": 78,
-    "selectedLaws": 78,
-    "applicableLaws": 78,
+    "executedLaws": 77,
+    "selectedLaws": 77,
+    "applicableLaws": 77,
     "partial": false
   },
   "stats": {
-    "executedLaws": 80,
-    "totalLaws": 80,
-    "passedLaws": 80,
+    "executedLaws": 79,
+    "totalLaws": 79,
+    "passedLaws": 79,
     "failedLaws": 0,
     "warningLaws": 0,
     "score": 100
@@ -958,19 +958,6 @@
     },
     {
       "id": "law-72",
-      "lawId": "docs_47efb85d",
-      "legacyId": 86,
-      "lawTitle": "Error Handling Standards",
-      "passed": true,
-      "score": 100,
-      "violations": [],
-      "suggestions": [],
-      "message": "stub pass",
-      "severity": "error",
-      "lawName": "error-handling-standards"
-    },
-    {
-      "id": "law-73",
       "lawId": "docs_cd2817cb",
       "legacyId": 87,
       "lawTitle": "Incident Response Protocol",
@@ -983,7 +970,7 @@
       "lawName": "incident-response-protocol"
     },
     {
-      "id": "law-74",
+      "id": "law-73",
       "lawId": "meta_59c6436e",
       "legacyId": 226,
       "lawTitle": "Audit Liveness Assertion",
@@ -996,7 +983,7 @@
       "severity": "error"
     },
     {
-      "id": "law-75",
+      "id": "law-74",
       "lawId": "meta_5ef1482c",
       "legacyId": 227,
       "lawTitle": "Config Integrity Guard",
@@ -1009,7 +996,7 @@
       "severity": "error"
     },
     {
-      "id": "law-76",
+      "id": "law-75",
       "lawId": "meta_381a664d",
       "legacyId": 232,
       "lawTitle": "Golden Fixture Immutability",
@@ -1022,7 +1009,7 @@
       "lawName": "golden-fixture-immutability"
     },
     {
-      "id": "law-77",
+      "id": "law-76",
       "lawId": "integrity_77931c4a",
       "legacyId": 593,
       "lawTitle": "Guard Function Has Production Caller",
@@ -1035,7 +1022,7 @@
       "lawName": "guard-function-has-production-caller"
     },
     {
-      "id": "law-78",
+      "id": "law-77",
       "lawId": "integrity_f6e5dfa9",
       "legacyId": 594,
       "lawTitle": "Tsconfig Exclude Leaves Code Untyped",
@@ -1048,7 +1035,7 @@
       "lawName": "tsconfig-exclude-leaves-code-untyped"
     },
     {
-      "id": "law-79",
+      "id": "law-78",
       "lawId": "measurement_be445ad1",
       "legacyId": 891,
       "lawTitle": "Test Server Loopback Address Match",

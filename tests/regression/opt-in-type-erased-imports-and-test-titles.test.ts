@@ -45,10 +45,12 @@ const OPT_IN = [
   'No Risk Literals',
   'Retention Registry Covers Schema',
   'Next Route JS Budget',
+  // 7.28.0: its five paths measured 0 of 42 correct on real code (#390).
+  'Error Handling Standards',
 ];
 
 describe('opt-in laws (defaultEnabled: false) are not run by default', () => {
-  it('exactly the three documented opt-in laws are opt-in', () => {
+  it('exactly the documented opt-in laws are opt-in', () => {
     const optIn = ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(
       l => l.defaultEnabled === false
     ).map(l => l.title);

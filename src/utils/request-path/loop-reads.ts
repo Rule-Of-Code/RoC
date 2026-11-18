@@ -4,7 +4,9 @@
  * An awaited read inside the body of a loop in the same function — `for`,
  * `async for`, `while`, a comprehension element (Python); `for`, `for…of`,
  * `for await`, `for…in`, `while`, `do`, a `.forEach` callback (TS/JS) — costs
- * one round trip per item. A call that reads many keys at once (a batch read,
+ * one round trip per item, when the read uses the item: its arguments or
+ * receiver read the loop's target or a name derived from it (see
+ * loop-dependence.ts). A call that reads many keys at once (a batch read,
  * an `in` / `$in` query, a paged read) is the fix at that site and is not
  * reported; neither is a read whose promise is not awaited inside the loop
  * (`asyncio.gather` / `Promise.all` over the items).
@@ -53,7 +55,9 @@ function receiverBuiltBatched(fn: FunctionModel, line: number, receiver: string)
 
 function loopRead(module: ModuleModel, fn: FunctionModel, loopAwait: LoopAwait, clients: ProjectClients): LoopRead | null {
   const call = loopAwait.site.call;
-  if (loopAwait.fixedCount) return null;
+  // N+1 is one read per item: a read that does not use the loop's item (a
+  // retry, a poll) or a loop whose count is written in the source is not.
+  if (loopAwait.fixedCount || !loopAwait.dependsOnLoop) return null;
   if (!call || classifyRead(call, apisFor(clients, module.language)) !== 'read') return null;
   if (receiverBuiltBatched(fn, loopAwait.site.line, call.receiver)) return null;
   return {

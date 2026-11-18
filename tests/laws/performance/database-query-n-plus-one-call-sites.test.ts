@@ -117,7 +117,7 @@ describe('database-query-optimization: N+1 per call site (#352)', () => {
       expect(found[1]).toMatch(/^app\/feed\.py:8: await .*\.get\(\) runs once per item of the async for loop at line 7/);
     });
 
-    it('TS: .forEach with an async callback, a while loop and a classic for', async () => {
+    it('TS: .forEach with an async callback, a classic for, and an id derived from the item in the body', async () => {
       const found = await sites({
         'package.json': TS_MANIFEST,
         'src/jobs/sync.ts': [
@@ -126,9 +126,10 @@ describe('database-query-optimization: N+1 per call site (#352)', () => {
           'export function touch(ids: string[]) {',
           "  ids.forEach(async id => { await db.collection('a').doc(id).get(); });",
           '}',
-          'export async function drain(queue: string[], n: number) {',
-          '  while (queue.length) {',
-          "    await db.collection('b').doc(queue.pop() as string).get();",
+          'export async function drain(rows: { ref: string }[], n: number) {',
+          '  for (const row of rows) {',
+          '    const key = row.ref.trim();',
+          "    await db.collection('b').doc(key).get();",
           '  }',
           '  for (let i = 0; i < n; i++) {',
           "    await db.collection('c').doc(String(i)).get();",
@@ -139,8 +140,8 @@ describe('database-query-optimization: N+1 per call site (#352)', () => {
       });
       expect(found.map(f => f.split(' runs once')[0])).toEqual([
         'src/jobs/sync.ts:4: await db.collection("a").doc(id).get()',
-        'src/jobs/sync.ts:8: await db.collection("b").doc(queue.pop() as string).get()',
-        'src/jobs/sync.ts:11: await db.collection("c").doc(String(i)).get()',
+        'src/jobs/sync.ts:9: await db.collection("b").doc(key).get()',
+        'src/jobs/sync.ts:12: await db.collection("c").doc(String(i)).get()',
       ]);
     });
 
@@ -247,6 +248,75 @@ describe('database-query-optimization: N+1 per call site (#352)', () => {
             'export async function both(uid: string) {',
             "  for (const side of ['left', 'right']) {",
             "    await db.collection('pairs').where(side, '==', uid).get();",
+            '  }',
+            '}',
+            '',
+          ].join('\n'),
+        })
+      ).toEqual([]);
+    });
+
+    it('a retry or a poll that reads the same key each time is not one read per item', async () => {
+      expect(
+        await sites({
+          'pyproject.toml': PY_MANIFEST,
+          'app/claims.py': [
+            'async def close(repo, invitation):',
+            '    rounds = 0',
+            '    while invitation is not None and rounds < 3:',
+            '        if await repo.replace_if_open(invitation):',
+            '            return',
+            '        rounds += 1',
+            '        invitation = await repo.get(invitation.id)',
+            '',
+            'async def wait_ready(db, job_id):',
+            '    for attempt in range(retries()):',
+            '        job = await db.collection("jobs").document(job_id).get()',
+            '        if job.get("ready"):',
+            '            return job',
+            '',
+          ].join('\n'),
+          'package.json': TS_MANIFEST,
+          'src/poll.ts': [
+            "import { getFirestore } from 'firebase-admin/firestore';",
+            'const db = getFirestore();',
+            'export async function waitReady(jobId: string) {',
+            '  while (true) {',
+            "    const job = await db.collection('jobs').doc(jobId).get();",
+            "    if (job.get('ready')) return job;",
+            '  }',
+            '}',
+            '',
+          ].join('\n'),
+        })
+      ).toEqual([]);
+    });
+
+    it('a loop over a module-level literal collection (a constant list of rules) is a fixed fan-out', async () => {
+      expect(
+        await sites({
+          'pyproject.toml': PY_MANIFEST,
+          'app/export.py': [
+            'RULES = (',
+            '    ("people", "user_id"),',
+            '    ("orders", "buyer_id"),',
+            ')',
+            '',
+            'async def gather_all(db, uid):',
+            '    out = {}',
+            '    for collection, field in RULES:',
+            '        out[collection] = [d async for d in db.collection(collection).where(field, "==", uid).stream()]',
+            '    return out',
+            '',
+          ].join('\n'),
+          'package.json': TS_MANIFEST,
+          'src/export.ts': [
+            "import { getFirestore } from 'firebase-admin/firestore';",
+            'const db = getFirestore();',
+            "const RULES = [{ collection: 'people', field: 'userId' }, { collection: 'orders', field: 'buyerId' }] as const;",
+            'export async function gatherAll(uid: string) {',
+            '  for (const rule of RULES) {',
+            "    await db.collection(rule.collection).where(rule.field, '==', uid).get();",
             '  }',
             '}',
             '',

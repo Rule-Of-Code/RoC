@@ -28,6 +28,7 @@ import {
   pythonNames,
   renderPython,
 } from './python-expr';
+import { finishLoop, type WalkedLoop } from './loop-dependence';
 import { lexPython, pythonTree, type PyLiteral, type PyNode } from './python-source';
 
 const LOOP_KEYWORDS = new Set(['for', 'async for', 'while']);
@@ -36,24 +37,31 @@ const TRANSACTION_SCOPE = /transaction|\batomic\b|\.begin\(/i;
 const TRANSACTION_PARAM = /^(?:transaction|txn|tx)$/;
 const FRESH_MUTABLE = /^(?:\[.*\]|\{.*\}|(?:set|dict|list|defaultdict|deque|OrderedDict|Counter)\(.*\))$/;
 
-interface Loop {
-  line: number;
-  kind: string;
-  fixedCount?: boolean;
+type Loop = WalkedLoop;
+
+/** `("a", "b")`, `{…}`, `[x, y]` with no comprehension in it: a display whose length is written in the source. */
+function isLiteralDisplay(text: string): boolean {
+  const t = text.trim().replace(/^(?:frozenset|tuple|set|list)\((.*)\)$/s, '$1');
+  if (!/^[([{]/.test(t) || matchingClose(t, 0) !== t.length - 1) return false;
+  return pythonComprehensions(t).length === 0;
 }
 
-/** `("a", "b")`, `[x, y]`, `range(3)`: a `for` iterable whose length is written in the source. */
-function fixedIterable(header: string): boolean {
+/**
+ * A `for` iterable whose length is written in the source: a literal display,
+ * `range(3)`, or a module-level name bound to a literal display.
+ */
+function fixedIterable(header: string, literalCollections: ReadonlySet<string>): boolean {
   const iterable = (/\s+in\s+(.*)$/.exec(header)?.[1] ?? '').trim();
   if (/^range\(\s*\d+\s*(?:,\s*\d+\s*)?\)$/.test(iterable)) return true;
-  if (!/^[([{]/.test(iterable) || matchingClose(iterable, 0) !== iterable.length - 1) return false;
-  return pythonComprehensions(iterable).length === 0;
+  if (literalCollections.has(iterable)) return true;
+  return isLiteralDisplay(iterable);
 }
 
 interface WalkState {
   fn: FunctionModel;
   literals: readonly PyLiteral[];
   loops: Loop[];
+  literalCollections: ReadonlySet<string>;
 }
 
 /** Index of the assignment `=` at depth 0 (not `==`, `<=`, `:=`, …), and whether it is augmented. */
@@ -160,9 +168,10 @@ function count(fn: FunctionModel, names: readonly string[]): void {
 }
 
 function pushLoopAwait(state: WalkState, loop: Loop | undefined, site: AwaitSite): void {
-  if (loop) {
-    state.fn.loopAwaits.push({ loopLine: loop.line, loopKind: loop.kind, fixedCount: loop.fixedCount === true, site } satisfies LoopAwait);
-  }
+  if (!loop) return;
+  const loopAwait: LoopAwait = { loopLine: loop.line, loopKind: loop.kind, fixedCount: loop.fixedCount === true, dependsOnLoop: false, site };
+  state.fn.loopAwaits.push(loopAwait);
+  loop.awaits.push(loopAwait);
 }
 
 /** Awaits of a statement's text that run per comprehension element, and async-for iterables. */
@@ -173,8 +182,8 @@ function comprehensionAwaits(
   state: WalkState
 ): void {
   const outer = state.loops[state.loops.length - 1];
-  const comprehension = { line, kind: 'comprehension' };
   for (const comp of comps) {
+    const comprehension: Loop = { line, kind: 'comprehension', targets: comp.targets, statements: [], awaits: [] };
     for (const site of awaits) {
       if (comp.perElement.some(([a, b]) => site.start >= a && site.start < b)) pushLoopAwait(state, comprehension, site);
     }
@@ -182,6 +191,7 @@ function comprehensionAwaits(
     for (const later of comp.laterAsyncIterables) {
       pushLoopAwait(state, comprehension, iterationAwait(later, line, state.literals));
     }
+    finishLoop(comprehension);
   }
 }
 
@@ -193,13 +203,18 @@ function statementOf(node: PyNode, state: WalkState): StatementModel {
   const awaits = pythonAwaits(text, node.line, literals);
   const defUse = simple ? simpleDefUse(text, literals) : { ...headerDefUse(node, literals), mutable: [] };
   const outer = state.loops[state.loops.length - 1];
-  const ownLoop = node.keyword === 'while' ? { line: node.line, kind: 'while' } : outer;
+  // A `while` condition runs once per iteration, but binds no item: what it
+  // awaits is a poll or a retry, never one read per item.
+  const whileLoop: Loop | null =
+    node.keyword === 'while' ? { line: node.line, kind: 'while', targets: [], statements: [], awaits: [] } : null;
+  const ownLoop = whileLoop ?? outer;
   const comps = pythonComprehensions(text);
   const perElement = (at: number): boolean =>
     comps.some(c => c.perElement.some(([s, e]) => at >= s && at < e));
   for (const site of awaits) {
     if (!perElement(site.start)) pushLoopAwait(state, ownLoop, site);
   }
+  if (whileLoop) finishLoop(whileLoop);
   comprehensionAwaits(comps, node.line, awaits, state);
   // `[d async for d in q.stream()]` awaits every step of the stream.
   const iterations = comps
@@ -236,16 +251,31 @@ function walkBlock(nodes: readonly PyNode[], state: WalkState): void {
       block.push({ line: node.line, endLine: node.endLine, simple: false, awaits: [], bound: [], used: [], mutableBindings: [], text: node.text });
       continue;
     }
-    block.push(statementOf(node, state));
+    const statement = statementOf(node, state);
+    block.push(statement);
+    state.loops.forEach(loop => loop.statements.push(statement));
     if (node.children.length === 0) continue;
-    const isLoop = node.keyword !== null && LOOP_KEYWORDS.has(node.keyword);
-    if (isLoop) {
-      const fixedCount = node.keyword !== 'while' && fixedIterable(node.header);
-      state.loops.push({ line: node.line, kind: node.keyword as string, fixedCount });
-    }
+    const loop = node.keyword !== null && LOOP_KEYWORDS.has(node.keyword) ? newLoop(node, statement, state) : null;
+    if (loop) state.loops.push(loop);
     walkBlock(node.children, state);
-    if (isLoop) state.loops.pop();
+    if (loop) {
+      state.loops.pop();
+      finishLoop(loop);
+    }
   }
+}
+
+/** A `for` / `async for` / `while` about to be walked; a `for` binds its targets. */
+function newLoop(node: PyNode, header: StatementModel, state: WalkState): Loop {
+  const isWhile = node.keyword === 'while';
+  return {
+    line: node.line,
+    kind: node.keyword as string,
+    fixedCount: !isWhile && fixedIterable(node.header, state.literalCollections),
+    targets: isWhile ? [] : header.bound,
+    statements: [],
+    awaits: [],
+  };
 }
 
 function paramsOf(header: string): string[] {
@@ -277,12 +307,12 @@ function newFunction(node: PyNode, prefix: string, decorators: readonly string[]
 }
 
 /** Every def in a node list (methods and nested functions included). */
-function collectFunctions(
-  nodes: readonly PyNode[],
-  prefix: string,
-  literals: readonly PyLiteral[],
-  out: FunctionModel[]
-): void {
+interface ModuleContext {
+  literals: readonly PyLiteral[];
+  literalCollections: ReadonlySet<string>;
+}
+
+function collectFunctions(nodes: readonly PyNode[], prefix: string, module: ModuleContext, out: FunctionModel[]): void {
   let decorators: string[] = [];
   for (const node of nodes) {
     if (node.keyword === '@') {
@@ -291,17 +321,29 @@ function collectFunctions(
     }
     if (node.keyword !== null && FUNCTION_KEYWORDS.has(node.keyword)) {
       const fn = newFunction(node, prefix, decorators);
-      walkBlock(node.children, { fn, literals, loops: [] });
+      walkBlock(node.children, { fn, literals: module.literals, loops: [], literalCollections: module.literalCollections });
       out.push(fn);
-      collectFunctions(node.children, fn.name, literals, out);
+      collectFunctions(node.children, fn.name, module, out);
     } else if (node.keyword === 'class') {
       const name = /^([A-Za-z_]\w*)/.exec(node.header)?.[1] ?? '';
-      collectFunctions(node.children, prefix ? `${prefix}.${name}` : name, literals, out);
+      collectFunctions(node.children, prefix ? `${prefix}.${name}` : name, module, out);
     } else if (node.children.length > 0) {
-      collectFunctions(node.children, prefix, literals, out);
+      collectFunctions(node.children, prefix, module, out);
     }
     decorators = [];
   }
+}
+
+const COLLECTION_ASSIGNMENT = /^([A-Za-z_]\w*)\s*(?::\s*[^=]+)?=\s*(.+)$/s;
+
+/** Module-level `RULES = ("a", "b")` / `[…]` / `{…}`: names bound to a literal display. */
+function literalCollectionsOf(nodes: readonly PyNode[]): Set<string> {
+  const names = new Set<string>();
+  for (const node of nodes) {
+    const m = node.keyword === null ? COLLECTION_ASSIGNMENT.exec(node.text) : null;
+    if (m && isLiteralDisplay(m[2] as string)) names.add(m[1] as string);
+  }
+  return names;
 }
 
 const NAME_AS = /^([A-Za-z_]\w*)(?:\s+as\s+([A-Za-z_]\w*))?$/;
@@ -346,7 +388,8 @@ export function pythonModule(file: string, rel: string, content: string): Module
   const { code, literals } = lexPython(content);
   const tree = pythonTree(code);
   const functions: FunctionModel[] = [];
-  collectFunctions(tree, '', literals, functions);
+  const literalCollections = literalCollectionsOf(tree);
+  collectFunctions(tree, '', { literals, literalCollections }, functions);
   return {
     file,
     rel,
@@ -354,6 +397,7 @@ export function pythonModule(file: string, rel: string, content: string): Module
     functions,
     imports: importsOf(tree),
     constants: constantsOf(tree, literals),
+    literalCollections,
     lines: content.split(/\r\n|\r|\n/),
   };
 }

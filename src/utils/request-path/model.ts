@@ -91,6 +91,12 @@ export interface LoopAwait {
    * fixed fan-out, not one round trip per item of data.
    */
   fixedCount: boolean;
+  /**
+   * The awaited call's arguments or receiver read the loop's target, or a
+   * name the loop body derived from it: one call per item. False for a
+   * retry or a poll that reads the same thing each time.
+   */
+  dependsOnLoop: boolean;
   site: AwaitSite;
 }
 
@@ -136,6 +142,8 @@ export interface ModuleModel {
   imports: ImportBinding[];
   /** Module-level names bound to a plain string literal (`USERS = "users"`, `const USERS = 'users'`). */
   constants: Map<string, string>;
+  /** Module-level names bound to a literal tuple / list / set / dict / array (a fixed collection). */
+  literalCollections: Set<string>;
   /** The raw source lines (comments included), for line markers. */
   lines: string[];
 }

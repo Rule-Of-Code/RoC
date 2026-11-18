@@ -284,6 +284,8 @@ export interface Comprehension {
   asyncIterable: string | null;
   /** Ranges of later `async for` iterables (they run per element too). */
   laterAsyncIterables: string[];
+  /** Names the `for` clauses bind (`x` in `for x in xs`, `k, v` in `for k, v in …`). */
+  targets: string[];
   start: number;
   end: number;
 }
@@ -320,6 +322,14 @@ function iterableRange(inner: string, clause: Clause, next: number): [number, nu
   return [next, next];
 }
 
+/** The names a `for` clause binds: the identifiers between `for` and its ` in `. */
+function clauseTargets(inner: string, clause: Clause): string[] {
+  const from = clause.at + clause.kind.length;
+  const [iterStart] = iterableRange(inner, clause, inner.length);
+  const target = inner.slice(from, Math.max(from, iterStart - 2));
+  return [...target.matchAll(/[A-Za-z_]\w*/g)].map(m => m[0]);
+}
+
 /** Every comprehension (list, set, dict, generator) in a statement's text. */
 export function pythonComprehensions(text: string): Comprehension[] {
   const out: Comprehension[] = [];
@@ -350,6 +360,7 @@ export function pythonComprehensions(text: string): Comprehension[] {
       laterAsyncIterables: later
         .filter(l => l.clause.kind === 'async for')
         .map(l => inner.slice(l.range[0], l.range[1]).trim()),
+      targets: fors.flatMap(clause => clauseTargets(inner, clause)),
     });
   }
   return out;

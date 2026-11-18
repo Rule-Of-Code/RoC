@@ -24,6 +24,7 @@ import type {
   StatementModel,
 } from './model';
 import { chainPrefixes, collapse } from './expr-text';
+import { finishLoop, type WalkedLoop } from './loop-dependence';
 import { TsxSource, type TypeScriptModule } from '../react/tsx-source';
 
 /** A call whose callback runs inside a database transaction. */
@@ -31,11 +32,7 @@ const TRANSACTION_CALL = /^(?:runTransaction|\$transaction|transaction|withTrans
 const TRANSACTION_PARAM = /^(?:transaction|txn|tx)$/;
 const FRESH_MUTABLE_CTOR = /^(?:Map|Set|Array|Object|WeakMap|WeakSet)$/;
 
-interface Loop {
-  line: number;
-  kind: string;
-  fixedCount?: boolean;
-}
+type Loop = WalkedLoop;
 
 class TsModelBuilder {
   constructor(
@@ -363,18 +360,56 @@ class TsModelBuilder {
     };
   }
 
+  /** A loop about to be walked: its kind, whether its count is in the source, and what it binds per item. */
   loopOf(node: TS.Node): Loop | null {
     const ts = this.ts;
     const line = this.line(node);
+    const loop = (kind: string, targets: string[], fixedCount = false): Loop => ({ line, kind, fixedCount, targets, statements: [], awaits: [] });
     if (ts.isForOfStatement(node)) {
-      const fixedCount = ts.isArrayLiteralExpression(this.unwrap(node.expression)) && !node.awaitModifier;
-      return { line, kind: node.awaitModifier ? 'for await' : 'for-of', fixedCount };
+      const fixedCount = !node.awaitModifier && this.fixedIterable(node.expression);
+      return loop(node.awaitModifier ? 'for await' : 'for-of', this.initializerNames(node.initializer), fixedCount);
     }
-    if (ts.isForInStatement(node)) return { line, kind: 'for-in' };
-    if (ts.isForStatement(node)) return { line, kind: 'for', fixedCount: this.literalBound(node) };
-    if (ts.isWhileStatement(node)) return { line, kind: 'while' };
-    if (ts.isDoStatement(node)) return { line, kind: 'do' };
+    if (ts.isForInStatement(node)) return loop('for-in', this.initializerNames(node.initializer));
+    if (ts.isForStatement(node)) {
+      return loop('for', node.initializer ? this.initializerNames(node.initializer) : [], this.literalBound(node));
+    }
+    if (ts.isWhileStatement(node)) return loop('while', []);
+    if (ts.isDoStatement(node)) return loop('do', []);
     return null;
+  }
+
+  /** Names a loop initializer binds: `const x`, `let [a, b]`, or an assignment target. */
+  initializerNames(initializer: TS.ForInitializer): string[] {
+    const ts = this.ts;
+    if (ts.isVariableDeclarationList(initializer)) return initializer.declarations.flatMap(d => this.bindingNames(d.name));
+    return this.targetNames(initializer);
+  }
+
+  private moduleCollections?: Set<string>;
+
+  /** Module-level `const NAME = [...]` (or `[...] as const`, an object literal): a fixed collection. */
+  literalCollections(): Set<string> {
+    if (this.moduleCollections) return this.moduleCollections;
+    const ts = this.ts;
+    const names = new Set<string>();
+    for (const statement of this.sf.statements) {
+      if (!ts.isVariableStatement(statement) || !(statement.declarationList.flags & ts.NodeFlags.Const)) continue;
+      for (const decl of statement.declarationList.declarations) {
+        const init = decl.initializer ? this.unwrap(decl.initializer) : null;
+        if (ts.isIdentifier(decl.name) && init && (ts.isArrayLiteralExpression(init) || ts.isObjectLiteralExpression(init))) {
+          names.add(decl.name.text);
+        }
+      }
+    }
+    this.moduleCollections = names;
+    return names;
+  }
+
+  /** `for (… of ["a", "b"])` or of a module-level literal array: the count is in the source. */
+  fixedIterable(expression: TS.Expression): boolean {
+    const ts = this.ts;
+    const iterable = this.unwrap(expression);
+    return ts.isArrayLiteralExpression(iterable) || (ts.isIdentifier(iterable) && this.literalCollections().has(iterable.text));
   }
 
   /** `for (let i = 0; i < 3; i++)`: the bound is a number literal. */
@@ -398,12 +433,17 @@ class TsModelBuilder {
     const body = node.body;
     if (!body) return;
     const callback = this.callbackOf(node);
-    const forEachLoop = callback && callback.method === 'forEach' ? { line: this.line(callback.call), kind: 'forEach' } : null;
+    // `.forEach(item => …)`: the callback body is the loop body, its parameters the item.
+    const forEachLoop: Loop | null =
+      callback && callback.method === 'forEach'
+        ? { line: this.line(callback.call), kind: 'forEach', targets: fn.params, statements: [], awaits: [] }
+        : null;
     const loops: Loop[] = forEachLoop ? [forEachLoop] : [];
     if (!ts.isBlock(body)) {
       fn.blocks.push([this.syntheticReturn(body)]);
     }
     this.visit(fn, body, loops);
+    if (forEachLoop) finishLoop(forEachLoop);
     this.countNames(fn, body);
   }
 
@@ -420,8 +460,10 @@ class TsModelBuilder {
     };
   }
 
-  recordBlock(fn: FunctionModel, statements: readonly TS.Statement[]): void {
-    fn.blocks.push(statements.map(s => this.statement(s)));
+  recordBlock(fn: FunctionModel, statements: readonly TS.Statement[], loops: readonly Loop[]): void {
+    const block = statements.map(s => this.statement(s));
+    fn.blocks.push(block);
+    for (const loop of loops) loop.statements.push(...block);
   }
 
   /** Is this identifier a declared or property name rather than a read? */
@@ -458,7 +500,7 @@ class TsModelBuilder {
   visit(fn: FunctionModel, node: TS.Node, loops: Loop[]): void {
     const ts = this.ts;
     if (this.isFunctionLike(node)) return;
-    if (ts.isBlock(node) || ts.isCaseClause(node) || ts.isDefaultClause(node)) this.recordBlock(fn, node.statements);
+    if (ts.isBlock(node) || ts.isCaseClause(node) || ts.isDefaultClause(node)) this.recordBlock(fn, node.statements, loops);
     if (ts.isAwaitExpression(node)) this.recordLoopAwait(fn, loops, this.awaitSite(node));
     if (ts.isCallExpression(node)) fn.calls.push(this.call(node));
     const loop = this.loopOf(node);
@@ -469,13 +511,15 @@ class TsModelBuilder {
     if (ts.isForOfStatement(node) && node.awaitModifier) this.recordForAwait(fn, loops, node);
     const once = this.onceParts(node);
     ts.forEachChild(node, child => this.visit(fn, child, once.includes(child) ? loops : [...loops, loop]));
+    finishLoop(loop);
   }
 
   recordLoopAwait(fn: FunctionModel, loops: readonly Loop[], site: AwaitSite): void {
     const loop = loops[loops.length - 1];
-    if (loop) {
-      fn.loopAwaits.push({ loopLine: loop.line, loopKind: loop.kind, fixedCount: loop.fixedCount === true, site } satisfies LoopAwait);
-    }
+    if (!loop) return;
+    const loopAwait: LoopAwait = { loopLine: loop.line, loopKind: loop.kind, fixedCount: loop.fixedCount === true, dependsOnLoop: false, site };
+    fn.loopAwaits.push(loopAwait);
+    loop.awaits.push(loopAwait);
   }
 
   /** `for await (… of stream)`: each step is a round trip, in the enclosing loop. */
@@ -537,6 +581,7 @@ export function typescriptModule(ts: TypeScriptModule, file: string, rel: string
     functions: builder.functions(),
     imports: builder.imports(),
     constants: builder.constants(),
+    literalCollections: builder.literalCollections(),
     lines: content.split(/\r\n|\r|\n/),
   };
 }

@@ -13,6 +13,8 @@
  * Russian, and preloading it would not help them.
  */
 
+import type { LawRequirement } from '../../types/enhanced-law.types';
+
 export type Script =
   | 'Arabic'
   | 'Armenian'
@@ -105,3 +107,11 @@ export function parseUnicodeRange(value: string): Array<[number, number]> | null
 export function rangeCovers(intervals: ReadonlyArray<readonly [number, number]>, script: Exclude<Script, 'Latin'>): boolean {
   return SCRIPT_CORE_LETTERS[script].some(([low, high]) => intervals.some(([from, to]) => from <= high && to >= low));
 }
+
+/** The stylesheets and documents Primary Locale Font Preloaded reads faces from. */
+export const FONT_FACE_FILE_GLOBS: readonly string[] = ['**/*.{css,scss,sass,less,html,htm,tsx,jsx,vue,svelte,astro}'];
+
+/** Its subject, for `requires.anyFileContaining`: an @font-face block with a unicode-range. */
+export const REQUIRES_UNICODE_RANGE_FONT: LawRequirement = {
+  anyFileContaining: [{ files: FONT_FACE_FILE_GLOBS, pattern: String.raw`@font-face\s*\{[^}]*unicode-range` }],
+};

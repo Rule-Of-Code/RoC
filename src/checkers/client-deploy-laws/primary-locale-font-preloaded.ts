@@ -249,7 +249,7 @@ export class PrimaryLocaleFontPreloadedLaw extends LawBase {
   private static nothing(context: LawCheckContext, why: string): LawResult {
     return markJudgedNothing(
       this.createResult(
-        [`${why} — this law judged nothing. If the app self-hosts no split web font (or loads it from a stylesheet this scan does not read), declare the law in laws.notApplicable with the reason`],
+        [`${why} — this law judged nothing. It was selected because a project file holds an @font-face with a unicode-range; if that file is under the ignores, or the faces are built at runtime, the law cannot see them`],
         this.LAW_NAME,
         'PERFORMANCE',
         [],

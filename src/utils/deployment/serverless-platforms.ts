@@ -10,6 +10,8 @@
  * not a create-function option) is not demanded of it.
  */
 
+import type { LawRequirement } from '../../types/enhanced-law.types';
+
 export type Setting = 'concurrency' | 'cpu' | 'max instances' | 'memory' | 'timeout';
 
 const MEMORY: Setting = 'memory';
@@ -132,3 +134,31 @@ export const DEPLOY_CLOUDRUN_ACTION_REFERENCE = 'https://github.com/google-githu
 export function describeMissing(missing: ReadonlyArray<{ setting: Setting; names: readonly string[] }>): string {
   return missing.map(({ setting, names }) => `${setting} (${names.join(' / ')})`).join(', ');
 }
+
+/** The files a deploy command or definition can live in — what the law reads. */
+export const DEPLOY_FILE_GLOBS: readonly string[] = [
+  '**/*.{yml,yaml,json,template,sh,bash,ps1,mk}',
+  '**/{Makefile,makefile,GNUmakefile}',
+];
+
+/**
+ * The subject of the law, for `requires.anyFileContaining`: a command or a
+ * definition from the registry above, written in one of the files it reads.
+ */
+export const REQUIRES_SERVERLESS_DEPLOY: LawRequirement = {
+  anyFileContaining: [
+    {
+      files: DEPLOY_FILE_GLOBS,
+      pattern: [
+        String.raw`\bgcloud(?:\s+(?:alpha|beta))?\s+run\s+(?:deploy|services\s+replace)\b`,
+        String.raw`\baws\s+lambda\s+create-function\b`,
+        String.raw`\baz\s+functionapp\s+create\b`,
+        String.raw`google-github-actions/deploy-cloudrun@`,
+        String.raw`AWS::(?:Serverless|Lambda)::Function`,
+        String.raw`cloud-builders/gcloud|["']?entrypoint["']?\s*:\s*["']?(?:gcloud|aws|az)\b`,
+      ].join('|'),
+    },
+    { files: ['**/serverless.{yml,yaml}'], pattern: String.raw`^functions\s*:` },
+    { files: ['**/host.json'], pattern: String.raw`"version"\s*:\s*"2` },
+  ],
+};

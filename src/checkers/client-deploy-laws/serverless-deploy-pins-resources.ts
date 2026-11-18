@@ -44,6 +44,7 @@ import {
   COMMAND_PLATFORMS,
   type CommandPlatform,
   DEPLOY_CLOUDRUN_ACTION,
+  DEPLOY_FILE_GLOBS,
   describeMissing,
   LAMBDA_RESOURCE_TYPES,
 } from '../../utils/deployment/serverless-platforms';
@@ -68,7 +69,6 @@ interface Tally {
   judged: number;
 }
 
-const CANDIDATES = '**/{*.yml,*.yaml,*.json,*.template,*.sh,*.bash,*.ps1,*.mk,Makefile,makefile,GNUmakefile}';
 const NOT_SOURCE = [
   '**/node_modules/**', '**/.git/**', '**/dist/**', '**/coverage/**', '**/.aws-sam/**', '**/cdk.out/**', '**/.serverless/**',
   '**/.venv/**', '**/venv/**', '**/vendor/**', '**/.terraform/**', '**/.angular/**', '**/.nx/**', '**/package-lock.json',
@@ -109,7 +109,7 @@ function deployFiles(context: LawCheckContext): DeployFile[] {
   const ci = ciConfigPaths(root, context.config).flatMap(path =>
     FileUtils.isDirectory(path) ? glob.sync('*.{yml,yaml}', { cwd: path, absolute: true }) : [path]
   );
-  const found = glob.sync(CANDIDATES, { cwd: root, absolute: true, dot: true, nodir: true, ignore: NOT_SOURCE });
+  const found = glob.sync([...DEPLOY_FILE_GLOBS], { cwd: root, absolute: true, dot: true, nodir: true, ignore: NOT_SOURCE });
   const unique = [...new Set([...ci, ...found].map(path => PathOperations.normalize(path)))];
   return unique
     .filter(abs => !ignored(context, PathOperations.getRelative(root, abs).replace(/\\/g, '/')))
@@ -132,7 +132,7 @@ export class ServerlessDeployPinsResourcesLaw extends LawBase {
     if (tally.judged === 0) {
       const result = this.createResult(
         [
-          'found no serverless deploy command (gcloud run deploy / services replace, aws lambda create-function, az functionapp create --flexconsumption-location, the Cloud Run deploy action) and no deploy definition (Cloud Run service YAML, SAM/CloudFormation function, serverless.yml function, host.json) it could read — this law judged nothing. If the project deploys no serverless service, declare the law in laws.notApplicable with the reason',
+          'found no serverless deploy command (gcloud run deploy / services replace, aws lambda create-function, az functionapp create --flexconsumption-location, the Cloud Run deploy action) and no deploy definition (Cloud Run service YAML, SAM/CloudFormation function, serverless.yml function, host.json) it could read — this law judged nothing. It was selected because a file names one of them; a mention in prose or a comment is not a command, and what could not be read is listed in the notes',
         ],
         this.LAW_NAME,
         'DEPLOYMENT',

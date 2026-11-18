@@ -33,3 +33,21 @@ export const REQUIRES_PROXY_UPSTREAM_URL: LawRequirement = {
     { files: ['**/*.py'], pattern: String.raw`\burljoin\s*\(`, exclude: [...TEST_TREES, ...PY_TEST_FILES] },
   ],
 };
+
+/**
+ * Where a shell command may start on its line: the line start or a list
+ * dash, a shell operator or keyword, a YAML key (`run: …`, `run: |`) —
+ * never after a `#` on the line, so a comment selects nothing.
+ */
+const AT_COMMAND = String.raw`^(?![ \t]*#)(?:[ \t]*(?:-[ \t]+)?|[^\n#]*?(?:[;&|(][ \t]*|:[ \t]*(?:[|>][-+]?)?[ \t]*|\b(?:then|do|else|exec|env|sudo)[ \t]+))`;
+const JS_RUNNER = String.raw`(?:(?:npx|bunx|pnpm(?:[ \t]+(?:exec|dlx))?|yarn)[ \t]+)?`;
+
+/** Shell scripts, Makefiles and CI YAML — where a deploy sequence is written in order. */
+const SCRIPT_FILES = ['**/*.{yml,yaml,sh,bash,ps1,mk}', '**/{Makefile,makefile,GNUmakefile}'];
+
+export const REQUIRES_WRANGLER_CONFIG: LawRequirement = {
+  anyFileContaining: [
+    { files: ['**/wrangler.{toml,json,jsonc}'], pattern: String.raw`\S`, exclude: TEST_TREES },
+    { files: SCRIPT_FILES, pattern: String.raw`${AT_COMMAND}${JS_RUNNER}wrangler[ \t]+secret[ \t]+(?:put|bulk)\b`, exclude: TEST_TREES },
+  ],
+};

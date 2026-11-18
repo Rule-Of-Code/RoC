@@ -214,7 +214,7 @@ import {
 } from '../checkers/client-deploy-laws';
 
 // Edge proxy and deploy-security laws
-import { ProxyTargetKeepsOriginHostLaw } from '../checkers/edge-deploy-laws';
+import { ProxyTargetKeepsOriginHostLaw, WorkerPublicUrlsDeclaredLaw } from '../checkers/edge-deploy-laws';
 
 // Integrity Laws Modular Imports — migrations, CHECKs, guards, tsconfig, retention
 import {
@@ -664,6 +664,7 @@ export class ModularLawsRegistry {
     'ServerlessDeployPinsResourcesLaw.check': ServerlessDeployPinsResourcesLaw,
     // Edge proxy and deploy-security laws
     'ProxyTargetKeepsOriginHostLaw.check': ProxyTargetKeepsOriginHostLaw,
+    'WorkerPublicUrlsDeclaredLaw.check': WorkerPublicUrlsDeclaredLaw,
     // Measurement Laws (latency budget harness, tracing, test-server loopback)
     'LatencyBudgetHarnessRealismLaw.check': LatencyBudgetHarnessRealismLaw,
     'TracingExplainsLatencyLaw.check': TracingExplainsLatencyLaw,

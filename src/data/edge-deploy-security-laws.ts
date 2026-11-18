@@ -11,7 +11,7 @@
  */
 
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
-import { REQUIRES_PROXY_UPSTREAM_URL } from '../utils/edge-deploy/requirements';
+import { REQUIRES_PROXY_UPSTREAM_URL, REQUIRES_WRANGLER_CONFIG } from '../utils/edge-deploy/requirements';
 import { generateLawId } from '../utils/id-generator';
 
 const GATE_READ =
@@ -57,5 +57,43 @@ export const EDGE_DEPLOY_SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article XXIII.23.10: A proxy resolves the incoming path against its origin — a // path sends the request to another host',
     remediation:
       'Start from the origin URL and assign only pathname and search from the incoming request; reject paths that do not start with exactly one "/"',
+  },
+
+  {
+    id: generateLawId(
+      'Worker Public URLs Declared',
+      'A Cloudflare Worker configuration sets workers_dev and preview_urls explicitly, and secrets are uploaded only after the Worker is deployed',
+      'deployment'
+    ),
+    legacyId: 896,
+    article: 'VIII',
+    subsection: '8.13',
+    title: 'Worker Public URLs Declared',
+    rationale:
+      'Wrangler gives a Worker a public *.workers.dev address when its configuration has no routes and leaves preview_urls at whatever setting exists (initially derived from workers_dev). For a Worker that fronts a private origin and adds a secret header on the way, each of those is a public entry point nobody reviewed, and the configuration shows none of them. A related trap: wrangler secret put on a Worker that does not exist yet creates an empty one, without asking, in a non-interactive run.',
+    satisfiedBy: {
+      typescript:
+        'wrangler.toml: workers_dev = false and preview_urls = false at the top level (or true, written on purpose), with the routes declared; wrangler.json(c): "workers_dev": false, "preview_urls": false. In CI: wrangler deploy first, then wrangler secret put.',
+    },
+    detectionLimits: [
+      'Read from the Wrangler configuration reference: workers_dev defaults to true when there is no route/routes; preview_urls, if omitted, keeps the existing setting (initially derived from workers_dev); both are inheritable, so an [env.x] section without them takes the top level, and the top level is what is judged. A key present with any value passes — the law asks that the decision is written, not which one.',
+      'wrangler.toml is read line by line up to the first table header (no TOML parser); wrangler.json/.jsonc are parsed (comments and trailing commas allowed). A configuration that cannot be parsed is listed as not judged. A configuration generated at build time, or one passed with --config from outside the repository, is not seen; routes, custom domains and dashboard settings are not read.',
+      'Secret order (read in the Wrangler source: secret put / secret bulk on a missing Worker create an empty one, defaulting to yes in a non-interactive or CI run): in one shell script, Makefile or CI YAML file, a wrangler secret put/bulk is a finding when the only wrangler deploy (or publish) of the same Worker — same --name, --env and --config as written — comes later in the file. With no deploy of that Worker in the file the order is listed as not judged; steps split across files, jobs or package.json scripts, and a change of directory between them, are not followed.',
+      `Selected only where a wrangler.toml / wrangler.json / wrangler.jsonc is published, or a shell script, Makefile or CI YAML runs wrangler secret put/bulk at a command position. ${GATE_READ} A pass names the configurations and uploads judged and the files read (also in the result's metrics).`,
+    ],
+    emoji: '🚪',
+    description:
+      'A Cloudflare Worker configuration sets workers_dev and preview_urls explicitly, and secrets are uploaded only after the Worker is deployed',
+    priority: 'MEDIUM',
+    category: 'DEPLOYMENT',
+    requires: REQUIRES_WRANGLER_CONFIG,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'WorkerPublicUrlsDeclaredLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article VIII.8.13: A Worker leaves its public workers.dev / preview URLs to Wrangler defaults',
+    remediation:
+      'Set workers_dev and preview_urls explicitly at the top level of the wrangler configuration; deploy the Worker before uploading secrets',
   },
 ];

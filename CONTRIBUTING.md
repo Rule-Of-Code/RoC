@@ -84,6 +84,24 @@ npm run canary    # release canary: 3 stacks, red/green probe
   (`green exit 0` · `red exit 1` · `zero-laws exit 1 (refused)`). A gate not proven red
   is not a proven gate.
 
+### The hooks
+
+`npm ci` (or `npm install`) in a clone installs the hooks: the `prepare` script runs
+`husky`, which points `core.hooksPath` at `.husky/_`. From then on every commit runs
+`.husky/pre-commit` (lint-staged, then `ruleofcode audit --staged`) and
+`.husky/commit-msg`, and every push runs `.husky/pre-push`.
+
+Check it once after cloning:
+
+```bash
+git config --get core.hooksPath   # .husky/_
+```
+
+Empty output means no hook runs. Run `npx husky` at the repository root and check
+again. `HUSKY=0` skips the install (husky's own switch); that is for CI, never for a
+working checkout. Installing the published package never runs `prepare`, so consumers
+are unaffected.
+
 ## Where things live
 
 | what | where |

@@ -11,35 +11,156 @@
  * Dependencies are read from every workspace package.json, not only the root
  * one: a monorepo may declare `@capacitor/core` in the app that ships, not in
  * the workspace manifest.
+ *
+ * Every condition reads what git publishes (#381, as `anyFileContaining`
+ * since 7.27.0): inside a git work tree a manifest counts when it is tracked
+ * (read from the index when the working copy differs) or untracked and not
+ * ignored. A git-ignored manifest (generated, vendored, a scratch copy)
+ * selects no law, because the project does not declare that dependency in
+ * anything it ships. Outside a git work tree the disk is read, as before.
  */
 
+import { createHash } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { glob } from 'glob';
 import type { FileContaining, LawRequirement } from '../types/enhanced-law.types';
 import { minimatch } from 'minimatch';
 import { FileSystemOperations } from './file-system-operations';
-import { publishedListing, readFromIndex, trackedFiles } from './git/git-layout';
+import { type PublishedListing, publishedListing, readFromIndex, trackedFiles } from './git/git-layout';
 import { NxWorkspace } from './nx-workspace';
-import { declaredPythonDependencies, normalizePythonName } from './python-dependencies';
+import {
+  PYTHON_MANIFEST_GLOB,
+  PYTHON_MANIFEST_IGNORE,
+  normalizePythonName,
+  pythonManifestFiles,
+  pythonNamesIn,
+} from './python-dependencies';
 
 type Manifest = {
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
 };
 
+const PACKAGE_MANIFEST = 'package.json';
+
 /** Every package name declared by any workspace package.json. */
 export function declaredDependencies(projectRoot: string): Set<string> {
   const names = new Set<string>();
-  for (const file of NxWorkspace.resolveSourceFiles(projectRoot, 'package.json')) {
+  for (const file of NxWorkspace.resolveSourceFiles(projectRoot, PACKAGE_MANIFEST)) {
     let manifest: Manifest | null = null;
     try {
       manifest = FileSystemOperations.readJsonFile<Manifest>(file);
     } catch {
       continue; // an unreadable manifest declares nothing
     }
-    for (const name of Object.keys(manifest?.dependencies ?? {})) names.add(name);
-    for (const name of Object.keys(manifest?.devDependencies ?? {})) names.add(name);
+    addManifestNames(names, manifest);
+  }
+  return names;
+}
+
+function addManifestNames(names: Set<string>, manifest: Manifest | null): void {
+  for (const name of Object.keys(manifest?.dependencies ?? {})) names.add(name);
+  for (const name of Object.keys(manifest?.devDependencies ?? {})) names.add(name);
+}
+
+/** A dependency manifest and its text, read where git publishes it from. */
+interface ManifestText {
+  rel: string;
+  content: string;
+}
+
+/** One kind of dependency manifest: how it is found, and the files found on disk. */
+interface ManifestKind {
+  pattern: string;
+  ignore: readonly string[];
+  disk: readonly string[];
+}
+
+/**
+ * Answers by project root, manifest kind and the manifests' text on disk.
+ * Asking git costs processes, and the selector, the liveness floor and the
+ * validators ask once per gated law; the text on disk is read on every call
+ * (as before), so an edited manifest is a new key. What the key does not
+ * see (a change of ignore rules, or of the index alone) is answered from the
+ * first call in this process.
+ */
+const manifestCache = new Map<string, ManifestText[]>();
+
+/**
+ * The manifests of one kind as git publishes them (#381): from the published
+ * listing, matched by the kind's own glob and ignore list, tracked ones read
+ * from the index when the working copy differs. Outside a git work tree, the
+ * disk files the kind's own discovery found.
+ */
+function publishedManifests(projectRoot: string, kind: ManifestKind): ManifestText[] {
+  const onDisk = kind.disk.flatMap(file => {
+    const content = readDisk(file);
+    return content === null ? [] : [{ rel: path.relative(projectRoot, file).split(path.sep).join('/'), content }];
+  });
+  const digest = createHash('sha256');
+  for (const { rel, content } of onDisk) digest.update(`${rel}\0${content}\0`);
+  const key = `${projectRoot}|${kind.pattern}|${digest.digest('hex')}`;
+  const cached = manifestCache.get(key);
+  if (cached) return cached;
+
+  const listing = publishedListing(projectRoot);
+  const texts = listing ? manifestsInListing(projectRoot, listing, kind, onDisk) : onDisk;
+  if (manifestCache.size >= CONTAINING_CACHE_LIMIT) manifestCache.clear();
+  manifestCache.set(key, texts);
+  return texts;
+}
+
+function manifestsInListing(
+  projectRoot: string,
+  listing: PublishedListing,
+  kind: ManifestKind,
+  onDisk: readonly ManifestText[]
+): ManifestText[] {
+  const disk = new Map(onDisk.map(text => [text.rel, text.content]));
+  return [...listing.tracked, ...listing.unignored]
+    .filter(rel => minimatch(rel, kind.pattern) && !kind.ignore.some(pattern => minimatch(rel, pattern)))
+    .flatMap(rel => {
+      const fromIndex = listing.tracked.has(rel) && listing.changed.has(rel);
+      const content = fromIndex ? readFromIndex(projectRoot, rel) : (disk.get(rel) ?? readDisk(path.join(projectRoot, rel)));
+      return content === null ? [] : [{ rel, content }];
+    });
+}
+
+/**
+ * Every package name declared by a workspace package.json that git publishes
+ * (the disk outside git): what `anyDependency` and `allDependencies` read.
+ */
+export function publishedDependencies(projectRoot: string): Set<string> {
+  const names = new Set<string>();
+  const manifests = publishedManifests(projectRoot, {
+    pattern: `${NxWorkspace.PROJECT_DIRS}${PACKAGE_MANIFEST}`,
+    ignore: NxWorkspace.IGNORE,
+    disk: NxWorkspace.resolveSourceFiles(projectRoot, PACKAGE_MANIFEST),
+  });
+  for (const { content } of manifests) {
+    try {
+      addManifestNames(names, JSON.parse(content) as Manifest);
+    } catch {
+      // an unreadable manifest declares nothing
+    }
+  }
+  return names;
+}
+
+/**
+ * Every Python distribution declared by a manifest that git publishes (the
+ * disk outside git): what `anyPythonDependency` reads.
+ */
+export function publishedPythonDependencies(projectRoot: string): Set<string> {
+  const names = new Set<string>();
+  const manifests = publishedManifests(projectRoot, {
+    pattern: PYTHON_MANIFEST_GLOB,
+    ignore: PYTHON_MANIFEST_IGNORE,
+    disk: pythonManifestFiles(projectRoot),
+  });
+  for (const { rel, content } of manifests) {
+    for (const name of pythonNamesIn(rel, content)) names.add(name);
   }
   return names;
 }
@@ -70,7 +191,7 @@ export function lawRequirementsMet(
     }
   }
   if (requires.anyPythonDependency?.length) {
-    const declared = declaredPythonDependencies(projectRoot);
+    const declared = publishedPythonDependencies(projectRoot);
     if (!requires.anyPythonDependency.some(name => declared.has(normalizePythonName(name)))) {
       return false;
     }
@@ -235,10 +356,10 @@ export function filesContaining(projectRoot: string, entry: FileContaining, igno
 }
 
 
-/** `anyDependency` and `allDependencies`, read from the workspace package.json manifests. */
+/** `anyDependency` and `allDependencies`, read from the workspace package.json manifests git publishes. */
 function packageRequirementsMet(requires: LawRequirement, projectRoot: string): boolean {
   if (!requires.anyDependency?.length && !requires.allDependencies?.length) return true;
-  const declared = declaredDependencies(projectRoot);
+  const declared = publishedDependencies(projectRoot);
   if (
     requires.anyDependency?.length &&
     !requires.anyDependency.some(name => declared.has(name))

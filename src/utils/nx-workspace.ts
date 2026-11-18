@@ -22,7 +22,8 @@ export class NxWorkspace {
   static readonly PROJECT_DIRS =
     '{,apps/*/,apps/*/*/,libs/*/,libs/*/*/,packages/*/,packages/*/*/,projects/*/}';
 
-  private static readonly IGNORE = [
+  /** Installed, built and cache trees: never a workspace project's own files. */
+  static readonly IGNORE: string[] = [
     '**/node_modules/**',
     '**/dist/**',
     '**/.angular/**',

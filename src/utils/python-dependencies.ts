@@ -33,10 +33,10 @@ export function normalizePythonName(name: string): string {
   return name.trim().toLowerCase().replace(/[-_.]+/g, '-');
 }
 
-const MANIFEST_GLOB =
+export const PYTHON_MANIFEST_GLOB =
   '{,*/,*/*/,*/*/*/}{requirements*.txt,requirements/*.txt,pyproject.toml,Pipfile,setup.cfg,setup.py}';
 
-const IGNORE = [
+export const PYTHON_MANIFEST_IGNORE: readonly string[] = [
   '**/node_modules/**',
   '**/.venv/**',
   '**/venv/**',
@@ -198,7 +198,8 @@ function readSetupPy(content: string): string[] {
     .filter((n): n is string => n !== null);
 }
 
-function namesIn(file: string, content: string): string[] {
+/** The distributions one manifest declares, by its file name (PEP 503 names). */
+export function pythonNamesIn(file: string, content: string): string[] {
   const base = file.replace(/\\/g, '/').split('/').pop() ?? '';
   if (base === 'pyproject.toml') return readPyproject(content);
   if (base === 'Pipfile') return readPipfile(content);
@@ -209,11 +210,11 @@ function namesIn(file: string, content: string): string[] {
 
 /** The Python manifests this module reads (absolute paths). */
 export function pythonManifestFiles(projectRoot: string): string[] {
-  return glob.sync(MANIFEST_GLOB, {
+  return glob.sync(PYTHON_MANIFEST_GLOB, {
     cwd: projectRoot,
     absolute: true,
     nodir: true,
-    ignore: IGNORE,
+    ignore: [...PYTHON_MANIFEST_IGNORE],
   });
 }
 
@@ -227,7 +228,7 @@ export function declaredPythonDependencies(projectRoot: string): Set<string> {
     } catch {
       continue; // an unreadable manifest declares nothing
     }
-    for (const name of namesIn(file, content)) names.add(name);
+    for (const name of pythonNamesIn(file, content)) names.add(name);
   }
   return names;
 }

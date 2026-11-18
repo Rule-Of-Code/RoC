@@ -78,6 +78,16 @@ export function writeFiles(root: string, files: Record<string, string>): void {
   }
 }
 
+/**
+ * Rewrite the config only when it changes: touching the file changes the
+ * cache key (files are keyed by size and mtime), and a cache test that
+ * rewrites an identical config would never see a hit.
+ */
+function rewriteConfig(root: string, content: string): void {
+  const file = path.join(root, 'ruleofcode.config.json');
+  if (fs.readFileSync(file, 'utf8') !== content) fs.writeFileSync(file, content);
+}
+
 export interface AuditRun {
   exitCode: number;
   result: AuditResult & Record<string, unknown>;
@@ -99,7 +109,7 @@ export async function auditFixture(options: {
     ...(options.performance ? { performance: options.performance } : {}),
   };
   const root = options.root ?? makeFixture(config);
-  if (options.root) writeFiles(root, { 'ruleofcode.config.json': JSON.stringify(config, null, 2) });
+  if (options.root) rewriteConfig(root, JSON.stringify(config, null, 2));
 
   const out: string[] = [];
   const capture = (chunk: unknown): boolean => {

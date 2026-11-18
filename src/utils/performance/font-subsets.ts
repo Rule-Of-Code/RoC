@@ -113,5 +113,12 @@ export const FONT_FACE_FILE_GLOBS: readonly string[] = ['**/*.{css,scss,sass,les
 
 /** Its subject, for `requires.anyFileContaining`: an @font-face block with a unicode-range. */
 export const REQUIRES_UNICODE_RANGE_FONT: LawRequirement = {
-  anyFileContaining: [{ files: FONT_FACE_FILE_GLOBS, pattern: String.raw`@font-face\s*\{[^}]*unicode-range` }],
+  anyFileContaining: [
+    {
+      files: FONT_FACE_FILE_GLOBS,
+      pattern: String.raw`@font-face\s*\{[^}]*unicode-range`,
+      // Tests and stories render fixtures, not the app's own first screen.
+      exclude: ['**/*.{spec,test,stories}.{ts,tsx,js,jsx}', '**/test/**', '**/tests/**', '**/e2e/**'],
+    },
+  ],
 };

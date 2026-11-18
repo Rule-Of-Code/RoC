@@ -17,14 +17,18 @@ import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { markJudgedNothing } from '../../utils/judged-nothing';
 import { declaredClients } from '../../utils/request-path/data-clients';
 import { describeSequentialRun, scanSequentialAwaits } from '../../utils/request-path/sequential-awaits';
-import { projectSources } from '../../utils/request-path/sources';
+import { sourcesFromFiles } from '../../utils/request-path/sources';
+import { readFilesContaining } from '../../utils/law-requirements';
+import { REQUIRES_ASYNC_CODE } from '../../data/request-path-laws';
 import { LawBase } from '../law-base';
 
 export class IndependentAwaitsRunConcurrentlyLaw extends LawBase {
   static readonly LAW_NAME = 'Independent Awaits Run Concurrently';
 
   static check(context: LawCheckContext): LawResult {
-    const sources = projectSources(context);
+    // The files that selected the law (requires.anyFileContaining), read the way the gate read them.
+    const files = (REQUIRES_ASYNC_CODE.anyFileContaining ?? []).flatMap(entry => readFilesContaining(context.projectRoot, entry));
+    const sources = sourcesFromFiles(context.projectRoot, files);
     const { runs, asyncFunctions } = scanSequentialAwaits(sources.modules, declaredClients(context.projectRoot));
     const suggestions = [
       'Start independent calls together and await them once: asyncio.gather(a(), b()) in Python, await Promise.all([a(), b()]) in TS/JS',

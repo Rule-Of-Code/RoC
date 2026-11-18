@@ -15,10 +15,7 @@
  */
 
 import * as fs from 'fs';
-import { glob } from 'glob';
-import { minimatch } from 'minimatch';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { ciConfigPaths } from '../../utils/project-discovery';
 import {
   argsCommands,
   commandsInText,
@@ -44,14 +41,13 @@ import {
   COMMAND_PLATFORMS,
   type CommandPlatform,
   DEPLOY_CLOUDRUN_ACTION,
-  DEPLOY_FILE_GLOBS,
   describeMissing,
   LAMBDA_RESOURCE_TYPES,
+  REQUIRES_SERVERLESS_DEPLOY,
 } from '../../utils/deployment/serverless-platforms';
 import { yamlEntries, type YamlEntry } from '../../utils/deployment/yaml-lines';
-import { FileFilterUtils } from '../../utils/file-filter-utils';
-import { FileUtils } from '../../utils/file-utils';
 import { markJudgedNothing } from '../../utils/judged-nothing';
+import { readFilesContaining } from '../../utils/law-requirements';
 import { withNotes } from '../../utils/ionic/law-notes';
 import { PathOperations } from '../../utils/path-operations';
 import { LawBase } from '../law-base';
@@ -69,52 +65,24 @@ interface Tally {
   judged: number;
 }
 
-const NOT_SOURCE = [
-  '**/node_modules/**', '**/.git/**', '**/dist/**', '**/coverage/**', '**/.aws-sam/**', '**/cdk.out/**', '**/.serverless/**',
-  '**/.venv/**', '**/venv/**', '**/vendor/**', '**/.terraform/**', '**/.angular/**', '**/.nx/**', '**/package-lock.json',
-];
-/** Test trees hold fixtures, not the project's deploy. */
-const TEST_TREES = ['**/test/**', '**/tests/**', '**/e2e/**', '**/__fixtures__/**', '**/fixtures/**'];
-const MAX_BYTES = 2 * 1024 * 1024;
 const REPLACE = /\bgcloud(?:\s+(?:alpha|beta))?\s+run\s+services\s+replace\b/;
 const YAML_FILE = /\.ya?ml$/i;
 const SHELL_FILE = /(?:\.(?:sh|bash|ps1|mk)|^(?:gnu)?makefile)$/i;
 
-function readFile(context: LawCheckContext, abs: string): DeployFile | null {
-  try {
-    if (fs.statSync(abs).size > MAX_BYTES) return null;
-    const rel = PathOperations.getRelative(context.projectRoot, abs).replace(/\\/g, '/');
-    return { abs, rel, name: (rel.split('/').pop() ?? '').toLowerCase(), text: fs.readFileSync(abs, 'utf8') };
-  } catch {
-    return null;
-  }
-}
-
 /**
- * The project's own ignores (ignores.global and this law's ignores.byRule) and
- * test trees. Not the scanners' built-in code ignores: those leave out
- * scripts/, which is where deploy scripts live.
+ * The files that selected the law — its `requires.anyFileContaining` set,
+ * read through the gate's own reader (what git publishes, a tracked file
+ * from the index; the disk outside git) — so the law judges exactly what
+ * selected it, and a file the gate never saw cannot be judged.
  */
-function ignored(context: LawCheckContext, rel: string): boolean {
-  const ignores = context.config.ignores ?? { global: [] };
-  const byRule = (ignores as { byRule?: Record<string, string[]> }).byRule ?? {};
-  const keys = [context.lawId, FileFilterUtils.currentLawConfigKey].filter((key): key is string => Boolean(key));
-  const patterns = [...TEST_TREES, ...(ignores.global ?? []), ...keys.flatMap(key => byRule[key] ?? [])];
-  return patterns.some(pattern => minimatch(rel, pattern, { dot: true }));
-}
-
-/** Every file a deploy command or definition can live in, through the project's ignores. */
 function deployFiles(context: LawCheckContext): DeployFile[] {
-  const root = context.projectRoot;
-  const ci = ciConfigPaths(root, context.config).flatMap(path =>
-    FileUtils.isDirectory(path) ? glob.sync('*.{yml,yaml}', { cwd: path, absolute: true }) : [path]
-  );
-  const found = glob.sync([...DEPLOY_FILE_GLOBS], { cwd: root, absolute: true, dot: true, nodir: true, ignore: NOT_SOURCE });
-  const unique = [...new Set([...ci, ...found].map(path => PathOperations.normalize(path)))];
-  return unique
-    .filter(abs => !ignored(context, PathOperations.getRelative(root, abs).replace(/\\/g, '/')))
-    .map(abs => readFile(context, abs))
-    .filter((file): file is DeployFile => file !== null);
+  const byRel = new Map<string, DeployFile>();
+  for (const entry of REQUIRES_SERVERLESS_DEPLOY.anyFileContaining ?? []) {
+    for (const found of readFilesContaining(context.projectRoot, entry)) {
+      byRel.set(found.rel, { abs: found.file, rel: found.rel, name: (found.rel.split('/').pop() ?? '').toLowerCase(), text: found.content });
+    }
+  }
+  return [...byRel.values()].sort((a, b) => a.rel.localeCompare(b.rel));
 }
 
 function finding(where: string, subject: string, missing: Missing[], consequence: string): string {
@@ -128,19 +96,10 @@ export class ServerlessDeployPinsResourcesLaw extends LawBase {
 
   static check(context: LawCheckContext): LawResult {
     const tally: Tally = { findings: [], notes: [], judged: 0 };
-    for (const file of deployFiles(context)) this.judgeFile(context, file, tally);
-    if (tally.judged === 0) {
-      const result = this.createResult(
-        [
-          'found no serverless deploy command (gcloud run deploy / services replace, aws lambda create-function, az functionapp create --flexconsumption-location, the Cloud Run deploy action) and no deploy definition (Cloud Run service YAML, SAM/CloudFormation function, serverless.yml function, host.json) it could read — this law judged nothing. It was selected because a file names one of them; a mention in prose or a comment is not a command, and what could not be read is listed in the notes',
-        ],
-        this.LAW_NAME,
-        'DEPLOYMENT',
-        [],
-        context
-      );
-      return withNotes(markJudgedNothing(result), tally.notes);
-    }
+    const files = deployFiles(context);
+    for (const file of files) this.judgeFile(context, file, tally);
+    const metrics = { filesRead: files.length, commandsAndDefinitionsJudged: tally.judged, notJudged: tally.notes.length };
+    if (tally.judged === 0) return { ...this.unjudged(context, files.length, tally.notes), metrics };
     const result = this.createResult(
       [...tally.findings].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })),
       this.LAW_NAME,
@@ -151,7 +110,31 @@ export class ServerlessDeployPinsResourcesLaw extends LawBase {
       ],
       context
     );
-    return withNotes(result, tally.notes);
+    const counted = result.passed ? { ...result, message: `${result.message} — ${tally.judged} deploy command(s) / definition(s) judged in ${files.length} file(s)` } : result;
+    return { ...withNotes(counted, tally.notes), metrics };
+  }
+
+  /**
+   * Selected, but nothing judged. Every command it saw left unread (a
+   * whole-argument expansion, an unresolvable file) is judged nothing; a gate
+   * match the detector does not take for a command (a commented-out line)
+   * read its files and found nothing to judge — a pass that says so; no file
+   * read at all is judged nothing.
+   */
+  private static unjudged(context: LawCheckContext, filesRead: number, notes: string[]): LawResult {
+    if (filesRead > 0 && notes.length === 0) {
+      const result = this.createResult([], this.LAW_NAME, 'DEPLOYMENT', [], context);
+      return {
+        ...result,
+        message: `${this.LAW_NAME}: ${filesRead} file(s) read, no serverless deploy command or definition in them to judge (what selected the law is not a command here, e.g. a commented-out line)`,
+      };
+    }
+    const why =
+      filesRead === 0
+        ? 'read no file with a serverless deploy command or definition'
+        : `saw deploy commands in ${filesRead} file(s) but could read none of them (see the notes)`;
+    const result = this.createResult([`${this.LAW_NAME} ${why} — this law judged nothing`], this.LAW_NAME, 'DEPLOYMENT', [], context);
+    return withNotes(markJudgedNothing(result), notes);
   }
 
   private static judgeFile(context: LawCheckContext, file: DeployFile, tally: Tally): void {

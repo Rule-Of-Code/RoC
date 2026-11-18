@@ -23,11 +23,9 @@
  * database, an injected network delay; and a recorded baseline.
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
 import type { LawRequirement } from '../../types/enhanced-law.types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { filesContaining } from '../../utils/law-requirements';
+import { readFilesContaining } from '../../utils/law-requirements';
 import { LawBase } from '../law-base';
 import { firstMatch, readProjectFiles, type TextFile } from './project-text-files';
 
@@ -135,13 +133,9 @@ export class LatencyBudgetHarnessRealismLaw extends LawBase {
 
   /** The latency budgets the gate matched, read through the gate's own reader so the two cannot disagree. */
   private static latencyBudgets(projectRoot: string): TextFile[] {
-    return REQUIRES_LATENCY_BUDGET.anyFileContaining!.flatMap(entry => filesContaining(projectRoot, entry)).flatMap(file => {
-      try {
-        return [{ rel: path.relative(projectRoot, file).replace(/\\/g, '/'), content: fs.readFileSync(file, 'utf8') }];
-      } catch {
-        return [];
-      }
-    });
+    return REQUIRES_LATENCY_BUDGET.anyFileContaining!.flatMap(entry =>
+      readFilesContaining(projectRoot, entry).map(({ rel, content }) => ({ rel, content }))
+    );
   }
 
   /** Every script or config that names a budget file, or the budget directory it sits in. */

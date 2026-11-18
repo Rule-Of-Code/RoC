@@ -135,30 +135,49 @@ export function describeMissing(missing: ReadonlyArray<{ setting: Setting; names
   return missing.map(({ setting, names }) => `${setting} (${names.join(' / ')})`).join(', ');
 }
 
-/** The files a deploy command or definition can live in — what the law reads. */
-export const DEPLOY_FILE_GLOBS: readonly string[] = [
-  '**/*.{yml,yaml,json,template,sh,bash,ps1,mk}',
-  '**/{Makefile,makefile,GNUmakefile}',
-];
+/** Test trees hold fixtures, not the project's deploy. */
+const TEST_TREES = ['**/test/**', '**/tests/**', '**/e2e/**', '**/__fixtures__/**', '**/fixtures/**'];
+
+/** Files whose text is read for shell commands (CI YAML, scripts, Makefiles, package.json scripts). */
+const COMMAND_FILES = ['**/*.{yml,yaml,template,sh,bash,ps1,mk}', '**/{Makefile,makefile,GNUmakefile}', '**/package.json'];
+const YAML_FILES = ['**/*.{yml,yaml,template}'];
 
 /**
- * The subject of the law, for `requires.anyFileContaining`: a command or a
- * definition from the registry above, written in one of the files it reads.
+ * Where a command may start on its line — the detector's own rule
+ * (deploy-commands COMMAND_POSITION), as a prefix: the line start or a list
+ * dash, a shell operator or keyword, a YAML key, an env assignment, Make's
+ * `@`. A quote opens a command only when the command continues inside it.
+ */
+const POSITION = String.raw`(?:^[ \t]*(?:-[ \t]+)?|[;&|(` + '`' + String.raw`@][ \t]*|\$\([ \t]*|\b(?:then|do|else|exec|time|sudo|env|xargs)[ \t]+|:[ \t]*(?:[|>][-+]?)?[ \t]*|\b[A-Za-z_]\w*=\S*[ \t]+)`;
+const COMMANDS = String.raw`(?:gcloud(?:[ \t]+(?:alpha|beta))?[ \t]+run[ \t]+(?:deploy|services[ \t]+replace)|aws[ \t]+lambda[ \t]+create-function)\b`;
+/** az functionapp create is judged only on Flex Consumption: the flag on its line or a continuation line. */
+const AZ_FLEX = String.raw`az[ \t]+functionapp[ \t]+create\b(?:[^\n]*[\\` + '`' + String.raw`^][ \t]*\r?\n)*[^\n]*?(?:--flexconsumption-location|[ \t]-f(?=[ \t=]))`;
+const AT_COMMAND = String.raw`(?:${POSITION}(?:${COMMANDS}|${AZ_FLEX})|["'](?:${COMMANDS})(?!["']))`;
+
+/** A Cloud Build step whose gcloud/aws entrypoint runs a registry command through `args`. */
+const ARGS_STEP = [
+  String.raw`(?:entrypoint:[ \t]*["']?gcloud["']?|name:[ \t]*["']?gcr\.io/cloud-builders/gcloud(?::[\w.-]+)?["']?)[ \t]*\r?\n(?:[ \t]+.*\r?\n)*?[ \t]*args:[ \t]*`,
+  String.raw`(?:\[[ \t]*["']?run["']?[ \t]*,[ \t\r\n]*["']?(?:deploy|services)["']?|\r?\n[ \t]*-[ \t]*["']?run["']?[ \t]*\r?\n[ \t]*-[ \t]*["']?(?:deploy|services)\b)`,
+].join('');
+const AWS_ARGS_STEP = String.raw`entrypoint:[ \t]*["']?aws["']?[ \t]*\r?\n(?:[ \t]+.*\r?\n)*?[ \t]*args:[ \t]*(?:\[[ \t]*["']?lambda["']?[ \t]*,[ \t\r\n]*["']?create-function|\r?\n[ \t]*-[ \t]*["']?lambda["']?[ \t]*\r?\n[ \t]*-[ \t]*["']?create-function\b)`;
+
+/**
+ * The subject of the law, for `requires.anyFileContaining`, entry by entry
+ * the same kinds of file and of text the law judges: a registry command at a
+ * command position, a Cloud Build args step, the deploy action, a SAM /
+ * CloudFormation function, serverless.yml functions, a v2 host.json. The law
+ * reads exactly the files these entries match (readFilesContaining), so a
+ * mention in prose, a JSON string or a git-ignored file selects nothing.
  */
 export const REQUIRES_SERVERLESS_DEPLOY: LawRequirement = {
   anyFileContaining: [
-    {
-      files: DEPLOY_FILE_GLOBS,
-      pattern: [
-        String.raw`\bgcloud(?:\s+(?:alpha|beta))?\s+run\s+(?:deploy|services\s+replace)\b`,
-        String.raw`\baws\s+lambda\s+create-function\b`,
-        String.raw`\baz\s+functionapp\s+create\b`,
-        String.raw`google-github-actions/deploy-cloudrun@`,
-        String.raw`AWS::(?:Serverless|Lambda)::Function`,
-        String.raw`cloud-builders/gcloud|["']?entrypoint["']?\s*:\s*["']?(?:gcloud|aws|az)\b`,
-      ].join('|'),
-    },
-    { files: ['**/serverless.{yml,yaml}'], pattern: String.raw`^functions\s*:` },
-    { files: ['**/host.json'], pattern: String.raw`"version"\s*:\s*"2` },
+    { files: COMMAND_FILES, pattern: AT_COMMAND, exclude: TEST_TREES },
+    { files: YAML_FILES, pattern: `${ARGS_STEP}|${AWS_ARGS_STEP}`, exclude: TEST_TREES },
+    { files: ['**/cloudbuild*.json'], pattern: String.raw`"entrypoint"\s*:\s*"gcloud"[^\]]*?"args"\s*:\s*\[\s*"run"\s*,\s*"(?:deploy|services)"`, exclude: TEST_TREES },
+    { files: YAML_FILES, pattern: String.raw`^[ \t]*(?:-[ \t]+)?uses:[ \t]*["']?google-github-actions/deploy-cloudrun@`, exclude: TEST_TREES },
+    { files: YAML_FILES, pattern: String.raw`^[ \t]*Type:[ \t]*["']?AWS::(?:Serverless|Lambda)::Function\b`, exclude: TEST_TREES },
+    { files: ['**/*.json'], pattern: String.raw`"Type"\s*:\s*"AWS::(?:Serverless|Lambda)::Function"`, exclude: TEST_TREES },
+    { files: ['**/serverless.{yml,yaml}'], pattern: String.raw`^functions:[ \t]*\r?\n[ \t]+[\w-]+[ \t]*:`, exclude: TEST_TREES },
+    { files: ['**/host.json'], pattern: String.raw`"version"\s*:\s*"2`, exclude: TEST_TREES },
   ],
 };

@@ -193,13 +193,14 @@ describe('Independent Awaits Run Concurrently (#351)', () => {
     });
   });
 
-  it('selected but its parse finds no async function outside tests: it says it judged nothing', () => {
-    // The gate matches the async def in the test file; the law reads no tests.
+  it('an async def only in a test file does not select the law: the gate leaves out the tests the law never reads', () => {
+    // The gate and the law read one set of files (readFilesContaining), so a
+    // subject the law would not judge cannot select it.
     const files = { ...py(['def f(repo):', '    return repo.a()']), 'tests/test_f.py': 'async def test_f():\n    pass\n' };
-    expect(lawRequirementsMet(REQUEST_PATH_LAWS[0]?.requires, project(files))).toBe(true);
+    expect(lawRequirementsMet(REQUEST_PATH_LAWS[0]?.requires, project(files))).toBe(false);
     const result = check(files);
     expect(result.passed).toBe(false);
     expect(result.score).toBe(0);
-    expect(result.violations?.[0]).toMatch(/nothing was judged — no async function in 1 Python and 0 TS\/JS source file\(s\)/);
+    expect(result.violations?.[0]).toMatch(/nothing was judged — no async function in 0 Python and 0 TS\/JS source file\(s\)/);
   });
 });

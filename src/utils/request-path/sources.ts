@@ -14,6 +14,7 @@
 import type { LawCheckContext } from '../../types/law.types';
 import { PythonLawBase } from '../../checkers/python-laws/python-law-base';
 import { CheckerUtils } from '../checker-utils';
+import type { ContainingFile } from '../law-requirements';
 import { FileUtils } from '../file-utils';
 import { PathOperations } from '../path-operations';
 import { loadTypeScript, parserUnavailable } from '../react/tsx-source';
@@ -95,5 +96,32 @@ export function projectSources(
   const sources: ProjectSources = { modules: [], unread: [], counts: { python: 0, typescript: 0 } };
   if (languages.includes('python')) readPython(context, sources);
   if (languages.includes('typescript')) readTypeScript(context, sources);
+  return sources;
+}
+
+const PYTHON_FILE = /\.py$/;
+
+/**
+ * The request-path model of exactly these files — the ones a law's
+ * `requires.anyFileContaining` gate matched (see readFilesContaining), so
+ * the files that select the law are the files it judges.
+ */
+export function sourcesFromFiles(projectRoot: string, files: readonly ContainingFile[]): ProjectSources {
+  const sources: ProjectSources = { modules: [], unread: [], counts: { python: 0, typescript: 0 } };
+  const scripts = files.filter(found => !PYTHON_FILE.test(found.rel));
+  for (const found of files.filter(candidate => PYTHON_FILE.test(candidate.rel))) {
+    sources.modules.push(parsed(found.file, found.content, () => pythonModule(found.file, found.rel, found.content)));
+    sources.counts.python++;
+  }
+  if (scripts.length === 0) return sources;
+  const ts = loadTypeScript(projectRoot);
+  if (!ts) {
+    sources.unread.push(`${scripts.length} TS/JS file(s): ${parserUnavailable(projectRoot)}`);
+    return sources;
+  }
+  for (const found of scripts) {
+    sources.modules.push(parsed(found.file, found.content, () => typescriptModule(ts, found.file, found.rel, found.content)));
+    sources.counts.typescript++;
+  }
   return sources;
 }

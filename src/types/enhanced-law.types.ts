@@ -68,6 +68,13 @@ export interface LawRequirement {
    * At least one entry holds: a file matched by one of its globs (relative
    * to the workspace root or a workspace project directory, outside
    * installed, built and virtualenv trees) contains its regular expression.
+   * Inside a git work tree only what git publishes is read — tracked files
+   * (from the index when the working copy differs) and untracked files that
+   * are not ignored — so a git-ignored file never selects a law; outside git
+   * the disk is walked. The project's `ignores.global` (#326) is passed by
+   * every caller and leaves those files out. A law gated this way reads its
+   * files through readFilesContaining with the same ignores, so what selects
+   * it is what it judges.
    * For a law whose subject is written in files no manifest declares — a
    * deploy command in a CI step, a split @font-face in a stylesheet — so the
    * law is not selected where the subject is absent.
@@ -81,6 +88,8 @@ export interface FileContaining {
   files: readonly string[];
   /** Regular-expression source, compiled with the `m` flag. */
   pattern: string;
+  /** Globs left out of `files` (test trees, fixtures) — for the gate and for the law reading through it. */
+  exclude?: readonly string[];
 }
 
 export interface EnhancedConstitutionalLaw {

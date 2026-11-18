@@ -23,7 +23,8 @@ import { markJudgedNothing } from '../../utils/judged-nothing';
 import { FileUtils } from '../../utils/file-utils';
 import { NxWorkspace } from '../../utils/nx-workspace';
 import { PathOperations } from '../../utils/path-operations';
-import { parseUnicodeRange, rangeCovers, type Script, scriptOfLocale } from '../../utils/performance/font-subsets';
+import { readFilesContaining } from '../../utils/law-requirements';
+import { parseUnicodeRange, rangeCovers, REQUIRES_UNICODE_RANGE_FONT, type Script, scriptOfLocale } from '../../utils/performance/font-subsets';
 import { LawBase } from '../law-base';
 
 interface FontFace {
@@ -54,7 +55,7 @@ interface Text {
 }
 
 const DOCUMENT_EXTENSIONS = ['.html', '.htm', '.tsx', '.jsx', '.vue', '.svelte', '.astro'];
-const STYLE_EXTENSIONS = ['.css', '.scss', '.sass', '.less'];
+const STYLE_FILE = /\.(?:css|scss|sass|less)$/i;
 const HOSTING_HEADER_FILES = ['firebase.json', '_headers', 'vercel.json', 'netlify.toml', 'staticwebapp.config.json'];
 const TEST_FILE = /\.(?:spec|test|stories)\.[jt]sx?$/;
 
@@ -160,10 +161,24 @@ export class PrimaryLocaleFontPreloadedLaw extends LawBase {
     const scan = (extensions: string[]): string[] =>
       FileUtils.scanForFiles(context.projectRoot, context.config, extensions, context.lawId, false).filter(file => !TEST_FILE.test(file));
     const documents = read(context, scan(DOCUMENT_EXTENSIONS));
-    const faces = [...read(context, scan(STYLE_EXTENSIONS)).flatMap(sheet => facesIn(sheet.rel, sheet.text)), ...documents.flatMap(styleBlocks)];
+    // The faces come from exactly the files that selected the law (its
+    // requires.anyFileContaining set, read through the gate's reader).
+    const faceFiles = (REQUIRES_UNICODE_RANGE_FONT.anyFileContaining ?? []).flatMap(entry => readFilesContaining(context.projectRoot, entry, context.config.ignores?.global ?? []));
+    const faces = faceFiles.flatMap(found =>
+      STYLE_FILE.test(found.rel) ? facesIn(found.rel, found.content) : styleBlocks({ file: found.file, rel: found.rel, text: found.content })
+    );
     const families = splitFamilies(faces);
+    const metrics = { faceFilesRead: faceFiles.length, splitFamilies: families.size };
+    if (faceFiles.length === 0) {
+      return { ...this.nothing(context, 'read no file with an @font-face that has a unicode-range'), metrics };
+    }
     if (families.size === 0) {
-      return this.nothing(context, 'found no @font-face family split by unicode-range in the project\'s stylesheets');
+      const result = this.createResult([], this.LAW_NAME, 'PERFORMANCE', [], context);
+      return {
+        ...result,
+        message: `${this.LAW_NAME}: ${faceFiles.length} file(s) with @font-face read, no family is split into subsets by unicode-range — no subset to preload`,
+        metrics,
+      };
     }
     const locales = this.locales(context, documents);
     const judged = locales.flatMap(declared => {
@@ -180,7 +195,7 @@ export class PrimaryLocaleFontPreloadedLaw extends LawBase {
       );
     }
     const preloads = [...documents.flatMap(preloadsIn), ...headerPreloads(this.hostingHeaders(context))];
-    return this.createResult(
+    const result = this.createResult(
       this.judge(families, judged, preloads),
       this.LAW_NAME,
       'PERFORMANCE',
@@ -190,6 +205,10 @@ export class PrimaryLocaleFontPreloadedLaw extends LawBase {
       ],
       context
     );
+    const counted = result.passed
+      ? { ...result, message: `${result.message} — ${families.size} split famil${families.size === 1 ? 'y' : 'ies'} in ${faceFiles.length} file(s), locale(s) ${judged.map(declared => declared.locale).join(', ')}` }
+      : result;
+    return { ...counted, metrics: { ...metrics, localesJudged: judged.length } };
   }
 
   private static judge(families: Map<string, FontFace[]>, locales: Array<DeclaredLocale & { script: Script }>, preloads: Preload[]): string[] {

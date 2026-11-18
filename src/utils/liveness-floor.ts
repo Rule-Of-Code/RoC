@@ -72,7 +72,7 @@ export function livenessApplicableLaws(config: LivenessConfig, projectRoot: stri
     l =>
       runsWithoutAllowlist({ name: l.title, id: l.id, defaultEnabled: l.defaultEnabled }, severity) &&
       lawAppliesToProjectType(l.stack, projectType, projectRoot, l, config.ignores?.global) &&
-      lawRequirementsMet(l.requires, projectRoot)
+      lawRequirementsMet(l.requires, projectRoot, config.ignores?.global)
   ).length;
 }
 

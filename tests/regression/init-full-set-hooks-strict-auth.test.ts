@@ -15,7 +15,7 @@
  * #345 the component-spec evidence counted a `createComponent(` in a comment
  *     and a type-only Testing Library import.
  */
-import { execFileSync } from 'child_process';
+import { execFileSync } from '../../src/utils/child-process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';

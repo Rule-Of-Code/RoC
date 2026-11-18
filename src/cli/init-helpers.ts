@@ -4,6 +4,7 @@ import { DEFAULT_CONFIG } from '../config/types';
 import { CheckerUtils } from '../utils/checker-utils';
 import { ProjectTypeDetector } from '../utils/config/project-type-detector';
 import { FileUtils } from '../utils/file-utils';
+import { resolveGitHooksDir } from '../utils/git/git-layout';
 import { PathOperations } from '../utils/path-operations';
 
 /** The project types a config may declare — the one list, from the config schema. */
@@ -130,6 +131,43 @@ export function generateConfigFile(config: RuleOfCodeConfig): string {
 }
 
 /**
+ * Install the hooks, then CHECK that git runs them in the target repository.
+ *
+ * Fails closed: "installed successfully" is printed only when the target's
+ * own `core.hooksPath` (or its default hooks directory) resolves to an
+ * existing directory holding every enabled hook. Husky's exit code cannot
+ * say so: it exits 0 when `.git` is not in the directory or HUSKY=0 is set,
+ * and with an inherited GIT_DIR it used to write another repository's
+ * config while this one got nothing (#372).
+ */
+function installHooksOrFail(
+  installer: typeof import('../hooks/installer').GitHooksInstaller,
+  projectRoot: string,
+  config: RuleOfCodeConfig
+): void {
+  if (resolveGitHooksDir(projectRoot) === null) {
+    throw new Error(
+      'git hooks need a git repository and this directory is not inside one. ' +
+        'The configuration was written; run `git init` and re-run init, or ' +
+        'pass --no-hooks.'
+    );
+  }
+  console.log('Installing git hooks...');
+  installer.ensureHusky(projectRoot);
+  installer.install({ projectRoot, config });
+
+  const { installed, problems } = installer.verifyInstalled(projectRoot, config);
+  if (!installed) {
+    throw new Error(
+      `git hooks are NOT active in this repository: ${problems.join('; ')}. ` +
+        'The configuration and the .husky/ scripts were written; run ' +
+        '`npx husky` at the root of the repository to activate them.'
+    );
+  }
+  console.log('✅ Git hooks installed successfully');
+}
+
+/**
  * Quick setup mode - uses production-ready defaults
  */
 export async function setupQuickMode(
@@ -179,9 +217,7 @@ export async function setupQuickMode(
   console.log(`Configuration saved to ${PathOperations.getBasename(configPath)}`);
 
   if (options.hooks !== false) {
-    console.log('Installing git hooks...');
-    GitHooksInstaller.ensureHusky(projectRoot);
-    GitHooksInstaller.install({ projectRoot, config });
+    installHooksOrFail(GitHooksInstaller, projectRoot, config);
   }
 
   console.log('\n🎉 Quick setup complete!');

@@ -3,7 +3,7 @@
  * Caches audit results to improve performance on subsequent runs
  */
 
-import { execSync } from 'child_process';
+import { execSync } from '../../utils/child-process';
 import crypto from 'crypto';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';

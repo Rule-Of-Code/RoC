@@ -5,8 +5,10 @@
 
 import chalk from 'chalk';
 import type { RuleOfCodeConfig } from '../config/types';
+import { execFileSync, execSync } from '../utils/child-process';
 import { ProjectTypeDetectorValidation } from '../utils/config/project-type-detector/project-type-detector-validation';
 import { FileUtils } from '../utils/file-utils';
+import { hookInstallation } from '../utils/git-hook-status';
 import { PathOperations } from '../utils/path-operations';
 import { PythonSatisfaction } from '../utils/python-satisfaction';
 
@@ -71,7 +73,7 @@ export class GitHooksInstaller {
       }
     }
 
-    console.log(chalk.greenBright('✅ Git hooks installed successfully'));
+    console.log(chalk.greenBright('✅ Hook scripts written to .husky/'));
   }
 
   /**
@@ -527,57 +529,118 @@ echo "✅ Custom hook ${hookName} completed"
   }
 
   /**
-   * Install husky if not present
+   * Install husky if it is not a dependency yet, then let it activate the
+   * hooks in this checkout (`core.hooksPath`).
+   *
+   * The activation step runs even when husky is already a dependency: being
+   * listed in package.json says nothing about whether git runs the hooks in
+   * this checkout (a fresh clone, or a project that never ran `husky`). Whether
+   * it worked is not taken from husky's output (husky exits 0 when it cannot
+   * find `.git` or is disabled with HUSKY=0) but checked afterwards by
+   * {@link verifyInstalled}.
    */
   static ensureHusky(projectRoot: string): void {
     if (this.isHuskyInstalled(projectRoot)) {
-      console.log('✅ Husky already installed');
-      return;
+      console.log('✅ Husky already a dependency');
+    } else {
+      console.log('📦 Installing Husky...');
+      this.runSetupStep('Failed to install Husky', () =>
+        execSync('npm install --save-dev husky', {
+          cwd: projectRoot,
+          stdio: 'inherit',
+        })
+      );
     }
 
-    console.log('📦 Installing Husky...');
+    // `husky install` is deprecated in husky v9 (removed in v10); the v9 setup
+    // command is just `husky`. The locally installed one is run directly, so
+    // the version the project pinned is the one that writes core.hooksPath.
+    const localBin = this.localHuskyBin(projectRoot);
+    this.runSetupStep('Failed to activate Husky', () =>
+      localBin
+        ? execFileSync(process.execPath, [localBin], {
+            cwd: projectRoot,
+            stdio: 'inherit',
+          })
+        : execSync('npx husky', { cwd: projectRoot, stdio: 'inherit' })
+    );
 
-    const { execSync } = require('child_process');
+    this.addPrepareScript(projectRoot);
+  }
 
+  /** Run one setup step, rethrowing its failure under `message`. */
+  private static runSetupStep(message: string, step: () => unknown): void {
     try {
-      // Install husky as dev dependency
-      execSync('npm install --save-dev husky', {
-        cwd: projectRoot,
-        stdio: 'inherit',
-      });
-
-      // Initialize husky. `husky install` is deprecated in husky v9 (removed in
-      // v10); the v9 setup command is just `husky`.
-      execSync('npx husky', {
-        cwd: projectRoot,
-        stdio: 'inherit',
-      });
-
-      // Add prepare script to package.json
-      const packageJsonPath = PathOperations.join(
-        projectRoot,
-        this.PACKAGE_JSON_FILE
-      );
-      const packageJson =
-        FileUtils.readJsonFile<Record<string, unknown>>(packageJsonPath);
-
-      const scripts = (packageJson.scripts ?? {}) as Record<string, string>;
-      packageJson.scripts = scripts;
-
-      if (!scripts.prepare) {
-        scripts.prepare = 'husky';
-        FileUtils.writeFile(
-          packageJsonPath,
-          JSON.stringify(packageJson, null, 2)
-        );
-        console.log('✅ Added prepare script to package.json');
-      }
-
-      console.log('✅ Husky installed and configured');
+      step();
     } catch (_error) {
       const err = _error as Error;
-      throw new Error(`Failed to install Husky: ${err.message}`);
+      throw new Error(`${message}: ${err.message}`);
     }
+  }
+
+  /** `node_modules/husky`'s bin script under `projectRoot`, or null. */
+  private static localHuskyBin(projectRoot: string): string | null {
+    const dir = PathOperations.join(projectRoot, 'node_modules', 'husky');
+    const manifestPath = PathOperations.join(dir, this.PACKAGE_JSON_FILE);
+    if (!FileUtils.exists(manifestPath)) return null;
+    try {
+      const manifest = FileUtils.readJsonFile<{
+        bin?: string | Record<string, string>;
+      }>(manifestPath);
+      const bin =
+        typeof manifest.bin === 'string' ? manifest.bin : manifest.bin?.husky;
+      const binPath = bin ? PathOperations.join(dir, bin) : null;
+      return binPath && FileUtils.exists(binPath) ? binPath : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Add `prepare: husky` so a fresh clone activates the hooks on install. */
+  private static addPrepareScript(projectRoot: string): void {
+    const packageJsonPath = PathOperations.join(
+      projectRoot,
+      this.PACKAGE_JSON_FILE
+    );
+    if (!FileUtils.exists(packageJsonPath)) return;
+    const packageJson =
+      FileUtils.readJsonFile<Record<string, unknown>>(packageJsonPath);
+
+    const scripts = (packageJson.scripts ?? {}) as Record<string, string>;
+    packageJson.scripts = scripts;
+
+    if (!scripts.prepare) {
+      scripts.prepare = 'husky';
+      FileUtils.writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2));
+      console.log('✅ Added prepare script to package.json');
+    }
+  }
+
+  /** The hook names `config` enables. */
+  static enabledHooks(config: RuleOfCodeConfig): string[] {
+    const hooks: string[] = [];
+    if (config.hooks.preCommit) hooks.push(this.PRE_COMMIT_HOOK);
+    if (config.hooks.prePush) hooks.push(this.PRE_PUSH_HOOK);
+    if (config.hooks.commitMsg) hooks.push(this.COMMIT_MSG_HOOK);
+    hooks.push(...Object.keys(config.hooks.custom ?? {}));
+    return hooks;
+  }
+
+  /**
+   * Does git, in the repository of `projectRoot` itself, run every hook
+   * `config` enables? Asked of git through the shared child environment, so
+   * an inherited GIT_DIR cannot answer for another repository (#372).
+   */
+  static verifyInstalled(
+    projectRoot: string,
+    config: RuleOfCodeConfig
+  ): { installed: boolean; problems: string[] } {
+    const problems = this.enabledHooks(config)
+      .map(hook => hookInstallation(projectRoot, hook))
+      .filter(state => !state.installed)
+      .map(state => state.reason);
+    const unique = [...new Set(problems)];
+    return { installed: unique.length === 0, problems: unique };
   }
 
   /**

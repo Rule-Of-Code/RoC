@@ -9,7 +9,10 @@ import {
   generateProConfig,
   setupQuickMode,
 } from '../../src/cli/init-helpers';
+import * as fs from 'fs';
+import * as path from 'path';
 import { DEFAULT_CONFIG } from '../../src/config/types';
+import { execFileSync } from '../../src/utils/child-process';
 import { FileUtils } from '../../src/utils/file-utils';
 import { PathOperations } from '../../src/utils/path-operations';
 
@@ -180,6 +183,20 @@ describe('cli/init-helpers', () => {
     });
   });
 
+  /** `git init` plus a copy of this repository's husky, so nothing is downloaded. */
+  function repositoryWithLocalHusky(dir: string): void {
+    execFileSync('git', ['init', '-q'], { cwd: dir, stdio: 'ignore' });
+    fs.writeFileSync(
+      path.join(dir, 'package.json'),
+      JSON.stringify({ name: 'test-project', version: '1.0.0', devDependencies: { husky: '^9.0.0' } })
+    );
+    fs.cpSync(
+      path.resolve(__dirname, '..', '..', 'node_modules', 'husky'),
+      path.join(dir, 'node_modules', 'husky'),
+      { recursive: true }
+    );
+  }
+
   describe('setupQuickMode', () => {
     let tempDir: string;
     let consoleSpy: jest.SpyInstance;
@@ -242,23 +259,27 @@ describe('cli/init-helpers', () => {
     });
 
     it('should install hooks when hooks option is not provided', async () => {
-      // Create .git directory
-      FileUtils.createDirectory(PathOperations.join(tempDir, '.git'));
+      // A real repository with husky present locally: an empty .git
+      // directory is not one, and init now checks that git runs the hooks.
+      repositoryWithLocalHusky(tempDir);
 
       await setupQuickMode(tempDir, {});
 
       const calls = consoleSpy.mock.calls.map(c => c[0]).join(' ');
       expect(calls).toContain('Installing git hooks');
+      expect(calls).toContain('Git hooks installed successfully');
     });
 
     it('should install hooks when hooks option is true', async () => {
-      // Create .git directory
-      FileUtils.createDirectory(PathOperations.join(tempDir, '.git'));
+      // A real repository with husky present locally: an empty .git
+      // directory is not one, and init now checks that git runs the hooks.
+      repositoryWithLocalHusky(tempDir);
 
       await setupQuickMode(tempDir, { hooks: true });
 
       const calls = consoleSpy.mock.calls.map(c => c[0]).join(' ');
       expect(calls).toContain('Installing git hooks');
+      expect(calls).toContain('Git hooks installed successfully');
     });
 
     it('should use ui prefix for non-angular projects', async () => {

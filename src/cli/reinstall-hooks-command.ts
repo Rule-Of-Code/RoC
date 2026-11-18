@@ -66,6 +66,22 @@ export async function executeReinstallHooksAction(
       force: true,
     });
 
+    // The scripts are rewritten; whether git runs them is a separate fact,
+    // asked of the target repository itself (#372).
+    const active = GitHooksInstaller.verifyInstalled(projectRoot, config);
+    if (!active.installed) {
+      console.error(
+        chalk.red(
+          `\n❌ Hook scripts rewritten to v${getVersion()}, but git does NOT run them here: ${active.problems.join('; ')}`
+        )
+      );
+      console.error(
+        chalk.gray('   Run `npx husky` at the root of the repository.\n')
+      );
+      process.exitCode = 1;
+      return;
+    }
+
     console.log(
       chalk.green(
         `\n✅ Git hooks reinstalled successfully to v${getVersion()}!`

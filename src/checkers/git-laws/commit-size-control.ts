@@ -3,7 +3,7 @@
  * Ensures commits are atomic and not too large
  */
 
-import { execSync } from 'child_process';
+import { execSync } from '../../utils/child-process';
 import type {
   LawCheckContext,
   LawResult,

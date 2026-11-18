@@ -279,6 +279,107 @@ async def shared_zone(group_id):
     });
   });
 
+  describe('the two-container idiom: an in-flight map plus a cache of results (QA, rc1)', () => {
+    // The stored value is what `await task` returned — a result, not a future —
+    // and the task it awaited is the shared one from `inflight`: the fetch is coalesced.
+    const TWO_DICTS = [
+      'import asyncio',
+      '',
+      'cache: dict = {}',
+      'inflight: dict = {}',
+      '',
+      '',
+      'async def get_profile(uid):',
+      '    if uid in cache:',
+      '        return cache[uid]',
+      '    task = inflight.get(uid)',
+      '    if task is None:',
+      '        task = asyncio.create_task(load(uid))',
+      '        inflight[uid] = task',
+      '    try:',
+      '        value = await task',
+      '    except Exception:',
+      '        inflight.pop(uid, None)',
+      '        raise',
+      '    cache[uid] = value',
+      '    inflight.pop(uid, None)',
+      '    return value',
+      '',
+    ].join('\n');
+
+    it('green: the result of awaiting the shared task is stored in the result cache', () => {
+      const result = run({ 'app/profiles.py': TWO_DICTS });
+      expect(result.violations).toEqual([]);
+      expect(result.passed).toBe(true);
+      expect(result.metrics).toMatchObject({
+        inFlightSites: 1,
+        joinedFlightSites: 1,
+      });
+    });
+
+    it('green: the same with finally: inflight.pop and the result stored after it', () => {
+      const withFinally = TWO_DICTS.replace(
+        '    try:\n        value = await task\n    except Exception:\n        inflight.pop(uid, None)\n        raise\n    cache[uid] = value\n    inflight.pop(uid, None)\n',
+        '    try:\n        result = await task\n    finally:\n        inflight.pop(uid, None)\n    cache[uid] = result\n'
+      );
+      expect(run({ 'app/profiles.py': withFinally }).violations).toEqual([]);
+    });
+
+    it('still red: the in-flight entry is never removed when the task fails', () => {
+      const noRemoval = TWO_DICTS.replace(
+        '    try:\n        value = await task\n    except Exception:\n        inflight.pop(uid, None)\n        raise\n',
+        '    value = await task\n'
+      ).replace(
+        '    inflight.pop(uid, None)\n    return value',
+        '    return value'
+      );
+      expect(run({ 'app/profiles.py': noRemoval }).violations).toEqual([
+        expect.stringMatching(
+          /^app\/profiles\.py:13: get_profile stores the in-flight future\/promise in inflight but never removes it when it fails/
+        ),
+      ]);
+    });
+
+    it('still red: a fresh call awaited per caller, stored after the await', () => {
+      const fresh = TWO_DICTS.replace(
+        '        value = await task',
+        '        value = await load(uid)'
+      );
+      expect(run({ 'app/profiles.py': fresh }).violations).toEqual([
+        expect.stringMatching(
+          /^app\/profiles\.py:19: get_profile checks cache \(line 8\) and stores into it only after awaiting load\(…\) \(line 15\)/
+        ),
+      ]);
+    });
+
+    it('green: the TS equivalent (a promise map plus a result map)', () => {
+      const ts = [
+        'const cache = new Map<string, unknown>();',
+        'const inflight = new Map<string, Promise<unknown>>();',
+        '',
+        'export async function getProfile(id: string) {',
+        '  if (cache.has(id)) return cache.get(id);',
+        '  let pending = inflight.get(id);',
+        '  if (!pending) {',
+        '    pending = loadProfile(id).catch(err => {',
+        '      inflight.delete(id);',
+        '      throw err;',
+        '    });',
+        '    inflight.set(id, pending);',
+        '  }',
+        '  const value = await pending;',
+        '  cache.set(id, value);',
+        '  inflight.delete(id);',
+        '  return value;',
+        '}',
+        '',
+      ].join('\n');
+      const result = run({ 'src/profiles.ts': ts });
+      expect(result.violations).toEqual([]);
+      expect(result.metrics).toMatchObject({ joinedFlightSites: 1 });
+    });
+  });
+
   describe('TS/JS', () => {
     const STORE_AFTER_AWAIT_TS = `const profiles = new Map<string, unknown>();
 

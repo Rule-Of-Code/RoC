@@ -37,7 +37,8 @@ export class NgRxEffectPatternsValidation {
       ],
       config
     ).filter(file =>
-      this.Config.isEffectFile(PathOperations.getBasename(file))
+      // The name WITH its extension: isEffectFile looks for `.effects.ts` (#369).
+      this.Config.isEffectFile(PathOperations.getFilename(file))
     );
 
     for (const file of effectFiles) {

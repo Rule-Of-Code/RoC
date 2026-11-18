@@ -17,10 +17,11 @@ import {
   describeRequirement,
   lawRequirementsMet,
 } from '../../utils/law-requirements';
-import { describeLivenessFloor, livenessFloorOf, narrowingOf } from '../../utils/liveness-floor';
+import { CATEGORIES_KEY, categoriesOf, describeLivenessFloor, livenessFloorOf, narrowingOf } from '../../utils/liveness-floor';
 import { honouredWaiverReason } from '../../utils/law-waivers';
 import { NxWorkspace } from '../../utils/nx-workspace';
 import { PathOperations } from '../../utils/path-operations';
+import { selectionProjectType } from '../../utils/selection-project-type';
 import { AuditCache } from './audit-cache';
 import type { AuditOptions, AuditProjectType, AuditResult, AuditScope, WaivedLaw } from './audit-types';
 import { AuditResultProcessor } from './result-processor';
@@ -137,6 +138,17 @@ export class RuleOfCodeAuditor {
 
     // Store scoring config for result processor
     (this.options as any).scoring = configScoring;
+
+    // A narrowing by `categories` is recorded in the config the run audits
+    // with (a copy, the caller's object is left alone): the selector, the
+    // scope and the Audit Liveness law then read one value (#370).
+    const categories = this.options.categories ?? [];
+    if (categories.length > 0) {
+      this.config = {
+        ...this.config,
+        laws: { ...this.config.laws, [CATEGORIES_KEY]: [...categories] },
+      } as RuleOfCodeConfig;
+    }
   }
 
   async audit(): Promise<AuditResult> {
@@ -358,12 +370,13 @@ export class RuleOfCodeAuditor {
    * every pre-commit, and the value that passed pre-commit left slack in full.
    */
   private getSelectedLaws(config: RuleOfCodeConfig = this.config): unknown[] {
-    const registry = ModularLawsRegistry.getInstance();
-
-    const selected =
-      this.options.categories && this.options.categories.length > 0
-        ? registry.getLawsByCategories(this.options.categories)
-        : ModularLawsRegistry.getEnabled(config);
+    // `categories` narrows the default selection, it does not replace it:
+    // waivers, the opt-in rule and the meta-gates hold exactly as without
+    // it (#370). It came from a separate registry call that honoured none.
+    const selected = ModularLawsRegistry.inCategories(
+      ModularLawsRegistry.getEnabled(config),
+      categoriesOf(config.laws)
+    );
 
     // Stack gating: skip laws whose stack scope does not match the project type
     // (e.g. Core Web Vitals / NgRx never run on a Python backend, and the Python
@@ -421,9 +434,10 @@ export class RuleOfCodeAuditor {
   /** Detected project type — config override first, then filesystem detection. */
   /**
    * How much of the applicable law set this run covers (#348). M is what the
-   * same selection gives with no `laws.enabled` allowlist and no Pareto — the
-   * laws that apply to this project; N is the substantive laws selected. A
-   * run narrowed either way, with N < M, is PARTIAL: an allowlist of 2 laws
+   * same selection gives with no `laws.enabled` allowlist, no Pareto and no
+   * `categories` (#370) — the laws that apply to this project; N is the
+   * substantive laws selected. A run narrowed any way, with N < M, is
+   * PARTIAL: an allowlist of 2 laws
    * out of 77 printed "CONSTITUTIONAL COMPLIANCE: PASSED" and the victory art,
    * because only Pareto was treated as partial.
    */
@@ -460,11 +474,11 @@ export class RuleOfCodeAuditor {
     };
   }
 
-  /** Substantive laws the config selects with no allowlist and no Pareto. */
+  /** Substantive laws the config selects with no allowlist, no Pareto and no categories. */
   private openSelection(laws: Record<string, unknown>): Array<{ id: string; name: string }> {
     const open = {
       ...this.config,
-      laws: { ...laws, enabled: undefined, paretoMode: false },
+      laws: { ...laws, enabled: undefined, paretoMode: false, [CATEGORIES_KEY]: undefined },
     } as unknown as RuleOfCodeConfig;
     return this.getSelectedLaws(open).filter(
       law => !(law as { alwaysEnabled?: boolean }).alwaysEnabled
@@ -497,8 +511,7 @@ export class RuleOfCodeAuditor {
   private detectProjectType(): string | undefined {
     const configured = (this.config as { project?: { type?: string } }).project
       ?.type;
-    if (configured && configured !== 'generic') return configured;
-    return ProjectTypeDetector.detectProjectType(this.projectRoot) ?? configured;
+    return selectionProjectType(configured, this.projectRoot);
   }
 
   private async executeLawChecks(laws: unknown[]): Promise<unknown[]> {
@@ -1264,11 +1277,18 @@ export class RuleOfCodeAuditor {
     );
     console.log(
       chalk.gray(
-        `   For a compliance verdict run the full set: ${narrowedBy === 'laws.enabled' ? 'remove the laws.enabled allowlist' : 'paretoMode: false and no --mode=fast'}.`
+        `   For a compliance verdict run the full set: ${RuleOfCodeAuditor.fullSetRemedy(narrowedBy)}.`
       )
     );
     console.log(chalk.cyan('═'.repeat(60)));
     console.log('');
+  }
+
+  /** What to remove for a run of the full set, by what narrowed this one. */
+  private static fullSetRemedy(narrowedBy: AuditScope['narrowedBy']): string {
+    if (narrowedBy === 'laws.enabled') return 'remove the laws.enabled allowlist';
+    if (narrowedBy === 'categories') return 'run without categories';
+    return 'paretoMode: false and no --mode=fast';
   }
 
   /**

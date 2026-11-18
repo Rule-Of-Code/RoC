@@ -340,8 +340,9 @@ export class ChangeDetectionOptimizationLaw {
       const content = FileUtils.readFile(templateFile, { encoding: 'utf8' });
       const basename = PathOperations.getBasename(templateFile);
 
-      // Ignore .old backup files
-      if (basename.includes('.old.')) {
+      // Ignore .old backup files — by the name WITH its extension
+      // (`list.component.old.html`): without it `.old.` is never there (#369).
+      if (PathOperations.getFilename(templateFile).includes('.old.')) {
         return null;
       }
 

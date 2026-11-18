@@ -5,6 +5,7 @@
  */
 
 import type {
+  EnhancedConstitutionalLaw,
   FrameworkLaws,
   ParetoCategories,
   ProjectLaws,
@@ -16,43 +17,28 @@ import { ANGULAR_LAWS } from './angular-laws';
 import { CODE_QUALITY_LAWS } from './code-quality-laws';
 import { DEPLOYMENT_LAWS } from './deployment-laws';
 import { DOCUMENTATION_LAWS } from './documentation-laws';
+import { paretoCoreIds } from './pareto-core';
 import { PERFORMANCE_LAWS } from './performance-laws';
-import { SACRED_LAWS } from './sacred-laws';
 import { SECURITY_LAWS } from './security-laws';
 import { TESTING_LAWS } from './testing-laws';
-import { VERSION_CONTROL_LAWS } from './version-control-laws';
+
+let highImpact: string[] | undefined;
 
 // 🎯 PARETO OPTIMIZATION CATEGORIES - USING DYNAMIC HASH IDs
-// 20% of laws catch 80% of problems - TRUE PARETO OPTIMIZATION
 export const PARETO_CATEGORIES: ParetoCategories = {
-  // 🔴 HIGH-IMPACT (STRICT 20% of laws, 80% of problems) - CRITICAL ONLY
-  HIGH_IMPACT: [
-    // All Sacred Laws (ALWAYS CRITICAL) - ~5 laws
-    ...SACRED_LAWS.map(law => law.id),
-    // ONLY CRITICAL priority laws from all categories - ~16 more laws
-    ...CODE_QUALITY_LAWS.filter(law => law.priority === 'CRITICAL').map(
-      law => law.id
-    ),
-    ...VERSION_CONTROL_LAWS.filter(law => law.priority === 'CRITICAL').map(
-      law => law.id
-    ),
-    ...ANGULAR_LAWS.filter(law => law.priority === 'CRITICAL').map(
-      law => law.id
-    ),
-    ...SECURITY_LAWS.filter(law => law.priority === 'CRITICAL').map(
-      law => law.id
-    ),
-    ...DEPLOYMENT_LAWS.filter(law => law.priority === 'CRITICAL').map(
-      law => law.id
-    ),
-    // Note: PERFORMANCE_LAWS currently has no CRITICAL priority items - this is expected dead code
-    ...PERFORMANCE_LAWS.filter(law => law.priority === 'CRITICAL').map(
-      law => /* istanbul ignore next */ law.id
-    ),
-    ...TESTING_LAWS.filter(law => law.priority === 'CRITICAL').map(
-      law => law.id
-    ),
-  ],
+  // 🔴 HIGH-IMPACT: the Pareto core, about 20% of each stack's laws, derived
+  // from the laws' own fields by the rule in ./pareto-core (#383). Read
+  // lazily: the full registry imports this module, so it cannot be read at
+  // load time, and a list written here could not see a law added later.
+  get HIGH_IMPACT(): string[] {
+    if (!highImpact) {
+      const { ALL_ENHANCED_CONSTITUTIONAL_LAWS } = require('./enhanced-laws') as {
+        ALL_ENHANCED_CONSTITUTIONAL_LAWS: EnhancedConstitutionalLaw[];
+      };
+      highImpact = [...paretoCoreIds(ALL_ENHANCED_CONSTITUTIONAL_LAWS)];
+    }
+    return highImpact;
+  },
 
   // 🟡 MEDIUM-IMPACT (Context dependent) - CONDITIONAL
   MEDIUM_IMPACT: [

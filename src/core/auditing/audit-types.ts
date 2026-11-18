@@ -104,8 +104,8 @@ export interface AuditScope {
    * allowlist would also have dropped is still listed.
    */
   waivedLaws: WaivedLaw[];
-  /** What narrowed the run, if anything. `laws.notApplicable` waivers do not: they change what applies. */
-  narrowedBy: 'laws.enabled' | 'paretoMode' | undefined;
+  /** What narrowed the run, if anything (first of Pareto, laws.enabled, categories). `laws.notApplicable` waivers do not: they change what applies. */
+  narrowedBy: 'laws.enabled' | 'paretoMode' | 'categories' | undefined;
   /** Narrowed AND fewer laws selected than apply: no compliance verdict is printed. Always false on a refusal (no law ran; see `refused`). */
   partial: boolean;
   /**

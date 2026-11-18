@@ -30,6 +30,14 @@ import { ModularLawsRegistry } from '../../src/registry/modular-laws-registry';
 // The derived tier (foundational/maintainability/…) is not authored by anyone and
 // must never be what a consumer filters by (a downstream consumer).
 const REAL_CATEGORY = 'SECURITY';
+/**
+ * A declared category with no Pareto core law — a VALID filter that returns
+ * zero. Chosen by property: the core is derived from the laws' fields (#383),
+ * so which category it leaves empty is not fixed.
+ */
+const EMPTY_CORE_CATEGORY = LAW_CATEGORIES.find(
+  category => !ModularLawsRegistry.getAll().some(law => law.paretoCore && categoryOf(law) === category)
+);
 
 describe('cli/laws-command', () => {
   describe('lawsCommand', () => {
@@ -202,12 +210,13 @@ describe('cli/laws-command', () => {
       // The guard still matters for a VALID filter that legitimately returns zero:
       // printing a bare "0 laws" would be a lie of omission, the exact false
       // confidence this product exists to kill.
-      executeLawsAction({ category: 'DOCUMENTATION', pareto: true });
+      expect(EMPTY_CORE_CATEGORY).toBeDefined();
+      executeLawsAction({ category: EMPTY_CORE_CATEGORY, pareto: true });
 
       const printed = logSpy.mock.calls.map(c => String(c[0])).join('\n');
       expect(printed).toContain('0 of');
       expect(printed).toContain('Do not read this as absence of coverage');
-      expect(printed).toContain('DOCUMENTATION');
+      expect(printed).toContain(String(EMPTY_CORE_CATEGORY));
     });
 
     it('should stay silent about it when the category is populated', () => {

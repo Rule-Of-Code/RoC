@@ -56,14 +56,21 @@ export const TS_SOURCE_EXTENSIONS = ['.ts', '.tsx', '.jsx'];
 
 export class FeArchLawBase extends AngularLawBase {
   /** The configured globs for a layer, or null when the default applies. */
-  private static layerGlobs(context: LawCheckContext, layer: FeLayer): string[] | null {
+  private static layerGlobs(
+    context: LawCheckContext,
+    layer: FeLayer
+  ): string[] | null {
     const frontend = context.config.thresholds?.frontend;
     const globs = frontend?.[LAYERS[layer].key];
     return Array.isArray(globs) && globs.length > 0 ? globs : null;
   }
 
   /** Whether `file` (absolute) is in `layer`. */
-  protected static inLayer(context: LawCheckContext, file: string, layer: FeLayer): boolean {
+  protected static inLayer(
+    context: LawCheckContext,
+    file: string,
+    layer: FeLayer
+  ): boolean {
     const globs = this.layerGlobs(context, layer);
     if (!globs) return LAYERS[layer].segment.test(file.replace(/\\/g, '/'));
     const rel = PathOperations.getRelative(context.projectRoot, file);
@@ -71,8 +78,14 @@ export class FeArchLawBase extends AngularLawBase {
   }
 
   /** Whether `file` is in the feature or the data-access layer (configurable). */
-  protected static inFeatureOrDataAccess(context: LawCheckContext, file: string): boolean {
-    return this.inLayer(context, file, 'feature') || this.inLayer(context, file, 'dataAccess');
+  protected static inFeatureOrDataAccess(
+    context: LawCheckContext,
+    file: string
+  ): boolean {
+    return (
+      this.inLayer(context, file, 'feature') ||
+      this.inLayer(context, file, 'dataAccess')
+    );
   }
 
   /**
@@ -90,7 +103,10 @@ export class FeArchLawBase extends AngularLawBase {
    * The violation a layer law gives when no scanned file is in its layer: it
    * judged nothing, and a pass would claim it had.
    */
-  protected static emptyLayer(context: LawCheckContext, layers: FeLayer[]): string {
+  protected static emptyLayer(
+    context: LawCheckContext,
+    layers: FeLayer[]
+  ): string {
     const described = layers.map(layer => {
       const spec = LAYERS[layer];
       const globs = this.layerGlobs(context, layer);
@@ -98,7 +114,9 @@ export class FeArchLawBase extends AngularLawBase {
         ? `the ${spec.name} layer (thresholds.frontend.${spec.key}: ${globs.join(', ')})`
         : `the ${spec.name} layer (default: ${spec.defaultText})`;
     });
-    const keys = layers.map(layer => `thresholds.frontend.${LAYERS[layer].key}`).join(' / ');
+    const keys = layers
+      .map(layer => `thresholds.frontend.${LAYERS[layer].key}`)
+      .join(' / ');
     return `no source file is in ${described.join(' or ')} — this law judged nothing. Declare where the layer lives in ${keys} (globs relative to the project root), or set the law to notApplicable with the reason`;
   }
 
@@ -107,7 +125,10 @@ export class FeArchLawBase extends AngularLawBase {
    * a failure scored 0, the one verdict every law gives for that (it scored
    * 90 here, beside 100 and 0 elsewhere).
    */
-  protected static layerResult(result: LawResult, layerEmpty: boolean): LawResult {
+  protected static layerResult(
+    result: LawResult,
+    layerEmpty: boolean
+  ): LawResult {
     return layerEmpty ? markJudgedNothing(result) : result;
   }
 
@@ -139,7 +160,9 @@ export class FeArchLawBase extends AngularLawBase {
       source
         .imports()
         .filter(info => !info.typeOnly && info.module === module)
-        .flatMap(info => info.named.filter(n => n.imported === imported).map(n => n.local))
+        .flatMap(info =>
+          info.named.filter(n => n.imported === imported).map(n => n.local)
+        )
     );
     if (locals.size === 0) return [];
     const ts = source.ts;

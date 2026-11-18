@@ -10,7 +10,7 @@ import { ALL_ENHANCED_CONSTITUTIONAL_LAWS } from '../../../src/data/enhanced-law
 import { FileUtils } from '../../../src/utils/file-utils';
 
 const LAW = ALL_ENHANCED_CONSTITUTIONAL_LAWS.find(
-  l => l.title === 'NgRx Store Pattern Mandate (SACRED LAW)'
+  l => l.title === 'NgRx Store Pattern Mandate'
 )!;
 
 const dirs: string[] = [];
@@ -48,11 +48,16 @@ function run(root: string) {
 describe('NgRx Store Pattern detection (v7.2.2)', () => {
   it('flags non-canonical store files (no createAction/createReducer/interface)', async () => {
     const dir = fixture({
-      'package.json': JSON.stringify({ dependencies: { '@ngrx/store': '18.0.0' } }),
+      'package.json': JSON.stringify({
+        dependencies: { '@ngrx/store': '18.0.0' },
+      }),
       'angular.json': '{}',
-      'src/app/store/app.state.ts': 'export const initialState = { items: [] };\n',
-      'src/app/store/app.actions.ts': "export const load = () => ({ type: 'load' });\n",
-      'src/app/store/app.reducer.ts': 'export function reducer(s: any) { return s; }\n',
+      'src/app/store/app.state.ts':
+        'export const initialState = { items: [] };\n',
+      'src/app/store/app.actions.ts':
+        "export const load = () => ({ type: 'load' });\n",
+      'src/app/store/app.reducer.ts':
+        'export function reducer(s: any) { return s; }\n',
     });
     const r = await run(dir);
     expect(r.passed).toBe(false);
@@ -60,12 +65,18 @@ describe('NgRx Store Pattern detection (v7.2.2)', () => {
 
   it('passes a canonical NgRx store', async () => {
     const dir = fixture({
-      'package.json': JSON.stringify({ dependencies: { '@ngrx/store': '18.0.0' } }),
+      'package.json': JSON.stringify({
+        dependencies: { '@ngrx/store': '18.0.0' },
+      }),
       'angular.json': '{}',
-      'src/app/store/app.state.ts': 'export interface AppState { items: string[]; }\n',
-      'src/app/store/app.actions.ts': "import { createAction, props } from '@ngrx/store';\nexport const load = createAction('[App] Load', props<{ id: string }>());\n",
-      'src/app/store/app.reducer.ts': "import { createReducer, on } from '@ngrx/store';\nexport const reducer = createReducer({ items: [] }, on(null as any, s => s));\n",
-      'src/app/store/app.selectors.ts': "import { createFeatureSelector, createSelector } from '@ngrx/store';\nexport const f = createFeatureSelector('f');\nexport const getItems = createSelector(f, (s: any) => s.items);\n",
+      'src/app/store/app.state.ts':
+        'export interface AppState { items: string[]; }\n',
+      'src/app/store/app.actions.ts':
+        "import { createAction, props } from '@ngrx/store';\nexport const load = createAction('[App] Load', props<{ id: string }>());\n",
+      'src/app/store/app.reducer.ts':
+        "import { createReducer, on } from '@ngrx/store';\nexport const reducer = createReducer({ items: [] }, on(null as any, s => s));\n",
+      'src/app/store/app.selectors.ts':
+        "import { createFeatureSelector, createSelector } from '@ngrx/store';\nexport const f = createFeatureSelector('f');\nexport const getItems = createSelector(f, (s: any) => s.items);\n",
     });
     const r = await run(dir);
     expect(r.passed).toBe(true);

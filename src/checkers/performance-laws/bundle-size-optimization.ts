@@ -142,7 +142,9 @@ export class BundleSizeOptimizationLaw {
 
     if (unread.length > 0) violations.push(unreadViolation(unread));
     violations.push(this.VALIDATION_MESSAGES.NO_OPTIMIZATION_CONFIG);
-    suggestions.push(this.VALIDATION_MESSAGES.NO_OPTIMIZATION_CONFIG_SUGGESTION);
+    suggestions.push(
+      this.VALIDATION_MESSAGES.NO_OPTIMIZATION_CONFIG_SUGGESTION
+    );
     return { violations, suggestions };
   }
 
@@ -174,7 +176,10 @@ export class BundleSizeOptimizationLaw {
     return sources;
   }
 
-  private static rollupMinifies(projectRoot: string, unread: string[]): boolean {
+  private static rollupMinifies(
+    projectRoot: string,
+    unread: string[]
+  ): boolean {
     return this.configSources(projectRoot, this.ROLLUP_CONFIGS, unread).some(
       source =>
         this.TERSER_PLUGINS.some(
@@ -202,7 +207,8 @@ export class BundleSizeOptimizationLaw {
 
     // React/Next: next/dynamic, React.lazy or a dynamic import() in the parsed
     // source. Angular routing (loadChildren) was the only form recognised.
-    const react: ReactPerformanceEvidence = ReactPerformanceSource.scan(context);
+    const react: ReactPerformanceEvidence =
+      ReactPerformanceSource.scan(context);
     if (react.dynamicImports.length > 0) return { violations, suggestions };
     if (react.unread.length > 0) violations.push(unreadViolation(react.unread));
 
@@ -292,7 +298,8 @@ export class BundleSizeOptimizationLaw {
     );
 
     return allTsFiles.filter(file => {
-      const fileName = PathOperations.getBasename(file);
+      // The name WITH its extension, which the `.ts` test needs (#369).
+      const fileName = PathOperations.getFilename(file);
       return (
         fileName.includes(this.ROUTING_FILE_PATTERN) && fileName.endsWith('.ts')
       );

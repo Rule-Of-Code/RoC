@@ -55,10 +55,19 @@ export class CodeText {
    * or a quote inside one cannot mislead), then comments are stripped. Falls
    * back to stripCommentsAndStrings when no `typescript` can be loaded.
    */
-  static codeOnly(content: string, fileName = 'file.tsx', projectRoot = process.cwd()): string {
+  static codeOnly(
+    content: string,
+    fileName = 'file.tsx',
+    projectRoot = process.cwd()
+  ): string {
     const ts = loadTypeScript(projectRoot);
     if (!ts) return this.stripCommentsAndStrings(content);
-    const source = ts.createSourceFile(fileName, content, ts.ScriptTarget.Latest, true);
+    const source = ts.createSourceFile(
+      fileName,
+      content,
+      ts.ScriptTarget.Latest,
+      true
+    );
     const ranges: Array<[number, number]> = [];
     const visit = (node: import('typescript').Node): void => {
       if (

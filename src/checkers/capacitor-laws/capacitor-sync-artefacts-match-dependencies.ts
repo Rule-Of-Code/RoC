@@ -13,11 +13,17 @@
  * is reported as not read — never as green.
  */
 
-import { execFileSync } from 'child_process';
+import { execFileSync } from '../../utils/child-process';
 import * as fs from 'fs';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { configValue, relative } from '../../utils/capacitor/capacitor-law-support';
-import { type CapacitorProject, CapacitorProjects } from '../../utils/capacitor/capacitor-project';
+import {
+  configValue,
+  relative,
+} from '../../utils/capacitor/capacitor-law-support';
+import {
+  type CapacitorProject,
+  CapacitorProjects,
+} from '../../utils/capacitor/capacitor-project';
 import { declaredDependencies } from '../../utils/law-requirements';
 import { PathOperations } from '../../utils/path-operations';
 import { LawBase } from '../law-base';
@@ -50,7 +56,9 @@ export class CapacitorSyncArtefactsMatchDependenciesLaw extends LawBase {
       violations,
       this.LAW_NAME,
       'DEPLOYMENT',
-      ['After every change to a native dependency run `npx cap sync` and commit the regenerated files in the same commit'],
+      [
+        'After every change to a native dependency run `npx cap sync` and commit the regenerated files in the same commit',
+      ],
       context
     );
     if (violations.length === 0 && notRead.length > 0) {
@@ -59,13 +67,22 @@ export class CapacitorSyncArtefactsMatchDependenciesLaw extends LawBase {
     return result;
   }
 
-  private static artefacts(context: LawCheckContext, project: CapacitorProject): Artefact[] {
+  private static artefacts(
+    context: LawCheckContext,
+    project: CapacitorProject
+  ): Artefact[] {
     const native = CapacitorProjects.nativePaths(project, context.projectRoot);
     const iosApp = PathOperations.join(native.iosDir, 'App');
     return [
       { platform: 'android' as const, file: native.capacitorSettingsGradle },
-      { platform: 'ios' as const, file: PathOperations.join(iosApp, 'Podfile') },
-      { platform: 'ios' as const, file: PathOperations.join(iosApp, 'CapApp-SPM', 'Package.swift') },
+      {
+        platform: 'ios' as const,
+        file: PathOperations.join(iosApp, 'Podfile'),
+      },
+      {
+        platform: 'ios' as const,
+        file: PathOperations.join(iosApp, 'CapApp-SPM', 'Package.swift'),
+      },
     ].filter(artefact => fs.existsSync(artefact.file));
   }
 
@@ -76,26 +93,41 @@ export class CapacitorSyncArtefactsMatchDependenciesLaw extends LawBase {
   ): { violations: string[]; notRead: string[] } {
     const where = relative(context, file);
     if (!this.tracked(context.projectRoot, file)) {
-      return { violations: [], notRead: [`${where} is not tracked, so it cannot drift from a clean checkout`] };
+      return {
+        violations: [],
+        notRead: [
+          `${where} is not tracked, so it cannot drift from a clean checkout`,
+        ],
+      };
     }
     const paths = [project.root, context.projectRoot];
     if (!this.packageDir('@capacitor/core', paths)) {
       return {
-        violations: [`${where}: node_modules is not installed, so which dependencies ship native code cannot be known — this law does not pass on a guess`],
+        violations: [
+          `${where}: node_modules is not installed, so which dependencies ship native code cannot be known — this law does not pass on a guess`,
+        ],
         notRead: [],
       };
     }
     const expected = this.expected(context, project, platform, paths);
-    const referenced = this.referenced(CapacitorProjects.readNative(file) ?? '');
+    const referenced = this.referenced(
+      CapacitorProjects.readNative(file) ?? ''
+    );
     const sync = `run \`npx cap sync ${platform}\` and commit the result`;
     return {
       violations: [
         ...[...expected]
           .filter(name => !referenced.has(name))
-          .map(name => `${where}: ${name} is a dependency with a ${platform}/ directory and is not in this file — ${sync}`),
+          .map(
+            name =>
+              `${where}: ${name} is a dependency with a ${platform}/ directory and is not in this file — ${sync}`
+          ),
         ...[...referenced]
           .filter(name => !expected.has(name))
-          .map(name => `${where}: references ${name}, which is not a dependency (or not installed) — the next clean build fails on it; ${sync}`),
+          .map(
+            name =>
+              `${where}: references ${name}, which is not a dependency (or not installed) — the next clean build fails on it; ${sync}`
+          ),
       ],
       notRead: [],
     };
@@ -114,9 +146,11 @@ export class CapacitorSyncArtefactsMatchDependenciesLaw extends LawBase {
       configValue(config, 'includePlugins')) as string[] | undefined;
     const expected = new Set<string>();
     for (const name of declaredDependencies(context.projectRoot)) {
-      if (PLATFORM_PACKAGES.has(name) || (allow && !allow.includes(name))) continue;
+      if (PLATFORM_PACKAGES.has(name) || (allow && !allow.includes(name)))
+        continue;
       const dir = this.packageDir(name, paths);
-      if (dir && fs.existsSync(PathOperations.join(dir, platform))) expected.add(name);
+      if (dir && fs.existsSync(PathOperations.join(dir, platform)))
+        expected.add(name);
     }
     return expected;
   }
@@ -133,7 +167,11 @@ export class CapacitorSyncArtefactsMatchDependenciesLaw extends LawBase {
 
   private static tracked(projectRoot: string, file: string): boolean {
     try {
-      execFileSync('git', ['ls-files', '--error-unmatch', file], { cwd: projectRoot, stdio: 'ignore', windowsHide: true });
+      execFileSync('git', ['ls-files', '--error-unmatch', file], {
+        cwd: projectRoot,
+        stdio: 'ignore',
+        windowsHide: true,
+      });
       return true;
     } catch {
       return false;
@@ -142,7 +180,9 @@ export class CapacitorSyncArtefactsMatchDependenciesLaw extends LawBase {
 
   private static packageDir(name: string, paths: string[]): string | null {
     try {
-      return PathOperations.getDirectory(require.resolve(`${name}/package.json`, { paths }));
+      return PathOperations.getDirectory(
+        require.resolve(`${name}/package.json`, { paths })
+      );
     } catch {
       return null;
     }

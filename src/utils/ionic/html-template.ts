@@ -36,8 +36,19 @@ export interface TemplateElement {
 
 /** Elements that never have a closing tag. */
 const VOID = new Set([
-  'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta',
-  'source', 'track', 'wbr',
+  'area',
+  'base',
+  'br',
+  'col',
+  'embed',
+  'hr',
+  'img',
+  'input',
+  'link',
+  'meta',
+  'source',
+  'track',
+  'wbr',
 ]);
 
 /** Elements Angular renders no DOM node for: their children belong to their parent. */
@@ -50,7 +61,9 @@ const TAG_NAME = /^[A-Za-z][\w:.-]*/;
 export class HtmlTemplate {
   /** Same length as `text`; every `<!-- … -->` becomes spaces, newlines kept. */
   static stripComments(text: string): string {
-    return text.replace(/<!--[\s\S]*?(?:-->|$)/g, comment => comment.replace(/[^\n]/g, ' '));
+    return text.replace(/<!--[\s\S]*?(?:-->|$)/g, comment =>
+      comment.replace(/[^\n]/g, ' ')
+    );
   }
 
   /**
@@ -117,18 +130,29 @@ export class HtmlTemplate {
     if (RAW_TEXT.has(element.tag)) {
       const close = source.toLowerCase().indexOf(`</${element.tag}`, tag.end);
       const stop = close === -1 ? source.length : close;
-      return { element, end: stop, line: afterTag + this.newlines(source, tag.end, stop), push: false };
+      return {
+        element,
+        end: stop,
+        line: afterTag + this.newlines(source, tag.end, stop),
+        push: false,
+      };
     }
     return { element, end: tag.end, line: afterTag, push: true };
   }
 
   /** The attribute named `name`, as written (`[name]` and `name` are different names). */
-  static attribute(element: TemplateElement, name: string): TemplateAttribute | undefined {
+  static attribute(
+    element: TemplateElement,
+    name: string
+  ): TemplateAttribute | undefined {
     return element.attributes.find(attribute => attribute.name === name);
   }
 
   /** The attribute bound under any of Angular's spellings: `x`, `[x]`, `[attr.x]`. */
-  static bound(element: TemplateElement, name: string): TemplateAttribute | undefined {
+  static bound(
+    element: TemplateElement,
+    name: string
+  ): TemplateAttribute | undefined {
     return element.attributes.find(
       attribute =>
         attribute.name === name ||
@@ -140,7 +164,8 @@ export class HtmlTemplate {
   /** An event binding: `(event)` or `on-event`. */
   static listens(element: TemplateElement, event: string): boolean {
     return element.attributes.some(
-      attribute => attribute.name === `(${event})` || attribute.name === `on-${event}`
+      attribute =>
+        attribute.name === `(${event})` || attribute.name === `on-${event}`
     );
   }
 
@@ -165,7 +190,10 @@ export class HtmlTemplate {
   }
 
   /** The nearest ancestor with this tag, or null. */
-  static ancestor(element: TemplateElement, tag: string): TemplateElement | null {
+  static ancestor(
+    element: TemplateElement,
+    tag: string
+  ): TemplateElement | null {
     let parent = element.parent;
     while (parent && parent.tag !== tag) parent = parent.parent;
     return parent;
@@ -180,7 +208,8 @@ export class HtmlTemplate {
     let node: TemplateElement = element;
     let parent = this.domParent(node);
     while (parent) {
-      if (parent.tag === 'ion-content') return this.attribute(node, 'slot')?.value !== 'fixed';
+      if (parent.tag === 'ion-content')
+        return this.attribute(node, 'slot')?.value !== 'fixed';
       node = parent;
       parent = this.domParent(node);
     }
@@ -218,7 +247,8 @@ export class HtmlTemplate {
       i = this.skipSpace(source, i);
       const c = source[i];
       if (c === '>') return { attributes, end: i + 1, selfClosing: false };
-      if (c === '/' && source[i + 1] === '>') return { attributes, end: i + 2, selfClosing: true };
+      if (c === '/' && source[i + 1] === '>')
+        return { attributes, end: i + 2, selfClosing: true };
       if (c === '/') {
         i++;
         continue;
@@ -243,13 +273,17 @@ export class HtmlTemplate {
     const name = /^[^\s=>/]+/.exec(source.slice(from))?.[0];
     if (!name) return { attribute: null, end: from + 1 };
     let i = this.skipSpace(source, from + name.length);
-    if (source[i] !== '=') return { attribute: { name, value: null }, end: from + name.length };
+    if (source[i] !== '=')
+      return { attribute: { name, value: null }, end: from + name.length };
     i = this.skipSpace(source, i + 1);
     const quote = source[i];
     if (quote === '"' || quote === "'") {
       const close = source.indexOf(quote, i + 1);
       const end = close === -1 ? source.length : close;
-      return { attribute: { name, value: source.slice(i + 1, end) }, end: end + 1 };
+      return {
+        attribute: { name, value: source.slice(i + 1, end) },
+        end: end + 1,
+      };
     }
     const bare = /^[^\s>]*/.exec(source.slice(i))?.[0] ?? '';
     return { attribute: { name, value: bare }, end: i + bare.length };

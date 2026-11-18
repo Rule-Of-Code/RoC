@@ -65,8 +65,7 @@ export class PerformanceAnalyzerBase {
     if (this.safeCheckFileExists(angularJsonPath)) {
       const angularJson = this.safeReadJsonFile(angularJsonPath);
       const projects = angularJson?.projects as
-        | Record<string, unknown>
-        | undefined;
+        Record<string, unknown> | undefined;
       if (projects) {
         for (const [projectName, project] of Object.entries(projects)) {
           if (callback(project as AngularProject, projectName)) {

@@ -37,7 +37,8 @@ const SAFE = new Set([
   'Response',
 ]);
 
-const isSafeName = (name: string): boolean => SAFE.has(name) || /Raw/.test(name);
+const isSafeName = (name: string): boolean =>
+  SAFE.has(name) || /Raw/.test(name);
 
 export class NoPassthroughCastLaw extends FeArchLawBase {
   private static readonly LAW_NAME = 'No Passthrough Cast';
@@ -97,7 +98,9 @@ export class NoPassthroughCastLaw extends FeArchLawBase {
   }
 
   /** Every `.json()` body cast or annotated to a domain type. */
-  private static jsonCasts(source: TsxSource): Array<{ line: number; type: string }> {
+  private static jsonCasts(
+    source: TsxSource
+  ): Array<{ line: number; type: string }> {
     const ts = source.ts;
     const found: Array<{ line: number; type: string }> = [];
     source.walk(node => {
@@ -106,7 +109,11 @@ export class NoPassthroughCastLaw extends FeArchLawBase {
       if (ts.isAsExpression(node) || ts.isTypeAssertionExpression(node)) {
         target = node.type;
         value = node.expression;
-      } else if (ts.isVariableDeclaration(node) && node.type && node.initializer) {
+      } else if (
+        ts.isVariableDeclaration(node) &&
+        node.type &&
+        node.initializer
+      ) {
         target = node.type;
         value = node.initializer;
       }
@@ -121,8 +128,10 @@ export class NoPassthroughCastLaw extends FeArchLawBase {
   private static isJsonBody(ts: typeof TS, expression: TS.Expression): boolean {
     let e: TS.Expression = expression;
     for (;;) {
-      if (ts.isParenthesizedExpression(e) || ts.isAwaitExpression(e)) e = e.expression;
-      else if (ts.isAsExpression(e) && this.isLooseType(ts, e.type)) e = e.expression;
+      if (ts.isParenthesizedExpression(e) || ts.isAwaitExpression(e))
+        e = e.expression;
+      else if (ts.isAsExpression(e) && this.isLooseType(ts, e.type))
+        e = e.expression;
       else break;
     }
     return (
@@ -134,7 +143,10 @@ export class NoPassthroughCastLaw extends FeArchLawBase {
   }
 
   private static isLooseType(ts: typeof TS, type: TS.TypeNode): boolean {
-    return type.kind === ts.SyntaxKind.UnknownKeyword || type.kind === ts.SyntaxKind.AnyKeyword;
+    return (
+      type.kind === ts.SyntaxKind.UnknownKeyword ||
+      type.kind === ts.SyntaxKind.AnyKeyword
+    );
   }
 
   /** The domain type a cast names, or null when it is a safe/loose one. */
@@ -158,7 +170,8 @@ export class NoPassthroughCastLaw extends FeArchLawBase {
       const name = t.typeName.getText(source.sourceFile);
       return isSafeName(name) ? null : name;
     }
-    if (ts.isTypeLiteralNode(t)) return t.getText(source.sourceFile).replace(/\s+/g, ' ');
+    if (ts.isTypeLiteralNode(t))
+      return t.getText(source.sourceFile).replace(/\s+/g, ' ');
     return null;
   }
 }

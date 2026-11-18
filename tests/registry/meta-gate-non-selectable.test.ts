@@ -39,7 +39,9 @@ describe('meta-gates cannot be disabled by config (QA-4)', () => {
 
   it.each(META_GATES)('%s survives a notApplicable waiver', name => {
     expect(
-      selectedNames({ notApplicable: { [name]: 'we would rather not be watched' } })
+      selectedNames({
+        notApplicable: { [name]: 'we would rather not be watched' },
+      })
     ).toContain(name);
   });
 
@@ -55,9 +57,12 @@ describe('meta-gates cannot be disabled by config (QA-4)', () => {
     );
     const core = pareto.filter(l => !l.alwaysEnabled);
     expect(core.every(l => l.paretoCore)).toBe(true);
-    expect(pareto.filter(l => l.alwaysEnabled).map(l => l.name).sort()).toEqual(
-      [...META_GATES].sort()
-    );
+    expect(
+      pareto
+        .filter(l => l.alwaysEnabled)
+        .map(l => l.name)
+        .sort()
+    ).toEqual([...META_GATES].sort());
   });
 
   it('only the two guards are marked alwaysEnabled — this is not a loophole', () => {

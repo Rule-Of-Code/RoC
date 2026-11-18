@@ -79,7 +79,9 @@ describe('caching and hashing are read in every idiom', () => {
     it('both accept HTTP caching headers on a static host', async () => {
       staticHostWithHeaders();
 
-      expect(BrowserCachingAnalyzerService.analyze(root).hasStrategy).toBe(true);
+      expect(BrowserCachingAnalyzerService.analyze(root).hasStrategy).toBe(
+        true
+      );
       expect(await CachingStrategyAnalyzer.analyze(root)).toEqual([]);
     });
 
@@ -90,9 +92,9 @@ describe('caching and hashing are read in every idiom', () => {
       expect(BrowserCachingAnalyzerService.analyze(root).hasStrategy).toBe(
         false
       );
-      expect((await CachingStrategyAnalyzer.analyze(root)).length).toBeGreaterThan(
-        0
-      );
+      expect(
+        (await CachingStrategyAnalyzer.analyze(root)).length
+      ).toBeGreaterThan(0);
     });
   });
 
@@ -122,7 +124,9 @@ describe('caching and hashing are read in every idiom', () => {
           projects: {
             app: {
               architect: {
-                build: { configurations: { production: { outputHashing: 'all' } } },
+                build: {
+                  configurations: { production: { outputHashing: 'all' } },
+                },
               },
             },
           },

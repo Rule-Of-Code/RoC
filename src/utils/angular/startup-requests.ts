@@ -29,11 +29,34 @@ import { decoratorObject } from '../ionic/angular-components';
 import type { TsxSource } from '../react/tsx-source';
 
 /** HttpClient methods that send a request. */
-const HTTP_METHODS = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'request', 'jsonp']);
+const HTTP_METHODS = new Set([
+  'get',
+  'post',
+  'put',
+  'patch',
+  'delete',
+  'head',
+  'options',
+  'request',
+  'jsonp',
+]);
 /** Array methods whose callback runs synchronously, in the caller. */
-const SYNC_ITERATION = new Set(['forEach', 'map', 'flatMap', 'filter', 'some', 'every', 'find', 'reduce']);
+const SYNC_ITERATION = new Set([
+  'forEach',
+  'map',
+  'flatMap',
+  'filter',
+  'some',
+  'every',
+  'find',
+  'reduce',
+]);
 /** The hooks that run when a component opens. */
-export const OPENING_HOOKS: readonly string[] = ['constructor', 'ngOnInit', 'ionViewWillEnter'];
+export const OPENING_HOOKS: readonly string[] = [
+  'constructor',
+  'ngOnInit',
+  'ionViewWillEnter',
+];
 const MAX_SAME_CLASS_DEPTH = 6;
 
 /** One request a component starts on open. */
@@ -71,25 +94,45 @@ function typeName(ts: typeof TS, type: TS.TypeNode | undefined): string | null {
 }
 
 /** `inject(X)` → `X`. */
-function injectedName(ts: typeof TS, expression: TS.Expression | undefined): string | null {
+function injectedName(
+  ts: typeof TS,
+  expression: TS.Expression | undefined
+): string | null {
   if (!expression || !ts.isCallExpression(expression)) return null;
-  if (!ts.isIdentifier(expression.expression) || expression.expression.text !== 'inject') return null;
+  if (
+    !ts.isIdentifier(expression.expression) ||
+    expression.expression.text !== 'inject'
+  )
+    return null;
   const arg = expression.arguments[0];
   return arg && ts.isIdentifier(arg) ? arg.text : null;
 }
 
-function memberName(ts: typeof TS, name: TS.PropertyName | TS.BindingName | undefined): string | null {
+function memberName(
+  ts: typeof TS,
+  name: TS.PropertyName | TS.BindingName | undefined
+): string | null {
   if (!name) return null;
-  return ts.isIdentifier(name) || ts.isPrivateIdentifier(name) ? name.text : null;
+  return ts.isIdentifier(name) || ts.isPrivateIdentifier(name)
+    ? name.text
+    : null;
 }
 
-function addInjection(model: ClassModel, name: string | null, injected: string | null): void {
+function addInjection(
+  model: ClassModel,
+  name: string | null,
+  injected: string | null
+): void {
   if (!name || !injected) return;
   if (injected === 'HttpClient') model.httpMembers.add(name);
   else model.injected.set(name, injected);
 }
 
-function readMember(ts: typeof TS, model: ClassModel, member: TS.ClassElement): void {
+function readMember(
+  ts: typeof TS,
+  model: ClassModel,
+  member: TS.ClassElement
+): void {
   if (ts.isConstructorDeclaration(member)) {
     if (member.body) model.methods.set('constructor', member.body);
     for (const param of member.parameters) {
@@ -105,11 +148,19 @@ function readMember(ts: typeof TS, model: ClassModel, member: TS.ClassElement): 
   if (!ts.isPropertyDeclaration(member)) return;
   const name = memberName(ts, member.name);
   const init = member.initializer;
-  if (name && init && (ts.isArrowFunction(init) || ts.isFunctionExpression(init))) {
+  if (
+    name &&
+    init &&
+    (ts.isArrowFunction(init) || ts.isFunctionExpression(init))
+  ) {
     model.methods.set(name, init.body);
     return;
   }
-  addInjection(model, name, injectedName(ts, init) ?? typeName(ts, member.type));
+  addInjection(
+    model,
+    name,
+    injectedName(ts, init) ?? typeName(ts, member.type)
+  );
 }
 
 /** Every named class in the sources, by name. */
@@ -127,7 +178,11 @@ export function classModels(sources: TsxSource[]): Map<string, ClassModel[]> {
         httpMembers: new Set(),
         injected: new Map(),
         heritage: (node.heritageClauses ?? []).flatMap(clause =>
-          clause.types.map(type => (ts.isIdentifier(type.expression) ? type.expression.text : '')).filter(Boolean)
+          clause.types
+            .map(type =>
+              ts.isIdentifier(type.expression) ? type.expression.text : ''
+            )
+            .filter(Boolean)
         ),
         component: decoratorObject(ts, node, 'Component') !== null,
       };
@@ -162,32 +217,54 @@ interface Walk {
 }
 
 function isFunctionLike(ts: typeof TS, node: TS.Node): boolean {
-  return ts.isArrowFunction(node) || ts.isFunctionExpression(node) || ts.isFunctionDeclaration(node) || ts.isClassLike(node);
+  return (
+    ts.isArrowFunction(node) ||
+    ts.isFunctionExpression(node) ||
+    ts.isFunctionDeclaration(node) ||
+    ts.isClassLike(node)
+  );
 }
 
 /** A callback that runs synchronously in the caller: `items.forEach(x => …)`. */
 function runsInCaller(ts: typeof TS, fn: TS.Node): boolean {
   const call = fn.parent;
-  if (!call || !ts.isCallExpression(call) || !call.arguments.includes(fn as TS.Expression)) return false;
+  if (
+    !call ||
+    !ts.isCallExpression(call) ||
+    !call.arguments.includes(fn as TS.Expression)
+  )
+    return false;
   const callee = call.expression;
-  return ts.isPropertyAccessExpression(callee) && SYNC_ITERATION.has(callee.name.text);
+  return (
+    ts.isPropertyAccessExpression(callee) &&
+    SYNC_ITERATION.has(callee.name.text)
+  );
 }
 
 /** The request this call sends, if it is one. */
 function requestOf(model: ClassModel, call: TS.CallExpression): string | null {
   const ts = model.source.ts;
   const callee = call.expression;
-  if (ts.isIdentifier(callee) && callee.text === 'fetch') return `fetch(${describe(model.source, call.arguments[0])})`;
+  if (ts.isIdentifier(callee) && callee.text === 'fetch')
+    return `fetch(${describe(model.source, call.arguments[0])})`;
   if (!ts.isPropertyAccessExpression(callee)) return null;
   const method = callee.name.text;
   const target = callee.expression;
-  if (method === 'fetch' && ts.isIdentifier(target) && (target.text === 'window' || target.text === 'globalThis')) {
+  if (
+    method === 'fetch' &&
+    ts.isIdentifier(target) &&
+    (target.text === 'window' || target.text === 'globalThis')
+  ) {
     return `fetch(${describe(model.source, call.arguments[0])})`;
   }
   if (!HTTP_METHODS.has(method)) return null;
-  const holder = thisMember(ts, target) ?? (ts.isIdentifier(target) ? target.text : null);
+  const holder =
+    thisMember(ts, target) ?? (ts.isIdentifier(target) ? target.text : null);
   if (!holder || !model.httpMembers.has(holder)) return null;
-  const url = method === 'request' && call.arguments.length > 1 ? call.arguments[1] : call.arguments[0];
+  const url =
+    method === 'request' && call.arguments.length > 1
+      ? call.arguments[1]
+      : call.arguments[0];
   return `${method.toUpperCase()} ${describe(model.source, url)}`;
 }
 
@@ -198,7 +275,9 @@ interface Hop {
 
 /** The classes that extend or implement `type` (an abstract class used as the DI token). */
 function implementations(walk: Walk, type: string): ClassModel[] {
-  return [...walk.models.values()].flat().filter(model => model.heritage.includes(type));
+  return [...walk.models.values()]
+    .flat()
+    .filter(model => model.heritage.includes(type));
 }
 
 /**
@@ -206,7 +285,11 @@ function implementations(walk: Walk, type: string): ClassModel[] {
  * own method, or — when it declares none (an abstract class used as the DI
  * token) — the same method in each class that extends or implements it.
  */
-function serviceMethods(walk: Walk, model: ClassModel, call: TS.CallExpression): Hop[] {
+function serviceMethods(
+  walk: Walk,
+  model: ClassModel,
+  call: TS.CallExpression
+): Hop[] {
   const ts = model.source.ts;
   const callee = call.expression;
   if (!ts.isPropertyAccessExpression(callee)) return [];
@@ -231,17 +314,28 @@ function follow(walk: Walk, key: string, next: () => void): void {
 }
 
 /** Record the requests one call makes, following one same-class or service step. */
-function visitCall(walk: Walk, model: ClassModel, call: TS.CallExpression, via: string | undefined): void {
+function visitCall(
+  walk: Walk,
+  model: ClassModel,
+  call: TS.CallExpression,
+  via: string | undefined
+): void {
   const source = model.source;
   const label = requestOf(model, call);
   if (label) {
-    walk.found.push({ label, at: `${walk.rel(source.fileName)}:${source.lineOf(call)}`, ...(via ? { via } : {}) });
+    walk.found.push({
+      label,
+      at: `${walk.rel(source.fileName)}:${source.lineOf(call)}`,
+      ...(via ? { via } : {}),
+    });
     return;
   }
   const own = thisMember(source.ts, call.expression);
   const body = own ? model.methods.get(own) : undefined;
   if (own && body) {
-    follow(walk, `${model.name}.${own}`, () => visitBody(walk, model, body, via));
+    follow(walk, `${model.name}.${own}`, () =>
+      visitBody(walk, model, body, via)
+    );
     return;
   }
   if (via) return; // one service hop only
@@ -250,15 +344,23 @@ function visitCall(walk: Walk, model: ClassModel, call: TS.CallExpression, via: 
   // sends a request stands for the call, so one call is never counted twice.
   for (const hop of serviceMethods(walk, model, call)) {
     const before = walk.found.length;
-    follow(walk, `${hop.service.name}#${hop.body.pos}`, () => visitBody(walk, hop.service, hop.body, at));
+    follow(walk, `${hop.service.name}#${hop.body.pos}`, () =>
+      visitBody(walk, hop.service, hop.body, at)
+    );
     if (walk.found.length > before) return;
   }
 }
 
-function visitBody(walk: Walk, model: ClassModel, body: TS.Node, via: string | undefined): void {
+function visitBody(
+  walk: Walk,
+  model: ClassModel,
+  body: TS.Node,
+  via: string | undefined
+): void {
   const ts = model.source.ts;
   const visit = (node: TS.Node): void => {
-    if (node !== body && isFunctionLike(ts, node) && !runsInCaller(ts, node)) return;
+    if (node !== body && isFunctionLike(ts, node) && !runsInCaller(ts, node))
+      return;
     if (ts.isCallExpression(node)) visitCall(walk, model, node, via);
     ts.forEachChild(node, visit);
   };
@@ -274,7 +376,10 @@ export function startupRequests(
   const walk: Walk = { models, rel, found: [], active: new Set() };
   for (const hook of OPENING_HOOKS) {
     const body = model.methods.get(hook);
-    if (body) follow(walk, `${model.name}.${hook}`, () => visitBody(walk, model, body, undefined));
+    if (body)
+      follow(walk, `${model.name}.${hook}`, () =>
+        visitBody(walk, model, body, undefined)
+      );
   }
   return walk.found;
 }

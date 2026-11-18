@@ -78,18 +78,33 @@ const SHELL_FILE = /(?:\.(?:sh|bash|ps1|mk)|^(?:gnu)?makefile)$/i;
 function deployFiles(context: LawCheckContext): DeployFile[] {
   const byRel = new Map<string, DeployFile>();
   for (const entry of REQUIRES_SERVERLESS_DEPLOY.anyFileContaining ?? []) {
-    for (const found of readFilesContaining(context.projectRoot, entry, context.config.ignores?.global ?? [])) {
-      byRel.set(found.rel, { abs: found.file, rel: found.rel, name: (found.rel.split('/').pop() ?? '').toLowerCase(), text: found.content });
+    for (const found of readFilesContaining(
+      context.projectRoot,
+      entry,
+      context.config.ignores?.global ?? []
+    )) {
+      byRel.set(found.rel, {
+        abs: found.file,
+        rel: found.rel,
+        name: (found.rel.split('/').pop() ?? '').toLowerCase(),
+        text: found.content,
+      });
     }
   }
   return [...byRel.values()].sort((a, b) => a.rel.localeCompare(b.rel));
 }
 
-function finding(where: string, subject: string, missing: Missing[], consequence: string): string {
+function finding(
+  where: string,
+  subject: string,
+  missing: Missing[],
+  consequence: string
+): string {
   return `${where}: ${subject} leaves ${describeMissing(missing)} to the platform defaults — ${consequence}; pin them where the service is deployed`;
 }
 
-const DEFINITION_CONSEQUENCE = 'every deploy applies this file as the whole configuration, so what it leaves out is the platform default';
+const DEFINITION_CONSEQUENCE =
+  'every deploy applies this file as the whole configuration, so what it leaves out is the platform default';
 
 export class ServerlessDeployPinsResourcesLaw extends LawBase {
   static readonly LAW_NAME = 'Serverless Deploy Pins Resources';
@@ -98,10 +113,17 @@ export class ServerlessDeployPinsResourcesLaw extends LawBase {
     const tally: Tally = { findings: [], notes: [], judged: 0 };
     const files = deployFiles(context);
     for (const file of files) this.judgeFile(context, file, tally);
-    const metrics = { filesRead: files.length, commandsAndDefinitionsJudged: tally.judged, notJudged: tally.notes.length };
-    if (tally.judged === 0) return { ...this.unjudged(context, files.length, tally.notes), metrics };
+    const metrics = {
+      filesRead: files.length,
+      commandsAndDefinitionsJudged: tally.judged,
+      notJudged: tally.notes.length,
+    };
+    if (tally.judged === 0)
+      return { ...this.unjudged(context, files.length, tally.notes), metrics };
     const result = this.createResult(
-      [...tally.findings].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })),
+      [...tally.findings].sort((a, b) =>
+        a.localeCompare(b, undefined, { numeric: true })
+      ),
       this.LAW_NAME,
       'DEPLOYMENT',
       [
@@ -110,7 +132,12 @@ export class ServerlessDeployPinsResourcesLaw extends LawBase {
       ],
       context
     );
-    const counted = result.passed ? { ...result, message: `${result.message} — ${tally.judged} deploy command(s) / definition(s) judged in ${files.length} file(s)` } : result;
+    const counted = result.passed
+      ? {
+          ...result,
+          message: `${result.message} — ${tally.judged} deploy command(s) / definition(s) judged in ${files.length} file(s)`,
+        }
+      : result;
     return { ...withNotes(counted, tally.notes), metrics };
   }
 
@@ -121,9 +148,19 @@ export class ServerlessDeployPinsResourcesLaw extends LawBase {
    * read its files and found nothing to judge — a pass that says so; no file
    * read at all is judged nothing.
    */
-  private static unjudged(context: LawCheckContext, filesRead: number, notes: string[]): LawResult {
+  private static unjudged(
+    context: LawCheckContext,
+    filesRead: number,
+    notes: string[]
+  ): LawResult {
     if (filesRead > 0 && notes.length === 0) {
-      const result = this.createResult([], this.LAW_NAME, 'DEPLOYMENT', [], context);
+      const result = this.createResult(
+        [],
+        this.LAW_NAME,
+        'DEPLOYMENT',
+        [],
+        context
+      );
       return {
         ...result,
         message: `${this.LAW_NAME}: ${filesRead} file(s) read, no serverless deploy command or definition in them to judge (what selected the law is not a command here, e.g. a commented-out line)`,
@@ -133,119 +170,250 @@ export class ServerlessDeployPinsResourcesLaw extends LawBase {
       filesRead === 0
         ? 'read no file with a serverless deploy command or definition'
         : `saw deploy commands in ${filesRead} file(s) but could read none of them (see the notes)`;
-    const result = this.createResult([`${this.LAW_NAME} ${why} — this law judged nothing`], this.LAW_NAME, 'DEPLOYMENT', [], context);
+    const result = this.createResult(
+      [`${this.LAW_NAME} ${why} — this law judged nothing`],
+      this.LAW_NAME,
+      'DEPLOYMENT',
+      [],
+      context
+    );
     return withNotes(markJudgedNothing(result), notes);
   }
 
-  private static judgeFile(context: LawCheckContext, file: DeployFile, tally: Tally): void {
-    if (file.name === 'package.json') return this.packageScripts(context, file, tally);
+  private static judgeFile(
+    context: LawCheckContext,
+    file: DeployFile,
+    tally: Tally
+  ): void {
+    if (file.name === 'package.json')
+      return this.packageScripts(context, file, tally);
     if (file.name.endsWith('.json')) return this.jsonFile(context, file, tally);
-    if (YAML_FILE.test(file.name) || file.name.endsWith('.template')) return this.yamlFile(context, file, tally);
-    if (SHELL_FILE.test(file.name)) this.commands(context, file, commandsInText.bind(null, file.text), tally);
+    if (YAML_FILE.test(file.name) || file.name.endsWith('.template'))
+      return this.yamlFile(context, file, tally);
+    if (SHELL_FILE.test(file.name))
+      this.commands(context, file, commandsInText.bind(null, file.text), tally);
   }
 
-  private static yamlFile(context: LawCheckContext, file: DeployFile, tally: Tally): void {
-    if (!/(?:run|lambda|functionapp|Function|functions|deploy-cloudrun)/.test(file.text)) return;
+  private static yamlFile(
+    context: LawCheckContext,
+    file: DeployFile,
+    tally: Tally
+  ): void {
+    if (
+      !/(?:run|lambda|functionapp|Function|functions|deploy-cloudrun)/.test(
+        file.text
+      )
+    )
+      return;
     const entries = yamlEntries(file.text);
-    if (/^serverless\.ya?ml$/.test(file.name)) this.definition(file, serverlessFrameworkGaps(entries, file.rel), tally);
-    if (LAMBDA_RESOURCE_TYPES.some(type => file.text.includes(type))) this.definition(file, samYamlGaps(entries), tally);
+    if (/^serverless\.ya?ml$/.test(file.name))
+      this.definition(file, serverlessFrameworkGaps(entries, file.rel), tally);
+    if (LAMBDA_RESOURCE_TYPES.some(type => file.text.includes(type)))
+      this.definition(file, samYamlGaps(entries), tally);
     const folded = foldedLines(entries);
-    this.commands(context, file, start => [...commandsInText(file.text, start, folded), ...argsCommands(entries).filter(cmd => start.test(cmd.text))], tally);
+    this.commands(
+      context,
+      file,
+      start => [
+        ...commandsInText(file.text, start, folded),
+        ...argsCommands(entries).filter(cmd => start.test(cmd.text)),
+      ],
+      tally
+    );
     this.deployAction(context, file, entries, tally);
   }
 
-  private static jsonFile(context: LawCheckContext, file: DeployFile, tally: Tally): void {
+  private static jsonFile(
+    context: LawCheckContext,
+    file: DeployFile,
+    tally: Tally
+  ): void {
     let parsed: unknown;
     try {
       parsed = JSON.parse(file.text);
     } catch {
       return;
     }
-    if (file.name === 'host.json') this.definition(file, hostJsonGaps(file.text, parsed), tally);
-    if (LAMBDA_RESOURCE_TYPES.some(type => file.text.includes(type))) this.definition(file, samJsonGaps(file.text, parsed), tally);
+    if (file.name === 'host.json')
+      this.definition(file, hostJsonGaps(file.text, parsed), tally);
+    if (LAMBDA_RESOURCE_TYPES.some(type => file.text.includes(type)))
+      this.definition(file, samJsonGaps(file.text, parsed), tally);
     if (/^cloudbuild.*\.json$/.test(file.name)) {
       const steps = (parsed as { steps?: unknown }).steps;
-      const commands = Array.isArray(steps) ? steps.flatMap((step, index) => this.jsonStep(file.text, step, index)) : [];
-      this.commands(context, file, start => commands.filter(cmd => start.test(cmd.text)), tally);
+      const commands = Array.isArray(steps)
+        ? steps.flatMap((step, index) => this.jsonStep(file.text, step, index))
+        : [];
+      this.commands(
+        context,
+        file,
+        start => commands.filter(cmd => start.test(cmd.text)),
+        tally
+      );
     }
   }
 
-  private static jsonStep(text: string, step: unknown, index: number): FoundCommand[] {
-    const { entrypoint, name, args } = (step ?? {}) as { entrypoint?: unknown; name?: unknown; args?: unknown };
-    const program = typeof entrypoint === 'string' ? entrypoint : /cloud-builders\/gcloud(?::|$)/.test(String(name ?? '')) ? 'gcloud' : '';
-    if (!['gcloud', 'aws', 'az'].includes(program) || !Array.isArray(args)) return [];
+  private static jsonStep(
+    text: string,
+    step: unknown,
+    index: number
+  ): FoundCommand[] {
+    const { entrypoint, name, args } = (step ?? {}) as {
+      entrypoint?: unknown;
+      name?: unknown;
+      args?: unknown;
+    };
+    const program =
+      typeof entrypoint === 'string'
+        ? entrypoint
+        : /cloud-builders\/gcloud(?::|$)/.test(String(name ?? ''))
+          ? 'gcloud'
+          : '';
+    if (!['gcloud', 'aws', 'az'].includes(program) || !Array.isArray(args))
+      return [];
     let at = -1;
     for (let i = 0; i <= index; i++) at = text.indexOf('"args"', at + 1);
-    return [{ line: at < 0 ? 1 : text.slice(0, at).split('\n').length, text: [program, ...args.map(String)].join(' ') }];
+    return [
+      {
+        line: at < 0 ? 1 : text.slice(0, at).split('\n').length,
+        text: [program, ...args.map(String)].join(' '),
+      },
+    ];
   }
 
-  private static packageScripts(context: LawCheckContext, file: DeployFile, tally: Tally): void {
+  private static packageScripts(
+    context: LawCheckContext,
+    file: DeployFile,
+    tally: Tally
+  ): void {
     let scripts: Record<string, unknown> = {};
     try {
-      scripts = (JSON.parse(file.text) as { scripts?: Record<string, unknown> }).scripts ?? {};
+      scripts =
+        (JSON.parse(file.text) as { scripts?: Record<string, unknown> })
+          .scripts ?? {};
     } catch {
       return;
     }
-    const entries = Object.entries(scripts).filter((entry): entry is [string, string] => typeof entry[1] === 'string');
+    const entries = Object.entries(scripts).filter(
+      (entry): entry is [string, string] => typeof entry[1] === 'string'
+    );
     this.commands(
       context,
       file,
       start =>
         entries.flatMap(([name, command]) =>
-          commandsInText(command, start).map(found => ({ line: file.text.slice(0, file.text.indexOf(`"${name}"`)).split('\n').length, text: found.text }))
+          commandsInText(command, start).map(found => ({
+            line: file.text.slice(0, file.text.indexOf(`"${name}"`)).split('\n')
+              .length,
+            text: found.text,
+          }))
         ),
       tally
     );
   }
 
-  private static definition(file: DeployFile, judged: Judged | null, tally: Tally): void {
+  private static definition(
+    file: DeployFile,
+    judged: Judged | null,
+    tally: Tally
+  ): void {
     if (!judged) return;
     tally.judged += judged.units;
     tally.notes.push(...judged.notes);
-    tally.findings.push(...judged.gaps.map((gap: Gap) => finding(`${file.rel}:${gap.line}`, gap.unit, gap.missing, DEFINITION_CONSEQUENCE)));
+    tally.findings.push(
+      ...judged.gaps.map((gap: Gap) =>
+        finding(
+          `${file.rel}:${gap.line}`,
+          gap.unit,
+          gap.missing,
+          DEFINITION_CONSEQUENCE
+        )
+      )
+    );
   }
 
   /** Judge every command of every platform the file holds. */
-  private static commands(context: LawCheckContext, file: DeployFile, find: (start: RegExp) => FoundCommand[], tally: Tally): void {
+  private static commands(
+    context: LawCheckContext,
+    file: DeployFile,
+    find: (start: RegExp) => FoundCommand[],
+    tally: Tally
+  ): void {
     for (const platform of COMMAND_PLATFORMS) {
-      for (const command of find(platform.start)) this.judgeCommand(context, file, platform, command, tally);
+      for (const command of find(platform.start))
+        this.judgeCommand(context, file, platform, command, tally);
     }
-    for (const command of find(REPLACE)) this.servicesReplace(context, file, command, tally);
+    for (const command of find(REPLACE))
+      this.servicesReplace(context, file, command, tally);
   }
 
-  private static judgeCommand(context: LawCheckContext, file: DeployFile, platform: CommandPlatform, command: FoundCommand, tally: Tally): void {
+  private static judgeCommand(
+    context: LawCheckContext,
+    file: DeployFile,
+    platform: CommandPlatform,
+    command: FoundCommand,
+    tally: Tally
+  ): void {
     const where = `${file.rel}:${command.line}`;
     const flags = flagsOf(command.text);
     if (platform.when && !platform.when.some(flag => flags.has(flag))) return;
     const fromFile = this.flagsFile(context, file, command.text);
     if (fromFile === null) {
-      tally.notes.push(`${where}: ${platform.command} reads --flags-file from a path that could not be read — not judged`);
+      tally.notes.push(
+        `${where}: ${platform.command} reads --flags-file from a path that could not be read — not judged`
+      );
       return;
     }
     fromFile.forEach(flag => flags.add(flag));
-    const missing = platform.settings.filter(pinned => !pinned.flags.some(flag => flags.has(flag))).map(pinned => ({ setting: pinned.setting, names: pinned.flags }));
-    const opaque = missing.length > 0 ? opaqueArguments(command.text, wordCount(command.text, platform.start), platform.positionals) : [];
+    const missing = platform.settings
+      .filter(pinned => !pinned.flags.some(flag => flags.has(flag)))
+      .map(pinned => ({ setting: pinned.setting, names: pinned.flags }));
+    const opaque =
+      missing.length > 0
+        ? opaqueArguments(
+            command.text,
+            wordCount(command.text, platform.start),
+            platform.positionals
+          )
+        : [];
     if (opaque.length > 0) {
-      tally.notes.push(`${where}: ${platform.command} passes ${opaque.join(' ')}, which may carry ${describeMissing(missing)} — not judged`);
+      tally.notes.push(
+        `${where}: ${platform.command} passes ${opaque.join(' ')}, which may carry ${describeMissing(missing)} — not judged`
+      );
       return;
     }
     tally.judged++;
-    if (missing.length > 0) tally.findings.push(finding(where, platform.command, missing, platform.consequence));
+    if (missing.length > 0)
+      tally.findings.push(
+        finding(where, platform.command, missing, platform.consequence)
+      );
   }
 
   /** Flags from `--flags-file` (a YAML of `--flag: value`); [] without one, null when it cannot be read. */
-  private static flagsFile(context: LawCheckContext, file: DeployFile, text: string): string[] | null {
+  private static flagsFile(
+    context: LawCheckContext,
+    file: DeployFile,
+    text: string
+  ): string[] | null {
     const path = flagValue(text, '--flags-file');
     if (path === null) return [];
     const content = this.resolve(context, file, path);
     if (content === null) return null;
-    return [...content.matchAll(/^\s*(--[a-z][a-z0-9-]*)\s*:/gim)].map(match => (match[1] ?? '').toLowerCase());
+    return [...content.matchAll(/^\s*(--[a-z][a-z0-9-]*)\s*:/gim)].map(match =>
+      (match[1] ?? '').toLowerCase()
+    );
   }
 
   /** A path a command names, read relative to the project root or the file's directory. */
-  private static resolve(context: LawCheckContext, file: DeployFile, path: string): string | null {
+  private static resolve(
+    context: LawCheckContext,
+    file: DeployFile,
+    path: string
+  ): string | null {
     if (/[$%{}]/.test(path)) return null;
-    for (const base of [context.projectRoot, PathOperations.getDirectory(file.abs)]) {
+    for (const base of [
+      context.projectRoot,
+      PathOperations.getDirectory(file.abs),
+    ]) {
       try {
         return fs.readFileSync(PathOperations.resolve(base, path), 'utf8');
       } catch {
@@ -255,46 +423,110 @@ export class ServerlessDeployPinsResourcesLaw extends LawBase {
     return null;
   }
 
-  private static servicesReplace(context: LawCheckContext, file: DeployFile, command: FoundCommand, tally: Tally): void {
-    const words = command.text.trim().split(/\s+/).slice(wordCount(command.text, REPLACE));
-    const path = words.find((word, i) => !word.startsWith('-') && !(words[i - 1] ?? '').match(/^--?[a-z][\w-]*$/i))?.replace(/^["']|["']$/g, '');
-    this.serviceYaml(context, file, `${file.rel}:${command.line}`, 'gcloud run services replace', path, tally);
+  private static servicesReplace(
+    context: LawCheckContext,
+    file: DeployFile,
+    command: FoundCommand,
+    tally: Tally
+  ): void {
+    const words = command.text
+      .trim()
+      .split(/\s+/)
+      .slice(wordCount(command.text, REPLACE));
+    const path = words
+      .find(
+        (word, i) =>
+          !word.startsWith('-') &&
+          !(words[i - 1] ?? '').match(/^--?[a-z][\w-]*$/i)
+      )
+      ?.replace(/^["']|["']$/g, '');
+    this.serviceYaml(
+      context,
+      file,
+      `${file.rel}:${command.line}`,
+      'gcloud run services replace',
+      path,
+      tally
+    );
   }
 
-  private static serviceYaml(context: LawCheckContext, file: DeployFile, where: string, subject: string, path: string | undefined, tally: Tally): void {
+  private static serviceYaml(
+    context: LawCheckContext,
+    file: DeployFile,
+    where: string,
+    subject: string,
+    path: string | undefined,
+    tally: Tally
+  ): void {
     const content = path ? this.resolve(context, file, path) : null;
     if (content === null) {
-      tally.notes.push(`${where}: ${subject} applies a service YAML (${path ?? 'no path'}) that could not be read — not judged`);
+      tally.notes.push(
+        `${where}: ${subject} applies a service YAML (${path ?? 'no path'}) that could not be read — not judged`
+      );
       return;
     }
     tally.judged++;
     const missing = cloudRunServiceGaps(yamlEntries(content));
-    if (missing.length > 0) tally.findings.push(finding(where, `${subject} ${path}`, missing, DEFINITION_CONSEQUENCE));
+    if (missing.length > 0)
+      tally.findings.push(
+        finding(where, `${subject} ${path}`, missing, DEFINITION_CONSEQUENCE)
+      );
   }
 
   /** The Cloud Run deploy GitHub Action: `flags` and `timeout` inputs, or a `metadata` service YAML. */
-  private static deployAction(context: LawCheckContext, file: DeployFile, entries: YamlEntry[], tally: Tally): void {
-    for (const uses of entries.filter(entry => entry.key === 'uses' && DEPLOY_CLOUDRUN_ACTION.test(entry.value))) {
+  private static deployAction(
+    context: LawCheckContext,
+    file: DeployFile,
+    entries: YamlEntry[],
+    tally: Tally
+  ): void {
+    for (const uses of entries.filter(
+      entry => entry.key === 'uses' && DEPLOY_CLOUDRUN_ACTION.test(entry.value)
+    )) {
       const input = (name: string): YamlEntry | undefined =>
-        entries.find(entry => entry.item === uses.item && entry.path[entry.path.length - 2] === 'with' && entry.key === name);
+        entries.find(
+          entry =>
+            entry.item === uses.item &&
+            entry.path[entry.path.length - 2] === 'with' &&
+            entry.key === name
+        );
       if (input('job')) continue;
       const where = `${file.rel}:${uses.line}`;
       const metadata = input('metadata');
       if (metadata) {
-        this.serviceYaml(context, file, where, 'google-github-actions/deploy-cloudrun metadata', metadata.value, tally);
+        this.serviceYaml(
+          context,
+          file,
+          where,
+          'google-github-actions/deploy-cloudrun metadata',
+          metadata.value,
+          tally
+        );
         continue;
       }
       const flagsInput = input('flags');
       const text = `${flagsInput?.value ?? ''} ${(flagsInput?.block ?? []).map(line => line.text).join(' ')}`;
       const flags = flagsOf(text);
       if (input('timeout')) flags.add('--timeout');
-      const missing = CLOUD_RUN_DEPLOY.settings.filter(pinned => !pinned.flags.some(flag => flags.has(flag))).map(pinned => ({ setting: pinned.setting, names: pinned.flags }));
+      const missing = CLOUD_RUN_DEPLOY.settings
+        .filter(pinned => !pinned.flags.some(flag => flags.has(flag)))
+        .map(pinned => ({ setting: pinned.setting, names: pinned.flags }));
       if (missing.length > 0 && /\$\{\{/.test(text)) {
-        tally.notes.push(`${where}: the deploy-cloudrun flags input is an expression, which may carry ${describeMissing(missing)} — not judged`);
+        tally.notes.push(
+          `${where}: the deploy-cloudrun flags input is an expression, which may carry ${describeMissing(missing)} — not judged`
+        );
         continue;
       }
       tally.judged++;
-      if (missing.length > 0) tally.findings.push(finding(where, 'google-github-actions/deploy-cloudrun (flags input)', missing, CLOUD_RUN_DEPLOY.consequence));
+      if (missing.length > 0)
+        tally.findings.push(
+          finding(
+            where,
+            'google-github-actions/deploy-cloudrun (flags input)',
+            missing,
+            CLOUD_RUN_DEPLOY.consequence
+          )
+        );
     }
   }
 }

@@ -19,7 +19,10 @@ describe('a compliance script is identified by what it runs', () => {
   describe('the audit is recognised whatever the script is called', () => {
     it.each([
       [{ audit: 'ruleofcode audit --mode=full' }, 'a script named audit'],
-      [{ verify: 'nx lint web && roc audit && nx test web' }, 'one stage of a gate'],
+      [
+        { verify: 'nx lint web && roc audit && nx test web' },
+        'one stage of a gate',
+      ],
       [{ precommit: 'npx ruleofcode audit --staged' }, 'run through npx'],
       [{ ci: 'RoC audit --mode=full' }, 'a different capitalisation'],
     ])('accepts %j — %s', (scripts, _label) => {
@@ -32,7 +35,9 @@ describe('a compliance script is identified by what it runs', () => {
     it.each(COMPLIANCE_SCRIPT_NAMES.map(name => [name]))(
       'still accepts the conventional name %s',
       name => {
-        expect(runsConstitutionalAudit({ [name]: 'echo something' })).toBe(true);
+        expect(runsConstitutionalAudit({ [name]: 'echo something' })).toBe(
+          true
+        );
       }
     );
   });
@@ -54,9 +59,9 @@ describe('a compliance script is identified by what it runs', () => {
     });
 
     it('rejects a script that merely mentions the word audit', () => {
-      expect(runsConstitutionalAudit({ docs: 'echo "see the audit page"' })).toBe(
-        false
-      );
+      expect(
+        runsConstitutionalAudit({ docs: 'echo "see the audit page"' })
+      ).toBe(false);
     });
 
     /**

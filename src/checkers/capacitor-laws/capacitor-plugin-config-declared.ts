@@ -57,7 +57,10 @@ export class CapacitorPluginConfigDeclaredLaw extends LawBase {
     );
   }
 
-  private static checkProject(context: LawCheckContext, resolved: ResolvedProject): string[] {
+  private static checkProject(
+    context: LawCheckContext,
+    resolved: ResolvedProject
+  ): string[] {
     const paths = [resolved.project.root, context.projectRoot];
     if (!this.packageDir('@capacitor/core', paths)) {
       return [
@@ -69,7 +72,10 @@ export class CapacitorPluginConfigDeclaredLaw extends LawBase {
       const dir = this.packageDir(name, paths);
       if (!dir) continue;
       for (const declared of this.declaredConfig(name, dir)) {
-        if (configValue(resolved.config, `plugins.${declared.key}`) !== undefined) continue;
+        if (
+          configValue(resolved.config, `plugins.${declared.key}`) !== undefined
+        )
+          continue;
         violations.push(
           `${resolved.where}: ${declared.plugin} reads plugins.${declared.key} and the config has none — it silently takes its own defaults on the device${
             declared.options.length ? ` (${declared.options.join('; ')})` : ''
@@ -81,8 +87,16 @@ export class CapacitorPluginConfigDeclaredLaw extends LawBase {
   }
 
   /** The PluginsConfig keys a package declares in its definitions. */
-  static declaredConfig(plugin: string, packageDir: string): DeclaredPluginConfig[] {
-    const file = PathOperations.join(packageDir, 'dist', 'esm', 'definitions.d.ts');
+  static declaredConfig(
+    plugin: string,
+    packageDir: string
+  ): DeclaredPluginConfig[] {
+    const file = PathOperations.join(
+      packageDir,
+      'dist',
+      'esm',
+      'definitions.d.ts'
+    );
     let content: string;
     try {
       content = fs.readFileSync(file, 'utf8');
@@ -92,7 +106,10 @@ export class CapacitorPluginConfigDeclaredLaw extends LawBase {
     return this.parseDeclarations(plugin, content);
   }
 
-  static parseDeclarations(plugin: string, content: string): DeclaredPluginConfig[] {
+  static parseDeclarations(
+    plugin: string,
+    content: string
+  ): DeclaredPluginConfig[] {
     const code = TsClasses.mask(content);
     const module = AUGMENTATION.exec(code);
     if (!module) return [];
@@ -107,7 +124,10 @@ export class CapacitorPluginConfigDeclaredLaw extends LawBase {
   }
 
   /** Property names at depth 1 of the block opened at `open`, with their own `{` if any. */
-  private static members(code: string, open: number): Array<{ name: string; open: number }> {
+  private static members(
+    code: string,
+    open: number
+  ): Array<{ name: string; open: number }> {
     const members: Array<{ name: string; open: number }> = [];
     const close = this.closing(code, open);
     let depth = 0;
@@ -132,17 +152,25 @@ export class CapacitorPluginConfigDeclaredLaw extends LawBase {
     code: string,
     k: number
   ): { member: { name: string; open: number }; next: number } | null {
-    if (!/[A-Za-z_$]/.test(code[k] ?? '') || /[\w$]/.test(code[k - 1] ?? '')) return null;
+    if (!/[A-Za-z_$]/.test(code[k] ?? '') || /[\w$]/.test(code[k - 1] ?? ''))
+      return null;
     const property = /([A-Za-z_$][\w$]*)\??\s*:\s*(\{)?/y;
     property.lastIndex = k;
     const match = property.exec(code);
     if (!match) return null;
     const next = k + match[0].length;
-    return { member: { name: match[1] ?? '', open: match[2] ? next - 1 : -1 }, next };
+    return {
+      member: { name: match[1] ?? '', open: match[2] ? next - 1 : -1 },
+      next,
+    };
   }
 
   /** "name" or "name (@default value)" for each option of a plugin's block. */
-  private static options(content: string, code: string, open: number): string[] {
+  private static options(
+    content: string,
+    code: string,
+    open: number
+  ): string[] {
     let previous = open + 1;
     return this.members(code, open).map(({ name }) => {
       const at = code.indexOf(name, previous);
@@ -164,7 +192,9 @@ export class CapacitorPluginConfigDeclaredLaw extends LawBase {
 
   private static packageDir(name: string, paths: string[]): string | null {
     try {
-      return PathOperations.getDirectory(require.resolve(`${name}/package.json`, { paths }));
+      return PathOperations.getDirectory(
+        require.resolve(`${name}/package.json`, { paths })
+      );
     } catch {
       return null;
     }

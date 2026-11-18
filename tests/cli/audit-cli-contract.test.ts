@@ -4,7 +4,7 @@
  * on real temp fixtures — run `npm run build` first; the suite fails loudly
  * if dist is missing.
  */
-import { execFileSync } from 'child_process';
+import { execFileSync } from '../../src/utils/child-process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -91,15 +91,18 @@ describe('audit CLI contract', () => {
     ['printed slug', 'module-size'],
     ['canonical name', 'Module Size'],
     ['legacyId', '225'],
-  ])('laws.severity keyed by %s escalates a warning law to exit 1', (_l, key) => {
-    writeConfig({
-      paretoMode: false,
-      enabled: { [key]: true },
-      severity: { [key]: 'error' },
-    });
-    const r = runAudit(dir);
-    expect(r.code).toBe(1);
-  });
+  ])(
+    'laws.severity keyed by %s escalates a warning law to exit 1',
+    (_l, key) => {
+      writeConfig({
+        paretoMode: false,
+        enabled: { [key]: true },
+        severity: { [key]: 'error' },
+      });
+      const r = runAudit(dir);
+      expect(r.code).toBe(1);
+    }
+  );
 
   it('the same violation stays non-blocking at its default warning severity', () => {
     writeConfig({ paretoMode: false, enabled: { 'Module Size': true } });
@@ -182,9 +185,9 @@ describe('audit CLI contract', () => {
   it('laws.severity keyed by the hashed law id escalates to exit 1', () => {
     // Resolve the id from the registry at runtime — the hash is derived from
     // the law's title/description and must gate like every other spelling.
-    const {
-      ModularLawsRegistry,
-    } = jest.requireActual('../../src/registry/modular-laws-registry');
+    const { ModularLawsRegistry } = jest.requireActual(
+      '../../src/registry/modular-laws-registry'
+    );
     const law = ModularLawsRegistry.getAll().find(
       (l: { name: string }) => l.name === 'Module Size'
     );
@@ -221,7 +224,11 @@ describe('audit CLI contract', () => {
       expect(advisedFloor(preCommit.out)).toBe(floor);
 
       writeConfig({ paretoMode: false, minLawsChecked: floor });
-      for (const mode of ['--mode=full', '--mode=pre-commit', '--mode=pre-push']) {
+      for (const mode of [
+        '--mode=full',
+        '--mode=pre-commit',
+        '--mode=pre-push',
+      ]) {
         expect(plain(runAudit(dir, [mode]).out)).not.toContain(BELOW_FLOOR);
       }
 

@@ -46,7 +46,10 @@ export interface ActivityRegistration {
 }
 
 /** Every file under `dir` with one of `extensions`, recursively; [] when it does not exist. */
-export function filesUnder(dir: string, extensions: readonly string[]): string[] {
+export function filesUnder(
+  dir: string,
+  extensions: readonly string[]
+): string[] {
   const found: string[] = [];
   const walk = (current: string): void => {
     let entries: fs.Dirent[];
@@ -58,7 +61,8 @@ export function filesUnder(dir: string, extensions: readonly string[]): string[]
     for (const entry of entries) {
       const full = PathOperations.join(current, entry.name);
       if (entry.isDirectory()) walk(full);
-      else if (extensions.some(ext => entry.name.endsWith(ext))) found.push(full);
+      else if (extensions.some(ext => entry.name.endsWith(ext)))
+        found.push(full);
     }
   };
   walk(dir);
@@ -118,24 +122,33 @@ export function balancedArguments(text: string, open: number): string | null {
 }
 
 const ANNOTATION = /@CapacitorPlugin\b/g;
-const PLUGIN_METHOD = /@PluginMethod\b(?:\s*\([^)]*\))?(?:\s*@\w+(?:\s*\([^)]*\))?)*\s*([^(;{}]*?)\b(\w+)\s*\(/g;
+const PLUGIN_METHOD =
+  /@PluginMethod\b(?:\s*\([^)]*\))?(?:\s*@\w+(?:\s*\([^)]*\))?)*\s*([^(;{}]*?)\b(\w+)\s*\(/g;
 const NAME_ARGUMENT = /\bname\s*=\s*"([^"]*)"/;
 
 /** The @CapacitorPlugin classes in one Java or Kotlin file. */
-export function androidPluginClasses(file: string, raw: string): NativePluginClass[] {
+export function androidPluginClasses(
+  file: string,
+  raw: string
+): NativePluginClass[] {
   const text = stripComments(raw);
   const starts = [...text.matchAll(ANNOTATION)].map(match => match.index ?? 0);
   return starts.map((start, index) => {
     const open = text.indexOf('(', start);
     const classMatch = /\bclass\s+(\w+)/.exec(text.slice(start));
     const between = text.slice(start + '@CapacitorPlugin'.length, open).trim();
-    const args = open !== -1 && between === '' ? (balancedArguments(text, open) ?? '') : '';
+    const args =
+      open !== -1 && between === ''
+        ? (balancedArguments(text, open) ?? '')
+        : '';
     const end = starts[index + 1] ?? text.length;
     const className = classMatch?.[1] ?? '';
     return {
       name: pluginName(args, className),
       className,
-      methods: [...text.slice(start, end).matchAll(PLUGIN_METHOD)].map(match => match[2] ?? ''),
+      methods: [...text.slice(start, end).matchAll(PLUGIN_METHOD)].map(
+        match => match[2] ?? ''
+      ),
       file,
     };
   });
@@ -152,22 +165,31 @@ function pluginName(args: string, className: string): string | null {
   return /\bname\s*=/.test(args) ? null : className;
 }
 
-const REGISTER_CALL =/\bregisterPlugins?\s*\(/g;
+const REGISTER_CALL = /\bregisterPlugins?\s*\(/g;
 const CLASS_LITERAL = /\b(\w+)(?:\.class|::class(?:\.java)?)\b/g;
 const SUPER_ON_CREATE = /\bsuper\.onCreate\s*\(/;
 const BRIDGE_ACTIVITY = /\bextends\s+BridgeActivity\b|:\s*BridgeActivity\s*\(/;
 
 /** The local plugins a BridgeActivity subclass registers, split by whether they are in time. */
-export function activityRegistration(file: string, raw: string): ActivityRegistration | null {
+export function activityRegistration(
+  file: string,
+  raw: string
+): ActivityRegistration | null {
   const text = stripComments(raw);
   if (!BRIDGE_ACTIVITY.test(text)) return null;
   const superAt = SUPER_ON_CREATE.exec(text)?.index ?? -1;
-  const registration: ActivityRegistration = { file, before: new Set(), after: new Set() };
+  const registration: ActivityRegistration = {
+    file,
+    before: new Set(),
+    after: new Set(),
+  };
   for (const match of text.matchAll(REGISTER_CALL)) {
     const at = match.index ?? 0;
     const args = balancedArguments(text, at + match[0].length - 1) ?? '';
-    const target = superAt !== -1 && at > superAt ? registration.after : registration.before;
-    for (const literal of args.matchAll(CLASS_LITERAL)) target.add(literal[1] ?? '');
+    const target =
+      superAt !== -1 && at > superAt ? registration.after : registration.before;
+    for (const literal of args.matchAll(CLASS_LITERAL))
+      target.add(literal[1] ?? '');
   }
   return registration;
 }
@@ -177,7 +199,10 @@ const JS_NAME = /\bjsName\s*(?::\s*String\s*)?=\s*"([^"]*)"/;
 const SWIFT_METHOD = /\bCAPPluginMethod\s*\(\s*name\s*:\s*"([^"]*)"/g;
 
 /** The CAPBridgedPlugin classes in one Swift file. */
-export function iosPluginClasses(file: string, raw: string): NativePluginClass[] {
+export function iosPluginClasses(
+  file: string,
+  raw: string
+): NativePluginClass[] {
   const text = stripComments(raw);
   const starts = [...text.matchAll(SWIFT_CLASS)];
   return starts.map((match, index) => {

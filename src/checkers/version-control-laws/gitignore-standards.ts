@@ -179,7 +179,11 @@ export class GitIgnoreStandardsLaw {
     // committed — the disk gets both backwards.
     const states = gitExposure(projectRoot, riskyFiles);
     if (!states) {
-      return this.checkRiskyFilesOnDisk(projectRoot, riskyFiles, violationDetails);
+      return this.checkRiskyFilesOnDisk(
+        projectRoot,
+        riskyFiles,
+        violationDetails
+      );
     }
 
     for (const riskyFile of riskyFiles) {

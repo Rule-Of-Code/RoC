@@ -1,8 +1,14 @@
-import type { LawCheckContext, RuleOfCodeConfig } from '../../../../types/law.types';
+import type {
+  LawCheckContext,
+  RuleOfCodeConfig,
+} from '../../../../types/law.types';
 import type { SourceLanguage } from '../../../../utils/request-path/model';
 import { FirestoreOptimizationAnalyzerService } from './firestore-optimization.analyzer';
 import { IndexingAnalyzerService } from './indexing.analyzer';
-import { type NPlusOneAnalysis, NPlusOneAnalyzerService } from './nplus-one.analyzer';
+import {
+  type NPlusOneAnalysis,
+  NPlusOneAnalyzerService,
+} from './nplus-one.analyzer';
 import { PaginationAnalyzerService } from './pagination.analyzer';
 import { QueryBatchingAnalyzerService } from './query-batching.analyzer';
 import { QueryCachingAnalyzerService } from './query-caching.analyzer';

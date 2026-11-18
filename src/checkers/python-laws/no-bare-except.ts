@@ -13,7 +13,8 @@ import { PythonLawBase } from './python-law-base';
 export class NoBareExceptLaw extends PythonLawBase {
   private static readonly LAW_NAME = 'No Bare Except';
   private static readonly BARE_EXCEPT = /^\s*except\s*:/;
-  private static readonly BASE_EXCEPTION = /^\s*except\s+BaseException\s*(?:as\s+\w+\s*)?:/;
+  private static readonly BASE_EXCEPTION =
+    /^\s*except\s+BaseException\s*(?:as\s+\w+\s*)?:/;
 
   static check(context: LawCheckContext): LawResult {
     const { projectRoot } = context;

@@ -43,7 +43,10 @@ export class PythonLawBase extends LawBase {
    * project is not flagged for FastAPI conventions.
    */
   protected static hasFastApi(projectRoot: string): boolean {
-    return this.dependencyFilesContain(projectRoot, /(^|[^\w-])fastapi([^\w-]|$)/im);
+    return this.dependencyFilesContain(
+      projectRoot,
+      /(^|[^\w-])fastapi([^\w-]|$)/im
+    );
   }
 
   /** Read a file relative to the project root, or null if it does not exist. */
@@ -57,7 +60,10 @@ export class PythonLawBase extends LawBase {
   }
 
   /** Whether a file exists at projectRoot/rel. */
-  protected static projectFileExists(projectRoot: string, rel: string): boolean {
+  protected static projectFileExists(
+    projectRoot: string,
+    rel: string
+  ): boolean {
     return FileUtils.exists(PathOperations.join(projectRoot, rel));
   }
 
@@ -265,7 +271,11 @@ export class PythonLawBase extends LawBase {
         if (lineIndent <= indent) break;
         bodyLines.push(line);
       }
-      blocks.push({ name: m[2] ?? '', line: i + 1, body: bodyLines.join('\n') });
+      blocks.push({
+        name: m[2] ?? '',
+        line: i + 1,
+        body: bodyLines.join('\n'),
+      });
     }
     return blocks;
   }

@@ -12,7 +12,8 @@
 
 import type { LawRequirement } from '../../types/enhanced-law.types';
 
-export type Setting = 'concurrency' | 'cpu' | 'max instances' | 'memory' | 'timeout';
+export type Setting =
+  'concurrency' | 'cpu' | 'max instances' | 'memory' | 'timeout';
 
 const MEMORY: Setting = 'memory';
 const TIMEOUT: Setting = 'timeout';
@@ -68,7 +69,8 @@ export const COMMAND_PLATFORMS: readonly CommandPlatform[] = [
       { setting: TIMEOUT, flags: ['--timeout'] },
     ],
     consequence: 'the function is created on the defaults (128 MB, 3 s)',
-    reference: 'https://docs.aws.amazon.com/cli/latest/reference/lambda/create-function.html',
+    reference:
+      'https://docs.aws.amazon.com/cli/latest/reference/lambda/create-function.html',
   },
   {
     command: 'az functionapp create (Flex Consumption)',
@@ -80,7 +82,8 @@ export const COMMAND_PLATFORMS: readonly CommandPlatform[] = [
       { setting: MAX_INSTANCES, flags: ['--maximum-instance-count'] },
     ],
     consequence: 'the app is created on the plan defaults',
-    reference: 'https://learn.microsoft.com/cli/azure/functionapp#az-functionapp-create',
+    reference:
+      'https://learn.microsoft.com/cli/azure/functionapp#az-functionapp-create',
   },
 ];
 
@@ -95,7 +98,10 @@ export interface PinnedKey {
 export const CLOUD_RUN_SERVICE_KEYS: readonly PinnedKey[] = [
   { setting: 'cpu', paths: [['resources', 'limits', 'cpu']] },
   { setting: MEMORY, paths: [['resources', 'limits', 'memory']] },
-  { setting: 'concurrency', paths: [['template', 'spec', 'containerConcurrency']] },
+  {
+    setting: 'concurrency',
+    paths: [['template', 'spec', 'containerConcurrency']],
+  },
   { setting: TIMEOUT, paths: [['template', 'spec', 'timeoutSeconds']] },
   {
     setting: MAX_INSTANCES,
@@ -105,41 +111,70 @@ export const CLOUD_RUN_SERVICE_KEYS: readonly PinnedKey[] = [
     ],
   },
 ];
-export const CLOUD_RUN_YAML_REFERENCE = 'https://cloud.google.com/run/docs/reference/yaml/v1';
+export const CLOUD_RUN_YAML_REFERENCE =
+  'https://cloud.google.com/run/docs/reference/yaml/v1';
 
 /** AWS SAM / CloudFormation function properties (SAM also reads Globals.Function). */
-export const LAMBDA_PROPERTIES: ReadonlyArray<{ setting: Setting; key: string }> = [
+export const LAMBDA_PROPERTIES: ReadonlyArray<{
+  setting: Setting;
+  key: string;
+}> = [
   { setting: MEMORY, key: 'MemorySize' },
   { setting: TIMEOUT, key: 'Timeout' },
 ];
-export const LAMBDA_RESOURCE_TYPES = ['AWS::Serverless::Function', 'AWS::Lambda::Function'];
-export const SAM_REFERENCE = 'https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html';
+export const LAMBDA_RESOURCE_TYPES = [
+  'AWS::Serverless::Function',
+  'AWS::Lambda::Function',
+];
+export const SAM_REFERENCE =
+  'https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html';
 
 /** Serverless Framework: provider-level or function-level keys. */
-export const SERVERLESS_FRAMEWORK_KEYS: ReadonlyArray<{ setting: Setting; key: string }> = [
+export const SERVERLESS_FRAMEWORK_KEYS: ReadonlyArray<{
+  setting: Setting;
+  key: string;
+}> = [
   { setting: MEMORY, key: 'memorySize' },
   { setting: TIMEOUT, key: 'timeout' },
 ];
-export const SERVERLESS_FRAMEWORK_REFERENCE = 'https://www.serverless.com/framework/docs/providers/aws/guide/functions';
+export const SERVERLESS_FRAMEWORK_REFERENCE =
+  'https://www.serverless.com/framework/docs/providers/aws/guide/functions';
 
 /** Azure Functions host.json (v2+). */
 export const AZURE_HOST_JSON_TIMEOUT_KEY = 'functionTimeout';
-export const AZURE_HOST_JSON_REFERENCE = 'https://learn.microsoft.com/azure/azure-functions/functions-host-json';
+export const AZURE_HOST_JSON_REFERENCE =
+  'https://learn.microsoft.com/azure/azure-functions/functions-host-json';
 
 /** The Cloud Run deploy GitHub Action: its `flags` input carries gcloud flags, `timeout` the request timeout. */
-export const DEPLOY_CLOUDRUN_ACTION = /^google-github-actions\/deploy-cloudrun@/;
-export const DEPLOY_CLOUDRUN_ACTION_REFERENCE = 'https://github.com/google-github-actions/deploy-cloudrun/blob/main/action.yml';
+export const DEPLOY_CLOUDRUN_ACTION =
+  /^google-github-actions\/deploy-cloudrun@/;
+export const DEPLOY_CLOUDRUN_ACTION_REFERENCE =
+  'https://github.com/google-github-actions/deploy-cloudrun/blob/main/action.yml';
 
 /** `cpu (--cpu), memory (--memory)`. */
-export function describeMissing(missing: ReadonlyArray<{ setting: Setting; names: readonly string[] }>): string {
-  return missing.map(({ setting, names }) => `${setting} (${names.join(' / ')})`).join(', ');
+export function describeMissing(
+  missing: ReadonlyArray<{ setting: Setting; names: readonly string[] }>
+): string {
+  return missing
+    .map(({ setting, names }) => `${setting} (${names.join(' / ')})`)
+    .join(', ');
 }
 
 /** Test trees hold fixtures, not the project's deploy. */
-const TEST_TREES = ['**/test/**', '**/tests/**', '**/e2e/**', '**/__fixtures__/**', '**/fixtures/**'];
+const TEST_TREES = [
+  '**/test/**',
+  '**/tests/**',
+  '**/e2e/**',
+  '**/__fixtures__/**',
+  '**/fixtures/**',
+];
 
 /** Files whose text is read for shell commands (CI YAML, scripts, Makefiles, package.json scripts). */
-const COMMAND_FILES = ['**/*.{yml,yaml,template,sh,bash,ps1,mk}', '**/{Makefile,makefile,GNUmakefile}', '**/package.json'];
+const COMMAND_FILES = [
+  '**/*.{yml,yaml,template,sh,bash,ps1,mk}',
+  '**/{Makefile,makefile,GNUmakefile}',
+  '**/package.json',
+];
 const YAML_FILES = ['**/*.{yml,yaml,template}'];
 
 /**
@@ -148,10 +183,16 @@ const YAML_FILES = ['**/*.{yml,yaml,template}'];
  * dash, a shell operator or keyword, a YAML key, an env assignment, Make's
  * `@`. A quote opens a command only when the command continues inside it.
  */
-const POSITION = String.raw`(?:^[ \t]*(?:-[ \t]+)?|[;&|(` + '`' + String.raw`@][ \t]*|\$\([ \t]*|\b(?:then|do|else|exec|time|sudo|env|xargs)[ \t]+|:[ \t]*(?:[|>][-+]?)?[ \t]*|\b[A-Za-z_]\w*=\S*[ \t]+)`;
+const POSITION =
+  String.raw`(?:^[ \t]*(?:-[ \t]+)?|[;&|(` +
+  '`' +
+  String.raw`@][ \t]*|\$\([ \t]*|\b(?:then|do|else|exec|time|sudo|env|xargs)[ \t]+|:[ \t]*(?:[|>][-+]?)?[ \t]*|\b[A-Za-z_]\w*=\S*[ \t]+)`;
 const COMMANDS = String.raw`(?:gcloud(?:[ \t]+(?:alpha|beta))?[ \t]+run[ \t]+(?:deploy|services[ \t]+replace)|aws[ \t]+lambda[ \t]+create-function)\b`;
 /** az functionapp create is judged only on Flex Consumption: the flag on its line or a continuation line. */
-const AZ_FLEX = String.raw`az[ \t]+functionapp[ \t]+create\b(?:[^\n]*[\\` + '`' + String.raw`^][ \t]*\r?\n)*[^\n]*?(?:--flexconsumption-location|[ \t]-f(?=[ \t=]))`;
+const AZ_FLEX =
+  String.raw`az[ \t]+functionapp[ \t]+create\b(?:[^\n]*[\\` +
+  '`' +
+  String.raw`^][ \t]*\r?\n)*[^\n]*?(?:--flexconsumption-location|[ \t]-f(?=[ \t=]))`;
 const AT_COMMAND = String.raw`(?:${POSITION}(?:${COMMANDS}|${AZ_FLEX})|["'](?:${COMMANDS})(?!["']))`;
 
 /** A Cloud Build step whose gcloud/aws entrypoint runs a registry command through `args`. */
@@ -172,12 +213,40 @@ const AWS_ARGS_STEP = String.raw`entrypoint:[ \t]*["']?aws["']?[ \t]*\r?\n(?:[ \
 export const REQUIRES_SERVERLESS_DEPLOY: LawRequirement = {
   anyFileContaining: [
     { files: COMMAND_FILES, pattern: AT_COMMAND, exclude: TEST_TREES },
-    { files: YAML_FILES, pattern: `${ARGS_STEP}|${AWS_ARGS_STEP}`, exclude: TEST_TREES },
-    { files: ['**/cloudbuild*.json'], pattern: String.raw`"entrypoint"\s*:\s*"gcloud"[^\]]*?"args"\s*:\s*\[\s*"run"\s*,\s*"(?:deploy|services)"`, exclude: TEST_TREES },
-    { files: YAML_FILES, pattern: String.raw`^[ \t]*(?:-[ \t]+)?uses:[ \t]*["']?google-github-actions/deploy-cloudrun@`, exclude: TEST_TREES },
-    { files: YAML_FILES, pattern: String.raw`^[ \t]*Type:[ \t]*["']?AWS::(?:Serverless|Lambda)::Function\b`, exclude: TEST_TREES },
-    { files: ['**/*.json'], pattern: String.raw`"Type"\s*:\s*"AWS::(?:Serverless|Lambda)::Function"`, exclude: TEST_TREES },
-    { files: ['**/serverless.{yml,yaml}'], pattern: String.raw`^functions:[ \t]*\r?\n[ \t]+[\w-]+[ \t]*:`, exclude: TEST_TREES },
-    { files: ['**/host.json'], pattern: String.raw`"version"\s*:\s*"2`, exclude: TEST_TREES },
+    {
+      files: YAML_FILES,
+      pattern: `${ARGS_STEP}|${AWS_ARGS_STEP}`,
+      exclude: TEST_TREES,
+    },
+    {
+      files: ['**/cloudbuild*.json'],
+      pattern: String.raw`"entrypoint"\s*:\s*"gcloud"[^\]]*?"args"\s*:\s*\[\s*"run"\s*,\s*"(?:deploy|services)"`,
+      exclude: TEST_TREES,
+    },
+    {
+      files: YAML_FILES,
+      pattern: String.raw`^[ \t]*(?:-[ \t]+)?uses:[ \t]*["']?google-github-actions/deploy-cloudrun@`,
+      exclude: TEST_TREES,
+    },
+    {
+      files: YAML_FILES,
+      pattern: String.raw`^[ \t]*Type:[ \t]*["']?AWS::(?:Serverless|Lambda)::Function\b`,
+      exclude: TEST_TREES,
+    },
+    {
+      files: ['**/*.json'],
+      pattern: String.raw`"Type"\s*:\s*"AWS::(?:Serverless|Lambda)::Function"`,
+      exclude: TEST_TREES,
+    },
+    {
+      files: ['**/serverless.{yml,yaml}'],
+      pattern: String.raw`^functions:[ \t]*\r?\n[ \t]+[\w-]+[ \t]*:`,
+      exclude: TEST_TREES,
+    },
+    {
+      files: ['**/host.json'],
+      pattern: String.raw`"version"\s*:\s*"2`,
+      exclude: TEST_TREES,
+    },
   ],
 };

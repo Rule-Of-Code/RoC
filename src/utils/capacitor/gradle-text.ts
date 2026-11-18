@@ -29,7 +29,8 @@ export interface GradleBlock {
   parent: GradleBlock | null;
 }
 
-const NAMED_CONTAINER = /(?:create|getByName|register|maybeCreate|named)\s*\(\s*["'](\w+)["']\s*\)\s*$/;
+const NAMED_CONTAINER =
+  /(?:create|getByName|register|maybeCreate|named)\s*\(\s*["'](\w+)["']\s*\)\s*$/;
 const KEYWORD = /^(if|else|try|catch|finally|for|while)\b/;
 const TRAILING_IDENTIFIER = /(\w+)\s*$/;
 const HEADER_START = /[;{}\n]/;
@@ -60,7 +61,8 @@ export class GradleText {
     while (i < source.length) {
       const end = GradleText.tokenEnd(source, i);
       if (end.kind === 'comment') blank(i, end.to, true);
-      else if (end.kind === 'string') blank(i + end.quote, end.to - end.quote, false);
+      else if (end.kind === 'string')
+        blank(i + end.quote, end.to - end.quote, false);
       i = end.kind === 'code' ? i + 1 : end.to;
     }
     return { plain: plain.join(''), code: code.join('') };
@@ -69,7 +71,10 @@ export class GradleText {
   private static tokenEnd(
     source: string,
     i: number
-  ): { kind: 'code' } | { kind: 'comment'; to: number } | { kind: 'string'; to: number; quote: number } {
+  ):
+    | { kind: 'code' }
+    | { kind: 'comment'; to: number }
+    | { kind: 'string'; to: number; quote: number } {
     const two = source.slice(i, i + 2);
     if (two === '//') {
       const nl = source.indexOf('\n', i);
@@ -83,11 +88,18 @@ export class GradleText {
   }
 
   /** The end of a string literal starting at `i` ('…', "…", '''…''', """…"""), or null. */
-  private static stringEnd(source: string, i: number): { kind: 'string'; to: number; quote: number } | null {
+  private static stringEnd(
+    source: string,
+    i: number
+  ): { kind: 'string'; to: number; quote: number } | null {
     const three = source.slice(i, i + 3);
     if (three === "'''" || three === '"""') {
       const close = source.indexOf(three, i + 3);
-      return { kind: 'string', to: close < 0 ? source.length : close + 3, quote: 3 };
+      return {
+        kind: 'string',
+        to: close < 0 ? source.length : close + 3,
+        quote: 3,
+      };
     }
     const ch = source[i];
     if (ch !== '"' && ch !== "'") return null;
@@ -127,13 +139,16 @@ export class GradleText {
 
   /** The blocks that contain `offset`, outermost first. */
   enclosing(offset: number): GradleBlock[] {
-    return this.blocks().filter(block => block.open < offset && offset < block.close);
+    return this.blocks().filter(
+      block => block.open < offset && offset < block.close
+    );
   }
 
   /** Direct child blocks of `parent` (top-level blocks for null) named `name`. */
   children(parent: GradleBlock | null, name?: string): GradleBlock[] {
     return this.blocks().filter(
-      block => block.parent === parent && (name === undefined || block.name === name)
+      block =>
+        block.parent === parent && (name === undefined || block.name === name)
     );
   }
 
@@ -162,13 +177,17 @@ export class GradleText {
   /** 1-based line of an offset. */
   lineOf(offset: number): number {
     let line = 1;
-    for (let i = 0; i < offset && i < this.source.length; i++) if (this.source[i] === '\n') line++;
+    for (let i = 0; i < offset && i < this.source.length; i++)
+      if (this.source[i] === '\n') line++;
     return line;
   }
 
   /** Every match of `pattern` in `code` (structure only, never inside a comment or string). */
   codeMatches(pattern: RegExp): RegExpMatchArray[] {
-    const global = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`);
+    const global = new RegExp(
+      pattern.source,
+      pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`
+    );
     return [...this.code.matchAll(global)];
   }
 
@@ -183,7 +202,10 @@ export class GradleText {
     if (container?.[1]) return container[1];
     const keyword = KEYWORD.exec(header)?.[1];
     if (keyword) return /^else\s+if\b/.test(header) ? 'if' : keyword;
-    return TRAILING_IDENTIFIER.exec(GradleText.withoutTrailingCall(header))?.[1] ?? '';
+    return (
+      TRAILING_IDENTIFIER.exec(GradleText.withoutTrailingCall(header))?.[1] ??
+      ''
+    );
   }
 
   /** `tasks.register('x')` → `tasks.register`: the arguments of a final call removed. */
@@ -199,7 +221,12 @@ export class GradleText {
 }
 
 /** The string literal value of `key "v"` / `key 'v'` / `key = "v"` / `key("v")` in a text, or undefined. */
-export function gradleStringValue(text: string, key: string): string | undefined {
-  const pattern = new RegExp(`\\b${key}\\s*(?:=\\s*|\\(\\s*|\\s)\\s*(["'])([^"'\\n]*)\\1`);
+export function gradleStringValue(
+  text: string,
+  key: string
+): string | undefined {
+  const pattern = new RegExp(
+    `\\b${key}\\s*(?:=\\s*|\\(\\s*|\\s)\\s*(["'])([^"'\\n]*)\\1`
+  );
   return pattern.exec(text)?.[2];
 }

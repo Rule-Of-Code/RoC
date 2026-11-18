@@ -13,7 +13,9 @@ import { FileUtils } from '../../../src/utils/file-utils';
 import type { LawCheckContext, RuleOfCodeConfig } from '../../../src/types';
 
 const NG = {
-  'package.json': JSON.stringify({ dependencies: { '@angular/core': '^17.0.0' } }),
+  'package.json': JSON.stringify({
+    dependencies: { '@angular/core': '^17.0.0' },
+  }),
   'angular.json': '{}',
 };
 const dirs: string[] = [];
@@ -45,14 +47,16 @@ const ctx = (
   const config = FileUtils.getMinimalDefaultConfig();
   config.project.type = type as never;
   if (thresholds)
-    (config as { thresholds?: Record<string, unknown> }).thresholds = thresholds;
+    (config as { thresholds?: Record<string, unknown> }).thresholds =
+      thresholds;
   return { projectRoot: root, config } as never;
 };
 
 describe('ROC-FE-03 Stores In Data Access', () => {
   it('flags a *.store.ts in the feature layer', () => {
     const dir = fixture({
-      'libs/bot/feature-dashboard/src/x.store.ts': 'export const x = signalStore();',
+      'libs/bot/feature-dashboard/src/x.store.ts':
+        'export const x = signalStore();',
     });
     expect(StoresInDataAccessLaw.check(ctx(dir)).passed).toBe(false);
   });
@@ -60,7 +64,8 @@ describe('ROC-FE-03 Stores In Data Access', () => {
     const dir = fixture({
       'libs/bot/data-access/src/x.store.ts': 'export const x = signalStore();',
       // the feature layer exists and consumes the store: the law judged it
-      'libs/bot/feature-dashboard/src/page.ts': 'export const page = inject(Store);',
+      'libs/bot/feature-dashboard/src/page.ts':
+        'export const page = inject(Store);',
     });
     expect(StoresInDataAccessLaw.check(ctx(dir)).passed).toBe(true);
   });
@@ -82,7 +87,7 @@ describe('ROC-FE-03 Stores In Data Access', () => {
   });
 });
 
-describe("ROC-FE-02 Root Service No Timer", () => {
+describe('ROC-FE-02 Root Service No Timer', () => {
   it('flags a timer inside a providedIn:root service', () => {
     const dir = fixture({
       'libs/a/data-access/src/s.service.ts':
@@ -102,7 +107,9 @@ describe("ROC-FE-02 Root Service No Timer", () => {
       'libs/a/data-access/src/s.service.ts':
         "@Injectable({ providedIn: 'root' })\nexport class AppClock { t = interval(1000); }",
     });
-    const c = ctx(dir, 'angular', { angular: { rootTimerAllowlist: ['AppClock'] } });
+    const c = ctx(dir, 'angular', {
+      angular: { rootTimerAllowlist: ['AppClock'] },
+    });
     expect(RootServiceNoTimerLaw.check(c).passed).toBe(true);
   });
   it('exempts the sanctioned tick-source files (page-visibility/poll-*)', () => {

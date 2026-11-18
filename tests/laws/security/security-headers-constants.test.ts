@@ -4,7 +4,7 @@
  * Tests security headers configuration patterns and config files.
  */
 
-import { SecurityHeadersConstants } from "../../../src/laws/security/security-standards-xss-prevention/constants/security-headers";
+import { SecurityHeadersConstants } from '../../../src/laws/security/security-standards-xss-prevention/constants/security-headers';
 
 describe('SecurityHeadersConstants', () => {
   describe('HEADER_PATTERNS', () => {

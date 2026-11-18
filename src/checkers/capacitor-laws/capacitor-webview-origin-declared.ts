@@ -11,10 +11,17 @@
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { configValue, resolvedProjects } from '../../utils/capacitor/capacitor-law-support';
+import {
+  configValue,
+  resolvedProjects,
+} from '../../utils/capacitor/capacitor-law-support';
 import { LawBase } from '../law-base';
 
-const ORIGIN_KEYS = ['server.hostname', 'server.androidScheme', 'server.iosScheme'];
+const ORIGIN_KEYS = [
+  'server.hostname',
+  'server.androidScheme',
+  'server.iosScheme',
+];
 
 export class CapacitorWebviewOriginDeclaredLaw extends LawBase {
   static readonly LAW_NAME = 'Capacitor WebView Origin Declared';
@@ -23,7 +30,9 @@ export class CapacitorWebviewOriginDeclaredLaw extends LawBase {
     const { resolved, unresolved } = resolvedProjects(context);
     const violations = [...unresolved];
     for (const { where, config } of resolved) {
-      const missing = ORIGIN_KEYS.filter(key => configValue(config, key) === undefined);
+      const missing = ORIGIN_KEYS.filter(
+        key => configValue(config, key) === undefined
+      );
       if (missing.length === 0) continue;
       violations.push(
         `${where}: ${missing.join(', ')} not stated — the WebView origin defaults to https://localhost on Android and capacitor://localhost on iOS. The backend CORS allowlist and all origin-scoped storage depend on it, and changing it after a release orphans that storage on every device`

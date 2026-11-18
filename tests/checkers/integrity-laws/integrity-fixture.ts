@@ -3,7 +3,7 @@
  * TRACKS (the laws read `git ls-files`, so the fixture is a real repository,
  * not a mocked listing), and the card of a law by title.
  */
-import { execFileSync } from 'child_process';
+import { execFileSync } from '../../../src/utils/child-process';
 import { INTEGRITY_LAWS } from '../../../src/data/integrity-laws';
 import type { EnhancedConstitutionalLaw } from '../../../src/types/enhanced-law.types';
 import { project, writeFiles } from '../toolkit-fixture';

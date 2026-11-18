@@ -1,6 +1,9 @@
 import type * as TS from 'typescript';
 import { PatternMatchingUtils } from '../../../../utils/pattern-matching-utils';
-import { loadTypeScript, type TypeScriptModule } from '../../../../utils/react/tsx-source';
+import {
+  loadTypeScript,
+  type TypeScriptModule,
+} from '../../../../utils/react/tsx-source';
 
 /**
  * Unit Test Documentation Constants
@@ -169,7 +172,11 @@ export class UnitTestDocumentationConstants {
   /**
    * Extract test cases from content
    */
-  static extractTestCases(content: string, fileName?: string, projectRoot?: string): string[] {
+  static extractTestCases(
+    content: string,
+    fileName?: string,
+    projectRoot?: string
+  ): string[] {
     const ts = projectRoot ? loadTypeScript(projectRoot) : null;
     if (ts) return this.titlesFromSyntax(ts, content, fileName ?? 'test.ts');
     // No parser: the regex below, which a comment such as
@@ -203,7 +210,13 @@ export class UnitTestDocumentationConstants {
     'g'
   );
 
-  private static readonly TEST_FUNCTIONS = new Set(['it', 'xit', 'fit', 'test', 'xtest']);
+  private static readonly TEST_FUNCTIONS = new Set([
+    'it',
+    'xit',
+    'fit',
+    'test',
+    'xtest',
+  ]);
   private static readonly TEST_MODIFIERS = new Set([
     'only',
     'skip',
@@ -220,16 +233,29 @@ export class UnitTestDocumentationConstants {
    * `it.only`, `test.skip`, …) when it is a string or a template. Comments and
    * strings that merely contain `it(` are not calls, so they are not read.
    */
-  private static titlesFromSyntax(ts: TypeScriptModule, content: string, fileName: string): string[] {
-    const kind = /\.(?:tsx|jsx)$/.test(fileName) ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
-    const source = ts.createSourceFile(fileName, content, ts.ScriptTarget.Latest, true, kind);
+  private static titlesFromSyntax(
+    ts: TypeScriptModule,
+    content: string,
+    fileName: string
+  ): string[] {
+    const kind = /\.(?:tsx|jsx)$/.test(fileName)
+      ? ts.ScriptKind.TSX
+      : ts.ScriptKind.TS;
+    const source = ts.createSourceFile(
+      fileName,
+      content,
+      ts.ScriptTarget.Latest,
+      true,
+      kind
+    );
     const titles: string[] = [];
     // `test.only(…)` is a test; `test.describe(…)` / `test.step(…)` (Playwright)
     // are not — only a chain of modifiers keeps it a test.
     const calleeName = (callee: TS.Expression): string | null => {
       let node = callee;
       while (ts.isPropertyAccessExpression(node)) {
-        if (!UnitTestDocumentationConstants.TEST_MODIFIERS.has(node.name.text)) return null;
+        if (!UnitTestDocumentationConstants.TEST_MODIFIERS.has(node.name.text))
+          return null;
         node = node.expression;
       }
       return ts.isIdentifier(node) ? node.text : null;
@@ -238,8 +264,15 @@ export class UnitTestDocumentationConstants {
       if (ts.isCallExpression(node)) {
         const name = calleeName(node.expression);
         const [first] = node.arguments;
-        if (name && UnitTestDocumentationConstants.TEST_FUNCTIONS.has(name) && first) {
-          if (ts.isStringLiteral(first) || ts.isNoSubstitutionTemplateLiteral(first)) {
+        if (
+          name &&
+          UnitTestDocumentationConstants.TEST_FUNCTIONS.has(name) &&
+          first
+        ) {
+          if (
+            ts.isStringLiteral(first) ||
+            ts.isNoSubstitutionTemplateLiteral(first)
+          ) {
             titles.push(first.text);
           } else if (ts.isTemplateExpression(first)) {
             titles.push(first.getText(source).slice(1, -1));

@@ -10,13 +10,12 @@
  * list would read as "nothing to check" and pass.
  */
 
-import { execFileSync } from 'child_process';
+import { execFileSync } from '../child-process';
 import * as fs from 'fs';
 import * as path from 'path';
 
 export type TrackedFiles =
-  | { ok: true; files: string[] }
-  | { ok: false; reason: string };
+  { ok: true; files: string[] } | { ok: false; reason: string };
 
 /** git ls-files output can be large in a monorepo; 256 MB is far above any real index. */
 const MAX_BUFFER = 256 * 1024 * 1024;
@@ -26,7 +25,10 @@ const MAX_BUFFER = 256 * 1024 * 1024;
  * pathspecs (`*.sql` matches at any depth: git's `*` crosses `/`). A tracked
  * file deleted from the working tree is left out — it is not there to read.
  */
-export function trackedFiles(projectRoot: string, pathspecs: readonly string[]): TrackedFiles {
+export function trackedFiles(
+  projectRoot: string,
+  pathspecs: readonly string[]
+): TrackedFiles {
   let out: string;
   try {
     out = execFileSync('git', ['ls-files', '-z', '--', ...pathspecs], {
@@ -37,8 +39,12 @@ export function trackedFiles(projectRoot: string, pathspecs: readonly string[]):
       windowsHide: true,
     });
   } catch (error) {
-    const detail = error instanceof Error ? error.message.split('\n')[0] : String(error);
-    return { ok: false, reason: `could not list the files git tracks (${detail})` };
+    const detail =
+      error instanceof Error ? error.message.split('\n')[0] : String(error);
+    return {
+      ok: false,
+      reason: `could not list the files git tracks (${detail})`,
+    };
   }
   const files = out
     .split('\0')

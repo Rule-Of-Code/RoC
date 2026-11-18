@@ -6,7 +6,10 @@
 
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
-import { REQUIRES_ANGULAR, REQUIRES_NGRX } from '../utils/framework-requirements';
+import {
+  REQUIRES_ANGULAR,
+  REQUIRES_NGRX,
+} from '../utils/framework-requirements';
 
 export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
   {
@@ -21,9 +24,12 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Constitutional Compliance Headers',
     rationale:
       'A file header is where a repo states its license, authorship and the rules it lives under — without it, provenance and terms are a guess. This law asks that the header exist and be applied automatically, not by memory.',
-    satisfiedBy: { typescript: 'Keep a header template (config/header-template.txt), a CONSTITUTION.md, and automation (a script or hook) that stamps the header on new files.' },
+    satisfiedBy: {
+      typescript:
+        'Keep a header template (config/header-template.txt), a CONSTITUTION.md, and automation (a script or hook) that stamps the header on new files.',
+    },
     detectionLimits: [
-      'Presence and substring only — a file counts as \'headered\' if the word license/copyright/@author/@version appears ANYWHERE in it (a URL, a dep name, a string).',
+      "Presence and substring only — a file counts as 'headered' if the word license/copyright/@author/@version appears ANYWHERE in it (a URL, a dep name, a string).",
       'Samples at most 20 files, depth 3, under src/.',
       'Universal, not Angular-gated.',
     ],
@@ -54,8 +60,11 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '4.2',
     title: 'OnPush Change Detection Strategy',
     rationale:
-      'Default change detection re-checks every component on every event — fine for a small app, a bottleneck for a large one. OnPush tells Angular a component changes only when its inputs do, and that is most of a real app\'s performance budget.',
-    satisfiedBy: { angular: 'Add changeDetection: ChangeDetectionStrategy.OnPush to components, especially presentational and @Input-driven ones.' },
+      "Default change detection re-checks every component on every event — fine for a small app, a bottleneck for a large one. OnPush tells Angular a component changes only when its inputs do, and that is most of a real app's performance budget.",
+    satisfiedBy: {
+      angular:
+        'Add changeDetection: ChangeDetectionStrategy.OnPush to components, especially presentational and @Input-driven ones.',
+    },
     detectionLimits: [
       'Substring-matches ChangeDetectionStrategy.OnPush (a match in a comment counts); component files only — a *.component.ts, or a file with @Component (Angular 20).',
       'The "should use OnPush" heuristic fires on the bare word `async` anywhere in a component — a near-universal flag.',
@@ -90,7 +99,10 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Standalone Components Architecture',
     rationale:
       'Standalone components drop the NgModule boilerplate that made Angular heavy to learn and slow to tree-shake — a component that declares its own imports is one you can move, test and lazy-load on its own.',
-    satisfiedBy: { angular: 'Make components standalone (standalone: true where required) and bootstrap with bootstrapApplication, not AppModule.' },
+    satisfiedBy: {
+      angular:
+        'Make components standalone (standalone: true where required) and bootstrap with bootstrapApplication, not AppModule.',
+    },
     detectionLimits: [
       'It reads the Angular major version to decide: on v19+ a component counts as standalone unless it says `standalone: false`, before v19 only if it says `standalone: true`. An unreadable version keeps the pre-v19 reading.',
       'main.ts checks are literal substrings; a `standalone: true` in a comment passes.',
@@ -123,8 +135,11 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '4.5',
     title: 'Modern Angular Control Flow',
     rationale:
-      'Angular\'s built-in @if / @for / @switch are faster and typechecked where *ngIf / *ngFor were neither. This law asks that a v18+ project use the block control flow, not the legacy structural directives.',
-    satisfiedBy: { angular: 'Use @if / @for (with track) / @switch instead of *ngIf / *ngFor / *ngSwitch; do not mix the two in one template.' },
+      "Angular's built-in @if / @for / @switch are faster and typechecked where *ngIf / *ngFor were neither. This law asks that a v18+ project use the block control flow, not the legacy structural directives.",
+    satisfiedBy: {
+      angular:
+        'Use @if / @for (with track) / @switch instead of *ngIf / *ngFor / *ngSwitch; do not mix the two in one template.',
+    },
     detectionLimits: [
       'Raw substring over .ts/.html/.scss/.css — a `*ngIf` in a comment, a string, or TS code counts, and .scss/.css are scanned pointlessly; only three directives are matched.',
       'Gated on the Angular version parsing to >= 18; a non-numeric version string makes it pass vacuously.',
@@ -159,10 +174,13 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '4.6',
     title: 'Angular Signal Adoption',
     rationale:
-      'Signals make a component\'s state explicit and its change detection precise — a BehaviorSubject for component state is the old, leakier way to say the same thing. This law nudges component state toward signals.',
-    satisfiedBy: { angular: 'Use signal()/computed()/input()/model() for component state instead of a private BehaviorSubject; give every signal an initial value.' },
+      "Signals make a component's state explicit and its change detection precise — a BehaviorSubject for component state is the old, leakier way to say the same thing. This law nudges component state toward signals.",
+    satisfiedBy: {
+      angular:
+        'Use signal()/computed()/input()/model() for component state instead of a private BehaviorSubject; give every signal an initial value.',
+    },
     detectionLimits: [
-      'The \'signal used but not imported\' check parses the named specifiers of each import, so grouped, multiline, `import type` and aliased forms all count — but it never resolves the module path, so a `signal` imported from anywhere satisfies it.',
+      "The 'signal used but not imported' check parses the named specifiers of each import, so grouped, multiline, `import type` and aliased forms all count — but it never resolves the module path, so a `signal` imported from anywhere satisfies it.",
       'The Subject check strips comments but not strings and matches by filename suffix, not framework detection; `Signal<` matches inside `WritableSignal<` (double-count).',
       'Regex over source, no AST — a Subject in a string literal is not distinguished.',
     ],
@@ -192,8 +210,11 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '4.7',
     title: 'Lazy Loading Implementation',
     rationale:
-      'Loading the whole app up front means the user waits for the checkout page to see the home page. Lazy routes send each feature\'s code only when navigated to — the difference between a fast first paint and a slow one.',
-    satisfiedBy: { angular: 'Lazy-load routes with loadChildren / loadComponent and `() => import(...)`; avoid eager component-only routes for heavy features.' },
+      "Loading the whole app up front means the user waits for the checkout page to see the home page. Lazy routes send each feature's code only when navigated to — the difference between a fast first paint and a slow one.",
+    satisfiedBy: {
+      angular:
+        'Lazy-load routes with loadChildren / loadComponent and `() => import(...)`; avoid eager component-only routes for heavy features.',
+    },
     detectionLimits: [
       'Both lazy forms count (loadChildren and loadComponent), and preloading is recognised from app.module.ts, app.config.ts or main.ts (preloadingStrategy / PreloadAllModules / withPreloading).',
       'Routing detection is filename-scoped — a file named *routing* or *.routes.* — and substring-based, so a lazy route defined in a differently-named file is invisible and a match inside a comment or string still counts.',
@@ -226,10 +247,13 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Angular Service Layer Architecture',
     rationale:
       'A service without @Injectable cannot be injected, and a component reaching around the service layer couples the UI to the data source. This law asks that services be injectable and dependencies stay reasonable.',
-    satisfiedBy: { angular: 'Decorate services with @Injectable, keep constructor dependencies few, and import Observable properly.' },
+    satisfiedBy: {
+      angular:
+        'Decorate services with @Injectable, keep constructor dependencies few, and import Observable properly.',
+    },
     detectionLimits: [
       'FALSE-fails any component/directive that merely references the word `Service` (e.g. injects a FooService) and lacks @Injectable — the has-service-class check is a substring.',
-      'The Observable-import check matches the symbol among an import\'s named specifiers, so grouped and `import type` forms count — it does not verify the import comes from rxjs.',
+      "The Observable-import check matches the symbol among an import's named specifiers, so grouped and `import type` forms count — it does not verify the import comes from rxjs.",
       'Substring matching, no AST — it reasons about tokens, not the type graph.',
     ],
     emoji: '🏗️',
@@ -259,7 +283,10 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Angular Form Validation Standards',
     rationale:
       'A form with no validation is a database of whatever the user typed; template-driven forms scatter that logic across the HTML. This law asks for reactive forms with real validation and visible errors.',
-    satisfiedBy: { angular: 'Use reactive forms (FormGroup/FormBuilder) with Validators, import ReactiveFormsModule, and show validation errors in the template.' },
+    satisfiedBy: {
+      angular:
+        'Use reactive forms (FormGroup/FormBuilder) with Validators, import ReactiveFormsModule, and show validation errors in the template.',
+    },
     detectionLimits: [
       'The reactive-forms check reads .component.ts CONTENT only — an ngModel in an external .html is not seen by that sub-check.',
       'Substring-based (FormGroup/ngModel in a comment or string counts); no AST.',
@@ -292,7 +319,10 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Angular Lifecycle Management',
     rationale:
       'A lifecycle hook implemented without its interface (or vice versa) is a bug the compiler will not catch, and a subscription started in a hook that is never torn down is a leak. This law asks that hooks be declared correctly and cleaned up.',
-    satisfiedBy: { angular: 'Implement the interface for every lifecycle hook you use, and clean up subscriptions/timers in ngOnDestroy (or via takeUntilDestroyed / DestroyRef).' },
+    satisfiedBy: {
+      angular:
+        'Implement the interface for every lifecycle hook you use, and clean up subscriptions/timers in ngOnDestroy (or via takeUntilDestroyed / DestroyRef).',
+    },
     detectionLimits: [
       'Substring detection — `.subscribe`/`interval`/`timer` also match non-RxJS EventEmitter, router events or d3.timer.',
       'The cleanup sub-check credits modern idioms (takeUntilDestroyed / DestroyRef / toSignal) and strips comments; the hook/ondestroy checks do not strip comments.',
@@ -322,10 +352,16 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     legacyId: 90,
     article: 'VI',
     subsection: '6.15',
-    title: 'NgRx Store Pattern Mandate (SACRED LAW)',
+    title: 'NgRx Store Pattern Mandate',
+    // Renamed in 7.28.0: a FRAMEWORK law, not a SACRED one (#388). The id keeps
+    // the old title as its input; config keys written with it still resolve.
+    formerTitles: ['NgRx Store Pattern Mandate (SACRED LAW)'],
     rationale:
       'NgRx without its shape — typed state, createAction, createReducer, createSelector — is a Redux-shaped pile of any. This law asks that the store files follow the pattern the library exists to enforce.',
-    satisfiedBy: { angular: 'Type your .state.ts, use createAction/props in .actions.ts, createReducer/on() in .reducer.ts, createSelector in .selectors.ts.' },
+    satisfiedBy: {
+      angular:
+        'Type your .state.ts, use createAction/props in .actions.ts, createReducer/on() in .reducer.ts, createSelector in .selectors.ts.',
+    },
     detectionLimits: [
       'Token-presence only, comment/string-blind — the tokens in a comment satisfy it, and correctness is never validated.',
       '.effects.ts files are collected but never checked; a createActionGroup-style API passes only if the literal `props` appears.',
@@ -357,10 +393,16 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     legacyId: 91,
     article: 'VI',
     subsection: '6.16',
-    title: 'NgRx Actions Hygiene Mandate (SACRED LAW)',
+    title: 'NgRx Actions Hygiene Mandate',
+    // Renamed in 7.28.0: a FRAMEWORK law, not a SACRED one (#388). The id keeps
+    // the old title as its input; config keys written with it still resolve.
+    formerTitles: ['NgRx Actions Hygiene Mandate (SACRED LAW)'],
     rationale:
-      'An action named inconsistently or carrying an untyped payload is a debugging session waiting to happen — NgRx\'s power is that every state change is a named, typed event. This law keeps action declarations honest.',
-    satisfiedBy: { angular: 'Name actions in camelCase, type payloads with props<...> (not a bare payload), and export them as constants.' },
+      "An action named inconsistently or carrying an untyped payload is a debugging session waiting to happen — NgRx's power is that every state change is a named, typed event. This law keeps action declarations honest.",
+    satisfiedBy: {
+      angular:
+        'Name actions in camelCase, type payloads with props<...> (not a bare payload), and export them as constants.',
+    },
     detectionLimits: [
       'The action-type check is DEAD code — its regex can never emit a violation.',
       'The naming check matches only the exact `export const X = createAction` form — createActionGroup and multi-line declarations are missed; comment/string-blind.',
@@ -392,14 +434,20 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     legacyId: 92,
     article: 'VI',
     subsection: '6.17',
-    title: 'NgRx Effects Error Handling Mandate (SACRED LAW)',
+    title: 'NgRx Effects Error Handling Mandate',
+    // Renamed in 7.28.0: a FRAMEWORK law, not a SACRED one (#388). The id keeps
+    // the old title as its input; config keys written with it still resolve.
+    formerTitles: ['NgRx Effects Error Handling Mandate (SACRED LAW)'],
     rationale:
       'An effect with no catchError dies on the first failed request — and takes the whole effect stream down with it, so the feature silently stops working. Error handling in effects keeps one bad response from breaking the app.',
-    satisfiedBy: { angular: 'Give every createEffect a catchError that returns an error action via of(...); use switchMap/mergeMap with catchError.' },
+    satisfiedBy: {
+      angular:
+        'Give every createEffect a catchError that returns an error action via of(...); use switchMap/mergeMap with catchError.',
+    },
     detectionLimits: [
       'Scans only `.effects.ts` (not singular `.effect.ts`) and only the `() =>` createEffect form — functional effects are missed; a catchError/of() in a comment counts.',
-      'Flags @Injectable({ providedIn: \'root\' }) as missing @Injectable() — it checks for the literal empty-paren form (false positive).',
-      'Gated on @ngrx/store; overlaps the RxJS Operators law\'s error checks.',
+      "Flags @Injectable({ providedIn: 'root' }) as missing @Injectable() — it checks for the literal empty-paren form (false positive).",
+      "Gated on @ngrx/store; overlaps the RxJS Operators law's error checks.",
     ],
     emoji: '🛡️',
     description:
@@ -427,13 +475,19 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     legacyId: 93,
     article: 'VI',
     subsection: '6.18',
-    title: 'NgRx Selectors Memoization Mandate (SACRED LAW)',
+    title: 'NgRx Selectors Memoization Mandate',
+    // Renamed in 7.28.0: a FRAMEWORK law, not a SACRED one (#388). The id keeps
+    // the old title as its input; config keys written with it still resolve.
+    formerTitles: ['NgRx Selectors Memoization Mandate (SACRED LAW)'],
     rationale:
-      'A selector that isn\'t memoized recomputes on every state change, and a component reaching into state directly bypasses selectors entirely — both turn a fast store slow. This law asks that reads go through memoized selectors.',
-    satisfiedBy: { angular: 'Derive state with createSelector/createFeatureSelector; do not access store state directly in components.' },
+      "A selector that isn't memoized recomputes on every state change, and a component reaching into state directly bypasses selectors entirely — both turn a fast store slow. This law asks that reads go through memoized selectors.",
+    satisfiedBy: {
+      angular:
+        'Derive state with createSelector/createFeatureSelector; do not access store state directly in components.',
+    },
     detectionLimits: [
       'Scans *.selector(s).ts and *.component.ts by name; the direct-state-access regex is line-shaped and misses multiline selectors; comment/string-blind.',
-      'Real issues are DOUBLE-counted (two analyzers push identical violations); \'proper import\' is a bare `@ngrx/store` substring.',
+      "Real issues are DOUBLE-counted (two analyzers push identical violations); 'proper import' is a bare `@ngrx/store` substring.",
       'Not gated — runs on any project.',
     ],
     emoji: '⚡',
@@ -462,13 +516,19 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     legacyId: 94,
     article: 'VI',
     subsection: '6.19',
-    title: 'NgRx Reducers Immutability Mandate (SACRED LAW)',
+    title: 'NgRx Reducers Immutability Mandate',
+    // Renamed in 7.28.0: a FRAMEWORK law, not a SACRED one (#388). The id keeps
+    // the old title as its input; config keys written with it still resolve.
+    formerTitles: ['NgRx Reducers Immutability Mandate (SACRED LAW)'],
     rationale:
       'A reducer that mutates state is the bug NgRx exists to prevent — the store guarantees every state is a new object, and a stray push breaks time-travel, memoization and change detection at once.',
-    satisfiedBy: { angular: 'Return new state (spread / Immer) from reducers; never mutate state.x, push/pop, or delete state.y.' },
+    satisfiedBy: {
+      angular:
+        'Return new state (spread / Immer) from reducers; never mutate state.x, push/pop, or delete state.y.',
+    },
     detectionLimits: [
       'The mutation regex `state.x =` also matches equality `state.x === y` (the `=` of `===`) — a phantom mutation false positive.',
-      'The \'no spread\' check is whole-file, so an on() reducer using Immer or returning object literals without `...` is false-flagged; violations are double-counted.',
+      "The 'no spread' check is whole-file, so an on() reducer using Immer or returning object literals without `...` is false-flagged; violations are double-counted.",
       'Only .reducer.ts; comment/string-blind; not gated.',
     ],
     emoji: '🔒',
@@ -497,10 +557,16 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     legacyId: 95,
     article: 'VI',
     subsection: '6.20',
-    title: 'NgRx Feature Store Structure Mandate (SACRED LAW)',
+    title: 'NgRx Feature Store Structure Mandate',
+    // Renamed in 7.28.0: a FRAMEWORK law, not a SACRED one (#388). The id keeps
+    // the old title as its input; config keys written with it still resolve.
+    formerTitles: ['NgRx Feature Store Structure Mandate (SACRED LAW)'],
     rationale:
       'A feature store scattered across inconsistent filenames is one nobody can navigate. This law asks for the conventional +state layout so every feature looks the same and a barrel exports it cleanly.',
-    satisfiedBy: { angular: 'Give each feature a +state/ folder with {feature}.actions/.reducer/.selectors/.models.ts and an index.ts barrel.' },
+    satisfiedBy: {
+      angular:
+        'Give each feature a +state/ folder with {feature}.actions/.reducer/.selectors/.models.ts and an index.ts barrel.',
+    },
     detectionLimits: [
       'Enforces an opinionated Nx-style +state/ + .facade.ts/.models.ts convention (not canonical NgRx) and requires src/app/ — a standalone or createFeature layout finds no features and passes vacuously.',
       'Directory/filename presence only, never content; a missing +state/index.ts is counted twice.',
@@ -535,10 +601,13 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'NgRx RxJS Operators Selection Mandate',
     rationale:
       'The wrong flattening operator in an effect is a subtle race — switchMap cancels, mergeMap floods, concatMap queues — and using the wrong one loses updates or duplicates them. This law nudges toward the right operator.',
-    satisfiedBy: { angular: 'Use switchMap/mergeMap/exhaustMap/concatMap with catchError; avoid deprecated flatMap/mapTo/pluck/toPromise; keep map from returning an Observable.' },
+    satisfiedBy: {
+      angular:
+        'Use switchMap/mergeMap/exhaustMap/concatMap with catchError; avoid deprecated flatMap/mapTo/pluck/toPromise; keep map from returning an Observable.',
+    },
     detectionLimits: [
-      'Discovers effects by filename + a token; an empty set passes vacuously; \'outside pipe\' is whole-file presence of `.pipe(`, not positional.',
-      'Missing-catchError is flagged by BOTH this law\'s analyzers AND the Effects Error Handling law — heavy overlap/duplication.',
+      "Discovers effects by filename + a token; an empty set passes vacuously; 'outside pipe' is whole-file presence of `.pipe(`, not positional.",
+      "Missing-catchError is flagged by BOTH this law's analyzers AND the Effects Error Handling law — heavy overlap/duplication.",
       'Substring/regex, comment/string-blind; not gated.',
     ],
     emoji: '🔀',
@@ -570,7 +639,10 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'NgRx State Normalization Mandate',
     rationale:
       'Deeply nested or duplicated state is where an update forgets a copy and the UI shows two different truths. Normalized state — entities by id — makes every update land in exactly one place.',
-    satisfiedBy: { angular: 'Use @ngrx/entity (or an id-keyed map) for collections; keep state flat and derive nesting with selectors.' },
+    satisfiedBy: {
+      angular:
+        'Use @ngrx/entity (or an id-keyed map) for collections; keep state flat and derive nesting with selectors.',
+    },
     detectionLimits: [
       'Three of its five checks (nested-state, shape-consistency, selector-composition) are STUBS that can never fire.',
       'It is NOT NgRx-gated — an Angular app using no NgRx still fails it (missing @ngrx/entity + no *.feature/reducer/state.ts → score 45).',
@@ -604,10 +676,13 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '6.23',
     title: 'NgRx DevTools Integration Mandate',
     rationale:
-      'The Redux DevTools turn \'the state is wrong somehow\' into a timeline you can scrub — without them, debugging a store is guesswork. This law asks that store-devtools be wired in, dev-only.',
-    satisfiedBy: { angular: 'Install @ngrx/store-devtools and provide it (provideStoreDevtools / StoreDevtoolsModule), gated to non-production.' },
+      "The Redux DevTools turn 'the state is wrong somehow' into a timeline you can scrub — without them, debugging a store is guesswork. This law asks that store-devtools be wired in, dev-only.",
+    satisfiedBy: {
+      angular:
+        'Install @ngrx/store-devtools and provide it (provideStoreDevtools / StoreDevtoolsModule), gated to non-production.',
+    },
     detectionLimits: [
-      'NOT NgRx-gated — a non-NgRx (or standalone-without-devtools) project FAILS with a -40 \'not installed\' violation.',
+      "NOT NgRx-gated — a non-NgRx (or standalone-without-devtools) project FAILS with a -40 'not installed' violation.",
       'Config detection reads a fixed set of 3 filenames with loose substring regexes (`name`/`environment` match anywhere); the options check is near-always true (false negative).',
       'Presence, not correct wiring.',
     ],
@@ -639,8 +714,11 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '4.11',
     title: 'Component Selector Prefix Compliance',
     rationale:
-      'A shared component prefix (app-, ui-) is what stops two libraries\' <button> from colliding and tells a reader at a glance where a component comes from. This law enforces the configured prefix.',
-    satisfiedBy: { angular: 'Prefix every component selector with your configured prefix (e.g. app-foo); set project.componentPrefix.' },
+      "A shared component prefix (app-, ui-) is what stops two libraries' <button> from colliding and tells a reader at a glance where a component comes from. This law enforces the configured prefix.",
+    satisfiedBy: {
+      angular:
+        'Prefix every component selector with your configured prefix (e.g. app-foo); set project.componentPrefix.',
+    },
     detectionLimits: [
       'Only runs when a componentPrefix is configured; checks only the FIRST @Component per file and does not exclude specs; a commented-out @Component can match.',
       'The decorator regex breaks on a `}` that appears before `selector:` (e.g. host: {...}, an inline template) — the selector is then "not found" and the file is silently skipped (false negative).',
@@ -675,8 +753,11 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '4.12',
     title: 'Functional IO and Query API',
     rationale:
-      'Angular\'s signal inputs (input()/output()/viewChild()) are typed, reactive and need no decorator — the @Input/@ViewChild decorators they replace are the older, less safe way. This law moves component IO to the functional API.',
-    satisfiedBy: { angular: 'Use input()/output()/model()/viewChild()/contentChild() instead of @Input/@Output/@ViewChild/@ContentChild.' },
+      "Angular's signal inputs (input()/output()/viewChild()) are typed, reactive and need no decorator — the @Input/@ViewChild decorators they replace are the older, less safe way. This law moves component IO to the functional API.",
+    satisfiedBy: {
+      angular:
+        'Use input()/output()/model()/viewChild()/contentChild() instead of @Input/@Output/@ViewChild/@ContentChild.',
+    },
     detectionLimits: [
       'Forbids the legacy decorators entirely — even a valid @Input() is a violation, regardless of the Angular version (the functional API needs 17.1+).',
       'Strips comments but not strings; scans only component/directive files.',
@@ -711,7 +792,10 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Inject Over Constructor DI',
     rationale:
       'The inject() function frees a class from a constructor whose only job is dependency injection — cleaner inheritance, no super() plumbing, DI that works in functions. This law prefers inject() over constructor parameter-properties.',
-    satisfiedBy: { angular: 'Acquire dependencies with inject() instead of constructor(private dep: Dep) parameter-properties.' },
+    satisfiedBy: {
+      angular:
+        'Acquire dependencies with inject() instead of constructor(private dep: Dep) parameter-properties.',
+    },
     detectionLimits: [
       'Flags only parameter-PROPERTY constructors (private/public/protected/readonly params); a plain-typed param is fine, and it does not verify inject() is actually used.',
       'The param-list capture stops at the first `)`, so a default value containing parens can truncate the scan (false negative on later params).',
@@ -730,7 +814,8 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'InjectOverConstructorDiLaw.check',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article IV.4.13: Constructor parameter-property DI detected',
-    remediation: 'Use inject() in a field initializer instead of constructor DI',
+    remediation:
+      'Use inject() in a field initializer instead of constructor DI',
   },
 
   // Template / performance / NgRx laws (v7.2.0 — from a front-end governance audit, dedup-verified)
@@ -746,7 +831,10 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'No Method Calls In Templates',
     rationale:
       'A method call in a template runs on every change-detection cycle — {{ total() }} recomputes constantly and the profiler blames the wrong thing. This law asks that templates read fields and signals, not call methods.',
-    satisfiedBy: { angular: 'Bind to a field, a signal, or a computed() in templates; move method calls into the component; allowlist genuinely-cheap ones.' },
+    satisfiedBy: {
+      angular:
+        'Bind to a field, a signal, or a computed() in templates; move method calls into the component; allowlist genuinely-cheap ones.',
+    },
     detectionLimits: [
       'Scans only {{...}} and [prop]= bindings — a call inside @if / @for or *ngIf is NOT flagged (a large gap on modern Angular).',
       'Arrow-function class properties are not recognised as methods (false negative); getters read as {{ foo }} are never flagged.',
@@ -781,7 +869,10 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Side Effects in NgRx Effects',
     rationale:
       'An interval, a websocket or a fromEvent living in a component instead of an effect is state management leaking into the view — untestable, and often un-cleaned-up. This law flags the timer/stream side effects that belong in an effect.',
-    satisfiedBy: { angular: 'Move interval/timer/fromEvent/webSocket streams (and the dispatches they drive) into NgRx effects, not components.' },
+    satisfiedBy: {
+      angular:
+        'Move interval/timer/fromEvent/webSocket streams (and the dispatches they drive) into NgRx effects, not components.',
+    },
     detectionLimits: [
       'Flags a file that contains BOTH a timer/stream call AND `.subscribe(` anywhere — an unrelated interval() and an unrelated subscribe() in the same component both trip it (false positive).',
       'The dispatch-in-subscribe check uses a 300-char window and a fragile single-level param match; strings not stripped.',
@@ -816,9 +907,12 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'No Subscribe In Effect',
     rationale:
       'Calling .subscribe() inside an Angular effect() nests reactivity in a way that leaks and fires unpredictably — the effect should read signals, not manage subscriptions. This law flags subscribe/then inside effect().',
-    satisfiedBy: { angular: 'Read signals inside effect(); do not .subscribe() or .then() inside it — derive with computed() or move async work out.' },
+    satisfiedBy: {
+      angular:
+        'Read signals inside effect(); do not .subscribe() or .then() inside it — derive with computed() or move async work out.',
+    },
     detectionLimits: [
-      'Uses a 300-char window, not the effect\'s balanced body — an effect() followed by an UNRELATED .subscribe() within 300 chars is a false positive, and a subscribe deep in a long effect is a false negative.',
+      "Uses a 300-char window, not the effect's balanced body — an effect() followed by an UNRELATED .subscribe() within 300 chars is a false positive, and a subscribe deep in a long effect is a false negative.",
       '`effect(` correctly ignores createEffect but matches any function named effect(); comments stripped, strings not.',
       'Only .component/.directive/.service.ts.',
     ],
@@ -851,7 +945,10 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Declarative Read Subscriptions',
     rationale:
       'A .subscribe(v => this.x.set(v)) is imperative glue that a signal or the async pipe expresses declaratively — and glue is where leaks and race conditions hide. This law nudges reads toward toSignal / the async pipe.',
-    satisfiedBy: { angular: 'Read observables with toSignal() or the async pipe instead of .subscribe(v => sig.set(v)).' },
+    satisfiedBy: {
+      angular:
+        'Read observables with toSignal() or the async pipe instead of .subscribe(v => sig.set(v)).',
+    },
     detectionLimits: [
       'Matches only the single-`.set()` callback shape; a multi-statement or non-.set mirror is missed (by design, low precision).',
       '`.set(` matches any .set (Map.set, Set.set) — a minor false positive; it is not signal-specific.',
@@ -870,7 +967,8 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'DeclarativeReadSubscriptionsLaw.check',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article IV.4.17: Read-only subscribe should be declarative',
-    remediation: 'Replace subscribe(v => sig.set(v)) with toSignal()/async pipe',
+    remediation:
+      'Replace subscribe(v => sig.set(v)) with toSignal()/async pipe',
   },
 
   {
@@ -884,10 +982,13 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '4.18',
     title: 'Defer Heavy Blocks',
     rationale:
-      'A heavy dashboard that renders everything at once blocks first paint on content the user has not scrolled to. Angular\'s @defer streams it in — this law asks that a large template use it.',
-    satisfiedBy: { angular: 'Wrap below-the-fold or heavy sections of a large template in @defer (with on viewport/idle triggers).' },
+      "A heavy dashboard that renders everything at once blocks first paint on content the user has not scrolled to. Angular's @defer streams it in — this law asks that a large template use it.",
+    satisfiedBy: {
+      angular:
+        'Wrap below-the-fold or heavy sections of a large template in @defer (with on viewport/idle triggers).',
+    },
     detectionLimits: [
-      'Runs ONLY on *-dashboard.component.html files — a heavy non-\'dashboard\' template is invisible.',
+      "Runs ONLY on *-dashboard.component.html files — a heavy non-'dashboard' template is invisible.",
       'A single @defer anywhere exempts the whole file even if everything else renders eagerly; the line count includes blanks and comments.',
       'Threshold is configurable (default 250 lines).',
     ],
@@ -918,8 +1019,11 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '4.19',
     title: 'Alias Repeated Template Expressions',
     rationale:
-      'The same function call repeated across a template runs each time and reads worse each time; Angular\'s @let (or an alias) computes it once. This law flags an expression called three or more times.',
-    satisfiedBy: { angular: 'Compute a repeated template expression once with @let (or a component field) and reference the alias.' },
+      "The same function call repeated across a template runs each time and reads worse each time; Angular's @let (or an alias) computes it once. This law flags an expression called three or more times.",
+    satisfiedBy: {
+      angular:
+        'Compute a repeated template expression once with @let (or a component field) and reference the alias.',
+    },
     detectionLimits: [
       'Angular-gated, and it counts calls only inside interpolations ({{ … }}) and Angular bindings ([x]="…" / (x)="…"), so plain HTML attributes and inline styles are not scanned; CSS/SVG functions (url/calc/rgba/translate/…) are excluded.',
       'Matching is by EXACT string incl. whitespace (foo(a) != foo(b), foo( a ) != foo(a)); nested calls are not matched.',
@@ -938,6 +1042,7 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'AliasRepeatedTemplateExpressionsLaw.check',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article IV.4.19: Repeated template expression — alias it',
-    remediation: 'Alias the repeated expression with @let (Angular 20) or computed()',
+    remediation:
+      'Alias the repeated expression with @let (Angular 20) or computed()',
   },
 ];

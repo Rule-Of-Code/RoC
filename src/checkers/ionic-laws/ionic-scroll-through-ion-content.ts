@@ -17,14 +17,25 @@
 
 import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { AngularComponents, type AngularComponent } from '../../utils/ionic/angular-components';
-import { HtmlTemplate, type TemplateElement } from '../../utils/ionic/html-template';
+import {
+  AngularComponents,
+  type AngularComponent,
+} from '../../utils/ionic/angular-components';
+import {
+  HtmlTemplate,
+  type TemplateElement,
+} from '../../utils/ionic/html-template';
 import { withNotes } from '../../utils/ionic/law-notes';
 import { LawBase } from '../law-base';
 
 const SCROLL_EVENTS = ['ionScroll', 'ionScrollStart', 'ionScrollEnd'];
 const WINDOW_METHODS = new Set(['scrollTo', 'scrollBy', 'scroll']);
-const WINDOW_READS = new Set(['scrollY', 'scrollX', 'pageYOffset', 'pageXOffset']);
+const WINDOW_READS = new Set([
+  'scrollY',
+  'scrollX',
+  'pageYOffset',
+  'pageXOffset',
+]);
 const WINDOW_NAMES = new Set(['window', 'globalThis', 'self']);
 const ION_CONTENT = 'ion-content';
 
@@ -37,7 +48,8 @@ export class IonicScrollThroughIonContentLaw extends LawBase {
     const under = AngularComponents.underContent(scan.components);
     for (const component of scan.components) {
       violations.push(...this.unboundListeners(context, component));
-      if (under.has(component)) violations.push(...this.windowScroll(context, component));
+      if (under.has(component))
+        violations.push(...this.windowScroll(context, component));
     }
     const result = this.createResult(
       violations,
@@ -49,21 +61,37 @@ export class IonicScrollThroughIonContentLaw extends LawBase {
       ],
       context
     );
-    const templates = scan.components.filter(component => component.template).length;
-    const contents = scan.components.some(c => c.elements.some(element => element.tag === ION_CONTENT));
+    const templates = scan.components.filter(
+      component => component.template
+    ).length;
+    const contents = scan.components.some(c =>
+      c.elements.some(element => element.tag === ION_CONTENT)
+    );
     return withNotes(
       result,
-      contents ? [] : [`no <ion-content> in the ${templates} component template(s) read — the window is the scroller here, nothing to judge`]
+      contents
+        ? []
+        : [
+            `no <ion-content> in the ${templates} component template(s) read — the window is the scroller here, nothing to judge`,
+          ]
     );
   }
 
   /** Scroll listeners on an `<ion-content>` whose own opening tag does not enable them. */
-  static unboundListeners(context: LawCheckContext, component: AngularComponent): string[] {
-    const file = AngularComponents.relative(context, component.template?.file ?? component.file);
+  static unboundListeners(
+    context: LawCheckContext,
+    component: AngularComponent
+  ): string[] {
+    const file = AngularComponents.relative(
+      context,
+      component.template?.file ?? component.file
+    );
     return component.elements
       .filter(element => element.tag === ION_CONTENT)
       .flatMap(element => {
-        const events = SCROLL_EVENTS.filter(event => HtmlTemplate.listens(element, event));
+        const events = SCROLL_EVENTS.filter(event =>
+          HtmlTemplate.listens(element, event)
+        );
         if (events.length === 0 || this.enablesEvents(element)) return [];
         return [
           `${file}:${element.line}: <ion-content (${events.join(', ')})> without [scrollEvents]="true" — ion-content binds its scroll listener only when scrollEvents is true (default false), so the handler never runs`,
@@ -79,7 +107,10 @@ export class IonicScrollThroughIonContentLaw extends LawBase {
   }
 
   /** Window-level scroll use in a component that lives in an ion-content. */
-  static windowScroll(context: LawCheckContext, component: AngularComponent): string[] {
+  static windowScroll(
+    context: LawCheckContext,
+    component: AngularComponent
+  ): string[] {
     const source = component.source;
     const ts = source.ts;
     const where = AngularComponents.relative(context, component.file);
@@ -105,25 +136,40 @@ export class IonicScrollThroughIonContentLaw extends LawBase {
   }
 
   /** `window.scrollTo(…)`, `window.scrollY`, `document.scrollingElement`. */
-  private static windowAccess(ts: typeof TS, node: TS.PropertyAccessExpression): string | null {
+  private static windowAccess(
+    ts: typeof TS,
+    node: TS.PropertyAccessExpression
+  ): string | null {
     const target = ts.isIdentifier(node.expression) ? node.expression.text : '';
     const name = node.name.text;
-    if (WINDOW_NAMES.has(target) && (WINDOW_METHODS.has(name) || WINDOW_READS.has(name))) {
+    if (
+      WINDOW_NAMES.has(target) &&
+      (WINDOW_METHODS.has(name) || WINDOW_READS.has(name))
+    ) {
       return `${target}.${name}`;
     }
-    if (target === 'document' && name === 'scrollingElement') return 'document.scrollingElement';
+    if (target === 'document' && name === 'scrollingElement')
+      return 'document.scrollingElement';
     return null;
   }
 
   /** `fromEvent(window, 'scroll')` and `window.addEventListener('scroll', …)`. */
-  private static scrollSubscription(ts: typeof TS, node: TS.CallExpression): string | null {
+  private static scrollSubscription(
+    ts: typeof TS,
+    node: TS.CallExpression
+  ): string | null {
     const [first, second] = node.arguments;
     const callee = node.expression;
     const isWindow = (e: TS.Node | undefined): boolean =>
       Boolean(e && ts.isIdentifier(e) && WINDOW_NAMES.has(e.text));
     const isScroll = (e: TS.Node | undefined): boolean =>
       Boolean(e && ts.isStringLiteralLike(e) && e.text === 'scroll');
-    if (ts.isIdentifier(callee) && callee.text === 'fromEvent' && isWindow(first) && isScroll(second)) {
+    if (
+      ts.isIdentifier(callee) &&
+      callee.text === 'fromEvent' &&
+      isWindow(first) &&
+      isScroll(second)
+    ) {
       return "fromEvent(window, 'scroll')";
     }
     const listens =
@@ -135,12 +181,18 @@ export class IonicScrollThroughIonContentLaw extends LawBase {
   }
 
   /** `@HostListener('window:scroll')`. */
-  private static hostListener(ts: typeof TS, node: TS.Decorator): string | null {
+  private static hostListener(
+    ts: typeof TS,
+    node: TS.Decorator
+  ): string | null {
     const call = node.expression;
-    if (!ts.isCallExpression(call) || !ts.isIdentifier(call.expression)) return null;
+    if (!ts.isCallExpression(call) || !ts.isIdentifier(call.expression))
+      return null;
     if (call.expression.text !== 'HostListener') return null;
     const arg = call.arguments[0];
-    return arg && ts.isStringLiteralLike(arg) && arg.text.replace(/\s/g, '') === 'window:scroll'
+    return arg &&
+      ts.isStringLiteralLike(arg) &&
+      arg.text.replace(/\s/g, '') === 'window:scroll'
       ? "@HostListener('window:scroll')"
       : null;
   }

@@ -32,7 +32,12 @@ import type * as TS from 'typescript';
 import type { LawCheckContext, RuleOfCodeConfig } from '../../types/law.types';
 import { WorkspaceManifests } from '../workspace-manifests';
 import { ReactProject } from './react-project';
-import { type ImportInfo, type JsxElementInfo, jsxAttribute, type TsxSource } from './tsx-source';
+import {
+  type ImportInfo,
+  type JsxElementInfo,
+  jsxAttribute,
+  type TsxSource,
+} from './tsx-source';
 
 const WEB_VITALS_FUNCTIONS = new Set([
   'onCLS',
@@ -47,8 +52,21 @@ const WEB_VITALS_FUNCTIONS = new Set([
   'getFCP',
   'getTTFB',
 ]);
-const REACT_DOM_HINTS = new Set(['preload', 'preconnect', 'prefetchDNS', 'preloadModule', 'preinit', 'preinitModule']);
-const LINK_HINTS = new Set(['preload', 'preconnect', 'dns-prefetch', 'prefetch', 'modulepreload']);
+const REACT_DOM_HINTS = new Set([
+  'preload',
+  'preconnect',
+  'prefetchDNS',
+  'preloadModule',
+  'preinit',
+  'preinitModule',
+]);
+const LINK_HINTS = new Set([
+  'preload',
+  'preconnect',
+  'dns-prefetch',
+  'prefetch',
+  'modulepreload',
+]);
 const NEXT_FONT_MODULES = new Set(['next/font/google', 'next/font/local']);
 const NEXT_IMAGE = 'next/image';
 const NEXT_DYNAMIC = 'next/dynamic';
@@ -103,7 +121,10 @@ function empty(applies: boolean): ReactPerformanceEvidence {
 function isTrueAttribute(element: JsxElementInfo, name: string): boolean {
   const attribute = jsxAttribute(element, name);
   if (!attribute) return false;
-  return attribute.kind === 'bare' || (attribute.kind === 'expression' && attribute.value === 'true');
+  return (
+    attribute.kind === 'bare' ||
+    (attribute.kind === 'expression' && attribute.value === 'true')
+  );
 }
 
 function stringAttribute(element: JsxElementInfo, name: string): string | null {
@@ -125,14 +146,20 @@ export class ReactPerformanceSource {
     errorTrackingModules: readonly string[] = []
   ): ReactPerformanceEvidence {
     const root = context.projectRoot;
-    if (!WorkspaceManifests.declares(root, 'react') && !WorkspaceManifests.declares(root, 'next')) {
+    if (
+      !WorkspaceManifests.declares(root, 'react') &&
+      !WorkspaceManifests.declares(root, 'next')
+    ) {
       return empty(false);
     }
     const scanContext: LawCheckContext = {
       ...context,
       config: context.config ?? ({} as RuleOfCodeConfig),
     };
-    const parsed = ReactProject.parse(scanContext, ReactProject.sourceFiles(scanContext));
+    const parsed = ReactProject.parse(
+      scanContext,
+      ReactProject.sourceFiles(scanContext)
+    );
     const evidence = empty(true);
     evidence.unread.push(...parsed.unread);
     for (const source of parsed.sources) {
@@ -148,7 +175,8 @@ export class ReactPerformanceSource {
     errorTrackingModules: readonly string[]
   ): void {
     const file = ReactProject.relative(context, source.fileName);
-    const at = (line: number, what: string): string => `${file}:${line} ${what}`;
+    const at = (line: number, what: string): string =>
+      `${file}:${line} ${what}`;
     const bindings = this.bindings(source);
     for (const info of source.imports()) {
       if (errorTrackingModules.includes(info.module)) {
@@ -192,8 +220,12 @@ export class ReactPerformanceSource {
   }
 
   /** What `module`'s export `member` means when called, if anything. */
-  private static memberMeaning(module: string, member: string): CallMeaning | null {
-    if (module === 'react' && member === 'lazy') return { kind: 'lazy', label: REACT_LAZY };
+  private static memberMeaning(
+    module: string,
+    member: string
+  ): CallMeaning | null {
+    if (module === 'react' && member === 'lazy')
+      return { kind: 'lazy', label: REACT_LAZY };
     if (module === 'next/web-vitals' && member === 'useReportWebVitals') {
       return { kind: 'vitals', label: 'useReportWebVitals' };
     }
@@ -214,12 +246,19 @@ export class ReactPerformanceSource {
   ): CallMeaning | null {
     const ts = source.ts;
     const callee = node.expression;
-    if (callee.kind === ts.SyntaxKind.ImportKeyword) return { kind: 'lazy', label: 'import()' };
+    if (callee.kind === ts.SyntaxKind.ImportKeyword)
+      return { kind: 'lazy', label: 'import()' };
     if (ts.isIdentifier(callee)) {
-      if (!bindings.fontLoaders.has(callee.text)) return bindings.calls.get(callee.text) ?? null;
-      return this.fontPreloads(source, node) ? { kind: 'hint', label: 'next/font preload' } : null;
+      if (!bindings.fontLoaders.has(callee.text))
+        return bindings.calls.get(callee.text) ?? null;
+      return this.fontPreloads(source, node)
+        ? { kind: 'hint', label: 'next/font preload' }
+        : null;
     }
-    if (ts.isPropertyAccessExpression(callee) && ts.isIdentifier(callee.expression)) {
+    if (
+      ts.isPropertyAccessExpression(callee) &&
+      ts.isIdentifier(callee.expression)
+    ) {
       const module = bindings.namespaces.get(callee.expression.text);
       return module ? this.memberMeaning(module, callee.name.text) : null;
     }
@@ -227,7 +266,10 @@ export class ReactPerformanceSource {
   }
 
   /** A next/font loader preloads unless its options say `preload: false`. */
-  private static fontPreloads(source: TsxSource, node: TS.CallExpression): boolean {
+  private static fontPreloads(
+    source: TsxSource,
+    node: TS.CallExpression
+  ): boolean {
     const ts = source.ts;
     const options = node.arguments[0];
     if (!options || !ts.isObjectLiteralExpression(options)) return true;
@@ -254,7 +296,8 @@ export class ReactPerformanceSource {
     source.walk(node => {
       if (!ts.isCallExpression(node)) return;
       const meaning = this.callMeaning(source, node, bindings);
-      if (meaning) lists[meaning.kind].push(at(source.lineOf(node), meaning.label));
+      if (meaning)
+        lists[meaning.kind].push(at(source.lineOf(node), meaning.label));
     });
   }
 
@@ -267,11 +310,15 @@ export class ReactPerformanceSource {
     for (const element of source.jsxElements()) {
       if (bindings.nextImage && element.tag === bindings.nextImage) {
         this.nextImage(element, evidence, at);
-      } else if (element.tag === 'img' && stringAttribute(element, 'loading') === 'lazy') {
+      } else if (
+        element.tag === 'img' &&
+        stringAttribute(element, 'loading') === 'lazy'
+      ) {
         evidence.lazyImages.push(at(element.line, '<img loading="lazy">'));
       } else if (element.tag === 'link') {
         const rel = stringAttribute(element, 'rel');
-        if (rel && LINK_HINTS.has(rel)) evidence.resourceHints.push(at(element.line, `<link rel="${rel}">`));
+        if (rel && LINK_HINTS.has(rel))
+          evidence.resourceHints.push(at(element.line, `<link rel="${rel}">`));
       }
     }
   }

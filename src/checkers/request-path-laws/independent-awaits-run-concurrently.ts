@@ -16,7 +16,10 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { markJudgedNothing } from '../../utils/judged-nothing';
 import { declaredClients } from '../../utils/request-path/data-clients';
-import { describeSequentialRun, scanSequentialAwaits } from '../../utils/request-path/sequential-awaits';
+import {
+  describeSequentialRun,
+  scanSequentialAwaits,
+} from '../../utils/request-path/sequential-awaits';
 import { sourcesFromFiles } from '../../utils/request-path/sources';
 import { readFilesContaining } from '../../utils/law-requirements';
 import { REQUIRES_ASYNC_CODE } from '../../data/request-path-laws';
@@ -27,9 +30,18 @@ export class IndependentAwaitsRunConcurrentlyLaw extends LawBase {
 
   static check(context: LawCheckContext): LawResult {
     // The files that selected the law (requires.anyFileContaining), read the way the gate read them.
-    const files = (REQUIRES_ASYNC_CODE.anyFileContaining ?? []).flatMap(entry => readFilesContaining(context.projectRoot, entry, context.config.ignores?.global ?? []));
+    const files = (REQUIRES_ASYNC_CODE.anyFileContaining ?? []).flatMap(entry =>
+      readFilesContaining(
+        context.projectRoot,
+        entry,
+        context.config.ignores?.global ?? []
+      )
+    );
     const sources = sourcesFromFiles(context.projectRoot, files);
-    const { runs, asyncFunctions } = scanSequentialAwaits(sources.modules, declaredClients(context.projectRoot));
+    const { runs, asyncFunctions } = scanSequentialAwaits(
+      sources.modules,
+      declaredClients(context.projectRoot)
+    );
     const suggestions = [
       'Start independent calls together and await them once: asyncio.gather(a(), b()) in Python, await Promise.all([a(), b()]) in TS/JS',
       'Keep an order that is part of the meaning (a write before its read, a transaction) and mark it on the line: roc: sequential-ok <reason>',
@@ -42,7 +54,9 @@ export class IndependentAwaitsRunConcurrentlyLaw extends LawBase {
           ],
           this.LAW_NAME,
           'PERFORMANCE',
-          ['Declare the law not applicable (laws.notApplicable) with a reason if the project does no async I/O'],
+          [
+            'Declare the law not applicable (laws.notApplicable) with a reason if the project does no async I/O',
+          ],
           context
         )
       );

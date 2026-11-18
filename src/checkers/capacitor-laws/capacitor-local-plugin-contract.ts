@@ -20,7 +20,10 @@
 import * as fs from 'fs';
 import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { relative, withNotes } from '../../utils/capacitor/capacitor-law-support';
+import {
+  relative,
+  withNotes,
+} from '../../utils/capacitor/capacitor-law-support';
 import { CapacitorProjects } from '../../utils/capacitor/capacitor-project';
 import { CommittedShell } from '../../utils/capacitor/committed-shell';
 import {
@@ -70,7 +73,8 @@ export class CapacitorLocalPluginContractLaw extends LawBase {
   static check(context: LawCheckContext): LawResult {
     const { sources, unread } = bridgeSources(context);
     const violations = unread.map(
-      reason => `${reason} — a registerPlugin() in these files would not be compared with the native side, so this law does not pass on them`
+      reason =>
+        `${reason} — a registerPlugin() in these files would not be compared with the native side, so this law does not pass on them`
     );
     const notes: string[] = [];
     const web = sources.flatMap(source => this.webPlugins(context, source));
@@ -120,21 +124,37 @@ export class CapacitorLocalPluginContractLaw extends LawBase {
   }
 
   /** The plugin name: a literal, a same-file const, or a const imported one module away. */
-  private static nameOf(source: TsxSource, argument: TS.Expression | undefined): string | null {
+  private static nameOf(
+    source: TsxSource,
+    argument: TS.Expression | undefined
+  ): string | null {
     const local = stringValue(source, argument);
-    if (local !== null || !argument || !source.ts.isIdentifier(argument)) return local;
+    if (local !== null || !argument || !source.ts.isIdentifier(argument))
+      return local;
     const imported = this.importedFrom(source, argument.text);
-    return imported ? stringValue(imported.source, imported.source.ts.factory.createIdentifier(imported.name)) : null;
+    return imported
+      ? stringValue(
+          imported.source,
+          imported.source.ts.factory.createIdentifier(imported.name)
+        )
+      : null;
   }
 
   /** The module a name is imported from, one relative import away, parsed. */
-  private static importedFrom(source: TsxSource, local: string): { source: TsxSource; name: string } | null {
+  private static importedFrom(
+    source: TsxSource,
+    local: string
+  ): { source: TsxSource; name: string } | null {
     for (const info of source.imports()) {
       const binding = info.named.find(named => named.local === local);
       if (!binding || !info.module.startsWith('.')) continue;
       const file = resolveRelative(source.fileName, info.module);
       const text = file ? readText(file) : null;
-      if (file && text !== null) return { source: TsxSource.parse(source.ts, file, text), name: binding.imported };
+      if (file && text !== null)
+        return {
+          source: TsxSource.parse(source.ts, file, text),
+          name: binding.imported,
+        };
     }
     return null;
   }
@@ -148,13 +168,24 @@ export class CapacitorLocalPluginContractLaw extends LawBase {
   ): string[] | null {
     const ts = source.ts;
     if (depth > 4) return null;
-    if (ts.isTypeLiteralNode(type)) return this.memberNames(source, type.members);
+    if (ts.isTypeLiteralNode(type))
+      return this.memberNames(source, type.members);
     if (ts.isIntersectionTypeNode(type)) {
-      const parts = type.types.map(part => this.typeMethods(source, part, depth + 1, mayImport));
-      return parts.some(part => part === null) ? null : parts.flatMap(part => part ?? []);
+      const parts = type.types.map(part =>
+        this.typeMethods(source, part, depth + 1, mayImport)
+      );
+      return parts.some(part => part === null)
+        ? null
+        : parts.flatMap(part => part ?? []);
     }
-    if (ts.isParenthesizedTypeNode(type)) return this.typeMethods(source, type.type, depth + 1, mayImport);
-    if (!ts.isTypeReferenceNode(type) || !ts.isIdentifier(type.typeName) || type.typeArguments) return null;
+    if (ts.isParenthesizedTypeNode(type))
+      return this.typeMethods(source, type.type, depth + 1, mayImport);
+    if (
+      !ts.isTypeReferenceNode(type) ||
+      !ts.isIdentifier(type.typeName) ||
+      type.typeArguments
+    )
+      return null;
     return this.namedTypeMethods(source, type.typeName.text, depth, mayImport);
   }
 
@@ -167,48 +198,85 @@ export class CapacitorLocalPluginContractLaw extends LawBase {
   ): string[] | null {
     const ts = source.ts;
     for (const statement of source.sourceFile.statements) {
-      if (ts.isInterfaceDeclaration(statement) && statement.name.text === name && !statement.typeParameters) {
-        const inherited = (statement.heritageClauses ?? []).flatMap(clause => clause.types);
+      if (
+        ts.isInterfaceDeclaration(statement) &&
+        statement.name.text === name &&
+        !statement.typeParameters
+      ) {
+        const inherited = (statement.heritageClauses ?? []).flatMap(
+          clause => clause.types
+        );
         const bases = inherited.map(base =>
           ts.isIdentifier(base.expression) && !base.typeArguments
-            ? this.namedTypeMethods(source, base.expression.text, depth + 1, mayImport)
+            ? this.namedTypeMethods(
+                source,
+                base.expression.text,
+                depth + 1,
+                mayImport
+              )
             : null
         );
         if (bases.some(base => base === null)) return null;
-        return [...this.memberNames(source, statement.members), ...bases.flatMap(base => base ?? [])];
+        return [
+          ...this.memberNames(source, statement.members),
+          ...bases.flatMap(base => base ?? []),
+        ];
       }
-      if (ts.isTypeAliasDeclaration(statement) && statement.name.text === name && !statement.typeParameters) {
+      if (
+        ts.isTypeAliasDeclaration(statement) &&
+        statement.name.text === name &&
+        !statement.typeParameters
+      ) {
         return this.typeMethods(source, statement.type, depth + 1, mayImport);
       }
     }
     const imported = mayImport ? this.importedFrom(source, name) : null;
-    return imported ? this.namedTypeMethods(imported.source, imported.name, depth + 1, false) : null;
+    return imported
+      ? this.namedTypeMethods(imported.source, imported.name, depth + 1, false)
+      : null;
   }
 
-  private static memberNames(source: TsxSource, members: TS.NodeArray<TS.TypeElement>): string[] {
+  private static memberNames(
+    source: TsxSource,
+    members: TS.NodeArray<TS.TypeElement>
+  ): string[] {
     const ts = source.ts;
     return members.flatMap(member => {
       const callable =
         ts.isMethodSignature(member) ||
-        (ts.isPropertySignature(member) && member.type !== undefined && ts.isFunctionTypeNode(member.type));
-      if (!callable || !member.name || !(ts.isIdentifier(member.name) || ts.isStringLiteral(member.name))) return [];
-      return INHERITED_PLUGIN_METHODS.has(member.name.text) ? [] : [member.name.text];
+        (ts.isPropertySignature(member) &&
+          member.type !== undefined &&
+          ts.isFunctionTypeNode(member.type));
+      if (
+        !callable ||
+        !member.name ||
+        !(ts.isIdentifier(member.name) || ts.isStringLiteral(member.name))
+      )
+        return [];
+      return INHERITED_PLUGIN_METHODS.has(member.name.text)
+        ? []
+        : [member.name.text];
     });
   }
 
   // ── native side ─────────────────────────────────────────────────────────
 
   /** Plugin names the installed Capacitor plugin packages declare in their Android sources. */
-  static packagedPluginNames(projectRoot: string): { names: Set<string>; unreadable: string[] } {
+  static packagedPluginNames(projectRoot: string): {
+    names: Set<string>;
+    unreadable: string[];
+  } {
     const names = new Set<string>();
     const unreadable: string[] = [];
     for (const dependency of declaredDependencies(projectRoot)) {
       const manifestFile = this.installedManifest(projectRoot, dependency);
       if (!manifestFile) {
-        if (CAPACITOR_PLUGIN_MODULE.test(dependency)) unreadable.push(dependency);
+        if (CAPACITOR_PLUGIN_MODULE.test(dependency))
+          unreadable.push(dependency);
         continue;
       }
-      for (const name of this.packageAndroidNames(manifestFile)) names.add(name);
+      for (const name of this.packageAndroidNames(manifestFile))
+        names.add(name);
     }
     return { names, unreadable };
   }
@@ -217,22 +285,39 @@ export class CapacitorLocalPluginContractLaw extends LawBase {
   private static packageAndroidNames(manifestFile: string): string[] {
     const androidSrc = this.readManifest(manifestFile)?.capacitor?.android?.src;
     if (typeof androidSrc !== 'string') return [];
-    const dir = PathOperations.join(PathOperations.getDirectory(manifestFile), androidSrc);
+    const dir = PathOperations.join(
+      PathOperations.getDirectory(manifestFile),
+      androidSrc
+    );
     return filesUnder(dir, JVM).flatMap(file =>
-      androidPluginClasses(file, readText(file) ?? '').flatMap(plugin => (plugin.name ? [plugin.name] : []))
+      androidPluginClasses(file, readText(file) ?? '').flatMap(plugin =>
+        plugin.name ? [plugin.name] : []
+      )
     );
   }
 
-  private static installedManifest(projectRoot: string, dependency: string): string | null {
+  private static installedManifest(
+    projectRoot: string,
+    dependency: string
+  ): string | null {
     try {
-      return require.resolve(`${dependency}/package.json`, { paths: [projectRoot] });
+      return require.resolve(`${dependency}/package.json`, {
+        paths: [projectRoot],
+      });
     } catch {
-      const direct = PathOperations.join(projectRoot, 'node_modules', dependency, 'package.json');
+      const direct = PathOperations.join(
+        projectRoot,
+        'node_modules',
+        dependency,
+        'package.json'
+      );
       return fs.existsSync(direct) ? direct : null;
     }
   }
 
-  private static readManifest(file: string): { capacitor?: { android?: { src?: unknown } } } | null {
+  private static readManifest(
+    file: string
+  ): { capacitor?: { android?: { src?: unknown } } } | null {
     try {
       return FileSystemOperations.readJsonFile(file);
     } catch {
@@ -241,13 +326,27 @@ export class CapacitorLocalPluginContractLaw extends LawBase {
   }
 
   private static nativeSide(context: LawCheckContext): NativeSide {
-    const side: NativeSide = { androidPresent: false, android: [], activities: [], ios: [] };
+    const side: NativeSide = {
+      androidPresent: false,
+      android: [],
+      activities: [],
+      ios: [],
+    };
     for (const project of CapacitorProjects.find(context.projectRoot)) {
-      const native = CapacitorProjects.nativePaths(project, context.projectRoot);
+      const native = CapacitorProjects.nativePaths(
+        project,
+        context.projectRoot
+      );
       // The native side as the commit holds it: an untracked plugin class or an ignored android/ is not in a clean checkout.
-      const shell = CommittedShell.of(context.projectRoot, [native.androidDir, native.iosTargetDir]);
+      const shell = CommittedShell.of(context.projectRoot, [
+        native.androidDir,
+        native.iosTargetDir,
+      ]);
       if (shell.hasDir(native.androidDir)) side.androidPresent = true;
-      for (const file of CapacitorProjects.nativeSourceFiles(native, (dir, extensions) => shell.filesUnder(dir, extensions))) {
+      for (const file of CapacitorProjects.nativeSourceFiles(
+        native,
+        (dir, extensions) => shell.filesUnder(dir, extensions)
+      )) {
         const text = shell.text(file) ?? '';
         if (file.endsWith('.swift')) {
           side.ios.push(...iosPluginClasses(file, text));
@@ -279,7 +378,9 @@ export class CapacitorLocalPluginContractLaw extends LawBase {
         notes,
       };
     }
-    const androidClass = native.android.find(candidate => candidate.name === name);
+    const androidClass = native.android.find(
+      candidate => candidate.name === name
+    );
     const iosClass = native.ios.find(candidate => candidate.name === name);
     if (!androidClass && packaged.names.has(name)) return { violations, notes }; // an npm plugin
     if (plugin.methods === null) {
@@ -288,10 +389,25 @@ export class CapacitorLocalPluginContractLaw extends LawBase {
       );
     }
     if (native.androidPresent) {
-      violations.push(...this.androidContract(plugin, name, androidClass, native, packaged));
-      if (androidClass) notes.push(...this.uncalledMethods(where, name, androidClass, plugin.methods));
+      violations.push(
+        ...this.androidContract(plugin, name, androidClass, native, packaged)
+      );
+      if (androidClass)
+        notes.push(
+          ...this.uncalledMethods(where, name, androidClass, plugin.methods)
+        );
     }
-    if (iosClass) violations.push(...this.missingMethods(where, name, iosClass, plugin.methods, 'iOS', 'pluginMethods'));
+    if (iosClass)
+      violations.push(
+        ...this.missingMethods(
+          where,
+          name,
+          iosClass,
+          plugin.methods,
+          'iOS',
+          'pluginMethods'
+        )
+      );
     if (!native.androidPresent && !iosClass) {
       violations.push(
         `${where}: registerPlugin('${name}') — there is no android/ shell and no Swift CAPBridgedPlugin with jsName "${name}" under the iOS target, so the contract could not be judged on any platform`
@@ -322,7 +438,10 @@ export class CapacitorLocalPluginContractLaw extends LawBase {
       violations.push(
         `${where}: '${name}' (${cls}) — no BridgeActivity subclass found under android/app/src/main, so its registerPlugin(${cls}.class) cannot be checked; a local plugin reaches the bridge only through it`
       );
-    } else if (native.activities.some(activity => activity.after.has(cls)) && !native.activities.some(activity => activity.before.has(cls))) {
+    } else if (
+      native.activities.some(activity => activity.after.has(cls)) &&
+      !native.activities.some(activity => activity.before.has(cls))
+    ) {
       violations.push(
         `${where}: '${name}' — registerPlugin(${cls}.class) comes after super.onCreate(…) in the BridgeActivity; the bridge is built inside super.onCreate, so the plugin is never loaded. Move the registration above it`
       );
@@ -331,7 +450,16 @@ export class CapacitorLocalPluginContractLaw extends LawBase {
         `${where}: '${name}' — ${cls} is annotated @CapacitorPlugin but the BridgeActivity never calls registerPlugin(${cls}.class); local plugins are not in capacitor.plugins.json, so the bridge never loads it`
       );
     }
-    violations.push(...this.missingMethods(where, name, androidClass, plugin.methods, 'Android', '@PluginMethod'));
+    violations.push(
+      ...this.missingMethods(
+        where,
+        name,
+        androidClass,
+        plugin.methods,
+        'Android',
+        '@PluginMethod'
+      )
+    );
     return violations;
   }
 
@@ -360,9 +488,13 @@ export class CapacitorLocalPluginContractLaw extends LawBase {
   ): string[] {
     if (!methods) return [];
     const wanted = new Set(methods);
-    const extra = nativeClass.methods.filter(method => !wanted.has(method) && !INHERITED_PLUGIN_METHODS.has(method));
+    const extra = nativeClass.methods.filter(
+      method => !wanted.has(method) && !INHERITED_PLUGIN_METHODS.has(method)
+    );
     return extra.length
-      ? [`${where}: '${name}' — @PluginMethod ${extra.join(', ')} in ${nativeClass.className} has no counterpart in the TypeScript interface (JS cannot call it yet)`]
+      ? [
+          `${where}: '${name}' — @PluginMethod ${extra.join(', ')} in ${nativeClass.className} has no counterpart in the TypeScript interface (JS cannot call it yet)`,
+        ]
       : [];
   }
 }

@@ -30,20 +30,26 @@ describe('caching analyzer: the Capacitor exemption reads every workspace manife
   });
 
   it('control: a web project without Capacitor and without a strategy is still told so', async () => {
-    const root = project({ 'package.json': manifest({ '@angular/core': '20.0.0' }) });
+    const root = project({
+      'package.json': manifest({ '@angular/core': '20.0.0' }),
+    });
     expect(await CachingStrategyAnalyzer.analyze(root)).toEqual([NO_STRATEGY]);
   });
 
   it('control: a mention of @capacitor/core that is not a dependency is not Capacitor', async () => {
     const root = project({
-      'package.json': JSON.stringify({ name: 'web', scripts: { note: 'echo @capacitor/core is not used here' } }),
+      'package.json': JSON.stringify({
+        name: 'web',
+        scripts: { note: 'echo @capacitor/core is not used here' },
+      }),
     });
     expect(await CachingStrategyAnalyzer.analyze(root)).toEqual([NO_STRATEGY]);
   });
 });
 
 describe('cards carry the Capacitor reading (#253)', () => {
-  const card = (laws: typeof CODE_QUALITY_LAWS, title: string) => laws.find(law => law.title === title)!;
+  const card = (laws: typeof CODE_QUALITY_LAWS, title: string) =>
+    laws.find(law => law.title === title)!;
 
   it('Web Storage Encapsulation: satisfiedBy.capacitor and a limit naming the backing-store question', () => {
     const law = card(CODE_QUALITY_LAWS, 'Web Storage Encapsulation');

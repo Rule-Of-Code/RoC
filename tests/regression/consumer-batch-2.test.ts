@@ -83,9 +83,9 @@ describe('consumer batch 2', () => {
         config: config(),
       });
 
-      expect((result.violations ?? []).some(v => /rating format/i.test(v))).toBe(
-        true
-      );
+      expect(
+        (result.violations ?? []).some(v => /rating format/i.test(v))
+      ).toBe(true);
     });
 
     it('honours ignores for files the project did not author', async () => {
@@ -106,7 +106,9 @@ describe('consumer batch 2', () => {
       });
 
       expect(
-        (withIgnore.violations ?? []).some(v => /missing constitutional/i.test(v))
+        (withIgnore.violations ?? []).some(v =>
+          /missing constitutional/i.test(v)
+        )
       ).toBe(false);
       expect(
         (without.violations ?? []).some(v => /missing constitutional/i.test(v))
@@ -124,7 +126,10 @@ describe('consumer batch 2', () => {
     it('says nothing to a client that merely consumes /api/health', async () => {
       write(
         'package.json',
-        JSON.stringify({ name: 'client', dependencies: { '@angular/core': '^22' } })
+        JSON.stringify({
+          name: 'client',
+          dependencies: { '@angular/core': '^22' },
+        })
       );
       write(
         'src/health.ts',
@@ -204,14 +209,18 @@ describe('consumer batch 2', () => {
 
     it('finds it when the project declares where it lives', () => {
       cloudBuildOnly();
-      const declared = { pathMappings: { cicdConfig: 'infra/cloudbuild/*.yaml' } };
+      const declared = {
+        pathMappings: { cicdConfig: 'infra/cloudbuild/*.yaml' },
+      };
 
       expect(hasCiConfig(root, declared)).toBe(true);
     });
 
     it('every entry point agrees, because there is one list', () => {
       cloudBuildOnly();
-      const declared = { pathMappings: { cicdConfig: 'infra/cloudbuild/*.yaml' } };
+      const declared = {
+        pathMappings: { cicdConfig: 'infra/cloudbuild/*.yaml' },
+      };
 
       expect(CiCdDetector.hasAnyCiConfig(root, declared)).toBe(true);
       expect(
@@ -256,7 +265,10 @@ describe('consumer batch 2', () => {
     it('counts continuation lines as comments, not code', () => {
       const counted = (
         CodeDocumentationLaw as unknown as {
-          countLines: (c: string) => { codeLines: number; commentLines: number };
+          countLines: (c: string) => {
+            codeLines: number;
+            commentLines: number;
+          };
         }
       ).countLines(jsdocFile);
 
@@ -267,7 +279,10 @@ describe('consumer batch 2', () => {
     it('still counts ordinary code as code', () => {
       const counted = (
         CodeDocumentationLaw as unknown as {
-          countLines: (c: string) => { codeLines: number; commentLines: number };
+          countLines: (c: string) => {
+            codeLines: number;
+            commentLines: number;
+          };
         }
       ).countLines('const a = 1;\nconst b = 2;\n// one comment\n');
 
@@ -278,7 +293,10 @@ describe('consumer batch 2', () => {
     it('closes the block on the same line for /* … */', () => {
       const counted = (
         CodeDocumentationLaw as unknown as {
-          countLines: (c: string) => { codeLines: number; commentLines: number };
+          countLines: (c: string) => {
+            codeLines: number;
+            commentLines: number;
+          };
         }
       ).countLines('/* inline */\nconst a = 1;\n');
 
@@ -294,14 +312,20 @@ describe('consumer batch 2', () => {
    */
   describe('Firebase caching headers are read as the array they are', () => {
     const firebase = (headers: unknown): void =>
-      write('firebase.json', JSON.stringify({ hosting: { public: 'dist', headers } }));
+      write(
+        'firebase.json',
+        JSON.stringify({ hosting: { public: 'dist', headers } })
+      );
 
     it('detects Cache-Control declared in Firebase schema', () => {
       firebase([
         {
           source: '**/*.@(js|css)',
           headers: [
-            { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+            {
+              key: 'Cache-Control',
+              value: 'public, max-age=31536000, immutable',
+            },
           ],
         },
       ]);
@@ -314,7 +338,9 @@ describe('consumer batch 2', () => {
         { source: '**', headers: [{ key: 'X-Frame-Options', value: 'DENY' }] },
       ]);
 
-      expect(CachingHeadersAnalyzerService.analyze(root).configured).toBe(false);
+      expect(CachingHeadersAnalyzerService.analyze(root).configured).toBe(
+        false
+      );
     });
 
     it('accepts the dictionary shape other hosts use', () => {

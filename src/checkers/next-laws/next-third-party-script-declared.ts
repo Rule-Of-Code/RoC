@@ -15,7 +15,11 @@ import { importedNames } from '../../utils/react/next-app-files';
 import { ReactProject } from '../../utils/react/react-project';
 import type { JsxElementInfo, TsxSource } from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';
-import { matchesAny, nextThresholds, reasonedEntries } from './next-client-law-support';
+import {
+  matchesAny,
+  nextThresholds,
+  reasonedEntries,
+} from './next-client-law-support';
 
 const CONFIG_KEY = 'thresholds.next.thirdPartyScripts';
 const EXTERNAL = /^(?:https?:)?\/\/([^/?#]+)/i;
@@ -27,11 +31,16 @@ export class NextThirdPartyScriptDeclaredLaw extends LawBase {
   static readonly LAW_NAME = 'Next Third Party Script Declared';
 
   static check(context: LawCheckContext): LawResult {
-    const { allowed, problems } = reasonedEntries(nextThresholds(context).thirdPartyScripts, 'host', CONFIG_KEY);
+    const { allowed, problems } = reasonedEntries(
+      nextThresholds(context).thirdPartyScripts,
+      'host',
+      CONFIG_KEY
+    );
     const files = ReactProject.sourceFiles(context, ['.tsx', '.jsx', '.js']);
     const { sources, unread } = ReactProject.parse(context, files);
     const violations = [...unread, ...problems];
-    for (const source of sources) violations.push(...this.checkSource(context, source, allowed));
+    for (const source of sources)
+      violations.push(...this.checkSource(context, source, allowed));
     return this.createResult(
       violations,
       this.LAW_NAME,
@@ -45,7 +54,11 @@ export class NextThirdPartyScriptDeclaredLaw extends LawBase {
     );
   }
 
-  static checkSource(context: LawCheckContext, source: TsxSource, allowed: readonly string[]): string[] {
+  static checkSource(
+    context: LawCheckContext,
+    source: TsxSource,
+    allowed: readonly string[]
+  ): string[] {
     const scriptTags = importedNames(source, ['next/script'], 'default');
     const where = ReactProject.relative(context, source.fileName);
     const violations: string[] = [];
@@ -56,7 +69,11 @@ export class NextThirdPartyScriptDeclaredLaw extends LawBase {
         violations.push(
           `${where}:${element.line}: <${element.tag}> src is computed — the host it loads from cannot be read. Write it as a literal URL and declare the host in ${CONFIG_KEY}`
         );
-      } else if (target && target !== 'local' && !matchesAny(target.host.toLowerCase(), allowed)) {
+      } else if (
+        target &&
+        target !== 'local' &&
+        !matchesAny(target.host.toLowerCase(), allowed)
+      ) {
         violations.push(
           `${where}:${element.line}: <${element.tag}> loads a script from ${target.host}, which is not declared in ${CONFIG_KEY} with a reason`
         );
@@ -65,14 +82,23 @@ export class NextThirdPartyScriptDeclaredLaw extends LawBase {
     return violations;
   }
 
-  private static srcInitializer(source: TsxSource, element: JsxElementInfo): TS.Expression | null | undefined {
+  private static srcInitializer(
+    source: TsxSource,
+    element: JsxElementInfo
+  ): TS.Expression | null | undefined {
     const ts = source.ts;
     for (const property of element.node.attributes.properties) {
-      if (!ts.isJsxAttribute(property) || property.name.getText(source.sourceFile) !== 'src') continue;
+      if (
+        !ts.isJsxAttribute(property) ||
+        property.name.getText(source.sourceFile) !== 'src'
+      )
+        continue;
       const initializer = property.initializer;
       if (!initializer) return null;
       if (ts.isStringLiteral(initializer)) return initializer;
-      return ts.isJsxExpression(initializer) ? (initializer.expression ?? null) : null;
+      return ts.isJsxExpression(initializer)
+        ? (initializer.expression ?? null)
+        : null;
     }
     return undefined;
   }
@@ -89,9 +115,11 @@ export class NextThirdPartyScriptDeclaredLaw extends LawBase {
     if (text === null) return 'unknown';
     const head = text.trim();
     const isTemplate = ts.isTemplateExpression(src);
-    if (!/^(?:https?:)?\/\//i.test(head)) return isTemplate && head === '' ? 'unknown' : 'local';
+    if (!/^(?:https?:)?\/\//i.test(head))
+      return isTemplate && head === '' ? 'unknown' : 'local';
     // A template whose host is still open (`https://${region}.cdn…`) cannot be read.
-    const hostClosed = !isTemplate || /^(?:https?:)?\/\/[^/?#]+[/?#]/i.test(head);
+    const hostClosed =
+      !isTemplate || /^(?:https?:)?\/\/[^/?#]+[/?#]/i.test(head);
     const host = EXTERNAL.exec(head)?.[1];
     return hostClosed && host ? { host } : 'unknown';
   }

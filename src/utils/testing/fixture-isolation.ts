@@ -72,7 +72,9 @@ export class FixtureIsolation {
    * isolation is the framework's own.
    */
   static replacesHttpBackend(code: string): boolean {
-    return /\bprovideHttpClientTesting\s*\(|\bHttpClientTestingModule\b/.test(code);
+    return /\bprovideHttpClientTesting\s*\(|\bHttpClientTestingModule\b/.test(
+      code
+    );
   }
 
   /**

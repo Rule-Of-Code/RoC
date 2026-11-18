@@ -102,7 +102,7 @@ export class PatternSearchUtility {
       if (global) {
         const matches: string[] = [];
         let match;
-        const globalPattern = new RegExp(pattern.source, `${pattern.flags  }g`);
+        const globalPattern = new RegExp(pattern.source, `${pattern.flags}g`);
         while ((match = globalPattern.exec(content)) !== null) {
           matches.push(match[0]);
         }

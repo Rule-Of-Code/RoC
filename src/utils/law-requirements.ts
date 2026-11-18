@@ -11,35 +11,186 @@
  * Dependencies are read from every workspace package.json, not only the root
  * one: a monorepo may declare `@capacitor/core` in the app that ships, not in
  * the workspace manifest.
+ *
+ * Every condition reads what git publishes (#381, as `anyFileContaining`
+ * since 7.27.0): inside a git work tree a manifest counts when it is tracked
+ * (read from the index when the working copy differs) or untracked and not
+ * ignored. A git-ignored manifest (generated, vendored, a scratch copy)
+ * selects no law, because the project does not declare that dependency in
+ * anything it ships. Outside a git work tree the disk is read, as before.
  */
 
+import { createHash } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { glob } from 'glob';
-import type { FileContaining, LawRequirement } from '../types/enhanced-law.types';
+import type {
+  FileContaining,
+  LawRequirement,
+} from '../types/enhanced-law.types';
 import { minimatch } from 'minimatch';
 import { FileSystemOperations } from './file-system-operations';
-import { publishedListing, readFromIndex, trackedFiles } from './git/git-layout';
+import {
+  type PublishedListing,
+  publishedListing,
+  readFromIndex,
+  trackedFiles,
+} from './git/git-layout';
 import { NxWorkspace } from './nx-workspace';
-import { declaredPythonDependencies, normalizePythonName } from './python-dependencies';
+import {
+  PYTHON_MANIFEST_GLOB,
+  PYTHON_MANIFEST_IGNORE,
+  normalizePythonName,
+  pythonManifestFiles,
+  pythonNamesIn,
+} from './python-dependencies';
 
 type Manifest = {
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
 };
 
+const PACKAGE_MANIFEST = 'package.json';
+
 /** Every package name declared by any workspace package.json. */
 export function declaredDependencies(projectRoot: string): Set<string> {
   const names = new Set<string>();
-  for (const file of NxWorkspace.resolveSourceFiles(projectRoot, 'package.json')) {
+  for (const file of NxWorkspace.resolveSourceFiles(
+    projectRoot,
+    PACKAGE_MANIFEST
+  )) {
     let manifest: Manifest | null = null;
     try {
       manifest = FileSystemOperations.readJsonFile<Manifest>(file);
     } catch {
       continue; // an unreadable manifest declares nothing
     }
-    for (const name of Object.keys(manifest?.dependencies ?? {})) names.add(name);
-    for (const name of Object.keys(manifest?.devDependencies ?? {})) names.add(name);
+    addManifestNames(names, manifest);
+  }
+  return names;
+}
+
+function addManifestNames(names: Set<string>, manifest: Manifest | null): void {
+  for (const name of Object.keys(manifest?.dependencies ?? {})) names.add(name);
+  for (const name of Object.keys(manifest?.devDependencies ?? {}))
+    names.add(name);
+}
+
+/** A dependency manifest and its text, read where git publishes it from. */
+interface ManifestText {
+  rel: string;
+  content: string;
+}
+
+/** One kind of dependency manifest: how it is found, and the files found on disk. */
+interface ManifestKind {
+  pattern: string;
+  ignore: readonly string[];
+  disk: readonly string[];
+}
+
+/**
+ * Answers by project root, manifest kind and the manifests' text on disk.
+ * Asking git costs processes, and the selector, the liveness floor and the
+ * validators ask once per gated law; the text on disk is read on every call
+ * (as before), so an edited manifest is a new key. What the key does not
+ * see (a change of ignore rules, or of the index alone) is answered from the
+ * first call in this process.
+ */
+const manifestCache = new Map<string, ManifestText[]>();
+
+/**
+ * The manifests of one kind as git publishes them (#381): from the published
+ * listing, matched by the kind's own glob and ignore list, tracked ones read
+ * from the index when the working copy differs. Outside a git work tree, the
+ * disk files the kind's own discovery found.
+ */
+function publishedManifests(
+  projectRoot: string,
+  kind: ManifestKind
+): ManifestText[] {
+  const onDisk = kind.disk.flatMap(file => {
+    const content = readDisk(file);
+    return content === null
+      ? []
+      : [
+          {
+            rel: path.relative(projectRoot, file).split(path.sep).join('/'),
+            content,
+          },
+        ];
+  });
+  const digest = createHash('sha256');
+  for (const { rel, content } of onDisk) digest.update(`${rel}\0${content}\0`);
+  const key = `${projectRoot}|${kind.pattern}|${digest.digest('hex')}`;
+  const cached = manifestCache.get(key);
+  if (cached) return cached;
+
+  const listing = publishedListing(projectRoot);
+  const texts = listing
+    ? manifestsInListing(projectRoot, listing, kind, onDisk)
+    : onDisk;
+  if (manifestCache.size >= CONTAINING_CACHE_LIMIT) manifestCache.clear();
+  manifestCache.set(key, texts);
+  return texts;
+}
+
+function manifestsInListing(
+  projectRoot: string,
+  listing: PublishedListing,
+  kind: ManifestKind,
+  onDisk: readonly ManifestText[]
+): ManifestText[] {
+  const disk = new Map(onDisk.map(text => [text.rel, text.content]));
+  return [...listing.tracked, ...listing.unignored]
+    .filter(
+      rel =>
+        minimatch(rel, kind.pattern) &&
+        !kind.ignore.some(pattern => minimatch(rel, pattern))
+    )
+    .flatMap(rel => {
+      const fromIndex = listing.tracked.has(rel) && listing.changed.has(rel);
+      const content = fromIndex
+        ? readFromIndex(projectRoot, rel)
+        : (disk.get(rel) ?? readDisk(path.join(projectRoot, rel)));
+      return content === null ? [] : [{ rel, content }];
+    });
+}
+
+/**
+ * Every package name declared by a workspace package.json that git publishes
+ * (the disk outside git): what `anyDependency` and `allDependencies` read.
+ */
+export function publishedDependencies(projectRoot: string): Set<string> {
+  const names = new Set<string>();
+  const manifests = publishedManifests(projectRoot, {
+    pattern: `${NxWorkspace.PROJECT_DIRS}${PACKAGE_MANIFEST}`,
+    ignore: NxWorkspace.IGNORE,
+    disk: NxWorkspace.resolveSourceFiles(projectRoot, PACKAGE_MANIFEST),
+  });
+  for (const { content } of manifests) {
+    try {
+      addManifestNames(names, JSON.parse(content) as Manifest);
+    } catch {
+      // an unreadable manifest declares nothing
+    }
+  }
+  return names;
+}
+
+/**
+ * Every Python distribution declared by a manifest that git publishes (the
+ * disk outside git): what `anyPythonDependency` reads.
+ */
+export function publishedPythonDependencies(projectRoot: string): Set<string> {
+  const names = new Set<string>();
+  const manifests = publishedManifests(projectRoot, {
+    pattern: PYTHON_MANIFEST_GLOB,
+    ignore: PYTHON_MANIFEST_IGNORE,
+    disk: pythonManifestFiles(projectRoot),
+  });
+  for (const { rel, content } of manifests) {
+    for (const name of pythonNamesIn(rel, content)) names.add(name);
   }
   return names;
 }
@@ -49,7 +200,9 @@ export function presentRequiredFiles(
   projectRoot: string,
   files: readonly string[]
 ): string[] {
-  return files.flatMap(file => NxWorkspace.resolveSourceFiles(projectRoot, file));
+  return files.flatMap(file =>
+    NxWorkspace.resolveSourceFiles(projectRoot, file)
+  );
 }
 
 /** True when the project declares everything `requires` asks for (or it asks for nothing). */
@@ -70,18 +223,30 @@ export function lawRequirementsMet(
     }
   }
   if (requires.anyPythonDependency?.length) {
-    const declared = declaredPythonDependencies(projectRoot);
-    if (!requires.anyPythonDependency.some(name => declared.has(normalizePythonName(name)))) {
+    const declared = publishedPythonDependencies(projectRoot);
+    if (
+      !requires.anyPythonDependency.some(name =>
+        declared.has(normalizePythonName(name))
+      )
+    ) {
       return false;
     }
   }
   if (requires.anyOf?.length) {
-    if (!requires.anyOf.some(alternative => lawRequirementsMet(alternative, projectRoot, ignores))) {
+    if (
+      !requires.anyOf.some(alternative =>
+        lawRequirementsMet(alternative, projectRoot, ignores)
+      )
+    ) {
       return false;
     }
   }
   if (requires.anyFileContaining?.length) {
-    if (!requires.anyFileContaining.some(entry => fileContains(projectRoot, entry, ignores))) {
+    if (
+      !requires.anyFileContaining.some(entry =>
+        fileContains(projectRoot, entry, ignores)
+      )
+    ) {
       return false;
     }
   }
@@ -133,18 +298,25 @@ export interface ContainingFile {
 }
 
 /** A glob, widened to the workspace project directories when it has no `**`. */
-const widened = (pattern: string): string => (pattern.includes('**') ? pattern : `${NxWorkspace.PROJECT_DIRS}${pattern}`);
+const widened = (pattern: string): string =>
+  pattern.includes('**') ? pattern : `${NxWorkspace.PROJECT_DIRS}${pattern}`;
 
 function readDisk(file: string): string | null {
   try {
-    return fs.statSync(file).size > CONTAINING_MAX_BYTES ? null : fs.readFileSync(file, 'utf8');
+    return fs.statSync(file).size > CONTAINING_MAX_BYTES
+      ? null
+      : fs.readFileSync(file, 'utf8');
   } catch {
     return null; // an unreadable file contains nothing
   }
 }
 
 /** Outside a git work tree: the disk, walked. */
-function diskCandidates(projectRoot: string, entry: FileContaining, ignores: readonly string[]): Candidate[] {
+function diskCandidates(
+  projectRoot: string,
+  entry: FileContaining,
+  ignores: readonly string[]
+): Candidate[] {
   const files = glob.sync(entry.files.map(widened), {
     cwd: projectRoot,
     absolute: true,
@@ -166,7 +338,11 @@ function diskCandidates(projectRoot: string, entry: FileContaining, ignores: rea
  * untracked but not ignored. A git-ignored file never selects a law: it is
  * generated output or a local note, and the project cannot act on it.
  */
-function publishedCandidates(projectRoot: string, entry: FileContaining, ignores: readonly string[]): Candidate[] | null {
+function publishedCandidates(
+  projectRoot: string,
+  entry: FileContaining,
+  ignores: readonly string[]
+): Candidate[] | null {
   const listing = publishedListing(projectRoot);
   if (!listing) return null;
   const globs = entry.files.map(widened);
@@ -182,8 +358,12 @@ function publishedCandidates(projectRoot: string, entry: FileContaining, ignores
       file,
       rel,
       read: () => {
-        const text = fromIndex ? readFromIndex(projectRoot, rel) : readDisk(file);
-        return text !== null && text.length <= CONTAINING_MAX_BYTES ? text : null;
+        const text = fromIndex
+          ? readFromIndex(projectRoot, rel)
+          : readDisk(file);
+        return text !== null && text.length <= CONTAINING_MAX_BYTES
+          ? text
+          : null;
       },
     };
   });
@@ -195,20 +375,33 @@ function publishedCandidates(projectRoot: string, entry: FileContaining, ignores
  * less what the project says is not its own code (`ignores.global`, #326) —
  * the selector and the law pass the same list, so the set stays one.
  */
-function containingCandidates(projectRoot: string, entry: FileContaining, ignores: readonly string[]): Candidate[] {
-  return publishedCandidates(projectRoot, entry, ignores) ?? diskCandidates(projectRoot, entry, ignores);
+function containingCandidates(
+  projectRoot: string,
+  entry: FileContaining,
+  ignores: readonly string[]
+): Candidate[] {
+  return (
+    publishedCandidates(projectRoot, entry, ignores) ??
+    diskCandidates(projectRoot, entry, ignores)
+  );
 }
 
 /** One `anyFileContaining` entry: a file it names contains its pattern. Reads until the first match. */
-function fileContains(projectRoot: string, entry: FileContaining, ignores: readonly string[]): boolean {
+function fileContains(
+  projectRoot: string,
+  entry: FileContaining,
+  ignores: readonly string[]
+): boolean {
   const key = `${projectRoot}|${JSON.stringify(entry)}|${JSON.stringify(ignores)}`;
   const cached = containingCache.get(key);
   if (cached !== undefined) return cached;
   const pattern = new RegExp(entry.pattern, 'm');
-  const found = containingCandidates(projectRoot, entry, ignores).some(candidate => {
-    const text = candidate.read();
-    return text !== null && pattern.test(text);
-  });
+  const found = containingCandidates(projectRoot, entry, ignores).some(
+    candidate => {
+      const text = candidate.read();
+      return text !== null && pattern.test(text);
+    }
+  );
   if (containingCache.size >= CONTAINING_CACHE_LIMIT) containingCache.clear();
   containingCache.set(key, found);
   return found;
@@ -219,26 +412,41 @@ function fileContains(projectRoot: string, entry: FileContaining, ignores: reado
  * matched, sorted by path — the gate's own set, read the gate's own way, for
  * a law that must judge exactly the files that selected it.
  */
-export function readFilesContaining(projectRoot: string, entry: FileContaining, ignores: readonly string[] = []): ContainingFile[] {
+export function readFilesContaining(
+  projectRoot: string,
+  entry: FileContaining,
+  ignores: readonly string[] = []
+): ContainingFile[] {
   const pattern = new RegExp(entry.pattern, 'm');
   return containingCandidates(projectRoot, entry, ignores)
     .sort((a, b) => a.rel.localeCompare(b.rel))
     .flatMap(candidate => {
       const content = candidate.read();
-      return content !== null && pattern.test(content) ? [{ file: candidate.file, rel: candidate.rel, content }] : [];
+      return content !== null && pattern.test(content)
+        ? [{ file: candidate.file, rel: candidate.rel, content }]
+        : [];
     });
 }
 
 /** The absolute paths of {@link readFilesContaining}. */
-export function filesContaining(projectRoot: string, entry: FileContaining, ignores: readonly string[] = []): string[] {
-  return readFilesContaining(projectRoot, entry, ignores).map(found => found.file);
+export function filesContaining(
+  projectRoot: string,
+  entry: FileContaining,
+  ignores: readonly string[] = []
+): string[] {
+  return readFilesContaining(projectRoot, entry, ignores).map(
+    found => found.file
+  );
 }
 
-
-/** `anyDependency` and `allDependencies`, read from the workspace package.json manifests. */
-function packageRequirementsMet(requires: LawRequirement, projectRoot: string): boolean {
-  if (!requires.anyDependency?.length && !requires.allDependencies?.length) return true;
-  const declared = declaredDependencies(projectRoot);
+/** `anyDependency` and `allDependencies`, read from the workspace package.json manifests git publishes. */
+function packageRequirementsMet(
+  requires: LawRequirement,
+  projectRoot: string
+): boolean {
+  if (!requires.anyDependency?.length && !requires.allDependencies?.length)
+    return true;
+  const declared = publishedDependencies(projectRoot);
   if (
     requires.anyDependency?.length &&
     !requires.anyDependency.some(name => declared.has(name))
@@ -304,7 +512,8 @@ const NOT_PROJECT_SOURCE = new Set([
  * answers yes rather than drop laws on a guess.
  */
 export function hasJsTsToolchain(projectRoot: string): boolean {
-  if (presentRequiredFiles(projectRoot, JS_TS_MANIFESTS).length > 0) return true;
+  if (presentRequiredFiles(projectRoot, JS_TS_MANIFESTS).length > 0)
+    return true;
   return walkFinds(projectRoot, relative => TS_SOURCE_NAME.test(relative));
 }
 
@@ -324,13 +533,23 @@ const HTML_DOCUMENT_NAME = /^(?!coverage\.html?$).+\.html?$/i;
  * judged on them is the one outcome a user cannot clear. Outside git, the
  * disk is walked; an unreadable directory answers yes, as for the toolchain.
  */
-export function hasHtmlDocument(projectRoot: string, ignores: readonly string[] = []): boolean {
+export function hasHtmlDocument(
+  projectRoot: string,
+  ignores: readonly string[] = []
+): boolean {
   const ownPage = (relative: string): boolean => {
     const segments = relative.split('/');
     const name = segments[segments.length - 1] ?? '';
     if (!HTML_DOCUMENT_NAME.test(name)) return false;
-    if (segments.slice(0, -1).some(s => s.startsWith('.') || NOT_PROJECT_SOURCE.has(s))) return false;
-    return !ignores.some(pattern => minimatch(relative, pattern, { dot: true }));
+    if (
+      segments
+        .slice(0, -1)
+        .some(s => s.startsWith('.') || NOT_PROJECT_SOURCE.has(s))
+    )
+      return false;
+    return !ignores.some(pattern =>
+      minimatch(relative, pattern, { dot: true })
+    );
   };
   const tracked = trackedFiles(projectRoot, ['*.html', '*.htm']);
   if (tracked) return [...tracked].some(ownPage);
@@ -341,7 +560,10 @@ export function hasHtmlDocument(projectRoot: string, ignores: readonly string[] 
  * Walk the disk (not installed, built or hidden directories) for a file whose
  * project-relative path `accept`s. An unreadable directory answers yes.
  */
-function walkFinds(projectRoot: string, accept: (relative: string) => boolean): boolean {
+function walkFinds(
+  projectRoot: string,
+  accept: (relative: string) => boolean
+): boolean {
   const pending = [projectRoot];
   for (let dir = pending.pop(); dir !== undefined; dir = pending.pop()) {
     if (directoryHolds(projectRoot, dir, accept, pending)) return true;
@@ -369,7 +591,8 @@ function directoryHolds(
     if (entry.name.startsWith('.')) continue;
     const full = path.join(dir, entry.name);
     if (!entry.isDirectory()) {
-      if (accept(path.relative(projectRoot, full).split(path.sep).join('/'))) return true;
+      if (accept(path.relative(projectRoot, full).split(path.sep).join('/')))
+        return true;
     } else if (!NOT_PROJECT_SOURCE.has(entry.name)) {
       pending.push(full);
     }
@@ -390,13 +613,19 @@ export function describeRequirement(requires: LawRequirement): string {
     parts.push(requires.anyFile.join(' or '));
   }
   if (requires.anyPythonDependency?.length) {
-    parts.push(`a Python dependency on ${requires.anyPythonDependency.join(' or ')}`);
+    parts.push(
+      `a Python dependency on ${requires.anyPythonDependency.join(' or ')}`
+    );
   }
   for (const entry of requires.anyFileContaining ?? []) {
-    parts.push(`a file (${entry.files.join(' or ')}) containing /${entry.pattern}/`);
+    parts.push(
+      `a file (${entry.files.join(' or ')}) containing /${entry.pattern}/`
+    );
   }
   if (requires.anyOf?.length) {
-    parts.push(`either ${requires.anyOf.map(alternative => `(${describeRequirement(alternative)})`).join(' or ')}`);
+    parts.push(
+      `either ${requires.anyOf.map(alternative => `(${describeRequirement(alternative)})`).join(' or ')}`
+    );
   }
   return parts.join(', and ');
 }

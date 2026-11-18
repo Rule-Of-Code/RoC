@@ -18,7 +18,10 @@
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { AccessibilityLawBase, type ReadTemplate } from './accessibility-law-base';
+import {
+  AccessibilityLawBase,
+  type ReadTemplate,
+} from './accessibility-law-base';
 import {
   IonicDialogReader,
   templateKey,
@@ -26,7 +29,11 @@ import {
   type IonicPresentation,
 } from './ionic-dialogs';
 import { CONFIG_KEY, DIALOG_ROLES, ModalDialogJsx } from './modal-dialog-jsx';
-import { TemplateMarkup, type MarkupDocument, type MarkupElement } from './template-markup';
+import {
+  TemplateMarkup,
+  type MarkupDocument,
+  type MarkupElement,
+} from './template-markup';
 
 const ROLE_DIALOG = 'role="dialog"';
 const ARIA_MODAL = 'aria-modal="true"';
@@ -40,12 +47,15 @@ export class ModalDialogAccessibilityLaw extends AccessibilityLawBase {
     const accessible = (settings?.accessibleDialogComponents ?? []).map(name =>
       name.toLowerCase()
     );
-    const trapTokens = ['cdktrapfocus', ...(settings?.focusTrapTokens ?? [])].map(name =>
-      name.toLowerCase()
-    );
+    const trapTokens = [
+      'cdktrapfocus',
+      ...(settings?.focusTrapTokens ?? []),
+    ].map(name => name.toLowerCase());
 
     let ionic: IonicDialogs | null = null;
-    const presentationOf = (template: ReadTemplate): IonicPresentation | undefined => {
+    const presentationOf = (
+      template: ReadTemplate
+    ): IonicPresentation | undefined => {
       ionic ??= IonicDialogReader.read(context, this.byPath(templates));
       return ionic.presented.get(templateKey(template.file));
     };
@@ -62,12 +72,16 @@ export class ModalDialogAccessibilityLaw extends AccessibilityLawBase {
         ? missing.filter(item => item === FOCUS_TRAP && !presentation.focusTrap)
         : missing;
       if (stillMissing.length === 0) continue;
-      violations.push(this.message(template, stillMissing, presentation, ionic));
+      violations.push(
+        this.message(template, stillMissing, presentation, ionic)
+      );
     }
     violations.push(
-      ...ModalDialogJsx.check(context, settings?.accessibleDialogComponents ?? [], [
-        ...(settings?.focusTrapTokens ?? []),
-      ])
+      ...ModalDialogJsx.check(
+        context,
+        settings?.accessibleDialogComponents ?? [],
+        [...(settings?.focusTrapTokens ?? [])]
+      )
     );
 
     return this.createResult(
@@ -82,20 +96,26 @@ export class ModalDialogAccessibilityLaw extends AccessibilityLawBase {
     );
   }
 
-  private static byPath(templates: ReadTemplate[]): Map<string, MarkupDocument> {
+  private static byPath(
+    templates: ReadTemplate[]
+  ): Map<string, MarkupDocument> {
     return new Map(templates.map(t => [t.file, t.document]));
   }
 
   /** A modal: a `-modal.component.html` file, or an element classed `fixed inset-0`. */
   private static isModal(template: ReadTemplate): boolean {
-    if (/-modal\.component\.html$/i.test(template.file.replace(/\\/g, '/'))) return true;
+    if (/-modal\.component\.html$/i.test(template.file.replace(/\\/g, '/')))
+      return true;
     return template.document.elements.some(el => {
       const classes = TemplateMarkup.classes(el);
       return classes.includes('fixed') && classes.includes('inset-0');
     });
   }
 
-  private static missing(elements: MarkupElement[], trapTokens: string[]): string[] {
+  private static missing(
+    elements: MarkupElement[],
+    trapTokens: string[]
+  ): string[] {
     const ionModals = elements.filter(el => el.tag === 'ion-modal');
     const inlineIonModal = ionModals.length > 0;
     const ionTrapOff = ionModals.some(el => {
@@ -104,7 +124,9 @@ export class ModalDialogAccessibilityLaw extends AccessibilityLawBase {
     });
     const missing: string[] = [];
     const hasRole = elements.some(el =>
-      DIALOG_ROLES.includes((TemplateMarkup.staticValue(el, 'role') ?? '').trim())
+      DIALOG_ROLES.includes(
+        (TemplateMarkup.staticValue(el, 'role') ?? '').trim()
+      )
     );
     if (!hasRole && !inlineIonModal) missing.push(ROLE_DIALOG);
     const hasAriaModal = elements.some(el => {

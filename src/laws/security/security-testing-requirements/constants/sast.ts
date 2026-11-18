@@ -1,4 +1,4 @@
-import { PatternMatchingUtils } from "../../../../utils/pattern-matching-utils";
+import { PatternMatchingUtils } from '../../../../utils/pattern-matching-utils';
 
 /**
  * SASTConstants

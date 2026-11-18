@@ -14,7 +14,10 @@
 
 import * as fs from 'fs';
 import { REQUIRES_CAPACITOR } from '../../utils/capacitor/capacitor-law-support';
-import { type CapacitorProject, CapacitorProjects } from '../../utils/capacitor/capacitor-project';
+import {
+  type CapacitorProject,
+  CapacitorProjects,
+} from '../../utils/capacitor/capacitor-project';
 import { FileSystemOperations } from '../../utils/file-system-operations';
 import { lawRequirementsMet } from '../../utils/law-requirements';
 import { PathOperations } from '../../utils/path-operations';
@@ -40,17 +43,34 @@ export class CapacitorNativeVersions {
       const declared = this.declaredVersion(projectRoot, project);
       if (!declared) continue;
       const native = CapacitorProjects.nativePaths(project, projectRoot);
-      const rel = (file: string) => PathOperations.getRelative(projectRoot, file).replace(/\\/g, '/');
-      this.android(rel(native.androidAppBuildGradle), CapacitorProjects.readNative(native.androidAppBuildGradle), declared, findings);
-      for (const file of [native.xcodeProjectFile, ...this.xcconfigs(native.iosDir)]) {
-        this.ios(rel(file), CapacitorProjects.readNative(file), declared, findings);
+      const rel = (file: string) =>
+        PathOperations.getRelative(projectRoot, file).replace(/\\/g, '/');
+      this.android(
+        rel(native.androidAppBuildGradle),
+        CapacitorProjects.readNative(native.androidAppBuildGradle),
+        declared,
+        findings
+      );
+      for (const file of [
+        native.xcodeProjectFile,
+        ...this.xcconfigs(native.iosDir),
+      ]) {
+        this.ios(
+          rel(file),
+          CapacitorProjects.readNative(file),
+          declared,
+          findings
+        );
       }
     }
     return findings;
   }
 
   /** The app's own package.json version if it has one, else the workspace's. */
-  private static declaredVersion(projectRoot: string, project: CapacitorProject): string | null {
+  private static declaredVersion(
+    projectRoot: string,
+    project: CapacitorProject
+  ): string | null {
     for (const dir of [project.root, projectRoot]) {
       try {
         const pkg = FileSystemOperations.readJsonFile<{ version?: unknown }>(
@@ -73,10 +93,19 @@ export class CapacitorNativeVersions {
     if (text === null) return;
     const code = TsClasses.mask(text); // Groovy/Kotlin comments use the same syntax
     for (const match of code.matchAll(VERSION_NAME)) {
-      this.compare(where, 'versionName', (match[1] ?? '').trim(), declared, findings);
+      this.compare(
+        where,
+        'versionName',
+        (match[1] ?? '').trim(),
+        declared,
+        findings
+      );
     }
     const versionCode = VERSION_CODE.exec(code)?.[1]?.trim();
-    if (versionCode) findings.notes.push(`${where}: versionCode ${versionCode} (reported, not compared)`);
+    if (versionCode)
+      findings.notes.push(
+        `${where}: versionCode ${versionCode} (reported, not compared)`
+      );
   }
 
   private static ios(
@@ -87,12 +116,24 @@ export class CapacitorNativeVersions {
   ): void {
     if (text === null) return;
     const code = TsClasses.mask(text);
-    const values = new Set([...code.matchAll(MARKETING)].map(match => (match[1] ?? '').trim()));
+    const values = new Set(
+      [...code.matchAll(MARKETING)].map(match => (match[1] ?? '').trim())
+    );
     for (const value of values) {
-      this.compare(where, 'MARKETING_VERSION', value.replace(STRING_LITERAL, '$2'), declared, findings, !value.includes('$('));
+      this.compare(
+        where,
+        'MARKETING_VERSION',
+        value.replace(STRING_LITERAL, '$2'),
+        declared,
+        findings,
+        !value.includes('$(')
+      );
     }
     const build = BUILD_NUMBER.exec(code)?.[1]?.trim();
-    if (build) findings.notes.push(`${where}: CURRENT_PROJECT_VERSION ${build} (reported, not compared)`);
+    if (build)
+      findings.notes.push(
+        `${where}: CURRENT_PROJECT_VERSION ${build} (reported, not compared)`
+      );
   }
 
   /**
@@ -108,7 +149,9 @@ export class CapacitorNativeVersions {
     literal = STRING_LITERAL.test(raw)
   ): void {
     if (!literal) {
-      findings.notes.push(`${where}: ${field} is injected at build time (${raw}); not compared`);
+      findings.notes.push(
+        `${where}: ${field} is injected at build time (${raw}); not compared`
+      );
       return;
     }
     const value = raw.replace(STRING_LITERAL, '$2');
@@ -120,14 +163,20 @@ export class CapacitorNativeVersions {
 
   /** "1.0" and "1.0.0" are one version; prerelease and build metadata do not reach the stores. */
   private static sameVersion(native: string, declared: string): boolean {
-    const semver = require('semver') as { coerce: (v: string) => { version: string } | null };
+    const semver = require('semver') as {
+      coerce: (v: string) => { version: string } | null;
+    };
     const a = semver.coerce(native)?.version;
     const b = semver.coerce(declared)?.version;
     return a !== undefined && a === b;
   }
 
   /** `.xcconfig` files under ios/App (Pods excluded) — a project may keep the literal there. */
-  private static xcconfigs(iosDir: string, depth = 0, dir = PathOperations.join(iosDir, 'App')): string[] {
+  private static xcconfigs(
+    iosDir: string,
+    depth = 0,
+    dir = PathOperations.join(iosDir, 'App')
+  ): string[] {
     let entries: fs.Dirent[];
     try {
       entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -137,7 +186,9 @@ export class CapacitorNativeVersions {
     return entries.flatMap(entry => {
       const full = PathOperations.join(dir, entry.name);
       if (entry.isDirectory()) {
-        return entry.name === 'Pods' || depth >= 3 ? [] : this.xcconfigs(iosDir, depth + 1, full);
+        return entry.name === 'Pods' || depth >= 3
+          ? []
+          : this.xcconfigs(iosDir, depth + 1, full);
       }
       return entry.name.endsWith('.xcconfig') ? [full] : [];
     });

@@ -39,17 +39,22 @@ const METHOD_STARTERS = ['addEventListener', 'subscribe'];
 const OPEN_CONSTRUCTORS = new Set(['WebSocket', 'EventSource']);
 
 /** What `node` starts, by name, or null. */
-export function startedResource(ts: TypeScriptModule, node: TS.Node): string | null {
+export function startedResource(
+  ts: TypeScriptModule,
+  node: TS.Node
+): string | null {
   if (ts.isCallExpression(node)) {
     const global = GLOBAL_STARTERS.find(name => isGlobalCall(ts, node, name));
     if (global) return global;
     const target = callTarget(ts, node);
-    if (target?.receiver && METHOD_STARTERS.includes(target.name)) return target.name;
+    if (target?.receiver && METHOD_STARTERS.includes(target.name))
+      return target.name;
     return null;
   }
   if (ts.isNewExpression(node) && ts.isIdentifier(node.expression)) {
     const name = node.expression.text;
-    if (OPEN_CONSTRUCTORS.has(name) || /^[A-Z]\w*Observer$/.test(name)) return `new ${name}`;
+    if (OPEN_CONSTRUCTORS.has(name) || /^[A-Z]\w*Observer$/.test(name))
+      return `new ${name}`;
   }
   return null;
 }
@@ -62,7 +67,8 @@ export class ReactEffectResourceCleanupLaw extends LawBase {
     for (const source of sources) {
       for (const effect of effectCalls(source)) {
         const finding = this.judge(source, effect);
-        if (finding) violations.push(`${where(context, source, effect.call)}: ${finding}`);
+        if (finding)
+          violations.push(`${where(context, source, effect.call)}: ${finding}`);
       }
     }
     return this.createResult(
@@ -95,7 +101,8 @@ export class ReactEffectResourceCleanupLaw extends LawBase {
       if (!cleanups.includes(value)) walkWithin(ts, value, collect);
     }
     if (started.size === 0 || cleanups.length > 0) return null;
-    if (hasInlineReason(source, effect.line, EFFECT_CLEANUP_REASON_MARKER)) return null;
+    if (hasInlineReason(source, effect.line, EFFECT_CLEANUP_REASON_MARKER))
+      return null;
     return `${effect.hook} starts ${[...started].join(', ')} and returns no cleanup — it keeps running after unmount (and twice under StrictMode). Return a function that stops it`;
   }
 
@@ -104,9 +111,13 @@ export class ReactEffectResourceCleanupLaw extends LawBase {
    * one, or the result of a call that hands one back (`store.subscribe(fn)`).
    * `undefined`, `null`, an interval id and a fresh object are not.
    */
-  private static isCleanupValue(ts: TypeScriptModule, value: TS.Expression): boolean {
+  private static isCleanupValue(
+    ts: TypeScriptModule,
+    value: TS.Expression
+  ): boolean {
     const inner = unwrap(ts, value);
-    if (ts.isArrowFunction(inner) || ts.isFunctionExpression(inner)) return true;
+    if (ts.isArrowFunction(inner) || ts.isFunctionExpression(inner))
+      return true;
     if (ts.isIdentifier(inner)) return inner.text !== 'undefined';
     if (ts.isNewExpression(inner)) return false;
     if (ts.isCallExpression(inner)) {

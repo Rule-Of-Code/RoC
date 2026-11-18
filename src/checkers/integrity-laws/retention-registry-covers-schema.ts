@@ -26,11 +26,29 @@ import { ReactProject } from '../../utils/react/react-project';
 import type { TsxSource } from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';
 
-const TABLE_BUILDERS = new Set(['pgTable', 'mysqlTable', 'sqliteTable', 'singlestoreTable']);
+const TABLE_BUILDERS = new Set([
+  'pgTable',
+  'mysqlTable',
+  'sqliteTable',
+  'singlestoreTable',
+]);
 const SCHEMA_BUILDERS = new Set(['pgSchema', 'mysqlSchema']);
-const TABLE_CREATORS = new Set(['pgTableCreator', 'mysqlTableCreator', 'sqliteTableCreator', 'singlestoreTableCreator']);
+const TABLE_CREATORS = new Set([
+  'pgTableCreator',
+  'mysqlTableCreator',
+  'sqliteTableCreator',
+  'singlestoreTableCreator',
+]);
 const DRIZZLE_CORE = /^drizzle-orm\/[a-z0-9]+-core$/;
-const SOURCE_EXTENSIONS = ['.ts', '.tsx', '.mts', '.cts', '.js', '.mjs', '.cjs'];
+const SOURCE_EXTENSIONS = [
+  '.ts',
+  '.tsx',
+  '.mts',
+  '.cts',
+  '.js',
+  '.mjs',
+  '.cjs',
+];
 const REGISTRY_KEY = 'thresholds.integrity.retentionRegistry';
 
 interface Registry {
@@ -65,9 +83,15 @@ export class RetentionRegistryCoversSchemaLaw extends LawBase {
     if (typeof registry === 'string') return [registry];
     const schema = this.schemaTables(context);
     if (schema.tables.size === 0 && schema.unreadable.length === 0) {
-      return ['no Drizzle table was found in the scanned source — a registry checked against nothing does not pass'];
+      return [
+        'no Drizzle table was found in the scanned source — a registry checked against nothing does not pass',
+      ];
     }
-    return [...schema.unreadable, ...this.unlisted(schema, registry), ...this.stale(schema, registry)];
+    return [
+      ...schema.unreadable,
+      ...this.unlisted(schema, registry),
+      ...this.stale(schema, registry),
+    ];
   }
 
   /** Tables in neither section, or in both. */
@@ -77,7 +101,9 @@ export class RetentionRegistryCoversSchemaLaw extends LawBase {
       const kept = registry.tables.has(table);
       const exempt = registry.noPersonalData.has(table);
       if (kept && exempt) {
-        findings.push(`${table} (${where}) is in both "tables" and "noPersonalData" — it holds personal data or it does not`);
+        findings.push(
+          `${table} (${where}) is in both "tables" and "noPersonalData" — it holds personal data or it does not`
+        );
       } else if (!kept && !exempt) {
         findings.push(
           `${table} (${where}) is in neither "tables" nor "noPersonalData" of the retention registry — no rule deletes its rows, and nobody has said it holds no personal data`
@@ -89,18 +115,26 @@ export class RetentionRegistryCoversSchemaLaw extends LawBase {
 
   /** Registry rows naming a table the schema no longer has. */
   private static stale(schema: SchemaTables, registry: Registry): string[] {
-    const sections = [['tables', registry.tables], ['noPersonalData', registry.noPersonalData]] as const;
+    const sections = [
+      ['tables', registry.tables],
+      ['noPersonalData', registry.noPersonalData],
+    ] as const;
     return sections.flatMap(([section, entries]) =>
       [...entries.keys()]
         .filter(table => !schema.tables.has(table))
-        .map(table => `registry ${section}."${table}" names a table the schema does not have`)
+        .map(
+          table =>
+            `registry ${section}."${table}" names a table the schema does not have`
+        )
     );
   }
 
   /** The declared registry, or why it cannot be used. */
   private static registry(context: LawCheckContext): Registry | string {
-    const declared = (context.config.thresholds as { integrity?: { retentionRegistry?: unknown } } | undefined)
-      ?.integrity?.retentionRegistry;
+    const declared = (
+      context.config.thresholds as
+        { integrity?: { retentionRegistry?: unknown } } | undefined
+    )?.integrity?.retentionRegistry;
     if (typeof declared !== 'string' || declared.trim() === '') {
       return `${REGISTRY_KEY} is not set — this opt-in law needs the path of the retention registry, and does not pass without one`;
     }
@@ -109,62 +143,98 @@ export class RetentionRegistryCoversSchemaLaw extends LawBase {
     try {
       parsed = JSON.parse(fs.readFileSync(file, 'utf8').replace(/^﻿/, ''));
     } catch (error) {
-      const reason = fs.existsSync(file) ? `is not valid JSON (${error instanceof Error ? error.message : String(error)})` : 'does not exist';
+      const reason = fs.existsSync(file)
+        ? `is not valid JSON (${error instanceof Error ? error.message : String(error)})`
+        : 'does not exist';
       return `the retention registry ${declared} (${REGISTRY_KEY}) ${reason} — nothing was checked`;
     }
     const tables = this.section(parsed, 'tables', true);
     const noPersonalData = this.section(parsed, 'noPersonalData', false);
-    if (typeof tables === 'string') return `the retention registry ${declared}: ${tables}`;
-    if (typeof noPersonalData === 'string') return `the retention registry ${declared}: ${noPersonalData}`;
+    if (typeof tables === 'string')
+      return `the retention registry ${declared}: ${tables}`;
+    if (typeof noPersonalData === 'string')
+      return `the retention registry ${declared}: ${noPersonalData}`;
     return { tables, noPersonalData };
   }
 
   /** One section: table → reason. `tables` values may be an object (the rule's fields). */
-  private static section(registry: unknown, name: string, allowObjects: boolean): Map<string, string> | string {
+  private static section(
+    registry: unknown,
+    name: string,
+    allowObjects: boolean
+  ): Map<string, string> | string {
     const value = (registry as Record<string, unknown> | null)?.[name];
     if (value === undefined) return new Map();
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return `"${name}" must be an object of table → reason`;
+    if (!value || typeof value !== 'object' || Array.isArray(value))
+      return `"${name}" must be an object of table → reason`;
     const entries = new Map<string, string>();
     for (const [table, reason] of Object.entries(value)) {
       const text = typeof reason === 'string' ? reason.trim() : '';
-      const object = allowObjects && reason !== null && typeof reason === 'object' && Object.keys(reason).length > 0;
-      if (!text && !object) return `"${name}"."${table}" has no reason — an empty entry is a checkbox, not a decision`;
+      const object =
+        allowObjects &&
+        reason !== null &&
+        typeof reason === 'object' &&
+        Object.keys(reason).length > 0;
+      if (!text && !object)
+        return `"${name}"."${table}" has no reason — an empty entry is a checkbox, not a decision`;
       entries.set(table, text || JSON.stringify(reason));
     }
     return entries;
   }
 
   private static schemaTables(context: LawCheckContext): SchemaTables {
-    const files = ReactProject.sourceFiles(context, SOURCE_EXTENSIONS).filter(file => {
-      try {
-        return fs.readFileSync(file, 'utf8').includes('drizzle-orm');
-      } catch {
-        return true; // let parse() report it unread
+    const files = ReactProject.sourceFiles(context, SOURCE_EXTENSIONS).filter(
+      file => {
+        try {
+          return fs.readFileSync(file, 'utf8').includes('drizzle-orm');
+        } catch {
+          return true; // let parse() report it unread
+        }
       }
-    });
+    );
     const { sources, unread } = ReactProject.parse(context, files);
-    const result: SchemaTables = { tables: new Map(), unreadable: unread.map(reason => `${reason} — its tables were NOT read`) };
+    const result: SchemaTables = {
+      tables: new Map(),
+      unreadable: unread.map(reason => `${reason} — its tables were NOT read`),
+    };
     for (const source of sources) this.tablesIn(context, source, result);
     return result;
   }
 
-  private static tablesIn(context: LawCheckContext, source: TsxSource, result: SchemaTables): void {
+  private static tablesIn(
+    context: LawCheckContext,
+    source: TsxSource,
+    result: SchemaTables
+  ): void {
     const ts = source.ts;
     const builders = this.builders(source);
-    if (builders.direct.size === 0 && builders.schemas.size === 0 && builders.creators.size === 0) return;
+    if (
+      builders.direct.size === 0 &&
+      builders.schemas.size === 0 &&
+      builders.creators.size === 0
+    )
+      return;
     const schemaVars = new Set<string>();
     const creatorVars = new Set<string>();
     source.walk(node => {
-      if (!ts.isVariableDeclaration(node) || !ts.isIdentifier(node.name) || !node.initializer) return;
+      if (
+        !ts.isVariableDeclaration(node) ||
+        !ts.isIdentifier(node.name) ||
+        !node.initializer
+      )
+        return;
       const callee = this.calleeName(ts, node.initializer);
-      if (callee && builders.schemas.has(callee)) schemaVars.add(node.name.text);
-      if (callee && builders.creators.has(callee)) creatorVars.add(node.name.text);
+      if (callee && builders.schemas.has(callee))
+        schemaVars.add(node.name.text);
+      if (callee && builders.creators.has(callee))
+        creatorVars.add(node.name.text);
     });
     source.walk(node => {
       if (!ts.isCallExpression(node)) return;
       const isTable =
         (ts.isIdentifier(node.expression) &&
-          (builders.direct.has(node.expression.text) || creatorVars.has(node.expression.text))) ||
+          (builders.direct.has(node.expression.text) ||
+            creatorVars.has(node.expression.text))) ||
         (ts.isPropertyAccessExpression(node.expression) &&
           node.expression.name.text === 'table' &&
           ts.isIdentifier(node.expression.expression) &&
@@ -172,17 +242,30 @@ export class RetentionRegistryCoversSchemaLaw extends LawBase {
       if (!isTable) return;
       const where = `${ReactProject.relative(context, source.fileName)}:${source.lineOf(node)}`;
       const name = node.arguments[0];
-      if (name && (ts.isStringLiteral(name) || ts.isNoSubstitutionTemplateLiteral(name))) {
+      if (
+        name &&
+        (ts.isStringLiteral(name) || ts.isNoSubstitutionTemplateLiteral(name))
+      ) {
         result.tables.set(name.text, where);
       } else {
-        result.unreadable.push(`${where}: cannot read the table name (not a string literal) — this table is not checked against the registry, so the law does not pass`);
+        result.unreadable.push(
+          `${where}: cannot read the table name (not a string literal) — this table is not checked against the registry, so the law does not pass`
+        );
       }
     });
   }
 
   /** Local names bound to drizzle's table builders by this file's imports. */
-  private static builders(source: TsxSource): { direct: Set<string>; schemas: Set<string>; creators: Set<string> } {
-    const found = { direct: new Set<string>(), schemas: new Set<string>(), creators: new Set<string>() };
+  private static builders(source: TsxSource): {
+    direct: Set<string>;
+    schemas: Set<string>;
+    creators: Set<string>;
+  } {
+    const found = {
+      direct: new Set<string>(),
+      schemas: new Set<string>(),
+      creators: new Set<string>(),
+    };
     for (const imported of source.imports()) {
       if (!DRIZZLE_CORE.test(imported.module) || imported.typeOnly) continue;
       for (const { imported: name, local } of imported.named) {
@@ -194,7 +277,13 @@ export class RetentionRegistryCoversSchemaLaw extends LawBase {
     return found;
   }
 
-  private static calleeName(ts: TsxSource['ts'], expression: TS.Expression): string | null {
-    return ts.isCallExpression(expression) && ts.isIdentifier(expression.expression) ? expression.expression.text : null;
+  private static calleeName(
+    ts: TsxSource['ts'],
+    expression: TS.Expression
+  ): string | null {
+    return ts.isCallExpression(expression) &&
+      ts.isIdentifier(expression.expression)
+      ? expression.expression.text
+      : null;
   }
 }

@@ -19,7 +19,10 @@ const ROUTES = {
 const nav = (body: string, fullReloadLinks?: unknown) =>
   Law.check(
     nextCtx(
-      { ...ROUTES, 'src/app/nav.tsx': `export function Nav() {\n  return (\n    <nav>\n      ${body}\n    </nav>\n  );\n}` },
+      {
+        ...ROUTES,
+        'src/app/nav.tsx': `export function Nav() {\n  return (\n    <nav>\n      ${body}\n    </nav>\n  );\n}`,
+      },
       fullReloadLinks ? { fullReloadLinks } : {}
     )
   );
@@ -28,13 +31,21 @@ describe('NextInternalLinkComponentLaw (#233)', () => {
   it.each([
     ['a static page', '<a href="/pricing">Pricing</a>', '/pricing'],
     ['the home page', '<a href="/">Home</a>', '/'],
-    ['a dynamic segment', '<a href="/blog/hello?ref=nav#top">Post</a>', '/blog/hello'],
+    [
+      'a dynamic segment',
+      '<a href="/blog/hello?ref=nav#top">Post</a>',
+      '/blog/hello',
+    ],
     ['an optional catch-all', '<a href="/docs">Docs</a>', '/docs'],
     ['a trailing slash', '<a href="/pricing/">Pricing</a>', '/pricing'],
   ])('red: %s', (_name, body, path) => {
     const result = nav(body);
     expect(result.passed).toBe(false);
-    expect(result.violations).toEqual([expect.stringContaining(`src/app/nav.tsx:4: <a href="${path}"> links to a page of this app`)]);
+    expect(result.violations).toEqual([
+      expect.stringContaining(
+        `src/app/nav.tsx:4: <a href="${path}"> links to a page of this app`
+      ),
+    ]);
   });
 
   it.each([
@@ -52,24 +63,44 @@ describe('NextInternalLinkComponentLaw (#233)', () => {
 
   it('green: an inline reason before the link (control: red without it)', () => {
     expect(nav('<a href="/pricing">x</a>').passed).toBe(false);
-    expect(nav('{/* roc-allow-full-reload: resets client state after sign-out */}\n      <a href="/pricing">x</a>').violations).toEqual([]);
+    expect(
+      nav(
+        '{/* roc-allow-full-reload: resets client state after sign-out */}\n      <a href="/pricing">x</a>'
+      ).violations
+    ).toEqual([]);
   });
 
   it('a marker without a reason does not count', () => {
-    expect(nav('{/* roc-allow-full-reload: */}\n      <a href="/pricing">x</a>').passed).toBe(false);
+    expect(
+      nav('{/* roc-allow-full-reload: */}\n      <a href="/pricing">x</a>')
+        .passed
+    ).toBe(false);
   });
 
   it('config: a listed path with a reason passes; one without a reason is reported', () => {
-    expect(nav('<a href="/pricing">x</a>', [{ path: '/pricing', reason: 'A/B test needs a full load' }]).violations).toEqual([]);
+    expect(
+      nav('<a href="/pricing">x</a>', [
+        { path: '/pricing', reason: 'A/B test needs a full load' },
+      ]).violations
+    ).toEqual([]);
     const result = nav('<a href="/pricing">x</a>', [{ path: '/pricing' }]);
     expect(result.violations).toEqual([
-      expect.stringContaining('thresholds.next.fullReloadLinks[0] (/pricing): no reason given'),
+      expect.stringContaining(
+        'thresholds.next.fullReloadLinks[0] (/pricing): no reason given'
+      ),
       expect.stringContaining('<a href="/pricing">'),
     ]);
   });
 
   it('reads Pages Router routes too', () => {
-    const jsx = Law.check(nextCtx({ 'pages/about.tsx': PAGE, 'pages/index.tsx': 'export default () => <a href="/about">About</a>;' }));
-    expect(jsx.violations).toEqual([expect.stringContaining('pages/index.tsx:1: <a href="/about">')]);
+    const jsx = Law.check(
+      nextCtx({
+        'pages/about.tsx': PAGE,
+        'pages/index.tsx': 'export default () => <a href="/about">About</a>;',
+      })
+    );
+    expect(jsx.violations).toEqual([
+      expect.stringContaining('pages/index.tsx:1: <a href="/about">'),
+    ]);
   });
 });

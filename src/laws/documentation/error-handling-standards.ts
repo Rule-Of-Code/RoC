@@ -566,7 +566,8 @@ export class ErrorHandlingStandardsLaw {
       undefined,
       false
     ).filter((file: string) =>
-      this.isSourceFile(PathOperations.getBasename(file))
+      // The name WITH its extension: isSourceFile looks for `.ts` (#369).
+      this.isSourceFile(PathOperations.getFilename(file))
     );
   }
 

@@ -77,7 +77,9 @@ export class InternationalizationCompliancePolicyLaw {
         violations.push(
           `Missing i18n configuration — no ${REACT_I18N_LIBRARIES.join(' or ')} declared in any workspace package.json (nor an Angular i18n setup)`
         );
-        suggestions.push('Add next-intl (Next.js) or react-i18next and keep user text in message files');
+        suggestions.push(
+          'Add next-intl (Next.js) or react-i18next and keep user text in message files'
+        );
       } else {
         violations.push('Missing Angular i18n configuration');
         suggestions.push(
@@ -113,7 +115,9 @@ export class InternationalizationCompliancePolicyLaw {
       violations.push(
         `Hardcoded text found in JSX: ${jsx.hardcoded.length} text(s), e.g. ${shown}${jsx.hardcoded.length > 3 ? '; …' : ''}`
       );
-      suggestions.push('Move user-facing JSX text into message files and render it through t(...)');
+      suggestions.push(
+        'Move user-facing JSX text into message files and render it through t(...)'
+      );
       score -= 20;
     }
 
@@ -272,9 +276,17 @@ export class InternationalizationCompliancePolicyLaw {
    * other things (a chat feature), so only locale-named catalogs count there.
    */
   private static checkMessagesDirectories(projectRoot: string): boolean {
-    for (const dir of glob.sync('**/messages/', { cwd: projectRoot, ignore: this.IGNORED_TREES })) {
-      const files = glob.sync('*.json', { cwd: PathOperations.join(projectRoot, dir) });
-      if (files.some(file => LOCALE_JSON.test(PathOperations.getFilename(file)))) return true;
+    for (const dir of glob.sync('**/messages/', {
+      cwd: projectRoot,
+      ignore: this.IGNORED_TREES,
+    })) {
+      const files = glob.sync('*.json', {
+        cwd: PathOperations.join(projectRoot, dir),
+      });
+      if (
+        files.some(file => LOCALE_JSON.test(PathOperations.getFilename(file)))
+      )
+        return true;
     }
     return false;
   }

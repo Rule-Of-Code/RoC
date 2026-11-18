@@ -27,19 +27,41 @@ describe('test files in every React spelling', () => {
   const config = DEFAULT_CONFIG as unknown as RuleOfCodeConfig;
 
   it('the default config lists the .tsx and .jsx spellings', () => {
-    for (const glob of ['**/*.test.tsx', '**/*.spec.tsx', '**/*.test.jsx', '**/*.spec.jsx']) {
+    for (const glob of [
+      '**/*.test.tsx',
+      '**/*.spec.tsx',
+      '**/*.test.jsx',
+      '**/*.spec.jsx',
+    ]) {
       expect(TEST_FILE_GLOBS).toContain(glob);
       expect(DEFAULT_CONFIG.ignores?.tests).toContain(glob);
     }
   });
 
   it('a source scan leaves them out', () => {
-    const source = FileUtils.scanForFiles(root, config, ['.ts', '.tsx', '.jsx'], undefined, false);
+    const source = FileUtils.scanForFiles(
+      root,
+      config,
+      ['.ts', '.tsx', '.jsx'],
+      undefined,
+      false
+    );
     expect(names(source)).toEqual(['Button.tsx']);
   });
 
   it('a scan that includes tests finds them (the control)', () => {
-    const all = FileUtils.scanForFiles(root, config, ['.ts', '.tsx', '.jsx'], undefined, true);
-    expect(names(all)).toEqual(['Button.test.tsx', 'Button.tsx', 'Card.spec.jsx', 'util.test.ts']);
+    const all = FileUtils.scanForFiles(
+      root,
+      config,
+      ['.ts', '.tsx', '.jsx'],
+      undefined,
+      true
+    );
+    expect(names(all)).toEqual([
+      'Button.test.tsx',
+      'Button.tsx',
+      'Card.spec.jsx',
+      'util.test.ts',
+    ]);
   });
 });

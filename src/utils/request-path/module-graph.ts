@@ -16,9 +16,27 @@
  */
 
 import type { ProjectClients } from './data-clients';
-import type { CallSite, FunctionModel, ImportBinding, ModuleModel } from './model';
+import type {
+  CallSite,
+  FunctionModel,
+  ImportBinding,
+  ModuleModel,
+} from './model';
 
-const TS_SUFFIXES = ['', '.ts', '.tsx', '.js', '.jsx', '.mts', '.cts', '.mjs', '.cjs', '/index.ts', '/index.tsx', '/index.js'];
+const TS_SUFFIXES = [
+  '',
+  '.ts',
+  '.tsx',
+  '.js',
+  '.jsx',
+  '.mts',
+  '.cts',
+  '.mjs',
+  '.cjs',
+  '/index.ts',
+  '/index.tsx',
+  '/index.js',
+];
 
 export interface ResolvedCall {
   module: ModuleModel;
@@ -55,7 +73,10 @@ export class ModuleGraph {
     for (const module of modules) {
       this.byRel.set(module.rel, module);
       if (module.language !== 'python') continue;
-      const parts = module.rel.replace(/\.py$/, '').replace(/\/__init__$/, '').split('/');
+      const parts = module.rel
+        .replace(/\.py$/, '')
+        .replace(/\/__init__$/, '')
+        .split('/');
       for (let i = 0; i < parts.length; i++) {
         const key = parts.slice(i).join('.');
         this.byDotted.set(key, [...(this.byDotted.get(key) ?? []), module]);
@@ -65,17 +86,26 @@ export class ModuleGraph {
 
   /** The module an import specifier names, from the importing module; null when it is not in the project. */
   moduleFor(from: ModuleModel, specifier: string): ModuleModel | null {
-    return from.language === 'python' ? this.pythonModule(from, specifier) : this.tsModule(from, specifier);
+    return from.language === 'python'
+      ? this.pythonModule(from, specifier)
+      : this.tsModule(from, specifier);
   }
 
-  private pythonModule(from: ModuleModel, specifier: string): ModuleModel | null {
+  private pythonModule(
+    from: ModuleModel,
+    specifier: string
+  ): ModuleModel | null {
     const dots = /^\.*/.exec(specifier)?.[0].length ?? 0;
     if (dots > 0) {
       let base = dirOf(from.rel);
       for (let i = 1; i < dots; i++) base = dirOf(base);
       const rest = specifier.slice(dots).split('.').filter(Boolean).join('/');
       const path = normalise(`${base}/${rest}`);
-      return this.byRel.get(`${path}.py`) ?? this.byRel.get(`${path}/__init__.py`) ?? null;
+      return (
+        this.byRel.get(`${path}.py`) ??
+        this.byRel.get(`${path}/__init__.py`) ??
+        null
+      );
     }
     const candidates = this.byDotted.get(specifier) ?? [];
     // A unique match only: two modules ending in the same dotted name are ambiguous.
@@ -99,7 +129,10 @@ export class ModuleGraph {
     return module.functions.find(fn => fn.name === name) ?? null;
   }
 
-  private importOf(module: ModuleModel, local: string): ImportBinding | undefined {
+  private importOf(
+    module: ModuleModel,
+    local: string
+  ): ImportBinding | undefined {
     return module.imports.find(binding => binding.local === local);
   }
 
@@ -110,12 +143,21 @@ export class ModuleGraph {
     const binding = this.importOf(module, name);
     if (!binding || binding.imported === null) return null;
     const target = this.moduleFor(module, binding.module);
-    const fn = target ? this.topLevel(target, binding.imported === 'default' ? name : binding.imported) : null;
+    const fn = target
+      ? this.topLevel(
+          target,
+          binding.imported === 'default' ? name : binding.imported
+        )
+      : null;
     return target && fn ? { module: target, fn, boundMethod: false } : null;
   }
 
   /** `ns.helper(…)`: a function of an imported module. */
-  private qualified(module: ModuleModel, ns: string, name: string): ResolvedCall | null {
+  private qualified(
+    module: ModuleModel,
+    ns: string,
+    name: string
+  ): ResolvedCall | null {
     const binding = this.importOf(module, ns);
     if (!binding) return null;
     const specifier =
@@ -128,11 +170,19 @@ export class ModuleGraph {
   }
 
   /** `self.helper(…)` / `this.helper(…)`: a method of the caller's class. */
-  private ownMethod(module: ModuleModel, caller: FunctionModel, name: string): ResolvedCall | null {
-    const owner = caller.name.includes('.') ? caller.name.slice(0, caller.name.lastIndexOf('.')) : null;
+  private ownMethod(
+    module: ModuleModel,
+    caller: FunctionModel,
+    name: string
+  ): ResolvedCall | null {
+    const owner = caller.name.includes('.')
+      ? caller.name.slice(0, caller.name.lastIndexOf('.'))
+      : null;
     if (!owner) return null;
     const fn = this.topLevel(module, `${owner}.${name}`);
-    return fn ? { module, fn, boundMethod: module.language === 'python' } : null;
+    return fn
+      ? { module, fn, boundMethod: module.language === 'python' }
+      : null;
   }
 
   /** A string constant of the module, or one it imports by name from a project module. */
@@ -141,16 +191,24 @@ export class ModuleGraph {
     if (own !== undefined) return own;
     const binding = this.importOf(module, name);
     if (!binding || binding.imported === null) return null;
-    return this.moduleFor(module, binding.module)?.constants.get(binding.imported) ?? null;
+    return (
+      this.moduleFor(module, binding.module)?.constants.get(binding.imported) ??
+      null
+    );
   }
 
   /** The function a call in `caller` runs, one step deep; null when it cannot be told. */
-  resolve(module: ModuleModel, caller: FunctionModel, call: CallSite): ResolvedCall | null {
+  resolve(
+    module: ModuleModel,
+    caller: FunctionModel,
+    call: CallSite
+  ): ResolvedCall | null {
     const links = call.chain;
     if (links.length === 1) return this.bare(module, call.method);
     if (links.length !== 2) return null;
     const head = links[0]?.name ?? '';
-    if (head === 'self' || head === 'this') return this.ownMethod(module, caller, call.method);
+    if (head === 'self' || head === 'this')
+      return this.ownMethod(module, caller, call.method);
     return this.qualified(module, head, call.method);
   }
 }

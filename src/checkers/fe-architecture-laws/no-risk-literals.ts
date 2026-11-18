@@ -83,11 +83,20 @@ export class NoRiskLiteralsLaw extends FeArchLawBase {
     const htmlFiles = glob.sync('**/*.html', {
       cwd: projectRoot,
       absolute: true,
-      ignore: ['**/node_modules/**', '**/dist/**', '**/.angular/**', '**/packages/ruleofcode/**'],
+      ignore: [
+        '**/node_modules/**',
+        '**/dist/**',
+        '**/.angular/**',
+        '**/packages/ruleofcode/**',
+      ],
     });
     for (const file of htmlFiles) {
-      const rel = PathOperations.getRelative(projectRoot, file).replace(/\\/g, '/');
-      if (ignorePatterns.some(p => minimatch(file, p) || minimatch(rel, p))) continue;
+      const rel = PathOperations.getRelative(projectRoot, file).replace(
+        /\\/g,
+        '/'
+      );
+      if (ignorePatterns.some(p => minimatch(file, p) || minimatch(rel, p)))
+        continue;
       const content = FileUtils.readFile(file);
       if (!content) continue;
       const lines = this.stripHtmlComments(content).split(/\r\n|\r|\n/);

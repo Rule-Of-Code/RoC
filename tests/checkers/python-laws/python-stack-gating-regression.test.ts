@@ -67,7 +67,8 @@ describe('FastAPI-gated laws no-op on a non-FastAPI Python project', () => {
   it('Dependency Injection Via Depends (203) does not run without FastAPI', () => {
     const dir = fixture({
       'pyproject.toml': PY_NO_FASTAPI,
-      'src/app/api/routes.py': '@router.get("/x")\nasync def x():\n    svc = OrderService()\n    return svc\n',
+      'src/app/api/routes.py':
+        '@router.get("/x")\nasync def x():\n    svc = OrderService()\n    return svc\n',
     });
     expect(DependencyInjectionViaDependsLaw.check(ctx(dir)).passed).toBe(true);
   });
@@ -84,14 +85,16 @@ describe('No Blocking In Async (202) is general async-Python (F4 widening)', () 
   it('flags a blocking call on a non-FastAPI async project (aiohttp)', () => {
     const dir = fixture({
       'pyproject.toml': PY_NO_FASTAPI,
-      'src/app/worker.py': 'import time\n\nasync def fetch():\n    time.sleep(1)\n',
+      'src/app/worker.py':
+        'import time\n\nasync def fetch():\n    time.sleep(1)\n',
     });
     expect(NoBlockingInAsyncLaw.check(ctx(dir)).passed).toBe(false);
   });
   it('still flags on a FastAPI project (no regression)', () => {
     const dir = fixture({
       'pyproject.toml': "[project]\nname='x'\ndependencies = ['fastapi']\n",
-      'src/app/svc.py': 'import requests\n\nasync def fetch():\n    requests.get("http://x")\n',
+      'src/app/svc.py':
+        'import requests\n\nasync def fetch():\n    requests.get("http://x")\n',
     });
     expect(NoBlockingInAsyncLaw.check(ctx(dir)).passed).toBe(false);
   });

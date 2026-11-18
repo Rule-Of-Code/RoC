@@ -25,7 +25,9 @@ describe('HtmlTemplate', () => {
       'p@6',
     ]);
     const [content, div, img, fab, p] = elements;
-    expect(HtmlTemplate.attribute(content!, '(click)')?.value).toBe('a > b && go()');
+    expect(HtmlTemplate.attribute(content!, '(click)')?.value).toBe(
+      'a > b && go()'
+    );
     expect(HtmlTemplate.bound(content!, 'scrollEvents')?.value).toBe('true');
     expect(div?.parent).toBe(content);
     expect(img?.parent).toBe(div);
@@ -46,14 +48,18 @@ describe('HtmlTemplate', () => {
   });
 
   it('script and style bodies are skipped; an unmatched closing tag is ignored', () => {
-    const elements = HtmlTemplate.elements('<style>a<b{}</style></span><script>if (a<b) {}</script><meta name="x">');
+    const elements = HtmlTemplate.elements(
+      '<style>a<b{}</style></span><script>if (a<b) {}</script><meta name="x">'
+    );
     expect(elements.map(e => e.tag)).toEqual(['style', 'script', 'meta']);
   });
 });
 
 describe('CssRules', () => {
   it('reads selectors, declarations and lines; comments are blank', () => {
-    const rules = CssRules.parse('/* .a { top: 0 } */\n.bar,\n.nav { position: fixed;\n  top: 0 }\n');
+    const rules = CssRules.parse(
+      '/* .a { top: 0 } */\n.bar,\n.nav { position: fixed;\n  top: 0 }\n'
+    );
     expect(rules).toEqual([
       {
         selector: '.bar, .nav',
@@ -73,21 +79,35 @@ describe('CssRules', () => {
     );
     const bySelector: Record<string, string[]> = {};
     for (const rule of rules) {
-      bySelector[rule.selector] = [...(bySelector[rule.selector] ?? []), ...rule.declarations.map(d => d.property)];
+      bySelector[rule.selector] = [
+        ...(bySelector[rule.selector] ?? []),
+        ...rule.declarations.map(d => d.property),
+      ];
     }
     expect(bySelector).toEqual({
       '.page__bar': ['top'],
       '.page .title': ['color'],
       '.page': expect.arrayContaining(['padding', 'background']),
     });
-    expect(rules.flatMap(r => r.declarations).find(d => d.property === 'background')?.value).toBe('url(http://x/y.png)');
+    expect(
+      rules.flatMap(r => r.declarations).find(d => d.property === 'background')
+        ?.value
+    ).toBe('url(http://x/y.png)');
   });
 
   it('@keyframes and @font-face are not element rules', () => {
-    expect(CssRules.parse('@keyframes k { from { top: 0; } }\n@font-face { src: url(x); }')).toEqual([]);
+    expect(
+      CssRules.parse(
+        '@keyframes k { from { top: 0; } }\n@font-face { src: url(x); }'
+      )
+    ).toEqual([]);
   });
 
   it('subject classes are the last compound of each selector', () => {
-    expect(CssRules.subjectClasses('.a .b.c, .d > .e:hover')).toEqual(['b', 'c', 'e']);
+    expect(CssRules.subjectClasses('.a .b.c, .d > .e:hover')).toEqual([
+      'b',
+      'c',
+      'e',
+    ]);
   });
 });

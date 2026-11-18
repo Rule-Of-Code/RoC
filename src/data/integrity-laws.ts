@@ -39,7 +39,7 @@ export const INTEGRITY_LAWS: EnhancedConstitutionalLaw[] = [
       "drizzle-orm's migrator reads the last applied migration's created_at once and runs a migration only if Number(created_at) < folderMillis, where folderMillis is the entry's `when` in meta/_journal.json (pg-core/dialect.js:62 in drizzle-orm 0.45.3; the mysql and sqlite dialects compare the same way). An entry whose `when` is not above its predecessor is skipped on every database that already ran the predecessor, and the command exits 0 with the schema missing the change. git merges the journal as text and knows nothing about its order, so two branches that merge cleanly produce exactly this — and a text merge of a snapshot can leave one table in it twice, which JSON.parse hides by keeping the last copy.",
     satisfiedBy: {
       typescript:
-        'After merging branches that both ran `drizzle-kit generate`, regenerate the later migration on the merged tree so its `when` is above every entry before it and its snapshot\'s prevId is the previous snapshot\'s id. Commit the journal, every .sql and every snapshot.',
+        "After merging branches that both ran `drizzle-kit generate`, regenerate the later migration on the merged tree so its `when` is above every entry before it and its snapshot's prevId is the previous snapshot's id. Commit the journal, every .sql and every snapshot.",
     },
     detectionLimits: [
       TRACKED_ONLY,
@@ -147,8 +147,7 @@ export const INTEGRITY_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'GuardFunctionHasProductionCallerLaw.check',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article XXVII.27.3: a guard function is referenced only by tests',
-    remediation:
-      'Call the guard on the real path it protects, or delete it',
+    remediation: 'Call the guard on the real path it protects, or delete it',
   },
 
   {
@@ -173,11 +172,12 @@ export const INTEGRITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Whether the tsconfig that includes a file is actually run by any script is not checked.',
       "Configs are resolved with the project's own TypeScript (extends, include, files, exclude, references). A config, an extends or a reference it cannot resolve is a finding, and the files it would have included are not counted as covered.",
       'A config that sets neither include nor files (itself or through extends) and is extended by another tsconfig is treated as a shared base: its implicit include of everything beneath it is not counted as covering.',
-      'Exclude entries naming a dependency or build folder (node_modules, dist, build, out, tmp, .next, coverage, www, android, ios …) or the config\'s outDir are skipped. Counted files are .ts, .tsx, .mts and .cts (a jest.config.cts is code); .d.ts files are not counted.',
+      "Exclude entries naming a dependency or build folder (node_modules, dist, build, out, tmp, .next, coverage, www, android, ios …) or the config's outDir are skipped. Counted files are .ts, .tsx, .mts and .cts (a jest.config.cts is code); .d.ts files are not counted.",
       'Only `exclude` is read: a directory that no include ever reached, without being excluded, is out of scope. `// @ts-nocheck` inside an included file is not seen.',
     ],
     emoji: '🙈',
-    description: 'Every TypeScript file a tsconfig excludes is included by some other tsconfig',
+    description:
+      'Every TypeScript file a tsconfig excludes is included by some other tsconfig',
     priority: 'MEDIUM',
     category: 'CODE_QUALITY',
     stack: 'typescript',
@@ -211,7 +211,7 @@ export const INTEGRITY_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Opt-in (disabled by default): turn it on with a severity in laws.severity (e.g. "Retention Registry Covers Schema": "error") or by listing it in laws.enabled, and set thresholds.integrity.retentionRegistry to the registry path, relative to the project root. Enabled without that key, or with a registry that does not exist or is not valid JSON, it fails.',
       'Reads declarations only: whether the listed deletion really runs, and whether "no personal data" is true, are not checked — a person made that claim, and it is visible for review.',
-      'Tables are Drizzle table builders imported from drizzle-orm/*-core with ES imports: pgTable, mysqlTable, sqliteTable, singlestoreTable, `<schema>.table(…)` of a pgSchema/mysqlSchema, and the builder a *TableCreator returns (the name as written, before the creator\'s prefix). Tables declared by SQL alone, or by another ORM, are not seen.',
+      "Tables are Drizzle table builders imported from drizzle-orm/*-core with ES imports: pgTable, mysqlTable, sqliteTable, singlestoreTable, `<schema>.table(…)` of a pgSchema/mysqlSchema, and the builder a *TableCreator returns (the name as written, before the creator's prefix). Tables declared by SQL alone, or by another ORM, are not seen.",
       'A table whose name is not a string literal is reported as unreadable.',
       'Personal data outside the database (files, logs, backups) is out of scope.',
     ],

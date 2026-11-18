@@ -14,8 +14,7 @@ import { PythonLawBase } from './python-law-base';
 
 export class SettingsViaBaseSettingsLaw extends PythonLawBase {
   private static readonly LAW_NAME = 'Settings Via BaseSettings';
-  private static readonly ENV_ACCESS =
-    /\bos\.getenv\s*\(|\bos\.environ\b/;
+  private static readonly ENV_ACCESS = /\bos\.getenv\s*\(|\bos\.environ\b/;
   // The legitimate home for env access — a settings/config module.
   private static readonly CONFIG_FILE =
     /(^|[\\/])(settings|config|configuration)(s)?\.py$|(^|[\\/])(settings|config)[\\/]/i;

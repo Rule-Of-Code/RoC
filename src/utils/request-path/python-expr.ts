@@ -5,13 +5,55 @@
  */
 
 import type { AwaitSite, CallArgument, CallSite, ChainLink } from './model';
-import { chainPrefixes, collapse, depthMap, matchingClose, matchingOpen, splitTopLevel } from './expr-text';
+import {
+  chainPrefixes,
+  collapse,
+  depthMap,
+  matchingClose,
+  matchingOpen,
+  splitTopLevel,
+} from './expr-text';
 import type { PyLiteral } from './python-source';
 
 const PY_KEYWORDS = new Set([
-  'False', 'None', 'True', 'and', 'as', 'assert', 'async', 'await', 'break', 'class', 'continue', 'def', 'del',
-  'elif', 'else', 'except', 'finally', 'for', 'from', 'global', 'if', 'import', 'in', 'is', 'lambda', 'nonlocal',
-  'not', 'or', 'pass', 'raise', 'return', 'try', 'while', 'with', 'yield', 'match', 'case', 'print',
+  'False',
+  'None',
+  'True',
+  'and',
+  'as',
+  'assert',
+  'async',
+  'await',
+  'break',
+  'class',
+  'continue',
+  'def',
+  'del',
+  'elif',
+  'else',
+  'except',
+  'finally',
+  'for',
+  'from',
+  'global',
+  'if',
+  'import',
+  'in',
+  'is',
+  'lambda',
+  'nonlocal',
+  'not',
+  'or',
+  'pass',
+  'raise',
+  'return',
+  'try',
+  'while',
+  'with',
+  'yield',
+  'match',
+  'case',
+  'print',
 ]);
 
 const PLACEHOLDER = /«(\d+)»/g;
@@ -21,7 +63,10 @@ export function isPyKeyword(name: string): boolean {
 }
 
 /** Lexed text → normalised source: literals written back with double quotes. */
-export function renderPython(text: string, literals: readonly PyLiteral[]): string {
+export function renderPython(
+  text: string,
+  literals: readonly PyLiteral[]
+): string {
   return collapse(
     text.replace(PLACEHOLDER, (_, n: string) => {
       const lit = literals[Number(n)];
@@ -62,24 +107,32 @@ function namesInPlain(text: string): string[] {
     const chain = m[0].replace(/\s+/g, '');
     const root = chain.split('.')[0] as string;
     if (PY_KEYWORDS.has(root)) continue;
-    if (isKeywordArgument(text, m.index + m[0].length, depths[m.index] ?? 0)) continue;
+    if (isKeywordArgument(text, m.index + m[0].length, depths[m.index] ?? 0))
+      continue;
     chainPrefixes(chain).forEach(name => names.add(name));
   }
   return [...names];
 }
 
 /** Names (roots and dotted chains) an expression reads, f-string parts included. */
-export function pythonNames(text: string, literals: readonly PyLiteral[]): string[] {
+export function pythonNames(
+  text: string,
+  literals: readonly PyLiteral[]
+): string[] {
   const names = new Set(namesInPlain(text));
   for (const m of text.matchAll(PLACEHOLDER)) {
     const lit = literals[Number(m[1])];
-    if (lit?.formatted) formattedNames(lit.value).forEach(name => names.add(name));
+    if (lit?.formatted)
+      formattedNames(lit.value).forEach(name => names.add(name));
   }
   return [...names];
 }
 
 /** Arguments of a call from the lexed text between its parentheses. */
-export function pythonArguments(inner: string, literals: readonly PyLiteral[]): CallArgument[] {
+export function pythonArguments(
+  inner: string,
+  literals: readonly PyLiteral[]
+): CallArgument[] {
   return splitTopLevel(inner).map(part => {
     const kw = /^([A-Za-z_]\w*)\s*=(?!=)\s*/.exec(part);
     const valueText = kw ? part.slice(kw[0].length) : part;
@@ -94,7 +147,10 @@ export function pythonArguments(inner: string, literals: readonly PyLiteral[]): 
 }
 
 /** Split a callee into its links: `db.collection(«0»).document(uid).get`. */
-export function pythonChain(callee: string, literals: readonly PyLiteral[]): ChainLink[] {
+export function pythonChain(
+  callee: string,
+  literals: readonly PyLiteral[]
+): ChainLink[] {
   const links: ChainLink[] = [];
   const depths = depthMap(callee);
   let start = 0;
@@ -111,7 +167,10 @@ export function pythonChain(callee: string, literals: readonly PyLiteral[]): Cha
     const close = open >= 0 ? matchingClose(piece, open) : -1;
     links.push({
       name,
-      args: open >= 0 && close > open ? pythonArguments(piece.slice(open + 1, close), literals) : null,
+      args:
+        open >= 0 && close > open
+          ? pythonArguments(piece.slice(open + 1, close), literals)
+          : null,
     });
   }
   return links;
@@ -186,7 +245,11 @@ function lastTopLevelDot(text: string): number {
 }
 
 /** Every call in a statement's text. */
-export function pythonCalls(text: string, line: number, literals: readonly PyLiteral[]): CallSite[] {
+export function pythonCalls(
+  text: string,
+  line: number,
+  literals: readonly PyLiteral[]
+): CallSite[] {
   const calls: CallSite[] = [];
   for (let i = 0; i < text.length; i++) {
     if (text[i] !== '(') continue;
@@ -241,15 +304,24 @@ function rawAwaits(text: string): RawAwait[] {
   while ((m = re.exec(text)) !== null) {
     let operandStart = m.index + 5;
     while (text[operandStart] === ' ') operandStart++;
-    found.push({ start: m.index, operandStart, end: primaryEnd(text, operandStart) });
+    found.push({
+      start: m.index,
+      operandStart,
+      end: primaryEnd(text, operandStart),
+    });
   }
   return found;
 }
 
 /** The call an awaited operand makes, when the operand is a call. */
-function operandCall(operand: string, line: number, literals: readonly PyLiteral[]): CallSite | null {
+function operandCall(
+  operand: string,
+  line: number,
+  literals: readonly PyLiteral[]
+): CallSite | null {
   let text = operand.trim();
-  while (text.startsWith('(') && matchingClose(text, 0) === text.length - 1) text = text.slice(1, -1).trim();
+  while (text.startsWith('(') && matchingClose(text, 0) === text.length - 1)
+    text = text.slice(1, -1).trim();
   if (!text.endsWith(')')) return null;
   const open = matchingOpen(text, text.length - 1);
   if (open <= 0) return null;
@@ -265,13 +337,18 @@ export function pythonAwaits(
 ): Array<AwaitSite & { start: number; end: number }> {
   const raws = rawAwaits(text);
   return raws
-    .filter(a => !raws.some(b => b !== a && a.start >= b.operandStart && a.start < b.end))
+    .filter(
+      a =>
+        !raws.some(b => b !== a && a.start >= b.operandStart && a.start < b.end)
+    )
     .map(a => ({
       start: a.start,
       end: a.end,
       line,
       call: operandCall(text.slice(a.operandStart, a.end), line, literals),
-      nested: raws.some(b => b !== a && b.start >= a.operandStart && b.start < a.end),
+      nested: raws.some(
+        b => b !== a && b.start >= a.operandStart && b.start < a.end
+      ),
       asyncIteration: false,
     }));
 }
@@ -302,7 +379,9 @@ function clausesIn(inner: string): Clause[] {
   let m: RegExpExecArray | null;
   while ((m = re.exec(inner)) !== null) {
     if (depths[m.index] !== 0) continue;
-    const kind = (m[1] as string).startsWith('async') ? 'async for' : (m[1] as 'for' | 'if');
+    const kind = (m[1] as string).startsWith('async')
+      ? 'async for'
+      : (m[1] as 'for' | 'if');
     // `x if c else y` is a conditional expression, not a filter, before the first `for`.
     if (kind === 'if' && !clauses.some(c => c.kind !== 'if')) continue;
     clauses.push({ kind, at: m.index });
@@ -311,7 +390,11 @@ function clausesIn(inner: string): Clause[] {
 }
 
 /** ` in ` of a `for` clause (the iterable starts after it), at bracket depth 0. */
-function iterableRange(inner: string, clause: Clause, next: number): [number, number] {
+function iterableRange(
+  inner: string,
+  clause: Clause,
+  next: number
+): [number, number] {
   const depths = depthMap(inner);
   const re = /(?<![\w.])in(?!\w)/g;
   re.lastIndex = clause.at + clause.kind.length;
@@ -356,7 +439,10 @@ export function pythonComprehensions(text: string): Comprehension[] {
         [i + 1, i + 1 + first.at],
         [i + 1 + iterEnd, close],
       ],
-      asyncIterable: first.kind === 'async for' ? inner.slice(iterStart, iterEnd).trim() : null,
+      asyncIterable:
+        first.kind === 'async for'
+          ? inner.slice(iterStart, iterEnd).trim()
+          : null,
       laterAsyncIterables: later
         .filter(l => l.clause.kind === 'async for')
         .map(l => inner.slice(l.range[0], l.range[1]).trim()),
@@ -367,6 +453,15 @@ export function pythonComprehensions(text: string): Comprehension[] {
 }
 
 /** The call an `async for` iterable makes (`q.stream()`), as an iteration await. */
-export function iterationAwait(iterable: string, line: number, literals: readonly PyLiteral[]): AwaitSite {
-  return { line, call: operandCall(iterable, line, literals), nested: false, asyncIteration: true };
+export function iterationAwait(
+  iterable: string,
+  line: number,
+  literals: readonly PyLiteral[]
+): AwaitSite {
+  return {
+    line,
+    call: operandCall(iterable, line, literals),
+    nested: false,
+    asyncIteration: true,
+  };
 }

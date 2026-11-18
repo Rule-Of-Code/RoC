@@ -181,7 +181,8 @@ export class AngularCleanupConfiguration {
     //      toward `firstValueFrom`, which does NOT cancel on destroy — that is
     //      a regression, not an improvement. Count them as cleanup.
     content = AngularCleanupConfiguration.stripComments(content);
-    const modernCleanup = AngularCleanupConfiguration.MODERN_CLEANUP.test(content);
+    const modernCleanup =
+      AngularCleanupConfiguration.MODERN_CLEANUP.test(content);
 
     return {
       hasSubscriptions: this.PATTERN_DETECTORS.hasSubscriptions(content),

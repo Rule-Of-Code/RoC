@@ -776,9 +776,9 @@ describe('utils/testing/test-files-existence-checker', () => {
           FileUtils.getMinimalDefaultConfig()
         );
 
-        expect(
-          result.suggestions.some(s => s.includes('jest.preset'))
-        ).toBe(false);
+        expect(result.suggestions.some(s => s.includes('jest.preset'))).toBe(
+          false
+        );
       });
 
       it('leaves untestable files out of the ratio denominator', () => {
@@ -795,10 +795,7 @@ describe('utils/testing/test-files-existence-checker', () => {
           "it('works', () => expect(1).toBe(1));"
         );
         for (const barrel of ['index.ts', 'main.ts', 'app.config.ts']) {
-          FileUtils.writeFile(
-            PathOperations.join(src, barrel),
-            'export {};'
-          );
+          FileUtils.writeFile(PathOperations.join(src, barrel), 'export {};');
         }
 
         const result = TestFilesExistenceChecker.checkTestFilesExistence(

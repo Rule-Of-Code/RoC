@@ -102,7 +102,9 @@ describe('Code Complexity Control — accurate counting + configurable limit (#5
       ].join('\n')
     );
     const result = CodeComplexityControlLaw.check(
-      ctx(root, { codeQuality: { minFunctionComplexity: 5, maxFileLines: 300 } })
+      ctx(root, {
+        codeQuality: { minFunctionComplexity: 5, maxFileLines: 300 },
+      })
     );
     expect(
       (result.violations ?? []).some(v =>
@@ -173,7 +175,9 @@ describe('Magic Number Prevention — named-constant declarations (v7.1.1, FE fl
         'const slideOutMs = 777;',
       ].join('\n')
     );
-    const reported = listed(MagicNumberPreventionLaw.check(ctx(root)).violations);
+    const reported = listed(
+      MagicNumberPreventionLaw.check(ctx(root)).violations
+    );
     expect(reported.has('430')).toBe(false);
     expect(reported.has('1200')).toBe(false);
     expect(reported.has('777')).toBe(false);
@@ -186,7 +190,9 @@ describe('Magic Number Prevention — named-constant declarations (v7.1.1, FE fl
       'inline.ts',
       'export function f(n) { return n * 8642 + compute(9173); }'
     );
-    const reported = listed(MagicNumberPreventionLaw.check(ctx(root)).violations);
+    const reported = listed(
+      MagicNumberPreventionLaw.check(ctx(root)).violations
+    );
     expect(reported.has('8642')).toBe(true);
     expect(reported.has('9173')).toBe(true);
   });

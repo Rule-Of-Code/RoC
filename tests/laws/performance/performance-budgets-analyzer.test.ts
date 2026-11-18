@@ -138,10 +138,7 @@ module.exports = {
 
       // Create webpack.config.js with performance budgets
       const webpackPath = PathOperations.join(tempDir, 'webpack.config.js');
-      FileUtils.writeFile(
-        webpackPath,
-        'performance: { maxAssetSize: 100000 }'
-      );
+      FileUtils.writeFile(webpackPath, 'performance: { maxAssetSize: 100000 }');
 
       const result = PerformanceBudgetsAnalyzerService.analyze(tempDir);
 

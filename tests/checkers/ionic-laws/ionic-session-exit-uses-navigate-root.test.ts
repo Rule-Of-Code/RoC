@@ -8,7 +8,10 @@ import { ctx, manifest, project, removeProjects } from '../toolkit-fixture';
 
 afterAll(removeProjects);
 
-const IONIC = manifest({ '@angular/core': '20.0.0', '@ionic/angular': '8.8.17' });
+const IONIC = manifest({
+  '@angular/core': '20.0.0',
+  '@ionic/angular': '8.8.17',
+});
 const OUTLET = {
   'src/app/app.component.ts':
     "@Component({ template: '<ion-app><ion-router-outlet></ion-router-outlet></ion-app>' })\nexport class AppComponent {}",
@@ -24,8 +27,10 @@ describe('IonicSessionExitUsesNavigateRootLaw without an ion-router-outlet', () 
       ctx(
         project({
           'package.json': IONIC,
-          'src/main.ts': 'bootstrapApplication(App, { providers: [provideRouter(routes)] });',
-          'src/app/a.ts': "router.navigate(['/x'], { skipLocationChange: true }); signOut();",
+          'src/main.ts':
+            'bootstrapApplication(App, { providers: [provideRouter(routes)] });',
+          'src/app/a.ts':
+            "router.navigate(['/x'], { skipLocationChange: true }); signOut();",
         })
       )
     );
@@ -38,7 +43,8 @@ describe('IonicSessionExitUsesNavigateRootLaw without an ion-router-outlet', () 
       ctx(
         project({
           'package.json': IONIC,
-          'src/app/app.component.ts': '// TODO: <ion-router-outlet>\nexport class AppComponent {}',
+          'src/app/app.component.ts':
+            '// TODO: <ion-router-outlet>\nexport class AppComponent {}',
         })
       )
     );
@@ -62,7 +68,9 @@ describe('IonicSessionExitUsesNavigateRootLaw (#149)', () => {
     );
     expect(result.passed).toBe(false);
     expect(result.violations).toEqual([
-      expect.stringMatching(/session\.ts:4: ends a session and navigates forward \(1 call\), never navigateRoot/),
+      expect.stringMatching(
+        /session\.ts:4: ends a session and navigates forward \(1 call\), never navigateRoot/
+      ),
     ]);
   });
 
@@ -76,9 +84,11 @@ describe('IonicSessionExitUsesNavigateRootLaw (#149)', () => {
     expect(result.violations).toEqual([]);
   });
 
-  it('a navigation without a session end is not this law\'s concern', () => {
+  it("a navigation without a session end is not this law's concern", () => {
     const result = IonicSessionExitUsesNavigateRootLaw.check(
-      withOutlet({ 'src/app/a.ts': "this.router.navigate(['/x']); // signOut() elsewhere" })
+      withOutlet({
+        'src/app/a.ts': "this.router.navigate(['/x']); // signOut() elsewhere",
+      })
     );
     expect(result.violations).toEqual([]);
   });

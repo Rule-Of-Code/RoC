@@ -46,21 +46,34 @@ export class NextHeavyLibInClientGraphLaw extends LawBase {
   static check(context: LawCheckContext): LawResult {
     const sources = NextSourcesLoader.load(context);
     if (!NextSourcesLoader.hasRouter(sources)) {
-      return this.result([...sources.unread, NextAppFiles.noRouterDirectory(context)], context);
+      return this.result(
+        [...sources.unread, NextAppFiles.noRouterDirectory(context)],
+        context
+      );
     }
     const graph = NextSourcesLoader.clientGraph(context, sources);
-    if (sources.unread.length === 0 && graph.unread.length === 0 && graph.nodes.size === 0) {
+    if (
+      sources.unread.length === 0 &&
+      graph.unread.length === 0 &&
+      graph.nodes.size === 0
+    ) {
       return NextAppFiles.withoutSubject(
         this.LAW_NAME,
         "no 'use client' module and no Pages Router page — nothing ships a client bundle of its own",
         context
       );
     }
-    const heavy = nextThresholds(context).heavyClientLibraries ?? DEFAULT_HEAVY_CLIENT_LIBRARIES;
+    const heavy =
+      nextThresholds(context).heavyClientLibraries ??
+      DEFAULT_HEAVY_CLIENT_LIBRARIES;
     const violations = [...sources.unread, ...graph.unread];
     for (const [file, node] of graph.nodes) {
       for (const edge of node.edges) {
-        if (edge.resolution.kind !== 'external' || !matchesAny(edge.specifier, heavy)) continue;
+        if (
+          edge.resolution.kind !== 'external' ||
+          !matchesAny(edge.specifier, heavy)
+        )
+          continue;
         violations.push(
           `${ReactProject.relative(context, file)}:${edge.line}: imports '${edge.specifier}' statically, and this module ships to the browser (${importChain(context, graph, file)}) — load it with next/dynamic or import()`
         );
@@ -69,7 +82,10 @@ export class NextHeavyLibInClientGraphLaw extends LawBase {
     return this.result(violations, context);
   }
 
-  private static result(violations: string[], context: LawCheckContext): LawResult {
+  private static result(
+    violations: string[],
+    context: LawCheckContext
+  ): LawResult {
     return this.createResult(
       violations,
       this.LAW_NAME,

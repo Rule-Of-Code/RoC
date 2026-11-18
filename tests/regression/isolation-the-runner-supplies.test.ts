@@ -134,7 +134,7 @@ describe('isolation is read from the code, not from its shape', () => {
     });
 
     it('does not read fetch named in a line comment as usage', () => {
-      const source = "// no fetch( here — the route is stubbed by the fixture";
+      const source = '// no fetch( here — the route is stubbed by the fixture';
       expect(UnitTestIsolationConstants.usesExternalResources(source)).toBe(
         false
       );
@@ -181,7 +181,7 @@ describe('isolation is read from the code, not from its shape', () => {
       const source = [
         "import { test } from '@playwright/test';",
         "test.describe('mobile', () => {",
-        "  test.use({ viewport: { width: 390, height: 844 } });",
+        '  test.use({ viewport: { width: 390, height: 844 } });',
         "  test('scrolls', async ({ page }) => { await page.goto('/'); });",
         '});',
       ].join('\n');
@@ -256,11 +256,15 @@ describe('browser storage is isolated where the runner isolates it', () => {
 
   it('does not ask a fixture-isolated Playwright spec to clean up its storage', () => {
     expect(UnitTestIsolationConstants.resourcesUsed(themeSpec)).toEqual([]);
-    expect(UnitTestIsolationConstants.usesExternalResources(themeSpec)).toBe(false);
+    expect(UnitTestIsolationConstants.usesExternalResources(themeSpec)).toBe(
+      false
+    );
   });
 
   it('gives the twin data-management check the same answer', () => {
-    expect(UnitTestDataManagementConstants.resourcesUsed(themeSpec)).toEqual([]);
+    expect(UnitTestDataManagementConstants.resourcesUsed(themeSpec)).toEqual(
+      []
+    );
   });
 
   /** The red controls: only browser storage, and only per-test contexts. */
@@ -271,7 +275,9 @@ describe('browser storage is isolated where the runner isolates it', () => {
       'test.beforeAll(async ({ browser }) => { page = await browser.newPage(); });',
       "test('a', async ({ baseURL }) => { await page.evaluate(() => localStorage.setItem('k', 'v')); });",
     ].join('\n');
-    expect(UnitTestIsolationConstants.resourcesUsed(shared)).toEqual(['localStorage']);
+    expect(UnitTestIsolationConstants.resourcesUsed(shared)).toEqual([
+      'localStorage',
+    ]);
   });
 
   it('still counts a database a Playwright spec reaches — it lives outside the context', () => {
@@ -279,12 +285,17 @@ describe('browser storage is isolated where the runner isolates it', () => {
       "import { test } from '@playwright/test';",
       "test('lists orders', async ({ page }) => { await db.insert('orders', {}); await page.goto('/'); });",
     ].join('\n');
-    expect(UnitTestIsolationConstants.resourcesUsed(seeded)).toEqual(['db.insert(']);
+    expect(UnitTestIsolationConstants.resourcesUsed(seeded)).toEqual([
+      'db.insert(',
+    ]);
   });
 
   it('still counts storage in a unit test, where nothing resets it', () => {
-    const jestSpec = "it('saves', () => { localStorage.setItem('k', 'v'); expect(1).toBe(1); });";
-    expect(UnitTestIsolationConstants.resourcesUsed(jestSpec)).toEqual(['localStorage']);
+    const jestSpec =
+      "it('saves', () => { localStorage.setItem('k', 'v'); expect(1).toBe(1); });";
+    expect(UnitTestIsolationConstants.resourcesUsed(jestSpec)).toEqual([
+      'localStorage',
+    ]);
   });
 });
 
@@ -294,9 +305,12 @@ describe('the resource finding names its files', () => {
   it('lists every offending file with the resource it reached, and nothing else', () => {
     const root = project({
       'package.json': '{"name":"f","version":"1.0.0"}',
-      'src/store.spec.ts': "it('saves', () => { sessionStorage.setItem('k', 'v'); expect(1).toBe(1); });",
-      'src/api.spec.ts': "it('loads', async () => { await fetch('/api'); expect(1).toBe(1); });",
-      'src/clean.spec.ts': "afterEach(() => localStorage.clear());\nit('ok', () => { localStorage.setItem('k', 'v'); });",
+      'src/store.spec.ts':
+        "it('saves', () => { sessionStorage.setItem('k', 'v'); expect(1).toBe(1); });",
+      'src/api.spec.ts':
+        "it('loads', async () => { await fetch('/api'); expect(1).toBe(1); });",
+      'src/clean.spec.ts':
+        "afterEach(() => localStorage.clear());\nit('ok', () => { localStorage.setItem('k', 'v'); });",
       'apps/web-e2e/src/theme.spec.ts': [
         "import { test } from '@playwright/test';",
         "test('t', async ({ page }) => { await page.addInitScript(() => localStorage.setItem('t', 'x')); });",
@@ -309,9 +323,9 @@ describe('the resource finding names its files', () => {
         "test('s', async ({ baseURL }) => { await page.evaluate(() => localStorage.setItem('k', 'v')); });",
       ].join('\n'),
     });
-    const finding = (TestIsolationEnforcementLaw.check(ctx(root)).violations as string[]).find(v =>
-      v.startsWith('External resources not properly isolated')
-    );
+    const finding = (
+      TestIsolationEnforcementLaw.check(ctx(root)).violations as string[]
+    ).find(v => v.startsWith('External resources not properly isolated'));
     expect(finding).toBeDefined();
     expect(finding).toContain('src/store.spec.ts (sessionStorage)');
     expect(finding).toContain('src/api.spec.ts (fetch(');
@@ -337,28 +351,39 @@ describe('HttpClient under the Angular testing backend', () => {
 
   it('is not an external resource with provideHttpClientTesting()', () => {
     expect(
-      UnitTestIsolationConstants.resourcesUsed(spec('provideHttpClient(), provideHttpClientTesting()'))
+      UnitTestIsolationConstants.resourcesUsed(
+        spec('provideHttpClient(), provideHttpClientTesting()')
+      )
     ).toEqual([]);
   });
 
   it('is not an external resource with HttpClientTestingModule', () => {
-    const withModule = spec('').replace('providers: []', 'imports: [HttpClientTestingModule]');
+    const withModule = spec('').replace(
+      'providers: []',
+      'imports: [HttpClientTestingModule]'
+    );
     expect(UnitTestIsolationConstants.resourcesUsed(withModule)).toEqual([]);
   });
 
   it('still is one against the real backend (the control)', () => {
-    expect(UnitTestIsolationConstants.resourcesUsed(spec('provideHttpClient()'))).toEqual(['HttpClient']);
+    expect(
+      UnitTestIsolationConstants.resourcesUsed(spec('provideHttpClient()'))
+    ).toEqual(['HttpClient']);
   });
 
   it('a comment naming the testing backend does not count', () => {
     expect(
-      UnitTestIsolationConstants.resourcesUsed(`// provideHttpClientTesting()\n${spec('provideHttpClient()')}`)
+      UnitTestIsolationConstants.resourcesUsed(
+        `// provideHttpClientTesting()\n${spec('provideHttpClient()')}`
+      )
     ).toEqual(['HttpClient']);
   });
 
   it('a fetch() beside the testing backend is still reported', () => {
     expect(
-      UnitTestIsolationConstants.resourcesUsed(`${spec('provideHttpClientTesting()')}\nawait fetch('/real');`)
+      UnitTestIsolationConstants.resourcesUsed(
+        `${spec('provideHttpClientTesting()')}\nawait fetch('/real');`
+      )
     ).toEqual(['fetch(']);
   });
 });
@@ -372,34 +397,63 @@ describe('the isolation patterns read code, not text (#192 follow-up)', () => {
   const C = UnitTestIsolationConstants;
 
   it('a comment or a string saying "only" is not a focused test', () => {
-    expect(C.hasTestOrderDependencies("// the only way\nit('a', () => {});")).toBe(false);
-    expect(C.hasTestOrderDependencies('const fixture = "it.only(\'a\', () => {});";')).toBe(false);
+    expect(
+      C.hasTestOrderDependencies("// the only way\nit('a', () => {});")
+    ).toBe(false);
+    expect(
+      C.hasTestOrderDependencies('const fixture = "it.only(\'a\', () => {});";')
+    ).toBe(false);
     expect(C.hasTestOrderDependencies("it.only('a', () => {});")).toBe(true);
   });
 
   it('a template literal holding quotes does not desynchronise the reading', () => {
-    const fixture = 'const s = `it("x", () => { const r = "a\'b"; });`;\nit(\'real\', () => {});';
+    const fixture =
+      'const s = `it("x", () => { const r = "a\'b"; });`;\nit(\'real\', () => {});';
     expect(C.hasTestOrderDependencies(fixture)).toBe(false);
   });
 
   it('benefit( is not fit(', () => {
-    expect(C.hasTestOrderDependencies("it('x', () => benefit(1));")).toBe(false);
+    expect(C.hasTestOrderDependencies("it('x', () => benefit(1));")).toBe(
+      false
+    );
     expect(C.hasTestOrderDependencies("fit('x', () => {});")).toBe(true);
   });
 
   it('a conditional skip gates on the environment; an unconditional one is reported', () => {
-    expect(C.hasTestOrderDependencies("test.skip(browserName !== 'chromium', 'reason');")).toBe(false);
-    expect(C.hasTestOrderDependencies("(shAvailable ? it : it.skip)('x', () => {});")).toBe(false);
-    expect(C.hasTestOrderDependencies("it.skip('later', () => {});")).toBe(true);
+    expect(
+      C.hasTestOrderDependencies(
+        "test.skip(browserName !== 'chromium', 'reason');"
+      )
+    ).toBe(false);
+    expect(
+      C.hasTestOrderDependencies("(shAvailable ? it : it.skip)('x', () => {});")
+    ).toBe(false);
+    expect(C.hasTestOrderDependencies("it.skip('later', () => {});")).toBe(
+      true
+    );
   });
 
   it('a module-scope let declared without a value is the per-test assignment pattern', () => {
-    expect(C.hasSharedMutableState('let logger: Logger;\nbeforeEach(() => { logger = new Logger(); });\nconst x = 1;')).toBe(false);
-    expect(C.hasSharedMutableState("let answer = 'root';\nit('a', () => { answer = 'x'; });")).toBe(true);
+    expect(
+      C.hasSharedMutableState(
+        'let logger: Logger;\nbeforeEach(() => { logger = new Logger(); });\nconst x = 1;'
+      )
+    ).toBe(false);
+    expect(
+      C.hasSharedMutableState(
+        "let answer = 'root';\nit('a', () => { answer = 'x'; });"
+      )
+    ).toBe(true);
   });
 
   it('an identifier naming a database is not a database client', () => {
-    expect(C.resourcesUsed("it('a', () => { new DatabaseQueryLaw(); expect(r.hasHttpClient).toBe(true); });")).toEqual([]);
-    expect(C.resourcesUsed("it('a', async () => { await db.query('select 1'); });")).toEqual(['db.query(']);
+    expect(
+      C.resourcesUsed(
+        "it('a', () => { new DatabaseQueryLaw(); expect(r.hasHttpClient).toBe(true); });"
+      )
+    ).toEqual([]);
+    expect(
+      C.resourcesUsed("it('a', async () => { await db.query('select 1'); });")
+    ).toEqual(['db.query(']);
   });
 });

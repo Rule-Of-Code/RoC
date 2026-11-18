@@ -11,7 +11,10 @@
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { relative } from '../../utils/capacitor/capacitor-law-support';
-import { type CapacitorProject, CapacitorProjects } from '../../utils/capacitor/capacitor-project';
+import {
+  type CapacitorProject,
+  CapacitorProjects,
+} from '../../utils/capacitor/capacitor-project';
 import { FileUtils } from '../../utils/file-utils';
 import { TsClasses } from '../../utils/ts-classes';
 import { LawBase } from '../law-base';
@@ -35,7 +38,9 @@ export class CapacitorDeepLinkContractLaw extends LawBase {
     const violations: string[] = [];
     for (const project of CapacitorProjects.find(context.projectRoot)) {
       const sides = this.sides(context, project, listener);
-      violations.push(...this.judge(relative(context, project.root) || '.', sides));
+      violations.push(
+        ...this.judge(relative(context, project.root) || '.', sides)
+      );
     }
     return this.createResult(
       violations,
@@ -49,7 +54,10 @@ export class CapacitorDeepLinkContractLaw extends LawBase {
     );
   }
 
-  static judge(where: string, { androidHosts, iosHosts, listener }: DeepLinkSides): string[] {
+  static judge(
+    where: string,
+    { androidHosts, iosHosts, listener }: DeepLinkSides
+  ): string[] {
     const declared = [...(androidHosts ?? []), ...(iosHosts ?? [])];
     if (!listener && declared.length === 0) return []; // no deep links at all
     const hosts = [...new Set(declared)].join(', ') || 'none declared';
@@ -79,7 +87,8 @@ export class CapacitorDeepLinkContractLaw extends LawBase {
   ): DeepLinkSides {
     const native = CapacitorProjects.nativePaths(project, context.projectRoot);
     const manifest = CapacitorProjects.readNative(native.androidManifest);
-    const iosPresent = CapacitorProjects.readNative(native.xcodeProjectFile) !== null;
+    const iosPresent =
+      CapacitorProjects.readNative(native.xcodeProjectFile) !== null;
     const entitlements = CapacitorProjects.entitlementFiles(native)
       .map(file => CapacitorProjects.readNative(file) ?? '')
       .join('\n');
@@ -97,7 +106,8 @@ export class CapacitorDeepLinkContractLaw extends LawBase {
       if (!/android\.intent\.action\.VIEW/.test(filter)) continue;
       if (!/android\.intent\.category\.BROWSABLE/.test(filter)) continue;
       if (!/android:scheme=["']https["']/.test(filter)) continue;
-      for (const match of filter.matchAll(/android:host=["']([^"']+)["']/g)) hosts.push(match[1] ?? '');
+      for (const match of filter.matchAll(/android:host=["']([^"']+)["']/g))
+        hosts.push(match[1] ?? '');
       if (!/android:host=/.test(filter)) hosts.push('(any host)');
     }
     return hosts;
@@ -105,12 +115,20 @@ export class CapacitorDeepLinkContractLaw extends LawBase {
 
   /** Hosts of `applinks:` associated domains. */
   static iosHosts(entitlements: string): string[] {
-    return [...entitlements.matchAll(/<string>\s*applinks:([^<\s?]+)/g)].map(match => match[1] ?? '');
+    return [...entitlements.matchAll(/<string>\s*applinks:([^<\s?]+)/g)].map(
+      match => match[1] ?? ''
+    );
   }
 
   private static hasListener(context: LawCheckContext): boolean {
-    return FileUtils.scanForFiles(context.projectRoot, context.config, ['.ts', '.tsx', '.js', '.jsx', '.vue'], context.lawId, false).some(
-      file => LISTENER.test(TsClasses.mask(FileUtils.readFileContentSync(file) ?? ''))
+    return FileUtils.scanForFiles(
+      context.projectRoot,
+      context.config,
+      ['.ts', '.tsx', '.js', '.jsx', '.vue'],
+      context.lawId,
+      false
+    ).some(file =>
+      LISTENER.test(TsClasses.mask(FileUtils.readFileContentSync(file) ?? ''))
     );
   }
 }

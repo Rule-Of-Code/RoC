@@ -22,8 +22,14 @@ function check(files: Record<string, string>) {
   return IndependentAwaitsRunConcurrentlyLaw.check(ctx(project(files)));
 }
 
-const py = (body: string[]): Record<string, string> => ({ 'pyproject.toml': PYPROJECT, 'app/profile.py': body.join('\n') + '\n' });
-const tsx = (body: string[]): Record<string, string> => ({ 'package.json': PACKAGE, 'src/profile.ts': body.join('\n') + '\n' });
+const py = (body: string[]): Record<string, string> => ({
+  'pyproject.toml': PYPROJECT,
+  'app/profile.py': body.join('\n') + '\n',
+});
+const tsx = (body: string[]): Record<string, string> => ({
+  'package.json': PACKAGE,
+  'src/profile.ts': body.join('\n') + '\n',
+});
 
 describe('Independent Awaits Run Concurrently (#351)', () => {
   describe('red', () => {
@@ -64,8 +70,17 @@ describe('Independent Awaits Run Concurrently (#351)', () => {
     });
 
     it('two awaits inside one expression run one after another too', () => {
-      const result = check(py(['async def summary(uid, repo):', '    return {"a": await repo.a(uid), "b": await repo.b(uid)}']));
-      expect(result.violations).toEqual([expect.stringMatching(/^app\/profile\.py:2: 2 independent awaits .* repo\.a\(\) \(line 2\), repo\.b\(\) \(line 2\)/)]);
+      const result = check(
+        py([
+          'async def summary(uid, repo):',
+          '    return {"a": await repo.a(uid), "b": await repo.b(uid)}',
+        ])
+      );
+      expect(result.violations).toEqual([
+        expect.stringMatching(
+          /^app\/profile\.py:2: 2 independent awaits .* repo\.a\(\) \(line 2\), repo\.b\(\) \(line 2\)/
+        ),
+      ]);
     });
 
     it('a dependent call splits the run: what follows it is judged on its own', () => {
@@ -79,12 +94,21 @@ describe('Independent Awaits Run Concurrently (#351)', () => {
         ])
       );
       // team and badges both need user, but not each other.
-      expect(result.violations).toEqual([expect.stringMatching(/^app\/profile\.py:3: 2 independent awaits .* repo\.teams\.get\(\) \(line 3\), repo\.badges\.list\(\) \(line 4\)/)]);
+      expect(result.violations).toEqual([
+        expect.stringMatching(
+          /^app\/profile\.py:3: 2 independent awaits .* repo\.teams\.get\(\) \(line 3\), repo\.badges\.list\(\) \(line 4\)/
+        ),
+      ]);
     });
 
     it('a marker without a reason does not count', () => {
       const result = check(
-        py(['async def f(uid, repo):', '    a = await repo.a(uid)', '    b = await repo.b(uid)  # roc: sequential-ok', '    return a, b'])
+        py([
+          'async def f(uid, repo):',
+          '    a = await repo.a(uid)',
+          '    b = await repo.b(uid)  # roc: sequential-ok',
+          '    return a, b',
+        ])
       );
       expect(result.violations).toHaveLength(1);
     });
@@ -94,8 +118,19 @@ describe('Independent Awaits Run Concurrently (#351)', () => {
     it('gather(...) and Promise.all([...])', () => {
       expect(
         check({
-          ...py(['import asyncio', '', 'async def f(uid, repo):', '    a, b = await asyncio.gather(repo.a(uid), repo.b(uid))', '    return a, b']),
-          ...tsx(['export async function f(uid: string, repo: any) {', '  const [a, b] = await Promise.all([repo.a(uid), repo.b(uid)]);', '  return { a, b };', '}']),
+          ...py([
+            'import asyncio',
+            '',
+            'async def f(uid, repo):',
+            '    a, b = await asyncio.gather(repo.a(uid), repo.b(uid))',
+            '    return a, b',
+          ]),
+          ...tsx([
+            'export async function f(uid: string, repo: any) {',
+            '  const [a, b] = await Promise.all([repo.a(uid), repo.b(uid)]);',
+            '  return { a, b };',
+            '}',
+          ]),
         }).violations
       ).toEqual([]);
     });
@@ -103,8 +138,19 @@ describe('Independent Awaits Run Concurrently (#351)', () => {
     it('a dependent chain', () => {
       expect(
         check({
-          ...py(['async def f(uid, repo):', '    user = await repo.users.get(uid)', '    team = await repo.teams.get(user.team_id)', '    return team']),
-          ...tsx(['export async function f(uid: string, repo: any) {', '  const user = await repo.users.get(uid);', '  const team = await repo.teams.get(user.teamId);', '  return team;', '}']),
+          ...py([
+            'async def f(uid, repo):',
+            '    user = await repo.users.get(uid)',
+            '    team = await repo.teams.get(user.team_id)',
+            '    return team',
+          ]),
+          ...tsx([
+            'export async function f(uid: string, repo: any) {',
+            '  const user = await repo.users.get(uid);',
+            '  const team = await repo.teams.get(user.teamId);',
+            '  return team;',
+            '}',
+          ]),
         }).violations
       ).toEqual([]);
     });
@@ -129,35 +175,83 @@ describe('Independent Awaits Run Concurrently (#351)', () => {
     it('a reasoned marker on the line, in Python and in TS', () => {
       expect(
         check({
-          ...py(['async def f(uid, repo):', '    a = await repo.a(uid)', '    b = await repo.b(uid)  # roc: sequential-ok the audit trail needs this order', '    return a, b']),
-          ...tsx(['export async function f(uid: string, repo: any) {', '  const a = await repo.a(uid);', '  const b = await repo.b(uid); // roc: sequential-ok the audit trail needs this order', '  return { a, b };', '}']),
+          ...py([
+            'async def f(uid, repo):',
+            '    a = await repo.a(uid)',
+            '    b = await repo.b(uid)  # roc: sequential-ok the audit trail needs this order',
+            '    return a, b',
+          ]),
+          ...tsx([
+            'export async function f(uid: string, repo: any) {',
+            '  const a = await repo.a(uid);',
+            '  const b = await repo.b(uid); // roc: sequential-ok the audit trail needs this order',
+            '  return { a, b };',
+            '}',
+          ]),
         }).violations
       ).toEqual([]);
     });
 
     it('a guard between the awaits keeps their order', () => {
       expect(
-        check(py(['async def f(uid, repo):', '    user = await repo.users.get(uid)', '    if user is None:', '        raise LookupError(uid)', '    return await repo.teams.get(uid)'])).violations
+        check(
+          py([
+            'async def f(uid, repo):',
+            '    user = await repo.users.get(uid)',
+            '    if user is None:',
+            '        raise LookupError(uid)',
+            '    return await repo.teams.get(uid)',
+          ])
+        ).violations
       ).toEqual([]);
     });
 
     it('an awaited guard whose result is discarded (a check that raises) keeps its place', () => {
       expect(
         check({
-          ...py(['async def f(uid, repo, guards):', '    await guards.admit(uid)', '    a = await repo.a(uid)', '    return a']),
-          ...tsx(['export async function f(uid: string, repo: any, guards: any) {', '  await guards.admit(uid);', '  const a = await repo.a(uid);', '  return a;', '}']),
+          ...py([
+            'async def f(uid, repo, guards):',
+            '    await guards.admit(uid)',
+            '    a = await repo.a(uid)',
+            '    return a',
+          ]),
+          ...tsx([
+            'export async function f(uid: string, repo: any, guards: any) {',
+            '  await guards.admit(uid);',
+            '  const a = await repo.a(uid);',
+            '  return a;',
+            '}',
+          ]),
         }).violations
       ).toEqual([]);
     });
 
     it('two calls that share a freshly created list (one fills it, one reads it)', () => {
-      expect(check(py(['async def f(repo):', '    rows = []', '    await repo.fill(rows)', '    await repo.export(rows)'])).violations).toEqual([]);
+      expect(
+        check(
+          py([
+            'async def f(repo):',
+            '    rows = []',
+            '    await repo.fill(rows)',
+            '    await repo.export(rows)',
+          ])
+        ).violations
+      ).toEqual([]);
     });
 
     it('nothing outside async functions: sync def with blocking calls, TS module top-level await', () => {
       const result = check({
-        ...py(['def f(uid, repo):', '    a = repo.a(uid)', '    b = repo.b(uid)', '    return a, b', '', 'async def g(uid, repo):', '    return await repo.c(uid)']),
-        'src/boot.ts': 'const a = await load("a");\nconst b = await load("b");\nexport { a, b };\n',
+        ...py([
+          'def f(uid, repo):',
+          '    a = repo.a(uid)',
+          '    b = repo.b(uid)',
+          '    return a, b',
+          '',
+          'async def g(uid, repo):',
+          '    return await repo.c(uid)',
+        ]),
+        'src/boot.ts':
+          'const a = await load("a");\nconst b = await load("b");\nexport { a, b };\n',
         'package.json': PACKAGE,
       });
       expect(result.passed).toBe(true);
@@ -166,17 +260,48 @@ describe('Independent Awaits Run Concurrently (#351)', () => {
   });
 
   describe('selection: only a project with async code gets the law', () => {
-    const LAW = REQUEST_PATH_LAWS.find(l => l.checkFunction === 'IndependentAwaitsRunConcurrentlyLaw.check');
+    const LAW = REQUEST_PATH_LAWS.find(
+      l => l.checkFunction === 'IndependentAwaitsRunConcurrentlyLaw.check'
+    );
     const selected = (root: string): string[] =>
-      (new RuleOfCodeAuditor(ConfigLoader.load(root), root) as unknown as { getSelectedLaws(): Array<{ name: string }> })
+      (
+        new RuleOfCodeAuditor(ConfigLoader.load(root), root) as unknown as {
+          getSelectedLaws(): Array<{ name: string }>;
+        }
+      )
         .getSelectedLaws()
         .map(l => l.name);
 
     it.each([
-      ['a Python async def', { 'pyproject.toml': PYPROJECT, 'app/a.py': 'async def f():\n    return 1\n' }],
-      ['a TS async function', { 'package.json': PACKAGE, 'src/a.ts': 'export async function f() { return 1; }\n' }],
-      ['a TS async arrow', { 'package.json': PACKAGE, 'src/a.ts': 'export const f = async (x: number) => x;\n' }],
-      ['a TS async method', { 'package.json': PACKAGE, 'src/a.ts': 'export class A {\n  async load(id: string) { return id; }\n}\n' }],
+      [
+        'a Python async def',
+        {
+          'pyproject.toml': PYPROJECT,
+          'app/a.py': 'async def f():\n    return 1\n',
+        },
+      ],
+      [
+        'a TS async function',
+        {
+          'package.json': PACKAGE,
+          'src/a.ts': 'export async function f() { return 1; }\n',
+        },
+      ],
+      [
+        'a TS async arrow',
+        {
+          'package.json': PACKAGE,
+          'src/a.ts': 'export const f = async (x: number) => x;\n',
+        },
+      ],
+      [
+        'a TS async method',
+        {
+          'package.json': PACKAGE,
+          'src/a.ts':
+            'export class A {\n  async load(id: string) { return id; }\n}\n',
+        },
+      ],
     ])('is required and selected with %s', (_, files) => {
       const root = project(files);
       expect(lawRequirementsMet(LAW?.requires, root)).toBe(true);
@@ -184,8 +309,21 @@ describe('Independent Awaits Run Concurrently (#351)', () => {
     });
 
     it.each([
-      ['a sync Python project', { 'pyproject.toml': PYPROJECT, 'app/a.py': 'def f(asynchronous):\n    return asynchronous\n' }],
-      ['a TS project without async code', { 'package.json': PACKAGE, 'src/a.ts': 'export function f(x: Promise<number>) { return x.then(v => v); }\n' }],
+      [
+        'a sync Python project',
+        {
+          'pyproject.toml': PYPROJECT,
+          'app/a.py': 'def f(asynchronous):\n    return asynchronous\n',
+        },
+      ],
+      [
+        'a TS project without async code',
+        {
+          'package.json': PACKAGE,
+          'src/a.ts':
+            'export function f(x: Promise<number>) { return x.then(v => v); }\n',
+        },
+      ],
     ])('is not required nor selected in %s', (_, files) => {
       const root = project(files);
       expect(lawRequirementsMet(LAW?.requires, root)).toBe(false);
@@ -196,11 +334,18 @@ describe('Independent Awaits Run Concurrently (#351)', () => {
   it('an async def only in a test file does not select the law: the gate leaves out the tests the law never reads', () => {
     // The gate and the law read one set of files (readFilesContaining), so a
     // subject the law would not judge cannot select it.
-    const files = { ...py(['def f(repo):', '    return repo.a()']), 'tests/test_f.py': 'async def test_f():\n    pass\n' };
-    expect(lawRequirementsMet(REQUEST_PATH_LAWS[0]?.requires, project(files))).toBe(false);
+    const files = {
+      ...py(['def f(repo):', '    return repo.a()']),
+      'tests/test_f.py': 'async def test_f():\n    pass\n',
+    };
+    expect(
+      lawRequirementsMet(REQUEST_PATH_LAWS[0]?.requires, project(files))
+    ).toBe(false);
     const result = check(files);
     expect(result.passed).toBe(false);
     expect(result.score).toBe(0);
-    expect(result.violations?.[0]).toMatch(/nothing was judged — no async function in 0 Python and 0 TS\/JS source file\(s\)/);
+    expect(result.violations?.[0]).toMatch(
+      /nothing was judged — no async function in 0 Python and 0 TS\/JS source file\(s\)/
+    );
   });
 });

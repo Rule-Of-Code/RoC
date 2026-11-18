@@ -32,11 +32,18 @@ const LOOP_READ_SERVICE = [
 describe('database-query-optimization service discovery (#368)', () => {
   it('finds a *.service.ts file under src/ (the #368 reproduction)', () => {
     const root = project({
-      'package.json': '{ "name": "repro", "version": "1.0.0", "private": true }',
+      'package.json':
+        '{ "name": "repro", "version": "1.0.0", "private": true }',
       'src/roles.service.ts': LOOP_READ_SERVICE,
     });
-    const found = DatabaseQueryOptimizationFileDiscoveryService.findServiceFiles(root, ctx(root).config);
-    expect(found.map(f => f.replace(/\\/g, '/'))).toEqual([expect.stringMatching(/src\/roles\.service\.ts$/)]);
+    const found =
+      DatabaseQueryOptimizationFileDiscoveryService.findServiceFiles(
+        root,
+        ctx(root).config
+      );
+    expect(found.map(f => f.replace(/\\/g, '/'))).toEqual([
+      expect.stringMatching(/src\/roles\.service\.ts$/),
+    ]);
   });
 
   it('finds every service-file shape the patterns name, and nothing else', () => {
@@ -48,10 +55,19 @@ describe('database-query-optimization service discovery (#368)', () => {
       'apps/api/user.repository.ts': 'export const c = 1;\n',
       'src/plain.ts': 'export const d = 1;\n',
     });
-    const names = DatabaseQueryOptimizationFileDiscoveryService.findServiceFiles(root, ctx(root).config)
-      .map(f => f.replace(/\\/g, '/').split('/').pop())
-      .sort();
-    expect(names).toEqual(['a.service.ts', 'database.js', 'firestore.ts', 'user.repository.ts']);
+    const names =
+      DatabaseQueryOptimizationFileDiscoveryService.findServiceFiles(
+        root,
+        ctx(root).config
+      )
+        .map(f => f.replace(/\\/g, '/').split('/').pop())
+        .sort();
+    expect(names).toEqual([
+      'a.service.ts',
+      'database.js',
+      'firestore.ts',
+      'user.repository.ts',
+    ]);
   });
 
   it('a service that batches is seen: batching is reported implemented', () => {
@@ -68,7 +84,9 @@ describe('database-query-optimization service discovery (#368)', () => {
         '',
       ].join('\n'),
     });
-    expect(QueryBatchingAnalyzerService.analyze(root, ctx(root).config)).toEqual({ implemented: true });
+    expect(
+      QueryBatchingAnalyzerService.analyze(root, ctx(root).config)
+    ).toEqual({ implemented: true });
   });
 
   it('the law no longer reports "Query batching not implemented" for a project that batches', async () => {

@@ -12,7 +12,12 @@
  */
 
 import { apisFor, classifyRead, type ProjectClients } from './data-clients';
-import { documentKeyOf, repositoryKeyOf, type DocumentKey, type KeyScope } from './document-keys';
+import {
+  documentKeyOf,
+  repositoryKeyOf,
+  type DocumentKey,
+  type KeyScope,
+} from './document-keys';
 import { ModuleGraph, type ResolvedCall } from './module-graph';
 import { orderedCall } from './sequential-awaits';
 import type { CallSite, FunctionModel, ModuleModel } from './model';
@@ -45,7 +50,10 @@ function localResolver(fn: FunctionModel): (name: string) => string | null {
     const statements = fn.blocks.flat().filter(s => s.bound.includes(name));
     const last = statements[statements.length - 1];
     if (!last) return null;
-    const m = /^(?:(?:const|let|var)\s+)?[\w$]+\s*(?::[^=]+)?=(?!=)\s*(.+?);?$/s.exec(last.text);
+    const m =
+      /^(?:(?:const|let|var)\s+)?[\w$]+\s*(?::[^=]+)?=(?!=)\s*(.+?);?$/s.exec(
+        last.text
+      );
     return m ? (m[1] as string).replace(/^await\s+/, '') : null;
   };
 }
@@ -53,26 +61,44 @@ function localResolver(fn: FunctionModel): (name: string) => string | null {
 const readCache = new WeakMap<FunctionModel, KeyedRead[]>();
 
 /** Calls that are awaited one-key repository reads (not document reads the registry already keys). */
-function awaitedRepositoryReads(fn: FunctionModel, clients: ProjectClients, module: ModuleModel): Set<CallSite> {
+function awaitedRepositoryReads(
+  fn: FunctionModel,
+  clients: ProjectClients,
+  module: ModuleModel
+): Set<CallSite> {
   const apis = apisFor(clients, module.language);
   const out = new Set<CallSite>();
   for (const site of fn.blocks.flat().flatMap(s => s.awaits)) {
-    if (site.call && classifyRead(site.call, apis) === 'read') out.add(site.call);
+    if (site.call && classifyRead(site.call, apis) === 'read')
+      out.add(site.call);
   }
   return out;
 }
 
-function keyOf(call: CallSite, scope: KeyScope, repositoryReads: ReadonlySet<CallSite>): DocumentKey | null {
+function keyOf(
+  call: CallSite,
+  scope: KeyScope,
+  repositoryReads: ReadonlySet<CallSite>
+): DocumentKey | null {
   const key = documentKeyOf(call, scope);
   if (key) return key;
-  const awaited = [...repositoryReads].find(r => r.line === call.line && r.text === call.text);
+  const awaited = [...repositoryReads].find(
+    r => r.line === call.line && r.text === call.text
+  );
   return awaited ? repositoryKeyOf(call) : null;
 }
 
-function readsOf(graph: ModuleGraph, module: ModuleModel, fn: FunctionModel): KeyedRead[] {
+function readsOf(
+  graph: ModuleGraph,
+  module: ModuleModel,
+  fn: FunctionModel
+): KeyedRead[] {
   const hit = readCache.get(fn);
   if (hit) return hit;
-  const scope = { local: localResolver(fn), constant: (name: string) => graph.constantFor(module, name) };
+  const scope = {
+    local: localResolver(fn),
+    constant: (name: string) => graph.constantFor(module, name),
+  };
   const repositoryReads = awaitedRepositoryReads(fn, graph.clients, module);
   const reads = fn.calls
     .map(call => ({ call, key: keyOf(call, scope, repositoryReads) }))
@@ -82,22 +108,36 @@ function readsOf(graph: ModuleGraph, module: ModuleModel, fn: FunctionModel): Ke
 }
 
 function render(key: DocumentKey, ids: readonly string[]): string {
-  if (key.path.startsWith('{0}.')) return key.path.replace(/\{(\d+)\}/g, (_, i: string) => ids[Number(i)] ?? '');
-  return key.path.replace(/\{(\d+)\}/g, (_, i: string) => `{${ids[Number(i)]}}`);
+  if (key.path.startsWith('{0}.'))
+    return key.path.replace(
+      /\{(\d+)\}/g,
+      (_, i: string) => ids[Number(i)] ?? ''
+    );
+  return key.path.replace(
+    /\{(\d+)\}/g,
+    (_, i: string) => `{${ids[Number(i)]}}`
+  );
 }
 
 /** Parameter → the argument text the call passed for it. */
-function argumentMap(target: ResolvedCall, call: CallSite): Map<string, string> {
-  const params = target.boundMethod ? target.fn.params.slice(1) : target.fn.params;
+function argumentMap(
+  target: ResolvedCall,
+  call: CallSite
+): Map<string, string> {
+  const params = target.boundMethod
+    ? target.fn.params.slice(1)
+    : target.fn.params;
   const map = new Map<string, string>();
   // `self.helper(…)` / `this.helper(…)`: the helper's self is the caller's.
   const head = call.chain[0]?.name;
-  if (call.chain.length === 2 && (head === 'self' || head === 'this')) map.set(head, head);
+  if (call.chain.length === 2 && (head === 'self' || head === 'this'))
+    map.set(head, head);
   let position = 0;
   for (const arg of call.args) {
     if (arg.text.startsWith('*') || arg.text.startsWith('...')) break;
     if (arg.keyword) map.set(arg.keyword, arg.text);
-    else if (params[position] !== undefined) map.set(params[position++] as string, arg.text);
+    else if (params[position] !== undefined)
+      map.set(params[position++] as string, arg.text);
   }
   return map;
 }
@@ -110,7 +150,10 @@ const ID_WRAPPERS = new Set(['str', 'String', 'int', 'Number']);
  * must be a parameter (replaced by the argument passed) or a conversion
  * wrapper; null otherwise — the id was computed inside the helper.
  */
-function translateId(id: string, args: ReadonlyMap<string, string>): string | null {
+function translateId(
+  id: string,
+  args: ReadonlyMap<string, string>
+): string | null {
   if (/^"[^"]*"$/.test(id)) return id;
   let known = true;
   let usesParameter = false;
@@ -162,10 +205,19 @@ function handlerLine(site: ReadSite): number {
 }
 
 /** Does this call write — itself, or (one step deep) in the body of the function it runs? */
-function writes(graph: ModuleGraph, module: ModuleModel, handler: FunctionModel, call: CallSite): boolean {
+function writes(
+  graph: ModuleGraph,
+  module: ModuleModel,
+  handler: FunctionModel,
+  call: CallSite
+): boolean {
   if (orderedCall(call, graph.clients, module)) return true;
   const target = graph.resolve(module, handler, call);
-  return target !== null && target.fn !== handler && target.fn.calls.some(c => orderedCall(c, graph.clients, target.module));
+  return (
+    target !== null &&
+    target.fn !== handler &&
+    target.fn.calls.some(c => orderedCall(c, graph.clients, target.module))
+  );
 }
 
 /**
@@ -174,26 +226,65 @@ function writes(graph: ModuleGraph, module: ModuleModel, handler: FunctionModel,
  * handler writes — counting a helper call that writes in its body, the
  * helper that made the first read included.
  */
-function writtenBetween(graph: ModuleGraph, module: ModuleModel, handler: FunctionModel, sites: readonly ReadSite[]): boolean {
+function writtenBetween(
+  graph: ModuleGraph,
+  module: ModuleModel,
+  handler: FunctionModel,
+  sites: readonly ReadSite[]
+): boolean {
   const lines = sites.map(handlerLine);
   const first = Math.min(...lines);
   const last = Math.max(...lines);
-  if (handler.calls.some(call => call.line >= first && call.line < last && writes(graph, module, handler, call))) return true;
-  return sites.some(a => sites.some(b => a !== b && writtenInsideOneCall(graph, a, b)));
+  if (
+    handler.calls.some(
+      call =>
+        call.line >= first &&
+        call.line < last &&
+        writes(graph, module, handler, call)
+    )
+  )
+    return true;
+  return sites.some(a =>
+    sites.some(b => a !== b && writtenInsideOneCall(graph, a, b))
+  );
 }
 
 /** Two reads made through the same helper call: does the helper write between them? */
-function writtenInsideOneCall(graph: ModuleGraph, a: ReadSite, b: ReadSite): boolean {
-  if (!a.helper || a.helper.fn !== b.helper?.fn || a.via?.line !== b.via?.line || a.line >= b.line) return false;
+function writtenInsideOneCall(
+  graph: ModuleGraph,
+  a: ReadSite,
+  b: ReadSite
+): boolean {
+  if (
+    !a.helper ||
+    a.helper.fn !== b.helper?.fn ||
+    a.via?.line !== b.via?.line ||
+    a.line >= b.line
+  )
+    return false;
   const { module, fn } = a.helper;
-  return fn.calls.some(call => call.line >= a.line && call.line < b.line && writes(graph, module, fn, call));
+  return fn.calls.some(
+    call =>
+      call.line >= a.line &&
+      call.line < b.line &&
+      writes(graph, module, fn, call)
+  );
 }
 
-function duplicatesOf(graph: ModuleGraph, module: ModuleModel, handler: FunctionModel): DuplicateRead[] {
+function duplicatesOf(
+  graph: ModuleGraph,
+  module: ModuleModel,
+  handler: FunctionModel
+): DuplicateRead[] {
   const reads = [
     ...readsOf(graph, module, handler).map(read => ({
       document: render(read.key, read.key.ids),
-      site: { rel: module.rel, line: read.call.line, function: handler.name, via: null } as ReadSite,
+      site: {
+        rel: module.rel,
+        line: read.call.line,
+        function: handler.name,
+        via: null,
+      } as ReadSite,
     })),
     ...handler.calls.flatMap(call => helperReads(graph, module, handler, call)),
   ];
@@ -204,8 +295,16 @@ function duplicatesOf(graph: ModuleGraph, module: ModuleModel, handler: Function
     byDocument.set(document, sites);
   }
   return [...byDocument.entries()]
-    .filter(([, sites]) => sites.size >= 2 && !writtenBetween(graph, module, handler, [...sites.values()]))
-    .map(([document, sites]) => ({ handler: handler.name, document, sites: [...sites.values()] }));
+    .filter(
+      ([, sites]) =>
+        sites.size >= 2 &&
+        !writtenBetween(graph, module, handler, [...sites.values()])
+    )
+    .map(([document, sites]) => ({
+      handler: handler.name,
+      document,
+      sites: [...sites.values()],
+    }));
 }
 
 /** Every duplicate read, each set of sites reported once (a set inside a larger one is dropped). */
@@ -225,7 +324,13 @@ export function scanDuplicateReads(
   const keys = all.map(d => new Set(d.sites.map(siteKey)));
   const kept = all.filter((d, i) => {
     const mine = keys[i] as Set<string>;
-    return !keys.some((other, j) => j !== i && other.size >= mine.size && [...mine].every(k => other.has(k)) && (other.size > mine.size || j < i));
+    return !keys.some(
+      (other, j) =>
+        j !== i &&
+        other.size >= mine.size &&
+        [...mine].every(k => other.has(k)) &&
+        (other.size > mine.size || j < i)
+    );
   });
   return { duplicates: kept, keyedReads };
 }
@@ -233,7 +338,10 @@ export function scanDuplicateReads(
 export function describeDuplicateRead(dup: DuplicateRead): string {
   const first = dup.sites[0] as ReadSite;
   const listed = dup.sites
-    .map(s => `${s.rel}:${s.line} in ${s.function}()${s.via ? ` (called at ${s.via.rel}:${s.via.line})` : ''}`)
+    .map(
+      s =>
+        `${s.rel}:${s.line} in ${s.function}()${s.via ? ` (called at ${s.via.rel}:${s.via.line})` : ''}`
+    )
     .join(', ');
   return (
     `${first.rel}:${first.line}: ${dup.document} is read ${dup.sites.length} times while serving ${dup.handler}() — ${listed}; ` +

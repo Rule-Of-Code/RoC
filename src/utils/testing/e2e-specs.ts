@@ -27,13 +27,25 @@ const E2E_SPEC_PATTERNS = [
   '**/*-e2e/**/*.{spec,test}.{ts,js}',
 ];
 
-const IGNORED = ['**/node_modules/**', '**/dist/**', '**/.angular/**', '**/.nx/**'];
+const IGNORED = [
+  '**/node_modules/**',
+  '**/dist/**',
+  '**/.angular/**',
+  '**/.nx/**',
+];
 
 /** Every e2e spec in the project (absolute paths), in a stable order. */
-export function findE2ESpecs(projectRoot: string, extraPatterns: readonly string[] = []): string[] {
+export function findE2ESpecs(
+  projectRoot: string,
+  extraPatterns: readonly string[] = []
+): string[] {
   const found = new Set<string>();
   for (const pattern of [...E2E_SPEC_PATTERNS, ...extraPatterns]) {
-    for (const file of glob.sync(pattern, { cwd: projectRoot, absolute: true, ignore: IGNORED })) {
+    for (const file of glob.sync(pattern, {
+      cwd: projectRoot,
+      absolute: true,
+      ignore: IGNORED,
+    })) {
       found.add(file);
     }
   }

@@ -27,7 +27,9 @@ export type Script =
   | 'Thai';
 
 /** The basic letters of each script a subset must reach to serve its text. */
-export const SCRIPT_CORE_LETTERS: Readonly<Record<Exclude<Script, 'Latin'>, ReadonlyArray<readonly [number, number]>>> = {
+export const SCRIPT_CORE_LETTERS: Readonly<
+  Record<Exclude<Script, 'Latin'>, ReadonlyArray<readonly [number, number]>>
+> = {
   Cyrillic: [[0x0410, 0x044f]],
   Greek: [[0x0391, 0x03c9]],
   Armenian: [[0x0531, 0x0587]],
@@ -40,7 +42,24 @@ export const SCRIPT_CORE_LETTERS: Readonly<Record<Exclude<Script, 'Latin'>, Read
 
 /** ISO 639 language → its default script. A language absent here is not judged. */
 const LANGUAGE_SCRIPT: Readonly<Record<Script, readonly string[]>> = {
-  Cyrillic: ['bg', 'ru', 'uk', 'be', 'mk', 'sr', 'kk', 'ky', 'tg', 'mn', 'ba', 'tt', 'cv', 'ce', 'os', 'sah'],
+  Cyrillic: [
+    'bg',
+    'ru',
+    'uk',
+    'be',
+    'mk',
+    'sr',
+    'kk',
+    'ky',
+    'tg',
+    'mn',
+    'ba',
+    'tt',
+    'cv',
+    'ce',
+    'os',
+    'sah',
+  ],
   Greek: ['el'],
   Hebrew: ['he', 'iw', 'yi'],
   Arabic: ['ar', 'fa', 'ur', 'ps', 'ckb', 'sd', 'ug'],
@@ -49,11 +68,79 @@ const LANGUAGE_SCRIPT: Readonly<Record<Script, readonly string[]>> = {
   Devanagari: ['hi', 'mr', 'ne', 'sa'],
   Thai: ['th'],
   Latin: [
-    'af', 'ast', 'az', 'br', 'bs', 'ca', 'co', 'cs', 'cy', 'da', 'de', 'en', 'eo', 'es', 'et', 'eu', 'fi',
-    'fil', 'fo', 'fr', 'fy', 'ga', 'gd', 'gl', 'ha', 'haw', 'hr', 'hu', 'id', 'ig', 'is', 'it', 'kl', 'ku',
-    'la', 'lb', 'lt', 'lv', 'mg', 'mi', 'ms', 'mt', 'nb', 'nl', 'nn', 'no', 'oc', 'pl', 'pt', 'qu', 'rm',
-    'ro', 'rw', 'se', 'sk', 'sl', 'sm', 'sn', 'so', 'sq', 'sv', 'sw', 'tk', 'tl', 'tn', 'to', 'tr', 'uz',
-    'vi', 'wo', 'xh', 'yo', 'zu',
+    'af',
+    'ast',
+    'az',
+    'br',
+    'bs',
+    'ca',
+    'co',
+    'cs',
+    'cy',
+    'da',
+    'de',
+    'en',
+    'eo',
+    'es',
+    'et',
+    'eu',
+    'fi',
+    'fil',
+    'fo',
+    'fr',
+    'fy',
+    'ga',
+    'gd',
+    'gl',
+    'ha',
+    'haw',
+    'hr',
+    'hu',
+    'id',
+    'ig',
+    'is',
+    'it',
+    'kl',
+    'ku',
+    'la',
+    'lb',
+    'lt',
+    'lv',
+    'mg',
+    'mi',
+    'ms',
+    'mt',
+    'nb',
+    'nl',
+    'nn',
+    'no',
+    'oc',
+    'pl',
+    'pt',
+    'qu',
+    'rm',
+    'ro',
+    'rw',
+    'se',
+    'sk',
+    'sl',
+    'sm',
+    'sn',
+    'so',
+    'sq',
+    'sv',
+    'sw',
+    'tk',
+    'tl',
+    'tn',
+    'to',
+    'tr',
+    'uz',
+    'vi',
+    'wo',
+    'xh',
+    'yo',
+    'zu',
   ],
 };
 
@@ -71,7 +158,9 @@ const SCRIPT_SUBTAG: Readonly<Record<string, Script>> = {
 };
 
 const BY_LANGUAGE = new Map<string, Script>(
-  (Object.entries(LANGUAGE_SCRIPT) as Array<[Script, readonly string[]]>).flatMap(([script, languages]) =>
+  (
+    Object.entries(LANGUAGE_SCRIPT) as Array<[Script, readonly string[]]>
+  ).flatMap(([script, languages]) =>
     languages.map(language => [language, script] as [string, Script])
   )
 );
@@ -86,15 +175,22 @@ export function scriptOfLocale(locale: string): Script | null {
 }
 
 /** `U+0400-045F, U+0490, U+04??` → code point intervals; null when a part is unreadable. */
-export function parseUnicodeRange(value: string): Array<[number, number]> | null {
+export function parseUnicodeRange(
+  value: string
+): Array<[number, number]> | null {
   const intervals: Array<[number, number]> = [];
   for (const raw of value.split(',')) {
     const part = raw.trim();
-    const match = /^[Uu]\+([0-9A-Fa-f?]{1,6})(?:-([0-9A-Fa-f]{1,6}))?$/.exec(part);
+    const match = /^[Uu]\+([0-9A-Fa-f?]{1,6})(?:-([0-9A-Fa-f]{1,6}))?$/.exec(
+      part
+    );
     if (!match?.[1]) return null;
     const start = match[1];
     if (start.includes('?')) {
-      intervals.push([parseInt(start.replace(/\?/g, '0'), 16), parseInt(start.replace(/\?/g, 'F'), 16)]);
+      intervals.push([
+        parseInt(start.replace(/\?/g, '0'), 16),
+        parseInt(start.replace(/\?/g, 'F'), 16),
+      ]);
       continue;
     }
     const from = parseInt(start, 16);
@@ -104,12 +200,19 @@ export function parseUnicodeRange(value: string): Array<[number, number]> | null
 }
 
 /** Does a unicode-range reach the basic letters of `script`? */
-export function rangeCovers(intervals: ReadonlyArray<readonly [number, number]>, script: Exclude<Script, 'Latin'>): boolean {
-  return SCRIPT_CORE_LETTERS[script].some(([low, high]) => intervals.some(([from, to]) => from <= high && to >= low));
+export function rangeCovers(
+  intervals: ReadonlyArray<readonly [number, number]>,
+  script: Exclude<Script, 'Latin'>
+): boolean {
+  return SCRIPT_CORE_LETTERS[script].some(([low, high]) =>
+    intervals.some(([from, to]) => from <= high && to >= low)
+  );
 }
 
 /** The stylesheets and documents Primary Locale Font Preloaded reads faces from. */
-export const FONT_FACE_FILE_GLOBS: readonly string[] = ['**/*.{css,scss,sass,less,html,htm,tsx,jsx,vue,svelte,astro}'];
+export const FONT_FACE_FILE_GLOBS: readonly string[] = [
+  '**/*.{css,scss,sass,less,html,htm,tsx,jsx,vue,svelte,astro}',
+];
 
 /** Its subject, for `requires.anyFileContaining`: an @font-face block with a unicode-range. */
 export const REQUIRES_UNICODE_RANGE_FONT: LawRequirement = {
@@ -118,7 +221,12 @@ export const REQUIRES_UNICODE_RANGE_FONT: LawRequirement = {
       files: FONT_FACE_FILE_GLOBS,
       pattern: String.raw`@font-face\s*\{[^}]*unicode-range`,
       // Tests and stories render fixtures, not the app's own first screen.
-      exclude: ['**/*.{spec,test,stories}.{ts,tsx,js,jsx}', '**/test/**', '**/tests/**', '**/e2e/**'],
+      exclude: [
+        '**/*.{spec,test,stories}.{ts,tsx,js,jsx}',
+        '**/test/**',
+        '**/tests/**',
+        '**/e2e/**',
+      ],
     },
   ],
 };

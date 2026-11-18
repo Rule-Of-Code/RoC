@@ -54,7 +54,12 @@ export class IonicPageStateReadOnEnterLaw extends LawBase {
   static checkFile(where: string, content: string): string[] {
     const violations: string[] = [];
     for (const cls of TsClasses.parse(content)) {
-      if (cls.members.some(m => m.kind === 'method' && m.name === 'ionViewWillEnter')) continue;
+      if (
+        cls.members.some(
+          m => m.kind === 'method' && m.name === 'ionViewWillEnter'
+        )
+      )
+        continue;
       for (const member of cls.members) {
         const site = ONCE_PER_INSTANCE(member);
         if (!site) continue;

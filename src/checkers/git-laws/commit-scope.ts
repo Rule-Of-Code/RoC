@@ -20,7 +20,7 @@
  * fix — a correct result should not be indistinguishable from a broken one.
  */
 
-import { execSync } from 'child_process';
+import { execSync } from '../../utils/child-process';
 
 /** Run a git command and return trimmed stdout, or null when it fails. */
 function git(command: string, projectRoot: string): string | null {
@@ -51,10 +51,7 @@ function commitsBehindUpstream(
   );
   if (!upstream) return null;
 
-  const count = git(
-    `git rev-list --count "${ref}..${upstream}"`,
-    projectRoot
-  );
+  const count = git(`git rev-list --count "${ref}..${upstream}"`, projectRoot);
   const behind = Number(count);
   if (!Number.isFinite(behind)) return null;
 

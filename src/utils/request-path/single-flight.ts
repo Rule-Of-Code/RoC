@@ -46,12 +46,16 @@ export interface FlightSite {
   perCall: boolean;
 }
 
-const escapeRe = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const escapeRe = (text: string): string =>
+  text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-const PY_FUTURE = /\b(?:asyncio\.)?(?:ensure_future|create_task|Future|run_coroutine_threadsafe)\s*\(|\.create_future\s*\(/;
-const TS_PROMISE = /\.(?:then|catch|finally)\s*\(|\bnew\s+Promise\b|\bPromise\.\w+\s*\(/;
+const PY_FUTURE =
+  /\b(?:asyncio\.)?(?:ensure_future|create_task|Future|run_coroutine_threadsafe)\s*\(|\.create_future\s*\(/;
+const TS_PROMISE =
+  /\.(?:then|catch|finally)\s*\(|\bnew\s+Promise\b|\bPromise\.\w+\s*\(/;
 /** A lock held in Python: `async with <...lock / semaphore / mutex>`. */
-const PY_LOCK = /^async with [^:]*(?:lock|Lock|semaphore|Semaphore|mutex|Mutex)\b/;
+const PY_LOCK =
+  /^async with [^:]*(?:lock|Lock|semaphore|Semaphore|mutex|Mutex)\b/;
 /** A lock or mutex in TS/JS (async-mutex runExclusive, acquire). */
 const TS_LOCK = /\.runExclusive\s*\(|\b(?:mutex|Mutex|lock|Lock)\.acquire\s*\(/;
 
@@ -62,39 +66,82 @@ interface Store {
   statement: StatementModel;
 }
 
-const PY_STORE = /^((?:[A-Za-z_]\w*\.)*[A-Za-z_]\w*)\s*\[(.+)\]\s*=(?!=)\s*(.+)$/s;
+const PY_STORE =
+  /^((?:[A-Za-z_]\w*\.)*[A-Za-z_]\w*)\s*\[(.+)\]\s*=(?!=)\s*(.+)$/s;
 
 function storesOf(module: ModuleModel, fn: FunctionModel): Store[] {
   const statements = fn.blocks.flat();
   if (module.language === 'python') {
     return statements.flatMap(statement => {
       const m = statement.simple ? PY_STORE.exec(statement.text) : null;
-      return m ? [{ container: m[1] as string, line: statement.line, value: (m[3] as string).trim(), statement }] : [];
+      return m
+        ? [
+            {
+              container: m[1] as string,
+              line: statement.line,
+              value: (m[3] as string).trim(),
+              statement,
+            },
+          ]
+        : [];
     });
   }
   return fn.calls
-    .filter(call => call.method === 'set' && call.args.length >= 2 && call.receiver !== '')
+    .filter(
+      call =>
+        call.method === 'set' && call.args.length >= 2 && call.receiver !== ''
+    )
     .flatMap(call => {
-      const statement = statements.find(s => call.line >= s.line && call.line <= s.endLine);
-      return statement ? [{ container: call.receiver, line: call.line, value: call.args[1]?.text ?? '', statement }] : [];
+      const statement = statements.find(
+        s => call.line >= s.line && call.line <= s.endLine
+      );
+      return statement
+        ? [
+            {
+              container: call.receiver,
+              line: call.line,
+              value: call.args[1]?.text ?? '',
+              statement,
+            },
+          ]
+        : [];
     });
 }
 
 /** The statements of the function between two lines (exclusive) that check the container, in order. */
-function checksOf(module: ModuleModel, fn: FunctionModel, container: string, after: number, before: number): StatementModel[] {
+function checksOf(
+  module: ModuleModel,
+  fn: FunctionModel,
+  container: string,
+  after: number,
+  before: number
+): StatementModel[] {
   const name = escapeRe(container);
   const check =
     module.language === 'python'
-      ? new RegExp(String.raw`(?<![\w.])${name}\.get\(|(?<![\w.])${name}\s*\[|\bin\s+${name}(?![\w.])`)
+      ? new RegExp(
+          String.raw`(?<![\w.])${name}\.get\(|(?<![\w.])${name}\s*\[|\bin\s+${name}(?![\w.])`
+        )
       : new RegExp(String.raw`(?<![\w$.])${name}\.(?:get|has)\(`);
   return fn.blocks
     .flat()
-    .filter(s => s.line > after && s.line < before && !/^(?:async\s+)?for\b/.test(s.text) && check.test(s.text))
+    .filter(
+      s =>
+        s.line > after &&
+        s.line < before &&
+        !/^(?:async\s+)?for\b/.test(s.text) &&
+        check.test(s.text)
+    )
     .sort((a, b) => a.line - b.line);
 }
 
 /** The first statement before `line` that checks the container. */
-function checkOf(module: ModuleModel, fn: FunctionModel, container: string, line: number): StatementModel | null {
+function checkOf(
+  module: ModuleModel,
+  fn: FunctionModel,
+  container: string,
+  line: number
+): StatementModel | null {
   return checksOf(module, fn, container, 0, line)[0] ?? null;
 }
 
@@ -108,8 +155,12 @@ function isLocal(fn: FunctionModel, container: string): boolean {
   if (root === 'self' || root === 'cls' || root === 'this') return false;
   const name = escapeRe(root);
   // Bound as a whole name — `x = …`, `const x = …`, `for x in`, `as x` — not a subscript store into it.
-  const binds = new RegExp(String.raw`^(?:(?:const|let|var)\s+)?${name}\s*(?::[^=]+)?=(?!=)|^(?:async\s+)?for\s+(?:[^=]*[\s,(])?${name}\b[^=]*\sin\s|\bas\s+${name}\b`);
-  return fn.params.includes(root) || fn.blocks.flat().some(s => binds.test(s.text));
+  const binds = new RegExp(
+    String.raw`^(?:(?:const|let|var)\s+)?${name}\s*(?::[^=]+)?=(?!=)|^(?:async\s+)?for\s+(?:[^=]*[\s,(])?${name}\b[^=]*\sin\s|\bas\s+${name}\b`
+  );
+  return (
+    fn.params.includes(root) || fn.blocks.flat().some(s => binds.test(s.text))
+  );
 }
 
 /** The statements the stored value comes from, through the function's own assignments, nearest first. */
@@ -131,13 +182,30 @@ function sources(fn: FunctionModel, store: Store): StatementModel[] {
 }
 
 /** Does the stored value (or what it comes from) hold an in-flight future / promise? */
-function inFlightValue(module: ModuleModel, fn: FunctionModel, store: Store, from: readonly StatementModel[]): boolean {
+function inFlightValue(
+  module: ModuleModel,
+  fn: FunctionModel,
+  store: Store,
+  from: readonly StatementModel[]
+): boolean {
   const texts = [store.value, ...from.map(s => s.text)];
-  if (module.language === 'python') return texts.some(text => PY_FUTURE.test(text));
-  if (/\bawait\b/.test(store.value) || from.some(s => s.awaits.length > 0)) return false;
-  const asyncNames = new Set(module.functions.filter(f => f.isAsync).map(f => f.shortName));
-  const callsAsync = texts.some(text => [...text.matchAll(/([A-Za-z_$][\w$]*)\s*\(/g)].some(m => asyncNames.has(m[1] as string)));
-  return callsAsync || texts.some(text => TS_PROMISE.test(text)) || awaitedLater(fn, store);
+  if (module.language === 'python')
+    return texts.some(text => PY_FUTURE.test(text));
+  if (/\bawait\b/.test(store.value) || from.some(s => s.awaits.length > 0))
+    return false;
+  const asyncNames = new Set(
+    module.functions.filter(f => f.isAsync).map(f => f.shortName)
+  );
+  const callsAsync = texts.some(text =>
+    [...text.matchAll(/([A-Za-z_$][\w$]*)\s*\(/g)].some(m =>
+      asyncNames.has(m[1] as string)
+    )
+  );
+  return (
+    callsAsync ||
+    texts.some(text => TS_PROMISE.test(text)) ||
+    awaitedLater(fn, store)
+  );
 }
 
 /** The stored name is awaited later in the function (`await p`): it was a promise. */
@@ -148,24 +216,40 @@ function awaitedLater(fn: FunctionModel, store: Store): boolean {
 }
 
 /** The await the stored value comes from, after the check. */
-function awaitedSource(store: Store, from: readonly StatementModel[], checkLine: number): { text: string; line: number } | null {
+function awaitedSource(
+  store: Store,
+  from: readonly StatementModel[],
+  checkLine: number
+): { text: string; line: number } | null {
   const candidates = [store.statement, ...from].filter(s => s.line > checkLine);
   for (const s of candidates) {
     const site = s.awaits[0];
     if (site && (s !== store.statement || /\bawait\b/.test(store.value))) {
-      return { text: site.call ? `${site.call.callee}(…)` : 'await', line: site.line };
+      return {
+        text: site.call ? `${site.call.callee}(…)` : 'await',
+        line: site.line,
+      };
     }
   }
   return null;
 }
 
-function removedOnFailure(module: ModuleModel, fn: FunctionModel, container: string): boolean {
+function removedOnFailure(
+  module: ModuleModel,
+  fn: FunctionModel,
+  container: string
+): boolean {
   const name = String.raw`(?:[\w$.]*\.)?${escapeRe(lastSegment(container))}`;
   const text = functionText(module, fn);
   const pattern =
     module.language === 'python'
-      ? new RegExp(String.raw`(?:^\s*except\b[^\n]*:|^\s*finally\s*:|add_done_callback)[\s\S]*?(?:\b${name}\.pop\(|\bdel\s+${name}\s*\[)`, 'm')
-      : new RegExp(String.raw`(?:\.catch\s*\(|\bcatch\s*(?:\([^)]*\))?\s*\{|\bfinally\s*(?:\(|\{))[\s\S]*?\b${name}\.delete\s*\(`);
+      ? new RegExp(
+          String.raw`(?:^\s*except\b[^\n]*:|^\s*finally\s*:|add_done_callback)[\s\S]*?(?:\b${name}\.pop\(|\bdel\s+${name}\s*\[)`,
+          'm'
+        )
+      : new RegExp(
+          String.raw`(?:\.catch\s*\(|\bcatch\s*(?:\([^)]*\))?\s*\{|\bfinally\s*(?:\(|\{))[\s\S]*?\b${name}\.delete\s*\(`
+        );
   return pattern.test(text);
 }
 
@@ -175,16 +259,29 @@ function removedOnFailure(module: ModuleModel, fn: FunctionModel, container: str
  * double-checked lock — a lock around the fetch alone still lets every
  * waiter fetch in turn); in TS/JS a mutex the function acquires.
  */
-function lockedCheckAndStore(module: ModuleModel, fn: FunctionModel, store: Store): boolean {
-  if (module.language !== 'python') return TS_LOCK.test(functionText(module, fn));
+function lockedCheckAndStore(
+  module: ModuleModel,
+  fn: FunctionModel,
+  store: Store
+): boolean {
+  if (module.language !== 'python')
+    return TS_LOCK.test(functionText(module, fn));
   return fn.blocks
     .flat()
     .some(
-      s => PY_LOCK.test(s.text) && s.line < store.line && store.line <= s.endLine && checksOf(module, fn, store.container, s.line, store.line).length > 0
+      s =>
+        PY_LOCK.test(s.text) &&
+        s.line < store.line &&
+        store.line <= s.endLine &&
+        checksOf(module, fn, store.container, s.line, store.line).length > 0
     );
 }
 
-function siteOf(module: ModuleModel, fn: FunctionModel, store: Store): FlightSite | null {
+function siteOf(
+  module: ModuleModel,
+  fn: FunctionModel,
+  store: Store
+): FlightSite | null {
   const check = checkOf(module, fn, store.container, store.line);
   if (!check) return null;
   const from = sources(fn, store);
@@ -205,9 +302,13 @@ function siteOf(module: ModuleModel, fn: FunctionModel, store: Store): FlightSit
 }
 
 /** Every check-then-store site: shared or per call, awaited, in flight, or computed without an await. */
-export function scanSingleFlight(modules: readonly ModuleModel[]): FlightSite[] {
+export function scanSingleFlight(
+  modules: readonly ModuleModel[]
+): FlightSite[] {
   return modules.flatMap(module =>
-    module.functions.flatMap(fn => storesOf(module, fn).flatMap(store => siteOf(module, fn, store) ?? []))
+    module.functions.flatMap(fn =>
+      storesOf(module, fn).flatMap(store => siteOf(module, fn, store) ?? [])
+    )
   );
 }
 

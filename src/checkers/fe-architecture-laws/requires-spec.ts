@@ -29,7 +29,11 @@ export class RequiresSpecLaw extends FeArchLawBase {
   private static readonly DEFAULT_LOC = 200;
 
   /** The violation for one candidate file, or null if no spec is required / one exists. */
-  private static checkFile(file: string, projectRoot: string, maxLoc: number): string | null {
+  private static checkFile(
+    file: string,
+    projectRoot: string,
+    maxLoc: number
+  ): string | null {
     const norm = file.replace(/\\/g, '/');
     if (!CANDIDATE.test(norm)) return null;
 
@@ -45,7 +49,8 @@ export class RequiresSpecLaw extends FeArchLawBase {
     if (!reason) return null;
 
     const base = file.replace(/\.[jt]sx?$/, '');
-    if (TEST_SUFFIXES.some(suffix => FileUtils.exists(base + suffix))) return null;
+    if (TEST_SUFFIXES.some(suffix => FileUtils.exists(base + suffix)))
+      return null;
     return `${PathOperations.getRelative(projectRoot, file)}: ${reason} but has no co-located *.spec.* / *.test.* — add one`;
   }
 
@@ -59,7 +64,9 @@ export class RequiresSpecLaw extends FeArchLawBase {
       this.inFeatureOrDataAccess(context, file)
     );
     const violations: string[] =
-      layered.length === 0 ? [this.emptyLayer(context, ['feature', 'dataAccess'])] : [];
+      layered.length === 0
+        ? [this.emptyLayer(context, ['feature', 'dataAccess'])]
+        : [];
     for (const file of layered) {
       const violation = this.checkFile(file, projectRoot, maxLoc);
       if (violation) violations.push(violation);

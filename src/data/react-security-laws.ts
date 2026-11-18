@@ -37,9 +37,10 @@ export const REACT_SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
         "Render text by default. Where HTML must be rendered, sanitize at the sink — __html: DOMPurify.sanitize(html) — naming any other sanitizer in thresholds.security.htmlSanitizers; for JSON-LD write __html: JSON.stringify(data).replace(/</g, '\\\\u003c'), or call a serializer that escapes '<' (serialize-javascript's serialize, say) named in thresholds.react.jsonSerializers. A function whose output is safe for another reason goes in thresholds.react.trustedHtmlFunctions with that reason.",
     },
     detectionLimits: [
-      'Judges the __html expression at the sink only: a value sanitized earlier and passed in through a variable is flagged; what a sanitizer or an allow-listed function does inside (a weak DOMPurify configuration) is not seen. Callees are matched by name as written (DOMPurify.sanitize is the one default, taken from the issue, not checked against an installed DOMPurify), and so are the names in thresholds.security.htmlSanitizers, thresholds.react.trustedHtmlFunctions and thresholds.react.jsonSerializers: whether a listed serializer really escapes \'<\' is not checked.',
+      "Judges the __html expression at the sink only: a value sanitized earlier and passed in through a variable is flagged; what a sanitizer or an allow-listed function does inside (a weak DOMPurify configuration) is not seen. Callees are matched by name as written (DOMPurify.sanitize is the one default, taken from the issue, not checked against an installed DOMPurify), and so are the names in thresholds.security.htmlSanitizers, thresholds.react.trustedHtmlFunctions and thresholds.react.jsonSerializers: whether a listed serializer really escapes '<' is not checked.",
       'Sees the JSX attribute and a `dangerouslySetInnerHTML` property in an object literal (createElement props). A props object built elsewhere and spread into the element is not seen; a sink given a variable instead of `{ __html: … }` is flagged as unreadable.',
-      "innerHTML written through a ref is the Angular Security XSS Prevention law's subject, not this one's. " + NO_CROSS_FILE_FLOW,
+      "innerHTML written through a ref is the Angular Security XSS Prevention law's subject, not this one's. " +
+        NO_CROSS_FILE_FLOW,
       NEEDS_THE_PARSER,
     ],
     emoji: '🧯',
@@ -76,9 +77,10 @@ export const REACT_SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
         'Build links from a fixed prefix — href={`/users/${id}`}, href={`https://maps.example.com/?q=${q}`} — and pass any user-supplied URL through one guard that allows only http(s)/mailto, named in thresholds.react.urlGuards.',
     },
     detectionLimits: [
-      "Only <a href> and <iframe src> written in JSX with a {…} value; <Link>, other elements, srcDoc, values set through a spread ({...props}) and string attributes are not judged.",
+      'Only <a href> and <iframe src> written in JSX with a {…} value; <Link>, other elements, srcDoc, values set through a spread ({...props}) and string attributes are not judged.',
       'Accepted without review: a literal; a template or a + chain whose static start is a path (/, ./, ../, #, ?), a relative path with a / before any colon, or an http/https/mailto/tel/sms scheme; null/undefined; a call to a guard named in thresholds.react.urlGuards (by callee name — what the guard does is not seen).',
-      'Without data flow it cannot tell a constant from user input: href={SITE_URL} is flagged like href={user.website}, so most findings need review — hence warning. ' + NO_CROSS_FILE_FLOW,
+      'Without data flow it cannot tell a constant from user input: href={SITE_URL} is flagged like href={user.website}, so most findings need review — hence warning. ' +
+        NO_CROSS_FILE_FLOW,
       "React's own javascript: blocking was read in react-dom 19.3.0 only; earlier majors were not checked here.",
       NEEDS_THE_PARSER,
     ],

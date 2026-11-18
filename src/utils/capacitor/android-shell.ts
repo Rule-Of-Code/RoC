@@ -52,20 +52,32 @@ export class AndroidShell {
 
   /** android/app/src — the parent of every source set. */
   static srcDir(native: CapacitorNativePaths): string {
-    return PathOperations.getDirectory(PathOperations.getDirectory(native.androidManifest));
+    return PathOperations.getDirectory(
+      PathOperations.getDirectory(native.androidManifest)
+    );
   }
 
   /** The committed view of a project's Android shell. */
-  static committed(projectRoot: string, native: CapacitorNativePaths): CommittedShell {
+  static committed(
+    projectRoot: string,
+    native: CapacitorNativePaths
+  ): CommittedShell {
     return CommittedShell.of(projectRoot, [native.androidDir]);
   }
 
   /** Every directory under app/src that the shell holds, with the path of its manifest. */
-  static sourceSets(native: CapacitorNativePaths, shell: CommittedShell): AndroidSourceSet[] {
+  static sourceSets(
+    native: CapacitorNativePaths,
+    shell: CommittedShell
+  ): AndroidSourceSet[] {
     const src = this.srcDir(native);
     return shell.childDirs(src).map(name => {
       const dir = PathOperations.join(src, name);
-      return { name, dir, manifest: PathOperations.join(dir, ANDROID_MANIFEST_FILE) };
+      return {
+        name,
+        dir,
+        manifest: PathOperations.join(dir, ANDROID_MANIFEST_FILE),
+      };
     });
   }
 
@@ -76,21 +88,32 @@ export class AndroidShell {
   static buildScript(
     native: CapacitorNativePaths,
     shell: CommittedShell
-  ): NativeFile | { file: string; notRead: Exclude<CommittedRead, { state: 'read' }> } {
+  ):
+    | NativeFile
+    | { file: string; notRead: Exclude<CommittedRead, { state: 'read' }> } {
     const groovy = native.androidAppBuildGradle;
-    let first: { file: string; notRead: Exclude<CommittedRead, { state: 'read' }> } | null = null;
+    let first: {
+      file: string;
+      notRead: Exclude<CommittedRead, { state: 'read' }>;
+    } | null = null;
     for (const file of [groovy, `${groovy}.kts`]) {
       const read = shell.read(file);
       if (read.state === 'read') return { file, text: read.text };
       // Report the more telling reason: a script on disk but not committed over one that is absent.
-      if (!first || (first.notRead.state === 'absent' && read.state !== 'absent')) first = { file, notRead: read };
+      if (
+        !first ||
+        (first.notRead.state === 'absent' && read.state !== 'absent')
+      )
+        first = { file, notRead: read };
     }
     return first ?? { file: groovy, notRead: { state: 'absent' } };
   }
 
   /** The attributes of the manifest's `<application>` element; null when there is none. */
   static applicationAttributes(manifest: string): Map<string, string> | null {
-    const tag = /<application\b([^>]*)>/.exec(manifest.replace(XML_COMMENT, ' '));
+    const tag = /<application\b([^>]*)>/.exec(
+      manifest.replace(XML_COMMENT, ' ')
+    );
     if (!tag) return null;
     return this.attributes(tag[1] ?? '');
   }
@@ -142,16 +165,23 @@ export class AndroidShell {
     const name = /^@bool\/([\w.]+)$/.exec(reference.trim())?.[1];
     if (!name) return null;
     const src = this.srcDir(native);
-    const definition = new RegExp(`<bool\\b[^>]*\\bname\\s*=\\s*["']${name.replace(/\./g, '\\.')}["'][^>]*>([^<]*)</bool>`, 'g');
+    const definition = new RegExp(
+      `<bool\\b[^>]*\\bname\\s*=\\s*["']${name.replace(/\./g, '\\.')}["'][^>]*>([^<]*)</bool>`,
+      'g'
+    );
     const files = [...new Set([sourceSet, 'main'])].flatMap(set => {
       const res = PathOperations.join(src, set, 'res');
       return shell
         .childDirs(res)
         .filter(child => child === 'values' || child.startsWith('values-'))
-        .flatMap(dir => shell.filesUnder(PathOperations.join(res, dir), ['.xml']));
+        .flatMap(dir =>
+          shell.filesUnder(PathOperations.join(res, dir), ['.xml'])
+        );
     });
     const values = files.flatMap(file =>
-      [...this.withoutComments(shell.text(file) ?? '').matchAll(definition)].map(match => ({
+      [
+        ...this.withoutComments(shell.text(file) ?? '').matchAll(definition),
+      ].map(match => ({
         file,
         value: (match[1] ?? '').trim(),
       }))

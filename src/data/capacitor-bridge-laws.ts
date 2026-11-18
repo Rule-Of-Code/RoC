@@ -119,7 +119,7 @@ export const CAPACITOR_BRIDGE_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '4.72',
     title: 'Capacitor Listener Handles Released',
     rationale:
-      "A Capacitor plugin listener lives as long as the WebView and ends only through its PluginListenerHandle.remove() or removeAllListeners(). Registered from a component or page that drops the handle, it adds one more live listener per instance, and under ion-router-outlet a new page instance comes with every forward navigation. Handlers run N times and the page leaks, and the RxJS, timer and addEventListener cleanup laws do not see plugin listeners.",
+      'A Capacitor plugin listener lives as long as the WebView and ends only through its PluginListenerHandle.remove() or removeAllListeners(). Registered from a component or page that drops the handle, it adds one more live listener per instance, and under ion-router-outlet a new page instance comes with every forward navigation. Handlers run N times and the page leaks, and the RxJS, timer and addEventListener cleanup laws do not see plugin listeners.',
     satisfiedBy: {
       capacitor:
         'Register plugin listeners in a root service or app initializer and expose them as an Observable/signal; if a component must register one, keep the handle and remove() it in DestroyRef.onDestroy (or ionViewWillLeave for per-visit listeners).',

@@ -103,7 +103,10 @@ describe('build configurations are environment configuration', () => {
    */
   it('still reports a target with only one configuration', () => {
     write('nx.json', '{}');
-    write('apps/web/project.json', projectJson({ production: { budgets: [] } }));
+    write(
+      'apps/web/project.json',
+      projectJson({ production: { budgets: [] } })
+    );
 
     expect(detected()).toBe(false);
   });

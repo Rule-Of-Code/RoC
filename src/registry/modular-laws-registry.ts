@@ -213,6 +213,15 @@ import {
   StartupRequestFanOutLaw,
 } from '../checkers/client-deploy-laws';
 
+// Edge proxy and deploy-security laws
+import {
+  HostingRewriteRegionMatchesDeployLaw,
+  JobDefinitionDumpsMaskedLaw,
+  ProxyTargetKeepsOriginHostLaw,
+  TestBuildsUseOwnFirebaseConfigLaw,
+  WorkerPublicUrlsDeclaredLaw,
+} from '../checkers/edge-deploy-laws';
+
 // Integrity Laws Modular Imports — migrations, CHECKs, guards, tsconfig, retention
 import {
   DrizzleMigrationJournalIntegrityLaw,
@@ -374,7 +383,11 @@ import { TodoManagementStandardsLaw } from '../laws/documentation/todo-managemen
 
 import { ComponentSelectorPrefixLaw } from '../checkers/angular-laws/component-selector-prefix';
 import { ALL_ENHANCED_CONSTITUTIONAL_LAWS } from '../data/enhanced-laws';
-import type { EnhancedConstitutionalLaw, LawRequirement } from '../types/enhanced-law.types';
+import { paretoCoreIds } from '../data/pareto-core';
+import type {
+  EnhancedConstitutionalLaw,
+  LawRequirement,
+} from '../types/enhanced-law.types';
 import type {
   ConstitutionalLaw,
   LawCheckContext,
@@ -394,11 +407,33 @@ export class ModularLawsRegistry {
    * Get laws by categories
    */
   getLawsByCategories(categories: string[]): ConstitutionalLaw[] {
-    const constitution = this.getAllLaws();
-    return constitution.filter((law: ConstitutionalLaw) =>
-      categories.some(
-        category => law.category === category || law.id.includes(category)
-      )
+    return this.getAllLaws().filter(law =>
+      ModularLawsRegistry.matchesCategories(law, categories)
+    );
+  }
+
+  /** A law of one of `categories` (by its category, or a category word in its id). */
+  static matchesCategories(
+    law: { id: string; category: string },
+    categories: readonly string[]
+  ): boolean {
+    return categories.some(
+      category => law.category === category || law.id.includes(category)
+    );
+  }
+
+  /**
+   * Narrow a selection to `categories` (none: unchanged). The always-on
+   * meta-gates stay whatever their category: a narrowing must not remove
+   * the gates that judge it (#370).
+   */
+  static inCategories<
+    T extends { id: string; category: string; alwaysEnabled?: boolean },
+  >(laws: T[], categories: readonly string[]): T[] {
+    if (categories.length === 0) return laws;
+    return laws.filter(
+      law =>
+        law.alwaysEnabled === true || this.matchesCategories(law, categories)
     );
   }
 
@@ -602,28 +637,42 @@ export class ModularLawsRegistry {
     'ClientIpSingleBoundaryLaw.check': ClientIpSingleBoundaryLaw,
 
     // Capacitor Laws (gated on @capacitor/core + a Capacitor config)
-    'CapacitorLoggingNeverProductionLaw.check': CapacitorLoggingNeverProductionLaw,
-    'CapacitorWebviewOriginDeclaredLaw.check': CapacitorWebviewOriginDeclaredLaw,
+    'CapacitorLoggingNeverProductionLaw.check':
+      CapacitorLoggingNeverProductionLaw,
+    'CapacitorWebviewOriginDeclaredLaw.check':
+      CapacitorWebviewOriginDeclaredLaw,
     'CapacitorNoDevOnlyServerKeysLaw.check': CapacitorNoDevOnlyServerKeysLaw,
     'CapacitorPluginConfigDeclaredLaw.check': CapacitorPluginConfigDeclaredLaw,
-    'CapacitorSinglePlatformBoundaryLaw.check': CapacitorSinglePlatformBoundaryLaw,
-    'CapacitorPluginPlatformDeclarationsLaw.check': CapacitorPluginPlatformDeclarationsLaw,
+    'CapacitorSinglePlatformBoundaryLaw.check':
+      CapacitorSinglePlatformBoundaryLaw,
+    'CapacitorPluginPlatformDeclarationsLaw.check':
+      CapacitorPluginPlatformDeclarationsLaw,
     'CapacitorDeepLinkContractLaw.check': CapacitorDeepLinkContractLaw,
-    'CapacitorSyncArtefactsMatchDependenciesLaw.check': CapacitorSyncArtefactsMatchDependenciesLaw,
+    'CapacitorSyncArtefactsMatchDependenciesLaw.check':
+      CapacitorSyncArtefactsMatchDependenciesLaw,
     // Capacitor native-shell laws (gated on the platform package as well)
-    'CapacitorAndroidCleartextDebugOnlyLaw.check': CapacitorAndroidCleartextDebugOnlyLaw,
-    'CapacitorFirebaseNativeConfigNotSkippedLaw.check': CapacitorFirebaseNativeConfigNotSkippedLaw,
+    'CapacitorAndroidCleartextDebugOnlyLaw.check':
+      CapacitorAndroidCleartextDebugOnlyLaw,
+    'CapacitorFirebaseNativeConfigNotSkippedLaw.check':
+      CapacitorFirebaseNativeConfigNotSkippedLaw,
     'CapacitorAndroidBackupScopedLaw.check': CapacitorAndroidBackupScopedLaw,
-    'CapacitorIosPrivacyManifestDeclaredLaw.check': CapacitorIosPrivacyManifestDeclaredLaw,
-    'CapacitorSigningSecretsOutsideRepoLaw.check': CapacitorSigningSecretsOutsideRepoLaw,
+    'CapacitorIosPrivacyManifestDeclaredLaw.check':
+      CapacitorIosPrivacyManifestDeclaredLaw,
+    'CapacitorSigningSecretsOutsideRepoLaw.check':
+      CapacitorSigningSecretsOutsideRepoLaw,
 
     // Capacitor bridge laws (back button, local plugins, listeners, web-side decisions)
-    'CapacitorAndroidBackHasOneOwnerLaw.check': CapacitorAndroidBackHasOneOwnerLaw,
+    'CapacitorAndroidBackHasOneOwnerLaw.check':
+      CapacitorAndroidBackHasOneOwnerLaw,
     'CapacitorLocalPluginContractLaw.check': CapacitorLocalPluginContractLaw,
-    'CapacitorListenerHandlesReleasedLaw.check': CapacitorListenerHandlesReleasedLaw,
-    'CapacitorServiceWorkerNativeDecisionLaw.check': CapacitorServiceWorkerNativeDecisionLaw,
-    'CapacitorDurableStateOffWebviewStorageLaw.check': CapacitorDurableStateOffWebviewStorageLaw,
-    'CapacitorPluginStubHasContractTestLaw.check': CapacitorPluginStubHasContractTestLaw,
+    'CapacitorListenerHandlesReleasedLaw.check':
+      CapacitorListenerHandlesReleasedLaw,
+    'CapacitorServiceWorkerNativeDecisionLaw.check':
+      CapacitorServiceWorkerNativeDecisionLaw,
+    'CapacitorDurableStateOffWebviewStorageLaw.check':
+      CapacitorDurableStateOffWebviewStorageLaw,
+    'CapacitorPluginStubHasContractTestLaw.check':
+      CapacitorPluginStubHasContractTestLaw,
 
     // React Laws (gated on react / next)
     'ReactDangerousHtmlGuardedLaw.check': ReactDangerousHtmlGuardedLaw,
@@ -656,20 +705,32 @@ export class ModularLawsRegistry {
     'NextLoadingForAsyncPageLaw.check': NextLoadingForAsyncPageLaw,
 
     // Integrity Laws (migrations, CHECKs, guards, tsconfig, retention)
-    'DrizzleMigrationJournalIntegrityLaw.check': DrizzleMigrationJournalIntegrityLaw,
+    'DrizzleMigrationJournalIntegrityLaw.check':
+      DrizzleMigrationJournalIntegrityLaw,
     'SqlCheckConstraintNullPassesLaw.check': SqlCheckConstraintNullPassesLaw,
-    'GuardFunctionHasProductionCallerLaw.check': GuardFunctionHasProductionCallerLaw,
-    'TsconfigExcludeLeavesCodeUntypedLaw.check': TsconfigExcludeLeavesCodeUntypedLaw,
+    'GuardFunctionHasProductionCallerLaw.check':
+      GuardFunctionHasProductionCallerLaw,
+    'TsconfigExcludeLeavesCodeUntypedLaw.check':
+      TsconfigExcludeLeavesCodeUntypedLaw,
     'RetentionRegistryCoversSchemaLaw.check': RetentionRegistryCoversSchemaLaw,
 
     // Client start-up and deploy-settings laws
     'StartupRequestFanOutLaw.check': StartupRequestFanOutLaw,
     'PrimaryLocaleFontPreloadedLaw.check': PrimaryLocaleFontPreloadedLaw,
     'ServerlessDeployPinsResourcesLaw.check': ServerlessDeployPinsResourcesLaw,
+    // Edge proxy and deploy-security laws
+    'ProxyTargetKeepsOriginHostLaw.check': ProxyTargetKeepsOriginHostLaw,
+    'WorkerPublicUrlsDeclaredLaw.check': WorkerPublicUrlsDeclaredLaw,
+    'HostingRewriteRegionMatchesDeployLaw.check':
+      HostingRewriteRegionMatchesDeployLaw,
+    'TestBuildsUseOwnFirebaseConfigLaw.check':
+      TestBuildsUseOwnFirebaseConfigLaw,
+    'JobDefinitionDumpsMaskedLaw.check': JobDefinitionDumpsMaskedLaw,
     // Measurement Laws (latency budget harness, tracing, test-server loopback)
     'LatencyBudgetHarnessRealismLaw.check': LatencyBudgetHarnessRealismLaw,
     'TracingExplainsLatencyLaw.check': TracingExplainsLatencyLaw,
-    'TestServerLoopbackAddressMatchLaw.check': TestServerLoopbackAddressMatchLaw,
+    'TestServerLoopbackAddressMatchLaw.check':
+      TestServerLoopbackAddressMatchLaw,
     // Cache and harness laws
     'DatabaseReadCacheSafetyLaw.check': DatabaseReadCacheSafetyLaw,
     'AsyncCacheSingleFlightLaw.check': AsyncCacheSingleFlightLaw,
@@ -679,13 +740,18 @@ export class ModularLawsRegistry {
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,
     'IonicPageStateReadOnEnterLaw.check': IonicPageStateReadOnEnterLaw,
-    'IonicLeaveCancelsWhatEnterStartedLaw.check': IonicLeaveCancelsWhatEnterStartedLaw,
+    'IonicLeaveCancelsWhatEnterStartedLaw.check':
+      IonicLeaveCancelsWhatEnterStartedLaw,
     'IonicNoSkipLocationChangeLaw.check': IonicNoSkipLocationChangeLaw,
     'IonicUniqueUrlKeyPerViewLaw.check': IonicUniqueUrlKeyPerViewLaw,
-    'IonicSessionExitUsesNavigateRootLaw.check': IonicSessionExitUsesNavigateRootLaw,
-    'IonicRouteReuseStrategyProvidedLaw.check': IonicRouteReuseStrategyProvidedLaw,
-    'IonicNavigationSpecsMountTheOutletLaw.check': IonicNavigationSpecsMountTheOutletLaw,
-    'IonicE2eLocatorsTargetTheShownPageLaw.check': IonicE2eLocatorsTargetTheShownPageLaw,
+    'IonicSessionExitUsesNavigateRootLaw.check':
+      IonicSessionExitUsesNavigateRootLaw,
+    'IonicRouteReuseStrategyProvidedLaw.check':
+      IonicRouteReuseStrategyProvidedLaw,
+    'IonicNavigationSpecsMountTheOutletLaw.check':
+      IonicNavigationSpecsMountTheOutletLaw,
+    'IonicE2eLocatorsTargetTheShownPageLaw.check':
+      IonicE2eLocatorsTargetTheShownPageLaw,
 
     // Ionic rendering-model laws (gated on an Ionic binding)
     'IonicViewHooksOnlyOnPagesLaw.check': IonicViewHooksOnlyOnPagesLaw,
@@ -724,7 +790,8 @@ export class ModularLawsRegistry {
     checkBundleOptimizationStrategy: BundleOptimizationStrategyLaw,
     checkPerformanceStandards: PerformanceStandardsLaw,
     checkDatabaseQueryOptimization: DatabaseQueryOptimizationLaw,
-    'IndependentAwaitsRunConcurrentlyLaw.check': IndependentAwaitsRunConcurrentlyLaw,
+    'IndependentAwaitsRunConcurrentlyLaw.check':
+      IndependentAwaitsRunConcurrentlyLaw,
     'DocumentReadOncePerRequestLaw.check': DocumentReadOncePerRequestLaw,
     'CountWithAggregationLaw.check': CountWithAggregationLaw,
     checkCDNAndCachingStrategy: CdnCachingStrategyLaw,
@@ -840,7 +907,13 @@ export class ModularLawsRegistry {
     law?: { staticSiteHtml?: boolean },
     ignores?: readonly string[]
   ): boolean {
-    return LawIdentity.lawAppliesToProjectType(stack, projectType, projectRoot, law, ignores);
+    return LawIdentity.lawAppliesToProjectType(
+      stack,
+      projectType,
+      projectRoot,
+      law,
+      ignores
+    );
   }
 
   /** Identity keys that resolve to exactly ONE law — the only ones a config may use. */
@@ -951,7 +1024,8 @@ export class ModularLawsRegistry {
       // what a config that already set its severity meant.
       return LawIdentity.runsWithoutAllowlist(
         law,
-        (config.laws as Record<string, unknown>).severity as Record<string, unknown> | undefined
+        (config.laws as Record<string, unknown>).severity as
+          Record<string, unknown> | undefined
       );
     });
   }
@@ -1099,11 +1173,16 @@ export class ModularLawsRegistry {
     return 'low';
   }
 
+  /**
+   * Whether a law is in the Pareto core — derived from the registry's own
+   * fields by the rule in data/pareto-core (#383), never from a list.
+   */
   static isParetoCore(law: EnhancedConstitutionalLaw): boolean {
-    // Import the actual Pareto categories to ensure consistency
-    const { PARETO_CATEGORIES } = require('../data/pareto-optimization');
-    return PARETO_CATEGORIES.HIGH_IMPACT.includes(law.id);
+    this.paretoCore ??= paretoCoreIds(ALL_ENHANCED_CONSTITUTIONAL_LAWS);
+    return this.paretoCore.has(law.id);
   }
+
+  private static paretoCore: Set<string> | undefined;
 
   /**
    * The frameworks a law is about. `requires` is the authority: a law gated
@@ -1121,7 +1200,8 @@ export class ModularLawsRegistry {
     if (law.description.includes('TypeScript')) frameworks.add('typescript');
     if (law.description.includes('Ionic')) frameworks.add('ionic');
     if (law.description.includes('Capacitor')) frameworks.add('capacitor');
-    for (const framework of this.requiredFrameworks(law.requires)) frameworks.add(framework);
+    for (const framework of this.requiredFrameworks(law.requires))
+      frameworks.add(framework);
     return frameworks.size > 0 ? [...frameworks] : ['*'];
   }
 
@@ -1139,7 +1219,8 @@ export class ModularLawsRegistry {
       if (framework) found.add(framework);
     }
     const any = (requires.anyDependency ?? []).map(frameworkOfPackage);
-    if (any.length > 0 && any.every(Boolean)) any.forEach(framework => found.add(framework as string));
+    if (any.length > 0 && any.every(Boolean))
+      any.forEach(framework => found.add(framework as string));
     return [...found];
   }
 }
@@ -1147,9 +1228,12 @@ export class ModularLawsRegistry {
 /** The framework a package belongs to, in the `applicableFrameworks` vocabulary; null for none. */
 export function frameworkOfPackage(name: string): string | null {
   if (name.startsWith('@ionic/')) return 'ionic';
-  if (name.startsWith('@capacitor/') || name.startsWith('@capacitor-firebase/')) return 'capacitor';
-  if (name.startsWith('@angular/') || name.startsWith('@ngrx/')) return 'angular';
-  if (['react', 'react-dom', 'next', '@testing-library/react'].includes(name)) return 'react';
+  if (name.startsWith('@capacitor/') || name.startsWith('@capacitor-firebase/'))
+    return 'capacitor';
+  if (name.startsWith('@angular/') || name.startsWith('@ngrx/'))
+    return 'angular';
+  if (['react', 'react-dom', 'next', '@testing-library/react'].includes(name))
+    return 'react';
   if (['vue', 'nuxt'].includes(name)) return 'vue';
   if (name === 'typescript') return 'typescript';
   return null;

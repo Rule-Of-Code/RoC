@@ -1,10 +1,9 @@
-import type { RuleOfCodeConfig } from "../../../../types";
-import { CSPConfigurationAnalyzer } from "./csp-configuration.analyzer";
-import { DangerousPatternsAnalyzer } from "./dangerous-patterns.analyzer";
-import { InputSanitizationAnalyzer } from "./input-sanitization.analyzer";
-import { SecurityHeadersAnalyzer } from "./security-headers.analyzer";
-import { TemplateSafetyAnalyzer } from "./template-safety.analyzer";
-
+import type { RuleOfCodeConfig } from '../../../../types';
+import { CSPConfigurationAnalyzer } from './csp-configuration.analyzer';
+import { DangerousPatternsAnalyzer } from './dangerous-patterns.analyzer';
+import { InputSanitizationAnalyzer } from './input-sanitization.analyzer';
+import { SecurityHeadersAnalyzer } from './security-headers.analyzer';
+import { TemplateSafetyAnalyzer } from './template-safety.analyzer';
 
 /**
  * XSSPreventionAnalyzerService

@@ -38,7 +38,9 @@ describe('a magic number is unnamed, and in code', () => {
      * the scan computed afterwards points somewhere else.
      */
     it('an apostrophe in prose does not blank the rest of the file', () => {
-      expect(found(`const s = "it's fine";\nif (x > 4242) {}`)).toContain('4242');
+      expect(found(`const s = "it's fine";\nif (x > 4242) {}`)).toContain(
+        '4242'
+      );
     });
 
     it('an escaped quote does not close the literal early', () => {
@@ -64,15 +66,19 @@ describe('a magic number is unnamed, and in code', () => {
       [`const q = /['"]/;\nif (x > 4242) {}`, '4242', 'quotes inside a regex'],
       [`const r = /it\\'s/;\nif (y > 8080) {}`, '8080', 'an escaped quote'],
       [`const s = /a\\/b/;\nif (z > 7777) {}`, '7777', 'an escaped slash'],
-      [`const c = /[/'"]/;\nif (w > 6666) {}`, '6666', 'a slash inside a class'],
+      [
+        `const c = /[/'"]/;\nif (w > 6666) {}`,
+        '6666',
+        'a slash inside a class',
+      ],
     ])('still sees code after %s', (source, expected) => {
       expect(found(source)).toContain(expected);
     });
 
     it('does not mistake division for a regex', () => {
-      expect(found('const d = a / 2; const e = b / 3;\nif (v > 5555) {}')).toContain(
-        '5555'
-      );
+      expect(
+        found('const d = a / 2; const e = b / 3;\nif (v > 5555) {}')
+      ).toContain('5555');
     });
 
     it('reports nothing from the regex itself', () => {

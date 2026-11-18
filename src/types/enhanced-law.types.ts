@@ -50,6 +50,13 @@ export interface LawRequirement {
   allDependencies?: readonly string[];
   /** At least one of these files exists at the workspace root or in a workspace project directory. */
   anyFile?: readonly string[];
+  /**
+   * At least one of these Python distributions is declared by a Python
+   * manifest (requirements*.txt, pyproject.toml, Pipfile, setup.cfg/py).
+   * Names compare in PEP 503 form. `anyDependency` reads package.json only,
+   * so a law about a Python library cannot be gated with it.
+   */
+  anyPythonDependency?: readonly string[];
 }
 
 export interface EnhancedConstitutionalLaw {

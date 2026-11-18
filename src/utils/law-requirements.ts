@@ -20,6 +20,7 @@ import { minimatch } from 'minimatch';
 import { FileSystemOperations } from './file-system-operations';
 import { trackedFiles } from './git/git-layout';
 import { NxWorkspace } from './nx-workspace';
+import { declaredPythonDependencies, normalizePythonName } from './python-dependencies';
 
 type Manifest = {
   dependencies?: Record<string, string>;
@@ -73,6 +74,12 @@ export function lawRequirementsMet(
   }
   if (requires.anyFile?.length) {
     if (presentRequiredFiles(projectRoot, requires.anyFile).length === 0) {
+      return false;
+    }
+  }
+  if (requires.anyPythonDependency?.length) {
+    const declared = declaredPythonDependencies(projectRoot);
+    if (!requires.anyPythonDependency.some(name => declared.has(normalizePythonName(name)))) {
       return false;
     }
   }
@@ -216,6 +223,9 @@ export function describeRequirement(requires: LawRequirement): string {
   }
   if (requires.anyFile?.length) {
     parts.push(requires.anyFile.join(' or '));
+  }
+  if (requires.anyPythonDependency?.length) {
+    parts.push(`a Python dependency on ${requires.anyPythonDependency.join(' or ')}`);
   }
   return parts.join(', and ');
 }

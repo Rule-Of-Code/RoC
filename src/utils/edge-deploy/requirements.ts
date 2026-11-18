@@ -7,6 +7,7 @@
  */
 
 import type { LawRequirement } from '../../types/enhanced-law.types';
+import { commandPattern, DUMP_COMMANDS, PY_GAP, SHELL_GAP } from './definition-dumps';
 import { TEST_TREES } from './gate-files';
 import { RUN_APP_URL } from './rewrite-region';
 
@@ -40,7 +41,7 @@ export const REQUIRES_PROXY_UPSTREAM_URL: LawRequirement = {
  * dash, a shell operator or keyword, a YAML key (`run: …`, `run: |`) —
  * never after a `#` on the line, so a comment selects nothing.
  */
-const AT_COMMAND = String.raw`^(?![ \t]*#)(?:[ \t]*(?:-[ \t]+)?|[^\n#]*?(?:[;&|(][ \t]*|:[ \t]*(?:[|>][-+]?)?[ \t]*|\b(?:then|do|else|exec|env|sudo)[ \t]+))`;
+const AT_COMMAND = String.raw`^(?![ \t]*#)(?:[ \t]*(?:-[ \t]+)?|[^\n#]*?(?:[;&|(][ \t]*|:[ \t]*(?:[|>][-+]?)?[ \t]*|\b(?:if|elif|while|until|then|do|else|exec|env|sudo)[ \t]+))`;
 const JS_RUNNER = String.raw`(?:(?:npx|bunx|pnpm(?:[ \t]+(?:exec|dlx))?|yarn)[ \t]+)?`;
 
 /** Shell scripts, Makefiles and CI YAML — where a deploy sequence is written in order. */
@@ -82,5 +83,16 @@ export const REQUIRES_FIREBASE_APP_CONFIG: LawRequirement = {
   anyFileContaining: [
     { files: ['**/google-services.json'], pattern: String.raw`"project_id"\s*:`, exclude: TEST_TREES },
     { files: ['**/GoogleService-Info.plist'], pattern: String.raw`<key>PROJECT_ID</key>`, exclude: TEST_TREES },
+  ],
+};
+
+const DUMPS_IN_SHELL = DUMP_COMMANDS.map(command => commandPattern(command.words, SHELL_GAP)).join('|');
+const DUMPS_IN_PYTHON = DUMP_COMMANDS.map(command => commandPattern(command.words, PY_GAP)).join('|');
+
+/** A script that runs a command printing a job / scheduler definition with its secret values. */
+export const REQUIRES_DEFINITION_DUMP: LawRequirement = {
+  anyFileContaining: [
+    { files: SCRIPT_FILES, pattern: `${AT_COMMAND}(?:${DUMPS_IN_SHELL})`, exclude: TEST_TREES },
+    { files: ['**/*.py'], pattern: `["'](?:${DUMPS_IN_PYTHON})`, exclude: [...TEST_TREES, ...PY_TEST_FILES] },
   ],
 };

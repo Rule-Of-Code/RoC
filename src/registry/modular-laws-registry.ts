@@ -216,6 +216,7 @@ import {
 // Edge proxy and deploy-security laws
 import {
   HostingRewriteRegionMatchesDeployLaw,
+  JobDefinitionDumpsMaskedLaw,
   ProxyTargetKeepsOriginHostLaw,
   TestBuildsUseOwnFirebaseConfigLaw,
   WorkerPublicUrlsDeclaredLaw,
@@ -672,6 +673,7 @@ export class ModularLawsRegistry {
     'WorkerPublicUrlsDeclaredLaw.check': WorkerPublicUrlsDeclaredLaw,
     'HostingRewriteRegionMatchesDeployLaw.check': HostingRewriteRegionMatchesDeployLaw,
     'TestBuildsUseOwnFirebaseConfigLaw.check': TestBuildsUseOwnFirebaseConfigLaw,
+    'JobDefinitionDumpsMaskedLaw.check': JobDefinitionDumpsMaskedLaw,
     // Measurement Laws (latency budget harness, tracing, test-server loopback)
     'LatencyBudgetHarnessRealismLaw.check': LatencyBudgetHarnessRealismLaw,
     'TracingExplainsLatencyLaw.check': TracingExplainsLatencyLaw,

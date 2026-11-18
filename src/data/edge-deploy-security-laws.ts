@@ -12,6 +12,7 @@
 
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import {
+  REQUIRES_DEFINITION_DUMP,
   REQUIRES_FIREBASE_APP_CONFIG,
   REQUIRES_HOSTING_RUN_REWRITE,
   REQUIRES_PROXY_UPSTREAM_URL,
@@ -181,5 +182,45 @@ export const EDGE_DEPLOY_SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article XXIII.23.11: A non-release build bundles the production Firebase config with Messaging auto-init on',
     remediation:
       'Give non-release builds their own Firebase config from a dev project, or turn Messaging auto-init off for them',
+  },
+
+  {
+    id: generateLawId(
+      'Job Definition Dumps Masked',
+      'A script that saves a cloud scheduler or job definition to a file or a log removes the secret headers and values first',
+      'security'
+    ),
+    legacyId: 899,
+    article: 'XXIII',
+    subsection: '23.12',
+    title: 'Job Definition Dumps Masked',
+    rationale:
+      'gcloud scheduler jobs describe and list --format=json return a job\'s HTTP headers verbatim. When a job sends a shared secret in a header — an origin-verification header — any script that saves that output as evidence, a backup or a log writes the secret in plain text. A region move that lists every job to a JSON file is enough; nobody looks for a secret in a listing.',
+    satisfiedBy: {
+      typescript:
+        "gcloud scheduler jobs list --format=json | jq 'del(.[].httpTarget.headers)' > jobs.json, or --format=\"value(name,schedule,state)\", or pipe through a redact helper before the file.",
+      python:
+        'Delete job["httpTarget"]["headers"] (or call a redact/mask helper) before json.dump; or ask gcloud only for the fields you need with a --format projection.',
+    },
+    detectionLimits: [
+      'Commands (a registry, each checked against its reference): gcloud [alpha|beta] scheduler jobs describe (default YAML, the whole job) and scheduler jobs list (default table without headers — judged only with --format=json|yaml), gcloud run jobs describe and gcloud functions describe (the whole resource, environment included), aws events list-targets-by-rule (JSON by default; HttpParameters.HeaderParameters) and az functionapp config appsettings list (setting values in plain text). A gcloud --format projection, or an aws/az --query, that does not name headers, environment or values is not a dump. Azure Logic Apps (az logic workflow show) and EventBridge Scheduler are not in the registry: their outputs were not confirmed to carry header values.',
+      'A dump leaks when its output goes to a file (>, >>, tee, Out-File, Set-Content, Add-Content, Tee-Object) or, in a CI pipeline file (.github/workflows, .gitlab-ci, bitbucket/azure pipelines, CircleCI, cloudbuild*.yaml), unpiped into the job log. Masked: a jq/yq stage with del(…) of a header/env/value field, a sed stage on header or secret values, a stage whose command name says mask/redact/scrub/sanitize, or such a helper run later in the file on the file written. A jq/yq filter that is not del(…) or the identity is listed as not judged, as is output captured into a variable ($(…)).',
+      'Python is read as text: a string or list argument that spells one of the commands, in a file that writes files (open(…, "w"/"a"/"x"), write_text, stdout= a handle) and has no mask/redact/scrub/sanitize name or headers deletion anywhere, is a finding; the data flow from the command to the write is not followed. Cloud SDK clients (google-cloud-scheduler, boto3, azure-mgmt) and package.json scripts are not read.',
+      `Selected only where a shell script, Makefile or CI YAML runs one of the commands at a command position (not in a comment), or a .py file (test_*.py, *_test.py, conftest.py excluded) holds one in a string. ${GATE_READ} A pass names the commands judged and the files read (also in the result's metrics).`,
+    ],
+    emoji: '🗝️',
+    description:
+      'A script that saves a cloud scheduler or job definition to a file or a log removes the secret headers and values first',
+    priority: 'HIGH',
+    category: 'SECURITY',
+    requires: REQUIRES_DEFINITION_DUMP,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'JobDefinitionDumpsMaskedLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXIII.23.12: A script saves a job definition with its secret headers in plain text',
+    remediation:
+      "Delete the header and secret fields before the output reaches a file or a log (jq 'del(.[].httpTarget.headers)', a redact helper), or print only the fields you need",
   },
 ];

@@ -70,6 +70,8 @@ export class ProxyTargetKeepsOriginHostLaw extends EdgeDeployLawBase {
         'Reject an incoming path that does not start with exactly one "/" (//host and /\\host are other hosts)',
       ],
       metrics: { urlCalls: calls },
+      parserUnavailable:
+        ts === null && files.some(file => !file.rel.endsWith('.py')),
     });
   }
 

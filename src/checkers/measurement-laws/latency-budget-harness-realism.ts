@@ -14,15 +14,20 @@
  * whose content holds endpoint latency keys — p50/p90/p95/p99, latency,
  * response time, `*_ms`, a `"/path": 300ms` value — and none of the keys of a
  * frontend size or timing budget (Lighthouse, Angular, webpack, bundlesize,
- * size-limit): {@link LATENCY_BUDGET_PATTERN}. The harness is every script or
+ * size-limit): {@link LATENCY_BUDGET_PATTERN}. The law is selected only where
+ * such a file exists ({@link REQUIRES_LATENCY_BUDGET}, `requires.anyFileContaining`)
+ * and reads exactly the files that gate matched. The harness is every script or
  * config that names a budget file (or its budget directory). Across that
  * harness set the law asks for three things, each reported at the harness
  * file that lacks it: a concurrent scenario; when an emulator is the
  * database, an injected network delay; and a recorded baseline.
  */
 
+import * as fs from 'fs';
+import * as path from 'path';
+import type { LawRequirement } from '../../types/enhanced-law.types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { markJudgedNothing } from '../../utils/judged-nothing';
+import { filesContaining } from '../../utils/law-requirements';
 import { LawBase } from '../law-base';
 import { firstMatch, readProjectFiles, type TextFile } from './project-text-files';
 
@@ -38,9 +43,19 @@ export const LATENCY_BUDGET_CANDIDATES: readonly string[] = [
 const NOT_ENDPOINT_LATENCY = String.raw`resourceSizes|resourceCounts|["']?timings["']?\s*:|maximumWarning|maximumError|maxAssetSize|maxEntrypointSize|bundlesize|size-limit`;
 /** Endpoint latency keys and values; case is spelled out so the pattern needs no flags. */
 const LATENCY_KEY = String.raw`(?<![A-Za-z])[pP](?:50|90|95|99)(?![0-9])|[lL]atency|LATENCY|[rR]esponse[_-]?[tT]ime|RESPONSE_TIME|[A-Za-z0-9]_(?:ms|MS)\b|["']?/[\w/{}:.-]*["']?\s*:\s*["']?\d+(?:\.\d+)?\s*ms\b`;
-/** A candidate's content is a latency budget: a latency key, and no key of a frontend size or timing budget. */
-export const LATENCY_BUDGET_PATTERN = String.raw`^(?![\s\S]*(?:${NOT_ENDPOINT_LATENCY}))[\s\S]*?(?:${LATENCY_KEY})`;
-const LATENCY_BUDGET = new RegExp(LATENCY_BUDGET_PATTERN);
+/**
+ * A candidate's content is a latency budget: a latency key, and no key of a
+ * frontend size or timing budget anywhere in the file. `(?<![\s\S])` anchors
+ * at the start of the text: `requires` compiles with the `m` flag, where `^`
+ * would also match each line start and the look-ahead would only see the
+ * lines below it.
+ */
+export const LATENCY_BUDGET_PATTERN = String.raw`(?<![\s\S])(?![\s\S]*(?:${NOT_ENDPOINT_LATENCY}))[\s\S]*?(?:${LATENCY_KEY})`;
+
+/** Selected only where a latency budget exists; the law reads the very files this gate matched. */
+export const REQUIRES_LATENCY_BUDGET: LawRequirement = {
+  anyFileContaining: [{ files: LATENCY_BUDGET_CANDIDATES, pattern: LATENCY_BUDGET_PATTERN }],
+};
 
 /** A directory name that makes its files budget candidates. */
 const BUDGET_DIRECTORY = /budget|(?:^|[-_.])slos?(?:[-_.]|$)/i;
@@ -96,9 +111,7 @@ export class LatencyBudgetHarnessRealismLaw extends LawBase {
 
   static check(context: LawCheckContext): LawResult {
     const { projectRoot } = context;
-    const candidates = readProjectFiles(projectRoot, LATENCY_BUDGET_CANDIDATES);
-    const budgets = candidates.filter(file => LATENCY_BUDGET.test(file.content));
-    if (budgets.length === 0) return this.noLatencyBudget(candidates, context);
+    const budgets = this.latencyBudgets(projectRoot);
     const harness = this.harnessFiles(projectRoot, budgets);
     const violations =
       harness.length === 0
@@ -120,22 +133,15 @@ export class LatencyBudgetHarnessRealismLaw extends LawBase {
     );
   }
 
-  /** Budget-named files, none of them an endpoint latency budget: nothing to judge, and the result says so. */
-  private static noLatencyBudget(candidates: TextFile[], context: LawCheckContext): LawResult {
-    const named = candidates.slice(0, 3).map(file => file.rel);
-    const more = candidates.length > 3 ? ` and ${candidates.length - 3} more` : '';
-    const seen = candidates.length === 0 ? 'no budget or SLO file' : `${named.join(', ')}${more}`;
-    return markJudgedNothing(
-      this.createResult(
-        [
-          `${seen}: no endpoint latency budget (p50–p99, latency, response time, *_ms keys; frontend size and timing budgets excluded) — this law judged nothing`,
-        ],
-        this.LAW_NAME,
-        'TESTING',
-        [],
-        context
-      )
-    );
+  /** The latency budgets the gate matched, read through the gate's own reader so the two cannot disagree. */
+  private static latencyBudgets(projectRoot: string): TextFile[] {
+    return REQUIRES_LATENCY_BUDGET.anyFileContaining!.flatMap(entry => filesContaining(projectRoot, entry)).flatMap(file => {
+      try {
+        return [{ rel: path.relative(projectRoot, file).replace(/\\/g, '/'), content: fs.readFileSync(file, 'utf8') }];
+      } catch {
+        return [];
+      }
+    });
   }
 
   /** Every script or config that names a budget file, or the budget directory it sits in. */

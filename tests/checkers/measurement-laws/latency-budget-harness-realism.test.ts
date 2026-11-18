@@ -15,6 +15,20 @@ afterAll(removeProjects);
 const LAW = MEASUREMENT_LAWS.find(law => law.checkFunction === 'LatencyBudgetHarnessRealismLaw.check');
 const run = (files: Record<string, string>) => LatencyBudgetHarnessRealismLaw.check(ctx(project(files)));
 
+const LIGHTHOUSE = JSON.stringify([
+  {
+    path: '/*',
+    timings: [{ metric: 'interactive', budget: 3000 }],
+    resourceSizes: [{ resourceType: 'script', budget: 300 }],
+    resourceCounts: [{ resourceType: 'third-party', budget: 10 }],
+  },
+]);
+const ANGULAR = JSON.stringify({
+  projects: {
+    app: { architect: { build: { configurations: { production: { budgets: [{ type: 'initial', maximumWarning: '500kb' }] } } } } },
+  },
+});
+
 const BUDGET = JSON.stringify({
   p95_ms: 300,
   endpoints: ['/items', '/profile'],
@@ -61,19 +75,53 @@ describe('LatencyBudgetHarnessRealismLaw (#355)', () => {
     expect(lawRequirementsMet(LAW?.requires, project({ 'angular.json': angular }))).toBe(false);
   });
 
-  it('a Lighthouse budget.json is not a latency budget: no harness is asked of it, and the law says it judged nothing', () => {
-    const lighthouse = JSON.stringify([
-      {
-        path: '/*',
-        timings: [{ metric: 'interactive', budget: 3000 }],
-        resourceSizes: [{ resourceType: 'script', budget: 300 }],
-        resourceCounts: [{ resourceType: 'third-party', budget: 10 }],
-      },
-    ]);
-    const result = run({ 'budget.json': lighthouse, 'scripts/lighthouse.sh': 'lighthouse --budget-path=budget.json\n' });
-    expect(result.passed).toBe(false);
-    expect(result.judgedNothing).toBe(true);
-    expect(result.violations).toEqual([expect.stringMatching(/^budget\.json: no endpoint latency budget .*judged nothing$/)]);
+  it('a Lighthouse budget.json is not a latency budget: it does not select the law, and no harness is asked of it', () => {
+    const files = { 'budget.json': LIGHTHOUSE, 'scripts/lighthouse.sh': 'lighthouse --budget-path=budget.json\n' };
+    expect(lawRequirementsMet(LAW?.requires, project(files))).toBe(false);
+    expect(run(files).violations).toEqual([]);
+  });
+
+  it('a frontend key anywhere in the file rules it out, even above a latency key on a later line', () => {
+    const mixed = `{\n  "resourceSizes": [],\n  "notes": "x",\n  "p95_ms": 300\n}\n`;
+    expect(lawRequirementsMet(LAW?.requires, project({ 'perf/budget.json': mixed }))).toBe(false);
+  });
+
+  describe('engine: scope.applicableLaws counts the law only where a latency budget is', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { ConfigLoader } = require('../../../src/config/loader');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { RuleOfCodeAuditor } = require('../../../src/core/auditing/audit-engine');
+    const BASE = {
+      'package.json': JSON.stringify({ name: 'a', version: '1.0.0', devDependencies: { typescript: '5.6.3' } }),
+      'tsconfig.json': JSON.stringify({ compilerOptions: { strict: true } }),
+      'src/index.ts': 'export const one = 1;\n',
+      // A floor no project meets refuses the audit before any law runs; scope is still computed.
+      'ruleofcode.config.json': JSON.stringify({ project: { type: 'typescript' }, laws: { minLawsChecked: 99999 } }),
+    };
+    const applicable = async (files: Record<string, string>): Promise<number> => {
+      const root = project({ ...BASE, ...files });
+      const spies = [
+        jest.spyOn(console, 'log').mockImplementation(() => undefined),
+        jest.spyOn(console, 'warn').mockImplementation(() => undefined),
+        jest.spyOn(process.stdout, 'write').mockImplementation(() => true),
+        jest.spyOn(process.stderr, 'write').mockImplementation(() => true),
+      ];
+      try {
+        const auditor = await RuleOfCodeAuditor.create({ projectRoot: root, config: ConfigLoader.load(root), mode: 'full' });
+        const result = await auditor.audit();
+        expect(result.refused).toBeDefined();
+        return result.scope.applicableLaws as number;
+      } finally {
+        for (const spy of spies) spy.mockRestore();
+      }
+    };
+
+    it('Lighthouse budget.json and angular.json budgets add nothing; a latency budget adds exactly this law', async () => {
+      const frontend = { 'budget.json': LIGHTHOUSE, 'angular.json': ANGULAR };
+      const without = await applicable({});
+      expect(await applicable(frontend)).toBe(without);
+      expect(await applicable({ ...frontend, 'perf/budget.json': '{"/items": {"p95_ms": 300}}' })).toBe(without + 1);
+    }, 60000);
   });
 
   describe('a budget named budget.json, measured by scripts/perf_budget.py', () => {

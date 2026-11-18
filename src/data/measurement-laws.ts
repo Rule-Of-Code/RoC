@@ -9,7 +9,7 @@
  * and line a finding is about. legacyId range: 889–891.
  */
 
-import { LATENCY_BUDGET_CANDIDATES } from '../checkers/measurement-laws/latency-budget-harness-realism';
+import { REQUIRES_LATENCY_BUDGET } from '../checkers/measurement-laws/latency-budget-harness-realism';
 import { REQUIRES_OTEL_SDK } from '../checkers/measurement-laws/tracing-explains-latency';
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
@@ -34,8 +34,7 @@ export const MEASUREMENT_LAWS: EnhancedConstitutionalLaw[] = [
         'Add a scenario that fires the start-up requests together (asyncio.gather, Locust with -u > 1), put toxiproxy or a delay setting between the app and the emulator, and store per-endpoint baseline results to compare with.',
     },
     detectionLimits: [
-      'A latency budget is a .json/.yaml/.yml/.toml file with "budget" in its name or a directory name, or "slo"/"slos" as a word of either (perf/budget.json, budgets/api.yaml, perf/slo.json), whose text holds an endpoint latency key — p50/p90/p95/p99, latency, response_time/responseTime, a *_ms key, or a "/path": N ms value — and no key of a frontend size or timing budget (Lighthouse resourceSizes/resourceCounts/timings, Angular maximumWarning/maximumError, webpack maxAssetSize/maxEntrypointSize, bundlesize, size-limit). A budget kept in a script, under another name, or only as thresholds inside a k6/Locust script is not seen.',
-      'Selection is by name only for now (requires.anyFile on the candidate globs): a project whose only budget-named files are frontend budgets selects the law, and the law then reports that it judged nothing; a content gate is to replace this.',
+      'A latency budget is a .json/.yaml/.yml/.toml file with "budget" in its name or a directory name, or "slo"/"slos" as a word of either (perf/budget.json, budgets/api.yaml, perf/slo.json), whose text holds an endpoint latency key — p50/p90/p95/p99, latency, response_time/responseTime, a *_ms key, or a "/path": N ms value — and no key of a frontend size or timing budget (Lighthouse resourceSizes/resourceCounts/timings, Angular maximumWarning/maximumError, webpack maxAssetSize/maxEntrypointSize, bundlesize, size-limit). This is the selection gate (requires.anyFileContaining), and the law reads exactly the files it matched — up to eight directories deep, at most 2 MB, outside installed, built and virtualenv trees; a project whose only budgets are frontend ones does not select the law. A budget kept in a script, under another name, or only as thresholds inside a k6/Locust script is not seen.',
       'The harness is every .py/.js/.ts/.sh/.yml/.toml file that names a budget file by its file name, or names its budget directory followed by "/"; a harness that builds the path some other way is not seen, and a budget no file names is reported as unmeasured.',
       'All three checks are text matches over the harness set, not an execution: concurrency is a primitive or load-tool setting above one (Promise.all, asyncio.gather, ThreadPoolExecutor, autocannon, k6 vus, Artillery arrivalRate, Locust -u, hey/wrk/ab -c, concurrency=N, xargs -P); a concurrent call that never runs, or one in a comment, counts.',
       'Network delay is asked for only when the harness names an emulator (the *_EMULATOR_HOST variables, firebase/gcloud emulators, DynamoDB Local, LocalStack, Cosmos DB emulator, mongodb-memory-server, Azurite); it counts toxiproxy, netem, or an identifier like injected_delay / NETWORK_LATENCY / rpcDelay — a variable that only measures network latency under such a name also counts.',
@@ -46,7 +45,7 @@ export const MEASUREMENT_LAWS: EnhancedConstitutionalLaw[] = [
       'A latency budget harness runs a concurrent scenario, injects network delay when it runs against an emulator, and compares with a recorded baseline',
     priority: 'MEDIUM',
     category: 'TESTING',
-    requires: { anyFile: LATENCY_BUDGET_CANDIDATES },
+    requires: REQUIRES_LATENCY_BUDGET,
     defaultEnabled: true,
     defaultSeverity: 'warning',
     automation: 'AUTOMATED',

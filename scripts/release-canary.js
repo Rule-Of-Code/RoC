@@ -464,4 +464,8 @@ function verifyProvenance(tarball) {
   }
 }
 
-main();
+// The project profiles are read by the Pareto ratchet test (#383): one table
+// of what each kind of project looks like, for the canary and the ratchet.
+module.exports = { STACKS };
+
+if (require.main === module) main();

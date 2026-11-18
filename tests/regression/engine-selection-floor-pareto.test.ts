@@ -71,7 +71,7 @@ interface Run {
 }
 
 /** Audit through the public constructor — the only door `categories` has. */
-async function audit(root: string, categories?: string[]): Promise<Run> {
+async function audit(root: string, categories?: string[], Auditor: typeof RuleOfCodeAuditor = RuleOfCodeAuditor): Promise<Run> {
   const out: string[] = [];
   const line = (...a: unknown[]): void => {
     out.push(a.map(String).join(' '));
@@ -89,7 +89,7 @@ async function audit(root: string, categories?: string[]): Promise<Run> {
   ];
   try {
     const options = categories ? { categories } : {};
-    const result = await new RuleOfCodeAuditor({}, root, false, 'full', options).audit();
+    const result = await new Auditor({}, root, false, 'full', options).audit();
     return {
       result,
       json: JSON.parse(AuditResultProcessor.exportResults(result, 'json')),
@@ -299,29 +299,78 @@ describe('#371 the liveness floor is computed over the type the selection uses (
 
 // ── #383 ─────────────────────────────────────────────────────────────────────
 
-const STACKS = ['typescript', 'frontend', 'python'] as const;
+/**
+ * The five project profiles of the release canary, from its own STACKS table
+ * (one source): what a project of each kind actually selects. The band is
+ * measured on the SELECTION — core laws a Pareto run selects / laws a full
+ * run selects — not on the `stack` field, whose frontend group is shared by
+ * Angular, Ionic and React projects.
+ */
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { STACKS: CANARY } = require('../../scripts/release-canary') as {
+  STACKS: Record<string, { files: Record<string, string>; projectType: string }>;
+};
+const PROFILES = ['python', 'angular', 'ionic', 'react', 'node'] as const;
+const BAND = { min: 0.15, max: 0.25 };
 
-/** Laws a project of `stack` can run by default: universal + that stack, meta-gates and opt-in laws excluded. */
-function stackLaws(laws: ReturnType<typeof ModularLawsRegistry.getAll>, stack: string) {
-  return laws.filter(l => !l.alwaysEnabled && l.defaultEnabled !== false && (!l.stack || l.stack === stack));
+interface ProfileShare {
+  applicable: number;
+  core: number;
+  ran: string[];
 }
-function coreShare(laws: ReturnType<typeof ModularLawsRegistry.getAll>, stack: string): number {
-  const applicable = stackLaws(laws, stack);
-  return applicable.filter(l => l.paretoCore).length / applicable.length;
+
+/** The profile's fixture audited twice through the constructor: full, then Pareto. */
+async function profileShare(profile: string, Auditor: typeof RuleOfCodeAuditor = RuleOfCodeAuditor): Promise<ProfileShare> {
+  const stack = CANARY[profile];
+  if (!stack) throw new Error(`no canary profile ${profile}`);
+  const project = { name: `canary-${profile}`, type: stack.projectType };
+  const full = await audit(fixture(stack.files, { project }), undefined, Auditor);
+  const pareto = await audit(fixture(stack.files, { project, laws: { paretoMode: true } }), undefined, Auditor);
+  expect(full.json.scope.partial).toBe(false);
+  return { applicable: full.json.scope.applicableLaws, core: pareto.json.scope.selectedLaws, ran: pareto.ran };
 }
 
-describe('#383 the Pareto core is ~20% of each stack, by a rule', () => {
-  it.each(STACKS)('P1/P2 — %s: the core share of the laws that apply to the stack is in [15%, 25%]', stack => {
-    const share = coreShare(ALL, stack);
-    expect(share).toBeGreaterThanOrEqual(0.15);
-    expect(share).toBeLessThanOrEqual(0.25);
-  });
+describe('#383 the Pareto core is ~20% of what each project profile selects', () => {
+  stubLawChecks();
 
-  it('P1 — the core holds Python laws', () => {
-    expect(ALL.filter(l => l.paretoCore && l.stack === 'python').length).toBeGreaterThan(0);
-  });
+  it.each(PROFILES)(
+    'P1/P2 — %s profile: core selected / applicable selected is in [15%, 25%]',
+    async profile => {
+      const { applicable, core } = await profileShare(profile);
+      expect(core / applicable).toBeGreaterThanOrEqual(BAND.min);
+      expect(core / applicable).toBeLessThanOrEqual(BAND.max);
+    },
+    60000
+  );
 
-  it('P5 — a law added to the registry passes through the rule, no list is edited (ratchet)', () => {
+  it('P1 — the python profile in Pareto mode runs Python laws', async () => {
+    const { ran } = await profileShare('python');
+    const python = new Set(ALL.filter(l => l.stack === 'python').map(l => l.name));
+    expect(ran.filter(name => python.has(name)).length).toBeGreaterThan(0);
+  }, 60000);
+
+  it.each([
+    ['typescript', TS_PROJECT],
+    ['python', PY_PROJECT],
+  ])('P3 — %s project in Pareto mode → partial, narrowedBy paretoMode, never compliance', async (type, files) => {
+    const run = await audit(fixture(files, { project: { type }, laws: { paretoMode: true } }));
+    expect(run.json.scope.partial).toBe(true);
+    expect(run.json.scope.narrowedBy).toBe('paretoMode');
+    expect(run.json.verdict).toBe('partial');
+    expect(run.text).not.toMatch(BARE_PASS);
+    expect(run.ran).toEqual(expect.arrayContaining(META_GATES));
+  }, 60000);
+
+  it('P4 — a full run does not read the core: its selection is every applicable law (golden: waivers-named-verdict-golden)', async () => {
+    const run = await audit(fixture(TS_PROJECT, { project: { type: 'typescript' } }));
+    expect(run.json.scope.partial).toBe(false);
+    expect(run.json.scope.selectedLaws).toBe(run.json.scope.applicableLaws);
+    expect(run.json.verdict).toBe('compliance');
+  }, 60000);
+
+  it('P5 — a law added to the registry passes through the rule, no list is edited; every profile stays in the band (ratchet)', async () => {
+    let Auditor: typeof RuleOfCodeAuditor = RuleOfCodeAuditor;
+    let Fresh: typeof ModularLawsRegistry = ModularLawsRegistry;
     jest.isolateModules(() => {
       jest.doMock('../../src/data/python-laws', () => {
         const actual = jest.requireActual('../../src/data/python-laws');
@@ -337,53 +386,32 @@ describe('#383 the Pareto core is ~20% of each stack, by a rule', () => {
         });
         return {
           ...actual,
-          PYTHON_LAWS: [
-            ...actual.PYTHON_LAWS,
-            added('Ratchet Critical Python Law', 'CRITICAL', 'error'),
-            added('Ratchet Minor Python Law', 'LOW', 'info'),
-          ],
+          PYTHON_LAWS: [...actual.PYTHON_LAWS, added('Ratchet Critical Python Law', 'CRITICAL', 'error'), added('Ratchet Minor Python Law', 'LOW', 'info')],
         };
       });
-      const { ModularLawsRegistry: Fresh } = require('../../src/registry/modular-laws-registry');
-      const laws = Fresh.getAll() as ReturnType<typeof ModularLawsRegistry.getAll>;
-      const law = (title: string) => laws.find(l => l.name === title);
+      Fresh = require('../../src/registry/modular-laws-registry').ModularLawsRegistry;
+      Auditor = require('../../src/core/auditing/audit-engine').RuleOfCodeAuditor;
+    });
+    // The isolated registry is a second copy: stub its substantive checks too.
+    const real = Fresh.getAll.bind(Fresh);
+    const spy = jest.spyOn(Fresh, 'getAll').mockImplementation(() =>
+      real().map(law => (law.alwaysEnabled ? law : { ...law, check: (async () => ({ passed: true, score: 100, violations: [], suggestions: [], message: 'stub' })) as unknown as typeof law.check }))
+    );
+    try {
+      const law = (title: string) => Fresh.getAll().find(l => l.name === title);
       expect(law('Ratchet Critical Python Law')?.paretoCore).toBe(true);
       expect(law('Ratchet Minor Python Law')?.paretoCore).toBe(false);
-      for (const stack of STACKS) {
-        expect(coreShare(laws, stack)).toBeGreaterThanOrEqual(0.15);
-        expect(coreShare(laws, stack)).toBeLessThanOrEqual(0.25);
+      const python = await profileShare('python', Auditor);
+      expect(python.ran).toContain('Ratchet Critical Python Law');
+      for (const profile of PROFILES) {
+        const { applicable, core } = await profileShare(profile, Auditor);
+        expect(core / applicable).toBeGreaterThanOrEqual(BAND.min);
+        expect(core / applicable).toBeLessThanOrEqual(BAND.max);
       }
-    });
-  });
-
-  describe('engine', () => {
-    stubLawChecks();
-
-    it('P1 — a Python project in Pareto mode runs Python laws', async () => {
-      const run = await audit(fixture(PY_PROJECT, { project: { type: 'python' }, laws: { paretoMode: true } }));
-      const python = new Set(ALL.filter(l => l.stack === 'python').map(l => l.name));
-      expect(run.ran.filter(name => python.has(name)).length).toBeGreaterThan(0);
-    }, 60000);
-
-    it.each([
-      ['typescript', TS_PROJECT],
-      ['python', PY_PROJECT],
-    ])('P3 — %s project in Pareto mode → partial, narrowedBy paretoMode, never compliance', async (type, files) => {
-      const run = await audit(fixture(files, { project: { type }, laws: { paretoMode: true } }));
-      expect(run.json.scope.partial).toBe(true);
-      expect(run.json.scope.narrowedBy).toBe('paretoMode');
-      expect(run.json.verdict).toBe('partial');
-      expect(run.text).not.toMatch(BARE_PASS);
-      expect(run.ran).toEqual(expect.arrayContaining(META_GATES));
-    }, 60000);
-
-    it('P4 — a full run does not read the core: its selection is every applicable law (golden: waivers-named-verdict-golden)', async () => {
-      const run = await audit(fixture(TS_PROJECT, { project: { type: 'typescript' } }));
-      expect(run.json.scope.partial).toBe(false);
-      expect(run.json.scope.selectedLaws).toBe(run.json.scope.applicableLaws);
-      expect(run.json.verdict).toBe('compliance');
-    }, 60000);
-  });
+    } finally {
+      spy.mockRestore();
+    }
+  }, 120000);
 });
 
 it('the cells find their laws in the registry', () => {

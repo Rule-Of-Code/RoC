@@ -16,15 +16,25 @@
  *    have, so it is never a core law.
  * 2. Rank: default severity first (an `error` law is one that fails the build
  *    today; `warning` and `info` are a warn cycle), then priority (CRITICAL,
- *    HIGH, MEDIUM, LOW), then a law with no `requires` gate before a gated one
- *    (it applies to every project of the stack, a gated one to the projects
- *    of one toolkit), then registry order.
+ *    HIGH, MEDIUM, LOW), then a SACRED_LAW before any other category (the
+ *    constitution's own top tier), then a law with no `requires` gate before
+ *    a gated one (it applies to every project of the stack, a gated one to
+ *    the projects of one toolkit), then registry order.
  * 3. Take the top {@link PARETO_CORE_RATIO} of the group's candidates,
  *    rounded, at least one.
  *
- * A project of a stack gets its universal share plus its stack's share, so
- * the core is about 20% of what applies to it. A ratchet test keeps every
- * stack in [15%, 25%] and adds a law to the registry to show it passes
+ * Not every CRITICAL `error` law fits. The typescript group holds seven
+ * and gets four; with the universal group's thirteen, all seven would make
+ * the core 20 of the 76 laws a plain TypeScript (node) project selects —
+ * 26%, outside the band. The four SACRED laws stay; Absolute Zero Tolerance
+ * Doctrine, API Security Standards and Jest Unit Test 100% Coverage
+ * Mandate run in a full audit, not in the fast one.
+ *
+ * A project gets its universal share plus the share of each stack group
+ * that applies to it, so the core is about 20% of what it selects. A
+ * ratchet test measures exactly that on the release canary's five project
+ * profiles (python, angular, ionic, react, node), core selected / laws
+ * selected, in [15%, 25%], and adds a law to the registry to show it passes
  * through the rule with no list edited. The run itself stays PARTIAL: a
  * subset never yields a compliance verdict.
  */
@@ -38,7 +48,7 @@ const PRIORITY_RANK: Record<string, number> = { CRITICAL: 4, HIGH: 3, MEDIUM: 2,
 
 type CoreFields = Pick<
   EnhancedConstitutionalLaw,
-  'id' | 'priority' | 'defaultSeverity' | 'stack' | 'requires' | 'defaultEnabled' | 'alwaysEnabled'
+  'id' | 'priority' | 'defaultSeverity' | 'category' | 'stack' | 'requires' | 'defaultEnabled' | 'alwaysEnabled'
 >;
 
 /** A law that runs by default and is not a meta-gate. */
@@ -54,11 +64,14 @@ interface Ranked {
   index: number;
 }
 
-/** Higher first: severity, then priority, then ungated, then registry order. */
+const isSacred = (law: CoreFields): number => Number(law.category === 'SACRED_LAW');
+
+/** Higher first: severity, priority, SACRED, ungated, then registry order. */
 function byRank(a: Ranked, b: Ranked): number {
   return (
     (SEVERITY_RANK[b.law.defaultSeverity] ?? 0) - (SEVERITY_RANK[a.law.defaultSeverity] ?? 0) ||
     (PRIORITY_RANK[b.law.priority] ?? 0) - (PRIORITY_RANK[a.law.priority] ?? 0) ||
+    isSacred(b.law) - isSacred(a.law) ||
     Number(a.law.requires !== undefined) - Number(b.law.requires !== undefined) ||
     a.index - b.index
   );

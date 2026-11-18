@@ -51,8 +51,8 @@ Serverless Framework), Azure Functions (Flex Consumption, `host.json`).
 | Simulated consumer | 7.26.10 | 7.27.0 |
 |---|---|---|
 | canary: python | 97 | 98 |
-| canary: angular | 120 | 122 |
-| canary: ionic | 150 | 152 |
+| canary: angular | 120 | 121 |
+| canary: ionic | 150 | 151 |
 | canary: react | 134 | 135 |
 | canary: node | 77 | 78 |
 | a FastAPI service with a document database (real project, own config) | refused: 86 selected, below its `minLawsChecked: 88` | 94 |
@@ -159,8 +159,31 @@ is a test.
   setup.py, up to three directories deep; names compare in PEP 503 form.
 - `anyFileContaining: [{ files, pattern }]`: a file the globs name whose content
   matches. This is what keeps a law off a project that has nothing for it to judge.
+  It reads **what git publishes**: tracked files (from the index when the working
+  copy differs) and untracked files that are not ignored, minus `ignores.global`.
+  A generated, git-ignored file that happens to contain the text never selects a
+  law. The laws that use it judge exactly the files that selected them, so being
+  selected and then "judging nothing" cannot happen through the gate. Outside a git
+  work tree the disk is walked.
 - `anyOf: [ … ]`: one of several requirement sets (a Python or a Node SDK).
 - `thresholds.performance.maxStartupRequests` (default 4) for Startup Request Fan-Out.
+
+A law that read its subject and found nothing wrong **passes and says what it
+read**: the message and the result's `metrics` carry the counts (files read,
+reads compared, fetches checked, components read), and what it does not follow.
+It reports "judged nothing" only when it could read no file of its subject (or
+its parser did not load), never as a pass. Startup Request Fan-Out is selected
+only where an Angular `@Component` is declared; Serverless Deploy Pins Resources
+only where a deploy command stands in a command position (prose in a JSON or
+YAML string does not select it).
+
+### Internal
+
+- lint-staged no longer runs `prettier --write`. The repository is not prettier-
+  formatted under any configuration (370 of 1099 src files differ even with the
+  closest options), the step never ran because the hooks were never installed in
+  a clone (#379), and once they were, it rewrote unrelated lines in every staged
+  file. Formatting comes back as its own change: #382.
 
 ### Known limitations
 
@@ -180,7 +203,9 @@ Found during this wave, scheduled next: #369 (seven more places test a file name
 without its extension for one), #370 (narrowing by `categories` is not partial),
 #371 (the liveness floor is computed from the configured project type, not the
 detected one), #372 (an inherited `GIT_DIR` makes `audit` read, and `init`
-write, another repository).
+write, another repository), #379 (`prepare` never installs the hooks in a clone),
+#380 (a hook counts as active when its file exists, whatever `core.hooksPath`
+says), #381 (dependency conditions read git-ignored manifests), #382 (formatting).
 
 ## [7.26.10] - 2026-11-16
 

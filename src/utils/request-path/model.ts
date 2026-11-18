@@ -119,6 +119,11 @@ export interface FunctionModel {
   nameUses: Map<string, number>;
   /** The body runs inside a database transaction (decorator, callback or parameter). */
   transactional: boolean;
+  /**
+   * Python decorators as written, without the `@` (string literals restored):
+   * `lru_cache(maxsize=None)`, `router.post("/items")`. Absent for TS/JS.
+   */
+  decorators?: string[];
 }
 
 /** A name a module imports from another module. */

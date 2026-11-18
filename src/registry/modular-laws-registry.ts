@@ -217,6 +217,7 @@ import {
 import {
   HostingRewriteRegionMatchesDeployLaw,
   ProxyTargetKeepsOriginHostLaw,
+  TestBuildsUseOwnFirebaseConfigLaw,
   WorkerPublicUrlsDeclaredLaw,
 } from '../checkers/edge-deploy-laws';
 
@@ -670,6 +671,7 @@ export class ModularLawsRegistry {
     'ProxyTargetKeepsOriginHostLaw.check': ProxyTargetKeepsOriginHostLaw,
     'WorkerPublicUrlsDeclaredLaw.check': WorkerPublicUrlsDeclaredLaw,
     'HostingRewriteRegionMatchesDeployLaw.check': HostingRewriteRegionMatchesDeployLaw,
+    'TestBuildsUseOwnFirebaseConfigLaw.check': TestBuildsUseOwnFirebaseConfigLaw,
     // Measurement Laws (latency budget harness, tracing, test-server loopback)
     'LatencyBudgetHarnessRealismLaw.check': LatencyBudgetHarnessRealismLaw,
     'TracingExplainsLatencyLaw.check': TracingExplainsLatencyLaw,

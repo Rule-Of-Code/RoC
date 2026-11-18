@@ -76,3 +76,11 @@ export const REQUIRES_HOSTING_RUN_REWRITE: LawRequirement = {
   ],
   anyOf: [{ anyFileContaining: [{ files: [...SCRIPT_FILES, '**/package.json'], pattern: CLOUD_RUN_DEPLOY, exclude: TEST_TREES }] }],
 };
+
+/** A published Firebase app config: Android google-services.json or iOS GoogleService-Info.plist. */
+export const REQUIRES_FIREBASE_APP_CONFIG: LawRequirement = {
+  anyFileContaining: [
+    { files: ['**/google-services.json'], pattern: String.raw`"project_id"\s*:`, exclude: TEST_TREES },
+    { files: ['**/GoogleService-Info.plist'], pattern: String.raw`<key>PROJECT_ID</key>`, exclude: TEST_TREES },
+  ],
+};

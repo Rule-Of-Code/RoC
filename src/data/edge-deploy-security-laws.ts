@@ -12,6 +12,7 @@
 
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import {
+  REQUIRES_FIREBASE_APP_CONFIG,
   REQUIRES_HOSTING_RUN_REWRITE,
   REQUIRES_PROXY_UPSTREAM_URL,
   REQUIRES_WRANGLER_CONFIG,
@@ -139,5 +140,46 @@ export const EDGE_DEPLOY_SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article VIII.8.14: A hosting rewrite sends traffic to a region the service is not deployed to',
     remediation:
       'Make the rewrite region equal to the region the service is deployed to, and change both in the same release',
+  },
+
+  {
+    id: generateLawId(
+      'Test Builds Use Own Firebase Config',
+      'A debug, benchmark or test build does not bundle the production Firebase config with Messaging auto-init on',
+      'security'
+    ),
+    legacyId: 898,
+    article: 'XXIII',
+    subsection: '23.11',
+    title: 'Test Builds Use Own Firebase Config',
+    rationale:
+      'A debug, benchmark or test build that bundles the production google-services.json (or GoogleService-Info.plist) registers a Firebase Installation and an FCM token in the production project on every cold start — even when the app talks to a mock API. A cold-start measurement run then writes thousands of installations into production, and nothing in the app looks different.',
+    satisfiedBy: {
+      capacitor:
+        'android/app/src/debug/google-services.json (and src/benchmark/…) from a dev Firebase project, or <meta-data android:name="firebase_messaging_auto_init_enabled" android:value="false" /> in android/app/src/debug/AndroidManifest.xml; iOS: a per-configuration GoogleService-Info.plist or FirebaseMessagingAutoInitEnabled = NO (or $(FCM_AUTO_INIT) set to NO for Debug).',
+      typescript:
+        'The same in any native shell (React Native, Flutter, plain Android/iOS): a config per non-release build type from a dev project, or Messaging auto-init off for those builds.',
+    },
+    detectionLimits: [
+      "Android: each module's google-services.json files (the module root and src/<source set>/) are resolved per variant the way the Google Services Gradle plugin's source does it (src/<flavor>/<buildType>, src/<buildType>/<flavor>, src/<flavor>, src/<buildType>, src/<flavor><BuildType>, the module root; deepest first). Every build type other than release counts as non-release — the debug build type always exists, so a module whose debug build uses the release build's project_id is a finding until it has its own config or auto-init off. Build types and flavours are read from buildTypes { } / productFlavors { } blocks of the module's build.gradle(.kts) (Groovy and Kotlin DSL, create/getByName/register forms); variants made in code, and more than one flavour dimension, are not followed (listed as not judged).",
+      'Auto-init off: firebase_messaging_auto_init_enabled = "false" (the meta-data Firebase documents) in the manifest of the most specific source set that sets it (flavour+build type, build type, flavour, main), or a ${key} placeholder whose manifestPlaceholders value is false in the build type, flavour or defaultConfig block. firebase_analytics_collection_enabled and runtime calls (setAutoInitEnabled) are not read. Firebase Installations also registers without Messaging; the law accepts auto-init off as the issue does.',
+      "iOS: an Xcode project (project.pbxproj) with exactly one GoogleService-Info.plist in its directory: every configuration other than Release (Debug included) bundles the release config, a finding unless the app's Info.plist sets FirebaseMessagingAutoInitEnabled to <false/>, or to $(VAR) with VAR = NO in that configuration's build settings. Two or more plists are taken as per-configuration and pass; which one a Run Script phase copies is not read.",
+      'A config that CI writes into the tree, or one that is git-ignored (not published), is not seen — the law is not selected by it, since the variants it would serve cannot be known.',
+      `Selected only where a published google-services.json holds a project_id or a GoogleService-Info.plist holds a PROJECT_ID. ${GATE_READ} Gradle scripts, manifests, project.pbxproj and Info.plist are read through the same reader. A pass names the variants / configurations judged and the files read (also in the result's metrics).`,
+    ],
+    emoji: '🧪',
+    description:
+      'A debug, benchmark or test build does not bundle the production Firebase config with Messaging auto-init on',
+    priority: 'MEDIUM',
+    category: 'SECURITY',
+    requires: REQUIRES_FIREBASE_APP_CONFIG,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'TestBuildsUseOwnFirebaseConfigLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXIII.23.11: A non-release build bundles the production Firebase config with Messaging auto-init on',
+    remediation:
+      'Give non-release builds their own Firebase config from a dev project, or turn Messaging auto-init off for them',
   },
 ];

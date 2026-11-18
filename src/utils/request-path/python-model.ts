@@ -287,10 +287,11 @@ function paramsOf(header: string): string[] {
     .filter(Boolean);
 }
 
-function newFunction(node: PyNode, prefix: string, decorators: readonly string[]): FunctionModel {
+function newFunction(node: PyNode, prefix: string, decorators: readonly string[], literals: readonly PyLiteral[]): FunctionModel {
   const shortName = /^([A-Za-z_]\w*)/.exec(node.header)?.[1] ?? '<anonymous>';
   const params = paramsOf(node.header);
   return {
+    decorators: decorators.map(d => renderPython(d, literals)),
     name: prefix ? `${prefix}.${shortName}` : shortName,
     shortName,
     line: node.line,
@@ -320,7 +321,7 @@ function collectFunctions(nodes: readonly PyNode[], prefix: string, module: Modu
       continue;
     }
     if (node.keyword !== null && FUNCTION_KEYWORDS.has(node.keyword)) {
-      const fn = newFunction(node, prefix, decorators);
+      const fn = newFunction(node, prefix, decorators, module.literals);
       walkBlock(node.children, { fn, literals: module.literals, loops: [], literalCollections: module.literalCollections });
       out.push(fn);
       collectFunctions(node.children, fn.name, module, out);

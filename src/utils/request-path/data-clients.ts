@@ -242,6 +242,49 @@ export function classifyRead(call: CallSite, apis: readonly ClientApi[]): ReadKi
   return REPOSITORY_READ.test(method) ? 'read' : 'none';
 }
 
+/** Links that make a call chain a database query or document, not a dict, a list or a header map. */
+const QUERY_SHAPED = /\.(?:collection|collection_group|collectionGroup|document|doc|where|order_by|orderBy|limit|objects|query|filter|filter_by|find|select|execute)\(/;
+/** A receiver named as a query or a document reference: `doc_ref`, `query`, `userRef`. */
+const QUERY_RECEIVER = /^(?:q|query|ref|[a-z]\w*_(?:ref|query))$|[a-z](?:Ref|Query)$/;
+
+/**
+ * Is this call a database read? Awaited, it is what {@link classifyRead}
+ * says (a registry read, or a repository read by its name). Not awaited (a
+ * sync client), only a registry call on a receiver: a distinctive name
+ * (`find_one`, `getDoc`), or a generic one (`get`, `stream`, `all`) chained
+ * from a query or a document — so `os.environ.get(…)` and `headers.get(…)`
+ * are not reads.
+ */
+export function isDatabaseRead(call: CallSite, apis: readonly ClientApi[], awaited: boolean): boolean {
+  const kind = classifyRead(call, apis);
+  if (kind === 'none') return false;
+  if (awaited) return true;
+  const registry = names(apis, 'reads').has(call.method) || names(apis, 'fetchAll').has(call.method) || names(apis, 'batchReads').has(call.method);
+  if (!registry || call.receiver === '') return false;
+  const last = call.receiver.split('.').pop() ?? '';
+  return !GENERIC_METHODS.has(call.method) || QUERY_SHAPED.test(call.receiver) || QUERY_RECEIVER.test(last);
+}
+
+/** Write names a Map, a dict, a set or a list also has. */
+const GENERIC_WRITES = new Set(['set', 'update', 'delete', 'add', 'create', 'save', 'remove', 'insert', 'upsert', 'merge', 'flush', 'commit']);
+/** A receiver that is a database handle, a document, a collection, a session or a model. */
+const WRITE_RECEIVER = /^(?:db|database|session|batch|bulk|transaction|txn|tx|writer|ref|doc|document|collection|repo|repository|objects|prisma|[a-z]\w*_(?:ref|doc|collection|repo|session))$|[a-z](?:Ref|Doc|Collection|Repo|Repository|Session)$|^[A-Z][A-Za-z0-9]*$/;
+
+/**
+ * Is this call a database write? A registry write on a receiver: a
+ * distinctive name (`insert_one`, `setDoc`), or a name a Map or a dict also
+ * has (`set`, `update`, `delete`, `add`) on a receiver shaped like a
+ * database handle — chained from a collection or document, or named as a
+ * session, a reference, a repository or a model — so `cache.set(k, v)` and
+ * `seen.add(x)` are not writes.
+ */
+export function isDatabaseWrite(call: CallSite, apis: readonly ClientApi[]): boolean {
+  if (call.receiver === '' || !names(apis, 'writes').has(call.method)) return false;
+  if (!GENERIC_WRITES.has(call.method)) return true;
+  const last = call.receiver.split('.').pop() ?? '';
+  return QUERY_SHAPED.test(call.receiver) || QUERY_RECEIVER.test(last) || WRITE_RECEIVER.test(last);
+}
+
 /** Is this call a write (its order is part of its meaning)? */
 export function isWrite(call: CallSite, apis: readonly ClientApi[]): boolean {
   return names(apis, 'writes').has(call.method);

@@ -7,11 +7,14 @@ import { StartupRequestFanOutLaw as Law } from '../../../src/checkers/client-dep
 import { ConfigLoader } from '../../../src/config/loader';
 import { RuleOfCodeAuditor } from '../../../src/core/auditing/audit-engine';
 import { AuditResultProcessor } from '../../../src/core/auditing/result-processor';
+import { CLIENT_DEPLOY_LAWS } from '../../../src/data/client-deploy-laws';
+import { lawRequirementsMet } from '../../../src/utils/law-requirements';
 import { ctx, manifest, project, removeProjects } from '../toolkit-fixture';
 
 afterAll(removeProjects);
 
 const ANGULAR = manifest({ '@angular/core': '20.0.0', '@angular/common': '20.0.0' });
+const LAW = CLIENT_DEPLOY_LAWS.find(law => law.checkFunction === 'StartupRequestFanOutLaw.check');
 
 const page = (body: string, extraImports = ''): string =>
   [
@@ -182,30 +185,54 @@ describe('StartupRequestFanOutLaw', () => {
     expect(result.violations?.[0]).toContain("fetch('/api/x')");
   });
 
-  it('a library without a component: a pass that counts what it read and says what it does not see', () => {
-    const result = run({
-      'libs/api/src/user.service.ts': "import { HttpClient } from '@angular/common/http';\nexport class UserService { constructor(private http: HttpClient) {} me() { return this.http.get('/me'); } }",
-      'libs/api/src/index.ts': "export * from './user.service';",
-    });
-    expect(result.passed).toBe(true);
-    expect(result.judgedNothing).not.toBe(true);
-    expect(result.message).toMatch(/^Startup Request Fan-Out: 2 TypeScript file\(s\) read, 0 Angular components — no screen to count requests for/);
-    expect(result.message).toContain('not followed: a callback handed to a helper, free functions that receive a service, inject*() factories');
-    expect(result.metrics).toMatchObject({ tsFilesRead: 2, components: 0 });
+  const LIBRARY = {
+    'package.json': ANGULAR,
+    'libs/api/src/user.service.ts': "import { HttpClient } from '@angular/common/http';\nexport class UserService { constructor(private http: HttpClient) {} me() { return this.http.get('/me'); } }",
+    'libs/api/src/index.ts': "export * from './user.service';",
+    'libs/api/src/user.service.spec.ts': "@Component({ selector: 'x', template: '' }) class Host {}",
+  };
+
+  it('a library without a component (a test host does not count) does not select the law', () => {
+    expect(lawRequirementsMet(LAW?.requires, project(LIBRARY))).toBe(false);
+    expect(lawRequirementsMet(LAW?.requires, project({ ...LIBRARY, 'src/app/profile.page.ts': SIX_IN_NG_ON_INIT }))).toBe(true);
   });
 
-  it('components under the threshold: a pass with the counts', () => {
-    const result = run({ 'src/app/profile.page.ts': page("  constructor(private http: HttpClient) {}\n  ngOnInit() { this.http.get('/api/me').subscribe(); }") });
-    expect(result.passed).toBe(true);
-    expect(result.message).toMatch(/1 component\(s\) read \(1 with an opening hook\), none starts more than 4 requests on open \(most: 1\)/);
-    expect(result.metrics).toMatchObject({ tsFilesRead: 1, components: 1, componentsWithOpeningHook: 1, threshold: 4, mostRequests: 1 });
-  });
-
-  it('judged nothing: no TypeScript file to read at all', () => {
-    const result = run({ 'README.md': '# app\n' });
+  it('run anyway on a project without a component file, it is not a pass', () => {
+    const result = run(LIBRARY);
     expect(result.passed).toBe(false);
     expect(result.score).toBe(0);
     expect(result.judgedNothing).toBe(true);
+  });
+
+  it('components under the threshold: a pass that counts the component files and says what it does not follow', () => {
+    const result = run({ 'src/app/profile.page.ts': page("  constructor(private http: HttpClient) {}\n  ngOnInit() { this.http.get('/api/me').subscribe(); }") });
+    expect(result.passed).toBe(true);
+    expect(result.message).toMatch(
+      /^Startup Request Fan-Out: 1 component file\(s\) read \(1 component\(s\), 1 with an opening hook\), none starts more than 4 requests on open \(most: 1\)/
+    );
+    expect(result.message).toContain('not followed: a callback handed to a helper, free functions that receive a service, inject*() factories');
+    expect(result.metrics).toMatchObject({ componentFilesRead: 1, components: 1, componentsWithOpeningHook: 1, threshold: 4, mostRequests: 1 });
+  });
+
+  it('the engine does not count it on a library without a component', async () => {
+    const applicable = async (files: Record<string, string>): Promise<number> => {
+      const root = project({ ...files, 'ruleofcode.config.json': JSON.stringify({ project: { type: 'angular' }, laws: { minLawsChecked: 9999 } }) });
+      const spies = [
+        jest.spyOn(console, 'log').mockImplementation(() => undefined),
+        jest.spyOn(console, 'warn').mockImplementation(() => undefined),
+        jest.spyOn(process.stdout, 'write').mockImplementation(() => true),
+        jest.spyOn(process.stderr, 'write').mockImplementation(() => true),
+      ];
+      try {
+        const auditor = await RuleOfCodeAuditor.create({ projectRoot: root, config: ConfigLoader.load(root), mode: 'full' });
+        return (await auditor.audit()).scope?.applicableLaws ?? -1;
+      } finally {
+        for (const spy of spies) spy.mockRestore();
+      }
+    };
+    const library = await applicable(LIBRARY);
+    const withComponent = await applicable({ ...LIBRARY, 'src/app/profile.page.ts': page('  ngOnInit() {}') });
+    expect(withComponent).toBe(library + 1);
   });
 
   it('the counts reach the JSON report (results[].metrics)', async () => {
@@ -226,7 +253,7 @@ describe('StartupRequestFanOutLaw', () => {
         results: Array<{ lawName?: string; passed?: boolean; metrics?: Record<string, unknown> }>;
       };
       const mine = json.results.find(entry => entry.lawName === 'startup-request-fan-out');
-      expect(mine).toMatchObject({ passed: true, metrics: { tsFilesRead: 1, components: 1 } });
+      expect(mine).toMatchObject({ passed: true, metrics: { componentFilesRead: 1, components: 1 } });
     } finally {
       for (const spy of spies) spy.mockRestore();
     }

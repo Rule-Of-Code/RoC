@@ -9,7 +9,7 @@
  */
 
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
-import { REQUIRES_ANGULAR } from '../utils/framework-requirements';
+import { REQUIRES_ANGULAR_COMPONENT } from '../utils/angular/startup-requests';
 import { REQUIRES_SERVERLESS_DEPLOY } from '../utils/deployment/serverless-platforms';
 import { generateLawId } from '../utils/id-generator';
 import { REQUIRES_UNICODE_RANGE_FONT } from '../utils/performance/font-subsets';
@@ -39,7 +39,7 @@ export const CLIENT_DEPLOY_LAWS: EnhancedConstitutionalLaw[] = [
       'A call inside a nested function is treated as deferred and not counted (subscribe/then callbacks, setTimeout, event handlers, a Promise executor, a callback handed to a helper that may call it at once). Callbacks of forEach/map/filter/some/every/find/reduce/flatMap are counted once per call site, whatever the array length.',
       'A call is counted where it is made, whether or not its Observable is subscribed: an HttpClient call assigned to a field the template never subscribes to is still counted.',
       'The threshold is thresholds.performance.maxStartupRequests (default 4); more than that many requests is a finding. An invalid value is reported and the law does not judge.',
-      'A pass says what it read (TypeScript files, components, components with an opening hook, the most requests one starts; also in the result\'s metrics) and what it does not follow. A project with TypeScript sources and no component (a library of services) passes with "0 Angular components"; only a project with no TypeScript source to read, or no parser for it, is judged nothing.',
+      'Selected only where @angular/core is declared and a non-test .ts file (spec/test/cy/e2e/stories and .d.ts excluded, up to eight directories deep, outside installed and built trees, ignores.global honoured; inside a git work tree only what git publishes, tracked files from the index) contains @Component( — a library of services is not selected. The components are read from exactly those files; a @Component whose argument is not an object literal is not counted. A pass names the component files read, the components, those with an opening hook and the most requests one starts (also in the result\'s metrics), and what the count does not follow; without a parser, or run on a project with no component file, the law judged nothing.',
     ],
     emoji: '🌐',
     description:
@@ -47,7 +47,7 @@ export const CLIENT_DEPLOY_LAWS: EnhancedConstitutionalLaw[] = [
     priority: 'MEDIUM',
     category: 'PERFORMANCE',
     stack: 'frontend',
-    requires: REQUIRES_ANGULAR,
+    requires: REQUIRES_ANGULAR_COMPONENT,
     defaultEnabled: true,
     defaultSeverity: 'warning',
     automation: 'AUTOMATED',

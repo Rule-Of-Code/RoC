@@ -24,6 +24,8 @@
  */
 
 import type * as TS from 'typescript';
+import type { LawRequirement } from '../../types/enhanced-law.types';
+import { decoratorObject } from '../ionic/angular-components';
 import type { TsxSource } from '../react/tsx-source';
 
 /** HttpClient methods that send a request. */
@@ -57,6 +59,8 @@ export interface ClassModel {
   injected: Map<string, string>;
   /** Names in its extends / implements clauses. */
   heritage: string[];
+  /** Decorated with @Component. */
+  component: boolean;
 }
 
 type Relative = (file: string) => string;
@@ -125,6 +129,7 @@ export function classModels(sources: TsxSource[]): Map<string, ClassModel[]> {
         heritage: (node.heritageClauses ?? []).flatMap(clause =>
           clause.types.map(type => (ts.isIdentifier(type.expression) ? type.expression.text : '')).filter(Boolean)
         ),
+        component: decoratorObject(ts, node, 'Component') !== null,
       };
       for (const member of node.members) readMember(ts, model, member);
       byName.set(model.name, [...(byName.get(model.name) ?? []), model]);
@@ -273,3 +278,20 @@ export function startupRequests(
   }
   return walk.found;
 }
+
+/**
+ * The subject of Startup Request Fan-Out: Angular, and a non-test .ts file
+ * that declares a component. A library of services has no screen to open,
+ * so the law is not selected there; the law reads its components from
+ * exactly these files (readFilesContaining).
+ */
+export const REQUIRES_ANGULAR_COMPONENT: LawRequirement = {
+  anyDependency: ['@angular/core'],
+  anyFileContaining: [
+    {
+      files: ['**/*.ts'],
+      pattern: String.raw`@Component\s*\(`,
+      exclude: ['**/*.{spec,test,cy,e2e,stories}.ts', '**/*.d.ts'],
+    },
+  ],
+};

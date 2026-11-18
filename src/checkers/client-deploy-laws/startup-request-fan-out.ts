@@ -13,10 +13,19 @@
  * more than that many requests is a finding listing every one, file:line.
  */
 
+import * as path from 'path';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { classModels, OPENING_HOOKS, startupRequests, type StartupRequest } from '../../utils/angular/startup-requests';
+import {
+  classModels,
+  OPENING_HOOKS,
+  REQUIRES_ANGULAR_COMPONENT,
+  startupRequests,
+  type StartupRequest,
+} from '../../utils/angular/startup-requests';
 import { AngularComponents } from '../../utils/ionic/angular-components';
 import { markJudgedNothing } from '../../utils/judged-nothing';
+import { readFilesContaining } from '../../utils/law-requirements';
+import { loadTypeScript, parserUnavailable, TsxSource } from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';
 
 export const DEFAULT_MAX_STARTUP_REQUESTS = 4;
@@ -44,33 +53,36 @@ export class StartupRequestFanOutLaw extends LawBase {
     if ('problem' in threshold) {
       return this.createResult([threshold.problem], this.LAW_NAME, 'PERFORMANCE', [`Set ${MAX_STARTUP_REQUESTS_KEY} to a whole number, or remove it for the default of ${DEFAULT_MAX_STARTUP_REQUESTS}`], context);
     }
-    const scan = AngularComponents.scan(context);
     const rel = (file: string): string => AngularComponents.relative(context, file);
-    // Judged nothing only when nothing could be read: no TypeScript source,
-    // or no parser for it. A project with sources and no component (a
-    // library of services) was read in full, and its pass says so.
-    if (scan.sources.length === 0) {
-      const why = scan.unread.length > 0 ? ` (${scan.unread.join('; ')})` : '';
-      return markJudgedNothing(
-        this.createResult([`read no TypeScript source${why} — this law judged nothing`], this.LAW_NAME, 'PERFORMANCE', [], context)
-      );
+    // The component files are exactly the ones that selected the law
+    // (requires.anyFileContaining, read through the gate's reader).
+    const componentFiles = (REQUIRES_ANGULAR_COMPONENT.anyFileContaining ?? []).flatMap(entry =>
+      readFilesContaining(context.projectRoot, entry, context.config.ignores?.global ?? [])
+    );
+    const ts = loadTypeScript(context.projectRoot);
+    if (componentFiles.length === 0 || !ts) {
+      const why = !ts ? parserUnavailable(context.projectRoot) : 'read no file that declares an Angular component';
+      return markJudgedNothing(this.createResult([`${why} — this law judged nothing`], this.LAW_NAME, 'PERFORMANCE', [], context));
     }
-    const models = classModels(scan.sources);
+    const componentSources = componentFiles.map(found => TsxSource.parse(ts, found.file, found.content));
+    const own = new Set(componentFiles.map(found => samePath(found.file)));
+    // Services are resolved among the project's other sources too.
+    const services = AngularComponents.scan(context).sources.filter(source => !own.has(samePath(source.fileName)));
+    const models = classModels([...componentSources, ...services]);
+    const components = [...models.values()].flat().filter(model => model.component && componentSources.includes(model.source));
     const violations: string[] = [];
     let withHook = 0;
     let most = 0;
-    for (const component of scan.components) {
-      const model = (models.get(component.className) ?? []).find(candidate => candidate.source === component.source);
-      if (!model) continue;
+    for (const model of components) {
       if (OPENING_HOOKS.some(hook => model.methods.has(hook))) withHook++;
       const requests = startupRequests(model, models, rel);
       most = Math.max(most, requests.length);
       if (requests.length <= threshold.value) continue;
       violations.push(
-        `${rel(component.file)}:${component.line}: ${component.className} starts ${requests.length} HTTP requests when it opens (${OPENING_HOOKS.join(' / ')}; threshold ${threshold.value}): ${requests.map(listed).join('; ')} — sent together, they queue on the same backend and the screen waits for the slowest`
+        `${rel(model.source.fileName)}:${model.line}: ${model.name} starts ${requests.length} HTTP requests when it opens (${OPENING_HOOKS.join(' / ')}; threshold ${threshold.value}): ${requests.map(listed).join('; ')} — sent together, they queue on the same backend and the screen waits for the slowest`
       );
     }
-    const counts = { tsFilesRead: scan.sources.length, components: scan.components.length, componentsWithOpeningHook: withHook, threshold: threshold.value, mostRequests: most };
+    const counts = { componentFilesRead: componentFiles.length, components: components.length, componentsWithOpeningHook: withHook, threshold: threshold.value, mostRequests: most };
     const result = this.createResult(
       violations,
       this.LAW_NAME,
@@ -87,14 +99,15 @@ export class StartupRequestFanOutLaw extends LawBase {
   }
 
   /** A pass names what was read and what the count does not follow — "compliance verified" alone would claim more. */
-  private static passMessage(counts: { tsFilesRead: number; components: number; componentsWithOpeningHook: number; threshold: number; mostRequests: number }): string {
-    const read = `${this.LAW_NAME}: ${counts.tsFilesRead} TypeScript file(s) read, `;
-    const seen =
-      counts.components === 0
-        ? '0 Angular components — no screen to count requests for'
-        : `${counts.components} component(s) read (${counts.componentsWithOpeningHook} with an opening hook), none starts more than ${counts.threshold} requests on open (most: ${counts.mostRequests})`;
-    return `${read}${seen}; not followed: ${NOT_FOLLOWED}`;
+  private static passMessage(counts: { componentFilesRead: number; components: number; componentsWithOpeningHook: number; threshold: number; mostRequests: number }): string {
+    return `${this.LAW_NAME}: ${counts.componentFilesRead} component file(s) read (${counts.components} component(s), ${counts.componentsWithOpeningHook} with an opening hook), none starts more than ${counts.threshold} requests on open (most: ${counts.mostRequests}); not followed: ${NOT_FOLLOWED}`;
   }
+}
+
+/** One spelling of a path for comparison (separators and, on Windows, case). */
+function samePath(file: string): string {
+  const resolved = path.resolve(file);
+  return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
 }
 
 /** What the count does not see (detectionLimits says the same). */

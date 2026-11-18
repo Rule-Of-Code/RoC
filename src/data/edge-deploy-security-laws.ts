@@ -11,7 +11,11 @@
  */
 
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
-import { REQUIRES_PROXY_UPSTREAM_URL, REQUIRES_WRANGLER_CONFIG } from '../utils/edge-deploy/requirements';
+import {
+  REQUIRES_HOSTING_RUN_REWRITE,
+  REQUIRES_PROXY_UPSTREAM_URL,
+  REQUIRES_WRANGLER_CONFIG,
+} from '../utils/edge-deploy/requirements';
 import { generateLawId } from '../utils/id-generator';
 
 const GATE_READ =
@@ -95,5 +99,45 @@ export const EDGE_DEPLOY_SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article VIII.8.13: A Worker leaves its public workers.dev / preview URLs to Wrangler defaults',
     remediation:
       'Set workers_dev and preview_urls explicitly at the top level of the wrangler configuration; deploy the Worker before uploading secrets',
+  },
+
+  {
+    id: generateLawId(
+      'Hosting Rewrite Region Matches Deploy',
+      'A hosting rewrite to a serverless service names the region the repository deploys that service to',
+      'deployment'
+    ),
+    legacyId: 897,
+    article: 'VIII',
+    subsection: '8.14',
+    title: 'Hosting Rewrite Region Matches Deploy',
+    rationale:
+      'A hosting rewrite to Cloud Run carries a region. When the deploy configuration moves the service to another region, the rewrite keeps sending traffic to the old one — silently, for as long as the old service still exists and answers. Nothing fails: the pages load, from the wrong region, against the code that was there when the move happened, until someone reads the configuration.',
+    satisfiedBy: {
+      typescript:
+        'firebase.json: "rewrites": [{ "source": "/api/**", "run": { "serviceId": "api", "region": "europe-west3" } }] with the same region as gcloud run deploy api --region europe-west3 (or the deploy-cloudrun action\'s region input); change both in the same release.',
+      python:
+        'Deploy with gcloud run deploy <service> --region <R> (or a $REGION defined in the same file) and keep the hosting rewrite\'s region equal to R.',
+    },
+    detectionLimits: [
+      'Rewrites read (a registry): Firebase Hosting rewrites[].run in firebase.json (serviceId and region; an omitted region is us-central1, as Firebase documents), and a Cloud Run deterministic URL (https://[TAG---]SERVICE-PROJECT_NUMBER.REGION.run.app, the form Cloud Run documents) in vercel.json, netlify.toml or _redirects — Vercel and Netlify rewrites have no region field, the region is in the URL. Firebase rewrites to a function, Cloud Run URLs of the SERVICE_IDENTIFIER.run.app form and other hosts are not read.',
+      'Deploy configuration read (a registry): gcloud [alpha|beta] run deploy SERVICE --region R in shell/PowerShell scripts, Makefiles, CI YAML (also the Cloud Build entrypoint + args form) and package.json scripts, and the google-github-actions/deploy-cloudrun service/region inputs (default us-central1). $VAR, ${VAR}, ${VAR:-default} and ${{ env.VAR }} are resolved from an assignment or YAML key of that name in the same file; anything else (secrets, vars, inputs, another file) is unknown and never guessed.',
+      'A rewrite is compared with the deploys of the same service: no deploy in its region is a finding. With no deploy of that service in the repository, the rewrite region is compared with every region the repository deploys to (the single-repository rule): absent from all is a finding. A deploy of the service whose region cannot be read, or deploys that name no region at all, are listed as not judged. Deploy configuration in another repository is not read. Terraform, Pulumi, gcloud config set run/region, gcloud run services replace and console changes are not read.',
+      `Selected only where both are published: a firebase.json with a run rewrite ("serviceId") or a vercel.json / netlify.toml / _redirects with a Cloud Run deterministic URL, AND a Cloud Run deploy to compare it with (gcloud run deploy at a command position — not in a comment — in a script, Makefile, CI YAML or package.json script; the deploy-cloudrun action; the Cloud Build args form). A repository that only hosts, its services deployed from another repository, does not select it. ${GATE_READ} Both halves are what the law reads. A pass names the rewrites compared and the files read (also in the result's metrics).`,
+    ],
+    emoji: '🗺️',
+    description:
+      'A hosting rewrite to a serverless service names the region the repository deploys that service to',
+    priority: 'MEDIUM',
+    category: 'DEPLOYMENT',
+    requires: REQUIRES_HOSTING_RUN_REWRITE,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'HostingRewriteRegionMatchesDeployLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article VIII.8.14: A hosting rewrite sends traffic to a region the service is not deployed to',
+    remediation:
+      'Make the rewrite region equal to the region the service is deployed to, and change both in the same release',
   },
 ];

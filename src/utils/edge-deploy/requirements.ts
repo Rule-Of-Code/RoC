@@ -8,6 +8,7 @@
 
 import type { LawRequirement } from '../../types/enhanced-law.types';
 import { TEST_TREES } from './gate-files';
+import { RUN_APP_URL } from './rewrite-region';
 
 const JS_TEST_FILES = ['**/*.d.ts', '**/*.{spec,test}.*', '**/*.stories.*', '**/*.min.js'];
 const PY_TEST_FILES = ['**/test_*.py', '**/*_test.py', '**/conftest.py'];
@@ -50,4 +51,28 @@ export const REQUIRES_WRANGLER_CONFIG: LawRequirement = {
     { files: ['**/wrangler.{toml,json,jsonc}'], pattern: String.raw`\S`, exclude: TEST_TREES },
     { files: SCRIPT_FILES, pattern: String.raw`${AT_COMMAND}${JS_RUNNER}wrangler[ \t]+secret[ \t]+(?:put|bulk)\b`, exclude: TEST_TREES },
   ],
+};
+
+/** Hosting configuration whose rewrites can name a serverless service in a region. */
+export const HOSTING_REWRITE_FILES = ['**/vercel.json', '**/netlify.toml', '**/_redirects'];
+
+/**
+ * A Cloud Run deploy the rewrite can be compared with: gcloud run deploy at
+ * a command position (also as a package.json script), the deploy-cloudrun
+ * action, or the Cloud Build `args` form (flow or block list).
+ */
+const CLOUD_RUN_DEPLOY = String.raw`${AT_COMMAND}["']?gcloud(?:[ \t]+(?:alpha|beta))?[ \t]+run[ \t]+deploy\b|google-github-actions/deploy-cloudrun@|["']run["'][ \t]*,[ \t]*["']deploy["']|^[ \t]*-[ \t]+run[ \t]*\r?\n[ \t]*-[ \t]+deploy\b`;
+
+/**
+ * Both: a rewrite that names a service in a region, AND a deploy in the
+ * repository to compare it with (the top-level conditions are ANDed). A
+ * repository that only hosts — its services deployed from another one —
+ * does not select the law: there is nothing in it to compare.
+ */
+export const REQUIRES_HOSTING_RUN_REWRITE: LawRequirement = {
+  anyFileContaining: [
+    { files: ['**/firebase.json'], pattern: String.raw`"serviceId"\s*:`, exclude: TEST_TREES },
+    { files: HOSTING_REWRITE_FILES, pattern: RUN_APP_URL, exclude: TEST_TREES },
+  ],
+  anyOf: [{ anyFileContaining: [{ files: [...SCRIPT_FILES, '**/package.json'], pattern: CLOUD_RUN_DEPLOY, exclude: TEST_TREES }] }],
 };

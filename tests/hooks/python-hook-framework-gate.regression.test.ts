@@ -98,7 +98,8 @@ function fixture(
   return dir;
 }
 
-const PYPROJECT = "[project]\nname='svc'\nversion='0.1.0'\ndependencies=['flask']\n";
+const PYPROJECT =
+  "[project]\nname='svc'\nversion='0.1.0'\ndependencies=['flask']\n";
 const FLASK_APP = 'from flask import Flask\napp = Flask(__name__)\n';
 
 /** Python + pre-commit framework — the concern is satisfied, the Python way. */

@@ -20,7 +20,8 @@ import { TsClasses } from '../../utils/ts-classes';
 import { LawBase } from '../law-base';
 
 /** An array literal that holds routes: typed `Routes`, a `children:` list, or `RouterModule.forX([`. */
-const ROUTE_ARRAY = /(?::\s*Routes\s*=|\bchildren\s*:|\bprovideRouter\s*\(|\bforRoot\s*\(|\bforChild\s*\()\s*\[/g;
+const ROUTE_ARRAY =
+  /(?::\s*Routes\s*=|\bchildren\s*:|\bprovideRouter\s*\(|\bforRoot\s*\(|\bforChild\s*\()\s*\[/g;
 
 export class IonicUniqueUrlKeyPerViewLaw extends LawBase {
   static readonly LAW_NAME = 'Ionic Unique URL Key Per View';
@@ -58,14 +59,20 @@ export class IonicUniqueUrlKeyPerViewLaw extends LawBase {
       for (const entry of this.entries(code, open)) {
         const path = this.componentPath(content, code, entry);
         if (path === null) continue;
-        byPath.set(path, [...(byPath.get(path) ?? []), TsClasses.lineAt(content, entry.start)]);
+        byPath.set(path, [
+          ...(byPath.get(path) ?? []),
+          TsClasses.lineAt(content, entry.start),
+        ]);
       }
       violations.push(...this.collisions(where, byPath));
     }
     return violations;
   }
 
-  private static collisions(where: string, byPath: Map<string, number[]>): string[] {
+  private static collisions(
+    where: string,
+    byPath: Map<string, number[]>
+  ): string[] {
     return [...byPath]
       .filter(([, lines]) => lines.length > 1)
       .map(
@@ -94,7 +101,10 @@ export class IonicUniqueUrlKeyPerViewLaw extends LawBase {
   }
 
   /** The `{…}` entries directly inside the array whose `[` is at `open` (masked code). */
-  private static entries(code: string, open: number): Array<{ start: number; end: number }> {
+  private static entries(
+    code: string,
+    open: number
+  ): Array<{ start: number; end: number }> {
     const entries: Array<{ start: number; end: number }> = [];
     let depth = 0;
     for (let k = open; k < code.length; k++) {

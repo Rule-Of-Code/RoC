@@ -1,9 +1,7 @@
 import type { RuleOfCodeConfig } from '../../../../types';
 import { ReactPerformanceSource } from '../../../../utils/react/react-performance-source';
 import { WebBundlerConfig } from '../../../../utils/react/web-bundler-config';
-import type {
-  CoreWebVitalsAnalysisResult,
-} from '../constants/types';
+import type { CoreWebVitalsAnalysisResult } from '../constants/types';
 import { BrowserCachingAnalyzerService } from './browser-caching.analyzer';
 import { BundleOptimizationAnalyzerService } from './bundle-optimization.analyzer';
 import { ImageOptimizationAnalyzerService } from './image-optimization.analyzer';

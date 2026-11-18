@@ -57,7 +57,6 @@ describe('CdnCachingStrategyLaw - Main', () => {
           parallel: true,
           maxConcurrent: 4,
           cache: true,
-
         },
       },
     };
@@ -116,13 +115,15 @@ describe('CdnCachingStrategyLaw - Main', () => {
 
   describe('CDN configuration check', () => {
     it('should pass when all checks pass', async () => {
-      jest.spyOn(CdnCachingStrategyAnalyzerService, 'analyze').mockResolvedValue({
-        cdnConfigured: { configured: true },
-        assetOptimization: { optimized: true },
-        cachingHeaders: { configured: true },
-        serviceWorker: { implemented: true },
-        http2Optimization: { optimized: true },
-      });
+      jest
+        .spyOn(CdnCachingStrategyAnalyzerService, 'analyze')
+        .mockResolvedValue({
+          cdnConfigured: { configured: true },
+          assetOptimization: { optimized: true },
+          cachingHeaders: { configured: true },
+          serviceWorker: { implemented: true },
+          http2Optimization: { optimized: true },
+        });
 
       const result = await CdnCachingStrategyLaw.check(mockContext);
 
@@ -135,13 +136,15 @@ describe('CdnCachingStrategyLaw - Main', () => {
     });
 
     it('should add violation when CDN is not configured', async () => {
-      jest.spyOn(CdnCachingStrategyAnalyzerService, 'analyze').mockResolvedValue({
-        cdnConfigured: { configured: false },
-        assetOptimization: { optimized: true },
-        cachingHeaders: { configured: true },
-        serviceWorker: { implemented: true },
-        http2Optimization: { optimized: true },
-      });
+      jest
+        .spyOn(CdnCachingStrategyAnalyzerService, 'analyze')
+        .mockResolvedValue({
+          cdnConfigured: { configured: false },
+          assetOptimization: { optimized: true },
+          cachingHeaders: { configured: true },
+          serviceWorker: { implemented: true },
+          http2Optimization: { optimized: true },
+        });
 
       const result = await CdnCachingStrategyLaw.check(mockContext);
 
@@ -158,13 +161,15 @@ describe('CdnCachingStrategyLaw - Main', () => {
     });
 
     it('should add violation when asset optimization is not configured', async () => {
-      jest.spyOn(CdnCachingStrategyAnalyzerService, 'analyze').mockResolvedValue({
-        cdnConfigured: { configured: true },
-        assetOptimization: { optimized: false },
-        cachingHeaders: { configured: true },
-        serviceWorker: { implemented: true },
-        http2Optimization: { optimized: true },
-      });
+      jest
+        .spyOn(CdnCachingStrategyAnalyzerService, 'analyze')
+        .mockResolvedValue({
+          cdnConfigured: { configured: true },
+          assetOptimization: { optimized: false },
+          cachingHeaders: { configured: true },
+          serviceWorker: { implemented: true },
+          http2Optimization: { optimized: true },
+        });
 
       const result = await CdnCachingStrategyLaw.check(mockContext);
 
@@ -181,13 +186,15 @@ describe('CdnCachingStrategyLaw - Main', () => {
     });
 
     it('should add violation when caching headers are not configured', async () => {
-      jest.spyOn(CdnCachingStrategyAnalyzerService, 'analyze').mockResolvedValue({
-        cdnConfigured: { configured: true },
-        assetOptimization: { optimized: true },
-        cachingHeaders: { configured: false },
-        serviceWorker: { implemented: true },
-        http2Optimization: { optimized: true },
-      });
+      jest
+        .spyOn(CdnCachingStrategyAnalyzerService, 'analyze')
+        .mockResolvedValue({
+          cdnConfigured: { configured: true },
+          assetOptimization: { optimized: true },
+          cachingHeaders: { configured: false },
+          serviceWorker: { implemented: true },
+          http2Optimization: { optimized: true },
+        });
 
       const result = await CdnCachingStrategyLaw.check(mockContext);
 
@@ -204,13 +211,15 @@ describe('CdnCachingStrategyLaw - Main', () => {
     });
 
     it('should add violation when service worker is not implemented', async () => {
-      jest.spyOn(CdnCachingStrategyAnalyzerService, 'analyze').mockResolvedValue({
-        cdnConfigured: { configured: true },
-        assetOptimization: { optimized: true },
-        cachingHeaders: { configured: true },
-        serviceWorker: { implemented: false },
-        http2Optimization: { optimized: true },
-      });
+      jest
+        .spyOn(CdnCachingStrategyAnalyzerService, 'analyze')
+        .mockResolvedValue({
+          cdnConfigured: { configured: true },
+          assetOptimization: { optimized: true },
+          cachingHeaders: { configured: true },
+          serviceWorker: { implemented: false },
+          http2Optimization: { optimized: true },
+        });
 
       const result = await CdnCachingStrategyLaw.check(mockContext);
 
@@ -227,13 +236,15 @@ describe('CdnCachingStrategyLaw - Main', () => {
     });
 
     it('should add violation when HTTP/2 optimization is not configured', async () => {
-      jest.spyOn(CdnCachingStrategyAnalyzerService, 'analyze').mockResolvedValue({
-        cdnConfigured: { configured: true },
-        assetOptimization: { optimized: true },
-        cachingHeaders: { configured: true },
-        serviceWorker: { implemented: true },
-        http2Optimization: { optimized: false },
-      });
+      jest
+        .spyOn(CdnCachingStrategyAnalyzerService, 'analyze')
+        .mockResolvedValue({
+          cdnConfigured: { configured: true },
+          assetOptimization: { optimized: true },
+          cachingHeaders: { configured: true },
+          serviceWorker: { implemented: true },
+          http2Optimization: { optimized: false },
+        });
 
       const result = await CdnCachingStrategyLaw.check(mockContext);
 
@@ -250,13 +261,15 @@ describe('CdnCachingStrategyLaw - Main', () => {
     });
 
     it('should accumulate multiple violations', async () => {
-      jest.spyOn(CdnCachingStrategyAnalyzerService, 'analyze').mockResolvedValue({
-        cdnConfigured: { configured: false },
-        assetOptimization: { optimized: false },
-        cachingHeaders: { configured: false },
-        serviceWorker: { implemented: false },
-        http2Optimization: { optimized: false },
-      });
+      jest
+        .spyOn(CdnCachingStrategyAnalyzerService, 'analyze')
+        .mockResolvedValue({
+          cdnConfigured: { configured: false },
+          assetOptimization: { optimized: false },
+          cachingHeaders: { configured: false },
+          serviceWorker: { implemented: false },
+          http2Optimization: { optimized: false },
+        });
 
       const result = await CdnCachingStrategyLaw.check(mockContext);
 
@@ -267,13 +280,15 @@ describe('CdnCachingStrategyLaw - Main', () => {
     });
 
     it('should calculate correct score with multiple violations', async () => {
-      jest.spyOn(CdnCachingStrategyAnalyzerService, 'analyze').mockResolvedValue({
-        cdnConfigured: { configured: false },
-        assetOptimization: { optimized: false },
-        cachingHeaders: { configured: true },
-        serviceWorker: { implemented: true },
-        http2Optimization: { optimized: true },
-      });
+      jest
+        .spyOn(CdnCachingStrategyAnalyzerService, 'analyze')
+        .mockResolvedValue({
+          cdnConfigured: { configured: false },
+          assetOptimization: { optimized: false },
+          cachingHeaders: { configured: true },
+          serviceWorker: { implemented: true },
+          http2Optimization: { optimized: true },
+        });
 
       const result = await CdnCachingStrategyLaw.check(mockContext);
 
@@ -285,13 +300,15 @@ describe('CdnCachingStrategyLaw - Main', () => {
     });
 
     it('should cap score at 0 when penalties exceed 100', async () => {
-      jest.spyOn(CdnCachingStrategyAnalyzerService, 'analyze').mockResolvedValue({
-        cdnConfigured: { configured: false },
-        assetOptimization: { optimized: false },
-        cachingHeaders: { configured: false },
-        serviceWorker: { implemented: false },
-        http2Optimization: { optimized: false },
-      });
+      jest
+        .spyOn(CdnCachingStrategyAnalyzerService, 'analyze')
+        .mockResolvedValue({
+          cdnConfigured: { configured: false },
+          assetOptimization: { optimized: false },
+          cachingHeaders: { configured: false },
+          serviceWorker: { implemented: false },
+          http2Optimization: { optimized: false },
+        });
 
       const result = await CdnCachingStrategyLaw.check(mockContext);
 
@@ -299,13 +316,15 @@ describe('CdnCachingStrategyLaw - Main', () => {
     });
 
     it('should join violations in message when there are violations', async () => {
-      jest.spyOn(CdnCachingStrategyAnalyzerService, 'analyze').mockResolvedValue({
-        cdnConfigured: { configured: false },
-        assetOptimization: { optimized: false },
-        cachingHeaders: { configured: true },
-        serviceWorker: { implemented: true },
-        http2Optimization: { optimized: true },
-      });
+      jest
+        .spyOn(CdnCachingStrategyAnalyzerService, 'analyze')
+        .mockResolvedValue({
+          cdnConfigured: { configured: false },
+          assetOptimization: { optimized: false },
+          cachingHeaders: { configured: true },
+          serviceWorker: { implemented: true },
+          http2Optimization: { optimized: true },
+        });
 
       const result = await CdnCachingStrategyLaw.check(mockContext);
 
@@ -319,13 +338,15 @@ describe('CdnCachingStrategyLaw - Main', () => {
     });
 
     it('should include both violations and suggestions in details', async () => {
-      jest.spyOn(CdnCachingStrategyAnalyzerService, 'analyze').mockResolvedValue({
-        cdnConfigured: { configured: false },
-        assetOptimization: { optimized: true },
-        cachingHeaders: { configured: true },
-        serviceWorker: { implemented: true },
-        http2Optimization: { optimized: true },
-      });
+      jest
+        .spyOn(CdnCachingStrategyAnalyzerService, 'analyze')
+        .mockResolvedValue({
+          cdnConfigured: { configured: false },
+          assetOptimization: { optimized: true },
+          cachingHeaders: { configured: true },
+          serviceWorker: { implemented: true },
+          http2Optimization: { optimized: true },
+        });
 
       const result = await CdnCachingStrategyLaw.check(mockContext);
 

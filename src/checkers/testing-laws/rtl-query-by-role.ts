@@ -26,7 +26,8 @@ import { shareSummary, type FileCount } from './query-share';
 const RTL = '@testing-library/react';
 
 /** `getByRole`, `queryAllByText`, `findByTestId` … — every Testing Library query. */
-const QUERY = /^(?:get|query|find)(?:All)?By(TestId|Role|LabelText|PlaceholderText|Text|DisplayValue|AltText|Title)$/;
+const QUERY =
+  /^(?:get|query|find)(?:All)?By(TestId|Role|LabelText|PlaceholderText|Text|DisplayValue|AltText|Title)$/;
 
 const TEST_ID = 'TestId';
 const SELECTOR_QUERIES = new Set(['querySelector', 'querySelectorAll']);
@@ -45,9 +46,13 @@ export class RtlQueryByRoleLaw extends LawBase {
 
   static check(context: LawCheckContext): LawResult {
     const playwright = new Set(
-      TestSources.playwrightFiles(context).sources.map(source => source.fileName)
+      TestSources.playwrightFiles(context).sources.map(
+        source => source.fileName
+      )
     );
-    const files = TestSources.testFiles(context).filter(file => !playwright.has(file));
+    const files = TestSources.testFiles(context).filter(
+      file => !playwright.has(file)
+    );
     const { sources, unread } = TestSources.parse(context, files);
     const violations = [...unread];
     if (!this.libraryInScan(context, sources)) {
@@ -71,7 +76,8 @@ export class RtlQueryByRoleLaw extends LawBase {
       byFile,
       floor: RTL_USER_FACING_FLOOR,
       what: 'Testing Library queries',
-      userFacingNames: 'ByRole/LabelText/PlaceholderText/Text/DisplayValue/AltText/Title',
+      userFacingNames:
+        'ByRole/LabelText/PlaceholderText/Text/DisplayValue/AltText/Title',
       implementationNames: 'ByTestId/querySelector',
     });
     if (verdict) violations.push(verdict);
@@ -109,14 +115,19 @@ export class RtlQueryByRoleLaw extends LawBase {
       }
     });
     const usesLibrary =
-      counts.userFacing + counts.testId > 0 || TestSources.importsAny(source, [RTL]);
+      counts.userFacing + counts.testId > 0 ||
+      TestSources.importsAny(source, [RTL]);
     counts.selector = usesLibrary ? selectors : 0;
     return counts;
   }
 
   /** The test files import RTL, or a non-test wrapper (a custom render) does. */
-  private static libraryInScan(context: LawCheckContext, tests: TsxSource[]): boolean {
-    if (tests.some(source => TestSources.importsAny(source, [RTL]))) return true;
+  private static libraryInScan(
+    context: LawCheckContext,
+    tests: TsxSource[]
+  ): boolean {
+    if (tests.some(source => TestSources.importsAny(source, [RTL])))
+      return true;
     const wrappers = TestSources.codeFiles(context).filter(
       file => !TestSources.isTestFile(file) && mentions(file, RTL)
     );
@@ -128,7 +139,8 @@ export class RtlQueryByRoleLaw extends LawBase {
   private static calledName(ts: TsxSource['ts'], node: TS.Node): string | null {
     if (!ts.isCallExpression(node)) return null;
     if (ts.isIdentifier(node.expression)) return node.expression.text;
-    if (ts.isPropertyAccessExpression(node.expression)) return node.expression.name.text;
+    if (ts.isPropertyAccessExpression(node.expression))
+      return node.expression.name.text;
     return null;
   }
 }

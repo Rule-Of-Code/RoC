@@ -87,7 +87,10 @@ export class CicdConstitutionalTribunalLaw {
     };
 
     // 1. Check for CI/CD pipeline files
-    const pipelineAnalysis = this.analyzeCICDPipelines(projectRoot, context.config);
+    const pipelineAnalysis = this.analyzeCICDPipelines(
+      projectRoot,
+      context.config
+    );
     if (!pipelineAnalysis.hasPipeline) {
       violations.push('No CI/CD pipeline configuration found');
       suggestions.push(

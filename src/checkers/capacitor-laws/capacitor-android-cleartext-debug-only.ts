@@ -23,20 +23,30 @@
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { AndroidShell, SHIPPED_SOURCE_SETS } from '../../utils/capacitor/android-shell';
+import {
+  AndroidShell,
+  SHIPPED_SOURCE_SETS,
+} from '../../utils/capacitor/android-shell';
 import {
   type PlatformProject,
   projectsWithPlatform,
   relative,
 } from '../../utils/capacitor/capacitor-law-support';
 import { type CapacitorNativePaths } from '../../utils/capacitor/capacitor-project';
-import { type CommittedShell, notReadReason } from '../../utils/capacitor/committed-shell';
+import {
+  type CommittedShell,
+  notReadReason,
+} from '../../utils/capacitor/committed-shell';
 import { GradleText } from '../../utils/capacitor/gradle-text';
 import { PathOperations } from '../../utils/path-operations';
 import { LawBase } from '../law-base';
 
 /** The hosts a debug build reaches over cleartext: the device itself and the emulator's host. */
-export const LOOPBACK_HOSTS: readonly string[] = ['localhost', '127.0.0.1', '10.0.2.2'];
+export const LOOPBACK_HOSTS: readonly string[] = [
+  'localhost',
+  '127.0.0.1',
+  '10.0.2.2',
+];
 
 const USES_CLEARTEXT = 'android:usesCleartextTraffic';
 const NETWORK_SECURITY_CONFIG = 'android:networkSecurityConfig';
@@ -46,9 +56,11 @@ const MOVE_IT = 'move it to src/debug';
 const PERMITTED = 'cleartextTrafficPermitted';
 const BASE_CONFIG = 'base-config' as const;
 /** At a `manifest.srcFile`: `'x'`, `("x")`, `file('x')`, `= file("x")` — a literal target this law can follow. */
-const SRC_FILE_AT = /^manifest\.srcFile\s*(?:=\s*)?\(?\s*(?:(?:project\s*\.\s*)?file\s*\(\s*)?["']([^"'\n]+)["']/;
+const SRC_FILE_AT =
+  /^manifest\.srcFile\s*(?:=\s*)?\(?\s*(?:(?:project\s*\.\s*)?file\s*\(\s*)?["']([^"'\n]+)["']/;
 /** The dotted set prefix just before a `manifest.srcFile` on the same line. */
-const DOTTED_SET_BEFORE = /\bsourceSets\s*(?:\.\s*(\w+)|\.\s*getByName\s*\(\s*["'](\w+)["']\s*\)|\[\s*["'](\w+)["']\s*\])\s*\.\s*$/;
+const DOTTED_SET_BEFORE =
+  /\bsourceSets\s*(?:\.\s*(\w+)|\.\s*getByName\s*\(\s*["'](\w+)["']\s*\)|\[\s*["'](\w+)["']\s*\])\s*\.\s*$/;
 const ANY_SRC_FILE = /\bmanifest\.srcFile\b/g;
 
 export interface CleartextOpening {
@@ -92,7 +104,10 @@ export class CapacitorAndroidCleartextDebugOnlyLaw extends LawBase {
 
   static check(context: LawCheckContext): LawResult {
     const { projects, notRead } = projectsWithPlatform(context, 'android');
-    const violations = [...notRead, ...projects.flatMap(project => this.checkProject(context, project))];
+    const violations = [
+      ...notRead,
+      ...projects.flatMap(project => this.checkProject(context, project)),
+    ];
     return this.createResult(
       violations,
       this.LAW_NAME,
@@ -104,9 +119,16 @@ export class CapacitorAndroidCleartextDebugOnlyLaw extends LawBase {
     );
   }
 
-  private static checkProject(context: LawCheckContext, { native }: PlatformProject): string[] {
+  private static checkProject(
+    context: LawCheckContext,
+    { native }: PlatformProject
+  ): string[] {
     const shell = AndroidShell.committed(context.projectRoot, native);
-    const { redirects, violations } = this.readRedirects(context, native, shell);
+    const { redirects, violations } = this.readRedirects(
+      context,
+      native,
+      shell
+    );
     for (const planned of this.plan(native, shell, redirects)) {
       const where = relative(context, planned.file);
       const read = shell.read(planned.file);
@@ -128,7 +150,16 @@ export class CapacitorAndroidCleartextDebugOnlyLaw extends LawBase {
       // manifest — redirected or not — is an overlay the merger folds into
       // main, and an overlay that only removes a permission has none.
       const needsApplication = planned.required && planned.set === 'main';
-      violations.push(...this.checkManifest(context, native, shell, read.text, judged, needsApplication));
+      violations.push(
+        ...this.checkManifest(
+          context,
+          native,
+          shell,
+          read.text,
+          judged,
+          needsApplication
+        )
+      );
     }
     return violations;
   }
@@ -148,12 +179,17 @@ export class CapacitorAndroidCleartextDebugOnlyLaw extends LawBase {
         `${where}: ${notReadReason(script.notRead)} — a manifest.srcFile in it would decide which manifest ships, so the redirects are ${NOT_JUDGED}`
       );
     }
-    const reading = this.manifestRedirects(native.androidAppBuildGradle, 'text' in script ? script.text : undefined);
+    const reading = this.manifestRedirects(
+      native.androidAppBuildGradle,
+      'text' in script ? script.text : undefined
+    );
     for (const unread of reading.unread) {
       const why = unread.set
         ? `manifest.srcFile of ${unread.set} names its target with something other than a string literal`
         : 'manifest.srcFile is not inside a sourceSets.<name> this law can attribute to a source set';
-      violations.push(`${where}:${unread.line}: ${why} — the manifest that ships is ${NOT_JUDGED}`);
+      violations.push(
+        `${where}:${unread.line}: ${why} — the manifest that ships is ${NOT_JUDGED}`
+      );
     }
     return { redirects: reading.redirects, violations };
   }
@@ -164,22 +200,41 @@ export class CapacitorAndroidCleartextDebugOnlyLaw extends LawBase {
    * points, inside app/src or not — and not the file at its default path.
    * The main manifest (default or redirected) is required.
    */
-  private static plan(native: CapacitorNativePaths, shell: CommittedShell, redirects: ManifestRedirect[]): Planned[] {
+  private static plan(
+    native: CapacitorNativePaths,
+    shell: CommittedShell,
+    redirects: ManifestRedirect[]
+  ): Planned[] {
     const planned = new Map<string, Planned>();
     const redirectedSets = new Set<string>();
     for (const { set, file } of redirects) {
       redirectedSets.add(set);
       const key = PathOperations.normalize(file);
-      if (!planned.has(key)) planned.set(key, { file, set, shippedBy: `sourceSets.${set}.manifest.srcFile`, required: true });
+      if (!planned.has(key))
+        planned.set(key, {
+          file,
+          set,
+          shippedBy: `sourceSets.${set}.manifest.srcFile`,
+          required: true,
+        });
     }
     if (!redirectedSets.has('main')) {
-      planned.set(PathOperations.normalize(native.androidManifest), { file: native.androidManifest, set: 'main', required: true });
+      planned.set(PathOperations.normalize(native.androidManifest), {
+        file: native.androidManifest,
+        set: 'main',
+        required: true,
+      });
     }
     for (const set of AndroidShell.sourceSets(native, shell)) {
       // A redirected set's default manifest is not what Gradle reads for it.
       if (redirectedSets.has(set.name)) continue;
       const key = PathOperations.normalize(set.manifest);
-      if (!planned.has(key)) planned.set(key, { file: set.manifest, set: set.name, required: false });
+      if (!planned.has(key))
+        planned.set(key, {
+          file: set.manifest,
+          set: set.name,
+          required: false,
+        });
     }
     return [...planned.values()];
   }
@@ -195,14 +250,22 @@ export class CapacitorAndroidCleartextDebugOnlyLaw extends LawBase {
     const attributes = AndroidShell.applicationAttributes(manifest);
     if (!attributes) {
       return required
-        ? [`${judged.where}: no readable <application> element — this law reads the shipped manifest's cleartext settings and does not pass without it`]
+        ? [
+            `${judged.where}: no readable <application> element — this law reads the shipped manifest's cleartext settings and does not pass without it`,
+          ]
         : [];
     }
     const violations: string[] = [];
     const uses = attributes.get(USES_CLEARTEXT);
-    if (uses !== undefined) violations.push(...this.checkUsesCleartext(context, native, shell, judged, uses));
+    if (uses !== undefined)
+      violations.push(
+        ...this.checkUsesCleartext(context, native, shell, judged, uses)
+      );
     const reference = attributes.get(NETWORK_SECURITY_CONFIG);
-    if (reference !== undefined) violations.push(...this.checkConfig(context, native, shell, judged, reference));
+    if (reference !== undefined)
+      violations.push(
+        ...this.checkConfig(context, native, shell, judged, reference)
+      );
     return violations;
   }
 
@@ -216,11 +279,19 @@ export class CapacitorAndroidCleartextDebugOnlyLaw extends LawBase {
   ): string[] {
     const value = uses.trim().toLowerCase();
     if (value === 'false') return [];
-    if (value === 'true') return [this.opensEverything(judged, judged.where, `${USES_CLEARTEXT}="true"`)];
-    if (uses.includes('${')) return [`${judged.where}: ${USES_CLEARTEXT}="${uses}" is filled in by the build — ${NOT_JUDGED}`];
+    if (value === 'true')
+      return [
+        this.opensEverything(judged, judged.where, `${USES_CLEARTEXT}="true"`),
+      ];
+    if (uses.includes('${'))
+      return [
+        `${judged.where}: ${USES_CLEARTEXT}="${uses}" is filled in by the build — ${NOT_JUDGED}`,
+      ];
     const resource = AndroidShell.boolResource(native, shell, judged.set, uses);
     const values = resource?.values ?? [];
-    const unjudged = values.filter(({ value: written }) => !['true', 'false'].includes(written.toLowerCase()));
+    const unjudged = values.filter(
+      ({ value: written }) => !['true', 'false'].includes(written.toLowerCase())
+    );
     if (values.length === 0 || unjudged.length > 0) {
       return [
         `${judged.where}: ${USES_CLEARTEXT}="${uses}" ${values.length === 0 ? `does not resolve to a <bool> in res/values* of ${judged.set === 'main' ? 'main' : `${judged.set} or main`}` : `resolves to ${unjudged.map(({ value: written }) => `"${written}"`).join(', ')}, not true or false`} — ${NOT_JUDGED}`,
@@ -228,7 +299,13 @@ export class CapacitorAndroidCleartextDebugOnlyLaw extends LawBase {
     }
     return values
       .filter(({ value: written }) => written.toLowerCase() === 'true')
-      .map(({ file }) => this.opensEverything(judged, judged.where, `${USES_CLEARTEXT}="${uses}" (true in ${relative(context, file)})`));
+      .map(({ file }) =>
+        this.opensEverything(
+          judged,
+          judged.where,
+          `${USES_CLEARTEXT}="${uses}" (true in ${relative(context, file)})`
+        )
+      );
   }
 
   private static checkConfig(
@@ -238,7 +315,9 @@ export class CapacitorAndroidCleartextDebugOnlyLaw extends LawBase {
     judged: Judged,
     reference: string
   ): string[] {
-    const resource = reference.includes('${') ? null : AndroidShell.xmlResource(native, shell, judged.set, reference);
+    const resource = reference.includes('${')
+      ? null
+      : AndroidShell.xmlResource(native, shell, judged.set, reference);
     if (!resource) {
       return [
         `${judged.where}: ${NETWORK_SECURITY_CONFIG}="${reference}" does not resolve to a file in res/xml of ${judged.set === 'main' ? 'main' : `${judged.set} or main`} — ${NOT_JUDGED}`,
@@ -251,17 +330,31 @@ export class CapacitorAndroidCleartextDebugOnlyLaw extends LawBase {
           ? `<base-config ${PERMITTED}="true">`
           : `<domain-config ${PERMITTED}="true"> for ${opening.domains.join(', ') || 'no domain'}`;
       if (judged.shipped || opening.kind === BASE_CONFIG) {
-        return [this.opensEverything(judged, where, `${label} (referenced from ${judged.where})`)];
+        return [
+          this.opensEverything(
+            judged,
+            where,
+            `${label} (referenced from ${judged.where})`
+          ),
+        ];
       }
-      const other = opening.domains.filter(domain => !LOOPBACK_HOSTS.includes(domain.toLowerCase()));
+      const other = opening.domains.filter(
+        domain => !LOOPBACK_HOSTS.includes(domain.toLowerCase())
+      );
       return other.length === 0
         ? []
-        : [`${where}: ${label} opens ${other.join(', ')} for the ${judged.set} builds — ${SCOPE_IT}`];
+        : [
+            `${where}: ${label} opens ${other.join(', ')} for the ${judged.set} builds — ${SCOPE_IT}`,
+          ];
     });
   }
 
   /** A shipped opening, or an opening of every host in a non-shipped set. */
-  private static opensEverything(judged: Judged, where: string, what: string): string {
+  private static opensEverything(
+    judged: Judged,
+    where: string,
+    what: string
+  ): string {
     if (!judged.shipped) {
       return `${where}: ${what} opens cleartext to every host for the ${judged.set} builds — ${SCOPE_IT}`;
     }
@@ -280,10 +373,24 @@ export class CapacitorAndroidCleartextDebugOnlyLaw extends LawBase {
    */
   static openings(xml: string): CleartextOpening[] {
     const reader = new NetworkSecurityConfigReader();
-    const token = /<(\/?)(base-config|domain-config|domain)\b([^>]*?)(\/?)>|([^<]+)/g;
-    for (const [, closing, tag, attributeText, selfClosing, text] of AndroidShell.withoutComments(xml).matchAll(token)) {
+    const token =
+      /<(\/?)(base-config|domain-config|domain)\b([^>]*?)(\/?)>|([^<]+)/g;
+    for (const [
+      ,
+      closing,
+      tag,
+      attributeText,
+      selfClosing,
+      text,
+    ] of AndroidShell.withoutComments(xml).matchAll(token)) {
       if (text !== undefined) reader.text(text);
-      else reader.tag(tag ?? '', Boolean(closing), Boolean(selfClosing), attributeText ?? '');
+      else
+        reader.tag(
+          tag ?? '',
+          Boolean(closing),
+          Boolean(selfClosing),
+          attributeText ?? ''
+        );
     }
     return reader.openings;
   }
@@ -295,7 +402,10 @@ export class CapacitorAndroidCleartextDebugOnlyLaw extends LawBase {
    * `sourceSets { release { … } }` block), each resolved against the app
    * module directory as Gradle resolves `file(…)` — wherever it points.
    */
-  static manifestRedirects(buildGradle: string, script: string | undefined): RedirectReading {
+  static manifestRedirects(
+    buildGradle: string,
+    script: string | undefined
+  ): RedirectReading {
     const reading: RedirectReading = { redirects: [], unread: [] };
     if (!script) return reading;
     const gradle = new GradleText(script);
@@ -310,7 +420,9 @@ export class CapacitorAndroidCleartextDebugOnlyLaw extends LawBase {
         reading.unread.push({ line: gradle.lineOf(offset), set });
         continue;
       }
-      const target = PathOperations.isAbsolute(file) ? PathOperations.normalize(file) : PathOperations.join(appDir, file);
+      const target = PathOperations.isAbsolute(file)
+        ? PathOperations.normalize(file)
+        : PathOperations.join(appDir, file);
       reading.redirects.push({ set, file: target });
     }
     return reading;
@@ -323,14 +435,22 @@ export class CapacitorAndroidCleartextDebugOnlyLaw extends LawBase {
    * `sourceSets { … }` or is headed `sourceSets.release { … }`. Undefined
    * when neither says.
    */
-  private static redirectedSet(gradle: GradleText, offset: number): string | undefined {
+  private static redirectedSet(
+    gradle: GradleText,
+    offset: number
+  ): string | undefined {
     const lineStart = gradle.plain.lastIndexOf('\n', offset - 1) + 1;
-    const dotted = DOTTED_SET_BEFORE.exec(gradle.plain.slice(lineStart, offset));
+    const dotted = DOTTED_SET_BEFORE.exec(
+      gradle.plain.slice(lineStart, offset)
+    );
     if (dotted) return dotted[1] ?? dotted[2] ?? dotted[3];
     const enclosing = gradle.enclosing(offset);
     const block = enclosing[enclosing.length - 1];
     if (!block?.name) return undefined;
-    return block.parent?.name === 'sourceSets' || /\bsourceSets\s*[.[]/.test(block.header) ? block.name : undefined;
+    return block.parent?.name === 'sourceSets' ||
+      /\bsourceSets\s*[.[]/.test(block.header)
+      ? block.name
+      : undefined;
   }
 }
 
@@ -341,26 +461,40 @@ class NetworkSecurityConfigReader {
   private inDomain = false;
 
   text(text: string): void {
-    if (this.inDomain) this.stack[this.stack.length - 1]?.domains.push(text.trim());
+    if (this.inDomain)
+      this.stack[this.stack.length - 1]?.domains.push(text.trim());
   }
 
-  tag(tag: string, closing: boolean, selfClosing: boolean, attributeText: string): void {
+  tag(
+    tag: string,
+    closing: boolean,
+    selfClosing: boolean,
+    attributeText: string
+  ): void {
     const permitted = AndroidShell.attributes(attributeText).get(PERMITTED);
     if (tag === 'domain') {
       this.inDomain = !closing && !selfClosing;
     } else if (tag === BASE_CONFIG) {
-      if (!closing && permitted === 'true') this.openings.push({ kind: BASE_CONFIG, domains: [] });
+      if (!closing && permitted === 'true')
+        this.openings.push({ kind: BASE_CONFIG, domains: [] });
     } else if (closing) {
       this.closeDomainConfig();
     } else if (!selfClosing) {
       // A self-closing domain-config names no domain and opens nothing.
       const inherited = this.stack[this.stack.length - 1]?.permitted ?? false;
-      this.stack.push({ permitted: permitted === undefined ? inherited : permitted === 'true', domains: [] });
+      this.stack.push({
+        permitted: permitted === undefined ? inherited : permitted === 'true',
+        domains: [],
+      });
     }
   }
 
   private closeDomainConfig(): void {
     const frame = this.stack.pop();
-    if (frame?.permitted) this.openings.push({ kind: 'domain-config', domains: frame.domains.filter(Boolean) });
+    if (frame?.permitted)
+      this.openings.push({
+        kind: 'domain-config',
+        domains: frame.domains.filter(Boolean),
+      });
   }
 }

@@ -91,9 +91,9 @@ describe('utils/git/git-layout — linked worktrees', () => {
     FileUtils.createDirectory(custom);
     git('config core.hooksPath .husky', worktree);
 
-    expect(PathOperations.normalize(resolveGitHooksDir(worktree) as string)).toBe(
-      PathOperations.normalize(custom)
-    );
+    expect(
+      PathOperations.normalize(resolveGitHooksDir(worktree) as string)
+    ).toBe(PathOperations.normalize(custom));
   });
 
   it('reads the git config from inside a worktree', () => {
@@ -124,6 +124,8 @@ describe('utils/git/git-layout — linked worktrees', () => {
 
     const result = GitHooksStandardsLaw.check(context);
 
-    expect(result.violations ?? []).not.toContain('Git hooks directory missing');
+    expect(result.violations ?? []).not.toContain(
+      'Git hooks directory missing'
+    );
   });
 });

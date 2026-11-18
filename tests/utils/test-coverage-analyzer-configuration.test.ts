@@ -157,25 +157,21 @@ describe('TestCoverageAnalyzerConfiguration', () => {
         '  });',
         '});',
       ].join('\n');
-      expect(
-        TestCoverageAnalyzerConfiguration.testsEdgeCases(spec)
-      ).toBe(true);
+      expect(TestCoverageAnalyzerConfiguration.testsEdgeCases(spec)).toBe(true);
     });
 
     it('still returns false for a happy-path-only spec', () => {
       const spec =
         "describe('add', () => { it('sums two positives', () => { expect(add(2,3)).toBe(5); }); });";
-      expect(
-        TestCoverageAnalyzerConfiguration.testsEdgeCases(spec)
-      ).toBe(false);
+      expect(TestCoverageAnalyzerConfiguration.testsEdgeCases(spec)).toBe(
+        false
+      );
     });
 
     it('recognises an edge keyword in the title too', () => {
       const spec =
         "describe('x', () => { it('handles an invalid payload', () => { expect(f()).toBe(1); }); });";
-      expect(
-        TestCoverageAnalyzerConfiguration.testsEdgeCases(spec)
-      ).toBe(true);
+      expect(TestCoverageAnalyzerConfiguration.testsEdgeCases(spec)).toBe(true);
     });
   });
 

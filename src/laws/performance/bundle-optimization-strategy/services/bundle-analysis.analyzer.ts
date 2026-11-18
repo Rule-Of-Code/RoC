@@ -46,7 +46,9 @@ export class BundleAnalysisAnalyzerService {
     const rootDeps =
       ProjectTypeDetectorValidation.getProjectDependencies(projectRoot);
     const tools = this.BUNDLE_TOOLS.filter(
-      tool => Boolean(rootDeps[tool]) || WorkspaceManifests.declares(projectRoot, tool)
+      tool =>
+        Boolean(rootDeps[tool]) ||
+        WorkspaceManifests.declares(projectRoot, tool)
     );
 
     // A script that RUNS an analyzer. This used to accept any script whose
@@ -75,12 +77,17 @@ export class BundleAnalysisAnalyzerService {
     const report = bundler ?? WebBundlerConfig.inspect(projectRoot);
     for (const app of report.apps) {
       if (app.bundleAnalyzer) {
-        tools.push(`${WebBundlerConfig.label(projectRoot, app)}: @next/bundle-analyzer in next.config`);
+        tools.push(
+          `${WebBundlerConfig.label(projectRoot, app)}: @next/bundle-analyzer in next.config`
+        );
       }
     }
 
     // A size-limit check that something runs measures the bundle and fails on it.
-    const sizeLimit = PerformanceBudgetGates.enforcedSizeLimit(projectRoot, config);
+    const sizeLimit = PerformanceBudgetGates.enforcedSizeLimit(
+      projectRoot,
+      config
+    );
     if (sizeLimit) tools.push(sizeLimit);
 
     // Declared budgets ARE a bundle-size policy, and an enforced one: the build

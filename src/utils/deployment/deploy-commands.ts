@@ -22,7 +22,8 @@ const CONTINUATION = /[\\`^]\s*$/;
 const FLAG_LINE = /^-{1,2}[A-Za-z]/;
 const GHA_EXPRESSION = /\$\{\{[^}]*\}\}/g;
 const SUBSTITUTION = /\$\([^)]*\)/g;
-const EXPANSION = /^["']?(?:\$\{?[A-Za-z_][A-Za-z0-9_]*\}?|\$\{[^}]*\}|%[A-Za-z_][A-Za-z0-9_]*%|\$GHA|\$SUB)["']?$/;
+const EXPANSION =
+  /^["']?(?:\$\{?[A-Za-z_][A-Za-z0-9_]*\}?|\$\{[^}]*\}|%[A-Za-z_][A-Za-z0-9_]*%|\$GHA|\$SUB)["']?$/;
 const ENTRYPOINTS = ['gcloud', 'aws', 'az'];
 
 const stripComment = (line: string): string => line.replace(/(^|\s)#.*$/, '$1');
@@ -45,17 +46,31 @@ export function firstShellCommand(text: string): string {
 
 /** Lines that belong to a folded block scalar (`key: >`), by 0-based index. */
 export function foldedLines(entries: YamlEntry[]): Set<number> {
-  return new Set(entries.filter(entry => entry.folded).flatMap(entry => entry.block.map(line => line.line - 1)));
+  return new Set(
+    entries
+      .filter(entry => entry.folded)
+      .flatMap(entry => entry.block.map(line => line.line - 1))
+  );
 }
 
 /** Join the lines that continue the command starting on line `index`. */
-function joined(lines: string[], index: number, start: number, folded: Set<number>): string {
-  let text = stripComment(lines[index] ?? '').slice(start).trimEnd();
+function joined(
+  lines: string[],
+  index: number,
+  start: number,
+  folded: Set<number>
+): string {
+  let text = stripComment(lines[index] ?? '')
+    .slice(start)
+    .trimEnd();
   for (let next = index + 1; next < lines.length; next++) {
     const following = stripComment(lines[next] ?? '').trim();
     if (CONTINUATION.test(text)) {
       text = `${text.replace(CONTINUATION, '')} ${following}`;
-    } else if (following && (FLAG_LINE.test(following) || (folded.has(index) && folded.has(next)))) {
+    } else if (
+      following &&
+      (FLAG_LINE.test(following) || (folded.has(index) && folded.has(next)))
+    ) {
       text = `${text} ${following}`;
     } else {
       break;
@@ -85,14 +100,21 @@ function atCommandPosition(line: string, match: RegExpExecArray): boolean {
 }
 
 /** Every occurrence of a command (`start`) in a text, with its joined arguments. */
-export function commandsInText(text: string, start: RegExp, folded: Set<number> = new Set()): FoundCommand[] {
+export function commandsInText(
+  text: string,
+  start: RegExp,
+  folded: Set<number> = new Set()
+): FoundCommand[] {
   const lines = text.split(/\r?\n/);
   const found: FoundCommand[] = [];
   lines.forEach((line, index) => {
     const code = stripComment(line);
     const match = start.exec(code);
     if (!match || !atCommandPosition(code, match)) return;
-    found.push({ line: index + 1, text: firstShellCommand(joined(lines, index, match.index, folded)) });
+    found.push({
+      line: index + 1,
+      text: firstShellCommand(joined(lines, index, match.index, folded)),
+    });
   });
   return found;
 }
@@ -103,10 +125,22 @@ export function argsCommands(entries: YamlEntry[]): FoundCommand[] {
     .filter(entry => entry.key === 'args' && entry.item >= 0)
     .flatMap(args => {
       const sibling = (key: string): string | undefined =>
-        entries.find(entry => entry.item === args.item && entry.key === key && entry.indent === args.indent)?.value;
-      const entrypoint = sibling('entrypoint') ?? (/cloud-builders\/gcloud(?::|$)/.test(sibling('name') ?? '') ? 'gcloud' : undefined);
+        entries.find(
+          entry =>
+            entry.item === args.item &&
+            entry.key === key &&
+            entry.indent === args.indent
+        )?.value;
+      const entrypoint =
+        sibling('entrypoint') ??
+        (/cloud-builders\/gcloud(?::|$)/.test(sibling('name') ?? '')
+          ? 'gcloud'
+          : undefined);
       if (!entrypoint || !ENTRYPOINTS.includes(entrypoint)) return [];
-      const words = args.items.length > 0 ? args.items.map(item => item.text) : flowItems(args.value);
+      const words =
+        args.items.length > 0
+          ? args.items.map(item => item.text)
+          : flowItems(args.value);
       return [{ line: args.line, text: [entrypoint, ...words].join(' ') }];
     });
 }
@@ -114,14 +148,20 @@ export function argsCommands(entries: YamlEntry[]): FoundCommand[] {
 /** The `--flag` and `-f` names a command passes. */
 export function flagsOf(text: string): Set<string> {
   const flags = new Set<string>();
-  for (const match of text.matchAll(/(?:^|[\s'"[,(])(--[a-z][a-z0-9-]*)/gi)) flags.add((match[1] ?? '').toLowerCase());
-  for (const match of text.matchAll(/(?:^|[\s'"[,])(-[a-zA-Z])(?=[\s'"=,\]]|$)/g)) flags.add(match[1] ?? '');
+  for (const match of text.matchAll(/(?:^|[\s'"[,(])(--[a-z][a-z0-9-]*)/gi))
+    flags.add((match[1] ?? '').toLowerCase());
+  for (const match of text.matchAll(
+    /(?:^|[\s'"[,])(-[a-zA-Z])(?=[\s'"=,\]]|$)/g
+  ))
+    flags.add(match[1] ?? '');
   return flags;
 }
 
 /** The value of `--name=value` or `--name value`, unquoted. */
 export function flagValue(text: string, name: string): string | null {
-  const match = new RegExp(`(?:^|\\s)${name}(?:=|\\s+)(["']?)([^\\s"']+)\\1`).exec(text);
+  const match = new RegExp(
+    `(?:^|\\s)${name}(?:=|\\s+)(["']?)([^\\s"']+)\\1`
+  ).exec(text);
   return match?.[2] ?? null;
 }
 
@@ -130,8 +170,17 @@ export function flagValue(text: string, name: string): string | null {
  * flags)`) that are not the value of a flag and not one of the command's
  * positional arguments: they may carry the flags the law looks for.
  */
-export function opaqueArguments(text: string, commandWords: number, positionals: number): string[] {
-  const tokens = text.replace(GHA_EXPRESSION, '$GHA').replace(SUBSTITUTION, '$SUB').trim().split(/\s+/).slice(commandWords);
+export function opaqueArguments(
+  text: string,
+  commandWords: number,
+  positionals: number
+): string[] {
+  const tokens = text
+    .replace(GHA_EXPRESSION, '$GHA')
+    .replace(SUBSTITUTION, '$SUB')
+    .trim()
+    .split(/\s+/)
+    .slice(commandWords);
   const opaque: string[] = [];
   let positional = 0;
   tokens.forEach((token, index) => {
@@ -149,4 +198,3 @@ export function wordCount(text: string, start: RegExp): number {
   const match = start.exec(text);
   return match ? match[0].trim().split(/\s+/).length : 0;
 }
-

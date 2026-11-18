@@ -15,8 +15,16 @@ afterAll(removeProjects);
 const STATS = '.next/diagnostics/route-bundle-stats.json';
 /** The shape next@16.4.6 writes (two routes of a fresh create-next-app). */
 const ROWS = [
-  { route: '/', firstLoadUncompressedJsBytes: 474314, firstLoadChunkPaths: ['.next/static/chunks/a.js'] },
-  { route: '/_not-found', firstLoadUncompressedJsBytes: 458597, firstLoadChunkPaths: [] },
+  {
+    route: '/',
+    firstLoadUncompressedJsBytes: 474314,
+    firstLoadChunkPaths: ['.next/static/chunks/a.js'],
+  },
+  {
+    route: '/_not-found',
+    firstLoadUncompressedJsBytes: 458597,
+    firstLoadChunkPaths: [],
+  },
 ];
 
 /** A built app: the stats file written after the source, as a build would. */
@@ -24,13 +32,22 @@ function built(stats: unknown = ROWS): string {
   const root = nextApp({ 'src/app/page.tsx': PAGE });
   const file = path.join(root, STATS);
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, typeof stats === 'string' ? stats : JSON.stringify(stats));
+  fs.writeFileSync(
+    file,
+    typeof stats === 'string' ? stats : JSON.stringify(stats)
+  );
   const later = new Date(Date.now() + 60_000);
   fs.utimesSync(file, later, later);
   return root;
 }
 const check = (root: string, routeJsBudgetKb?: number) =>
-  Law.check(ctx(root, { thresholds: { next: routeJsBudgetKb === undefined ? {} : { routeJsBudgetKb } } }));
+  Law.check(
+    ctx(root, {
+      thresholds: {
+        next: routeJsBudgetKb === undefined ? {} : { routeJsBudgetKb },
+      },
+    })
+  );
 
 describe('NextRouteJsBudgetLaw (#237)', () => {
   it('red: routes over the budget, each named with its size', () => {
@@ -46,12 +63,20 @@ describe('NextRouteJsBudgetLaw (#237)', () => {
   });
 
   it('fails without a declared budget', () => {
-    expect(check(built()).violations).toEqual([expect.stringContaining('no budget declared — set thresholds.next.routeJsBudgetKb')]);
+    expect(check(built()).violations).toEqual([
+      expect.stringContaining(
+        'no budget declared — set thresholds.next.routeJsBudgetKb'
+      ),
+    ]);
   });
 
   it('fails when there is no build output: not measured', () => {
     const result = check(nextApp({ 'src/app/page.tsx': PAGE }), 500);
-    expect(result.violations).toEqual([expect.stringContaining('.next/diagnostics/route-bundle-stats.json: not found — route JavaScript was NOT measured')]);
+    expect(result.violations).toEqual([
+      expect.stringContaining(
+        '.next/diagnostics/route-bundle-stats.json: not found — route JavaScript was NOT measured'
+      ),
+    ]);
   });
 
   it('fails when a source file is newer than the build', () => {
@@ -59,14 +84,22 @@ describe('NextRouteJsBudgetLaw (#237)', () => {
     const page = path.join(root, 'src/app/page.tsx');
     const evenLater = new Date(Date.now() + 120_000);
     fs.utimesSync(page, evenLater, evenLater);
-    expect(check(root, 500).violations).toEqual([expect.stringContaining('older than src/app/page.tsx')]);
+    expect(check(root, 500).violations).toEqual([
+      expect.stringContaining('older than src/app/page.tsx'),
+    ]);
   });
 
   it.each([
     ['not JSON', '{oops', 'could not be read as JSON'],
     ['another shape', { routes: {} }, 'is not the format this law reads'],
-    ['a row without bytes', [{ route: '/', size: 1 }], 'is not the format this law reads'],
+    [
+      'a row without bytes',
+      [{ route: '/', size: 1 }],
+      'is not the format this law reads',
+    ],
   ])('fails on a stats file that is %s', (_name, stats, fragment) => {
-    expect(check(built(stats), 500).violations).toEqual([expect.stringContaining(fragment)]);
+    expect(check(built(stats), 500).violations).toEqual([
+      expect.stringContaining(fragment),
+    ]);
   });
 });

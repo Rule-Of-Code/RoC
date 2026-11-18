@@ -17,13 +17,17 @@
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { jsxAttribute, type JsxElementInfo } from '../../utils/react/tsx-source';
+import {
+  jsxAttribute,
+  type JsxElementInfo,
+} from '../../utils/react/tsx-source';
 import { AccessibilityLawBase } from './accessibility-law-base';
 import { JsxSources, type JsxFile } from './jsx-sources';
 import { TemplateMarkup, type MarkupElement } from './template-markup';
 
 /** Keywords in a click handler that strongly imply a disclosure toggle. */
-export const DISCLOSURE_INTENT = /toggle|expand|collaps|dropdown|menu|disclos|isopen|open/i;
+export const DISCLOSURE_INTENT =
+  /toggle|expand|collaps|dropdown|menu|disclos|isopen|open/i;
 
 export class DisclosureControlAriaStateLaw extends AccessibilityLawBase {
   static check(context: LawCheckContext): LawResult {
@@ -68,7 +72,9 @@ export class DisclosureControlAriaStateLaw extends AccessibilityLawBase {
     const jsx = JsxSources.read(context);
     const violations = [...jsx.unread];
     for (const file of jsx.files) {
-      const toggles = file.elements.filter(element => this.isJsxToggleWithoutState(file, element));
+      const toggles = file.elements.filter(element =>
+        this.isJsxToggleWithoutState(file, element)
+      );
       const missing = toggles.filter(el => !el.hasSpread).map(el => el.line);
       const spread = toggles.filter(el => el.hasSpread).map(el => el.line);
       if (missing.length > 0) {
@@ -85,12 +91,18 @@ export class DisclosureControlAriaStateLaw extends AccessibilityLawBase {
     return violations;
   }
 
-  private static isJsxToggleWithoutState(file: JsxFile, element: JsxElementInfo): boolean {
+  private static isJsxToggleWithoutState(
+    file: JsxFile,
+    element: JsxElementInfo
+  ): boolean {
     if (!JsxSources.isIntrinsic(element, 'button')) return false;
     const onClick = jsxAttribute(element, 'onClick');
     if (!onClick || !DISCLOSURE_INTENT.test(onClick.value)) return false;
     if (this.setsALiteral(file, element)) return false;
-    return !JsxSources.has(element, 'aria-expanded') && !JsxSources.has(element, 'aria-pressed');
+    return (
+      !JsxSources.has(element, 'aria-expanded') &&
+      !JsxSources.has(element, 'aria-pressed')
+    );
   }
 
   /**
@@ -101,16 +113,28 @@ export class DisclosureControlAriaStateLaw extends AccessibilityLawBase {
   private static setsALiteral(file: JsxFile, element: JsxElementInfo): boolean {
     const ts = file.source.ts;
     for (const property of element.node.attributes.properties) {
-      if (!ts.isJsxAttribute(property) || property.name.getText(file.source.sourceFile) !== 'onClick') {
+      if (
+        !ts.isJsxAttribute(property) ||
+        property.name.getText(file.source.sourceFile) !== 'onClick'
+      ) {
         continue;
       }
       const initializer = property.initializer;
-      const handler = initializer && ts.isJsxExpression(initializer) ? initializer.expression : undefined;
-      if (!handler || !ts.isArrowFunction(handler) || !ts.isCallExpression(handler.body)) return false;
+      const handler =
+        initializer && ts.isJsxExpression(initializer)
+          ? initializer.expression
+          : undefined;
+      if (
+        !handler ||
+        !ts.isArrowFunction(handler) ||
+        !ts.isCallExpression(handler.body)
+      )
+        return false;
       const args = handler.body.arguments;
       return (
         args.length === 1 &&
-        (args[0]?.kind === ts.SyntaxKind.TrueKeyword || args[0]?.kind === ts.SyntaxKind.FalseKeyword)
+        (args[0]?.kind === ts.SyntaxKind.TrueKeyword ||
+          args[0]?.kind === ts.SyntaxKind.FalseKeyword)
       );
     }
     return false;
@@ -126,7 +150,8 @@ export class DisclosureControlAriaStateLaw extends AccessibilityLawBase {
     for (const element of elements) {
       if (!this.isDisclosureToggle(element)) continue;
       const ionic = this.isIonicButton(element);
-      if (ionic && TemplateMarkup.ancestor(element, ['ion-accordion'])) continue;
+      if (ionic && TemplateMarkup.ancestor(element, ['ion-accordion']))
+        continue;
       const hasExpanded = TemplateMarkup.has(element, 'aria-expanded');
       if (ionic && hasExpanded) {
         ionicStale.push(`<${element.tag}> line ${element.line}`);

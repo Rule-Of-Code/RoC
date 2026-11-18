@@ -20,7 +20,9 @@ import {
 const ROOT = path.resolve(__dirname, '..', '..');
 const DOOR = 'src/utils/child-process.ts';
 /** Needs children that DO inherit GIT_DIR, to prove the hazard is live. */
-const TESTS_ALLOWED_RAW = ['tests/regression/inherited-git-environment.test.ts'];
+const TESTS_ALLOWED_RAW = [
+  'tests/regression/inherited-git-environment.test.ts',
+];
 
 /** An import, require or dynamic import of the child_process module. */
 const CHILD_PROCESS_MODULE =
@@ -28,7 +30,9 @@ const CHILD_PROCESS_MODULE =
 
 function tsFiles(dir: string): string[] {
   const out: string[] = [];
-  for (const entry of fs.readdirSync(path.join(ROOT, dir), { withFileTypes: true })) {
+  for (const entry of fs.readdirSync(path.join(ROOT, dir), {
+    withFileTypes: true,
+  })) {
     const rel = `${dir}/${entry.name}`;
     if (entry.isDirectory()) out.push(...tsFiles(rel));
     else if (/\.(ts|js)$/.test(entry.name)) out.push(rel);
@@ -37,7 +41,9 @@ function tsFiles(dir: string): string[] {
 }
 
 const importers = (dir: string): string[] =>
-  tsFiles(dir).filter(rel => CHILD_PROCESS_MODULE.test(fs.readFileSync(path.join(ROOT, rel), 'utf8')));
+  tsFiles(dir).filter(rel =>
+    CHILD_PROCESS_MODULE.test(fs.readFileSync(path.join(ROOT, rel), 'utf8'))
+  );
 
 describe('guard: one door for child processes', () => {
   it('reads the source tree (not a vacuous pass)', () => {
@@ -50,7 +56,9 @@ describe('guard: one door for child processes', () => {
   });
 
   it('no test spawns git (or anything) with the inherited environment', () => {
-    expect(importers('tests').filter(rel => !TESTS_ALLOWED_RAW.includes(rel))).toEqual([]);
+    expect(
+      importers('tests').filter(rel => !TESTS_ALLOWED_RAW.includes(rel))
+    ).toEqual([]);
   });
 });
 
@@ -63,11 +71,18 @@ describe('childEnvironment', () => {
       .split(/\r?\n/)
       .filter(Boolean);
     expect(local.length).toBeGreaterThan(0);
-    expect(REPOSITORY_LOCAL_GIT_VARIABLES).toEqual(expect.arrayContaining(local));
+    expect(REPOSITORY_LOCAL_GIT_VARIABLES).toEqual(
+      expect.arrayContaining(local)
+    );
   });
 
   it('removes every repository-local variable, in any case, and keeps the rest', () => {
-    const base: NodeJS.ProcessEnv = { PATH: '/bin', GIT_AUTHOR_NAME: 'a', GIT_SSH_COMMAND: 'ssh', GIT_CEILING_DIRECTORIES: '/x' };
+    const base: NodeJS.ProcessEnv = {
+      PATH: '/bin',
+      GIT_AUTHOR_NAME: 'a',
+      GIT_SSH_COMMAND: 'ssh',
+      GIT_CEILING_DIRECTORIES: '/x',
+    };
     for (const name of REPOSITORY_LOCAL_GIT_VARIABLES) base[name] = 'x';
     base.git_dir = 'lower';
     base.GIT_CONFIG_KEY_0 = 'core.hooksPath';
@@ -75,7 +90,12 @@ describe('childEnvironment', () => {
 
     const env = childEnvironment(base);
 
-    expect(env).toEqual({ PATH: '/bin', GIT_AUTHOR_NAME: 'a', GIT_SSH_COMMAND: 'ssh', GIT_CEILING_DIRECTORIES: '/x' });
+    expect(env).toEqual({
+      PATH: '/bin',
+      GIT_AUTHOR_NAME: 'a',
+      GIT_SSH_COMMAND: 'ssh',
+      GIT_CEILING_DIRECTORIES: '/x',
+    });
     expect(base.GIT_DIR).toBe('x'); // the input is not modified
     expect(isRepositoryLocalGitVariable('Git_Work_Tree')).toBe(true);
     expect(isRepositoryLocalGitVariable('GIT_TERMINAL_PROMPT')).toBe(false);
@@ -84,11 +104,19 @@ describe('childEnvironment', () => {
   it('is what a child started through the door actually receives, even from an explicit env', () => {
     const run = spawnSync(
       process.execPath,
-      ['-e', 'console.log(JSON.stringify(Object.keys(process.env).filter(k => /^git_/i.test(k)).sort()))'],
+      [
+        '-e',
+        'console.log(JSON.stringify(Object.keys(process.env).filter(k => /^git_/i.test(k)).sort()))',
+      ],
       {
         cwd: os.tmpdir(),
         encoding: 'utf8',
-        env: { ...process.env, GIT_DIR: '/elsewhere/.git', GIT_INDEX_FILE: '/elsewhere/index', GIT_AUTHOR_NAME: 'kept' },
+        env: {
+          ...process.env,
+          GIT_DIR: '/elsewhere/.git',
+          GIT_INDEX_FILE: '/elsewhere/index',
+          GIT_AUTHOR_NAME: 'kept',
+        },
       }
     );
     const names = JSON.parse(run.stdout) as string[];

@@ -13,7 +13,13 @@
 
 import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { exportedBindings, importedNames, namespaceNames, NextAppFiles, unwrapExpression } from '../../utils/react/next-app-files';
+import {
+  exportedBindings,
+  importedNames,
+  namespaceNames,
+  NextAppFiles,
+  unwrapExpression,
+} from '../../utils/react/next-app-files';
 import { NextSourcesLoader } from '../../utils/react/next-sources';
 import { ReactProject } from '../../utils/react/react-project';
 import type { TsxSource } from '../../utils/react/tsx-source';
@@ -27,8 +33,15 @@ export class NextSegmentConfigConsistentLaw extends LawBase {
 
   static check(context: LawCheckContext): LawResult {
     const sources = NextSourcesLoader.load(context);
-    if (!NextSourcesLoader.hasAppRouter(sources) && sources.unread.length === 0) {
-      return NextAppFiles.withoutSubject(this.LAW_NAME, 'no app/ directory — route segment config exists only in the App Router', context);
+    if (
+      !NextSourcesLoader.hasAppRouter(sources) &&
+      sources.unread.length === 0
+    ) {
+      return NextAppFiles.withoutSubject(
+        this.LAW_NAME,
+        'no app/ directory — route segment config exists only in the App Router',
+        context
+      );
     }
     const violations = [...sources.unread];
     for (const appFile of sources.appFiles) {
@@ -67,19 +80,32 @@ export class NextSegmentConfigConsistentLaw extends LawBase {
     const ts = source.ts;
     const bindings = exportedBindings(source);
     const dynamic = unwrapExpression(ts, bindings.get('dynamic')?.value);
-    if (dynamic && ts.isStringLiteralLike(dynamic) && dynamic.text === 'force-static') return "dynamic = 'force-static'";
+    if (
+      dynamic &&
+      ts.isStringLiteralLike(dynamic) &&
+      dynamic.text === 'force-static'
+    )
+      return "dynamic = 'force-static'";
     const revalidate = unwrapExpression(ts, bindings.get('revalidate')?.value);
-    if (revalidate && ts.isNumericLiteral(revalidate) && Number(revalidate.text) > 0) {
+    if (
+      revalidate &&
+      ts.isNumericLiteral(revalidate) &&
+      Number(revalidate.text) > 0
+    ) {
       return `revalidate = ${revalidate.text}`;
     }
     return null;
   }
 
   /** Calls of `cookies` / `headers` imported from next/headers (named or through a namespace). */
-  static requestApiCalls(source: TsxSource): Array<{ name: string; line: number }> {
+  static requestApiCalls(
+    source: TsxSource
+  ): Array<{ name: string; line: number }> {
     const ts = source.ts;
     const locals = new Map<string, string>();
-    for (const api of REQUEST_APIS) for (const local of importedNames(source, ['next/headers'], api)) locals.set(local, api);
+    for (const api of REQUEST_APIS)
+      for (const local of importedNames(source, ['next/headers'], api))
+        locals.set(local, api);
     const namespaces = namespaceNames(source, 'next/headers');
     const calls: Array<{ name: string; line: number }> = [];
     source.walk(node => {

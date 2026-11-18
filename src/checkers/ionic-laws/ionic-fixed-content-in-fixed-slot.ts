@@ -23,27 +23,57 @@
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { AngularComponents, type AngularComponent } from '../../utils/ionic/angular-components';
-import { projectStyleSheets, CssRules, type CssRule, type StyleSheet } from '../../utils/ionic/css-rules';
-import { HtmlTemplate, type TemplateElement } from '../../utils/ionic/html-template';
+import {
+  AngularComponents,
+  type AngularComponent,
+} from '../../utils/ionic/angular-components';
+import {
+  projectStyleSheets,
+  CssRules,
+  type CssRule,
+  type StyleSheet,
+} from '../../utils/ionic/css-rules';
+import {
+  HtmlTemplate,
+  type TemplateElement,
+} from '../../utils/ionic/html-template';
 import { LawBase } from '../law-base';
 
-export const DEFAULT_FIXED_CONTENT_PATTERN = 'toast|snackbar|fab|floating|sticky-cta';
+export const DEFAULT_FIXED_CONTENT_PATTERN =
+  'toast|snackbar|fab|floating|sticky-cta';
 /** Overlays render outside the page; they are the fix, not the defect. */
-const OVERLAYS = new Set(['ion-toast', 'ion-modal', 'ion-popover', 'ion-alert', 'ion-action-sheet', 'ion-loading']);
+const OVERLAYS = new Set([
+  'ion-toast',
+  'ion-modal',
+  'ion-popover',
+  'ion-alert',
+  'ion-action-sheet',
+  'ion-loading',
+]);
 
 export class IonicFixedContentInFixedSlotLaw extends LawBase {
   static readonly LAW_NAME = 'Ionic Fixed Content In Fixed Slot';
 
   static check(context: LawCheckContext): LawResult {
     const scan = AngularComponents.scan(context);
-    const styles = projectStyleSheets(context, scan.components.flatMap(c => c.styles));
+    const styles = projectStyleSheets(
+      context,
+      scan.components.flatMap(c => c.styles)
+    );
     const violations = [...scan.unread, ...styles.unread];
     const pattern = this.pattern(context, violations);
     const floating = this.floatingClasses(context, styles.sheets);
     const inside = AngularComponents.insideScroller(scan.components);
     for (const component of scan.components) {
-      violations.push(...this.judge(context, component, inside.has(component), pattern, floating));
+      violations.push(
+        ...this.judge(
+          context,
+          component,
+          inside.has(component),
+          pattern,
+          floating
+        )
+      );
     }
     return this.createResult(
       violations,
@@ -58,7 +88,10 @@ export class IonicFixedContentInFixedSlotLaw extends LawBase {
   }
 
   /** The configured floating-UI pattern; an invalid one is a violation, never a silent default. */
-  private static pattern(context: LawCheckContext, violations: string[]): RegExp | null {
+  private static pattern(
+    context: LawCheckContext,
+    violations: string[]
+  ): RegExp | null {
     const configured = context.config.thresholds?.ionic?.fixedContentPattern;
     const source = configured ?? DEFAULT_FIXED_CONTENT_PATTERN;
     try {
@@ -72,12 +105,19 @@ export class IonicFixedContentInFixedSlotLaw extends LawBase {
   }
 
   /** Class → where the project's CSS positions it as floating (fixed/absolute plus an edge). */
-  static floatingClasses(context: LawCheckContext, sheets: StyleSheet[]): Map<string, string> {
+  static floatingClasses(
+    context: LawCheckContext,
+    sheets: StyleSheet[]
+  ): Map<string, string> {
     const floating = new Map<string, string>();
     for (const sheet of sheets) {
       for (const rule of sheet.rules.filter(r => this.positionsFloating(r))) {
         for (const name of CssRules.subjectClasses(rule.selector)) {
-          if (!floating.has(name)) floating.set(name, `${AngularComponents.relative(context, sheet.file)}:${rule.line}`);
+          if (!floating.has(name))
+            floating.set(
+              name,
+              `${AngularComponents.relative(context, sheet.file)}:${rule.line}`
+            );
         }
       }
     }
@@ -86,9 +126,14 @@ export class IonicFixedContentInFixedSlotLaw extends LawBase {
 
   /** `position: fixed|absolute` together with an edge offset. */
   private static positionsFloating(rule: CssRule): boolean {
-    const position = rule.declarations.find(d => d.property === 'position')?.value.toLowerCase() ?? '';
+    const position =
+      rule.declarations
+        .find(d => d.property === 'position')
+        ?.value.toLowerCase() ?? '';
     if (!/^(?:fixed|absolute)\b/.test(position)) return false;
-    return rule.declarations.some(d => /^(?:top|bottom|inset|inset-block(?:-start|-end)?)$/.test(d.property));
+    return rule.declarations.some(d =>
+      /^(?:top|bottom|inset|inset-block(?:-start|-end)?)$/.test(d.property)
+    );
   }
 
   private static judge(
@@ -98,13 +143,18 @@ export class IonicFixedContentInFixedSlotLaw extends LawBase {
     pattern: RegExp | null,
     floating: Map<string, string>
   ): string[] {
-    const file = AngularComponents.relative(context, component.template?.file ?? component.file);
+    const file = AngularComponents.relative(
+      context,
+      component.template?.file ?? component.file
+    );
     const found: string[] = [];
     for (const element of component.elements) {
       if (OVERLAYS.has(element.tag)) continue;
       if (!hostInside && !HtmlTemplate.insideScroller(element)) continue;
       if (element.tag === 'ion-fab') {
-        found.push(`${file}:${element.line}: ${this.fabMessage(element, hostInside)}`);
+        found.push(
+          `${file}:${element.line}: ${this.fabMessage(element, hostInside)}`
+        );
         continue;
       }
       const floats = this.floatingClass(element, pattern, floating);
@@ -117,7 +167,10 @@ export class IonicFixedContentInFixedSlotLaw extends LawBase {
     return found;
   }
 
-  private static fabMessage(element: TemplateElement, hostInside: boolean): string {
+  private static fabMessage(
+    element: TemplateElement,
+    hostInside: boolean
+  ): string {
     const parent = HtmlTemplate.domParent(element);
     const where =
       parent?.tag === 'ion-content'

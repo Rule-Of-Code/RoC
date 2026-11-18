@@ -21,7 +21,9 @@ describe('IonicE2eLocatorsTargetTheShownPageLaw', () => {
     const result = run({ 'e2e/flow.spec.ts': `await ${expression};` });
     expect(result.passed).toBe(false);
     expect(result.violations).toEqual([
-      expect.stringMatching(/e2e\/flow\.spec\.ts:1: '.*' matches the hidden page first/),
+      expect.stringMatching(
+        /e2e\/flow\.spec\.ts:1: '.*' matches the hidden page first/
+      ),
     ]);
   });
 
@@ -47,7 +49,10 @@ describe('IonicE2eLocatorsTargetTheShownPageLaw', () => {
   });
 
   it('a locator in a comment is not a locator', () => {
-    const result = run({ 'e2e/flow.spec.ts': "// page.locator('ion-content') matched the hidden page" });
+    const result = run({
+      'e2e/flow.spec.ts':
+        "// page.locator('ion-content') matched the hidden page",
+    });
     expect(result.violations).toEqual([]);
   });
 });

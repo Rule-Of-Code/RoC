@@ -36,7 +36,10 @@ const REAL_CATEGORY = 'SECURITY';
  * so which category it leaves empty is not fixed.
  */
 const EMPTY_CORE_CATEGORY = LAW_CATEGORIES.find(
-  category => !ModularLawsRegistry.getAll().some(law => law.paretoCore && categoryOf(law) === category)
+  category =>
+    !ModularLawsRegistry.getAll().some(
+      law => law.paretoCore && categoryOf(law) === category
+    )
 );
 
 describe('cli/laws-command', () => {
@@ -120,7 +123,9 @@ describe('cli/laws-command', () => {
       const filtered = filterLaws(allLaws, { category: REAL_CATEGORY });
 
       expect(filtered.length).toBeGreaterThan(0);
-      expect(filtered.every(law => categoryOf(law) === REAL_CATEGORY)).toBe(true);
+      expect(filtered.every(law => categoryOf(law) === REAL_CATEGORY)).toBe(
+        true
+      );
     });
 
     it('should return FEWER laws than the registry when filtering by category', () => {
@@ -146,7 +151,9 @@ describe('cli/laws-command', () => {
       });
 
       expect(
-        composed.every(law => law.paretoCore && categoryOf(law) === REAL_CATEGORY)
+        composed.every(
+          law => law.paretoCore && categoryOf(law) === REAL_CATEGORY
+        )
       ).toBe(true);
     });
   });
@@ -356,10 +363,18 @@ describe('cli/laws-command', () => {
     it('the satisfiedBy vocabulary names every key a law may carry', () => {
       const payload = buildLawsJson(ModularLawsRegistry.getAll(), {});
       const keys = new Set(payload.satisfiedByStacks.keys);
-      const carried = payload.laws.flatMap(law => Object.keys(law.satisfiedBy ?? {}));
+      const carried = payload.laws.flatMap(law =>
+        Object.keys(law.satisfiedBy ?? {})
+      );
 
       expect(payload.satisfiedByStacks.keys).toEqual(
-        expect.arrayContaining(['typescript', 'angular', 'python', 'ionic', 'capacitor'])
+        expect.arrayContaining([
+          'typescript',
+          'angular',
+          'python',
+          'ionic',
+          'capacitor',
+        ])
       );
       expect(carried.filter(key => !keys.has(key))).toEqual([]);
     });
@@ -368,7 +383,9 @@ describe('cli/laws-command', () => {
       const payload = buildLawsJson(ModularLawsRegistry.getAll(), {});
 
       expect(payload.laws.every(law => 'requires' in law)).toBe(true);
-      const ungated = payload.laws.find(law => law.name === 'Web Storage Encapsulation');
+      const ungated = payload.laws.find(
+        law => law.name === 'Web Storage Encapsulation'
+      );
       expect(ungated?.requires).toBeNull();
     });
   });

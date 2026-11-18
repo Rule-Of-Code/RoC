@@ -19,14 +19,23 @@ import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FeArchLawBase } from './fe-arch-law-base';
 
 /** Library store factories, resolved through the file's imports. */
-const LIBRARY_STORES: Array<{ module: string; imported: string; label: string }> = [
-  { module: '@reduxjs/toolkit', imported: 'createSlice', label: 'createSlice (Redux Toolkit)' },
+const LIBRARY_STORES: Array<{
+  module: string;
+  imported: string;
+  label: string;
+}> = [
+  {
+    module: '@reduxjs/toolkit',
+    imported: 'createSlice',
+    label: 'createSlice (Redux Toolkit)',
+  },
   { module: 'zustand', imported: 'create', label: 'create (zustand)' },
 ];
 
 export class StoresInDataAccessLaw extends FeArchLawBase {
   private static readonly LAW_NAME = 'Stores In Data Access';
-  private static readonly STATE_CALL = /\b(signalStore|createFeature|createReducer)\s*\(/;
+  private static readonly STATE_CALL =
+    /\b(signalStore|createFeature|createReducer)\s*\(/;
 
   static check(context: LawCheckContext): LawResult {
     const { projectRoot } = context;
@@ -50,9 +59,15 @@ export class StoresInDataAccessLaw extends FeArchLawBase {
     violations.push(...unread);
     for (const source of sources) {
       for (const store of LIBRARY_STORES) {
-        const [line] = this.importedCallLines(source, store.module, store.imported);
+        const [line] = this.importedCallLines(
+          source,
+          store.module,
+          store.imported
+        );
         if (line !== undefined) {
-          violations.push(this.misplaced(projectRoot, source.fileName, line, store.label));
+          violations.push(
+            this.misplaced(projectRoot, source.fileName, line, store.label)
+          );
           break;
         }
       }
@@ -79,7 +94,8 @@ export class StoresInDataAccessLaw extends FeArchLawBase {
     line: number | null,
     what: string
   ): string {
-    const where = PathOperations.getRelative(projectRoot, file) + (line ? `:${line}` : '');
+    const where =
+      PathOperations.getRelative(projectRoot, file) + (line ? `:${line}` : '');
     return `${where}: ${what} defined in the feature layer — move it to the data-access layer`;
   }
 }

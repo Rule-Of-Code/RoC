@@ -28,7 +28,8 @@ export class UnitTestIsolationAnalyzerService {
       try {
         const content = FileUtils.readFile(testFile, { encoding: 'utf8' });
         read++;
-        if (predicate(content)) files.push(PathOperations.getRelative(projectRoot, testFile));
+        if (predicate(content))
+          files.push(PathOperations.getRelative(projectRoot, testFile));
       } catch (_error) {
         // Skip files that can't be read
       }

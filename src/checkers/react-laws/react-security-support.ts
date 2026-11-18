@@ -12,7 +12,10 @@
 import * as fs from 'fs';
 import type * as TS from 'typescript';
 import type { LawCheckContext } from '../../types/law.types';
-import { type ParsedSources, ReactProject } from '../../utils/react/react-project';
+import {
+  type ParsedSources,
+  ReactProject,
+} from '../../utils/react/react-project';
 
 /** Non-test React source whose text contains any of `tokens`, parsed. */
 export function parseFilesMentioning(
@@ -36,7 +39,10 @@ export function parseFilesMentioning(
 }
 
 /** An expression without the wrappers that do not change its value: `( )`, `as T`, `!`, `satisfies T`. */
-export function unwrap(ts: typeof TS, expression: TS.Expression): TS.Expression {
+export function unwrap(
+  ts: typeof TS,
+  expression: TS.Expression
+): TS.Expression {
   let e = expression;
   for (;;) {
     if (
@@ -44,7 +50,8 @@ export function unwrap(ts: typeof TS, expression: TS.Expression): TS.Expression 
       ts.isAsExpression(e) ||
       ts.isNonNullExpression(e) ||
       // `satisfies` exists from TypeScript 4.9; the project's own copy may be older
-      (typeof ts.isSatisfiesExpression === 'function' && ts.isSatisfiesExpression(e))
+      (typeof ts.isSatisfiesExpression === 'function' &&
+        ts.isSatisfiesExpression(e))
     ) {
       e = e.expression;
     } else {
@@ -54,20 +61,35 @@ export function unwrap(ts: typeof TS, expression: TS.Expression): TS.Expression 
 }
 
 /** A call's callee as written, without type arguments or `?.`: `DOMPurify.sanitize`. */
-export function calleeText(call: TS.CallExpression, sourceFile: TS.SourceFile): string {
-  return call.expression.getText(sourceFile).replace(/\?\./g, '.').replace(/\s+/g, '');
+export function calleeText(
+  call: TS.CallExpression,
+  sourceFile: TS.SourceFile
+): string {
+  return call.expression
+    .getText(sourceFile)
+    .replace(/\?\./g, '.')
+    .replace(/\s+/g, '');
 }
 
 /** A configured list of names: strings only, blanks dropped. */
 export function nameList(value: unknown): string[] {
   return Array.isArray(value)
-    ? value.filter((name): name is string => typeof name === 'string' && name.trim() !== '').map(name => name.trim())
+    ? value
+        .filter(
+          (name): name is string =>
+            typeof name === 'string' && name.trim() !== ''
+        )
+        .map(name => name.trim())
     : [];
 }
 
 /** The literal text of a string or no-substitution template, or null. */
-export function literalText(ts: typeof TS, expression: TS.Expression): string | null {
-  return ts.isStringLiteral(expression) || ts.isNoSubstitutionTemplateLiteral(expression)
+export function literalText(
+  ts: typeof TS,
+  expression: TS.Expression
+): string | null {
+  return ts.isStringLiteral(expression) ||
+    ts.isNoSubstitutionTemplateLiteral(expression)
     ? expression.text
     : null;
 }

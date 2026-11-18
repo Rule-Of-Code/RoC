@@ -47,9 +47,9 @@ describe('the performance config-file paths are reachable', () => {
     name => {
       write(name, '[]');
 
-      expect(
-        Analyzer.analyzeBundleSizeTesting(root).hasBundleSizeTesting
-      ).toBe(true);
+      expect(Analyzer.analyzeBundleSizeTesting(root).hasBundleSizeTesting).toBe(
+        true
+      );
     }
   );
 
@@ -114,9 +114,9 @@ describe('the performance config-file paths are reachable', () => {
         })
       );
 
-      expect(
-        Analyzer.analyzeBundleSizeTesting(root).hasBundleSizeTesting
-      ).toBe(true);
+      expect(Analyzer.analyzeBundleSizeTesting(root).hasBundleSizeTesting).toBe(
+        true
+      );
     });
 
     it('still accepts a declared vendor tool', () => {
@@ -125,17 +125,17 @@ describe('the performance config-file paths are reachable', () => {
         '{"name":"s","devDependencies":{"size-limit":"^11.0.0"}}'
       );
 
-      expect(
-        Analyzer.analyzeBundleSizeTesting(root).hasBundleSizeTesting
-      ).toBe(true);
+      expect(Analyzer.analyzeBundleSizeTesting(root).hasBundleSizeTesting).toBe(
+        true
+      );
     });
 
     it('still reports a project with neither budgets nor a tool', () => {
       write('nx.json', '{}');
 
-      expect(
-        Analyzer.analyzeBundleSizeTesting(root).hasBundleSizeTesting
-      ).toBe(false);
+      expect(Analyzer.analyzeBundleSizeTesting(root).hasBundleSizeTesting).toBe(
+        false
+      );
     });
   });
 });

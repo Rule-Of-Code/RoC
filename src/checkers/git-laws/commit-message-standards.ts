@@ -64,13 +64,7 @@ export class CommitMessageStandardsLaw extends GitLawBase {
         const note = commitCfg?.baseline
           ? `No authored commits after baseline ${commitCfg.baseline} — nothing to enforce`
           : 'No (non-merge) commits in the scanned range';
-        return this.createResult(
-          [],
-          this.LAW_NAME,
-          'GIT_LAW',
-          [note],
-          context
-        );
+        return this.createResult([], this.LAW_NAME, 'GIT_LAW', [note], context);
       }
 
       // Conventional commit pattern. The subject length is NOT bounded here — a

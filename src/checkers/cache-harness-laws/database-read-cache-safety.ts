@@ -17,19 +17,49 @@
  * that name a cache or such a collection (`cache-usage.ts`).
  */
 
-import type { FileContaining, LawRequirement } from '../../types/enhanced-law.types';
+import type {
+  FileContaining,
+  LawRequirement,
+} from '../../types/enhanced-law.types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { readFilesContaining, type ContainingFile } from '../../utils/law-requirements';
-import { declaredClients, REQUIRES_DATA_CLIENT } from '../../utils/request-path/data-clients';
-import { authorizationUses, invalidationOf, keysWithoutUser, type UsageContext } from '../../utils/request-path/cache-usage';
+import {
+  readFilesContaining,
+  type ContainingFile,
+} from '../../utils/law-requirements';
+import {
+  declaredClients,
+  REQUIRES_DATA_CLIENT,
+} from '../../utils/request-path/data-clients';
+import {
+  authorizationUses,
+  invalidationOf,
+  keysWithoutUser,
+  type UsageContext,
+} from '../../utils/request-path/cache-usage';
 import { ModuleGraph } from '../../utils/request-path/module-graph';
-import { cacheCollections, findCaches, holdsDatabaseReads, type CacheSite } from '../../utils/request-path/read-caches';
+import {
+  cacheCollections,
+  findCaches,
+  holdsDatabaseReads,
+  type CacheSite,
+} from '../../utils/request-path/read-caches';
 import { sourcesFromFiles } from '../../utils/request-path/sources';
 import { LawBase } from '../law-base';
 import { subjectResult } from './subject-result';
 
-const PY_TESTS = ['**/tests/**', '**/test/**', '**/test_*.py', '**/*_test.py', '**/conftest.py'];
-const TS_TESTS = ['**/*.{spec,test,e2e}.*', '**/__tests__/**', '**/__mocks__/**', '**/*.d.{ts,mts,cts}'];
+const PY_TESTS = [
+  '**/tests/**',
+  '**/test/**',
+  '**/test_*.py',
+  '**/*_test.py',
+  '**/conftest.py',
+];
+const TS_TESTS = [
+  '**/*.{spec,test,e2e}.*',
+  '**/__tests__/**',
+  '**/__mocks__/**',
+  '**/*.d.{ts,mts,cts}',
+];
 const TS_FILES = ['**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}'];
 
 /** A caching decorator, a cache class, or a dict / Map bound under a cache-like name. */
@@ -52,17 +82,35 @@ export const REQUIRES_READ_CACHE: LawRequirement = {
   anyFileContaining: READ_CACHE_FILES,
 };
 
-const escapeRe = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const escapeRe = (text: string): string =>
+  text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /** The project files that name one of the caches or one of their collections: who clears, writes and authorizes. */
-function referenceFiles(context: LawCheckContext, caches: readonly CacheSite[], collections: readonly string[]): ContainingFile[] {
+function referenceFiles(
+  context: LawCheckContext,
+  caches: readonly CacheSite[],
+  collections: readonly string[]
+): ContainingFile[] {
   const words = [...new Set(caches.map(site => site.name))].map(escapeRe);
-  const quoted = collections.map(c => String.raw`["'\x60]${escapeRe(c)}["'\x60]`);
-  const pattern = [...words.map(w => String.raw`(?<![\w$])${w}(?![\w$])`), ...quoted].join('|');
+  const quoted = collections.map(
+    c => String.raw`["'\x60]${escapeRe(c)}["'\x60]`
+  );
+  const pattern = [
+    ...words.map(w => String.raw`(?<![\w$])${w}(?![\w$])`),
+    ...quoted,
+  ].join('|');
   const ignores = context.config.ignores?.global ?? [];
   return [
-    ...readFilesContaining(context.projectRoot, { files: ['**/*.py'], pattern, exclude: PY_TESTS }, ignores),
-    ...readFilesContaining(context.projectRoot, { files: TS_FILES, pattern, exclude: TS_TESTS }, ignores),
+    ...readFilesContaining(
+      context.projectRoot,
+      { files: ['**/*.py'], pattern, exclude: PY_TESTS },
+      ignores
+    ),
+    ...readFilesContaining(
+      context.projectRoot,
+      { files: TS_FILES, pattern, exclude: TS_TESTS },
+      ignores
+    ),
   ];
 }
 
@@ -73,18 +121,40 @@ export class DatabaseReadCacheSafetyLaw extends LawBase {
     const { projectRoot } = context;
     const ignores = context.config.ignores?.global ?? [];
     const clients = declaredClients(projectRoot);
-    const subject = READ_CACHE_FILES.flatMap(entry => readFilesContaining(projectRoot, entry, ignores));
+    const subject = READ_CACHE_FILES.flatMap(entry =>
+      readFilesContaining(projectRoot, entry, ignores)
+    );
     const sources = sourcesFromFiles(projectRoot, subject);
     const graph = new ModuleGraph(sources.modules, clients);
     const caches = findCaches(sources.modules, { clients, graph });
     const dbCaches = caches.filter(holdsDatabaseReads);
-    const collections = new Map(dbCaches.map(site => [site, cacheCollections(site, graph)]));
-    const references = dbCaches.length > 0 ? referenceFiles(context, dbCaches, [...new Set([...collections.values()].flat())]) : [];
+    const collections = new Map(
+      dbCaches.map(site => [site, cacheCollections(site, graph)])
+    );
+    const references =
+      dbCaches.length > 0
+        ? referenceFiles(context, dbCaches, [
+            ...new Set([...collections.values()].flat()),
+          ])
+        : [];
     const subjectRels = new Set(subject.map(file => file.rel));
-    const extra = references.filter((file, index) => !subjectRels.has(file.rel) && references.findIndex(f => f.rel === file.rel) === index);
+    const extra = references.filter(
+      (file, index) =>
+        !subjectRels.has(file.rel) &&
+        references.findIndex(f => f.rel === file.rel) === index
+    );
     const all = sourcesFromFiles(projectRoot, [...subject, ...extra]);
-    const ctx: UsageContext = { modules: all.modules, graph: new ModuleGraph(all.modules, clients), clients };
-    const findings = [...sources.unread, ...dbCaches.flatMap(site => this.judge(site, collections.get(site) ?? [], ctx))];
+    const ctx: UsageContext = {
+      modules: all.modules,
+      graph: new ModuleGraph(all.modules, clients),
+      clients,
+    };
+    const findings = [
+      ...sources.unread,
+      ...dbCaches.flatMap(site =>
+        this.judge(site, collections.get(site) ?? [], ctx)
+      ),
+    ];
     return subjectResult({
       lawName: this.LAW_NAME,
       category: 'SECURITY',
@@ -113,15 +183,23 @@ export class DatabaseReadCacheSafetyLaw extends LawBase {
   }
 
   /** Every finding for one cache of database reads. */
-  private static judge(site: CacheSite, collections: readonly string[], ctx: UsageContext): string[] {
+  private static judge(
+    site: CacheSite,
+    collections: readonly string[],
+    ctx: UsageContext
+  ): string[] {
     const at = `${site.module.rel}:${site.line}`;
     const what = `the cache ${site.label} holds database reads`;
     const findings: string[] = [];
     if (!site.unknownBackend && !site.ttl) {
-      findings.push(`${at}: ${what} with no expiry (TTL) — an entry is served until it is evicted or the process restarts, whatever was written since`);
+      findings.push(
+        `${at}: ${what} with no expiry (TTL) — an entry is served until it is evicted or the process restarts, whatever was written since`
+      );
     }
     if (!site.unknownBackend && !site.bounded) {
-      findings.push(`${at}: ${what} with no size bound — every distinct key stays in memory for the life of the process`);
+      findings.push(
+        `${at}: ${what} with no size bound — every distinct key stays in memory for the life of the process`
+      );
     }
     const invalidation = invalidationOf(site, collections, ctx);
     if (!invalidation.onWritePath) {
@@ -130,7 +208,9 @@ export class DatabaseReadCacheSafetyLaw extends LawBase {
       );
     }
     for (const write of invalidation.staleWrites) {
-      findings.push(`${write.rel}:${write.line}: writes collection "${write.collection}", whose reads the cache at ${at} holds, without clearing it — this process keeps returning the old document`);
+      findings.push(
+        `${write.rel}:${write.line}: writes collection "${write.collection}", whose reads the cache at ${at} holds, without clearing it — this process keeps returning the old document`
+      );
     }
     for (const use of authorizationUses(site, ctx)) {
       findings.push(
@@ -138,7 +218,9 @@ export class DatabaseReadCacheSafetyLaw extends LawBase {
       );
     }
     for (const key of keysWithoutUser(site)) {
-      findings.push(`${key.rel}:${key.line}: the cache at ${at} stores a read of ${key.user} under a key without the user (${key.key}) — one user's data can be served to another`);
+      findings.push(
+        `${key.rel}:${key.line}: the cache at ${at} stores a read of ${key.user} under a key without the user (${key.key}) — one user's data can be served to another`
+      );
     }
     return findings;
   }

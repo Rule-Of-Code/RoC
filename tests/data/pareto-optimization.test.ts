@@ -72,8 +72,12 @@ describe('Pareto Optimization', () => {
     // registry. The per-stack band is asserted in
     // tests/regression/engine-selection-floor-pareto.test.ts.
     it('HIGH_IMPACT should be about 20% of the registry', () => {
-      const { ALL_ENHANCED_CONSTITUTIONAL_LAWS } = require('../../src/data/enhanced-laws');
-      const share = PARETO_CATEGORIES.HIGH_IMPACT.length / ALL_ENHANCED_CONSTITUTIONAL_LAWS.length;
+      const {
+        ALL_ENHANCED_CONSTITUTIONAL_LAWS,
+      } = require('../../src/data/enhanced-laws');
+      const share =
+        PARETO_CATEGORIES.HIGH_IMPACT.length /
+        ALL_ENHANCED_CONSTITUTIONAL_LAWS.length;
       expect(share).toBeGreaterThanOrEqual(0.15);
       expect(share).toBeLessThanOrEqual(0.25);
     });
@@ -174,7 +178,9 @@ describe('Pareto Optimization', () => {
     it('getOptimizationCategory should return MEDIUM_IMPACT for medium impact laws', () => {
       // HIGH_IMPACT (the derived core, #383) is checked first and may hold
       // laws the static MEDIUM_IMPACT list also names: take one it does not.
-      const mediumOnly = PARETO_CATEGORIES.MEDIUM_IMPACT.filter(id => !PARETO_CATEGORIES.HIGH_IMPACT.includes(id));
+      const mediumOnly = PARETO_CATEGORIES.MEDIUM_IMPACT.filter(
+        id => !PARETO_CATEGORIES.HIGH_IMPACT.includes(id)
+      );
       expect(mediumOnly.length).toBeGreaterThan(0);
       if (mediumOnly.length > 0) {
         const mediumImpactId = mediumOnly[0] as string;

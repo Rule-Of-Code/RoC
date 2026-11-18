@@ -186,7 +186,9 @@ export class AngularServiceArchitectureConfiguration {
       // "Observable not imported" — a false failure the author could only
       // silence by splitting a correct import in two.
       hasObservableImport:
-        /import\s+(?:type\s+)?\{[^}]*\bObservable\b[^}]*\}\s*from/.test(content),
+        /import\s+(?:type\s+)?\{[^}]*\bObservable\b[^}]*\}\s*from/.test(
+          content
+        ),
       hasHttpClient: PatternMatchingUtils.hasPattern(content, httpClient),
       hasHttpClientInjection: PatternMatchingUtils.hasPattern(
         content,

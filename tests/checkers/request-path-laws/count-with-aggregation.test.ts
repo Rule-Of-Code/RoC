@@ -11,10 +11,15 @@ import { ctx, project, removeProjects } from '../toolkit-fixture';
 
 afterAll(removeProjects);
 
-const PYPROJECT = '[project]\nname = "svc"\ndependencies = ["google-cloud-firestore"]\n';
-const PACKAGE = JSON.stringify({ name: 'svc', dependencies: { firebase: '^11.0.0' } });
+const PYPROJECT =
+  '[project]\nname = "svc"\ndependencies = ["google-cloud-firestore"]\n';
+const PACKAGE = JSON.stringify({
+  name: 'svc',
+  dependencies: { firebase: '^11.0.0' },
+});
 const lines = (...l: string[]): string => l.join('\n') + '\n';
-const check = (files: Record<string, string>) => CountWithAggregationLaw.check(ctx(project(files)));
+const check = (files: Record<string, string>) =>
+  CountWithAggregationLaw.check(ctx(project(files)));
 
 describe('Count With An Aggregation (#354)', () => {
   it('Python red: len(list(q.stream())), len([... async for ...]), len(await q.get()), len(docs) of a query used nowhere else', () => {
@@ -70,7 +75,14 @@ describe('Count With An Aggregation (#354)', () => {
     expect(
       check({
         'pyproject.toml': PYPROJECT,
-        'app/counts.py': lines('async def count(q):', '    result = await q.count().get()', '    return result[0][0].value', '', 'async def page(q):', '    return [d.to_dict() for d in await q.get()]'),
+        'app/counts.py': lines(
+          'async def count(q):',
+          '    result = await q.count().get()',
+          '    return result[0][0].value',
+          '',
+          'async def page(q):',
+          '    return [d.to_dict() for d in await q.get()]'
+        ),
         'package.json': PACKAGE,
         'src/counts.ts': lines(
           "import { getCountFromServer, getDocs } from 'firebase/firestore';",
@@ -89,7 +101,11 @@ describe('Count With An Aggregation (#354)', () => {
     expect(
       check({
         'pyproject.toml': PYPROJECT,
-        'app/counts.py': lines('async def page(q):', '    docs = await q.get()', '    return len(docs), [d.to_dict() for d in docs]'),
+        'app/counts.py': lines(
+          'async def page(q):',
+          '    docs = await q.get()',
+          '    return len(docs), [d.to_dict() for d in docs]'
+        ),
         'package.json': PACKAGE,
         'src/counts.ts': lines(
           "import { getDocs } from 'firebase/firestore';",
@@ -118,20 +134,37 @@ describe('Count With An Aggregation (#354)', () => {
 
   describe('the verdict says what it read', () => {
     it('a DB client and no whole-result fetch: PASS with the counter and what it did not check, never judged nothing', () => {
-      const result = check({ 'pyproject.toml': PYPROJECT, 'app/x.py': lines('def f(items):', '    return len(items)') });
+      const result = check({
+        'pyproject.toml': PYPROJECT,
+        'app/x.py': lines('def f(items):', '    return len(items)'),
+      });
       expect(result.passed).toBe(true);
       expect(result.judgedNothing).toBeUndefined();
       expect(result.message).toBe(
         'Count With An Aggregation: 1 source file(s) read (1 Python, 0 TS/JS), no whole-result fetch counted — nothing to check; not checked: counts through a repository method the client registry does not list, and documents counted in a helper the fetch was passed to'
       );
       expect(result.details).toEqual([result.message]);
-      expect(result.metrics).toEqual({ filesRead: 1, pythonFiles: 1, typescriptFiles: 0, oneOffScriptsSkipped: 0, compared: 0 });
+      expect(result.metrics).toEqual({
+        filesRead: 1,
+        pythonFiles: 1,
+        typescriptFiles: 0,
+        oneOffScriptsSkipped: 0,
+        compared: 0,
+      });
     });
 
     it('fetches and no count by fetching: PASS that counts what it checked', () => {
-      const result = check({ 'pyproject.toml': PYPROJECT, 'app/x.py': lines('async def page(q):', '    return [d.to_dict() for d in await q.get()]') });
+      const result = check({
+        'pyproject.toml': PYPROJECT,
+        'app/x.py': lines(
+          'async def page(q):',
+          '    return [d.to_dict() for d in await q.get()]'
+        ),
+      });
       expect(result.passed).toBe(true);
-      expect(result.message).toMatch(/: 1 source file\(s\) read \(1 Python, 0 TS\/JS\), 1 whole-result fetch\(es\) checked, none fetched only to be counted; not checked: /);
+      expect(result.message).toMatch(
+        /: 1 source file\(s\) read \(1 Python, 0 TS\/JS\), 1 whole-result fetch\(es\) checked, none fetched only to be counted; not checked: /
+      );
       expect(result.metrics).toMatchObject({ filesRead: 1, compared: 1 });
     });
 
@@ -140,16 +173,23 @@ describe('Count With An Aggregation (#354)', () => {
       expect(result.passed).toBe(false);
       expect(result.score).toBe(0);
       expect(result.judgedNothing).toBe(true);
-      expect(result.violations?.[0]).toMatch(/nothing was judged — no source file could be read: the project has no Python or TS\/JS source file outside tests/);
+      expect(result.violations?.[0]).toMatch(
+        /nothing was judged — no source file could be read: the project has no Python or TS\/JS source file outside tests/
+      );
     });
 
     it('the TS parser cannot be loaded: judged nothing, saying why', () => {
       const spy = jest.spyOn(tsxSource, 'loadTypeScript').mockReturnValue(null);
       try {
-        const result = check({ 'package.json': PACKAGE, 'src/a.ts': 'export const a = 1;\n' });
+        const result = check({
+          'package.json': PACKAGE,
+          'src/a.ts': 'export const a = 1;\n',
+        });
         expect(result.passed).toBe(false);
         expect(result.judgedNothing).toBe(true);
-        expect(result.violations?.[0]).toMatch(/nothing was judged — no source file could be read: 1 TS\/JS file\(s\): could not load the 'typescript' package/);
+        expect(result.violations?.[0]).toMatch(
+          /nothing was judged — no source file could be read: 1 TS\/JS file\(s\): could not load the 'typescript' package/
+        );
       } finally {
         spy.mockRestore();
       }

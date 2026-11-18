@@ -32,27 +32,46 @@ export interface SubjectVerdict {
 }
 
 export function subjectResult(verdict: SubjectVerdict): LawResult {
-  const { lawName, category, context, findings, suggestions, judged, metrics } = verdict;
+  const { lawName, category, context, findings, suggestions, judged, metrics } =
+    verdict;
   if (judged === 0) {
     return {
       ...markJudgedNothing(
-        LawBase.createResult([`${lawName}: nothing was judged — ${verdict.nothingJudged}`], lawName, category, suggestions, context)
+        LawBase.createResult(
+          [`${lawName}: nothing was judged — ${verdict.nothingJudged}`],
+          lawName,
+          category,
+          suggestions,
+          context
+        )
       ),
       metrics,
     };
   }
-  const result = LawBase.createResult(findings, lawName, category, suggestions, context);
+  const result = LawBase.createResult(
+    findings,
+    lawName,
+    category,
+    suggestions,
+    context
+  );
   if (!result.passed) return { ...result, metrics };
   const message = `${lawName}: ${verdict.passSummary}; ${verdict.notSeen}`;
   return { ...result, message, details: [message], metrics };
 }
 
 /** Every match of a global pattern in a text, with its 1-based line. */
-export function matchesWithLines(content: string, pattern: RegExp): Array<{ text: string; line: number }> {
-  const flags = pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`;
+export function matchesWithLines(
+  content: string,
+  pattern: RegExp
+): Array<{ text: string; line: number }> {
+  const flags = pattern.flags.includes('g')
+    ? pattern.flags
+    : `${pattern.flags}g`;
   const re = new RegExp(pattern.source, flags);
   const lineStarts = [0];
-  for (let i = 0; i < content.length; i++) if (content.charCodeAt(i) === 10) lineStarts.push(i + 1);
+  for (let i = 0; i < content.length; i++)
+    if (content.charCodeAt(i) === 10) lineStarts.push(i + 1);
   const lineOf = (index: number): number => {
     let lo = 0;
     let hi = lineStarts.length - 1;

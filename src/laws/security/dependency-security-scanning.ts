@@ -83,9 +83,7 @@ export class DependencySecurityScanningLaw {
       PythonSatisfaction.isPython(context.projectRoot) &&
       !PythonSatisfaction.hasPackageJson(context.projectRoot)
     ) {
-      return await Promise.resolve(
-        this.checkPythonDependencySecurity(context)
-      );
+      return await Promise.resolve(this.checkPythonDependencySecurity(context));
     }
 
     try {

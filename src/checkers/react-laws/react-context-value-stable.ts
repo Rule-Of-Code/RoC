@@ -12,7 +12,12 @@
 
 import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { reactHookName, readReactSources, unwrap, where } from '../../utils/react/react-hooks-ast';
+import {
+  reactHookName,
+  readReactSources,
+  unwrap,
+  where,
+} from '../../utils/react/react-hooks-ast';
 import type { TsxSource } from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';
 
@@ -56,11 +61,18 @@ export class ReactContextValueStableLaw extends LawBase {
     const ts = source.ts;
     const names = new Set<string>();
     source.walk(node => {
-      if (!ts.isVariableDeclaration(node) || !ts.isIdentifier(node.name) || !node.initializer) {
+      if (
+        !ts.isVariableDeclaration(node) ||
+        !ts.isIdentifier(node.name) ||
+        !node.initializer
+      ) {
         return;
       }
       const init = unwrap(ts, node.initializer);
-      if (ts.isCallExpression(init) && reactHookName(source, init) === 'createContext') {
+      if (
+        ts.isCallExpression(init) &&
+        reactHookName(source, init) === 'createContext'
+      ) {
         names.add(node.name.text);
       }
     });
@@ -68,12 +80,21 @@ export class ReactContextValueStableLaw extends LawBase {
   }
 
   /** '{…}' or '[…]' when `value` is an inline object or array literal. */
-  private static inlineValue(source: TsxSource, node: TS.JsxOpeningLikeElement): string | null {
+  private static inlineValue(
+    source: TsxSource,
+    node: TS.JsxOpeningLikeElement
+  ): string | null {
     const ts = source.ts;
     for (const property of node.attributes.properties) {
-      if (!ts.isJsxAttribute(property) || property.name.getText() !== 'value') continue;
+      if (!ts.isJsxAttribute(property) || property.name.getText() !== 'value')
+        continue;
       const initializer = property.initializer;
-      if (!initializer || !ts.isJsxExpression(initializer) || !initializer.expression) return null;
+      if (
+        !initializer ||
+        !ts.isJsxExpression(initializer) ||
+        !initializer.expression
+      )
+        return null;
       const value = unwrap(ts, initializer.expression);
       if (ts.isObjectLiteralExpression(value)) return '{…}';
       if (ts.isArrayLiteralExpression(value)) return '[…]';

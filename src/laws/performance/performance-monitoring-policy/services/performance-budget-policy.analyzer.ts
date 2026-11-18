@@ -24,7 +24,9 @@ export class PerformanceBudgetPolicyAnalyzerService {
     // A size-limit check or Lighthouse assertions — counted only when a
     // script or CI step RUNS them. This accepted any .lighthouserc file
     // containing "budget" or "assert", which a file nothing executes satisfies.
-    budgetSources.push(...PerformanceBudgetGates.enforcedBudgets(projectRoot, config));
+    budgetSources.push(
+      ...PerformanceBudgetGates.enforcedBudgets(projectRoot, config)
+    );
 
     this.addAngularBudgetsIfPresent(projectRoot, budgetSources);
     this.addWebpackBudgetsIfPresent(projectRoot, budgetSources);

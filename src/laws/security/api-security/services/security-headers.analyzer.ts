@@ -2,7 +2,6 @@ import type { RuleOfCodeConfig } from '../../../../types';
 import { CheckerUtils, FileUtils, PathOperations } from '../../../../utils';
 import { SecurityHeadersConstants } from '../constants';
 
-
 /**
  * SecurityHeadersAnalyzer
  *

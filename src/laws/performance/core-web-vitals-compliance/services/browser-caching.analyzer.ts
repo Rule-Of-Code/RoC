@@ -131,7 +131,9 @@ export class BrowserCachingAnalyzerService {
       if (app.cacheControlHeaders) {
         found.push(`${label}: Cache-Control declared in next.config headers()`);
       } else if (app.builds && !app.staticExport) {
-        found.push(`${label}: Next serves hashed /_next/static assets as immutable`);
+        found.push(
+          `${label}: Next serves hashed /_next/static assets as immutable`
+        );
       }
     }
     return found;

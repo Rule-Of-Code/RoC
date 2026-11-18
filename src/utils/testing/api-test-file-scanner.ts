@@ -106,8 +106,9 @@ export class APITestFileScanner extends FileScannerBase {
       directory,
       name => patterns.some(pattern => pattern.test(name)),
       results,
-      nextDir =>
-        { this.searchFilesRecursively(nextDir, patterns, results, _methodName); }
+      nextDir => {
+        this.searchFilesRecursively(nextDir, patterns, results, _methodName);
+      }
     );
   }
 

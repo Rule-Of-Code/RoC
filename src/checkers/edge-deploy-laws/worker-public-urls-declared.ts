@@ -13,8 +13,16 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { gateFiles } from '../../utils/edge-deploy/gate-files';
 import { REQUIRES_WRANGLER_CONFIG } from '../../utils/edge-deploy/requirements';
-import { PUBLIC_URL_KEYS, secretUploads, topLevelKeys } from '../../utils/edge-deploy/wrangler-config';
-import { EdgeDeployLawBase, newTally, type Tally } from './edge-deploy-law-base';
+import {
+  PUBLIC_URL_KEYS,
+  secretUploads,
+  topLevelKeys,
+} from '../../utils/edge-deploy/wrangler-config';
+import {
+  EdgeDeployLawBase,
+  newTally,
+  type Tally,
+} from './edge-deploy-law-base';
 
 const CONFIG = /(?:^|\/)wrangler\.(?:toml|jsonc?)$/;
 
@@ -40,7 +48,8 @@ export class WorkerPublicUrlsDeclaredLaw extends EdgeDeployLawBase {
       filesRead: files.length,
       subject: 'a wrangler configuration or secret upload',
       unit: 'wrangler configuration(s) / secret upload(s) judged',
-      notSeen: 'routes and custom domains, settings changed in the dashboard, the order of steps split across files or jobs',
+      notSeen:
+        'routes and custom domains, settings changed in the dashboard, the order of steps split across files or jobs',
       recommendations: [
         'Set workers_dev and preview_urls at the top level of the wrangler configuration (false for a Worker that fronts a private origin), and declare its routes explicitly',
         'Deploy the Worker before uploading its secrets (wrangler deploy, then wrangler secret put)',
@@ -52,7 +61,9 @@ export class WorkerPublicUrlsDeclaredLaw extends EdgeDeployLawBase {
   private static config(rel: string, text: string, tally: Tally): void {
     const read = topLevelKeys(rel, text);
     if (!read) {
-      tally.notes.push(`${rel}: could not be parsed as a wrangler configuration — not judged`);
+      tally.notes.push(
+        `${rel}: could not be parsed as a wrangler configuration — not judged`
+      );
       return;
     }
     tally.judged++;
@@ -66,7 +77,9 @@ export class WorkerPublicUrlsDeclaredLaw extends EdgeDeployLawBase {
   private static script(rel: string, text: string, tally: Tally): void {
     for (const upload of secretUploads(text)) {
       if (upload.verdict === 'no-deploy') {
-        tally.notes.push(`${rel}:${upload.line}: ${upload.command} — no wrangler deploy of the same Worker in this file, so the order is not judged`);
+        tally.notes.push(
+          `${rel}:${upload.line}: ${upload.command} — no wrangler deploy of the same Worker in this file, so the order is not judged`
+        );
         continue;
       }
       tally.judged++;

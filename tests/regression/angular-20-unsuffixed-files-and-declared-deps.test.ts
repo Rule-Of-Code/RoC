@@ -45,7 +45,10 @@ const ctx = (root: string) =>
     },
   }) as never;
 
-const MANIFEST = JSON.stringify({ name: 'a', dependencies: { '@angular/core': '20.0.0' } });
+const MANIFEST = JSON.stringify({
+  name: 'a',
+  dependencies: { '@angular/core': '20.0.0' },
+});
 const BAD_COMPONENT = [
   "import { Component, Input } from '@angular/core';",
   "import { HeroService } from './hero-service';",
@@ -58,26 +61,69 @@ const BAD_COMPONENT = [
 
 describe('Angular 20 files without a suffix are read (#330)', () => {
   it.each([
-    ['hero.ts with @Component', 'src/app/hero.ts', '@Component({ selector: "x", template: "" })\nexport class Hero {}', ['component'], true],
-    ['highlight.ts with @Directive', 'src/app/highlight.ts', '@Directive({ selector: "[x]" })\nexport class Highlight {}', ['directive'], true],
-    ['user-service.ts with @Injectable', 'src/app/user-service.ts', '@Injectable({ providedIn: "root" })\nexport class UserService {}', ['service'], true],
-    ['auth-guard.ts as a functional guard', 'src/app/auth-guard.ts', 'export const authGuard: CanActivateFn = () => true;', ['guard'], true],
-    ['a plain model', 'src/app/user.ts', 'export interface User { id: number }', ['component', 'directive', 'service'], false],
-    ['a spec is never a source', 'src/app/hero.spec.ts', '@Component({ selector: "x", template: "" })\nexport class Hero {}', ['component'], false],
+    [
+      'hero.ts with @Component',
+      'src/app/hero.ts',
+      '@Component({ selector: "x", template: "" })\nexport class Hero {}',
+      ['component'],
+      true,
+    ],
+    [
+      'highlight.ts with @Directive',
+      'src/app/highlight.ts',
+      '@Directive({ selector: "[x]" })\nexport class Highlight {}',
+      ['directive'],
+      true,
+    ],
+    [
+      'user-service.ts with @Injectable',
+      'src/app/user-service.ts',
+      '@Injectable({ providedIn: "root" })\nexport class UserService {}',
+      ['service'],
+      true,
+    ],
+    [
+      'auth-guard.ts as a functional guard',
+      'src/app/auth-guard.ts',
+      'export const authGuard: CanActivateFn = () => true;',
+      ['guard'],
+      true,
+    ],
+    [
+      'a plain model',
+      'src/app/user.ts',
+      'export interface User { id: number }',
+      ['component', 'directive', 'service'],
+      false,
+    ],
+    [
+      'a spec is never a source',
+      'src/app/hero.spec.ts',
+      '@Component({ selector: "x", template: "" })\nexport class Hero {}',
+      ['component'],
+      false,
+    ],
   ])('%s', (_label, file, content, kinds, expected) => {
     const root = fixture({ [file]: content });
-    expect(AngularComponentFiles.isKind(path.join(root, file), kinds as never)).toBe(expected);
+    expect(
+      AngularComponentFiles.isKind(path.join(root, file), kinds as never)
+    ).toBe(expected);
   });
 
   it('Inject Over Constructor DI and Functional IO Query API judge hero.ts', () => {
-    const root = fixture({ 'package.json': MANIFEST, 'src/app/hero.ts': BAD_COMPONENT });
+    const root = fixture({
+      'package.json': MANIFEST,
+      'src/app/hero.ts': BAD_COMPONENT,
+    });
     expect(InjectOverConstructorDiLaw.check(ctx(root)).passed).toBe(false);
     expect(FunctionalIoQueryApiLaw.check(ctx(root)).passed).toBe(false);
   });
 
   it('Professional Component Testing finds hero.ts and pairs it with hero.spec.ts', () => {
     const untested = ProfessionalComponentTestingPolicyLaw.check(
-      ctx(fixture({ 'package.json': MANIFEST, 'src/app/hero.ts': BAD_COMPONENT }))
+      ctx(
+        fixture({ 'package.json': MANIFEST, 'src/app/hero.ts': BAD_COMPONENT })
+      )
     );
     const joined = (untested.violations ?? []).join('\n');
     expect(joined).not.toMatch(/found no component files/);
@@ -88,17 +134,22 @@ describe('Angular 20 files without a suffix are read (#330)', () => {
         fixture({
           'package.json': MANIFEST,
           'src/app/hero.ts': BAD_COMPONENT,
-          'src/app/hero.spec.ts': "describe('Hero', () => { it('renders the hero name', () => { expect(1).toBe(1); }); });\n",
+          'src/app/hero.spec.ts':
+            "describe('Hero', () => { it('renders the hero name', () => { expect(1).toBe(1); }); });\n",
         })
       )
     );
-    expect((tested.violations ?? []).join('\n')).not.toMatch(/found no component files|missing (?:test|spec)/i);
+    expect((tested.violations ?? []).join('\n')).not.toMatch(
+      /found no component files|missing (?:test|spec)/i
+    );
   });
 });
 
 describe('every package the source imports is a declared dependency (#331)', () => {
   it('no runtime import resolves only by hoisting', () => {
-    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '../../package.json'), 'utf8')) as {
+    const pkg = JSON.parse(
+      fs.readFileSync(path.join(__dirname, '../../package.json'), 'utf8')
+    ) as {
       dependencies: Record<string, string>;
     };
     const declared = new Set(Object.keys(pkg.dependencies));
@@ -114,13 +165,22 @@ describe('every package the source imports is a declared dependency (#331)', () 
         else if (entry.name.endsWith('.ts')) {
           const text = fs.readFileSync(full, 'utf8');
           const specifiers = [
-            ...text.matchAll(/^\s*import\s+(?!type\b)[^'";]*?from\s+['"]([^'"]+)['"]/gm),
+            ...text.matchAll(
+              /^\s*import\s+(?!type\b)[^'";]*?from\s+['"]([^'"]+)['"]/gm
+            ),
             ...text.matchAll(/^\s*import\s+['"]([^'"]+)['"]/gm),
           ].map(m => m[1] ?? '');
           for (const spec of specifiers) {
             if (spec.startsWith('.') || builtins.has(spec)) continue;
-            const name = spec.startsWith('@') ? spec.split('/').slice(0, 2).join('/') : (spec.split('/')[0] ?? spec);
-            if (!declared.has(name) && !projectProvided.has(name) && !builtins.has(name)) missing.add(name);
+            const name = spec.startsWith('@')
+              ? spec.split('/').slice(0, 2).join('/')
+              : (spec.split('/')[0] ?? spec);
+            if (
+              !declared.has(name) &&
+              !projectProvided.has(name) &&
+              !builtins.has(name)
+            )
+              missing.add(name);
           }
         }
       }
@@ -145,7 +205,12 @@ describe('init writes ruleofcode.config.json and honours --type (#332)', () => {
   it('quick mode writes ruleofcode.config.json, never .js', async () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { setupQuickMode } = require('../../src/cli/init-helpers');
-    const root = fixture({ 'package.json': JSON.stringify({ name: 'a', dependencies: { '@angular/core': '20.0.0' } }) });
+    const root = fixture({
+      'package.json': JSON.stringify({
+        name: 'a',
+        dependencies: { '@angular/core': '20.0.0' },
+      }),
+    });
     const restore = quiet();
     try {
       await setupQuickMode(root, { hooks: false });
@@ -154,7 +219,11 @@ describe('init writes ruleofcode.config.json and honours --type (#332)', () => {
     }
     expect(fs.existsSync(path.join(root, 'ruleofcode.config.json'))).toBe(true);
     expect(fs.existsSync(path.join(root, 'ruleofcode.config.js'))).toBe(false);
-    expect(JSON.parse(fs.readFileSync(path.join(root, 'ruleofcode.config.json'), 'utf8')).project.type).toBe('angular');
+    expect(
+      JSON.parse(
+        fs.readFileSync(path.join(root, 'ruleofcode.config.json'), 'utf8')
+      ).project.type
+    ).toBe('angular');
   });
 
   it.each(['ionic', 'python'])('quick mode honours --type %s', async type => {
@@ -167,13 +236,19 @@ describe('init writes ruleofcode.config.json and honours --type (#332)', () => {
     } finally {
       restore();
     }
-    expect(JSON.parse(fs.readFileSync(path.join(root, 'ruleofcode.config.json'), 'utf8')).project.type).toBe(type);
+    expect(
+      JSON.parse(
+        fs.readFileSync(path.join(root, 'ruleofcode.config.json'), 'utf8')
+      ).project.type
+    ).toBe(type);
   });
 
   it('an old ruleofcode.config.js, which the loader would prefer, is moved aside', () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { writeInitConfig } = require('../../src/cli/init-helpers');
-    const root = fixture({ 'ruleofcode.config.js': 'module.exports = { project: { type: "node" } };' });
+    const root = fixture({
+      'ruleofcode.config.js': 'module.exports = { project: { type: "node" } };',
+    });
     const restore = quiet();
     try {
       writeInitConfig(root, { project: { type: 'react' } });
@@ -181,7 +256,9 @@ describe('init writes ruleofcode.config.json and honours --type (#332)', () => {
       restore();
     }
     expect(fs.existsSync(path.join(root, 'ruleofcode.config.js'))).toBe(false);
-    expect(fs.existsSync(path.join(root, 'ruleofcode.config.js.bak'))).toBe(true);
+    expect(fs.existsSync(path.join(root, 'ruleofcode.config.js.bak'))).toBe(
+      true
+    );
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { ConfigLoader } = require('../../src/config/loader');
     expect(ConfigLoader.load(root).project.type).toBe('react');
@@ -211,15 +288,29 @@ describe('Inject Over Constructor DI judges decorated classes, not the file (#33
   ].join('\n');
 
   it('a plain class with a parameter property beside an @Injectable class is not a finding', () => {
-    const root = fixture({ 'package.json': MANIFEST, 'src/app/repo.repository.ts': FILE, 'node_modules/.keep': '' });
+    const root = fixture({
+      'package.json': MANIFEST,
+      'src/app/repo.repository.ts': FILE,
+      'node_modules/.keep': '',
+    });
     // typescript resolves from this repository when the fixture has none
-    expect(InjectOverConstructorDiLaw.check(ctx(root)).violations ?? []).toEqual([]);
+    expect(
+      InjectOverConstructorDiLaw.check(ctx(root)).violations ?? []
+    ).toEqual([]);
   });
 
   it('control: constructor DI on the @Injectable class is', () => {
-    const bad = FILE.replace('  readonly #http = inject(HttpClient);', '  constructor(private readonly http: HttpClient) { super(); }');
-    const root = fixture({ 'package.json': MANIFEST, 'src/app/repo.repository.ts': bad });
-    expect((InjectOverConstructorDiLaw.check(ctx(root)).violations ?? []).join('\n')).toMatch(/repo\.repository\.ts: 1 constructor/);
+    const bad = FILE.replace(
+      '  readonly #http = inject(HttpClient);',
+      '  constructor(private readonly http: HttpClient) { super(); }'
+    );
+    const root = fixture({
+      'package.json': MANIFEST,
+      'src/app/repo.repository.ts': bad,
+    });
+    expect(
+      (InjectOverConstructorDiLaw.check(ctx(root)).violations ?? []).join('\n')
+    ).toMatch(/repo\.repository\.ts: 1 constructor/);
   });
 });
 
@@ -231,23 +322,31 @@ describe('Inject Over Constructor DI judges decorated classes, not the file (#33
  */
 describe('e2e specs in apps/<name>-e2e/ are found (#335)', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { AngularTestingExcellenceLaw } = require('../../src/checkers/angular-laws/angular-testing-excellence');
+  const {
+    AngularTestingExcellenceLaw,
+  } = require('../../src/checkers/angular-laws/angular-testing-excellence');
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { findE2ESpecs } = require('../../src/utils/testing/e2e-specs');
   const app = (): Record<string, string> => {
     const files: Record<string, string> = { 'package.json': MANIFEST };
     for (let i = 0; i < 7; i++) {
-      files[`apps/web/src/app/page${i}.ts`] = `@Component({ selector: 'app-p${i}', template: '' })\nexport class Page${i} {}\n`;
+      files[`apps/web/src/app/page${i}.ts`] =
+        `@Component({ selector: 'app-p${i}', template: '' })\nexport class Page${i} {}\n`;
     }
     return files;
   };
-  const SPEC = "import { test, expect } from '@playwright/test';\ntest('home renders the title', async ({ page }) => { await expect(page).toHaveTitle(/x/); });\n";
+  const SPEC =
+    "import { test, expect } from '@playwright/test';\ntest('home renders the title', async ({ page }) => { await expect(page).toHaveTitle(/x/); });\n";
   const e2eFinding = (root: string): boolean =>
-    (AngularTestingExcellenceLaw.check(ctx(root)).violations ?? []).some((v: string) => /No E2E tests found/.test(v));
+    (AngularTestingExcellenceLaw.check(ctx(root)).violations ?? []).some(
+      (v: string) => /No E2E tests found/.test(v)
+    );
 
   it('a Playwright suite in apps/web-e2e/src/ counts', () => {
     const root = fixture({ ...app(), 'apps/web-e2e/src/home.spec.ts': SPEC });
-    expect(findE2ESpecs(root).map((f: string) => path.basename(f))).toEqual(['home.spec.ts']);
+    expect(findE2ESpecs(root).map((f: string) => path.basename(f))).toEqual([
+      'home.spec.ts',
+    ]);
     expect(e2eFinding(root)).toBe(false);
   });
 
@@ -256,6 +355,8 @@ describe('e2e specs in apps/<name>-e2e/ are found (#335)', () => {
   });
 
   it('control: a root-level e2e/ suite counts, as before', () => {
-    expect(e2eFinding(fixture({ ...app(), 'e2e/home.spec.ts': SPEC }))).toBe(false);
+    expect(e2eFinding(fixture({ ...app(), 'e2e/home.spec.ts': SPEC }))).toBe(
+      false
+    );
   });
 });

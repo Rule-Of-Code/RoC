@@ -10,7 +10,10 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { detectProjectType, generateProConfig } from '../../../src/cli/init-helpers';
+import {
+  detectProjectType,
+  generateProConfig,
+} from '../../../src/cli/init-helpers';
 import { NoHardcodedSecretsPythonLaw } from '../../../src/checkers/python-laws/no-hardcoded-secrets-python';
 import { PublicDocstringsLaw } from '../../../src/checkers/python-laws/public-docstrings';
 import { ModularLawsRegistry } from '../../../src/registry/modular-laws-registry';
@@ -61,7 +64,11 @@ describe('CRLF line endings (Windows files)', () => {
   it('Public Docstrings still flags an undocumented class on a CRLF file', () => {
     const dir = fixture({
       'pyproject.toml': "[project]\nname='x'\n",
-      'src/c.py': crlf(['class Bare:', '    def __init__(self):', '        pass']),
+      'src/c.py': crlf([
+        'class Bare:',
+        '    def __init__(self):',
+        '        pass',
+      ]),
     });
     expect(PublicDocstringsLaw.check(ctx(dir)).passed).toBe(false);
   });

@@ -25,9 +25,20 @@ import { isOneOffScript } from './one-off-scripts';
 import { pythonModule } from './python-model';
 import { typescriptModule } from './ts-model';
 
-const TS_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mts', '.cts', '.mjs', '.cjs'];
-const PY_TEST_FILE = /(?:^|\/)(?:tests?\/|test_[^/]*\.py$|[^/]*_test\.py$|conftest\.py$)/;
-const TS_TEST_FILE = /\.(?:spec|test|e2e)\.[cm]?[jt]sx?$|(?:^|\/)(?:__tests__|__mocks__)\//;
+const TS_EXTENSIONS = [
+  '.ts',
+  '.tsx',
+  '.js',
+  '.jsx',
+  '.mts',
+  '.cts',
+  '.mjs',
+  '.cjs',
+];
+const PY_TEST_FILE =
+  /(?:^|\/)(?:tests?\/|test_[^/]*\.py$|[^/]*_test\.py$|conftest\.py$)/;
+const TS_TEST_FILE =
+  /\.(?:spec|test|e2e)\.[cm]?[jt]sx?$|(?:^|\/)(?:__tests__|__mocks__)\//;
 const DECLARATION_FILE = /\.d\.[cm]?ts$/;
 
 export interface ProjectSources {
@@ -46,7 +57,11 @@ function relativeOf(projectRoot: string, file: string): string {
   return PathOperations.getRelative(projectRoot, file).replace(/\\/g, '/');
 }
 
-function parsed(file: string, content: string, build: () => ModuleModel): ModuleModel {
+function parsed(
+  file: string,
+  content: string,
+  build: () => ModuleModel
+): ModuleModel {
   const hit = cache.get(file);
   if (hit && hit.content === content) return hit.model;
   const model = build();
@@ -55,20 +70,37 @@ function parsed(file: string, content: string, build: () => ModuleModel): Module
 }
 
 /** Split `files` into request-path candidates and one-off scripts. */
-function withoutOneOffScripts(projectRoot: string, files: string[]): { files: string[]; oneOffScripts: number } {
-  const kept = files.filter(file => !isOneOffScript(relativeOf(projectRoot, file)));
+function withoutOneOffScripts(
+  projectRoot: string,
+  files: string[]
+): { files: string[]; oneOffScripts: number } {
+  const kept = files.filter(
+    file => !isOneOffScript(relativeOf(projectRoot, file))
+  );
   return { files: kept, oneOffScripts: files.length - kept.length };
 }
 
-function pythonSourceFiles(context: LawCheckContext): { files: string[]; oneOffScripts: number } {
-  const files = PythonLawBase.getPythonFiles(context.projectRoot, context.config).filter(
-    file => !PY_TEST_FILE.test(relativeOf(context.projectRoot, file))
-  );
+function pythonSourceFiles(context: LawCheckContext): {
+  files: string[];
+  oneOffScripts: number;
+} {
+  const files = PythonLawBase.getPythonFiles(
+    context.projectRoot,
+    context.config
+  ).filter(file => !PY_TEST_FILE.test(relativeOf(context.projectRoot, file)));
   return withoutOneOffScripts(context.projectRoot, files);
 }
 
-function typescriptSourceFiles(context: LawCheckContext): { files: string[]; oneOffScripts: number } {
-  const files = CheckerUtils.findFilesByExtension(context.projectRoot, TS_EXTENSIONS, context.config, context.lawId).filter(file => {
+function typescriptSourceFiles(context: LawCheckContext): {
+  files: string[];
+  oneOffScripts: number;
+} {
+  const files = CheckerUtils.findFilesByExtension(
+    context.projectRoot,
+    TS_EXTENSIONS,
+    context.config,
+    context.lawId
+  ).filter(file => {
     const rel = relativeOf(context.projectRoot, file);
     return !TS_TEST_FILE.test(rel) && !DECLARATION_FILE.test(rel);
   });
@@ -81,7 +113,11 @@ function readPython(context: LawCheckContext, into: ProjectSources): void {
   for (const file of files) {
     const content = FileUtils.readFileContentSync(file);
     if (content === null || content === undefined) continue;
-    into.modules.push(parsed(file, content, () => pythonModule(file, relativeOf(context.projectRoot, file), content)));
+    into.modules.push(
+      parsed(file, content, () =>
+        pythonModule(file, relativeOf(context.projectRoot, file), content)
+      )
+    );
     into.counts.python++;
   }
 }
@@ -93,13 +129,19 @@ function readTypeScript(context: LawCheckContext, into: ProjectSources): void {
   if (files.length === 0) return;
   const ts = loadTypeScript(projectRoot);
   if (!ts) {
-    into.unread.push(`${files.length} TS/JS file(s): ${parserUnavailable(projectRoot)}`);
+    into.unread.push(
+      `${files.length} TS/JS file(s): ${parserUnavailable(projectRoot)}`
+    );
     return;
   }
   for (const file of files) {
     const content = FileUtils.readFileContentSync(file);
     if (content === null || content === undefined) continue;
-    into.modules.push(parsed(file, content, () => typescriptModule(ts, file, relativeOf(projectRoot, file), content)));
+    into.modules.push(
+      parsed(file, content, () =>
+        typescriptModule(ts, file, relativeOf(projectRoot, file), content)
+      )
+    );
     into.counts.typescript++;
   }
 }
@@ -109,7 +151,12 @@ export function projectSources(
   context: LawCheckContext,
   languages: readonly SourceLanguage[] = ['python', 'typescript']
 ): ProjectSources {
-  const sources: ProjectSources = { modules: [], unread: [], counts: { python: 0, typescript: 0 }, oneOffScripts: 0 };
+  const sources: ProjectSources = {
+    modules: [],
+    unread: [],
+    counts: { python: 0, typescript: 0 },
+    oneOffScripts: 0,
+  };
   if (languages.includes('python')) readPython(context, sources);
   if (languages.includes('typescript')) readTypeScript(context, sources);
   return sources;
@@ -124,21 +171,41 @@ const PYTHON_FILE = /\.py$/;
  * left out by that gate's own `exclude` (ONE_OFF_SCRIPT_GLOBS), not here, so
  * the gate and the law cannot disagree.
  */
-export function sourcesFromFiles(projectRoot: string, files: readonly ContainingFile[]): ProjectSources {
-  const sources: ProjectSources = { modules: [], unread: [], counts: { python: 0, typescript: 0 }, oneOffScripts: 0 };
+export function sourcesFromFiles(
+  projectRoot: string,
+  files: readonly ContainingFile[]
+): ProjectSources {
+  const sources: ProjectSources = {
+    modules: [],
+    unread: [],
+    counts: { python: 0, typescript: 0 },
+    oneOffScripts: 0,
+  };
   const scripts = files.filter(found => !PYTHON_FILE.test(found.rel));
-  for (const found of files.filter(candidate => PYTHON_FILE.test(candidate.rel))) {
-    sources.modules.push(parsed(found.file, found.content, () => pythonModule(found.file, found.rel, found.content)));
+  for (const found of files.filter(candidate =>
+    PYTHON_FILE.test(candidate.rel)
+  )) {
+    sources.modules.push(
+      parsed(found.file, found.content, () =>
+        pythonModule(found.file, found.rel, found.content)
+      )
+    );
     sources.counts.python++;
   }
   if (scripts.length === 0) return sources;
   const ts = loadTypeScript(projectRoot);
   if (!ts) {
-    sources.unread.push(`${scripts.length} TS/JS file(s): ${parserUnavailable(projectRoot)}`);
+    sources.unread.push(
+      `${scripts.length} TS/JS file(s): ${parserUnavailable(projectRoot)}`
+    );
     return sources;
   }
   for (const found of scripts) {
-    sources.modules.push(parsed(found.file, found.content, () => typescriptModule(ts, found.file, found.rel, found.content)));
+    sources.modules.push(
+      parsed(found.file, found.content, () =>
+        typescriptModule(ts, found.file, found.rel, found.content)
+      )
+    );
     sources.counts.typescript++;
   }
   return sources;

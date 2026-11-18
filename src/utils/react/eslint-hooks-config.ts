@@ -24,7 +24,10 @@ export const HOOKS_PLUGIN = 'eslint-plugin-react-hooks';
 const RULE_PREFIX = 'react-hooks/';
 
 /** The two core rules (rules-of-hooks, exhaustive-deps): required. */
-export const CORE_HOOK_RULES: readonly string[] = ['rules-of-hooks', 'exhaustive-deps'];
+export const CORE_HOOK_RULES: readonly string[] = [
+  'rules-of-hooks',
+  'exhaustive-deps',
+];
 
 /**
  * React Compiler rules of the plugin (7.x recommended preset) that stand in
@@ -46,7 +49,10 @@ const PLUGIN_PRESETS = new Set(['recommended', 'recommended-latest']);
  * spreads it). The bare `next` names are how `.eslintrc` and FlatCompat
  * spell the same packages.
  */
-const KNOWN_PRESET_MODULES = ['eslint-config-next', 'eslint-config-next/core-web-vitals'];
+const KNOWN_PRESET_MODULES = [
+  'eslint-config-next',
+  'eslint-config-next/core-web-vitals',
+];
 const KNOWN_EXTENDS = new Set([
   ...KNOWN_PRESET_MODULES,
   'next',
@@ -79,7 +85,16 @@ export const ESLINTRC_FILES: readonly string[] = [
   '.eslintrc.yml',
 ];
 
-const RESOLVE_EXTENSIONS = ['', '.js', '.mjs', '.cjs', '.ts', '.mts', '.cts', '.json'];
+const RESOLVE_EXTENSIONS = [
+  '',
+  '.js',
+  '.mjs',
+  '.cjs',
+  '.ts',
+  '.mts',
+  '.cts',
+  '.json',
+];
 
 type RuleState = 'off' | 'on' | 'unknown';
 
@@ -155,9 +170,14 @@ export class EslintHooksConfigReader {
       return null;
     }
     const base = PathOperations.getFilename(file);
-    if (base === 'package.json' || base === '.eslintrc' || base.endsWith('.json')) {
+    if (
+      base === 'package.json' ||
+      base === '.eslintrc' ||
+      base.endsWith('.json')
+    ) {
       const sourceFile = this.ts.parseJsonText(file, text);
-      const root = base === 'package.json' ? this.eslintConfigOf(sourceFile) : sourceFile;
+      const root =
+        base === 'package.json' ? this.eslintConfigOf(sourceFile) : sourceFile;
       return root ? { sourceFile, root } : null;
     }
     const source = TsxSource.parse(this.ts, file, text);
@@ -171,7 +191,10 @@ export class EslintHooksConfigReader {
     const object = statement?.expression;
     if (!object || !ts.isObjectLiteralExpression(object)) return null;
     const property = object.properties.find(
-      p => ts.isPropertyAssignment(p) && ts.isStringLiteral(p.name) && p.name.text === 'eslintConfig'
+      p =>
+        ts.isPropertyAssignment(p) &&
+        ts.isStringLiteral(p.name) &&
+        p.name.text === 'eslintConfig'
     );
     return property ?? null;
   }
@@ -183,13 +206,19 @@ export class EslintHooksConfigReader {
     file: string
   ): void {
     const ts = this.ts;
-    if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
+    if (
+      ts.isImportDeclaration(node) &&
+      ts.isStringLiteral(node.moduleSpecifier)
+    ) {
       this.recordImport(node, node.moduleSpecifier.text, bindings, file);
     } else if (ts.isCallExpression(node)) {
       this.visitCall(node, bindings, file);
     } else if (ts.isPropertyAssignment(node)) {
       this.visitProperty(node, at);
-    } else if (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) {
+    } else if (
+      ts.isPropertyAccessExpression(node) ||
+      ts.isElementAccessExpression(node)
+    ) {
       this.visitPresetAccess(node, bindings);
     }
   }
@@ -204,19 +233,30 @@ export class EslintHooksConfigReader {
     const clause = node.importClause;
     if (clause?.name) bindings.set(clause.name.text, module);
     const named = clause?.namedBindings;
-    if (named && ts.isNamespaceImport(named)) bindings.set(named.name.text, module);
+    if (named && ts.isNamespaceImport(named))
+      bindings.set(named.name.text, module);
     if (named && ts.isNamedImports(named)) {
-      for (const element of named.elements) bindings.set(element.name.text, module);
+      for (const element of named.elements)
+        bindings.set(element.name.text, module);
     }
     this.followOrRecord(module, file);
   }
 
   /** `require('x')` bound to a name; `compat.extends('next/core-web-vitals')`. */
-  private visitCall(node: TS.CallExpression, bindings: Map<string, string>, file: string): void {
+  private visitCall(
+    node: TS.CallExpression,
+    bindings: Map<string, string>,
+    file: string
+  ): void {
     const ts = this.ts;
     const callee = node.expression;
     const first = node.arguments[0];
-    if (ts.isIdentifier(callee) && callee.text === 'require' && first && ts.isStringLiteral(first)) {
+    if (
+      ts.isIdentifier(callee) &&
+      callee.text === 'require' &&
+      first &&
+      ts.isStringLiteral(first)
+    ) {
       const module = first.text;
       const parent = node.parent;
       if (ts.isVariableDeclaration(parent) && ts.isIdentifier(parent.name)) {
@@ -227,14 +267,23 @@ export class EslintHooksConfigReader {
       this.followOrRecord(module, file);
       return;
     }
-    if (ts.isPropertyAccessExpression(callee) && callee.name.text === 'extends') {
+    if (
+      ts.isPropertyAccessExpression(callee) &&
+      callee.name.text === 'extends'
+    ) {
       for (const argument of node.arguments) this.creditExtends(argument);
     }
   }
 
-  private visitProperty(node: TS.PropertyAssignment, at: (node: TS.Node) => string): void {
+  private visitProperty(
+    node: TS.PropertyAssignment,
+    at: (node: TS.Node) => string
+  ): void {
     const ts = this.ts;
-    const name = ts.isStringLiteral(node.name) || ts.isIdentifier(node.name) ? node.name.text : null;
+    const name =
+      ts.isStringLiteral(node.name) || ts.isIdentifier(node.name)
+        ? node.name.text
+        : null;
     if (name === 'extends') {
       this.creditExtends(node.initializer);
       return;
@@ -255,15 +304,19 @@ export class EslintHooksConfigReader {
     const preset = this.accessName(node);
     if (!preset || !PLUGIN_PRESETS.has(preset)) return;
     let owner = node.expression;
-    if (ts.isPropertyAccessExpression(owner) && owner.name.text === 'flat') owner = owner.expression;
-    if (!ts.isPropertyAccessExpression(owner) || owner.name.text !== 'configs') return;
+    if (ts.isPropertyAccessExpression(owner) && owner.name.text === 'flat')
+      owner = owner.expression;
+    if (!ts.isPropertyAccessExpression(owner) || owner.name.text !== 'configs')
+      return;
     const plugin = owner.expression;
     if (ts.isIdentifier(plugin) && bindings.get(plugin.text) === HOOKS_PLUGIN) {
       this.evidence.preset ??= `${HOOKS_PLUGIN} configs.${preset}`;
     }
   }
 
-  private accessName(node: TS.PropertyAccessExpression | TS.ElementAccessExpression): string | null {
+  private accessName(
+    node: TS.PropertyAccessExpression | TS.ElementAccessExpression
+  ): string | null {
     const ts = this.ts;
     if (ts.isPropertyAccessExpression(node)) return node.name.text;
     const argument = node.argumentExpression;
@@ -273,7 +326,9 @@ export class EslintHooksConfigReader {
   /** A string (or array of strings) in an `extends` position. */
   private creditExtends(node: TS.Node): void {
     const ts = this.ts;
-    const strings = ts.isArrayLiteralExpression(node) ? [...node.elements] : [node];
+    const strings = ts.isArrayLiteralExpression(node)
+      ? [...node.elements]
+      : [node];
     for (const element of strings) {
       if (!ts.isStringLiteralLike(element)) continue;
       if (KNOWN_EXTENDS.has(element.text) || this.presets.has(element.text)) {
@@ -285,7 +340,9 @@ export class EslintHooksConfigReader {
   /** 'off' / 0 / ['off', …] is off; 'warn' / 'error' / 1 / 2 is on. */
   private ruleState(value: TS.Expression): RuleState {
     const ts = this.ts;
-    const level = ts.isArrayLiteralExpression(value) ? value.elements[0] : value;
+    const level = ts.isArrayLiteralExpression(value)
+      ? value.elements[0]
+      : value;
     if (!level) return 'unknown';
     if (ts.isStringLiteralLike(level)) {
       if (level.text === 'off') return 'off';
@@ -299,12 +356,16 @@ export class EslintHooksConfigReader {
   }
 
   /** A preset import counts only where its binding is used — spread, listed, extended. */
-  private creditUsedBindings(root: TS.Node, bindings: Map<string, string>): void {
+  private creditUsedBindings(
+    root: TS.Node,
+    bindings: Map<string, string>
+  ): void {
     const ts = this.ts;
     this.walk(root, node => {
       if (!ts.isIdentifier(node)) return;
       const module = bindings.get(node.text);
-      if (!module || !this.presets.has(module) || this.isDeclaration(node)) return;
+      if (!module || !this.presets.has(module) || this.isDeclaration(node))
+        return;
       this.evidence.preset ??= module;
     });
   }
@@ -323,12 +384,22 @@ export class EslintHooksConfigReader {
   /** Follow a relative config; record a module this reader does not know. */
   private followOrRecord(module: string, file: string): void {
     if (module.startsWith('.')) {
-      const target = this.resolveRelative(PathOperations.join(PathOperations.getDirectory(file), module));
+      const target = this.resolveRelative(
+        PathOperations.join(PathOperations.getDirectory(file), module)
+      );
       if (target) this.read(target);
-      else this.evidence.unread.push(`${this.relative(file)}: imports ${module}, which could not be resolved to a file`);
+      else
+        this.evidence.unread.push(
+          `${this.relative(file)}: imports ${module}, which could not be resolved to a file`
+        );
       return;
     }
-    if (module === HOOKS_PLUGIN || this.presets.has(module) || KNOWN_WITHOUT_HOOKS.has(module)) return;
+    if (
+      module === HOOKS_PLUGIN ||
+      this.presets.has(module) ||
+      KNOWN_WITHOUT_HOOKS.has(module)
+    )
+      return;
     if (NEUTRAL_MODULE.test(module)) return;
     this.evidence.unknownModules.add(module);
   }
@@ -336,7 +407,8 @@ export class EslintHooksConfigReader {
   private resolveRelative(base: string): string | null {
     for (const extension of RESOLVE_EXTENSIONS) {
       const candidate = `${base}${extension}`;
-      if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) return candidate;
+      if (fs.existsSync(candidate) && fs.statSync(candidate).isFile())
+        return candidate;
     }
     const index = PathOperations.join(base, 'index.js');
     return fs.existsSync(index) ? index : null;

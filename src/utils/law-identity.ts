@@ -98,11 +98,17 @@ let formerTitles: Map<string, readonly string[]> | undefined;
  */
 function formerTitlesOf(name: string): readonly string[] {
   if (!formerTitles) {
-    const { ALL_ENHANCED_CONSTITUTIONAL_LAWS } = require('../data/enhanced-laws') as {
-      ALL_ENHANCED_CONSTITUTIONAL_LAWS: Array<{ title: string; formerTitles?: readonly string[] }>;
-    };
+    const { ALL_ENHANCED_CONSTITUTIONAL_LAWS } =
+      require('../data/enhanced-laws') as {
+        ALL_ENHANCED_CONSTITUTIONAL_LAWS: Array<{
+          title: string;
+          formerTitles?: readonly string[];
+        }>;
+      };
     formerTitles = new Map(
-      ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(law => law.formerTitles?.length).map(law => [law.title, law.formerTitles ?? []])
+      ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(
+        law => law.formerTitles?.length
+      ).map(law => [law.title, law.formerTitles ?? []])
     );
   }
   return formerTitles.get(name) ?? [];
@@ -140,7 +146,16 @@ export const STACK_PROJECT_TYPES: Record<string, string[]> = {
   frontend: ['angular', 'react', 'vue', 'ionic'],
   // `typescript` itself was missing: the detector's own answer for a plain TS
   // repository selected none of the TypeScript-language laws.
-  typescript: ['angular', 'react', 'vue', 'ionic', 'node', 'library', 'generic', 'typescript'],
+  typescript: [
+    'angular',
+    'react',
+    'vue',
+    'ionic',
+    'node',
+    'library',
+    'generic',
+    'typescript',
+  ],
   python: ['python'],
 };
 
@@ -179,7 +194,11 @@ export function lawAppliesToProjectType(
     return hasHtmlDocument(projectRoot, ignores);
   }
   if (!types.includes(projectType)) return false;
-  if (stack === 'typescript' && projectType === 'generic' && projectRoot !== undefined) {
+  if (
+    stack === 'typescript' &&
+    projectType === 'generic' &&
+    projectRoot !== undefined
+  ) {
     return hasJsTsToolchain(projectRoot);
   }
   return true;

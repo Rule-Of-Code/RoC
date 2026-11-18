@@ -22,7 +22,11 @@ import type * as TS from 'typescript';
 import type { LawCheckContext } from '../../types/law.types';
 import { FileUtils } from '../file-utils';
 import { PathOperations } from '../path-operations';
-import { loadTypeScript, parserUnavailable, TsxSource } from '../react/tsx-source';
+import {
+  loadTypeScript,
+  parserUnavailable,
+  TsxSource,
+} from '../react/tsx-source';
 import { HtmlTemplate, type TemplateElement } from './html-template';
 
 export interface SourceText {
@@ -57,7 +61,10 @@ export interface AngularScan {
 const TEST_FILE = /\.(?:spec|test|cy|e2e)\.ts$/;
 
 /** The decorators of a node, across TypeScript versions (getDecorators arrived in 4.8). */
-export function decoratorsOf(ts: typeof TS, node: TS.Node): readonly TS.Decorator[] {
+export function decoratorsOf(
+  ts: typeof TS,
+  node: TS.Node
+): readonly TS.Decorator[] {
   if (typeof ts.getDecorators === 'function' && ts.canHaveDecorators(node)) {
     return ts.getDecorators(node) ?? [];
   }
@@ -72,7 +79,8 @@ export function decoratorObject(
 ): TS.ObjectLiteralExpression | null {
   for (const decorator of decoratorsOf(ts, node)) {
     const call = decorator.expression;
-    if (!ts.isCallExpression(call) || !ts.isIdentifier(call.expression)) continue;
+    if (!ts.isCallExpression(call) || !ts.isIdentifier(call.expression))
+      continue;
     if (call.expression.text !== name) continue;
     const arg = call.arguments[0];
     return arg && ts.isObjectLiteralExpression(arg) ? arg : null;
@@ -89,7 +97,8 @@ export function propertyOf(
   for (const property of object.properties) {
     if (!ts.isPropertyAssignment(property)) continue;
     const name = property.name;
-    const text = ts.isIdentifier(name) || ts.isStringLiteral(name) ? name.text : null;
+    const text =
+      ts.isIdentifier(name) || ts.isStringLiteral(name) ? name.text : null;
     if (text === key) return property.initializer;
   }
   return undefined;
@@ -102,8 +111,13 @@ const SCAN_CACHE_LIMIT = 4;
 export class AngularComponents {
   /** Non-test .ts source through the normal scan, so `ignores` apply. */
   static tsFiles(context: LawCheckContext): string[] {
-    return FileUtils.scanForFiles(context.projectRoot, context.config, ['.ts'], context.lawId, false)
-      .filter(file => !TEST_FILE.test(file) && !file.endsWith('.d.ts'));
+    return FileUtils.scanForFiles(
+      context.projectRoot,
+      context.config,
+      ['.ts'],
+      context.lawId,
+      false
+    ).filter(file => !TEST_FILE.test(file) && !file.endsWith('.d.ts'));
   }
 
   /**
@@ -133,15 +147,24 @@ export class AngularComponents {
         SCAN_CACHE.delete(SCAN_CACHE.keys().next().value as string);
       }
     }
-    return { components: [...scan.components], sources: [...scan.sources], unread: [...scan.unread] };
+    return {
+      components: [...scan.components],
+      sources: [...scan.sources],
+      unread: [...scan.unread],
+    };
   }
 
-  private static scanFiles(context: LawCheckContext, files: string[]): AngularScan {
+  private static scanFiles(
+    context: LawCheckContext,
+    files: string[]
+  ): AngularScan {
     const scan: AngularScan = { components: [], sources: [], unread: [] };
     if (files.length === 0) return scan;
     const ts = loadTypeScript(context.projectRoot);
     if (!ts) {
-      scan.unread.push(`${files.length} file(s): ${parserUnavailable(context.projectRoot)}`);
+      scan.unread.push(
+        `${files.length} file(s): ${parserUnavailable(context.projectRoot)}`
+      );
       return scan;
     }
     for (const file of files) {
@@ -168,11 +191,16 @@ export class AngularComponents {
     const bySelector = new Map<string, AngularComponent[]>();
     for (const component of components) {
       for (const selector of component.selectors) {
-        bySelector.set(selector, [...(bySelector.get(selector) ?? []), component]);
+        bySelector.set(selector, [
+          ...(bySelector.get(selector) ?? []),
+          component,
+        ]);
       }
     }
     const inside = new Set<AngularComponent>();
-    while (components.some(parent => this.placeChildren(parent, bySelector, inside))) {
+    while (
+      components.some(parent => this.placeChildren(parent, bySelector, inside))
+    ) {
       // repeat until no component is newly found inside a scroller
     }
     return inside;
@@ -186,7 +214,8 @@ export class AngularComponents {
   ): boolean {
     let changed = false;
     for (const element of parent.elements) {
-      if (!inside.has(parent) && !HtmlTemplate.insideScroller(element)) continue;
+      if (!inside.has(parent) && !HtmlTemplate.insideScroller(element))
+        continue;
       for (const child of bySelector.get(element.tag) ?? []) {
         if (child === parent || inside.has(child)) continue;
         inside.add(child);
@@ -200,16 +229,24 @@ export class AngularComponents {
   static underContent(components: AngularComponent[]): Set<AngularComponent> {
     const under = this.insideScroller(components);
     for (const component of components) {
-      if (component.elements.some(element => element.tag === 'ion-content')) under.add(component);
+      if (component.elements.some(element => element.tag === 'ion-content'))
+        under.add(component);
     }
     return under;
   }
 
   static relative(context: LawCheckContext, file: string): string {
-    return PathOperations.getRelative(context.projectRoot, file).replace(/\\/g, '/');
+    return PathOperations.getRelative(context.projectRoot, file).replace(
+      /\\/g,
+      '/'
+    );
   }
 
-  private static collect(context: LawCheckContext, source: TsxSource, scan: AngularScan): void {
+  private static collect(
+    context: LawCheckContext,
+    source: TsxSource,
+    scan: AngularScan
+  ): void {
     const ts = source.ts;
     source.walk(node => {
       if (!ts.isClassDeclaration(node) || !node.name) return;
@@ -237,7 +274,10 @@ export class AngularComponents {
     });
   }
 
-  private static selectors(ts: typeof TS, meta: TS.ObjectLiteralExpression): string[] {
+  private static selectors(
+    ts: typeof TS,
+    meta: TS.ObjectLiteralExpression
+  ): string[] {
     const value = propertyOf(ts, meta, 'selector');
     if (!value || !ts.isStringLiteralLike(value)) return [];
     return value.text
@@ -246,13 +286,18 @@ export class AngularComponents {
       .filter(Boolean);
   }
 
-  private static hostKeys(ts: typeof TS, meta: TS.ObjectLiteralExpression): string[] {
+  private static hostKeys(
+    ts: typeof TS,
+    meta: TS.ObjectLiteralExpression
+  ): string[] {
     const host = propertyOf(ts, meta, 'host');
     if (!host || !ts.isObjectLiteralExpression(host)) return [];
     return host.properties
       .map(property => property.name)
       .filter((name): name is TS.PropertyName => Boolean(name))
-      .map(name => (ts.isStringLiteral(name) || ts.isIdentifier(name) ? name.text : ''))
+      .map(name =>
+        ts.isStringLiteral(name) || ts.isIdentifier(name) ? name.text : ''
+      )
       .filter(Boolean);
   }
 
@@ -264,7 +309,8 @@ export class AngularComponents {
   ): SourceText | null {
     const ts = source.ts;
     const inline = propertyOf(ts, meta, 'template');
-    if (inline) return this.inlineText(context, source, inline, unread, 'template');
+    if (inline)
+      return this.inlineText(context, source, inline, unread, 'template');
     const url = propertyOf(ts, meta, 'templateUrl');
     if (!url) return null;
     return this.urlText(context, source, url, unread);
@@ -278,17 +324,28 @@ export class AngularComponents {
   ): SourceText[] {
     const ts = source.ts;
     const found: SourceText[] = [];
-    const each = (value: TS.Expression | undefined, read: (e: TS.Expression) => SourceText | null): void => {
+    const each = (
+      value: TS.Expression | undefined,
+      read: (e: TS.Expression) => SourceText | null
+    ): void => {
       if (!value) return;
-      const items = ts.isArrayLiteralExpression(value) ? [...value.elements] : [value];
+      const items = ts.isArrayLiteralExpression(value)
+        ? [...value.elements]
+        : [value];
       for (const item of items) {
         const text = read(item);
         if (text) found.push(text);
       }
     };
-    each(propertyOf(ts, meta, 'styles'), e => this.inlineText(context, source, e, unread, 'styles'));
-    each(propertyOf(ts, meta, 'styleUrl'), e => this.urlText(context, source, e, unread));
-    each(propertyOf(ts, meta, 'styleUrls'), e => this.urlText(context, source, e, unread));
+    each(propertyOf(ts, meta, 'styles'), e =>
+      this.inlineText(context, source, e, unread, 'styles')
+    );
+    each(propertyOf(ts, meta, 'styleUrl'), e =>
+      this.urlText(context, source, e, unread)
+    );
+    each(propertyOf(ts, meta, 'styleUrls'), e =>
+      this.urlText(context, source, e, unread)
+    );
     return found;
   }
 
@@ -300,7 +357,11 @@ export class AngularComponents {
     what: string
   ): SourceText | null {
     if (source.ts.isStringLiteralLike(value)) {
-      return { file: source.fileName, text: value.text, firstLine: source.lineOf(value) };
+      return {
+        file: source.fileName,
+        text: value.text,
+        firstLine: source.lineOf(value),
+      };
     }
     unread.push(
       `${this.relative(context, source.fileName)}:${source.lineOf(value)}: inline ${what} is not a literal (built with substitutions or a variable) — it was not read`
@@ -320,7 +381,10 @@ export class AngularComponents {
       );
       return null;
     }
-    const file = PathOperations.resolve(PathOperations.getDirectory(source.fileName), value.text);
+    const file = PathOperations.resolve(
+      PathOperations.getDirectory(source.fileName),
+      value.text
+    );
     try {
       return { file, text: fs.readFileSync(file, 'utf8'), firstLine: 1 };
     } catch {

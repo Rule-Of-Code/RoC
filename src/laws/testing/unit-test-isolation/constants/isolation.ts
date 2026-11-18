@@ -93,12 +93,14 @@ export class UnitTestIsolationConstants {
   static readonly EXTERNAL_RESOURCE_PATTERNS = {
     // The client class as a word, or an HTTP call — not any identifier that
     // contains the letters (`hasHttpClient`, `HTTP_CLIENT`).
-    HTTP_CLIENT: /\bHttpClient\b|\bhttp\.(?:get|post|put|patch|delete|head|request)\s*\(/,
+    HTTP_CLIENT:
+      /\bHttpClient\b|\bhttp\.(?:get|post|put|patch|delete|head|request)\s*\(/,
     STORAGE: /localStorage|sessionStorage/,
     // A database CLIENT, not the word: `/database/i` matched any identifier
     // naming one (a law class, a fixture string), so tests about databases
     // were read as tests that open one.
-    DATABASE: /\bdb\.\w+\s*\(|\bcreateConnection\s*\(|\bcreatePool\s*\(|\bmongoose\.connect\s*\(|\bnew\s+(?:Pool|PrismaClient|Sequelize)\s*\(|\bknex\s*\(/,
+    DATABASE:
+      /\bdb\.\w+\s*\(|\bcreateConnection\s*\(|\bcreatePool\s*\(|\bmongoose\.connect\s*\(|\bnew\s+(?:Pool|PrismaClient|Sequelize)\s*\(|\bknex\s*\(/,
     FETCH: /fetch\(/,
     XML_HTTP: /XMLHttpRequest/,
     WEBSOCKET: /WebSocket/,

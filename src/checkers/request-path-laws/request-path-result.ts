@@ -44,7 +44,16 @@ export interface RequestPathVerdict {
 }
 
 export function requestPathResult(verdict: RequestPathVerdict): LawResult {
-  const { lawName, context, sources, findings, suggestions, compared, passSummary, notSeen } = verdict;
+  const {
+    lawName,
+    context,
+    sources,
+    findings,
+    suggestions,
+    compared,
+    passSummary,
+    notSeen,
+  } = verdict;
   const metrics = {
     filesRead: filesRead(sources),
     pythonFiles: sources.counts.python,
@@ -59,12 +68,26 @@ export function requestPathResult(verdict: RequestPathVerdict): LawResult {
         : `the project has no Python or TS/JS source file outside tests and one-off scripts (${sources.oneOffScripts} under ${ONE_OFF_SCRIPT_LOCATIONS})`;
     return {
       ...markJudgedNothing(
-        LawBase.createResult([`${lawName}: nothing was judged — no source file could be read: ${why}`], lawName, 'PERFORMANCE', suggestions, context)
+        LawBase.createResult(
+          [
+            `${lawName}: nothing was judged — no source file could be read: ${why}`,
+          ],
+          lawName,
+          'PERFORMANCE',
+          suggestions,
+          context
+        )
       ),
       metrics,
     };
   }
-  const result = LawBase.createResult([...sources.unread, ...findings], lawName, 'PERFORMANCE', suggestions, context);
+  const result = LawBase.createResult(
+    [...sources.unread, ...findings],
+    lawName,
+    'PERFORMANCE',
+    suggestions,
+    context
+  );
   if (!result.passed) return { ...result, metrics };
   const message = `${lawName}: ${describeFilesRead(sources)}, ${passSummary}; ${notSeen}`;
   return { ...result, message, details: [message], metrics };

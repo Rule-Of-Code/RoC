@@ -9,7 +9,13 @@ import { ConfigFileUtils } from '../../src/utils/config-file-utils';
 
 import type { RuleOfCodeConfig } from '../../src/types/law.types';
 
-const WORKSPACE_ROOT = PathOperations.resolve(__dirname, '..', '..', '..', '..');
+const WORKSPACE_ROOT = PathOperations.resolve(
+  __dirname,
+  '..',
+  '..',
+  '..',
+  '..'
+);
 
 describe('registry/modular-laws-registry', () => {
   describe('getInstance', () => {

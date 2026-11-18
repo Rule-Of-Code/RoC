@@ -24,7 +24,10 @@
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { jsxAttribute, type JsxElementInfo } from '../../utils/react/tsx-source';
+import {
+  jsxAttribute,
+  type JsxElementInfo,
+} from '../../utils/react/tsx-source';
 import { AccessibilityLawBase } from './accessibility-law-base';
 import { JsxSources, type JsxFile } from './jsx-sources';
 import { TemplateMarkup, type MarkupElement } from './template-markup';
@@ -43,18 +46,61 @@ interface IonicNaming {
 }
 
 const IONIC_CONTROLS: Record<string, IonicNaming> = {
-  'ion-input': { labelProperty: true, labelSlot: true, defaultSlot: false, wrappingLabel: true, ariaLabelledBy: true },
-  'ion-textarea': { labelProperty: true, labelSlot: true, defaultSlot: false, wrappingLabel: true, ariaLabelledBy: true },
-  'ion-select': { labelProperty: true, labelSlot: true, defaultSlot: false, wrappingLabel: false, ariaLabelledBy: false },
-  'ion-range': { labelProperty: true, labelSlot: true, defaultSlot: false, wrappingLabel: false, ariaLabelledBy: true },
-  'ion-checkbox': { labelProperty: false, labelSlot: false, defaultSlot: true, wrappingLabel: false, ariaLabelledBy: true },
-  'ion-toggle': { labelProperty: false, labelSlot: false, defaultSlot: true, wrappingLabel: false, ariaLabelledBy: true },
-  'ion-radio': { labelProperty: false, labelSlot: false, defaultSlot: true, wrappingLabel: false, ariaLabelledBy: true },
+  'ion-input': {
+    labelProperty: true,
+    labelSlot: true,
+    defaultSlot: false,
+    wrappingLabel: true,
+    ariaLabelledBy: true,
+  },
+  'ion-textarea': {
+    labelProperty: true,
+    labelSlot: true,
+    defaultSlot: false,
+    wrappingLabel: true,
+    ariaLabelledBy: true,
+  },
+  'ion-select': {
+    labelProperty: true,
+    labelSlot: true,
+    defaultSlot: false,
+    wrappingLabel: false,
+    ariaLabelledBy: false,
+  },
+  'ion-range': {
+    labelProperty: true,
+    labelSlot: true,
+    defaultSlot: false,
+    wrappingLabel: false,
+    ariaLabelledBy: true,
+  },
+  'ion-checkbox': {
+    labelProperty: false,
+    labelSlot: false,
+    defaultSlot: true,
+    wrappingLabel: false,
+    ariaLabelledBy: true,
+  },
+  'ion-toggle': {
+    labelProperty: false,
+    labelSlot: false,
+    defaultSlot: true,
+    wrappingLabel: false,
+    ariaLabelledBy: true,
+  },
+  'ion-radio': {
+    labelProperty: false,
+    labelSlot: false,
+    defaultSlot: true,
+    wrappingLabel: false,
+    ariaLabelledBy: true,
+  },
 };
 
 export class FormControlLabelingLaw extends AccessibilityLawBase {
   // Control types that carry their own semantics / need no text label.
-  private static readonly EXEMPT_TYPES = /^(?:hidden|submit|button|reset|image)$/i;
+  private static readonly EXEMPT_TYPES =
+    /^(?:hidden|submit|button|reset|image)$/i;
 
   static check(context: LawCheckContext): LawResult {
     const { templates, unread } = this.readTemplates(context);
@@ -127,20 +173,29 @@ export class FormControlLabelingLaw extends AccessibilityLawBase {
         return htmlFor ? [`${htmlFor.kind}:${htmlFor.value}`] : [];
       })
     );
-    const result = { unnamed: [] as number[], orphans: [] as string[], spread: [] as number[] };
+    const result = {
+      unnamed: [] as number[],
+      orphans: [] as string[],
+      spread: [] as number[],
+    };
     for (const element of file.elements) {
-      if (!this.isJsxControl(element) || this.jsxHasName(file, element)) continue;
+      if (!this.isJsxControl(element) || this.jsxHasName(file, element))
+        continue;
       const id = jsxAttribute(element, 'id');
       if (id && targets.has(`${id.kind}:${id.value}`)) continue;
       if (element.hasSpread) result.spread.push(element.line);
-      else if (id) result.orphans.push(`id ${id.kind === 'string' ? `"${id.value}"` : `{${id.value}}`} line ${element.line}`);
+      else if (id)
+        result.orphans.push(
+          `id ${id.kind === 'string' ? `"${id.value}"` : `{${id.value}}`} line ${element.line}`
+        );
       else result.unnamed.push(element.line);
     }
     return result;
   }
 
   private static isJsxControl(element: JsxElementInfo): boolean {
-    if (!NATIVE_CONTROLS.some(tag => JsxSources.isIntrinsic(element, tag))) return false;
+    if (!NATIVE_CONTROLS.some(tag => JsxSources.isIntrinsic(element, tag)))
+      return false;
     const type = JsxSources.stringValue(element, 'type');
     return type === undefined || !this.EXEMPT_TYPES.test(type);
   }
@@ -154,7 +209,10 @@ export class FormControlLabelingLaw extends AccessibilityLawBase {
   }
 
   /** Lines of unnamed native controls, and the unnamed Ionic controls. */
-  private static unnamed(elements: MarkupElement[]): { native: number[]; ionic: string[] } {
+  private static unnamed(elements: MarkupElement[]): {
+    native: number[];
+    ionic: string[];
+  } {
     const native: number[] = [];
     const ionic: string[] = [];
     for (const element of elements) {
@@ -181,9 +239,13 @@ export class FormControlLabelingLaw extends AccessibilityLawBase {
     );
   }
 
-  private static ionicHasName(element: MarkupElement, naming: IonicNaming): boolean {
+  private static ionicHasName(
+    element: MarkupElement,
+    naming: IonicNaming
+  ): boolean {
     if (TemplateMarkup.has(element, ARIA_LABEL)) return true;
-    if (naming.ariaLabelledBy && TemplateMarkup.has(element, ARIA_LABELLEDBY)) return true;
+    if (naming.ariaLabelledBy && TemplateMarkup.has(element, ARIA_LABELLEDBY))
+      return true;
     if (naming.labelProperty && this.hasLabelProperty(element)) return true;
     if (
       naming.labelSlot &&
@@ -194,7 +256,10 @@ export class FormControlLabelingLaw extends AccessibilityLawBase {
       return true;
     }
     if (naming.defaultSlot && this.hasDefaultSlotContent(element)) return true;
-    return naming.wrappingLabel && TemplateMarkup.ancestor(element, ['label']) !== null;
+    return (
+      naming.wrappingLabel &&
+      TemplateMarkup.ancestor(element, ['label']) !== null
+    );
   }
 
   /** `label="Name"` (non-empty) or a bound `[label]`. */

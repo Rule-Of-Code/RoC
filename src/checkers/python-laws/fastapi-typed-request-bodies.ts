@@ -13,8 +13,7 @@ import { PythonLawBase } from './python-law-base';
 
 export class FastApiTypedRequestBodiesLaw extends PythonLawBase {
   private static readonly LAW_NAME = 'FastAPI Typed Request Bodies';
-  private static readonly WRITE_ROUTE =
-    /^\s*@[\w.]+\.(?:post|put|patch)\s*\(/;
+  private static readonly WRITE_ROUTE = /^\s*@[\w.]+\.(?:post|put|patch)\s*\(/;
   private static readonly DEF = /^(\s*)(?:async\s+)?def\s+(\w+)\s*\(/;
   private static readonly RAW_JSON = /\brequest\.json\s*\(/;
   // An untyped dict body parameter, e.g. `payload: dict`, `body: dict[str, Any]`.

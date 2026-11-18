@@ -27,7 +27,8 @@ import { generateLawId } from '../../src/utils/id-generator';
 
 const made: string[] = [];
 afterAll(() => {
-  for (const dir of made.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
+  for (const dir of made.splice(0))
+    fs.rmSync(dir, { recursive: true, force: true });
 });
 
 // ── 1. the ngrx profile passes the canary's passes ───────────────────────────
@@ -56,25 +57,47 @@ function writeFiles(root: string, files: Record<string, string>): void {
 }
 
 /** The canary's writeConfig: project name and type, paretoMode off, then the pass's laws. */
-function writeConfig(root: string, key: string, type: string, laws: Record<string, unknown> = {}): void {
-  const config = { project: { name: `canary-${key}`, type }, laws: { paretoMode: false, ...laws } };
-  fs.writeFileSync(path.join(root, 'ruleofcode.config.json'), JSON.stringify(config, null, 2));
+function writeConfig(
+  root: string,
+  key: string,
+  type: string,
+  laws: Record<string, unknown> = {}
+): void {
+  const config = {
+    project: { name: `canary-${key}`, type },
+    laws: { paretoMode: false, ...laws },
+  };
+  fs.writeFileSync(
+    path.join(root, 'ruleofcode.config.json'),
+    JSON.stringify(config, null, 2)
+  );
 }
 
-async function runAudit(root: string): Promise<{ exitCode: number; result: AuditResult; text: string }> {
+async function runAudit(
+  root: string
+): Promise<{ exitCode: number; result: AuditResult; text: string }> {
   const out: string[] = [];
-  const push = (...a: unknown[]): void => void out.push(a.map(String).join(' '));
+  const push = (...a: unknown[]): void =>
+    void out.push(a.map(String).join(' '));
   const spies = [
     jest.spyOn(console, 'log').mockImplementation(push),
     jest.spyOn(console, 'warn').mockImplementation(push),
     jest.spyOn(console, 'error').mockImplementation(push),
-    jest.spyOn(process.stdout, 'write').mockImplementation(chunk => (out.push(String(chunk)), true)),
-    jest.spyOn(process.stderr, 'write').mockImplementation(chunk => (out.push(String(chunk)), true)),
+    jest
+      .spyOn(process.stdout, 'write')
+      .mockImplementation(chunk => (out.push(String(chunk)), true)),
+    jest
+      .spyOn(process.stderr, 'write')
+      .mockImplementation(chunk => (out.push(String(chunk)), true)),
   ];
   try {
     const outcome = await executeAuditAction({ mode: 'full' }, root);
     if (!outcome.result) throw outcome.error ?? new Error('no audit result');
-    return { exitCode: outcome.exitCode, result: outcome.result as AuditResult, text: out.join('\n') };
+    return {
+      exitCode: outcome.exitCode,
+      result: outcome.result as AuditResult,
+      text: out.join('\n'),
+    };
   } finally {
     for (const spy of spies) spy.mockRestore();
   }
@@ -101,7 +124,12 @@ describe('#388 the canary ngrx profile', () => {
     for (const name of stack.mustRun ?? []) expect(ran).toContain(name);
     for (const name of stack.mustNotRun ?? []) expect(ran).not.toContain(name);
     expect(titlesOf(cal.result, true)).not.toContain(stack.redLaw);
-    const waivers = Object.fromEntries(titlesOf(cal.result, true).map(name => [name, 'canary fixture: not satisfiable synthetically']));
+    const waivers = Object.fromEntries(
+      titlesOf(cal.result, true).map(name => [
+        name,
+        'canary fixture: not satisfiable synthetically',
+      ])
+    );
 
     // Green: the waived config on the clean tree passes.
     writeConfig(root, 'ngrx', stack.projectType, { notApplicable: waivers });
@@ -109,7 +137,10 @@ describe('#388 the canary ngrx profile', () => {
 
     // Red: the planted violation, at error, fails — by the red law.
     writeFiles(root, stack.redFile);
-    writeConfig(root, 'ngrx', stack.projectType, { notApplicable: waivers, severity: { [stack.redLaw]: 'error' } });
+    writeConfig(root, 'ngrx', stack.projectType, {
+      notApplicable: waivers,
+      severity: { [stack.redLaw]: 'error' },
+    });
     const red = await runAudit(root);
     expect(red.exitCode).toBe(1);
     expect(titlesOf(red.result, true)).toContain(stack.redLaw);
@@ -140,11 +171,14 @@ const lawTitled = (title: string) => {
   if (!law) throw new Error(`no law titled ${title}`);
   return law;
 };
-const configWith = (laws: Record<string, unknown>): RuleOfCodeConfig => ({ laws } as unknown as RuleOfCodeConfig);
+const configWith = (laws: Record<string, unknown>): RuleOfCodeConfig =>
+  ({ laws }) as unknown as RuleOfCodeConfig;
 
 describe('#388 SACRED in a title means a SACRED law', () => {
   it('no law outside SACRED_LAW is titled SACRED', () => {
-    const titled = ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(l => /SACRED/i.test(l.title) && l.category !== 'SACRED_LAW');
+    const titled = ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(
+      l => /SACRED/i.test(l.title) && l.category !== 'SACRED_LAW'
+    );
     expect(titled.map(l => `${l.title} (${l.category})`)).toEqual([]);
   });
 
@@ -152,26 +186,44 @@ describe('#388 SACRED in a title means a SACRED law', () => {
     const card = ALL_ENHANCED_CONSTITUTIONAL_LAWS.find(l => l.title === title);
     expect(card?.category).toBe('FRAMEWORK');
     // The id is derived from the old title, as before the rename.
-    expect(card?.id).toBe(generateLawId(OLD(title), card?.description ?? '', 'ngrx'));
+    expect(card?.id).toBe(
+      generateLawId(OLD(title), card?.description ?? '', 'ngrx')
+    );
     expect(card?.formerTitles).toEqual([OLD(title)]);
   });
 
-  it.each(RENAMED)('%s: a config key by the OLD title resolves to the same law (severity, notApplicable, enabled)', title => {
-    const law = lawTitled(title);
-    const old = OLD(title);
-    expect(ModularLawsRegistry.unambiguousIdentityKeys(law)).toContain(old);
+  it.each(RENAMED)(
+    '%s: a config key by the OLD title resolves to the same law (severity, notApplicable, enabled)',
+    title => {
+      const law = lawTitled(title);
+      const old = OLD(title);
+      expect(ModularLawsRegistry.unambiguousIdentityKeys(law)).toContain(old);
 
-    // laws.enabled
-    const enabled = ModularLawsRegistry.getEnabled(configWith({ enabled: { [old]: true } }));
-    expect(enabled.filter(l => !l.alwaysEnabled).map(l => l.name)).toEqual([title]);
+      // laws.enabled
+      const enabled = ModularLawsRegistry.getEnabled(
+        configWith({ enabled: { [old]: true } })
+      );
+      expect(enabled.filter(l => !l.alwaysEnabled).map(l => l.name)).toEqual([
+        title,
+      ]);
 
-    // laws.notApplicable
-    expect(ModularLawsRegistry.waiverReasonOf(law, { [old]: 'no store here' })).toBe('no store here');
-    expect(ModularLawsRegistry.getEnabled(configWith({ notApplicable: { [old]: 'no store here' } })).map(l => l.name)).not.toContain(title);
+      // laws.notApplicable
+      expect(
+        ModularLawsRegistry.waiverReasonOf(law, { [old]: 'no store here' })
+      ).toBe('no store here');
+      expect(
+        ModularLawsRegistry.getEnabled(
+          configWith({ notApplicable: { [old]: 'no store here' } })
+        ).map(l => l.name)
+      ).not.toContain(title);
 
-    // laws.severity — known to Config Integrity Guard, so not reported as an unknown key.
-    const guard = ConfigIntegrityGuardLaw.check({ projectRoot: process.cwd(), config: configWith({ severity: { [old]: 'error' } }) } as never);
-    expect(guard.violations ?? []).toEqual([]);
-    expect(guard.passed).toBe(true);
-  });
+      // laws.severity — known to Config Integrity Guard, so not reported as an unknown key.
+      const guard = ConfigIntegrityGuardLaw.check({
+        projectRoot: process.cwd(),
+        config: configWith({ severity: { [old]: 'error' } }),
+      } as never);
+      expect(guard.violations ?? []).toEqual([]);
+      expect(guard.passed).toBe(true);
+    }
+  );
 });

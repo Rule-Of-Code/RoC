@@ -43,7 +43,10 @@ export class NoShellInjectionLaw extends PythonLawBase {
       let m: RegExpExecArray | null;
       this.SUBPROCESS.lastIndex = 0;
       while ((m = this.SUBPROCESS.exec(content)) !== null) {
-        const args = this.readBalancedParens(content, this.SUBPROCESS.lastIndex - 1);
+        const args = this.readBalancedParens(
+          content,
+          this.SUBPROCESS.lastIndex - 1
+        );
         if (args !== null && /\bshell\s*=\s*True\b/.test(args)) {
           violations.push(
             `${rel}:${this.lineOf(content, m.index)}: subprocess.${m[1]}(..., shell=True) is a shell-injection risk — pass an argument list and use the default shell=False`

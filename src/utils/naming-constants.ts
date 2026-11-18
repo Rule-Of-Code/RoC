@@ -478,7 +478,8 @@ export const FILE_NAMING_CONVENTIONS = {
   PATTERNS: {
     // Angular file naming: name.component, name.service, … — and its test,
     // name.component.spec (the CLI's own spec name was reported, #338).
-    ANGULAR: /^[a-z0-9-]+\.(component|service|directive|pipe|guard|interceptor)(?:\.(?:spec|test))?$/,
+    ANGULAR:
+      /^[a-z0-9-]+\.(component|service|directive|pipe|guard|interceptor)(?:\.(?:spec|test))?$/,
     // Excessive abbreviations: short variable names like aB, xY
     ABBREVIATION: /^[a-z]{1,2}[A-Z]|[a-z][A-Z][a-z]?$/,
     // PascalCase pattern for directory names

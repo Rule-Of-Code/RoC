@@ -36,7 +36,7 @@ describe('CicdConstitutionalTribunalLaw', () => {
       performance: {
         parallel: false,
         maxConcurrent: 3,
-        cache: true,
+        cache: true,
       },
     };
     mockContext = {

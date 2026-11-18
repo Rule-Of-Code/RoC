@@ -42,7 +42,9 @@ export interface Judged {
 
 /** The settings of a Cloud Run service YAML that no key pins. */
 export function cloudRunServiceGaps(entries: YamlEntry[]): Missing[] {
-  return CLOUD_RUN_SERVICE_KEYS.filter(pinned => !pinned.paths.some(path => hasPathSuffix(entries, path))).map(pinned => ({
+  return CLOUD_RUN_SERVICE_KEYS.filter(
+    pinned => !pinned.paths.some(path => hasPathSuffix(entries, path))
+  ).map(pinned => ({
     setting: pinned.setting,
     names: pinned.paths.map(path => path.join('.')),
   }));
@@ -53,17 +55,27 @@ const lineOfKey = (text: string, key: string, from = 0): number => {
   return index < 0 ? 1 : text.slice(0, index).split('\n').length;
 };
 
-function lambdaMissing(present: (key: string) => boolean, global: (key: string) => boolean): Missing[] {
-  return LAMBDA_PROPERTIES.filter(({ key }) => !present(key) && !global(key)).map(({ setting, key }) => ({ setting, names: [key] }));
+function lambdaMissing(
+  present: (key: string) => boolean,
+  global: (key: string) => boolean
+): Missing[] {
+  return LAMBDA_PROPERTIES.filter(
+    ({ key }) => !present(key) && !global(key)
+  ).map(({ setting, key }) => ({ setting, names: [key] }));
 }
 
 /** AWS SAM / CloudFormation YAML: every function resource, with SAM's Globals.Function. */
 export function samYamlGaps(entries: YamlEntry[]): Judged | null {
   const functions = entries.filter(
-    entry => entry.path.length === 3 && entry.path[0] === 'Resources' && entry.key === 'Type' && LAMBDA_RESOURCE_TYPES.includes(entry.value)
+    entry =>
+      entry.path.length === 3 &&
+      entry.path[0] === 'Resources' &&
+      entry.key === 'Type' &&
+      LAMBDA_RESOURCE_TYPES.includes(entry.value)
   );
   if (functions.length === 0) return null;
-  const has = (path: string[]): boolean => entries.some(entry => entry.path.join('\0') === path.join('\0'));
+  const has = (path: string[]): boolean =>
+    entries.some(entry => entry.path.join('\0') === path.join('\0'));
   const gaps = functions.flatMap(type => {
     const name = type.path[1] ?? '';
     const sam = type.value === 'AWS::Serverless::Function';
@@ -71,19 +83,30 @@ export function samYamlGaps(entries: YamlEntry[]): Judged | null {
       key => has(['Resources', name, 'Properties', key]),
       key => sam && has(['Globals', 'Function', key])
     );
-    const line = entries.find(entry => entry.path.length === 2 && entry.path[0] === 'Resources' && entry.key === name)?.line ?? type.line;
-    return missing.length > 0 ? [{ line, unit: `function ${name} (${type.value})`, missing }] : [];
+    const line =
+      entries.find(
+        entry =>
+          entry.path.length === 2 &&
+          entry.path[0] === 'Resources' &&
+          entry.key === name
+      )?.line ?? type.line;
+    return missing.length > 0
+      ? [{ line, unit: `function ${name} (${type.value})`, missing }]
+      : [];
   });
   return { units: functions.length, gaps, notes: [] };
 }
 
 type Bag = Record<string, unknown>;
-const bag = (value: unknown): Bag => (value && typeof value === 'object' && !Array.isArray(value) ? (value as Bag) : {});
+const bag = (value: unknown): Bag =>
+  value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Bag)
+    : {};
 
 /** AWS SAM / CloudFormation JSON. */
 export function samJsonGaps(text: string, parsed: unknown): Judged | null {
-  const resources = Object.entries(bag(bag(parsed).Resources)).filter(([, resource]) =>
-    LAMBDA_RESOURCE_TYPES.includes(String(bag(resource).Type))
+  const resources = Object.entries(bag(bag(parsed).Resources)).filter(
+    ([, resource]) => LAMBDA_RESOURCE_TYPES.includes(String(bag(resource).Type))
   );
   if (resources.length === 0) return null;
   const globals = bag(bag(bag(parsed).Globals).Function);
@@ -95,25 +118,54 @@ export function samJsonGaps(text: string, parsed: unknown): Judged | null {
       key => key in properties,
       key => type === 'AWS::Serverless::Function' && key in globals
     );
-    return missing.length > 0 ? [{ line: lineOfKey(text, name, resourcesAt), unit: `function ${name} (${type})`, missing }] : [];
+    return missing.length > 0
+      ? [
+          {
+            line: lineOfKey(text, name, resourcesAt),
+            unit: `function ${name} (${type})`,
+            missing,
+          },
+        ]
+      : [];
   });
   return { units: resources.length, gaps, notes: [] };
 }
 
 /** Serverless Framework: each function, falling back to provider-level keys. */
-export function serverlessFrameworkGaps(entries: YamlEntry[], rel: string): Judged | null {
-  const block = entries.find(entry => entry.path.length === 1 && entry.key === 'functions');
+export function serverlessFrameworkGaps(
+  entries: YamlEntry[],
+  rel: string
+): Judged | null {
+  const block = entries.find(
+    entry => entry.path.length === 1 && entry.key === 'functions'
+  );
   if (!block) return null;
   if (block.value || block.items.length > 0) {
-    return { units: 0, gaps: [], notes: [`${rel}:${block.line}: functions are included from another file (${block.value || block.items.map(item => item.text).join(', ')}) — not read`] };
+    return {
+      units: 0,
+      gaps: [],
+      notes: [
+        `${rel}:${block.line}: functions are included from another file (${block.value || block.items.map(item => item.text).join(', ')}) — not read`,
+      ],
+    };
   }
-  const functions = entries.filter(entry => entry.path.length === 2 && entry.path[0] === 'functions');
-  const has = (path: string[]): boolean => entries.some(entry => entry.path.join('\0') === path.join('\0') && entry.value !== '');
-  const gaps = functions.flatMap(fn => {
-    const missing = SERVERLESS_FRAMEWORK_KEYS.filter(({ key }) => !has(['functions', fn.key, key]) && !has(['provider', key])).map(
-      ({ setting, key }) => ({ setting, names: [`provider.${key}`, `functions.${fn.key}.${key}`] })
+  const functions = entries.filter(
+    entry => entry.path.length === 2 && entry.path[0] === 'functions'
+  );
+  const has = (path: string[]): boolean =>
+    entries.some(
+      entry => entry.path.join('\0') === path.join('\0') && entry.value !== ''
     );
-    return missing.length > 0 ? [{ line: fn.line, unit: `function ${fn.key}`, missing }] : [];
+  const gaps = functions.flatMap(fn => {
+    const missing = SERVERLESS_FRAMEWORK_KEYS.filter(
+      ({ key }) => !has(['functions', fn.key, key]) && !has(['provider', key])
+    ).map(({ setting, key }) => ({
+      setting,
+      names: [`provider.${key}`, `functions.${fn.key}.${key}`],
+    }));
+    return missing.length > 0
+      ? [{ line: fn.line, unit: `function ${fn.key}`, missing }]
+      : [];
   });
   return { units: functions.length, gaps, notes: [] };
 }
@@ -121,10 +173,22 @@ export function serverlessFrameworkGaps(entries: YamlEntry[], rel: string): Judg
 /** Azure Functions host.json (schema version 2+). */
 export function hostJsonGaps(text: string, parsed: unknown): Judged | null {
   const host = bag(parsed);
-  if (typeof host.version !== 'string' || !host.version.startsWith('2')) return null;
+  if (typeof host.version !== 'string' || !host.version.startsWith('2'))
+    return null;
   const gaps =
     AZURE_HOST_JSON_TIMEOUT_KEY in host
       ? []
-      : [{ line: lineOfKey(text, 'version'), unit: 'function app', missing: [{ setting: 'timeout' as Setting, names: [AZURE_HOST_JSON_TIMEOUT_KEY] }] }];
+      : [
+          {
+            line: lineOfKey(text, 'version'),
+            unit: 'function app',
+            missing: [
+              {
+                setting: 'timeout' as Setting,
+                names: [AZURE_HOST_JSON_TIMEOUT_KEY],
+              },
+            ],
+          },
+        ];
   return { units: 1, gaps, notes: [] };
 }

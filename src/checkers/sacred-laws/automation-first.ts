@@ -19,7 +19,10 @@ export class AutomationFirstLaw {
     const suggestions: string[] = [];
 
     // Check for automated CI/CD
-    const cicdAnalysis = this.checkCICDAutomation(context.projectRoot, context.config);
+    const cicdAnalysis = this.checkCICDAutomation(
+      context.projectRoot,
+      context.config
+    );
     violations.push(...cicdAnalysis.violations);
     suggestions.push(...cicdAnalysis.suggestions);
 
@@ -170,7 +173,9 @@ export class AutomationFirstLaw {
         const deps =
           ProjectTypeDetectorValidation.getProjectDependencies(projectRoot);
         if (!deps.husky && !deps['pre-commit'] && !deps['lint-staged']) {
-          suggestions.push('Set up pre-commit hooks for automated quality gates');
+          suggestions.push(
+            'Set up pre-commit hooks for automated quality gates'
+          );
         }
 
         // Check for automated builds — a VIOLATION, and independent of the

@@ -31,7 +31,13 @@ export class InjectOverConstructorDiLaw extends AngularLawBase {
       undefined,
       false
     ).filter(f =>
-      AngularComponentFiles.isKind(f, ['component', 'directive', 'service', 'pipe', 'guard'])
+      AngularComponentFiles.isKind(f, [
+        'component',
+        'directive',
+        'service',
+        'pipe',
+        'guard',
+      ])
     );
 
     for (const file of files) {
@@ -41,7 +47,9 @@ export class InjectOverConstructorDiLaw extends AngularLawBase {
         .replace(/\/\*[\s\S]*?\*\//g, ' ')
         .replace(/(^|[^:])\/\/[^\n]*/g, '$1');
 
-      const count = this.injectedConstructors(projectRoot, file, content) ?? this.regexCount(code);
+      const count =
+        this.injectedConstructors(projectRoot, file, content) ??
+        this.regexCount(code);
       if (count > 0) {
         violations.push(
           `${PathOperations.getRelative(projectRoot, file)}: ${count} constructor(s) using parameter-property DI — inject() in a field initializer instead.`
@@ -62,7 +70,12 @@ export class InjectOverConstructorDiLaw extends AngularLawBase {
   }
 
   /** Classes Angular's injector constructs — the only constructors that are DI. */
-  private static readonly DI_DECORATORS = new Set(['Component', 'Directive', 'Injectable', 'Pipe']);
+  private static readonly DI_DECORATORS = new Set([
+    'Component',
+    'Directive',
+    'Injectable',
+    'Pipe',
+  ]);
 
   /**
    * Parameter-property constructors of DECORATED classes, read from the parse.
@@ -72,7 +85,11 @@ export class InjectOverConstructorDiLaw extends AngularLawBase {
    * is not DI. Counted per file, that was a false finding the moment Angular
    * 20 files without a suffix were read (#330). Null when no parser loads.
    */
-  private static injectedConstructors(projectRoot: string, file: string, content: string): number | null {
+  private static injectedConstructors(
+    projectRoot: string,
+    file: string,
+    content: string
+  ): number | null {
     const ts = loadTypeScript(projectRoot);
     if (!ts) return null;
     const source = TsxSource.parse(ts, file, content);
@@ -85,7 +102,9 @@ export class InjectOverConstructorDiLaw extends AngularLawBase {
     };
     const decoratorsOf = (node: TS.ClassDeclaration): readonly TS.Decorator[] =>
       (ts.canHaveDecorators?.(node) ? ts.getDecorators?.(node) : undefined) ??
-      ((node as unknown as { decorators?: readonly TS.Decorator[] }).decorators ?? []);
+      (node as unknown as { decorators?: readonly TS.Decorator[] })
+        .decorators ??
+      [];
     const PARAMETER_PROPERTY = new Set([
       ts.SyntaxKind.PublicKeyword,
       ts.SyntaxKind.PrivateKeyword,
@@ -95,11 +114,18 @@ export class InjectOverConstructorDiLaw extends AngularLawBase {
     let count = 0;
     source.walk(node => {
       if (!ts.isClassDeclaration(node)) return;
-      if (!decoratorsOf(node).some(d => this.DI_DECORATORS.has(decoratorName(d) ?? ''))) return;
+      if (
+        !decoratorsOf(node).some(d =>
+          this.DI_DECORATORS.has(decoratorName(d) ?? '')
+        )
+      )
+        return;
       for (const member of node.members) {
         if (
           ts.isConstructorDeclaration(member) &&
-          member.parameters.some(p => (p.modifiers ?? []).some(m => PARAMETER_PROPERTY.has(m.kind)))
+          member.parameters.some(p =>
+            (p.modifiers ?? []).some(m => PARAMETER_PROPERTY.has(m.kind))
+          )
         ) {
           count++;
         }

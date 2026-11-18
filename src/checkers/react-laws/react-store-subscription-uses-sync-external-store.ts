@@ -26,10 +26,14 @@ import type { TsxSource, TypeScriptModule } from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';
 
 /** The subscribing call and the index of the callback argument. */
-const SUBSCRIBERS: Readonly<Record<string, number>> = { subscribe: 0, addEventListener: 1 };
+const SUBSCRIBERS: Readonly<Record<string, number>> = {
+  subscribe: 0,
+  addEventListener: 1,
+};
 
 export class ReactStoreSubscriptionUsesSyncExternalStoreLaw extends LawBase {
-  static readonly LAW_NAME = 'React Store Subscription Uses Sync External Store';
+  static readonly LAW_NAME =
+    'React Store Subscription Uses Sync External Store';
 
   static check(context: LawCheckContext): LawResult {
     const { sources, violations } = readReactSources(context, this.LAW_NAME);
@@ -55,7 +59,10 @@ export class ReactStoreSubscriptionUsesSyncExternalStoreLaw extends LawBase {
     );
   }
 
-  private static copyingSubscriptions(source: TsxSource, setters: Set<string>): TS.CallExpression[] {
+  private static copyingSubscriptions(
+    source: TsxSource,
+    setters: Set<string>
+  ): TS.CallExpression[] {
     const ts = source.ts;
     const found: TS.CallExpression[] = [];
     for (const effect of effectCalls(source)) {
@@ -68,7 +75,8 @@ export class ReactStoreSubscriptionUsesSyncExternalStoreLaw extends LawBase {
         const index = SUBSCRIBERS[target.name];
         if (index === undefined) return;
         const callback = node.arguments[index];
-        if (callback && this.onlyCallsSetter(ts, unwrap(ts, callback), setters)) found.push(node);
+        if (callback && this.onlyCallsSetter(ts, unwrap(ts, callback), setters))
+          found.push(node);
       });
     }
     return found;
@@ -80,11 +88,13 @@ export class ReactStoreSubscriptionUsesSyncExternalStoreLaw extends LawBase {
     callback: TS.Expression,
     setters: Set<string>
   ): boolean {
-    if (!ts.isArrowFunction(callback) && !ts.isFunctionExpression(callback)) return false;
+    if (!ts.isArrowFunction(callback) && !ts.isFunctionExpression(callback))
+      return false;
     let expression: TS.Expression | undefined;
     if (ts.isBlock(callback.body)) {
       const [only, ...rest] = callback.body.statements;
-      if (!only || rest.length > 0 || !ts.isExpressionStatement(only)) return false;
+      if (!only || rest.length > 0 || !ts.isExpressionStatement(only))
+        return false;
       expression = only.expression;
     } else {
       expression = callback.body;

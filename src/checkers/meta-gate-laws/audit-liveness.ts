@@ -13,7 +13,11 @@
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { describeLivenessFloor, livenessFloorOf, narrowingOf } from '../../utils/liveness-floor';
+import {
+  describeLivenessFloor,
+  livenessFloorOf,
+  narrowingOf,
+} from '../../utils/liveness-floor';
 import { LawBase } from '../law-base';
 
 export class AuditLivenessLaw extends LawBase {
@@ -21,7 +25,8 @@ export class AuditLivenessLaw extends LawBase {
 
   static check(context: LawCheckContext): LawResult {
     const { config } = context;
-    const planned = (config.laws as { __plannedLawCount?: number }).__plannedLawCount;
+    const planned = (config.laws as { __plannedLawCount?: number })
+      .__plannedLawCount;
     if (typeof planned !== 'number') return this.result([], context);
 
     // The floor and its source come from the one function the engine also
@@ -52,7 +57,10 @@ export class AuditLivenessLaw extends LawBase {
     };
   }
 
-  private static result(violations: string[], context: LawCheckContext): LawResult {
+  private static result(
+    violations: string[],
+    context: LawCheckContext
+  ): LawResult {
     return this.createResult(
       violations,
       this.LAW_NAME,

@@ -26,8 +26,14 @@
 
 import type { LawRequirement } from '../../types/enhanced-law.types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { readFilesContaining, type ContainingFile } from '../../utils/law-requirements';
-import { declaredPythonDependencies, normalizePythonName } from '../../utils/python-dependencies';
+import {
+  readFilesContaining,
+  type ContainingFile,
+} from '../../utils/law-requirements';
+import {
+  declaredPythonDependencies,
+  normalizePythonName,
+} from '../../utils/python-dependencies';
 import { LawBase } from '../law-base';
 import { matchesWithLines, subjectResult } from './subject-result';
 
@@ -53,9 +59,12 @@ export const THREADED_PYTHON_CLIENTS: readonly string[] = [
   'confluent-kafka',
 ];
 
-const SCRIPT_EXTENSIONS = '{py,sh,bash,zsh,ps1,js,mjs,cjs,ts,mts,yml,yaml,toml,ini,cfg,env,md}';
-const PERF_DIRECTORIES = '{perf,performance,bench,benchmark,benchmarks,benches,profiling,load,loadtest,loadtests,load-test,load_test,latency,stress}';
-const PERF_NAMES = '{perf,Perf,PERF,bench,Bench,profiling,profiler,latency,loadtest,load_test,load-test,locustfile,stress}';
+const SCRIPT_EXTENSIONS =
+  '{py,sh,bash,zsh,ps1,js,mjs,cjs,ts,mts,yml,yaml,toml,ini,cfg,env,md}';
+const PERF_DIRECTORIES =
+  '{perf,performance,bench,benchmark,benchmarks,benches,profiling,load,loadtest,loadtests,load-test,load_test,latency,stress}';
+const PERF_NAMES =
+  '{perf,Perf,PERF,bench,Bench,profiling,profiler,latency,loadtest,load_test,load-test,locustfile,stress}';
 
 /** The perf, benchmark, load and profiling files: by directory, or by name. */
 export const PERF_HARNESS_FILES: readonly string[] = [
@@ -92,19 +101,35 @@ const LEVEL_SETTINGS: readonly string[] = [
   String.raw`\b\w*LOG_?LEVEL["']?\s*\]?\s*(?:=|:-|:|,)\s*["']?{LEVEL}\b`,
 ];
 
-const levelPatterns = (level: string): RegExp[] => LEVEL_SETTINGS.map(source => new RegExp(source.replace('{LEVEL}', level), 'gim'));
+const levelPatterns = (level: string): RegExp[] =>
+  LEVEL_SETTINGS.map(
+    source => new RegExp(source.replace('{LEVEL}', level), 'gim')
+  );
 const DEBUG_SETTINGS = levelPatterns(NOT_PRODUCTION);
 const PRODUCTION_SETTINGS = levelPatterns(PRODUCTION);
 
 /** Profilers that record only the thread they run in. */
-const SINGLE_THREAD_PROFILERS: ReadonlyArray<{ name: string; pattern: RegExp }> = [
+const SINGLE_THREAD_PROFILERS: ReadonlyArray<{
+  name: string;
+  pattern: RegExp;
+}> = [
   { name: 'cProfile', pattern: /\bcProfile\b/g },
-  { name: 'profile', pattern: /^\s*(?:import\s+profile\b|from\s+profile\s+import\b)|-m\s+profile\b/gm },
-  { name: 'yappi with profile_threads=False', pattern: /\byappi\.start\([^)]*\bprofile_threads\s*=\s*False/g },
+  {
+    name: 'profile',
+    pattern:
+      /^\s*(?:import\s+profile\b|from\s+profile\s+import\b)|-m\s+profile\b/gm,
+  },
+  {
+    name: 'yappi with profile_threads=False',
+    pattern: /\byappi\.start\([^)]*\bprofile_threads\s*=\s*False/g,
+  },
 ];
 
 /** Profilers that see every thread: py-spy samples all threads; yappi profiles all threads unless told not to. */
-const THREAD_AWARE_PROFILERS: readonly RegExp[] = [/\bpy-spy\b/, /\byappi\.start\((?![^)]*\bprofile_threads\s*=\s*False)/];
+const THREAD_AWARE_PROFILERS: readonly RegExp[] = [
+  /\bpy-spy\b/,
+  /\byappi\.start\((?![^)]*\bprofile_threads\s*=\s*False)/,
+];
 
 interface Hit {
   rel: string;
@@ -117,7 +142,8 @@ function hitsOf(file: ContainingFile, patterns: readonly RegExp[]): Hit[] {
   const byLine = new Map<number, Hit>();
   for (const pattern of patterns) {
     for (const { text, line } of matchesWithLines(file.content, pattern)) {
-      if (!byLine.has(line)) byLine.set(line, { rel: file.rel, line, text: text.trim() });
+      if (!byLine.has(line))
+        byLine.set(line, { rel: file.rel, line, text: text.trim() });
     }
   }
   return [...byLine.values()].sort((a, b) => a.line - b.line);
@@ -128,25 +154,35 @@ export class PerfHarnessMatchesProductionLaw extends LawBase {
 
   static check(context: LawCheckContext): LawResult {
     const ignores = context.config.ignores?.global ?? [];
-    const files = (REQUIRES_PERF_HARNESS.anyFileContaining ?? []).flatMap(entry => readFilesContaining(context.projectRoot, entry, ignores));
+    const files = (REQUIRES_PERF_HARNESS.anyFileContaining ?? []).flatMap(
+      entry => readFilesContaining(context.projectRoot, entry, ignores)
+    );
     const debug = files.flatMap(file => hitsOf(file, DEBUG_SETTINGS));
     const pinned = files.flatMap(file => hitsOf(file, PRODUCTION_SETTINGS));
     const threaded = this.threadedClients(context.projectRoot);
     const profilers = this.singleThreadProfilers(files);
-    const threadAware = files.filter(file => THREAD_AWARE_PROFILERS.some(pattern => pattern.test(file.content))).length;
+    const threadAware = files.filter(file =>
+      THREAD_AWARE_PROFILERS.some(pattern => pattern.test(file.content))
+    ).length;
     const blind = threaded.length > 0 && threadAware === 0 ? profilers : [];
     return subjectResult({
       lawName: this.LAW_NAME,
       category: 'TESTING',
       context,
       // A harness that pins the production level is the measuring one; a DEBUG run next to it is for reading logs (#377).
-      findings: [...(pinned.length === 0 ? debug : []).map(hit => this.describeDebug(hit)), ...blind.map(hit => this.describeProfiler(hit, threaded))],
+      findings: [
+        ...(pinned.length === 0 ? debug : []).map(hit =>
+          this.describeDebug(hit)
+        ),
+        ...blind.map(hit => this.describeProfiler(hit, threaded)),
+      ],
       suggestions: [
         'Start the app under test with the log level production runs (INFO): --log-level info, or the production LOG_LEVEL',
         'Profile with a sampler that sees every thread: py-spy record (add --threads for per-thread stacks), or yappi with profile_threads left on',
       ],
       judged: files.length,
-      nothingJudged: 'no perf, benchmark, load or profiling script could be read',
+      nothingJudged:
+        'no perf, benchmark, load or profiling script could be read',
       passSummary: `${files.length} perf script(s) read; ${debug.length} DEBUG/TRACE log level setting(s), ${pinned.length} setting(s) at a production level${debug.length > 0 && pinned.length > 0 ? ' (a harness pins the production level, so the DEBUG runs are not the measuring ones)' : ''};${profilers.length} single-thread profiler use(s), ${threadAware} file(s) with a thread-aware profiler; threaded client(s) declared: ${threaded.length === 0 ? 'none' : threaded.join(', ')}`,
       notSeen:
         'not seen: a log level set in app code or config the scripts do not name, a level passed through a variable, and profilers other than cProfile, profile, yappi and py-spy',
@@ -164,15 +200,28 @@ export class PerfHarnessMatchesProductionLaw extends LawBase {
   /** The declared Python clients that run threads of their own. */
   private static threadedClients(projectRoot: string): string[] {
     const declared = declaredPythonDependencies(projectRoot);
-    return THREADED_PYTHON_CLIENTS.filter(name => declared.has(normalizePythonName(name)));
+    return THREADED_PYTHON_CLIENTS.filter(name =>
+      declared.has(normalizePythonName(name))
+    );
   }
 
   /** The first use of each single-thread profiler in each file. */
-  private static singleThreadProfilers(files: readonly ContainingFile[]): Array<Hit & { profiler: string }> {
+  private static singleThreadProfilers(
+    files: readonly ContainingFile[]
+  ): Array<Hit & { profiler: string }> {
     return files.flatMap(file =>
       SINGLE_THREAD_PROFILERS.flatMap(({ name, pattern }) => {
         const first = matchesWithLines(file.content, pattern)[0];
-        return first ? [{ rel: file.rel, line: first.line, text: first.text.trim(), profiler: name }] : [];
+        return first
+          ? [
+              {
+                rel: file.rel,
+                line: first.line,
+                text: first.text.trim(),
+                profiler: name,
+              },
+            ]
+          : [];
       })
     );
   }
@@ -181,7 +230,10 @@ export class PerfHarnessMatchesProductionLaw extends LawBase {
     return `${hit.rel}:${hit.line}: the perf harness runs at a DEBUG/TRACE log level (${hit.text}) — production logs at INFO, so every debug line is work production never does: the numbers are inflated and the profile shows logging as a hot spot; start the app under test with the production log level`;
   }
 
-  private static describeProfiler(hit: Hit & { profiler: string }, threaded: readonly string[]): string {
+  private static describeProfiler(
+    hit: Hit & { profiler: string },
+    threaded: readonly string[]
+  ): string {
     return `${hit.rel}:${hit.line}: ${hit.profiler} records only the thread it runs in, and the project declares client(s) that work on threads of their own (${threaded.join(', ')}) — their CPU is missing from the profile and short, frequently called functions look hot; profile with a sampler that sees every thread (py-spy record, --threads for per-thread stacks) or yappi with profile_threads on`;
   }
 }

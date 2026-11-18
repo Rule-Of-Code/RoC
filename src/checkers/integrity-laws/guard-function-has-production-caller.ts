@@ -22,12 +22,38 @@ import type { TsxSource } from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';
 
 /** The default guard prefixes (thresholds.integrity.guardPrefixes replaces them). */
-export const DEFAULT_GUARD_PREFIXES = ['assert', 'require', 'enforce', 'verify', 'check', 'schedule'];
+export const DEFAULT_GUARD_PREFIXES = [
+  'assert',
+  'require',
+  'enforce',
+  'verify',
+  'check',
+  'schedule',
+];
 
 /** Directory names that hold tests, fixtures and mocks — never production callers. */
-export const TEST_DIRECTORIES = ['__tests__', '__mocks__', '__fixtures__', 'test', 'tests', 'e2e', 'cypress', 'spec', 'specs'];
+export const TEST_DIRECTORIES = [
+  '__tests__',
+  '__mocks__',
+  '__fixtures__',
+  'test',
+  'tests',
+  'e2e',
+  'cypress',
+  'spec',
+  'specs',
+];
 
-const SOURCE_EXTENSIONS = ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs'];
+const SOURCE_EXTENSIONS = [
+  '.ts',
+  '.tsx',
+  '.mts',
+  '.cts',
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.cjs',
+];
 const TYPESCRIPT_FILE = /\.(?:ts|tsx|mts|cts)$/;
 const STORY_FILE = /\.stories\.[cm]?[jt]sx?$/;
 
@@ -43,7 +69,9 @@ interface Guard {
 /** A path segment test: does `file` live under a test directory? */
 function inTestDirectory(file: string): boolean {
   const segments = file.replace(/\\/g, '/').split('/');
-  return segments.slice(0, -1).some(segment => TEST_DIRECTORIES.includes(segment));
+  return segments
+    .slice(0, -1)
+    .some(segment => TEST_DIRECTORIES.includes(segment));
 }
 
 export class GuardFunctionHasProductionCallerLaw extends LawBase {
@@ -64,10 +92,17 @@ export class GuardFunctionHasProductionCallerLaw extends LawBase {
 
   /** The configured prefixes, or why they cannot be used. */
   static prefixes(context: LawCheckContext): string[] | string {
-    const configured = (context.config.thresholds as { integrity?: { guardPrefixes?: unknown } } | undefined)
-      ?.integrity?.guardPrefixes;
+    const configured = (
+      context.config.thresholds as
+        { integrity?: { guardPrefixes?: unknown } } | undefined
+    )?.integrity?.guardPrefixes;
     if (configured === undefined) return DEFAULT_GUARD_PREFIXES;
-    if (!Array.isArray(configured) || !configured.every(p => typeof p === 'string' && /^[A-Za-z_$][\w$]*$/.test(p))) {
+    if (
+      !Array.isArray(configured) ||
+      !configured.every(
+        p => typeof p === 'string' && /^[A-Za-z_$][\w$]*$/.test(p)
+      )
+    ) {
       return 'thresholds.integrity.guardPrefixes must be a list of identifier prefixes (e.g. ["require", "assert"])';
     }
     if (configured.length === 0) {
@@ -80,10 +115,15 @@ export class GuardFunctionHasProductionCallerLaw extends LawBase {
     const prefixes = this.prefixes(context);
     if (typeof prefixes === 'string') return [prefixes];
     const files = ReactProject.sourceFiles(context, SOURCE_EXTENSIONS).filter(
-      file => !REACT_TEST_FILE.test(file) && !STORY_FILE.test(file) && !inTestDirectory(ReactProject.relative(context, file))
+      file =>
+        !REACT_TEST_FILE.test(file) &&
+        !STORY_FILE.test(file) &&
+        !inTestDirectory(ReactProject.relative(context, file))
     );
     if (files.length === 0) {
-      return ['no TypeScript source file was scanned — check the ignores; a law that read nothing does not pass'];
+      return [
+        'no TypeScript source file was scanned — check the ignores; a law that read nothing does not pass',
+      ];
     }
     const { sources, unread } = ReactProject.parse(context, files);
     const pattern = new RegExp(`^(?:${prefixes.join('|')})(?=[A-Z0-9_$]|$)`);
@@ -92,7 +132,10 @@ export class GuardFunctionHasProductionCallerLaw extends LawBase {
       .flatMap(source => this.guardsIn(source, pattern));
     const called = this.referenced(sources, guards);
     return [
-      ...unread.map(reason => `${reason} — guards and their callers there were NOT inspected`),
+      ...unread.map(
+        reason =>
+          `${reason} — guards and their callers there were NOT inspected`
+      ),
       ...guards
         .filter(guard => !called.has(guard))
         .map(
@@ -118,10 +161,14 @@ export class GuardFunctionHasProductionCallerLaw extends LawBase {
     };
     for (const statement of source.sourceFile.statements) {
       if (!this.isExported(ts, statement)) continue;
-      if (ts.isFunctionDeclaration(statement) && statement.name) add(statement.name, statement);
+      if (ts.isFunctionDeclaration(statement) && statement.name)
+        add(statement.name, statement);
       if (!ts.isVariableStatement(statement)) continue;
       for (const declaration of statement.declarationList.declarations) {
-        if (ts.isIdentifier(declaration.name) && this.isFunction(ts, declaration.initializer)) {
+        if (
+          ts.isIdentifier(declaration.name) &&
+          this.isFunction(ts, declaration.initializer)
+        ) {
           add(declaration.name, declaration);
         }
       }
@@ -129,32 +176,47 @@ export class GuardFunctionHasProductionCallerLaw extends LawBase {
     return guards;
   }
 
-  private static isExported(ts: TsxSource['ts'], statement: TS.Statement): boolean {
+  private static isExported(
+    ts: TsxSource['ts'],
+    statement: TS.Statement
+  ): boolean {
     return (
       ts.canHaveModifiers(statement) &&
-      (ts.getModifiers(statement) ?? []).some(m => m.kind === ts.SyntaxKind.ExportKeyword)
+      (ts.getModifiers(statement) ?? []).some(
+        m => m.kind === ts.SyntaxKind.ExportKeyword
+      )
     );
   }
 
-  private static isFunction(ts: TsxSource['ts'], init: TS.Expression | undefined): boolean {
-    return init !== undefined && (ts.isArrowFunction(init) || ts.isFunctionExpression(init));
+  private static isFunction(
+    ts: TsxSource['ts'],
+    init: TS.Expression | undefined
+  ): boolean {
+    return (
+      init !== undefined &&
+      (ts.isArrowFunction(init) || ts.isFunctionExpression(init))
+    );
   }
 
   /** The guards that have at least one reference in `sources` other than themselves. */
   private static referenced(sources: TsxSource[], guards: Guard[]): Set<Guard> {
     const byName = new Map<string, Guard[]>();
-    for (const guard of guards) byName.set(guard.name, [...(byName.get(guard.name) ?? []), guard]);
+    for (const guard of guards)
+      byName.set(guard.name, [...(byName.get(guard.name) ?? []), guard]);
     const called = new Set<Guard>();
     const names = [...byName.keys()];
     for (const source of sources) {
       if (!names.some(name => source.text.includes(name))) continue;
       const aliases = this.importAliases(source, byName);
       source.walk(node => {
-        if (!source.ts.isIdentifier(node) || this.isPlumbing(source.ts, node)) return;
+        if (!source.ts.isIdentifier(node) || this.isPlumbing(source.ts, node))
+          return;
         const name = aliases.get(node.text) ?? node.text;
         for (const guard of byName.get(name) ?? []) {
           const own =
-            guard.file === source.fileName && node.getStart(source.sourceFile) >= guard.start && node.getEnd() <= guard.end;
+            guard.file === source.fileName &&
+            node.getStart(source.sourceFile) >= guard.start &&
+            node.getEnd() <= guard.end;
           if (!own) called.add(guard);
         }
       });
@@ -163,7 +225,10 @@ export class GuardFunctionHasProductionCallerLaw extends LawBase {
   }
 
   /** `import { requireAdmin as mustBeAdmin }` → mustBeAdmin refers to requireAdmin. */
-  private static importAliases(source: TsxSource, byName: Map<string, Guard[]>): Map<string, string> {
+  private static importAliases(
+    source: TsxSource,
+    byName: Map<string, Guard[]>
+  ): Map<string, string> {
     const aliases = new Map<string, string>();
     source.walk(node => {
       if (!source.ts.isImportSpecifier(node)) return;

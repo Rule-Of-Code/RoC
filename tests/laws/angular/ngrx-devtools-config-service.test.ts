@@ -26,7 +26,8 @@ describe('NgRxDevToolsConfigService', () => {
   describe('analyzeConfiguration()', () => {
     describe('result structure', () => {
       it('should return complete configuration result', async () => {
-        const result = await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
+        const result =
+          await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
 
         expect(result).toHaveProperty('configured');
         expect(result).toHaveProperty('hasEnvironmentCheck');
@@ -34,7 +35,8 @@ describe('NgRxDevToolsConfigService', () => {
       });
 
       it('should return boolean values for all properties', async () => {
-        const result = await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
+        const result =
+          await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
 
         expect(typeof result.configured).toBe('boolean');
         expect(typeof result.hasEnvironmentCheck).toBe('boolean');
@@ -44,7 +46,8 @@ describe('NgRxDevToolsConfigService', () => {
 
     describe('no config files', () => {
       it('should return not configured when no files exist', async () => {
-        const result = await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
+        const result =
+          await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
 
         expect(result.configured).toBe(false);
         expect(result.hasEnvironmentCheck).toBe(false);
@@ -52,7 +55,8 @@ describe('NgRxDevToolsConfigService', () => {
       });
 
       it('should return not configured when src/app does not exist', async () => {
-        const result = await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
+        const result =
+          await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
 
         expect(result.configured).toBe(false);
       });
@@ -81,7 +85,8 @@ export class AppModule {}
           appModule
         );
 
-        const result = await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
+        const result =
+          await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
 
         expect(result.configured).toBe(true);
       });
@@ -107,7 +112,8 @@ export class AppModule {}
           appModule
         );
 
-        const result = await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
+        const result =
+          await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
 
         expect(result.configured).toBe(true);
         expect(result.hasEnvironmentCheck).toBe(true);
@@ -137,7 +143,8 @@ export const appConfig: ApplicationConfig = {
           appConfig
         );
 
-        const result = await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
+        const result =
+          await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
 
         expect(result.configured).toBe(true);
       });
@@ -161,7 +168,8 @@ export const appConfig: ApplicationConfig = {
           appConfig
         );
 
-        const result = await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
+        const result =
+          await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
 
         expect(result.configured).toBe(true);
         expect(result.hasEnvironmentCheck).toBe(true);
@@ -189,7 +197,8 @@ StoreDevtoolsModule.instrument({
           appModule
         );
 
-        const result = await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
+        const result =
+          await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
 
         expect(result.hasEnvironmentCheck).toBe(true);
       });
@@ -207,7 +216,8 @@ provideStoreDevtools({
           appConfig
         );
 
-        const result = await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
+        const result =
+          await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
 
         expect(result.hasEnvironmentCheck).toBe(true);
       });
@@ -226,7 +236,8 @@ provideStoreDevtools({
           appConfig
         );
 
-        const result = await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
+        const result =
+          await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
 
         expect(result.hasEnvironmentCheck).toBe(true);
       });
@@ -244,7 +255,8 @@ provideStoreDevtools({
           appConfig
         );
 
-        const result = await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
+        const result =
+          await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
 
         expect(result.hasEnvironmentCheck).toBe(false);
       });
@@ -270,7 +282,8 @@ provideStoreDevtools({
           appConfig
         );
 
-        const result = await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
+        const result =
+          await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
 
         expect(result.hasConfigOptions).toBe(true);
       });
@@ -289,7 +302,8 @@ provideStoreDevtools({
           appConfig
         );
 
-        const result = await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
+        const result =
+          await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
 
         expect(result.hasConfigOptions).toBe(true);
       });
@@ -307,7 +321,8 @@ provideStoreDevtools({
           appConfig
         );
 
-        const result = await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
+        const result =
+          await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
 
         expect(result.hasConfigOptions).toBe(true);
       });
@@ -325,7 +340,8 @@ provideStoreDevtools({
           appConfig
         );
 
-        const result = await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
+        const result =
+          await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
 
         expect(result.hasConfigOptions).toBe(true);
       });
@@ -343,7 +359,8 @@ provideStoreDevtools({
           appConfig
         );
 
-        const result = await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
+        const result =
+          await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
 
         expect(result.hasConfigOptions).toBe(true);
       });
@@ -359,7 +376,8 @@ const nothing = 1;
           appConfig
         );
 
-        const result = await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
+        const result =
+          await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
 
         expect(result.hasConfigOptions).toBe(false);
       });
@@ -388,7 +406,8 @@ bootstrapApplication(AppComponent, {
           mainTs
         );
 
-        const result = await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
+        const result =
+          await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
 
         expect(result.configured).toBe(true);
         expect(result.hasEnvironmentCheck).toBe(true);
@@ -427,7 +446,8 @@ const config = environment.production;
           appConfig
         );
 
-        const result = await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
+        const result =
+          await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
 
         expect(result.configured).toBe(true);
       });
@@ -447,7 +467,8 @@ StoreDevtoolsModule.instrument({
           appModule
         );
 
-        const result = await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
+        const result =
+          await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
 
         expect(result.configured).toBe(true);
         expect(result.hasEnvironmentCheck).toBe(true);
@@ -468,7 +489,8 @@ StoreDevtoolsModule.instrument({
       });
 
       it('should handle empty directory', async () => {
-        const result = await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
+        const result =
+          await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
 
         expect(result.configured).toBe(false);
       });
@@ -479,7 +501,8 @@ StoreDevtoolsModule.instrument({
 
         FileUtils.writeFile(PathOperations.join(appDir, 'app.config.ts'), '');
 
-        const result = await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
+        const result =
+          await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
 
         expect(result.configured).toBe(false);
       });
@@ -489,7 +512,8 @@ StoreDevtoolsModule.instrument({
         const appDir = PathOperations.join(tempDir, 'src', 'app');
         FileUtils.createDirectory(appDir);
 
-        const result = await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
+        const result =
+          await NgRxDevToolsConfigService.analyzeConfiguration(tempDir);
 
         expect(result).toBeDefined();
       });

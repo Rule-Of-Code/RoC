@@ -47,6 +47,9 @@ export function isOneOffScript(relativePath: string): boolean {
 }
 
 /** `scripts/, migrations/, …, management/commands/`: said in messages. */
-export const ONE_OFF_SCRIPT_LOCATIONS = [...ONE_OFF_SCRIPT_DIRS, MANAGEMENT_COMMANDS]
+export const ONE_OFF_SCRIPT_LOCATIONS = [
+  ...ONE_OFF_SCRIPT_DIRS,
+  MANAGEMENT_COMMANDS,
+]
   .map(dir => `${dir}/`)
   .join(', ');

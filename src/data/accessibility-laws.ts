@@ -27,18 +27,21 @@ export const ACCESSIBILITY_LAWS: EnhancedConstitutionalLaw[] = [
     rationale:
       'The cheapest way to catch a11y regressions is to fail the lint, not the audit; a project with templates or JSX but no a11y lint rules ships broken markup unchecked. This law verifies the a11y lint rules are configured.',
     satisfiedBy: {
-      angular: 'Add @angular-eslint/template to your ESLint config and enable the core a11y rules (click-events-have-key-events, label-has-associated-control, valid-aria, alt-text, role-has-required-aria).',
-      react: 'Enable eslint-plugin-jsx-a11y recommended on all .tsx (jsxA11y.flatConfigs.recommended, or plugin:jsx-a11y/recommended); eslint-config-next alone leaves click-events-have-key-events and label-has-associated-control off.',
-      ionic: 'Enable the same @angular-eslint template a11y rules; they are written for native HTML elements and do not know ion-* controls, which Form Control Labeling, Modal Dialog Accessibility and Disclosure Control ARIA State read instead.',
+      angular:
+        'Add @angular-eslint/template to your ESLint config and enable the core a11y rules (click-events-have-key-events, label-has-associated-control, valid-aria, alt-text, role-has-required-aria).',
+      react:
+        'Enable eslint-plugin-jsx-a11y recommended on all .tsx (jsxA11y.flatConfigs.recommended, or plugin:jsx-a11y/recommended); eslint-config-next alone leaves click-events-have-key-events and label-has-associated-control off.',
+      ionic:
+        'Enable the same @angular-eslint template a11y rules; they are written for native HTML elements and do not know ion-* controls, which Form Control Labeling, Modal Dialog Accessibility and Disclosure Control ARIA State read instead.',
     },
     detectionLimits: [
-      'For @angular-eslint it reads the ESLint config as raw text, so a flat config that pulls that plugin\'s recommended preset without naming each rule is flagged as missing all of them.',
-      'A rule set to \'off\' still counts as present because severity is never inspected — only the rule name string is searched (an eslint-config-next rule switched off later is still credited).',
-      'The Angular rules are asked for only where an .html file exists and @angular/core is declared; a non-Angular project\'s .html (a Vite index.html, public/*.html) is not asked for any a11y linter.',
+      "For @angular-eslint it reads the ESLint config as raw text, so a flat config that pulls that plugin's recommended preset without naming each rule is flagged as missing all of them.",
+      "A rule set to 'off' still counts as present because severity is never inspected — only the rule name string is searched (an eslint-config-next rule switched off later is still credited).",
+      "The Angular rules are asked for only where an .html file exists and @angular/core is declared; a non-Angular project's .html (a Vite index.html, public/*.html) is not asked for any a11y linter.",
       'The JSX rules (eslint-plugin-jsx-a11y alt-text, aria-props, click-events-have-key-events, label-has-associated-control, role-has-required-aria-props) are asked for where a non-test .tsx/.jsx file exists; a React app written only in .js files is not asked.',
       'The jsx-a11y recommended/strict preset is recognised as plugin:jsx-a11y/recommended|strict, or <binding>.flatConfigs|configs.recommended|strict where the binding is imported or required from eslint-plugin-jsx-a11y in that config file; a preset reached through a shared config package or a re-exported variable is not followed, and without a loadable typescript package the flat preset is not recognised (its rules are then reported missing).',
       'eslint-config-next is credited with registering jsx-a11y and enabling alt-text, aria-props and role-has-required-aria-props, as eslint-config-next 16.4.6 does (dist/index.js:176-191); it is recognised by the text eslint-config-next or next/core-web-vitals only, so a legacy extends: "next" is not recognised, and another version\'s rule list is not read.',
-      'The @angular-eslint template a11y rules it asks for check native HTML elements; on ion-* elements they are silent, so a passing lint config says nothing about an Ionic app\'s ion-input or ion-button.',
+      "The @angular-eslint template a11y rules it asks for check native HTML elements; on ion-* elements they are silent, so a passing lint config says nothing about an Ionic app's ion-input or ion-button.",
     ],
     emoji: '♿',
     description:
@@ -68,9 +71,12 @@ export const ACCESSIBILITY_LAWS: EnhancedConstitutionalLaw[] = [
     rationale:
       'A modal that does not announce itself as a dialog or trap focus is a keyboard-and-screen-reader trap. This law checks modal templates carry the dialog role, aria-modal and focus trapping, or are rendered by something that provides them.',
     satisfiedBy: {
-      angular: 'Give modal templates role="dialog" (or alertdialog), aria-modal="true" and cdkTrapFocus; or name your shared accessible dialog component in thresholds.accessibility.accessibleDialogComponents, and a template that uses it is compliant.',
-      react: 'Use a native <dialog> opened with showModal(), or a shared Modal that sets role="dialog", aria-modal="true", traps focus and returns it on close; name that component in thresholds.accessibility.accessibleDialogComponents and its focus-trap component in thresholds.accessibility.focusTrapTokens.',
-      ionic: 'Use ion-modal / ModalController; it provides role="dialog", aria-modal and a focus trap. Do not set focusTrap to false without a replacement.',
+      angular:
+        'Give modal templates role="dialog" (or alertdialog), aria-modal="true" and cdkTrapFocus; or name your shared accessible dialog component in thresholds.accessibility.accessibleDialogComponents, and a template that uses it is compliant.',
+      react:
+        'Use a native <dialog> opened with showModal(), or a shared Modal that sets role="dialog", aria-modal="true", traps focus and returns it on close; name that component in thresholds.accessibility.accessibleDialogComponents and its focus-trap component in thresholds.accessibility.focusTrapTokens.',
+      ionic:
+        'Use ion-modal / ModalController; it provides role="dialog", aria-modal and a focus trap. Do not set focusTrap to false without a replacement.',
     },
     detectionLimits: [
       'A template is only recognised as a modal if its filename ends -modal.component.html or an element has both the Tailwind classes fixed and inset-0 in a static class attribute, so a CDK-overlay or differently-classed modal is silently skipped.',
@@ -82,7 +88,7 @@ export const ACCESSIBILITY_LAWS: EnhancedConstitutionalLaw[] = [
       UNREADABLE_JSX,
       'ion-modal is recognised in two forms: an inline <ion-modal> (its own template, or the component whose selector is nested in it), and ModalController.create({ component: X }) with X a class identifier, in a file that imports ModalController from an @ionic/* package. A component passed through a variable, a lazy import(), or a wrapper service is not followed, and classes are matched by name, so two components with one class name are not told apart.',
       'That ion-modal sets role="dialog", aria-modal="true" and traps focus unless focusTrap is false is read from @ionic/core 8.8.17 (modal.js:140, 1188), not checked against the installed version; a focusTrap bound to an expression is taken as on.',
-      'A template whose markup cannot be read (an opening tag or a quoted value that never ends) is reported as not read; ModalController detection needs the project\'s typescript package, and without it a modal that misses the attributes says so in its message.',
+      "A template whose markup cannot be read (an opening tag or a quoted value that never ends) is reported as not read; ModalController detection needs the project's typescript package, and without it a modal that misses the attributes says so in its message.",
     ],
     emoji: '🪟',
     description:
@@ -113,9 +119,12 @@ export const ACCESSIBILITY_LAWS: EnhancedConstitutionalLaw[] = [
     rationale:
       'An input with no programmatic label is invisible to a screen reader — the user hears an unlabelled edit box. This law flags form controls lacking a label association.',
     satisfiedBy: {
-      angular: 'Give every input/select/textarea an id tied to a <label for>, a wrapping <label>, or an aria-label / aria-labelledby; hidden and button-type inputs are exempt.',
-      react: 'Every control has a <label htmlFor> matching its id, a wrapping <label>, or an aria-label / aria-labelledby.',
-      ionic: 'Give every ion-input / ion-select / ion-textarea / ion-range a label (property or slot="label") or aria-label; give ion-checkbox / ion-toggle / ion-radio visible slot text.',
+      angular:
+        'Give every input/select/textarea an id tied to a <label for>, a wrapping <label>, or an aria-label / aria-labelledby; hidden and button-type inputs are exempt.',
+      react:
+        'Every control has a <label htmlFor> matching its id, a wrapping <label>, or an aria-label / aria-labelledby.',
+      ionic:
+        'Give every ion-input / ion-select / ion-textarea / ion-range a label (property or slot="label") or aria-label; give ion-checkbox / ion-toggle / ion-radio visible slot text.',
     },
     detectionLimits: [
       'In templates it treats any id attribute on a native control as "labelled" and never checks a matching <label for> exists, so an input with an orphan id passes — the label may live in a parent component\'s template, which it does not follow.',
@@ -159,9 +168,11 @@ export const ACCESSIBILITY_LAWS: EnhancedConstitutionalLaw[] = [
     rationale:
       'A <button> with no type defaults to submit, which silently posts the nearest form — a classic accidental-submit bug. This law requires an explicit button type.',
     satisfiedBy: {
-      angular: 'Set type="button" (or submit/reset), or bind [type] / [attr.type], on every button element.',
+      angular:
+        'Set type="button" (or submit/reset), or bind [type] / [attr.type], on every button element.',
       react: 'Give every <button> an explicit type.',
-      ionic: 'ion-button defaults to type="button"; set type="submit" on the one that submits.',
+      ionic:
+        'ion-button defaults to type="button"; set type="submit" on the one that submits.',
     },
     detectionLimits: [
       'It checks a type attribute is present but never validates the value.',
@@ -201,9 +212,12 @@ export const ACCESSIBILITY_LAWS: EnhancedConstitutionalLaw[] = [
     rationale:
       'A toggle that expands a panel but never sets aria-expanded leaves a screen-reader user unsure whether it is open. This advisory, low-precision law flags likely disclosure buttons missing that state.',
     satisfiedBy: {
-      angular: 'Add aria-expanded (static or [attr.aria-expanded]) to buttons whose click handler toggles, expands or collapses a region.',
-      react: 'Bind aria-expanded to the open state on toggle buttons (aria-expanded={open}).',
-      ionic: 'Use ion-accordion, which manages aria-expanded itself, or a native <button [attr.aria-expanded]> for the toggle: ion-button copies aria-expanded to its inner button only once, at load, and ion-item not at all.',
+      angular:
+        'Add aria-expanded (static or [attr.aria-expanded]) to buttons whose click handler toggles, expands or collapses a region.',
+      react:
+        'Bind aria-expanded to the open state on toggle buttons (aria-expanded={open}).',
+      ionic:
+        'Use ion-accordion, which manages aria-expanded itself, or a native <button [attr.aria-expanded]> for the toggle: ion-button copies aria-expanded to its inner button only once, at load, and ion-item not at all.',
     },
     detectionLimits: [
       'Disclosure intent is guessed from substrings in the click-handler text (toggle, expand, menu, open), so a handler like openSettings() is a false positive while a non-keyword handler is missed.',

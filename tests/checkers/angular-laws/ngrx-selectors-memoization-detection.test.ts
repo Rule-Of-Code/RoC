@@ -50,7 +50,9 @@ function run(root: string) {
 describe('NgRx Selectors Memoization detection (v7.2.2)', () => {
   it('flags a raw, non-memoized selector (any param name / parens)', async () => {
     const dir = fixture({
-      'package.json': JSON.stringify({ dependencies: { '@ngrx/store': '18.0.0' } }),
+      'package.json': JSON.stringify({
+        dependencies: { '@ngrx/store': '18.0.0' },
+      }),
       'angular.json': '{}',
       'src/app/store/app.selectors.ts': `import { createFeatureSelector } from '@ngrx/store';
 export const f = createFeatureSelector('f');
@@ -63,7 +65,9 @@ export const getItems = (s) => s.f.items.filter((x: any) => x.active);
 
   it('passes selectors built with createSelector', async () => {
     const dir = fixture({
-      'package.json': JSON.stringify({ dependencies: { '@ngrx/store': '18.0.0' } }),
+      'package.json': JSON.stringify({
+        dependencies: { '@ngrx/store': '18.0.0' },
+      }),
       'angular.json': '{}',
       'src/app/store/clean.selectors.ts': `import { createFeatureSelector, createSelector } from '@ngrx/store';
 export const f = createFeatureSelector('f');

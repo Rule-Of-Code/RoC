@@ -8,7 +8,10 @@
  * line; none is a project-level boolean.
  */
 
-import type { EnhancedConstitutionalLaw, LawRequirement } from '../types/enhanced-law.types';
+import type {
+  EnhancedConstitutionalLaw,
+  LawRequirement,
+} from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
 import { REQUIRES_DATA_CLIENT } from '../utils/request-path/data-clients';
 import { ONE_OFF_SCRIPT_GLOBS } from '../utils/request-path/one-off-scripts';
@@ -27,12 +30,25 @@ export const REQUIRES_ASYNC_CODE: LawRequirement = {
       files: ['**/*.py'],
       pattern: String.raw`^\s*async\s+def\s`,
       // Test files set up fixtures; they are not a request path (as the law always read it).
-      exclude: ['**/tests/**', '**/test/**', '**/test_*.py', '**/*_test.py', '**/conftest.py', ...ONE_OFF_SCRIPT_GLOBS],
+      exclude: [
+        '**/tests/**',
+        '**/test/**',
+        '**/test_*.py',
+        '**/*_test.py',
+        '**/conftest.py',
+        ...ONE_OFF_SCRIPT_GLOBS,
+      ],
     },
     {
       files: ['**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}'],
       pattern: String.raw`\basync\s+(?:function\b|\(|[A-Za-z_$][\w$]*\s*(?:=>|\())`,
-      exclude: ['**/*.{spec,test,e2e}.*', '**/__tests__/**', '**/__mocks__/**', '**/*.d.{ts,mts,cts}', ...ONE_OFF_SCRIPT_GLOBS],
+      exclude: [
+        '**/*.{spec,test,e2e}.*',
+        '**/__tests__/**',
+        '**/__mocks__/**',
+        '**/*.d.{ts,mts,cts}',
+        ...ONE_OFF_SCRIPT_GLOBS,
+      ],
     },
   ],
 };
@@ -41,7 +57,7 @@ export const REQUEST_PATH_LAWS: EnhancedConstitutionalLaw[] = [
   {
     id: generateLawId(
       'Independent Awaits Run Concurrently',
-      'Awaited calls that do not use each other\'s results are started together, not one after another',
+      "Awaited calls that do not use each other's results are started together, not one after another",
       'performance'
     ),
     legacyId: 886,
@@ -60,11 +76,12 @@ export const REQUEST_PATH_LAWS: EnhancedConstitutionalLaw[] = [
       'Scope: the request path, not code that runs once. Files under scripts/, migrations/, alembic/, bin/, seeds/, seeders/ or management/commands/ (Django), at any depth, are excluded by the gate itself, so the gate and the law leave out the same files and a project whose async code is only there does not get the law. Recognised by location only: a one-off script kept elsewhere is judged, and request code a handler imports from one of those directories is left out with it.',
       'Reads async functions in Python (a structural reader of logical lines and indented blocks, not a Python AST) and TS/JS (the TypeScript compiler), test files excluded. A run is two or more consecutive statements in one block that each await a call, plus several awaits inside one expression; it is reported once, at its first line, with every call.',
       'Independence is simple def-use: a later call depends on an earlier one when its statement reads a name (or attribute chain) the earlier statement bound, or both receive the same freshly created list/dict/Map. A dependency through shared object state (a method that mutates self, a module global) is not seen and can be reported as independent.',
-      'A run is cut, never reported across, by any statement that is not a simple await (a guard, a branch, a plain computation), by a call whose name is a write or an ordered side effect (save, update, delete, commit, send, sleep, lock and the registry\'s write calls), by gather / Promise.all, by an await of a value that is not a call, by a statement that is only await call(…) (its result discarded: awaited for its effect, such as a guard that raises), and by a marked line (roc: sequential-ok with a reason). A function decorated as a transaction, passed to runTransaction / $transaction / transaction(), or taking a tx / transaction parameter is not judged.',
+      "A run is cut, never reported across, by any statement that is not a simple await (a guard, a branch, a plain computation), by a call whose name is a write or an ordered side effect (save, update, delete, commit, send, sleep, lock and the registry's write calls), by gather / Promise.all, by an await of a value that is not a call, by a statement that is only await call(…) (its result discarded: awaited for its effect, such as a guard that raises), and by a marked line (roc: sequential-ok with a reason). A function decorated as a transaction, passed to runTransaction / $transaction / transaction(), or taking a tx / transaction parameter is not judged.",
       'Selected only where some .py file has an async def, or some TS/JS file an async function, arrow or method (a text match, comments included, test files excluded, outside installed and built trees, at most eight levels deep; inside a git work tree only the files git publishes are read (tracked ones from the index when the working copy differs, untracked ones that are not ignored), so a git-ignored file — generated output, a local note — never selects it; outside git the disk is walked); a project without one does not get the law. The law parses exactly the files that selected it; ignores.global leaves the same files out of both. When the parse of those files finds no async function (the match was in a comment or a string), it reports judged nothing, not compliant.',
     ],
     emoji: '⏱️',
-    description: 'Awaited calls that do not use each other\'s results are started together, not one after another',
+    description:
+      "Awaited calls that do not use each other's results are started together, not one after another",
     priority: 'MEDIUM',
     category: 'PERFORMANCE',
     requires: REQUIRES_ASYNC_CODE,
@@ -89,7 +106,7 @@ export const REQUEST_PATH_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '6.25',
     title: 'Document Read Once Per Request',
     rationale:
-      'Helpers on one request path that each read the same document — the caller\'s profile, a settings record — make the request pay for it two or three times, in round trips and in decoding. Nothing in the code looks wrong in either helper alone; the cost only shows when the path is read as a whole.',
+      "Helpers on one request path that each read the same document — the caller's profile, a settings record — make the request pay for it two or three times, in round trips and in decoding. Nothing in the code looks wrong in either helper alone; the cost only shows when the path is read as a whole.",
     satisfiedBy: {
       python:
         'Read the document once where the request starts and pass the value down to the helpers that need it, or keep it in a request-scoped cache (a FastAPI dependency is cached once per request).',
@@ -98,7 +115,7 @@ export const REQUEST_PATH_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Scope: the request path, not code that runs once. Files under scripts/, migrations/, alembic/, bin/, seeds/, seeders/ or management/commands/ (Django), at any depth, are not read; how many were left out is said in the message and in metrics.oneOffScriptsSkipped. Recognised by location only: a one-off script kept elsewhere is judged, and request code imported from one of those directories is left out with it.',
-      'Heuristic, precision before recall. Two reads are the same document only when the collection is a string literal (or a module-level string constant, also one imported from a project module) and the id expression is identical once a helper\'s parameters are replaced by the arguments the caller passed (str() / String() wrappers kept). A collection or id computed at run time is not compared.',
+      "Heuristic, precision before recall. Two reads are the same document only when the collection is a string literal (or a module-level string constant, also one imported from a project module) and the id expression is identical once a helper's parameters are replaced by the arguments the caller passed (str() / String() wrappers kept). A collection or id computed at run time is not compared.",
       'Document reads recognised: Firestore collection(…).document(…)/doc(…).get() and a path argument, modular getDoc(doc(db, …)) (also through a local ref), Mongo find_one / findOne by _id and findById, Prisma findUnique by id, SQLAlchemy session.get(Model, id), Django objects.get / aget by pk or id. A one-key repository read — an awaited read-shaped call with one argument, users.get(uid) — counts by its receiver, method and argument.',
       'Scope: a function, its own reads, and the functions it calls one step deep — same module, self./this. methods of its class, or one relative / project import. A read two calls deep, or through an object whose class is not known statically, is not seen.',
       'Not a duplicate: a re-read after a write between the two reads (a write call, or a helper whose body writes), since it sees the new state. Branches are not distinguished: two reads on mutually exclusive paths of one handler can be reported.',
@@ -116,7 +133,8 @@ export const REQUEST_PATH_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'DocumentReadOncePerRequestLaw.check',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article VI.6.25: The same document is read more than once in one request',
-    remediation: 'Read the document once and pass the value down, or cache it per request',
+    remediation:
+      'Read the document once and pass the value down, or cache it per request',
   },
 
   {

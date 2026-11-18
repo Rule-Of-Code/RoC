@@ -23,9 +23,7 @@ const packageVersion = (): string =>
  */
 describe('the version stamped into hooks is the package version', () => {
   it('reads the stamp from package.json rather than a literal', () => {
-    const stamp = (
-      GitHooksInstaller as unknown as { VERSION: string }
-    ).VERSION;
+    const stamp = (GitHooksInstaller as unknown as { VERSION: string }).VERSION;
 
     expect(stamp).toBe(packageVersion());
   });

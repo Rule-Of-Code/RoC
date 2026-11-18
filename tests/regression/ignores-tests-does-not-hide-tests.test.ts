@@ -28,7 +28,8 @@ describe('ignores.tests applies only when tests are excluded', () => {
   const patterns = (
     config: RuleOfCodeConfig,
     includeTests: boolean
-  ): string[] => FileFilterUtils.getIgnorePatterns(config, undefined, includeTests);
+  ): string[] =>
+    FileFilterUtils.getIgnorePatterns(config, undefined, includeTests);
 
   /** The defaults are what bit, so they are what the test uses. */
   const DEFAULT_TEST_IGNORES = DEFAULT_CONFIG.ignores?.tests ?? [];

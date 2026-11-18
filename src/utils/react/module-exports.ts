@@ -13,7 +13,8 @@
 import type * as TS from 'typescript';
 import type { TsxSource, TypeScriptModule } from './tsx-source';
 
-export type FunctionLike = TS.ArrowFunction | TS.FunctionDeclaration | TS.FunctionExpression;
+export type FunctionLike =
+  TS.ArrowFunction | TS.FunctionDeclaration | TS.FunctionExpression;
 
 export interface ModuleExport {
   /** The exported name; `default` for a default export. */
@@ -27,11 +28,24 @@ export interface ModuleExport {
   reexportFrom: string | null;
 }
 
-const hasModifier = (ts: TypeScriptModule, node: TS.Node, kind: TS.SyntaxKind): boolean =>
-  (ts.canHaveModifiers(node) ? (ts.getModifiers(node) ?? []) : []).some(m => m.kind === kind);
+const hasModifier = (
+  ts: TypeScriptModule,
+  node: TS.Node,
+  kind: TS.SyntaxKind
+): boolean =>
+  (ts.canHaveModifiers(node) ? (ts.getModifiers(node) ?? []) : []).some(
+    m => m.kind === kind
+  );
 
-export function isFunctionLike(ts: TypeScriptModule, node: TS.Node): node is FunctionLike {
-  return ts.isArrowFunction(node) || ts.isFunctionDeclaration(node) || ts.isFunctionExpression(node);
+export function isFunctionLike(
+  ts: TypeScriptModule,
+  node: TS.Node
+): node is FunctionLike {
+  return (
+    ts.isArrowFunction(node) ||
+    ts.isFunctionDeclaration(node) ||
+    ts.isFunctionExpression(node)
+  );
 }
 
 export function isAsync(ts: TypeScriptModule, fn: FunctionLike): boolean {
@@ -39,7 +53,10 @@ export function isAsync(ts: TypeScriptModule, fn: FunctionLike): boolean {
 }
 
 /** Strip `as`, `satisfies`, parentheses and `!` around an expression. */
-export function unwrap(ts: TypeScriptModule, expression: TS.Expression): TS.Expression {
+export function unwrap(
+  ts: TypeScriptModule,
+  expression: TS.Expression
+): TS.Expression {
   let current = expression;
   while (
     ts.isParenthesizedExpression(current) ||
@@ -53,9 +70,14 @@ export function unwrap(ts: TypeScriptModule, expression: TS.Expression): TS.Expr
 }
 
 /** Top-level bindings by name: function declarations and `const x = …` initialisers. */
-function localBindings(source: TsxSource): Map<string, { fn: FunctionLike | null; call: TS.CallExpression | null }> {
+function localBindings(
+  source: TsxSource
+): Map<string, { fn: FunctionLike | null; call: TS.CallExpression | null }> {
   const ts = source.ts;
-  const bindings = new Map<string, { fn: FunctionLike | null; call: TS.CallExpression | null }>();
+  const bindings = new Map<
+    string,
+    { fn: FunctionLike | null; call: TS.CallExpression | null }
+  >();
   for (const statement of source.sourceFile.statements) {
     if (ts.isFunctionDeclaration(statement) && statement.name) {
       bindings.set(statement.name.text, { fn: statement, call: null });
@@ -63,7 +85,10 @@ function localBindings(source: TsxSource): Map<string, { fn: FunctionLike | null
     if (!ts.isVariableStatement(statement)) continue;
     for (const declaration of statement.declarationList.declarations) {
       if (!ts.isIdentifier(declaration.name)) continue;
-      bindings.set(declaration.name.text, classify(ts, declaration.initializer));
+      bindings.set(
+        declaration.name.text,
+        classify(ts, declaration.initializer)
+      );
     }
   }
   return bindings;
@@ -82,12 +107,21 @@ function classify(
 
 export function moduleExports(source: TsxSource): ModuleExport[] {
   const locals = localBindings(source);
-  return source.sourceFile.statements.flatMap(statement => statementExports(source, statement, locals));
+  return source.sourceFile.statements.flatMap(statement =>
+    statementExports(source, statement, locals)
+  );
 }
 
-type Locals = Map<string, { fn: FunctionLike | null; call: TS.CallExpression | null }>;
+type Locals = Map<
+  string,
+  { fn: FunctionLike | null; call: TS.CallExpression | null }
+>;
 
-function statementExports(source: TsxSource, statement: TS.Statement, locals: Locals): ModuleExport[] {
+function statementExports(
+  source: TsxSource,
+  statement: TS.Statement,
+  locals: Locals
+): ModuleExport[] {
   const ts = source.ts;
   const line = source.lineOf(statement);
   const exported = hasModifier(ts, statement, ts.SyntaxKind.ExportKeyword);
@@ -109,7 +143,14 @@ function statementExports(source: TsxSource, statement: TS.Statement, locals: Lo
   if (ts.isExportAssignment(statement) && !statement.isExportEquals) {
     const value = unwrap(ts, statement.expression);
     const local = ts.isIdentifier(value) ? locals.get(value.text) : undefined;
-    return [{ name: 'default', line, ...(local ?? classify(ts, value)), reexportFrom: null }];
+    return [
+      {
+        name: 'default',
+        line,
+        ...(local ?? classify(ts, value)),
+        reexportFrom: null,
+      },
+    ];
   }
   if (ts.isExportDeclaration(statement) && !statement.isTypeOnly) {
     return exportDeclaration(source, statement, locals);
@@ -130,7 +171,9 @@ function exportDeclaration(
   const line = source.lineOf(statement);
   const clause = statement.exportClause;
   if (!clause || !ts.isNamedExports(clause)) {
-    return [{ name: '*', line, fn: null, call: null, reexportFrom: from ?? '*' }];
+    return [
+      { name: '*', line, fn: null, call: null, reexportFrom: from ?? '*' },
+    ];
   }
   return clause.elements
     .filter(element => !element.isTypeOnly)
@@ -148,7 +191,11 @@ function exportDeclaration(
  * gives action, schema, authClient — and each dotted callee as written. The
  * arguments are not part of the chain.
  */
-export function calleeChain(ts: TypeScriptModule, call: TS.CallExpression, source: TsxSource): string[] {
+export function calleeChain(
+  ts: TypeScriptModule,
+  call: TS.CallExpression,
+  source: TsxSource
+): string[] {
   const names: string[] = [];
   let current: TS.Expression = call.expression;
   for (let depth = 0; depth < 50; depth++) {
@@ -171,7 +218,11 @@ export function calleeChain(ts: TypeScriptModule, call: TS.CallExpression, sourc
  * `ownBodyOnly` is set (a guard inside a callback that may never run is not a
  * guard of the outer function).
  */
-export function callsIn(ts: TypeScriptModule, node: TS.Node, ownBodyOnly: boolean): TS.CallExpression[] {
+export function callsIn(
+  ts: TypeScriptModule,
+  node: TS.Node,
+  ownBodyOnly: boolean
+): TS.CallExpression[] {
   const calls: TS.CallExpression[] = [];
   const visit = (current: TS.Node): void => {
     if (ts.isCallExpression(current)) calls.push(current);

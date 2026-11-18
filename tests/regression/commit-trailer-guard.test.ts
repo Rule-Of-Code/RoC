@@ -53,7 +53,9 @@ describe('regression: no Co-Authored-By trailer in commit messages', () => {
     // this whole project exists to prevent.
     const head = git('rev-parse HEAD');
     if (head === null) {
-      console.warn('⚠️  no git repository here — the trailer guard cannot run.');
+      console.warn(
+        '⚠️  no git repository here — the trailer guard cannot run.'
+      );
     }
     expect(head === null || head.trim().length > 0).toBe(true);
   });

@@ -19,7 +19,8 @@ import { LawBase } from '../law-base';
 /** Navigation extras in code. */
 const EXTRA_IN_CODE = /\bskipLocationChange\s*:\s*true\b/g;
 /** The routerLink input in a template: bare, `="true"`, or `[skipLocationChange]="expr"`. */
-const INPUT_IN_TEMPLATE = /\[?\bskipLocationChange\b\]?(?:\s*=\s*(["'])(.*?)\1)?/g;
+const INPUT_IN_TEMPLATE =
+  /\[?\bskipLocationChange\b\]?(?:\s*=\s*(["'])(.*?)\1)?/g;
 
 export class IonicNoSkipLocationChangeLaw extends LawBase {
   static readonly LAW_NAME = 'Ionic No Skip Location Change';
@@ -33,18 +34,26 @@ export class IonicNoSkipLocationChangeLaw extends LawBase {
       const content = FileUtils.readFileContentSync(file) ?? '';
       if (!content.includes('skipLocationChange')) continue;
       const where = PathOperations.getRelative(context.projectRoot, file);
-      violations.push(...this.checkFile(where, content, file.endsWith('.html')));
+      violations.push(
+        ...this.checkFile(where, content, file.endsWith('.html'))
+      );
     }
     return this.createResult(
       violations,
       this.LAW_NAME,
       'FRAMEWORK',
-      ['Use { replaceUrl: true } to drop the current view from the Ionic stack'],
+      [
+        'Use { replaceUrl: true } to drop the current view from the Ionic stack',
+      ],
       context
     );
   }
 
-  static checkFile(where: string, content: string, isTemplate: boolean): string[] {
+  static checkFile(
+    where: string,
+    content: string,
+    isTemplate: boolean
+  ): string[] {
     const code = TsClasses.mask(content);
     const pattern = isTemplate ? INPUT_IN_TEMPLATE : EXTRA_IN_CODE;
     const violations: string[] = [];

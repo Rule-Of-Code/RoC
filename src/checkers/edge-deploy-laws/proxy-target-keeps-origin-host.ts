@@ -10,11 +10,22 @@
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { gateFiles } from '../../utils/edge-deploy/gate-files';
-import { type UpstreamCall, UpstreamUrlScan } from '../../utils/edge-deploy/proxy-target';
+import {
+  type UpstreamCall,
+  UpstreamUrlScan,
+} from '../../utils/edge-deploy/proxy-target';
 import { pythonUpstreamCalls } from '../../utils/edge-deploy/proxy-target-python';
 import { REQUIRES_PROXY_UPSTREAM_URL } from '../../utils/edge-deploy/requirements';
-import { loadTypeScript, parserUnavailable, TsxSource } from '../../utils/react/tsx-source';
-import { EdgeDeployLawBase, newTally, type Tally } from './edge-deploy-law-base';
+import {
+  loadTypeScript,
+  parserUnavailable,
+  TsxSource,
+} from '../../utils/react/tsx-source';
+import {
+  EdgeDeployLawBase,
+  newTally,
+  type Tally,
+} from './edge-deploy-law-base';
 
 const NOT_SEEN =
   'a URL built in a helper and returned to the caller, a guard that rejects // paths before the call, frameworks that proxy by configuration (http-proxy target, rewrites)';
@@ -25,15 +36,25 @@ export class ProxyTargetKeepsOriginHostLaw extends EdgeDeployLawBase {
   static check(context: LawCheckContext): LawResult {
     const tally = newTally();
     const files = gateFiles(context, REQUIRES_PROXY_UPSTREAM_URL);
-    const ts = files.some(file => !file.rel.endsWith('.py')) ? loadTypeScript(context.projectRoot) : null;
+    const ts = files.some(file => !file.rel.endsWith('.py'))
+      ? loadTypeScript(context.projectRoot)
+      : null;
     let calls = 0;
     for (const file of files) {
       if (file.rel.endsWith('.py')) {
         calls += this.judge(file.rel, pythonUpstreamCalls(file.content), tally);
       } else if (ts) {
-        calls += this.judge(file.rel, new UpstreamUrlScan(TsxSource.parse(ts, file.file, file.content)).calls(), tally);
+        calls += this.judge(
+          file.rel,
+          new UpstreamUrlScan(
+            TsxSource.parse(ts, file.file, file.content)
+          ).calls(),
+          tally
+        );
       } else {
-        tally.notes.push(`${file.rel}: ${parserUnavailable(context.projectRoot)} — not judged`);
+        tally.notes.push(
+          `${file.rel}: ${parserUnavailable(context.projectRoot)} — not judged`
+        );
       }
     }
     return this.conclude(context, {
@@ -53,7 +74,11 @@ export class ProxyTargetKeepsOriginHostLaw extends EdgeDeployLawBase {
   }
 
   /** Count the calls and report those that forward a request-derived reference. */
-  private static judge(rel: string, calls: UpstreamCall[], tally: Tally): number {
+  private static judge(
+    rel: string,
+    calls: UpstreamCall[],
+    tally: Tally
+  ): number {
     for (const call of calls) {
       tally.judged++;
       if (call.verdict !== 'escapes') continue;

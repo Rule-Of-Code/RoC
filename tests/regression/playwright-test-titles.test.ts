@@ -31,7 +31,9 @@ describe('edge-case detection reads every way a test is named', () => {
    */
   it('says nothing about a suite with no edge-case signal at all', () => {
     expect(
-      readsEdgeCases("test('renders the header', async () => { await page.goto('/'); });")
+      readsEdgeCases(
+        "test('renders the header', async () => { await page.goto('/'); });"
+      )
     ).toBe(false);
   });
 

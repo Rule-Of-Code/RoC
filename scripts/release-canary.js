@@ -32,7 +32,9 @@ const zlib = require('zlib');
 const REPO = path.resolve(__dirname, '..');
 const tarballArgIndex = process.argv.indexOf('--tarball');
 const TARBALL =
-  tarballArgIndex !== -1 ? path.resolve(process.argv[tarballArgIndex + 1]) : null;
+  tarballArgIndex !== -1
+    ? path.resolve(process.argv[tarballArgIndex + 1])
+    : null;
 
 // Floors: today's applicable-law counts with safety margin. A drop below the
 // floor means the selection collapsed — a blocker, not a warning.
@@ -43,7 +45,10 @@ const STACKS = {
       'pyproject.toml': "[project]\nname='canary'\nversion='0.1.0'\n",
       'src/ok.py': 'x = 1\n',
     },
-    redFile: { 'src/big.py': Array.from({ length: 40 }, (_, i) => `v${i} = ${i}`).join('\n') + '\n' },
+    redFile: {
+      'src/big.py':
+        Array.from({ length: 40 }, (_, i) => `v${i} = ${i}`).join('\n') + '\n',
+    },
     redLaw: 'Module Size',
     redThresholds: { python: { maxFileLines: 10 } },
     projectType: 'python',
@@ -51,7 +56,10 @@ const STACKS = {
   angular: {
     floor: 80, // frontend + typescript + universal
     files: {
-      'package.json': JSON.stringify({ name: 'canary', dependencies: { '@angular/core': '^17.0.0' } }),
+      'package.json': JSON.stringify({
+        name: 'canary',
+        dependencies: { '@angular/core': '^17.0.0' },
+      }),
       'angular.json': '{}',
       // Nx-monorepo shape — the default includes whitelist scans libs/*/src/**
       'libs/bot/src/ok.ts': 'export const ok = 1;\n',
@@ -62,14 +70,22 @@ const STACKS = {
     redThresholds: undefined,
     projectType: 'angular',
     // `requires`-gated laws must not be selected where the toolkit is absent.
-    mustNotRun: ['Ionic No Skip Location Change', 'Capacitor Logging Never Production'],
+    mustNotRun: [
+      'Ionic No Skip Location Change',
+      'Capacitor Logging Never Production',
+    ],
   },
   ngrx: {
     floor: 90, // the angular arm + the NgRx laws its `requires` admit
     files: {
       'package.json': JSON.stringify({
         name: 'canary-ngrx',
-        dependencies: { '@angular/core': '^20.0.0', '@ngrx/store': '^20.0.0', '@ngrx/effects': '^20.0.0', rxjs: '^7.8.0' },
+        dependencies: {
+          '@angular/core': '^20.0.0',
+          '@ngrx/store': '^20.0.0',
+          '@ngrx/effects': '^20.0.0',
+          rxjs: '^7.8.0',
+        },
       }),
       'angular.json': '{}',
       'libs/bot/src/+state/bot.actions.ts':
@@ -92,10 +108,17 @@ const STACKS = {
     files: {
       'package.json': JSON.stringify({
         name: 'canary-ionic',
-        dependencies: { '@angular/core': '^20.0.0', '@ionic/angular': '^8.8.0', '@capacitor/core': '^8.5.0' },
+        dependencies: {
+          '@angular/core': '^20.0.0',
+          '@ionic/angular': '^8.8.0',
+          '@capacitor/core': '^8.5.0',
+        },
       }),
       'angular.json': '{}',
-      'capacitor.config.json': JSON.stringify({ appId: 'com.example.canary', webDir: 'www' }),
+      'capacitor.config.json': JSON.stringify({
+        appId: 'com.example.canary',
+        webDir: 'www',
+      }),
       'libs/bot/src/app.component.ts':
         "export const template = '<ion-app><ion-router-outlet></ion-router-outlet></ion-app>';\n",
     },
@@ -107,20 +130,30 @@ const STACKS = {
     redThresholds: undefined,
     projectType: 'ionic',
     // Proof through the CLI that `requires` admits them where the toolkit is declared.
-    mustRun: ['Ionic No Skip Location Change', 'Capacitor Logging Never Production'],
+    mustRun: [
+      'Ionic No Skip Location Change',
+      'Capacitor Logging Never Production',
+    ],
   },
   react: {
     floor: 100, // frontend + typescript + universal + the React/Next laws `requires` admits
     files: {
       'package.json': JSON.stringify({
         name: 'canary-react',
-        dependencies: { next: '^16.0.0', react: '^19.0.0', 'react-dom': '^19.0.0' },
+        dependencies: {
+          next: '^16.0.0',
+          react: '^19.0.0',
+          'react-dom': '^19.0.0',
+        },
         devDependencies: { typescript: '^5.0.0' },
       }),
-      'tsconfig.json': JSON.stringify({ compilerOptions: { jsx: 'preserve', strict: true } }),
+      'tsconfig.json': JSON.stringify({
+        compilerOptions: { jsx: 'preserve', strict: true },
+      }),
       'src/app/layout.tsx':
-        "export const metadata = { title: 'canary' };\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\n  return <html lang=\"en\"><body>{children}</body></html>;\n}\n",
-      'src/app/page.tsx': 'export default function Page() {\n  return <main>ok</main>;\n}\n',
+        'export const metadata = { title: \'canary\' };\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\n  return <html lang="en"><body>{children}</body></html>;\n}\n',
+      'src/app/page.tsx':
+        'export default function Page() {\n  return <main>ok</main>;\n}\n',
     },
     redFile: {
       'src/app/raw.tsx':
@@ -167,17 +200,28 @@ function writeFiles(dir, files) {
 
 /** Resolve the CLI to test: built dist, or the packed tarball installed like a consumer. */
 function resolveCli() {
-  if (!TARBALL) return { cmd: process.execPath, baseArgs: [path.join(REPO, 'dist', 'cli.js')] };
+  if (!TARBALL)
+    return {
+      cmd: process.execPath,
+      baseArgs: [path.join(REPO, 'dist', 'cli.js')],
+    };
   const consumer = makeTempDir('roc-canary-consumer-');
-  fs.writeFileSync(path.join(consumer, 'package.json'), JSON.stringify({ name: 'canary-consumer', private: true }));
+  fs.writeFileSync(
+    path.join(consumer, 'package.json'),
+    JSON.stringify({ name: 'canary-consumer', private: true })
+  );
   // `typescript` beside it, as a React/TS consumer has it: the React laws parse
   // .tsx with the PROJECT's compiler and say they could not read without one.
-  const tsVersion = JSON.parse(fs.readFileSync(path.join(REPO, 'package.json'), 'utf8'))
-    .devDependencies.typescript;
-  execSync(`npm install --no-audit --no-fund "${TARBALL}" "typescript@${tsVersion}"`, {
-    cwd: consumer,
-    stdio: 'pipe',
-  });
+  const tsVersion = JSON.parse(
+    fs.readFileSync(path.join(REPO, 'package.json'), 'utf8')
+  ).devDependencies.typescript;
+  execSync(
+    `npm install --no-audit --no-fund "${TARBALL}" "typescript@${tsVersion}"`,
+    {
+      cwd: consumer,
+      stdio: 'pipe',
+    }
+  );
   // Resolve the installed CLI from the package's OWN name, never a hard-coded one.
   // RoC ships under more than one name (unscoped `ruleofcode`, scoped
   // `@ruleofcode/core`), and the literal path here reported the shipped CLI as
@@ -186,7 +230,13 @@ function resolveCli() {
   const pkgName = JSON.parse(
     fs.readFileSync(path.join(REPO, 'package.json'), 'utf8')
   ).name;
-  const bin = path.join(consumer, 'node_modules', ...pkgName.split('/'), 'dist', 'cli.js');
+  const bin = path.join(
+    consumer,
+    'node_modules',
+    ...pkgName.split('/'),
+    'dist',
+    'cli.js'
+  );
   if (!fs.existsSync(bin)) {
     throw new Error(
       `Packed CLI not found at ${bin} — the tarball did not install '${pkgName}' where its own package.json says it lives.`
@@ -199,12 +249,21 @@ function runAudit(cli, cwd, extraArgs = []) {
   try {
     const out = execFileSync(
       cli.cmd,
-      [...cli.baseArgs, 'audit', '--config', 'ruleofcode.config.json', ...extraArgs],
+      [
+        ...cli.baseArgs,
+        'audit',
+        '--config',
+        'ruleofcode.config.json',
+        ...extraArgs,
+      ],
       { cwd, encoding: 'utf8', stdio: 'pipe' }
     );
     return { code: 0, out };
   } catch (err) {
-    return { code: err.status ?? 1, out: `${err.stdout ?? ''}${err.stderr ?? ''}` };
+    return {
+      code: err.status ?? 1,
+      out: `${err.stdout ?? ''}${err.stderr ?? ''}`,
+    };
   }
 }
 
@@ -216,7 +275,9 @@ function lawsProcessed(out) {
 /** Canonical names of every law the audit executed, from the exported JSON report. */
 function ranLawTitles(dir) {
   try {
-    const report = JSON.parse(fs.readFileSync(path.join(dir, 'ruleofcode-report.json'), 'utf8'));
+    const report = JSON.parse(
+      fs.readFileSync(path.join(dir, 'ruleofcode-report.json'), 'utf8')
+    );
     return report.results.map(r => r.lawTitle ?? r.lawName).filter(Boolean);
   } catch {
     return [];
@@ -256,7 +317,10 @@ function writeConfig(dir, stackKey, stack, extra = {}) {
     laws: { paretoMode: false, ...extra.laws },
     ...(extra.thresholds ? { thresholds: extra.thresholds } : {}),
   };
-  fs.writeFileSync(path.join(dir, 'ruleofcode.config.json'), JSON.stringify(config, null, 2));
+  fs.writeFileSync(
+    path.join(dir, 'ruleofcode.config.json'),
+    JSON.stringify(config, null, 2)
+  );
 }
 
 function main() {
@@ -289,7 +353,8 @@ function main() {
     }
 
     const waivers = {};
-    for (const name of failed) waivers[name] = 'canary fixture: not satisfiable synthetically';
+    for (const name of failed)
+      waivers[name] = 'canary fixture: not satisfiable synthetically';
 
     // GREEN: waived config on the clean tree must pass.
     writeConfig(dir, stackKey, stack, { laws: { notApplicable: waivers } });
@@ -336,21 +401,33 @@ function main() {
     if (!prov.ok) {
       prov.changed
         .slice(0, 10)
-        .forEach(c => rows.push(`           | ≠ same name, different bytes than a clean build: ${c}`));
+        .forEach(c =>
+          rows.push(
+            `           | ≠ same name, different bytes than a clean build: ${c}`
+          )
+        );
       prov.ghosts
         .slice(0, 10)
-        .forEach(g => rows.push(`           | 👻 shipped but not in a clean build: ${g}`));
+        .forEach(g =>
+          rows.push(`           | 👻 shipped but not in a clean build: ${g}`)
+        );
       prov.missing
         .slice(0, 10)
-        .forEach(m => rows.push(`           | ❓ in a clean build but not shipped: ${m}`));
+        .forEach(m =>
+          rows.push(`           | ❓ in a clean build but not shipped: ${m}`)
+        );
     }
   }
 
-  console.log(`\nRelease canary — ${TARBALL ? `tarball ${path.basename(TARBALL)}` : 'built dist/'}`);
+  console.log(
+    `\nRelease canary — ${TARBALL ? `tarball ${path.basename(TARBALL)}` : 'built dist/'}`
+  );
   console.log('─'.repeat(100));
   rows.forEach(r => console.log(r));
   console.log('─'.repeat(100));
-  console.log(ok ? '✅ CANARY GREEN — release may proceed' : '❌ CANARY RED — DO NOT TAG');
+  console.log(
+    ok ? '✅ CANARY GREEN — release may proceed' : '❌ CANARY RED — DO NOT TAG'
+  );
   process.exit(ok ? 0 : 1);
 }
 
@@ -371,16 +448,19 @@ function main() {
 function listTarEntries(tgz) {
   const buf = zlib.gunzipSync(fs.readFileSync(tgz));
   const entries = new Map();
-  const field = (start, length) => buf.toString('utf8', start, start + length).replace(/\0.*$/s, '');
+  const field = (start, length) =>
+    buf.toString('utf8', start, start + length).replace(/\0.*$/s, '');
   let paxPath = null;
 
-  for (let offset = 0; offset + 512 <= buf.length; ) {
+  for (let offset = 0; offset + 512 <= buf.length;) {
     const shortName = field(offset, 100);
     if (!shortName) break; // two zero blocks terminate the archive
 
     const size = parseInt(field(offset + 124, 12).trim() || '0', 8);
     const type = buf.toString('utf8', offset + 156, offset + 157);
-    const prefix = field(offset + 257, 6).startsWith('ustar') ? field(offset + 345, 155) : '';
+    const prefix = field(offset + 257, 6).startsWith('ustar')
+      ? field(offset + 345, 155)
+      : '';
     const body = buf.subarray(offset + 512, offset + 512 + size);
 
     if (type === 'x') {
@@ -390,7 +470,10 @@ function listTarEntries(tgz) {
       const name = paxPath ?? (prefix ? `${prefix}/${shortName}` : shortName);
       paxPath = null;
       if (type === '0' || type === '') {
-        entries.set(name, crypto.createHash('sha256').update(body).digest('hex'));
+        entries.set(
+          name,
+          crypto.createHash('sha256').update(body).digest('hex')
+        );
       }
     }
 

@@ -17,13 +17,19 @@ import { FeArchLawBase } from './fe-arch-law-base';
 export class PollViaSanctionedSourceLaw extends FeArchLawBase {
   private static readonly LAW_NAME = 'Poll Via Sanctioned Source';
   private static readonly RAW_SOURCE = /\b(interval|timer)\s*\(/g;
-  private static readonly MAPPING = /\b(switchMap|mergeMap|exhaustMap|concatMap)\s*\(/;
-  private static readonly HTTP = /\.(get|post|put|delete|patch|request)\s*\(|\bhttp\./;
+  private static readonly MAPPING =
+    /\b(switchMap|mergeMap|exhaustMap|concatMap)\s*\(/;
+  private static readonly HTTP =
+    /\.(get|post|put|delete|patch|request)\s*\(|\bhttp\./;
   // Files that legitimately define the sanctioned tick source.
-  private static readonly HELPER_FILE = /(page-visibility|poll-signal|poll-ticks)/i;
+  private static readonly HELPER_FILE =
+    /(page-visibility|poll-signal|poll-ticks)/i;
 
   /** Raw interval()/timer() calls in one file that directly drive an HTTP poll. */
-  private static collectRawPollViolations(content: string, rel: string): string[] {
+  private static collectRawPollViolations(
+    content: string,
+    rel: string
+  ): string[] {
     const violations: string[] = [];
     this.RAW_SOURCE.lastIndex = 0;
     let m: RegExpExecArray | null;
@@ -65,7 +71,10 @@ export class PollViaSanctionedSourceLaw extends FeArchLawBase {
       const norm = file.replace(/\\/g, '/');
       if (!this.isFeatureOrDataAccess(norm)) continue;
       const base = PathOperations.getFilename(norm);
-      if (this.HELPER_FILE.test(base) || extraAllow.some(a => norm.includes(a))) {
+      if (
+        this.HELPER_FILE.test(base) ||
+        extraAllow.some(a => norm.includes(a))
+      ) {
         continue;
       }
       const content = FileUtils.readFile(file);

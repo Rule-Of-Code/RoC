@@ -44,7 +44,9 @@ export class PerformanceBudgetsAnalyzerService {
 
     // Toolchain-neutral budgets that something runs (size-limit, Lighthouse
     // assertions): the only kind a Next or Vite project has.
-    budgetFiles.push(...PerformanceBudgetGates.enforcedBudgets(projectRoot, config));
+    budgetFiles.push(
+      ...PerformanceBudgetGates.enforcedBudgets(projectRoot, config)
+    );
 
     return {
       hasBudgets: budgetFiles.length > 0,
@@ -59,8 +61,7 @@ export class PerformanceBudgetsAnalyzerService {
           angularJsonPath
         );
       const projects = angularJson.projects as
-        | Record<string, unknown>
-        | undefined;
+        Record<string, unknown> | undefined;
       if (!projects) return false;
 
       for (const projectConfig of Object.values(projects)) {

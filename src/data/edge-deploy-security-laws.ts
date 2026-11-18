@@ -119,7 +119,7 @@ export const EDGE_DEPLOY_SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
       typescript:
         'firebase.json: "rewrites": [{ "source": "/api/**", "run": { "serviceId": "api", "region": "europe-west3" } }] with the same region as gcloud run deploy api --region europe-west3 (or the deploy-cloudrun action\'s region input); change both in the same release.',
       python:
-        'Deploy with gcloud run deploy <service> --region <R> (or a $REGION defined in the same file) and keep the hosting rewrite\'s region equal to R.',
+        "Deploy with gcloud run deploy <service> --region <R> (or a $REGION defined in the same file) and keep the hosting rewrite's region equal to R.",
     },
     detectionLimits: [
       'Rewrites read (a registry): Firebase Hosting rewrites[].run in firebase.json (serviceId and region; an omitted region is us-central1, as Firebase documents), and a Cloud Run deterministic URL (https://[TAG---]SERVICE-PROJECT_NUMBER.REGION.run.app, the form Cloud Run documents) in vercel.json, netlify.toml or _redirects — Vercel and Netlify rewrites have no region field, the region is in the URL. Firebase rewrites to a function, Cloud Run URLs of the SERVICE_IDENTIFIER.run.app form and other hosts are not read.',
@@ -196,10 +196,10 @@ export const EDGE_DEPLOY_SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '23.12',
     title: 'Job Definition Dumps Masked',
     rationale:
-      'gcloud scheduler jobs describe and list --format=json return a job\'s HTTP headers verbatim. When a job sends a shared secret in a header — an origin-verification header — any script that saves that output as evidence, a backup or a log writes the secret in plain text. A region move that lists every job to a JSON file is enough; nobody looks for a secret in a listing.',
+      "gcloud scheduler jobs describe and list --format=json return a job's HTTP headers verbatim. When a job sends a shared secret in a header — an origin-verification header — any script that saves that output as evidence, a backup or a log writes the secret in plain text. A region move that lists every job to a JSON file is enough; nobody looks for a secret in a listing.",
     satisfiedBy: {
       typescript:
-        "gcloud scheduler jobs list --format=json | jq 'del(.[].httpTarget.headers)' > jobs.json, or --format=\"value(name,schedule,state)\", or pipe through a redact helper before the file.",
+        'gcloud scheduler jobs list --format=json | jq \'del(.[].httpTarget.headers)\' > jobs.json, or --format="value(name,schedule,state)", or pipe through a redact helper before the file.',
       python:
         'Delete job["httpTarget"]["headers"] (or call a redact/mask helper) before json.dump; or ask gcloud only for the fields you need with a --format projection.',
     },

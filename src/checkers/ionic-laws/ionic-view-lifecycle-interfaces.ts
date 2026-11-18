@@ -25,7 +25,10 @@ const HOOK_INTERFACES: Readonly<Record<string, string>> = {
 };
 
 /** Every name the outlet binds — exact names are never near misses. */
-const BOUND_NAMES = new Set([...Object.keys(HOOK_INTERFACES), 'ionViewWillUnload']);
+const BOUND_NAMES = new Set([
+  ...Object.keys(HOOK_INTERFACES),
+  'ionViewWillUnload',
+]);
 
 /** Two edits is a typo; three is a different word (Will/Did, Enter/Leave are 3+ apart). */
 const NEAR_MISS_DISTANCE = 2;
@@ -80,7 +83,8 @@ export class IonicViewLifecycleInterfacesLaw extends LawBase {
   /** The hook a name was probably meant to be, or null. */
   static nearMiss(name: string): string | null {
     // `#ionViewWillEnter` is invisible to `typeof instance[name]`.
-    if (name.startsWith('#') && BOUND_NAMES.has(name.slice(1))) return name.slice(1);
+    if (name.startsWith('#') && BOUND_NAMES.has(name.slice(1)))
+      return name.slice(1);
     if (BOUND_NAMES.has(name) || !/^ion/i.test(name)) return null;
     for (const hook of BOUND_NAMES) {
       if (name.toLowerCase() === hook.toLowerCase()) return hook;
@@ -95,8 +99,13 @@ export class IonicViewLifecycleInterfacesLaw extends LawBase {
     for (let i = 1; i <= a.length; i++) {
       const current = [i];
       for (let j = 1; j <= b.length; j++) {
-        const substitution = (previous[j - 1] ?? 0) + (a[i - 1] === b[j - 1] ? 0 : 1);
-        current[j] = Math.min((previous[j] ?? 0) + 1, (current[j - 1] ?? 0) + 1, substitution);
+        const substitution =
+          (previous[j - 1] ?? 0) + (a[i - 1] === b[j - 1] ? 0 : 1);
+        current[j] = Math.min(
+          (previous[j] ?? 0) + 1,
+          (current[j - 1] ?? 0) + 1,
+          substitution
+        );
       }
       previous = current;
     }

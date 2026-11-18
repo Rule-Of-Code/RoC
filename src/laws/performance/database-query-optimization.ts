@@ -156,15 +156,26 @@ export class DatabaseQueryOptimizationLaw {
    * read the project. Its findings are the verdict; with no recognised read
    * at all it has judged nothing, and the law says it is not applicable.
    */
-  private static pythonOnlyResult(context: LawCheckContext, nPlusOne: NPlusOneAnalysis): LawResult {
+  private static pythonOnlyResult(
+    context: LawCheckContext,
+    nPlusOne: NPlusOneAnalysis
+  ): LawResult {
     if (nPlusOne.recognisedReads === 0 && nPlusOne.sites.length === 0) {
-      return this.createNotApplicableResult(context, notAnalysableMessage(nPlusOne.files.python));
+      return this.createNotApplicableResult(
+        context,
+        notAnalysableMessage(nPlusOne.files.python)
+      );
     }
     const violations = [...nPlusOne.unread, ...nPlusOne.sites];
     const passed = violations.length === 0;
     return {
       passed,
-      score: passed ? 100 : 100 - DatabaseQueryOptimizationCheckConstants.getScoreDeduction('N_PLUS_ONE'),
+      score: passed
+        ? 100
+        : 100 -
+          DatabaseQueryOptimizationCheckConstants.getScoreDeduction(
+            'N_PLUS_ONE'
+          ),
       message: passed
         ? `No read runs once per loop item: ${nPlusOne.recognisedReads} awaited read(s) in ${nPlusOne.files.python} Python file(s) checked (the index, batching, pagination and caching checks are JS/TS-only)`
         : `Query optimization issues found: ${nPlusOne.sites.length} read(s) run once per loop item (N+1)`,

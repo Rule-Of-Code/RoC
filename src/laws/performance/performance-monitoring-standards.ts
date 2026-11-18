@@ -93,7 +93,8 @@ export class PerformanceMonitoringStandardsLaw {
         satisfied: analysis.performanceBudget.configured,
         applies: hasBrowser,
         violation: 'Performance budget not configured',
-        suggestion: 'Define performance budgets in Lighthouse config or similar',
+        suggestion:
+          'Define performance budgets in Lighthouse config or similar',
         penalty: 20,
       },
       {

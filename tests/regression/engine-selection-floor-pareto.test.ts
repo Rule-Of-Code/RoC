@@ -28,7 +28,10 @@ import { AuditResultProcessor } from '../../src/core/auditing/result-processor';
 import { ALL_ENHANCED_CONSTITUTIONAL_LAWS } from '../../src/data/enhanced-laws';
 import type { EnhancedConstitutionalLaw } from '../../src/types/enhanced-law.types';
 import { ModularLawsRegistry } from '../../src/registry/modular-laws-registry';
-import { lawAppliesToProjectType, runsWithoutAllowlist } from '../../src/utils/law-identity';
+import {
+  lawAppliesToProjectType,
+  runsWithoutAllowlist,
+} from '../../src/utils/law-identity';
 import { lawRequirementsMet } from '../../src/utils/law-requirements';
 import { livenessFloorOf } from '../../src/utils/liveness-floor';
 import { stubLawChecks, writeFiles } from './waivers-named-verdict.harness';
@@ -38,26 +41,40 @@ const BARE_PASS = /✅ CONSTITUTIONAL COMPLIANCE: PASSED/;
 const ART = /:\+{9}\./;
 
 const TS_PROJECT: Record<string, string> = {
-  'package.json': JSON.stringify({ name: 'neutral-fixture', version: '1.0.0', devDependencies: { typescript: '5.6.3' } }),
+  'package.json': JSON.stringify({
+    name: 'neutral-fixture',
+    version: '1.0.0',
+    devDependencies: { typescript: '5.6.3' },
+  }),
   'tsconfig.json': JSON.stringify({ compilerOptions: { strict: true } }),
-  'src/index.ts': 'export const add = (a: number, b: number): number => a + b;\n',
+  'src/index.ts':
+    'export const add = (a: number, b: number): number => a + b;\n',
 };
 const PY_PROJECT: Record<string, string> = {
-  'pyproject.toml': '[project]\nname = "neutral-service"\nversion = "1.0.0"\ndependencies = []\n',
+  'pyproject.toml':
+    '[project]\nname = "neutral-service"\nversion = "1.0.0"\ndependencies = []\n',
   'app/__init__.py': '',
   'app/main.py': 'def add(a: int, b: int) -> int:\n    return a + b\n',
-  'tests/test_main.py': 'from app.main import add\n\n\ndef test_add() -> None:\n    assert add(1, 2) == 3\n',
+  'tests/test_main.py':
+    'from app.main import add\n\n\ndef test_add() -> None:\n    assert add(1, 2) == 3\n',
 };
 
 const made: string[] = [];
 afterAll(() => {
-  for (const dir of made.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
+  for (const dir of made.splice(0))
+    fs.rmSync(dir, { recursive: true, force: true });
 });
 
-function fixture(files: Record<string, string>, config: Record<string, unknown>): string {
+function fixture(
+  files: Record<string, string>,
+  config: Record<string, unknown>
+): string {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-engine-'));
   made.push(root);
-  writeFiles(root, { ...files, 'ruleofcode.config.json': JSON.stringify(config, null, 2) });
+  writeFiles(root, {
+    ...files,
+    'ruleofcode.config.json': JSON.stringify(config, null, 2),
+  });
   return root;
 }
 
@@ -71,7 +88,11 @@ interface Run {
 }
 
 /** Audit through the public constructor — the only door `categories` has. */
-async function audit(root: string, categories?: string[], Auditor: typeof RuleOfCodeAuditor = RuleOfCodeAuditor): Promise<Run> {
+async function audit(
+  root: string,
+  categories?: string[],
+  Auditor: typeof RuleOfCodeAuditor = RuleOfCodeAuditor
+): Promise<Run> {
   const out: string[] = [];
   const line = (...a: unknown[]): void => {
     out.push(a.map(String).join(' '));
@@ -96,7 +117,9 @@ async function audit(root: string, categories?: string[], Auditor: typeof RuleOf
       // eslint-disable-next-line no-control-regex
       text: out.join('\n').replace(/\u001b\[[0-9;]*m/g, ''),
       exitCode: result.passed ? 0 : 1,
-      ran: [...result.results.values()].map(r => (r as { lawTitle?: string }).lawTitle ?? ''),
+      ran: [...result.results.values()].map(
+        r => (r as { lawTitle?: string }).lawTitle ?? ''
+      ),
     };
   } finally {
     for (const spy of spies) spy.mockRestore();
@@ -114,19 +137,38 @@ const CATEGORIES = [...new Set(ALL.map(l => l.category))].sort();
 /** A category with laws on a TypeScript project, and not the one the meta-gates are in. */
 const ONE = 'performance';
 /** A default-on, ungated, universal law of ONE: waivable on the TS fixture. */
-const WAIVED = ALL.find(l => l.category === ONE && !l.stack && !l.requires && l.defaultEnabled !== false && !l.alwaysEnabled);
+const WAIVED = ALL.find(
+  l =>
+    l.category === ONE &&
+    !l.stack &&
+    !l.requires &&
+    l.defaultEnabled !== false &&
+    !l.alwaysEnabled
+);
 /** The category holding the most universal core laws (the core changes with #383; chosen by property). */
-const CORE_CATEGORY = CATEGORIES.map(c => [c, ALL.filter(l => l.paretoCore && !l.stack && !l.requires && l.category === c).length] as const).sort(
-  (a, b) => b[1] - a[1]
-)[0]?.[0] as string;
+const CORE_CATEGORY = CATEGORIES.map(
+  c =>
+    [
+      c,
+      ALL.filter(
+        l => l.paretoCore && !l.stack && !l.requires && l.category === c
+      ).length,
+    ] as const
+).sort((a, b) => b[1] - a[1])[0]?.[0] as string;
 /** An opt-in law of ONE that a TS project selects once it declares the package. */
-const OPT_IN = ALL.find(l => l.category === ONE && l.defaultEnabled === false && l.stack === 'typescript');
+const OPT_IN = ALL.find(
+  l =>
+    l.category === ONE && l.defaultEnabled === false && l.stack === 'typescript'
+);
 
 describe('#370 narrowing by categories (public constructor)', () => {
   stubLawChecks();
 
   it('C1 — one category, fewer laws than M → partial, narrowedBy categories, PARTIAL SCAN, no COMPLIANCE, no art, exit 0', async () => {
-    const run = await audit(fixture(TS_PROJECT, { project: { type: 'typescript' } }), [ONE]);
+    const run = await audit(
+      fixture(TS_PROJECT, { project: { type: 'typescript' } }),
+      [ONE]
+    );
     const { scope } = run.json;
     expect(scope.selectedLaws).toBeLessThan(scope.applicableLaws);
     expect(scope.narrowedBy).toBe('categories');
@@ -143,7 +185,10 @@ describe('#370 narrowing by categories (public constructor)', () => {
   }, 60000);
 
   it('C2 — categories that cover every applicable law → not partial, compliance', async () => {
-    const run = await audit(fixture(TS_PROJECT, { project: { type: 'typescript' } }), CATEGORIES);
+    const run = await audit(
+      fixture(TS_PROJECT, { project: { type: 'typescript' } }),
+      CATEGORIES
+    );
     expect(run.json.scope.selectedLaws).toBe(run.json.scope.applicableLaws);
     expect(run.json.scope.partial).toBe(false);
     expect(run.json.verdict).toBe('compliance');
@@ -153,23 +198,38 @@ describe('#370 narrowing by categories (public constructor)', () => {
   it('C3 — one category + a waiver on a law of that category → the law does not run, it is in waivedLaws, partial', async () => {
     if (!WAIVED) throw new Error(`no waivable law in category ${ONE}`);
     const reason = 'the concern does not exist in this project';
-    const root = fixture(TS_PROJECT, { project: { type: 'typescript' }, laws: { notApplicable: { [WAIVED.name]: reason } } });
+    const root = fixture(TS_PROJECT, {
+      project: { type: 'typescript' },
+      laws: { notApplicable: { [WAIVED.name]: reason } },
+    });
     const run = await audit(root, [ONE]);
     expect(run.ran).not.toContain(WAIVED.name);
-    expect(run.json.scope.waivedLaws).toEqual([{ law: WAIVED.name, lawId: WAIVED.id, reason }]);
-    expect(run.json.scope.applicableBeforeWaivers).toBe(run.json.scope.applicableLaws + 1);
+    expect(run.json.scope.waivedLaws).toEqual([
+      { law: WAIVED.name, lawId: WAIVED.id, reason },
+    ]);
+    expect(run.json.scope.applicableBeforeWaivers).toBe(
+      run.json.scope.applicableLaws + 1
+    );
     expect(run.json.scope.partial).toBe(true);
     expect(run.json.verdict).toBe('partial');
   }, 60000);
 
   it('C4 — one category → Audit Liveness and Config Integrity Guard ran', async () => {
-    const run = await audit(fixture(TS_PROJECT, { project: { type: 'typescript' } }), [ONE]);
-    expect(ALL.filter(l => l.alwaysEnabled).every(l => l.category !== ONE)).toBe(true);
+    const run = await audit(
+      fixture(TS_PROJECT, { project: { type: 'typescript' } }),
+      [ONE]
+    );
+    expect(
+      ALL.filter(l => l.alwaysEnabled).every(l => l.category !== ONE)
+    ).toBe(true);
     expect(run.ran).toEqual(expect.arrayContaining(META_GATES));
   }, 60000);
 
   it('C5 — one category + minLawsChecked above the selection → refused, not partial, narrowedBy categories', async () => {
-    const root = fixture(TS_PROJECT, { project: { type: 'typescript' }, laws: { minLawsChecked: 9999 } });
+    const root = fixture(TS_PROJECT, {
+      project: { type: 'typescript' },
+      laws: { minLawsChecked: 9999 },
+    });
     const run = await audit(root, [ONE]);
     expect(run.json.verdict).toBe('refused');
     expect(run.result.refused?.reason).toBe('liveness-floor');
@@ -179,24 +239,45 @@ describe('#370 narrowing by categories (public constructor)', () => {
   }, 60000);
 
   it('C6 — one category holding an opt-in law with no severity → the opt-in law is not selected', async () => {
-    if (!OPT_IN?.requires?.anyDependency) throw new Error(`no opt-in TypeScript law gated on a package in ${ONE}`);
+    if (!OPT_IN?.requires?.anyDependency)
+      throw new Error(`no opt-in TypeScript law gated on a package in ${ONE}`);
     const pkg = OPT_IN.requires.anyDependency[0] as string;
     const files = {
       ...TS_PROJECT,
-      'package.json': JSON.stringify({ name: 'neutral-fixture', version: '1.0.0', dependencies: { [pkg]: '1.0.0' }, devDependencies: { typescript: '5.6.3' } }),
+      'package.json': JSON.stringify({
+        name: 'neutral-fixture',
+        version: '1.0.0',
+        dependencies: { [pkg]: '1.0.0' },
+        devDependencies: { typescript: '5.6.3' },
+      }),
     };
-    const run = await audit(fixture(files, { project: { type: 'typescript' } }), [ONE]);
+    const run = await audit(
+      fixture(files, { project: { type: 'typescript' } }),
+      [ONE]
+    );
     expect(run.ran.length).toBeGreaterThan(META_GATES.length);
     expect(run.ran).not.toContain(OPT_IN.name);
     // …and a severity turns it on, exactly as on the default path.
-    const on = await audit(fixture(files, { project: { type: 'typescript' }, laws: { severity: { [OPT_IN.name]: 'warning' } } }), [ONE]);
+    const on = await audit(
+      fixture(files, {
+        project: { type: 'typescript' },
+        laws: { severity: { [OPT_IN.name]: 'warning' } },
+      }),
+      [ONE]
+    );
     expect(on.ran).toContain(OPT_IN.name);
   }, 60000);
 
   it('C7 — categories + paretoMode → partial, narrowedBy paretoMode (precedence)', async () => {
     // The category is one the core has laws in on this project: a category
     // with no core law selects nothing and is refused (no-laws), not partial.
-    const run = await audit(fixture(TS_PROJECT, { project: { type: 'typescript' }, laws: { paretoMode: true } }), [CORE_CATEGORY]);
+    const run = await audit(
+      fixture(TS_PROJECT, {
+        project: { type: 'typescript' },
+        laws: { paretoMode: true },
+      }),
+      [CORE_CATEGORY]
+    );
     expect(run.result.refused).toBeUndefined();
     expect(run.ran.length).toBeGreaterThan(META_GATES.length);
     expect(run.json.scope.narrowedBy).toBe('paretoMode');
@@ -225,7 +306,10 @@ describe('#370 narrowing by categories (public constructor)', () => {
 function lawsApplicableTo(type: string | undefined, root: string): number {
   return ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(
     l =>
-      runsWithoutAllowlist({ name: l.title, id: l.id, defaultEnabled: l.defaultEnabled }, undefined) &&
+      runsWithoutAllowlist(
+        { name: l.title, id: l.id, defaultEnabled: l.defaultEnabled },
+        undefined
+      ) &&
       lawAppliesToProjectType(l.stack, type, root, l) &&
       lawRequirementsMet(l.requires, root)
   ).length;
@@ -236,7 +320,10 @@ describe('#371 the liveness floor is computed over the type the selection uses (
   const py = fixture(PY_PROJECT, {});
 
   it('F1 — config generic, detected python → the floor from the larger L (python), higher than 7.27.0', () => {
-    const floor = livenessFloorOf({ project: { type: 'generic' }, laws: {} }, py);
+    const floor = livenessFloorOf(
+      { project: { type: 'generic' }, laws: {} },
+      py
+    );
     const python = lawsApplicableTo('python', py);
     const generic = lawsApplicableTo('generic', py);
     expect(python).toBeGreaterThan(generic);
@@ -247,7 +334,10 @@ describe('#371 the liveness floor is computed over the type the selection uses (
   });
 
   it('F2 — config python, detected python → unchanged', () => {
-    const floor = livenessFloorOf({ project: { type: 'python' }, laws: {} }, py);
+    const floor = livenessFloorOf(
+      { project: { type: 'python' }, laws: {} },
+      py
+    );
     expect(floor.applicableLaws).toBe(lawsApplicableTo('python', py));
     expect(floor.floor).toBe(defaultFloor(lawsApplicableTo('python', py)));
   });
@@ -262,13 +352,25 @@ describe('#371 the liveness floor is computed over the type the selection uses (
     ['generic', 17],
     ['python', 40],
     [undefined, 3],
-  ])('F4 — config %s, laws.minLawsChecked %i → that value, unchanged', (type, min) => {
-    const floor = livenessFloorOf({ project: type ? { type } : {}, laws: { minLawsChecked: min } }, py);
-    expect(floor).toMatchObject({ floor: min, floorSource: 'laws.minLawsChecked' });
-  });
+  ])(
+    'F4 — config %s, laws.minLawsChecked %i → that value, unchanged',
+    (type, min) => {
+      const floor = livenessFloorOf(
+        { project: type ? { type } : {}, laws: { minLawsChecked: min } },
+        py
+      );
+      expect(floor).toMatchObject({
+        floor: min,
+        floorSource: 'laws.minLawsChecked',
+      });
+    }
+  );
 
   it.each([
-    ['laws.enabled', { enabled: { 'Domain Layer Framework Independence': true } }],
+    [
+      'laws.enabled',
+      { enabled: { 'Domain Layer Framework Independence': true } },
+    ],
     ['paretoMode', { paretoMode: true }],
   ])('F5 — narrowed by %s → 0 (narrowed), unchanged', (_name, laws) => {
     const floor = livenessFloorOf({ project: { type: 'generic' }, laws }, py);
@@ -277,8 +379,13 @@ describe('#371 the liveness floor is computed over the type the selection uses (
 
   it('F6 — config type whose L is larger than the detected one → that larger L, unchanged from 7.27.0', () => {
     // A configured non-generic type is also the type the selection uses.
-    const floor = livenessFloorOf({ project: { type: 'angular' }, laws: {} }, py);
-    expect(lawsApplicableTo('angular', py)).toBeGreaterThan(lawsApplicableTo('python', py));
+    const floor = livenessFloorOf(
+      { project: { type: 'angular' }, laws: {} },
+      py
+    );
+    expect(lawsApplicableTo('angular', py)).toBeGreaterThan(
+      lawsApplicableTo('python', py)
+    );
     expect(floor.applicableLaws).toBe(lawsApplicableTo('angular', py));
     expect(floor.floor).toBe(defaultFloor(lawsApplicableTo('angular', py)));
   });
@@ -287,12 +394,18 @@ describe('#371 the liveness floor is computed over the type the selection uses (
     stubLawChecks();
 
     it('F1 — the engine reports the L it used, and L = M₀ + the 2 meta-gates', async () => {
-      const run = await audit(fixture(PY_PROJECT, { project: { type: 'generic' } }));
+      const run = await audit(
+        fixture(PY_PROJECT, { project: { type: 'generic' } })
+      );
       expect(run.json.project.type).toBe('python');
       const { liveness, applicableBeforeWaivers } = run.json.scope;
-      expect(liveness.applicableLaws).toBe(applicableBeforeWaivers + META_GATES.length);
+      expect(liveness.applicableLaws).toBe(
+        applicableBeforeWaivers + META_GATES.length
+      );
       expect(liveness.floor).toBe(defaultFloor(liveness.applicableLaws));
-      expect(run.text).toContain(`floor ${liveness.floor} — default 25% of ${liveness.applicableLaws} stack-applicable laws`);
+      expect(run.text).toContain(
+        `floor ${liveness.floor} — default 25% of ${liveness.applicableLaws} stack-applicable laws`
+      );
     }, 60000);
   });
 });
@@ -308,9 +421,19 @@ describe('#371 the liveness floor is computed over the type the selection uses (
  */
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { STACKS: CANARY } = require('../../scripts/release-canary') as {
-  STACKS: Record<string, { files: Record<string, string>; projectType: string }>;
+  STACKS: Record<
+    string,
+    { files: Record<string, string>; projectType: string }
+  >;
 };
-const PROFILES = ['python', 'angular', 'ngrx', 'ionic', 'react', 'node'] as const;
+const PROFILES = [
+  'python',
+  'angular',
+  'ngrx',
+  'ionic',
+  'react',
+  'node',
+] as const;
 const BAND = { min: 0.15, max: 0.25 };
 
 interface ProfileShare {
@@ -320,14 +443,29 @@ interface ProfileShare {
 }
 
 /** The profile's fixture audited twice through the constructor: full, then Pareto. */
-async function profileShare(profile: string, Auditor: typeof RuleOfCodeAuditor = RuleOfCodeAuditor): Promise<ProfileShare> {
+async function profileShare(
+  profile: string,
+  Auditor: typeof RuleOfCodeAuditor = RuleOfCodeAuditor
+): Promise<ProfileShare> {
   const stack = CANARY[profile];
   if (!stack) throw new Error(`no canary profile ${profile}`);
   const project = { name: `canary-${profile}`, type: stack.projectType };
-  const full = await audit(fixture(stack.files, { project }), undefined, Auditor);
-  const pareto = await audit(fixture(stack.files, { project, laws: { paretoMode: true } }), undefined, Auditor);
+  const full = await audit(
+    fixture(stack.files, { project }),
+    undefined,
+    Auditor
+  );
+  const pareto = await audit(
+    fixture(stack.files, { project, laws: { paretoMode: true } }),
+    undefined,
+    Auditor
+  );
   expect(full.json.scope.partial).toBe(false);
-  return { applicable: full.json.scope.applicableLaws, core: pareto.json.scope.selectedLaws, ran: pareto.ran };
+  return {
+    applicable: full.json.scope.applicableLaws,
+    core: pareto.json.scope.selectedLaws,
+    ran: pareto.ran,
+  };
 }
 
 describe('#383 the Pareto core is ~20% of what each project profile selects', () => {
@@ -345,24 +483,34 @@ describe('#383 the Pareto core is ~20% of what each project profile selects', ()
 
   it('P1 — the python profile in Pareto mode runs Python laws', async () => {
     const { ran } = await profileShare('python');
-    const python = new Set(ALL.filter(l => l.stack === 'python').map(l => l.name));
+    const python = new Set(
+      ALL.filter(l => l.stack === 'python').map(l => l.name)
+    );
     expect(ran.filter(name => python.has(name)).length).toBeGreaterThan(0);
   }, 60000);
 
   it.each([
     ['typescript', TS_PROJECT],
     ['python', PY_PROJECT],
-  ])('P3 — %s project in Pareto mode → partial, narrowedBy paretoMode, never compliance', async (type, files) => {
-    const run = await audit(fixture(files, { project: { type }, laws: { paretoMode: true } }));
-    expect(run.json.scope.partial).toBe(true);
-    expect(run.json.scope.narrowedBy).toBe('paretoMode');
-    expect(run.json.verdict).toBe('partial');
-    expect(run.text).not.toMatch(BARE_PASS);
-    expect(run.ran).toEqual(expect.arrayContaining(META_GATES));
-  }, 60000);
+  ])(
+    'P3 — %s project in Pareto mode → partial, narrowedBy paretoMode, never compliance',
+    async (type, files) => {
+      const run = await audit(
+        fixture(files, { project: { type }, laws: { paretoMode: true } })
+      );
+      expect(run.json.scope.partial).toBe(true);
+      expect(run.json.scope.narrowedBy).toBe('paretoMode');
+      expect(run.json.verdict).toBe('partial');
+      expect(run.text).not.toMatch(BARE_PASS);
+      expect(run.ran).toEqual(expect.arrayContaining(META_GATES));
+    },
+    60000
+  );
 
   it('P4 — a full run does not read the core: its selection is every applicable law (golden: waivers-named-verdict-golden)', async () => {
-    const run = await audit(fixture(TS_PROJECT, { project: { type: 'typescript' } }));
+    const run = await audit(
+      fixture(TS_PROJECT, { project: { type: 'typescript' } })
+    );
     expect(run.json.scope.partial).toBe(false);
     expect(run.json.scope.selectedLaws).toBe(run.json.scope.applicableLaws);
     expect(run.json.verdict).toBe('compliance');
@@ -371,7 +519,8 @@ describe('#383 the Pareto core is ~20% of what each project profile selects', ()
   it('P5 — laws added to the registry pass through the rule, no list is edited; gated ones move no other project (ratchet)', async () => {
     // Before: what each profile selects with the registry as shipped.
     const before: Record<string, ProfileShare> = {};
-    for (const profile of PROFILES) before[profile] = await profileShare(profile);
+    for (const profile of PROFILES)
+      before[profile] = await profileShare(profile);
 
     let Auditor: typeof RuleOfCodeAuditor = RuleOfCodeAuditor;
     let Fresh: typeof ModularLawsRegistry = ModularLawsRegistry;
@@ -381,7 +530,11 @@ describe('#383 the Pareto core is ~20% of what each project profile selects', ()
         const base = actual.PYTHON_LAWS[0] as EnhancedConstitutionalLaw;
         const added = (
           title: string,
-          fields: Pick<EnhancedConstitutionalLaw, 'priority' | 'defaultSeverity'> & Partial<EnhancedConstitutionalLaw>
+          fields: Pick<
+            EnhancedConstitutionalLaw,
+            'priority' | 'defaultSeverity'
+          > &
+            Partial<EnhancedConstitutionalLaw>
         ): EnhancedConstitutionalLaw => ({
           ...base,
           id: `ratchet-${title.toLowerCase().replace(/\s+/g, '-')}`,
@@ -390,29 +543,66 @@ describe('#383 the Pareto core is ~20% of what each project profile selects', ()
           requires: undefined,
           ...fields,
         });
-        const many = (prefix: string, n: number, fields: Partial<EnhancedConstitutionalLaw>): EnhancedConstitutionalLaw[] =>
-          Array.from({ length: n }, (_, k) => added(`${prefix} ${k + 1}`, { priority: 'HIGH', defaultSeverity: 'error', ...fields }));
+        const many = (
+          prefix: string,
+          n: number,
+          fields: Partial<EnhancedConstitutionalLaw>
+        ): EnhancedConstitutionalLaw[] =>
+          Array.from({ length: n }, (_, k) =>
+            added(`${prefix} ${k + 1}`, {
+              priority: 'HIGH',
+              defaultSeverity: 'error',
+              ...fields,
+            })
+          );
         return {
           ...actual,
           PYTHON_LAWS: [
             ...actual.PYTHON_LAWS,
             // Ungated: the critical one is core, the minor one is not.
-            added('Ratchet Critical Python Law', { priority: 'CRITICAL', defaultSeverity: 'error' }),
-            added('Ratchet Minor Python Law', { priority: 'LOW', defaultSeverity: 'info' }),
+            added('Ratchet Critical Python Law', {
+              priority: 'CRITICAL',
+              defaultSeverity: 'error',
+            }),
+            added('Ratchet Minor Python Law', {
+              priority: 'LOW',
+              defaultSeverity: 'info',
+            }),
             // Gated, several at once: universal laws for a package no profile declares…
-            ...many('Ratchet Gated Universal Law', 8, { stack: undefined, requires: { anyDependency: ['ratchet-neutral-package'] } }),
+            ...many('Ratchet Gated Universal Law', 8, {
+              stack: undefined,
+              requires: { anyDependency: ['ratchet-neutral-package'] },
+            }),
             // …and frontend laws for a package the angular and ionic profiles declare.
-            ...many('Ratchet Gated Angular Law', 5, { stack: 'frontend', requires: { anyDependency: ['@angular/core'] } }),
+            ...many('Ratchet Gated Angular Law', 5, {
+              stack: 'frontend',
+              requires: { anyDependency: ['@angular/core'] },
+            }),
           ],
         };
       });
-      Fresh = require('../../src/registry/modular-laws-registry').ModularLawsRegistry;
-      Auditor = require('../../src/core/auditing/audit-engine').RuleOfCodeAuditor;
+      Fresh =
+        require('../../src/registry/modular-laws-registry').ModularLawsRegistry;
+      Auditor =
+        require('../../src/core/auditing/audit-engine').RuleOfCodeAuditor;
     });
     // The isolated registry is a second copy: stub its substantive checks too.
     const real = Fresh.getAll.bind(Fresh);
     const spy = jest.spyOn(Fresh, 'getAll').mockImplementation(() =>
-      real().map(law => (law.alwaysEnabled ? law : { ...law, check: (async () => ({ passed: true, score: 100, violations: [], suggestions: [], message: 'stub' })) as unknown as typeof law.check }))
+      real().map(law =>
+        law.alwaysEnabled
+          ? law
+          : {
+              ...law,
+              check: (async () => ({
+                passed: true,
+                score: 100,
+                violations: [],
+                suggestions: [],
+                message: 'stub',
+              })) as unknown as typeof law.check,
+            }
+      )
     );
     try {
       const law = (title: string) => Fresh.getAll().find(l => l.name === title);
@@ -432,7 +622,9 @@ describe('#383 the Pareto core is ~20% of what each project profile selects', ()
       expect(after.react?.core).toBe(before.react?.core);
       expect(after.python?.core).toBe((before.python?.core ?? 0) + 1);
       // Where the gate is met, the laws count on both sides of the share.
-      expect(after.angular?.applicable).toBe((before.angular?.applicable ?? 0) + 5);
+      expect(after.angular?.applicable).toBe(
+        (before.angular?.applicable ?? 0) + 5
+      );
     } finally {
       spy.mockRestore();
     }

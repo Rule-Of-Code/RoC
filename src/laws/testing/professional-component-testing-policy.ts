@@ -76,7 +76,9 @@ export class ProfessionalComponentTestingPolicyLaw {
         violations.push(
           `${react.missingTestFiles.length} React components missing a co-located .test.tsx / .spec.tsx (e.g. ${this.firstFew(context, react.missingTestFiles)})`
         );
-        suggestions.push('Add X.test.tsx next to X.tsx (or __tests__/X.test.tsx)');
+        suggestions.push(
+          'Add X.test.tsx next to X.tsx (or __tests__/X.test.tsx)'
+        );
         score -= Math.min(
           thresholds.maxMissingSpecDeduction,
           react.missingTestFiles.length * thresholds.missingSpecFileDeduction
@@ -95,7 +97,8 @@ export class ProfessionalComponentTestingPolicyLaw {
         );
       }
       const judgedNothing =
-        componentAnalysis.totalComponents === 0 && react.components.length === 0;
+        componentAnalysis.totalComponents === 0 &&
+        react.components.length === 0;
       if (judgedNothing) {
         violations.push(
           'found no component files (Angular components — *.component.ts or a file with @Component — under src/, apps/, libs/; .tsx/.jsx through the scan) — this law judged nothing'
@@ -205,7 +208,9 @@ export class ProfessionalComponentTestingPolicyLaw {
 
   /** Up to three files, relative, for a message. */
   private static firstFew(context: LawCheckContext, files: string[]): string {
-    const shown = files.slice(0, 3).map(file => PathOperations.getRelative(context.projectRoot, file));
+    const shown = files
+      .slice(0, 3)
+      .map(file => PathOperations.getRelative(context.projectRoot, file));
     return files.length > 3 ? `${shown.join(', ')}, …` : shown.join(', ');
   }
 

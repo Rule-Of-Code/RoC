@@ -57,7 +57,11 @@ export function paretoModeForCliMode(
  * Display audit mode header. The banner reflects the EFFECTIVE law selection,
  * never the mode string — otherwise it lies (QA-7).
  */
-export function displayModeHeader(mode: string, paretoActive?: boolean, allowlist = false): void {
+export function displayModeHeader(
+  mode: string,
+  paretoActive?: boolean,
+  allowlist = false
+): void {
   const isPareto = paretoActive ?? mode === 'fast';
 
   if (!isPareto && allowlist) {
@@ -85,7 +89,9 @@ export function displayModeHeader(mode: string, paretoActive?: boolean, allowlis
       )
     );
     console.log(
-      chalk.gray('   The executed count is reported below, after config selection.\n')
+      chalk.gray(
+        '   The executed count is reported below, after config selection.\n'
+      )
     );
     return;
   }
@@ -108,9 +114,15 @@ export function displayModeHeader(mode: string, paretoActive?: boolean, allowlis
     // does not execute is the artifact this tool exists to destroy: something that
     // LOOKS like a check. The executed count is printed by the engine, after the
     // selection, and it is the only number anyone should trust.
-    console.log(chalk.greenBright('🏛️  FULL MODE — the whole applicable law set will run.'));
     console.log(
-      chalk.gray('   The executed count is reported below, after config selection.\n')
+      chalk.greenBright(
+        '🏛️  FULL MODE — the whole applicable law set will run.'
+      )
+    );
+    console.log(
+      chalk.gray(
+        '   The executed count is reported below, after config selection.\n'
+      )
     );
   }
 }
@@ -232,7 +244,11 @@ async function runAuditAction(
       config.laws.paretoMode
     );
 
-    displayModeHeader(finalMode, config.laws.paretoMode, config.laws.enabled !== undefined);
+    displayModeHeader(
+      finalMode,
+      config.laws.paretoMode,
+      config.laws.enabled !== undefined
+    );
 
     // 🛡️ RoC SELF-EXCLUSION CHECK
     if (isRoCPath(root)) {

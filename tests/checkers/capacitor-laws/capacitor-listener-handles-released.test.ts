@@ -10,35 +10,51 @@ import { selected, withoutTypeScript } from './bridge-fixture';
 afterAll(removeProjects);
 
 const TITLE = 'Capacitor Listener Handles Released';
-const HEAD = "import { Component, DestroyRef, Injectable, inject } from '@angular/core';\nimport { App } from '@capacitor/app';\n";
-const component = (body: string, decorator = "@Component({ selector: 'app-x', template: '' })") =>
-  `${HEAD}${decorator}\nexport class XComponent {\n${body}\n}\n`;
+const HEAD =
+  "import { Component, DestroyRef, Injectable, inject } from '@angular/core';\nimport { App } from '@capacitor/app';\n";
+const component = (
+  body: string,
+  decorator = "@Component({ selector: 'app-x', template: '' })"
+) => `${HEAD}${decorator}\nexport class XComponent {\n${body}\n}\n`;
 const run = (files: Record<string, string>) =>
   CapacitorListenerHandlesReleasedLaw.check(ctx(capacitorProject(files)));
 
 describe('CapacitorListenerHandlesReleasedLaw (#259)', () => {
   it('red: a component awaits addListener and drops the handle', () => {
     const result = run({
-      'src/app/x.component.ts': component("  async ngOnInit() { await App.addListener('resume', () => this.load()); }"),
+      'src/app/x.component.ts': component(
+        "  async ngOnInit() { await App.addListener('resume', () => this.load()); }"
+      ),
     });
     expect(result.violations).toEqual([
-      expect.stringMatching(/src\/app\/x\.component\.ts:5: App\.addListener\('resume'\) in XComponent \(component\) drops its PluginListenerHandle/),
+      expect.stringMatching(
+        /src\/app\/x\.component\.ts:5: App\.addListener\('resume'\) in XComponent \(component\) drops its PluginListenerHandle/
+      ),
     ]);
   });
 
   it('red: a bare / void call in a directive drops it too', () => {
     const result = run({
-      'src/app/x.directive.ts': component("  constructor() { void App.addListener('pause', () => {}); }", "@Directive({ selector: '[x]' })"),
+      'src/app/x.directive.ts': component(
+        "  constructor() { void App.addListener('pause', () => {}); }",
+        "@Directive({ selector: '[x]' })"
+      ),
     });
-    expect(result.violations).toEqual([expect.stringContaining('(directive) drops its PluginListenerHandle')]);
+    expect(result.violations).toEqual([
+      expect.stringContaining('(directive) drops its PluginListenerHandle'),
+    ]);
   });
 
   it('red: a page keeps the handle but never removes it', () => {
     const result = run({
-      'src/app/home.page.ts': component("  private handle?: { remove(): Promise<void> };\n  async ionViewWillEnter() { this.handle = await App.addListener('appStateChange', () => {}); }"),
+      'src/app/home.page.ts': component(
+        "  private handle?: { remove(): Promise<void> };\n  async ionViewWillEnter() { this.handle = await App.addListener('appStateChange', () => {}); }"
+      ),
     });
     expect(result.violations).toEqual([
-      expect.stringMatching(/in XComponent \(page\) keeps its handle as 'handle' but never removes it in ngOnDestroy, DestroyRef\.onDestroy, ionViewWillLeave or ionViewDidLeave/),
+      expect.stringMatching(
+        /in XComponent \(page\) keeps its handle as 'handle' but never removes it in ngOnDestroy, DestroyRef\.onDestroy, ionViewWillLeave or ionViewDidLeave/
+      ),
     ]);
   });
 
@@ -48,7 +64,9 @@ describe('CapacitorListenerHandlesReleasedLaw (#259)', () => {
       "  async ngOnInit() { this.handle = await App.addListener('resume', () => {}); }",
       '  ngOnDestroy() { this.other?.remove(); }',
     ].join('\n');
-    expect(run({ 'src/app/x.component.ts': component(body) }).passed).toBe(false);
+    expect(run({ 'src/app/x.component.ts': component(body) }).passed).toBe(
+      false
+    );
   });
 
   it('green: the handle is removed in ngOnDestroy', () => {
@@ -57,7 +75,9 @@ describe('CapacitorListenerHandlesReleasedLaw (#259)', () => {
       "  async ngOnInit() { this.handle = await App.addListener('resume', () => {}); }",
       '  ngOnDestroy() { void this.handle?.remove(); }',
     ].join('\n');
-    expect(run({ 'src/app/x.component.ts': component(body) }).violations).toEqual([]);
+    expect(
+      run({ 'src/app/x.component.ts': component(body) }).violations
+    ).toEqual([]);
   });
 
   it('green: kept in a local and removed through DestroyRef.onDestroy', () => {
@@ -65,7 +85,9 @@ describe('CapacitorListenerHandlesReleasedLaw (#259)', () => {
       '  private readonly destroyRef = inject(DestroyRef);',
       "  async ngOnInit() {\n    const h = await App.addListener('resume', () => {});\n    this.destroyRef.onDestroy(() => void h.remove());\n  }",
     ].join('\n');
-    expect(run({ 'src/app/x.component.ts': component(body) }).violations).toEqual([]);
+    expect(
+      run({ 'src/app/x.component.ts': component(body) }).violations
+    ).toEqual([]);
   });
 
   it('green: removeAllListeners() in ionViewDidLeave', () => {
@@ -74,7 +96,9 @@ describe('CapacitorListenerHandlesReleasedLaw (#259)', () => {
       '  h: any;',
       '  ionViewDidLeave() { void App.removeAllListeners(); }',
     ].join('\n');
-    expect(run({ 'src/app/home.page.ts': component(body) }).violations).toEqual([]);
+    expect(run({ 'src/app/home.page.ts': component(body) }).violations).toEqual(
+      []
+    );
   });
 
   it('green: a root service, a token factory and a module function live as long as the app', () => {
@@ -89,7 +113,11 @@ describe('CapacitorListenerHandlesReleasedLaw (#259)', () => {
     const result = run({
       'src/app/local.service.ts': `${HEAD}@Injectable()\nexport class LocalService {\n  constructor() { void App.addListener('resume', () => {}); }\n}\n`,
     });
-    expect(result.violations).toEqual([expect.stringContaining('(service not provided in root) drops its PluginListenerHandle')]);
+    expect(result.violations).toEqual([
+      expect.stringContaining(
+        '(service not provided in root) drops its PluginListenerHandle'
+      ),
+    ]);
   });
 
   it('red: a registerPlugin() property counts as a plugin; an unrelated addListener does not', () => {
@@ -99,21 +127,30 @@ describe('CapacitorListenerHandlesReleasedLaw (#259)', () => {
       '  emitter: any;',
     ].join('\n');
     const result = run({
-      'src/app/x.component.ts': component(body).replace(HEAD, `${HEAD}import { registerPlugin } from '@capacitor/core';\n`),
+      'src/app/x.component.ts': component(body).replace(
+        HEAD,
+        `${HEAD}import { registerPlugin } from '@capacitor/core';\n`
+      ),
     });
-    expect(result.violations).toEqual([expect.stringContaining("this.plugin.addListener('enter')")]);
+    expect(result.violations).toEqual([
+      expect.stringContaining("this.plugin.addListener('enter')"),
+    ]);
   });
 
   it('green: a spec file is not judged', () => {
     const result = run({
-      'src/app/x.component.spec.ts': component("  ngOnInit() { void App.addListener('resume', () => {}); }"),
+      'src/app/x.component.spec.ts': component(
+        "  ngOnInit() { void App.addListener('resume', () => {}); }"
+      ),
     });
     expect(result.violations).toEqual([]);
   });
 
   it('cannot read: no TypeScript to parse with — fails, never passes', () => {
     const root = capacitorProject({ 'src/app/x.component.ts': component('') });
-    const result = withoutTypeScript(() => CapacitorListenerHandlesReleasedLaw.check(ctx(root)));
+    const result = withoutTypeScript(() =>
+      CapacitorListenerHandlesReleasedLaw.check(ctx(root))
+    );
     expect(result.passed).toBe(false);
   });
 

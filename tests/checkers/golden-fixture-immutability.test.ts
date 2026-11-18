@@ -37,7 +37,10 @@ afterAll(() => {
     }
   }
 });
-const ctx = (root: string, extra?: Partial<RuleOfCodeConfig>): LawCheckContext => {
+const ctx = (
+  root: string,
+  extra?: Partial<RuleOfCodeConfig>
+): LawCheckContext => {
   const config = FileUtils.getMinimalDefaultConfig();
   if (extra) Object.assign(config, extra);
   return { projectRoot: root, config } as never;

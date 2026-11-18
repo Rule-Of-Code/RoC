@@ -87,8 +87,12 @@ describe('a namespaced release tag carries a version', () => {
       async tag => {
         repoWithTags(tag);
 
-        expect((await tagFormatFindings(ReleaseTagStandardsLaw)).length).toBeGreaterThan(0);
-        expect((await tagFormatFindings(SemVerComplianceLaw)).length).toBeGreaterThan(0);
+        expect(
+          (await tagFormatFindings(ReleaseTagStandardsLaw)).length
+        ).toBeGreaterThan(0);
+        expect(
+          (await tagFormatFindings(SemVerComplianceLaw)).length
+        ).toBeGreaterThan(0);
       }
     );
   });
@@ -105,9 +109,9 @@ describe('a namespaced release tag carries a version', () => {
 
       const findings = await tagFormatFindings(ReleaseTagStandardsLaw);
 
-      expect(findings.filter(v => /Inconsistent tag prefixing/.test(v))).toEqual(
-        []
-      );
+      expect(
+        findings.filter(v => /Inconsistent tag prefixing/.test(v))
+      ).toEqual([]);
     });
 
     it('still reports a genuine mix of styles', async () => {
@@ -115,9 +119,9 @@ describe('a namespaced release tag carries a version', () => {
 
       const findings = await tagFormatFindings(ReleaseTagStandardsLaw);
 
-      expect(
-        findings.some(v => /Inconsistent tag prefixing/.test(v))
-      ).toBe(true);
+      expect(findings.some(v => /Inconsistent tag prefixing/.test(v))).toBe(
+        true
+      );
     });
   });
 

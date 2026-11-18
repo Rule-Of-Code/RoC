@@ -292,10 +292,13 @@ export interface PublishedListing {
  */
 export function publishedListing(projectRoot: string): PublishedListing | null {
   const inside = gitRun(INSIDE_WORK_TREE, projectRoot);
-  if (!inside || inside.status !== 0 || inside.stdout.trim() !== 'true') return null;
+  if (!inside || inside.status !== 0 || inside.stdout.trim() !== 'true')
+    return null;
   const list = (args: string[]): Set<string> | null => {
     const out = gitRun(args, projectRoot);
-    return out && out.status === 0 ? new Set(out.stdout.split('\0').filter(Boolean)) : null;
+    return out && out.status === 0
+      ? new Set(out.stdout.split('\0').filter(Boolean))
+      : null;
   };
   const tracked = list(['ls-files', '-z', '--cached']);
   const unignored = list(['ls-files', '-z', '--others', '--exclude-standard']);

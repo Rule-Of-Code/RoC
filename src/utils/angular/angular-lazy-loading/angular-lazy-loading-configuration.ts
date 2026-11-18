@@ -184,8 +184,7 @@ export class AngularLazyLoadingConfiguration {
     return {
       hasLoadChildren,
       hasModuleReference,
-      isLazyLoaded:
-        (hasLoadChildren && hasModuleReference) || hasLoadComponent,
+      isLazyLoaded: (hasLoadChildren && hasModuleReference) || hasLoadComponent,
     };
   }
 

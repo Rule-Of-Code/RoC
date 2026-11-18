@@ -9,7 +9,10 @@
  */
 import { ProjectTypeDetector } from './config/project-type-detector';
 
-export function selectionProjectType(configured: string | undefined, projectRoot: string): string | undefined {
+export function selectionProjectType(
+  configured: string | undefined,
+  projectRoot: string
+): string | undefined {
   if (configured && configured !== 'generic') return configured;
   return ProjectTypeDetector.detectProjectType(projectRoot) ?? configured;
 }

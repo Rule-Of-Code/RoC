@@ -27,7 +27,12 @@ import * as path from 'path';
 
 import { execFileSync } from '../../src/utils/child-process';
 
-const IDENTITY = ['-c', 'user.name=probe', '-c', 'user.email=probe@example.com'];
+const IDENTITY = [
+  '-c',
+  'user.name=probe',
+  '-c',
+  'user.email=probe@example.com',
+];
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const HUSKY_PACKAGE = path.join(REPO_ROOT, 'node_modules', 'husky');
 
@@ -40,7 +45,12 @@ function runChild(script: string, vars: Record<string, string> = {}): string {
   return nodeChildProcess.execFileSync(
     process.execPath,
     ['-r', 'ts-node/register/transpile-only', '-e', script],
-    { cwd: REPO_ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, ...vars } }
+    {
+      cwd: REPO_ROOT,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: { ...process.env, ...vars },
+    }
   );
 }
 
@@ -51,7 +61,10 @@ function inChild<T>(script: string, vars: Record<string, string> = {}): T {
 }
 
 /** `init --quick` (setupQuickMode) on `dir` in a child; its stdout and outcome. */
-function initInChild(dir: string, vars: Record<string, string>): { stdout: string; error: string | null } {
+function initInChild(
+  dir: string,
+  vars: Record<string, string>
+): { stdout: string; error: string | null } {
   const stdout = runChild(
     `require('./src/cli/init-helpers').setupQuickMode(${JSON.stringify(dir)}, {}).then(
       () => console.log(JSON.stringify(null)),
@@ -59,11 +72,16 @@ function initInChild(dir: string, vars: Record<string, string>): { stdout: strin
     vars
   );
   const lines = stdout.trim().split(/\r?\n/);
-  return { stdout, error: JSON.parse(lines[lines.length - 1] ?? 'null') as string | null };
+  return {
+    stdout,
+    error: JSON.parse(lines[lines.length - 1] ?? 'null') as string | null,
+  };
 }
 
 /** The four laws that read F instead of T, judged in a child. */
-function judgeTarget(vars: Record<string, string> = {}): Record<string, { passed: boolean; violations: string[] }> {
+function judgeTarget(
+  vars: Record<string, string> = {}
+): Record<string, { passed: boolean; violations: string[] }> {
   const script = `
     const { FileUtils } = require('./src/utils');
     const laws = {
@@ -85,7 +103,11 @@ function judgeTarget(vars: Record<string, string> = {}): Record<string, { passed
 }
 
 const git = (cwd: string, ...args: string[]): string =>
-  execFileSync('git', [...IDENTITY, ...args], { cwd, encoding: 'utf8', stdio: 'pipe' }).trim();
+  execFileSync('git', [...IDENTITY, ...args], {
+    cwd,
+    encoding: 'utf8',
+    stdio: 'pipe',
+  }).trim();
 
 let base: string;
 let other: string; // F
@@ -101,33 +123,54 @@ function huskyProject(name: string): string {
   git(dir, 'init', '-q');
   fs.writeFileSync(
     path.join(dir, 'package.json'),
-    JSON.stringify({ name, version: '1.0.0', devDependencies: { husky: '^9.0.0' } }, null, 2)
+    JSON.stringify(
+      { name, version: '1.0.0', devDependencies: { husky: '^9.0.0' } },
+      null,
+      2
+    )
   );
-  fs.cpSync(HUSKY_PACKAGE, path.join(dir, 'node_modules', 'husky'), { recursive: true });
+  fs.cpSync(HUSKY_PACKAGE, path.join(dir, 'node_modules', 'husky'), {
+    recursive: true,
+  });
   return dir;
 }
 
 beforeAll(() => {
-  base = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'roc-inherited-git-')));
+  base = fs.realpathSync(
+    fs.mkdtempSync(path.join(os.tmpdir(), 'roc-inherited-git-'))
+  );
   other = path.join(base, 'F');
   fs.mkdirSync(other);
   git(other, 'init', '-q');
   git(other, 'checkout', '-q', '-b', 'master');
   for (let i = 0; i < 4; i++) {
-    const big = Array.from({ length: 1500 }, (_, n) => `line ${i}-${n}`).join('\n');
+    const big = Array.from({ length: 1500 }, (_, n) => `line ${i}-${n}`).join(
+      '\n'
+    );
     fs.writeFileSync(path.join(other, `big-${i}.txt`), big);
     git(other, 'add', '-A');
     git(other, 'commit', '-qm', `chore: big change ${i}`);
   }
   git(other, 'tag', 'v9.9.9');
-  git(other, 'worktree', 'add', '-q', '-b', 'wt-branch', path.join(base, 'F-wt'));
+  git(
+    other,
+    'worktree',
+    'add',
+    '-q',
+    '-b',
+    'wt-branch',
+    path.join(base, 'F-wt')
+  );
   otherWorktreeGitDir = path.join(other, '.git', 'worktrees', 'F-wt');
 
   target = path.join(base, 'T');
   fs.mkdirSync(target);
   git(target, 'init', '-q');
   git(target, 'checkout', '-q', '-b', 'feature/probe-own');
-  fs.writeFileSync(path.join(target, 'package.json'), JSON.stringify({ name: 't', version: '1.0.0' }));
+  fs.writeFileSync(
+    path.join(target, 'package.json'),
+    JSON.stringify({ name: 't', version: '1.0.0' })
+  );
   git(target, 'add', '-A');
   git(target, 'commit', '-qm', 'feat: probe');
 });
@@ -155,7 +198,9 @@ describe('#372 an inherited GIT_DIR', () => {
     expect(Object.keys(clean)).toHaveLength(4);
     expect(withGitDir).toEqual(clean);
     // The other repository's branch, commits and tag never reach a verdict.
-    const text = Object.values(withGitDir).flatMap(r => r.violations).join('\n');
+    const text = Object.values(withGitDir)
+      .flatMap(r => r.violations)
+      .join('\n');
     expect(text).not.toMatch(/wt-branch|9\.9\.9|exceed the size limit/);
   });
 
@@ -190,11 +235,15 @@ describe('#372 init with an inherited GIT_DIR', () => {
     const before = bytes(config);
     const dir = huskyProject('raw-husky');
     try {
-      nodeChildProcess.execFileSync(process.execPath, [path.join(dir, 'node_modules', 'husky', 'bin.js')], {
-        cwd: dir,
-        stdio: 'pipe',
-        env: { ...process.env, GIT_DIR: otherWorktreeGitDir },
-      });
+      nodeChildProcess.execFileSync(
+        process.execPath,
+        [path.join(dir, 'node_modules', 'husky', 'bin.js')],
+        {
+          cwd: dir,
+          stdio: 'pipe',
+          env: { ...process.env, GIT_DIR: otherWorktreeGitDir },
+        }
+      );
       expect(git(other, 'config', '--get', 'core.hooksPath')).toBe('.husky/_');
     } finally {
       fs.writeFileSync(config, before);
@@ -211,7 +260,9 @@ describe('#372 init with an inherited GIT_DIR', () => {
     expect(run.error).toBeNull();
     expect(bytes(config).equals(before)).toBe(true);
     expect(git(dir, 'config', '--get', 'core.hooksPath')).toBe('.husky/_');
-    expect(fs.existsSync(path.join(dir, '.husky', '_', 'pre-commit'))).toBe(true);
+    expect(fs.existsSync(path.join(dir, '.husky', '_', 'pre-commit'))).toBe(
+      true
+    );
     expect(run.stdout).toContain('Git hooks installed successfully');
   });
 
@@ -220,7 +271,9 @@ describe('#372 init with an inherited GIT_DIR', () => {
     // HUSKY=0: husky skips the install and still exits 0.
     const run = initInChild(dir, { HUSKY: '0' });
 
-    expect(run.error).toMatch(/NOT active in this repository: .*core\.hooksPath is unset/);
+    expect(run.error).toMatch(
+      /NOT active in this repository: .*core\.hooksPath is unset/
+    );
     expect(run.stdout).not.toContain('installed successfully');
     expect(() => git(dir, 'config', '--get', 'core.hooksPath')).toThrow();
   });

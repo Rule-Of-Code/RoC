@@ -60,11 +60,23 @@ import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 export const PARETO_CORE_RATIO = 0.2;
 
 const SEVERITY_RANK: Record<string, number> = { error: 3, warning: 2, info: 1 };
-const PRIORITY_RANK: Record<string, number> = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
+const PRIORITY_RANK: Record<string, number> = {
+  CRITICAL: 4,
+  HIGH: 3,
+  MEDIUM: 2,
+  LOW: 1,
+};
 
 type CoreFields = Pick<
   EnhancedConstitutionalLaw,
-  'id' | 'priority' | 'defaultSeverity' | 'category' | 'stack' | 'requires' | 'defaultEnabled' | 'alwaysEnabled'
+  | 'id'
+  | 'priority'
+  | 'defaultSeverity'
+  | 'category'
+  | 'stack'
+  | 'requires'
+  | 'defaultEnabled'
+  | 'alwaysEnabled'
 >;
 
 /** A law that runs by default and is not a meta-gate. */
@@ -107,16 +119,21 @@ function tierOf(law: CoreFields): number {
 
 /** Step 4: a law the quota never cuts. */
 function isProtected(law: CoreFields): boolean {
-  return tierOf(law) === 2 || (tierOf(law) === 1 && law.priority === 'CRITICAL');
+  return (
+    tierOf(law) === 2 || (tierOf(law) === 1 && law.priority === 'CRITICAL')
+  );
 }
 
 /** Higher first: severity, priority, tier, ungated, then registry order. */
 function byRank(a: Ranked, b: Ranked): number {
   return (
-    (SEVERITY_RANK[b.law.defaultSeverity] ?? 0) - (SEVERITY_RANK[a.law.defaultSeverity] ?? 0) ||
-    (PRIORITY_RANK[b.law.priority] ?? 0) - (PRIORITY_RANK[a.law.priority] ?? 0) ||
+    (SEVERITY_RANK[b.law.defaultSeverity] ?? 0) -
+      (SEVERITY_RANK[a.law.defaultSeverity] ?? 0) ||
+    (PRIORITY_RANK[b.law.priority] ?? 0) -
+      (PRIORITY_RANK[a.law.priority] ?? 0) ||
     tierOf(b.law) - tierOf(a.law) ||
-    Number(a.law.requires !== undefined) - Number(b.law.requires !== undefined) ||
+    Number(a.law.requires !== undefined) -
+      Number(b.law.requires !== undefined) ||
     a.index - b.index
   );
 }
@@ -133,7 +150,8 @@ export function paretoCoreIds(laws: readonly CoreFields[]): Set<string> {
   const core = new Set<string>();
   for (const group of groups.values()) {
     const quota = Math.round(PARETO_CORE_RATIO * group.length);
-    for (const { law } of [...group].sort(byRank).slice(0, quota)) core.add(law.id);
+    for (const { law } of [...group].sort(byRank).slice(0, quota))
+      core.add(law.id);
     for (const { law } of group) if (isProtected(law)) core.add(law.id);
   }
   return core;

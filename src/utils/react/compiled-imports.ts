@@ -48,7 +48,9 @@ export class CompiledImports {
     const ts = this.ts;
     if (ts.isImportDeclaration(statement)) {
       if (!ts.isStringLiteral(statement.moduleSpecifier)) return null;
-      return this.erased(source, statement) ? null : statement.moduleSpecifier.text;
+      return this.erased(source, statement)
+        ? null
+        : statement.moduleSpecifier.text;
     }
     if (
       ts.isExportDeclaration(statement) &&
@@ -72,8 +74,10 @@ export class CompiledImports {
     const locals: string[] = [];
     if (clause.name) locals.push(clause.name.text);
     const bindings = clause.namedBindings;
-    if (bindings && ts.isNamespaceImport(bindings)) locals.push(bindings.name.text);
-    const named = bindings && ts.isNamedImports(bindings) ? bindings.elements : [];
+    if (bindings && ts.isNamespaceImport(bindings))
+      locals.push(bindings.name.text);
+    const named =
+      bindings && ts.isNamedImports(bindings) ? bindings.elements : [];
     for (const element of named) {
       if (!element.isTypeOnly) locals.push(element.name.text);
     }
@@ -119,11 +123,16 @@ export class CompiledImports {
       undefined,
       configFile
     );
-    if (parsed.errors.some(error => EXTENDS_NOT_LOADED.has(error.code))) return true;
-    const options = parsed.options as TS.CompilerOptions & { preserveValueImports?: boolean };
+    if (parsed.errors.some(error => EXTENDS_NOT_LOADED.has(error.code)))
+      return true;
+    const options = parsed.options as TS.CompilerOptions & {
+      preserveValueImports?: boolean;
+    };
     const preserving =
       options.importsNotUsedAsValues === ts.ImportsNotUsedAsValues.Preserve ||
       options.importsNotUsedAsValues === ts.ImportsNotUsedAsValues.Error;
-    return Boolean(options.verbatimModuleSyntax || options.preserveValueImports || preserving);
+    return Boolean(
+      options.verbatimModuleSyntax || options.preserveValueImports || preserving
+    );
   }
 }

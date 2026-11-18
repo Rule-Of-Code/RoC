@@ -382,7 +382,9 @@ describe('utils/angular/ngrx-memoization/ngrx-memoization-validation-patterns', 
     describe('analyzeSelectorFileComprehensive', () => {
       it('should return violations and suggestions for a selector file', () => {
         const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockReturnValue('export const getUser = state => state.user');
+        readFileSpy.mockReturnValue(
+          'export const getUser = state => state.user'
+        );
 
         const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
         basenameSpy.mockReturnValue('test.selectors.ts');

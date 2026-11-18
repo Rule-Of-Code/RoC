@@ -8,7 +8,10 @@
  * evidence either.
  */
 
-import type { FileContaining, LawRequirement } from '../../types/enhanced-law.types';
+import type {
+  FileContaining,
+  LawRequirement,
+} from '../../types/enhanced-law.types';
 import type { LawCheckContext } from '../../types/law.types';
 import { type ContainingFile, readFilesContaining } from '../law-requirements';
 
@@ -31,18 +34,28 @@ export const COMMAND_FILES: readonly string[] = [
 
 /** Every `anyFileContaining` entry of a requirement, through `anyOf`. */
 export function entriesOf(requires: LawRequirement): FileContaining[] {
-  return [...(requires.anyFileContaining ?? []), ...(requires.anyOf ?? []).flatMap(entriesOf)];
+  return [
+    ...(requires.anyFileContaining ?? []),
+    ...(requires.anyOf ?? []).flatMap(entriesOf),
+  ];
 }
 
-const ignoresOf = (context: LawCheckContext): readonly string[] => context.config.ignores?.global ?? [];
+const ignoresOf = (context: LawCheckContext): readonly string[] =>
+  context.config.ignores?.global ?? [];
 
 /** The files a gate entry matches, read the gate's way. */
-export function filesFor(context: LawCheckContext, entry: FileContaining): ContainingFile[] {
+export function filesFor(
+  context: LawCheckContext,
+  entry: FileContaining
+): ContainingFile[] {
   return readFilesContaining(context.projectRoot, entry, ignoresOf(context));
 }
 
 /** The files that selected the law, one per path, sorted. */
-export function gateFiles(context: LawCheckContext, requires: LawRequirement): ContainingFile[] {
+export function gateFiles(
+  context: LawCheckContext,
+  requires: LawRequirement
+): ContainingFile[] {
   const byRel = new Map<string, ContainingFile>();
   for (const entry of entriesOf(requires)) {
     for (const found of filesFor(context, entry)) byRel.set(found.rel, found);
@@ -53,12 +66,15 @@ export function gateFiles(context: LawCheckContext, requires: LawRequirement): C
 /** 1-based line of a character offset. */
 export function lineAt(text: string, offset: number): number {
   let line = 1;
-  for (let i = 0; i < offset && i < text.length; i++) if (text.charCodeAt(i) === 10) line++;
+  for (let i = 0; i < offset && i < text.length; i++)
+    if (text.charCodeAt(i) === 10) line++;
   return line;
 }
 
 /** The base name of a forward-slash path. */
-export const baseName = (rel: string): string => rel.slice(rel.lastIndexOf('/') + 1);
+export const baseName = (rel: string): string =>
+  rel.slice(rel.lastIndexOf('/') + 1);
 
 /** The directory of a forward-slash path ('' at the root). */
-export const dirName = (rel: string): string => (rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : '');
+export const dirName = (rel: string): string =>
+  rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : '';

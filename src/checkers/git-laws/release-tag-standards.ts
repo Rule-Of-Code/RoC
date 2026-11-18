@@ -204,8 +204,7 @@ export class ReleaseTagStandardsLaw extends GitLawBase {
       const scripts =
         (packageJson && typeof packageJson === 'object'
           ? ((packageJson as Record<string, unknown>).scripts as
-              | Record<string, unknown>
-              | undefined)
+              Record<string, unknown> | undefined)
           : undefined) ?? {};
 
       const releaseTools = [

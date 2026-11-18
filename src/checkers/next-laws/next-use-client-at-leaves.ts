@@ -13,7 +13,11 @@
 import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { NextAppFiles } from '../../utils/react/next-app-files';
-import { hasDirective, type NextSources, NextSourcesLoader } from '../../utils/react/next-sources';
+import {
+  hasDirective,
+  type NextSources,
+  NextSourcesLoader,
+} from '../../utils/react/next-sources';
 import { ReactProject } from '../../utils/react/react-project';
 import type { TsxSource } from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';
@@ -55,12 +59,22 @@ export class NextUseClientAtLeavesLaw extends LawBase {
   static check(context: LawCheckContext): LawResult {
     const sources = NextSourcesLoader.load(context);
     const violations = [...sources.unread];
-    if (!NextSourcesLoader.hasRouter(sources)) violations.push(NextAppFiles.noRouterDirectory(context));
-    const clientModules = [...sources.parsed.values()].filter(source => hasDirective(source, 'use client'));
+    if (!NextSourcesLoader.hasRouter(sources))
+      violations.push(NextAppFiles.noRouterDirectory(context));
+    const clientModules = [...sources.parsed.values()].filter(source =>
+      hasDirective(source, 'use client')
+    );
     if (violations.length === 0 && clientModules.length === 0) {
-      return NextAppFiles.withoutSubject(this.LAW_NAME, "no module declares 'use client' — every component renders on the server", context);
+      return NextAppFiles.withoutSubject(
+        this.LAW_NAME,
+        "no module declares 'use client' — every component renders on the server",
+        context
+      );
     }
-    violations.push(...this.routeModules(context, sources), ...this.unneeded(context, sources, clientModules));
+    violations.push(
+      ...this.routeModules(context, sources),
+      ...this.unneeded(context, sources, clientModules)
+    );
     return this.createResult(
       violations,
       this.LAW_NAME,
@@ -73,7 +87,10 @@ export class NextUseClientAtLeavesLaw extends LawBase {
     );
   }
 
-  private static routeModules(context: LawCheckContext, sources: NextSources): string[] {
+  private static routeModules(
+    context: LawCheckContext,
+    sources: NextSources
+  ): string[] {
     return sources.appFiles
       .filter(appFile => appFile.kind === 'page' || appFile.kind === 'layout')
       .filter(appFile => {
@@ -86,9 +103,15 @@ export class NextUseClientAtLeavesLaw extends LawBase {
       );
   }
 
-  private static unneeded(context: LawCheckContext, sources: NextSources, clientModules: TsxSource[]): string[] {
+  private static unneeded(
+    context: LawCheckContext,
+    sources: NextSources,
+    clientModules: TsxSource[]
+  ): string[] {
     const mustBeClient = new Set(
-      sources.appFiles.filter(appFile => appFile.kind && MUST_BE_CLIENT.has(appFile.kind)).map(appFile => appFile.file)
+      sources.appFiles
+        .filter(appFile => appFile.kind && MUST_BE_CLIENT.has(appFile.kind))
+        .map(appFile => appFile.file)
     );
     return clientModules
       .filter(source => !mustBeClient.has(source.fileName))
@@ -102,7 +125,12 @@ export class NextUseClientAtLeavesLaw extends LawBase {
   /** True when something in the module can only run in a Client Component. */
   static needsClient(source: TsxSource): boolean {
     const ts = source.ts;
-    if (source.sourceFile.statements.some(statement => ts.isExportDeclaration(statement) && statement.moduleSpecifier)) {
+    if (
+      source.sourceFile.statements.some(
+        statement =>
+          ts.isExportDeclaration(statement) && statement.moduleSpecifier
+      )
+    ) {
       return true;
     }
     let needs = false;
@@ -112,19 +140,32 @@ export class NextUseClientAtLeavesLaw extends LawBase {
     return needs;
   }
 
-  private static isClientOnly(ts: TsxSource['ts'], source: TsxSource, node: TS.Node): boolean {
-    if (ts.isCallExpression(node)) return this.isHookOrContext(ts, node.expression);
+  private static isClientOnly(
+    ts: TsxSource['ts'],
+    source: TsxSource,
+    node: TS.Node
+  ): boolean {
+    if (ts.isCallExpression(node))
+      return this.isHookOrContext(ts, node.expression);
     if (ts.isJsxAttribute(node)) return this.isHandler(ts, source, node);
-    if (ts.isIdentifier(node)) return BROWSER_GLOBALS.has(node.text) && this.isReference(ts, node);
+    if (ts.isIdentifier(node))
+      return BROWSER_GLOBALS.has(node.text) && this.isReference(ts, node);
     if (ts.isClassLike(node)) {
       return (node.heritageClauses ?? []).some(clause =>
-        clause.types.some(type => /\b(?:Pure)?Component$/.test(type.expression.getText(source.sourceFile)))
+        clause.types.some(type =>
+          /\b(?:Pure)?Component$/.test(
+            type.expression.getText(source.sourceFile)
+          )
+        )
       );
     }
     return false;
   }
 
-  private static isHookOrContext(ts: TsxSource['ts'], callee: TS.Expression): boolean {
+  private static isHookOrContext(
+    ts: TsxSource['ts'],
+    callee: TS.Expression
+  ): boolean {
     const name = ts.isIdentifier(callee)
       ? callee.text
       : ts.isPropertyAccessExpression(callee)
@@ -133,24 +174,48 @@ export class NextUseClientAtLeavesLaw extends LawBase {
     return name === 'use' || name === 'createContext' || HOOK.test(name);
   }
 
-  private static isHandler(ts: TsxSource['ts'], source: TsxSource, attribute: TS.JsxAttribute): boolean {
+  private static isHandler(
+    ts: TsxSource['ts'],
+    source: TsxSource,
+    attribute: TS.JsxAttribute
+  ): boolean {
     const name = attribute.name.getText(source.sourceFile);
     if (/^on[A-Z]/.test(name)) return true;
     const initializer = attribute.initializer;
-    if (!initializer || !ts.isJsxExpression(initializer) || !initializer.expression) return false;
+    if (
+      !initializer ||
+      !ts.isJsxExpression(initializer) ||
+      !initializer.expression
+    )
+      return false;
     const value = initializer.expression;
-    if (ts.isArrowFunction(value) || ts.isFunctionExpression(value)) return true;
+    if (ts.isArrowFunction(value) || ts.isFunctionExpression(value))
+      return true;
     return FUNCTION_ATTRIBUTES.has(name);
   }
 
   /** An identifier used as a value, not a property name, declaration name or type. */
-  private static isReference(ts: TsxSource['ts'], node: TS.Identifier): boolean {
+  private static isReference(
+    ts: TsxSource['ts'],
+    node: TS.Identifier
+  ): boolean {
     const parent = node.parent;
-    if (ts.isPropertyAccessExpression(parent) && parent.name === node) return false;
-    if ((ts.isPropertyAssignment(parent) || ts.isPropertyDeclaration(parent) || ts.isMethodDeclaration(parent)) && parent.name === node) {
+    if (ts.isPropertyAccessExpression(parent) && parent.name === node)
+      return false;
+    if (
+      (ts.isPropertyAssignment(parent) ||
+        ts.isPropertyDeclaration(parent) ||
+        ts.isMethodDeclaration(parent)) &&
+      parent.name === node
+    ) {
       return false;
     }
-    if (ts.isTypeReferenceNode(parent) || ts.isQualifiedName(parent)) return false;
-    return !(ts.isVariableDeclaration(parent) || ts.isParameter(parent) || ts.isBindingElement(parent));
+    if (ts.isTypeReferenceNode(parent) || ts.isQualifiedName(parent))
+      return false;
+    return !(
+      ts.isVariableDeclaration(parent) ||
+      ts.isParameter(parent) ||
+      ts.isBindingElement(parent)
+    );
   }
 }

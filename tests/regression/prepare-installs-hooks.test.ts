@@ -14,7 +14,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const ROOT = path.resolve(__dirname, '..', '..');
-const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')) as {
+const manifest = JSON.parse(
+  fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')
+) as {
   scripts: Record<string, string>;
   devDependencies: Record<string, string>;
 };
@@ -28,7 +30,10 @@ describe('#379 prepare installs the hooks', () => {
     expect(manifest.devDependencies.husky).toBeDefined();
   });
 
-  it.each(['pre-commit', 'commit-msg', 'pre-push'])('commits the %s script husky hands over to', hook => {
-    expect(fs.existsSync(path.join(ROOT, '.husky', hook))).toBe(true);
-  });
+  it.each(['pre-commit', 'commit-msg', 'pre-push'])(
+    'commits the %s script husky hands over to',
+    hook => {
+      expect(fs.existsSync(path.join(ROOT, '.husky', hook))).toBe(true);
+    }
+  );
 });

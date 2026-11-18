@@ -65,7 +65,9 @@ export class IonicProject {
     if (file.endsWith('.page.ts')) return true;
     if (!file.endsWith('.ts')) return false;
     if (PAGE_MARKUP.test(TsClasses.mask(content))) return true;
-    const sibling = FileUtils.readFileContentSync(file.replace(/\.ts$/, '.html'));
+    const sibling = FileUtils.readFileContentSync(
+      file.replace(/\.ts$/, '.html')
+    );
     return Boolean(sibling && PAGE_MARKUP.test(sibling));
   }
 
@@ -87,10 +89,15 @@ export class IonicProject {
   }
 
   /** The non-test .ts files that are pages, with their content. */
-  static pages(context: LawCheckContext): Array<{ file: string; content: string }> {
+  static pages(
+    context: LawCheckContext
+  ): Array<{ file: string; content: string }> {
     return this.sourceFiles(context)
       .filter(file => file.endsWith('.ts'))
-      .map(file => ({ file, content: FileUtils.readFileContentSync(file) ?? '' }))
+      .map(file => ({
+        file,
+        content: FileUtils.readFileContentSync(file) ?? '',
+      }))
       .filter(({ file, content }) => this.isPage(file, content));
   }
 }

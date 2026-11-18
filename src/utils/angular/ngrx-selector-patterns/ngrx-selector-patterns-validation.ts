@@ -80,7 +80,7 @@ export class NgRxSelectorPatternsValidation {
     };
   } {
     const { violations, suggestions } = results;
-    const {categories} = NgRxResultsProcessor.SEVERITY_CONFIG;
+    const { categories } = NgRxResultsProcessor.SEVERITY_CONFIG;
 
     return {
       totalIssues: violations.length + suggestions.length,

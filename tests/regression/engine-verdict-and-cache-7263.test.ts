@@ -67,7 +67,9 @@ function fixture(
 }
 
 /** Run the engine the way the CLI does, capturing what it prints. */
-async function audit(root: string): Promise<{ result: AuditResult; out: string }> {
+async function audit(
+  root: string
+): Promise<{ result: AuditResult; out: string }> {
   const chunks: string[] = [];
   const capture = (chunk: unknown): boolean => {
     chunks.push(String(chunk));
@@ -98,9 +100,12 @@ async function audit(root: string): Promise<{ result: AuditResult; out: string }
 
 describe('#301 a liveness refusal is "no law ran", not "N laws failed"', () => {
   it('below the floor: zero counts, and the refusal is its own field', async () => {
-    const root = fixture({ 'src/a.ts': 'export const a = 1;\n' }, {
-      laws: { minLawsChecked: 9999 },
-    });
+    const root = fixture(
+      { 'src/a.ts': 'export const a = 1;\n' },
+      {
+        laws: { minLawsChecked: 9999 },
+      }
+    );
     const { result } = await audit(root);
 
     expect(result.passed).toBe(false);
@@ -134,20 +139,29 @@ describe('#301 a liveness refusal is "no law ran", not "N laws failed"', () => {
   });
 
   it('an empty selection is refused as no-laws, with zero counts', async () => {
-    const root = fixture({ 'src/a.ts': 'export const a = 1;\n' }, {
-      laws: { enabled: {} },
-    });
+    const root = fixture(
+      { 'src/a.ts': 'export const a = 1;\n' },
+      {
+        laws: { enabled: {} },
+      }
+    );
     const { result } = await audit(root);
 
     expect(result.passed).toBe(false);
     expect(result.failedLaws).toBe(0);
-    expect(result.refused).toMatchObject({ reason: 'no-laws', selectedLaws: 0 });
+    expect(result.refused).toMatchObject({
+      reason: 'no-laws',
+      selectedLaws: 0,
+    });
   });
 
   it('a run that executed reports executedLaws equal to its results', async () => {
-    const root = fixture({ 'src/a.ts': 'export const a = 1;\n' }, {
-      laws: { enabled: { 'Magic Number Prevention': true } },
-    });
+    const root = fixture(
+      { 'src/a.ts': 'export const a = 1;\n' },
+      {
+        laws: { enabled: { 'Magic Number Prevention': true } },
+      }
+    );
     const { result } = await audit(root);
     const json = JSON.parse(AuditResultProcessor.exportResults(result, 'json'));
     expect(result.refused).toBeUndefined();
@@ -182,7 +196,12 @@ describe('#302 a law that judged nothing is a failure scored 0', () => {
     const { result } = await audit(root);
     const byTitle = new Map(
       [...result.results.values()].map(r => {
-        const law = r as { lawTitle: string; passed: boolean; score: number; judgedNothing?: boolean };
+        const law = r as {
+          lawTitle: string;
+          passed: boolean;
+          score: number;
+          judgedNothing?: boolean;
+        };
         return [law.lawTitle, law];
       })
     );
@@ -197,7 +216,9 @@ describe('#302 a law that judged nothing is a failure scored 0', () => {
       });
     }
     // The meta-gates pass at 100; the five judged-nothing laws add nothing.
-    const scores = [...result.results.values()].map(r => (r as { score?: number }).score ?? 0);
+    const scores = [...result.results.values()].map(
+      r => (r as { score?: number }).score ?? 0
+    );
     expect(result.score).toBe(
       Math.round(scores.reduce((sum, s) => sum + s, 0) / scores.length)
     );
@@ -208,7 +229,11 @@ describe('#302 a law that judged nothing is a failure scored 0', () => {
     const result = ProfessionalComponentTestingPolicyLaw.check(
       ctx(project({ 'public/index.html': '<html lang="en"></html>' }))
     );
-    expect(result).toMatchObject({ passed: false, score: 0, judgedNothing: true });
+    expect(result).toMatchObject({
+      passed: false,
+      score: 0,
+      judgedNothing: true,
+    });
   });
 
   it.each([
@@ -217,15 +242,25 @@ describe('#302 a law that judged nothing is a failure scored 0', () => {
     ['Defensive Array Coercion', DefensiveArrayCoercionLaw],
     ['No Passthrough Cast', NoPassthroughCastLaw],
   ])('%s with an empty layer scores 0, not 90', (_title, law) => {
-    const result = law.check(ctx(project({ 'src/app/page.ts': 'export const x = 1;' })));
-    expect(result).toMatchObject({ passed: false, score: 0, judgedNothing: true });
+    const result = law.check(
+      ctx(project({ 'src/app/page.ts': 'export const x = 1;' }))
+    );
+    expect(result).toMatchObject({
+      passed: false,
+      score: 0,
+      judgedNothing: true,
+    });
   });
 
   it('Content Security Policy with nothing to read scores 0', () => {
     const result = ContentSecurityPolicyLaw.check(
       ctx(project({ 'src/lib/x.ts': 'export const x = 1;' }))
     );
-    expect(result).toMatchObject({ passed: false, score: 0, judgedNothing: true });
+    expect(result).toMatchObject({
+      passed: false,
+      score: 0,
+      judgedNothing: true,
+    });
   });
 
   it('the engine normalises a result that only SAYS it judged nothing', () => {
@@ -234,10 +269,20 @@ describe('#302 a law that judged nothing is a failure scored 0', () => {
       score: 100,
       violations: ['found nothing to read — this law judged nothing'],
     });
-    expect(normalised).toMatchObject({ passed: false, score: 0, judgedNothing: true });
+    expect(normalised).toMatchObject({
+      passed: false,
+      score: 0,
+      judgedNothing: true,
+    });
 
-    const untouched = { passed: false, score: 80, violations: ['a real finding'] };
-    expect(AuditResultProcessor.normalizeJudgedNothing(untouched)).toBe(untouched);
+    const untouched = {
+      passed: false,
+      score: 80,
+      violations: ['a real finding'],
+    };
+    expect(AuditResultProcessor.normalizeJudgedNothing(untouched)).toBe(
+      untouched
+    );
   });
 });
 
@@ -302,7 +347,9 @@ describe('#305 the audit cache hits, and only when nothing it depends on moved',
       file.replace(/\\/g, '/')
     );
     expect(inputs).toContain(
-      path.join(root, 'native', 'main', 'AndroidManifest.xml').replace(/\\/g, '/')
+      path
+        .join(root, 'native', 'main', 'AndroidManifest.xml')
+        .replace(/\\/g, '/')
     );
     CapacitorProjects.clearCache();
   });

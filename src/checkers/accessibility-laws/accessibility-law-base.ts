@@ -49,9 +49,13 @@ export abstract class AccessibilityLawBase {
       const relative = this.relative(context.projectRoot, file);
       let content: string;
       try {
-        content = FileSystemOperations.readFile(file, { fallbackToEmpty: false });
+        content = FileSystemOperations.readFile(file, {
+          fallbackToEmpty: false,
+        });
       } catch {
-        unread.push(`${relative}: could not be read — its elements were NOT checked`);
+        unread.push(
+          `${relative}: could not be read — its elements were NOT checked`
+        );
         continue;
       }
       const document = TemplateMarkup.parse(content);

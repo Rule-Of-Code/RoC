@@ -51,7 +51,8 @@ const joined = (r: { violations?: string[] }): string =>
 describe('NoExplicitAnyNonNullLaw', () => {
   it('flags explicit any forms (annotation, as any, any[])', () => {
     const dir = fixture({
-      'a.ts': 'const x = res as any;\nlet y: any = 1;\nconst arr: any[] = [];\n',
+      'a.ts':
+        'const x = res as any;\nlet y: any = 1;\nconst arr: any[] = [];\n',
     });
     const result = NoExplicitAnyNonNullLaw.check(ctx(dir));
     expect(result.passed).toBe(false);
@@ -71,14 +72,15 @@ describe('NoExplicitAnyNonNullLaw', () => {
 
   it('does NOT flag `as const` or precise types', () => {
     const dir = fixture({
-      'ok.ts': "const x = { a: 1 } as const;\nconst y = res as Foo;\n",
+      'ok.ts': 'const x = { a: 1 } as const;\nconst y = res as Foo;\n',
     });
     expect(NoExplicitAnyNonNullLaw.check(ctx(dir)).passed).toBe(true);
   });
 
   it('does NOT flag any/`!` that appear only in comments', () => {
     const dir = fixture({
-      'c.ts': '// do not use as any here, and avoid x!.y\nexport const z = 1;\n',
+      'c.ts':
+        '// do not use as any here, and avoid x!.y\nexport const z = 1;\n',
     });
     expect(NoExplicitAnyNonNullLaw.check(ctx(dir)).passed).toBe(true);
   });

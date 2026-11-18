@@ -20,41 +20,76 @@ import { execFileSync } from '../../src/utils/child-process';
 import { resolveGitHooksDir } from '../../src/utils/git/git-layout';
 import { resolveGitHookStatus } from '../../src/utils/git-hook-status';
 
-const HUSKY_PACKAGE = path.resolve(__dirname, '..', '..', 'node_modules', 'husky');
+const HUSKY_PACKAGE = path.resolve(
+  __dirname,
+  '..',
+  '..',
+  'node_modules',
+  'husky'
+);
 const HOOKS = ['pre-commit', 'pre-push', 'commit-msg'];
 const IDENTITY = ['-c', 'user.name=t', '-c', 'user.email=t@example.com'];
 
 const git = (cwd: string, ...args: string[]): string =>
-  execFileSync('git', [...IDENTITY, ...args], { cwd, encoding: 'utf8', stdio: 'pipe' }).trim();
+  execFileSync('git', [...IDENTITY, ...args], {
+    cwd,
+    encoding: 'utf8',
+    stdio: 'pipe',
+  }).trim();
 
 const dirs: string[] = [];
 /** A repository with the three hooks committed under .husky/ and husky present locally. */
 function committedHooks(): string {
-  const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'roc-hook-installed-')));
+  const dir = fs.realpathSync(
+    fs.mkdtempSync(path.join(os.tmpdir(), 'roc-hook-installed-'))
+  );
   dirs.push(dir);
   git(dir, 'init', '-q');
   fs.writeFileSync(
     path.join(dir, 'package.json'),
-    JSON.stringify({ name: 'h', version: '1.0.0', devDependencies: { husky: '^9.1.7' }, scripts: { prepare: 'husky' } })
+    JSON.stringify({
+      name: 'h',
+      version: '1.0.0',
+      devDependencies: { husky: '^9.1.7' },
+      scripts: { prepare: 'husky' },
+    })
   );
   fs.mkdirSync(path.join(dir, '.husky'));
-  for (const hook of HOOKS) fs.writeFileSync(path.join(dir, '.husky', hook), '#!/bin/sh\nnpx ruleofcode audit\n');
+  for (const hook of HOOKS)
+    fs.writeFileSync(
+      path.join(dir, '.husky', hook),
+      '#!/bin/sh\nnpx ruleofcode audit\n'
+    );
   fs.writeFileSync(path.join(dir, '.gitignore'), 'node_modules/\n');
   git(dir, 'add', '-A');
   git(dir, 'commit', '-qm', 'chore: hooks');
-  fs.cpSync(HUSKY_PACKAGE, path.join(dir, 'node_modules', 'husky'), { recursive: true });
+  fs.cpSync(HUSKY_PACKAGE, path.join(dir, 'node_modules', 'husky'), {
+    recursive: true,
+  });
   return dir;
 }
 const runHusky = (dir: string): void => {
-  execFileSync(process.execPath, [path.join(dir, 'node_modules', 'husky', 'bin.js')], { cwd: dir, stdio: 'ignore' });
+  execFileSync(
+    process.execPath,
+    [path.join(dir, 'node_modules', 'husky', 'bin.js')],
+    { cwd: dir, stdio: 'ignore' }
+  );
 };
 
 const judge = (dir: string): LawResult[] => {
-  const context = { projectRoot: dir, config: FileUtils.getMinimalDefaultConfig() };
-  return [GitHookComplianceLaw.check(context), GitHooksStandardsLaw.check(context)];
+  const context = {
+    projectRoot: dir,
+    config: FileUtils.getMinimalDefaultConfig(),
+  };
+  return [
+    GitHookComplianceLaw.check(context),
+    GitHooksStandardsLaw.check(context),
+  ];
 };
 const notInstalled = (result: LawResult): string | undefined =>
-  (result.violations ?? []).find(v => v.includes('not installed in this checkout'));
+  (result.violations ?? []).find(v =>
+    v.includes('not installed in this checkout')
+  );
 
 describe('#380 a committed hook is active only when git runs it', () => {
   const saved = { CI: process.env.CI, HUSKY: process.env.HUSKY };
@@ -74,10 +109,13 @@ describe('#380 a committed hook is active only when git runs it', () => {
     const dir = committedHooks();
     const hooksDir = resolveGitHooksDir(dir) as string;
 
-    for (const hook of HOOKS) expect(resolveGitHookStatus(dir, hooksDir, hook)).toBe('not-installed');
+    for (const hook of HOOKS)
+      expect(resolveGitHookStatus(dir, hooksDir, hook)).toBe('not-installed');
     for (const result of judge(dir)) {
       expect(result.passed).toBe(false);
-      expect(notInstalled(result)).toMatch(/core\.hooksPath is unset.*npx husky/);
+      expect(notInstalled(result)).toMatch(
+        /core\.hooksPath is unset.*npx husky/
+      );
       expect(result.metrics?.checked).toBe('installed-in-this-checkout');
     }
   });
@@ -88,10 +126,13 @@ describe('#380 a committed hook is active only when git runs it', () => {
     expect(git(dir, 'config', '--get', 'core.hooksPath')).toBe('.husky/_');
     const hooksDir = resolveGitHooksDir(dir) as string;
 
-    for (const hook of HOOKS) expect(resolveGitHookStatus(dir, hooksDir, hook)).toBe('active');
+    for (const hook of HOOKS)
+      expect(resolveGitHookStatus(dir, hooksDir, hook)).toBe('active');
     for (const result of judge(dir)) {
       expect(notInstalled(result)).toBeUndefined();
-      expect(result.metrics?.hooks).toEqual(expect.objectContaining({ 'pre-commit': 'active' }));
+      expect(result.metrics?.hooks).toEqual(
+        expect.objectContaining({ 'pre-commit': 'active' })
+      );
     }
   });
 
@@ -100,8 +141,12 @@ describe('#380 a committed hook is active only when git runs it', () => {
     runHusky(dir);
     fs.rmSync(path.join(dir, '.husky', 'pre-push'));
 
-    expect(resolveGitHookStatus(dir, resolveGitHooksDir(dir) as string, 'pre-push')).toBe('missing');
-    expect(resolveGitHookStatus(dir, resolveGitHooksDir(dir) as string, 'pre-commit')).toBe('active');
+    expect(
+      resolveGitHookStatus(dir, resolveGitHooksDir(dir) as string, 'pre-push')
+    ).toBe('missing');
+    expect(
+      resolveGitHookStatus(dir, resolveGitHooksDir(dir) as string, 'pre-commit')
+    ).toBe('active');
   });
 
   it('reads core.hooksPath through git from a linked worktree', () => {
@@ -110,26 +155,41 @@ describe('#380 a committed hook is active only when git runs it', () => {
     const worktree = path.join(path.dirname(dir), `${path.basename(dir)}-wt`);
     dirs.push(worktree);
     git(dir, 'worktree', 'add', '-q', '-b', 'feature/wt', worktree);
-    fs.cpSync(path.join(dir, '.husky', '_'), path.join(worktree, '.husky', '_'), { recursive: true });
+    fs.cpSync(
+      path.join(dir, '.husky', '_'),
+      path.join(worktree, '.husky', '_'),
+      { recursive: true }
+    );
 
     const hooksDir = resolveGitHooksDir(worktree) as string;
-    expect(fs.realpathSync(hooksDir)).toBe(fs.realpathSync(path.join(worktree, '.husky', '_')));
-    expect(resolveGitHookStatus(worktree, hooksDir, 'pre-commit')).toBe('active');
+    expect(fs.realpathSync(hooksDir)).toBe(
+      fs.realpathSync(path.join(worktree, '.husky', '_'))
+    );
+    expect(resolveGitHookStatus(worktree, hooksDir, 'pre-commit')).toBe(
+      'active'
+    );
   });
 
   it.each([
     ['CI=true', { CI: 'true' }],
     ['HUSKY=0', { HUSKY: '0' }],
-  ])('a CI checkout (%s): committed but not installed is not a failure, and the verdict says what it checked', (_label, env) => {
-    Object.assign(process.env, env);
-    const dir = committedHooks();
-    const hooksDir = resolveGitHooksDir(dir) as string;
+  ])(
+    'a CI checkout (%s): committed but not installed is not a failure, and the verdict says what it checked',
+    (_label, env) => {
+      Object.assign(process.env, env);
+      const dir = committedHooks();
+      const hooksDir = resolveGitHooksDir(dir) as string;
 
-    expect(resolveGitHookStatus(dir, hooksDir, 'pre-commit')).toBe('ci-not-installed');
-    for (const result of judge(dir)) {
-      expect(notInstalled(result)).toBeUndefined();
-      expect(result.metrics?.checked).toBe('committed-configuration-only');
-      expect(result.message).toMatch(/not installed in this CI checkout .*installation not checked/);
+      expect(resolveGitHookStatus(dir, hooksDir, 'pre-commit')).toBe(
+        'ci-not-installed'
+      );
+      for (const result of judge(dir)) {
+        expect(notInstalled(result)).toBeUndefined();
+        expect(result.metrics?.checked).toBe('committed-configuration-only');
+        expect(result.message).toMatch(
+          /not installed in this CI checkout .*installation not checked/
+        );
+      }
     }
-  });
+  );
 });

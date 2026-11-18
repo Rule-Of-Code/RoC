@@ -20,63 +20,81 @@ import { PerformanceBudgetsConstants } from '../../../src/laws/performance/perfo
 describe('BundleOptimizationConstants', () => {
   describe('ANGULAR_OPTIMIZATION_PATTERNS', () => {
     it('should include optimization true pattern', () => {
-      expect(BundleOptimizationConstants.ANGULAR_OPTIMIZATION_PATTERNS).toContain(
-        '"optimization": true'
-      );
+      expect(
+        BundleOptimizationConstants.ANGULAR_OPTIMIZATION_PATTERNS
+      ).toContain('"optimization": true');
     });
 
     it('should include buildOptimizer true pattern', () => {
-      expect(BundleOptimizationConstants.ANGULAR_OPTIMIZATION_PATTERNS).toContain(
-        '"buildOptimizer": true'
-      );
+      expect(
+        BundleOptimizationConstants.ANGULAR_OPTIMIZATION_PATTERNS
+      ).toContain('"buildOptimizer": true');
     });
   });
 
   describe('WEBPACK_OPTIMIZATION_MARKERS', () => {
     it('should include optimization', () => {
-      expect(BundleOptimizationConstants.WEBPACK_OPTIMIZATION_MARKERS).toContain('optimization');
+      expect(
+        BundleOptimizationConstants.WEBPACK_OPTIMIZATION_MARKERS
+      ).toContain('optimization');
     });
 
     it('should include minimize', () => {
-      expect(BundleOptimizationConstants.WEBPACK_OPTIMIZATION_MARKERS).toContain('minimize');
+      expect(
+        BundleOptimizationConstants.WEBPACK_OPTIMIZATION_MARKERS
+      ).toContain('minimize');
     });
 
     it('should include minimizer', () => {
-      expect(BundleOptimizationConstants.WEBPACK_OPTIMIZATION_MARKERS).toContain('minimizer');
+      expect(
+        BundleOptimizationConstants.WEBPACK_OPTIMIZATION_MARKERS
+      ).toContain('minimizer');
     });
   });
 
   describe('hasAngularOptimization', () => {
     it('should return true when optimization is enabled', () => {
       const content = '{ "optimization": true }';
-      expect(BundleOptimizationConstants.hasAngularOptimization(content)).toBe(true);
+      expect(BundleOptimizationConstants.hasAngularOptimization(content)).toBe(
+        true
+      );
     });
 
     it('should return true when buildOptimizer is enabled', () => {
       const content = '{ "buildOptimizer": true }';
-      expect(BundleOptimizationConstants.hasAngularOptimization(content)).toBe(true);
+      expect(BundleOptimizationConstants.hasAngularOptimization(content)).toBe(
+        true
+      );
     });
 
     it('should return false when no optimization patterns found', () => {
       const content = '{ "optimization": false }';
-      expect(BundleOptimizationConstants.hasAngularOptimization(content)).toBe(false);
+      expect(BundleOptimizationConstants.hasAngularOptimization(content)).toBe(
+        false
+      );
     });
   });
 
   describe('hasWebpackOptimization', () => {
     it('should return true when optimization is present', () => {
       const content = 'module.exports = { optimization: {} }';
-      expect(BundleOptimizationConstants.hasWebpackOptimization(content)).toBe(true);
+      expect(BundleOptimizationConstants.hasWebpackOptimization(content)).toBe(
+        true
+      );
     });
 
     it('should return true when minimize is present', () => {
       const content = 'module.exports = { minimize: true }';
-      expect(BundleOptimizationConstants.hasWebpackOptimization(content)).toBe(true);
+      expect(BundleOptimizationConstants.hasWebpackOptimization(content)).toBe(
+        true
+      );
     });
 
     it('should return false when no optimization patterns found', () => {
       const content = 'module.exports = {}';
-      expect(BundleOptimizationConstants.hasWebpackOptimization(content)).toBe(false);
+      expect(BundleOptimizationConstants.hasWebpackOptimization(content)).toBe(
+        false
+      );
     });
   });
 });
@@ -84,66 +102,93 @@ describe('BundleOptimizationConstants', () => {
 describe('CachingStrategyConstants', () => {
   describe('SERVICE_WORKER_PATHS', () => {
     it('should include src/sw.js', () => {
-      expect(CachingStrategyConstants.SERVICE_WORKER_PATHS).toContain('src/sw.js');
+      expect(CachingStrategyConstants.SERVICE_WORKER_PATHS).toContain(
+        'src/sw.js'
+      );
     });
 
     it('should include src/service-worker.js', () => {
-      expect(CachingStrategyConstants.SERVICE_WORKER_PATHS).toContain('src/service-worker.js');
+      expect(CachingStrategyConstants.SERVICE_WORKER_PATHS).toContain(
+        'src/service-worker.js'
+      );
     });
 
     it('should include public/sw.js', () => {
-      expect(CachingStrategyConstants.SERVICE_WORKER_PATHS).toContain('public/sw.js');
+      expect(CachingStrategyConstants.SERVICE_WORKER_PATHS).toContain(
+        'public/sw.js'
+      );
     });
   });
 
   describe('SERVICE_WORKER_FILE_PATTERNS', () => {
     it('should include sw.js pattern', () => {
-      expect(CachingStrategyConstants.SERVICE_WORKER_FILE_PATTERNS).toContain('sw.js');
+      expect(CachingStrategyConstants.SERVICE_WORKER_FILE_PATTERNS).toContain(
+        'sw.js'
+      );
     });
 
     it('should include service-worker.js pattern', () => {
-      expect(CachingStrategyConstants.SERVICE_WORKER_FILE_PATTERNS).toContain('service-worker.js');
+      expect(CachingStrategyConstants.SERVICE_WORKER_FILE_PATTERNS).toContain(
+        'service-worker.js'
+      );
     });
   });
 
   describe('SERVICE_WORKER_MARKERS', () => {
     it('should include serviceWorker', () => {
-      expect(CachingStrategyConstants.SERVICE_WORKER_MARKERS).toContain('serviceWorker');
+      expect(CachingStrategyConstants.SERVICE_WORKER_MARKERS).toContain(
+        'serviceWorker'
+      );
     });
 
     it('should include cache.put', () => {
-      expect(CachingStrategyConstants.SERVICE_WORKER_MARKERS).toContain('cache.put');
+      expect(CachingStrategyConstants.SERVICE_WORKER_MARKERS).toContain(
+        'cache.put'
+      );
     });
   });
 
   describe('isServiceWorkerFile', () => {
     it('should return true for sw.js file', () => {
-      expect(CachingStrategyConstants.isServiceWorkerFile('src/sw.js')).toBe(true);
+      expect(CachingStrategyConstants.isServiceWorkerFile('src/sw.js')).toBe(
+        true
+      );
     });
 
     it('should return true for service-worker.js file', () => {
-      expect(CachingStrategyConstants.isServiceWorkerFile('src/service-worker.js')).toBe(true);
+      expect(
+        CachingStrategyConstants.isServiceWorkerFile('src/service-worker.js')
+      ).toBe(true);
     });
 
     it('should return false for regular js file', () => {
-      expect(CachingStrategyConstants.isServiceWorkerFile('src/main.js')).toBe(false);
+      expect(CachingStrategyConstants.isServiceWorkerFile('src/main.js')).toBe(
+        false
+      );
     });
   });
 
   describe('hasServiceWorkerConfig', () => {
     it('should return true when serviceWorker is present', () => {
       const content = '{ "serviceWorker": true }';
-      expect(CachingStrategyConstants.hasServiceWorkerConfig(content)).toBe(true);
+      expect(CachingStrategyConstants.hasServiceWorkerConfig(content)).toBe(
+        true
+      );
     });
 
     it('should return true when @angular/service-worker is present', () => {
-      const content = 'import { ServiceWorkerModule } from "@angular/service-worker"';
-      expect(CachingStrategyConstants.hasServiceWorkerConfig(content)).toBe(true);
+      const content =
+        'import { ServiceWorkerModule } from "@angular/service-worker"';
+      expect(CachingStrategyConstants.hasServiceWorkerConfig(content)).toBe(
+        true
+      );
     });
 
     it('should return false when no service worker patterns found', () => {
       const content = 'import { Component } from "@angular/core"';
-      expect(CachingStrategyConstants.hasServiceWorkerConfig(content)).toBe(false);
+      expect(CachingStrategyConstants.hasServiceWorkerConfig(content)).toBe(
+        false
+      );
     });
   });
 });
@@ -167,7 +212,9 @@ describe('CoreWebVitalsConstants', () => {
     });
 
     it('should have VITALS_DEPENDENCY same as VITALS_LIBRARY', () => {
-      expect(CoreWebVitalsConstants.VITALS_DEPENDENCY).toBe(CoreWebVitalsConstants.VITALS_LIBRARY);
+      expect(CoreWebVitalsConstants.VITALS_DEPENDENCY).toBe(
+        CoreWebVitalsConstants.VITALS_LIBRARY
+      );
     });
   });
 
@@ -212,7 +259,9 @@ describe('CoreWebVitalsConstants', () => {
 
     it('should return false when web-vitals not in package.json', () => {
       const content = '{ "dependencies": { "lodash": "^4.0.0" } }';
-      expect(CoreWebVitalsConstants.hasWebVitalsDependency(content)).toBe(false);
+      expect(CoreWebVitalsConstants.hasWebVitalsDependency(content)).toBe(
+        false
+      );
     });
   });
 
@@ -257,7 +306,9 @@ describe('ImageOptimizationConstants', () => {
     });
 
     it('should include @angular/common', () => {
-      expect(ImageOptimizationConstants.IMAGE_TOOLS).toContain('@angular/common');
+      expect(ImageOptimizationConstants.IMAGE_TOOLS).toContain(
+        '@angular/common'
+      );
     });
   });
 
@@ -269,41 +320,55 @@ describe('ImageOptimizationConstants', () => {
     });
 
     it('should include NgOptimizedImage', () => {
-      expect(ImageOptimizationConstants.IMAGE_OPTIMIZATION_MARKERS).toContain('NgOptimizedImage');
+      expect(ImageOptimizationConstants.IMAGE_OPTIMIZATION_MARKERS).toContain(
+        'NgOptimizedImage'
+      );
     });
   });
 
   describe('hasImageOptimizationTools', () => {
     it('should return true when sharp is in dependencies', () => {
       const content = '{ "dependencies": { "sharp": "^0.32.0" } }';
-      expect(ImageOptimizationConstants.hasImageOptimizationTools(content)).toBe(true);
+      expect(
+        ImageOptimizationConstants.hasImageOptimizationTools(content)
+      ).toBe(true);
     });
 
     it('should return true when imagemin is in dependencies', () => {
       const content = '{ "dependencies": { "imagemin": "^8.0.0" } }';
-      expect(ImageOptimizationConstants.hasImageOptimizationTools(content)).toBe(true);
+      expect(
+        ImageOptimizationConstants.hasImageOptimizationTools(content)
+      ).toBe(true);
     });
 
     it('should return false when no image tools', () => {
       const content = '{ "dependencies": { "lodash": "^4.0.0" } }';
-      expect(ImageOptimizationConstants.hasImageOptimizationTools(content)).toBe(false);
+      expect(
+        ImageOptimizationConstants.hasImageOptimizationTools(content)
+      ).toBe(false);
     });
   });
 
   describe('hasImageOptimizationConfig', () => {
     it('should return true when provideImageOptimization is present', () => {
       const content = 'provideImageOptimization()';
-      expect(ImageOptimizationConstants.hasImageOptimizationConfig(content)).toBe(true);
+      expect(
+        ImageOptimizationConstants.hasImageOptimizationConfig(content)
+      ).toBe(true);
     });
 
     it('should return true when NgOptimizedImage is present', () => {
       const content = 'import { NgOptimizedImage } from "@angular/common"';
-      expect(ImageOptimizationConstants.hasImageOptimizationConfig(content)).toBe(true);
+      expect(
+        ImageOptimizationConstants.hasImageOptimizationConfig(content)
+      ).toBe(true);
     });
 
     it('should return false when no image optimization config', () => {
       const content = 'import { Component } from "@angular/core"';
-      expect(ImageOptimizationConstants.hasImageOptimizationConfig(content)).toBe(false);
+      expect(
+        ImageOptimizationConstants.hasImageOptimizationConfig(content)
+      ).toBe(false);
     });
   });
 });
@@ -311,7 +376,9 @@ describe('ImageOptimizationConstants', () => {
 describe('LighthouseConstants', () => {
   describe('CONFIG_PATHS', () => {
     it('should include lighthouse.config.js', () => {
-      expect(LighthouseConstants.CONFIG_PATHS).toContain('lighthouse.config.js');
+      expect(LighthouseConstants.CONFIG_PATHS).toContain(
+        'lighthouse.config.js'
+      );
     });
 
     it('should include .lighthouserc.json', () => {
@@ -319,7 +386,9 @@ describe('LighthouseConstants', () => {
     });
 
     it('should include config/lighthouse.config.js', () => {
-      expect(LighthouseConstants.CONFIG_PATHS).toContain('config/lighthouse.config.js');
+      expect(LighthouseConstants.CONFIG_PATHS).toContain(
+        'config/lighthouse.config.js'
+      );
     });
   });
 
@@ -337,15 +406,21 @@ describe('LighthouseConstants', () => {
 
   describe('isLighthouseConfig', () => {
     it('should return true for lighthouse.config.js', () => {
-      expect(LighthouseConstants.isLighthouseConfig('lighthouse.config.js')).toBe(true);
+      expect(
+        LighthouseConstants.isLighthouseConfig('lighthouse.config.js')
+      ).toBe(true);
     });
 
     it('should return true for .lighthouserc.json', () => {
-      expect(LighthouseConstants.isLighthouseConfig('.lighthouserc.json')).toBe(true);
+      expect(LighthouseConstants.isLighthouseConfig('.lighthouserc.json')).toBe(
+        true
+      );
     });
 
     it('should return false for regular config file', () => {
-      expect(LighthouseConstants.isLighthouseConfig('webpack.config.js')).toBe(false);
+      expect(LighthouseConstants.isLighthouseConfig('webpack.config.js')).toBe(
+        false
+      );
     });
   });
 
@@ -370,37 +445,51 @@ describe('LighthouseConstants', () => {
 describe('PerformanceBudgetsConstants', () => {
   describe('ANGULAR_BUDGET_PATTERNS', () => {
     it('should include budgets', () => {
-      expect(PerformanceBudgetsConstants.ANGULAR_BUDGET_PATTERNS).toContain('budgets');
+      expect(PerformanceBudgetsConstants.ANGULAR_BUDGET_PATTERNS).toContain(
+        'budgets'
+      );
     });
 
     it('should include maximumError', () => {
-      expect(PerformanceBudgetsConstants.ANGULAR_BUDGET_PATTERNS).toContain('maximumError');
+      expect(PerformanceBudgetsConstants.ANGULAR_BUDGET_PATTERNS).toContain(
+        'maximumError'
+      );
     });
   });
 
   describe('WEBPACK_PERFORMANCE_PATTERNS', () => {
     it('should include performance', () => {
-      expect(PerformanceBudgetsConstants.WEBPACK_PERFORMANCE_PATTERNS).toContain('performance');
+      expect(
+        PerformanceBudgetsConstants.WEBPACK_PERFORMANCE_PATTERNS
+      ).toContain('performance');
     });
 
     it('should include maxAssetSize', () => {
-      expect(PerformanceBudgetsConstants.WEBPACK_PERFORMANCE_PATTERNS).toContain('maxAssetSize');
+      expect(
+        PerformanceBudgetsConstants.WEBPACK_PERFORMANCE_PATTERNS
+      ).toContain('maxAssetSize');
     });
   });
 
   describe('ANGULAR_BUDGET_MARKERS', () => {
     it('should include budgets', () => {
-      expect(PerformanceBudgetsConstants.ANGULAR_BUDGET_MARKERS).toContain('budgets');
+      expect(PerformanceBudgetsConstants.ANGULAR_BUDGET_MARKERS).toContain(
+        'budgets'
+      );
     });
 
     it('should include maximumWarning', () => {
-      expect(PerformanceBudgetsConstants.ANGULAR_BUDGET_MARKERS).toContain('maximumWarning');
+      expect(PerformanceBudgetsConstants.ANGULAR_BUDGET_MARKERS).toContain(
+        'maximumWarning'
+      );
     });
   });
 
   describe('WEBPACK_BUDGET_MARKERS', () => {
     it('should include maxEntrypointSize', () => {
-      expect(PerformanceBudgetsConstants.WEBPACK_BUDGET_MARKERS).toContain('maxEntrypointSize');
+      expect(PerformanceBudgetsConstants.WEBPACK_BUDGET_MARKERS).toContain(
+        'maxEntrypointSize'
+      );
     });
   });
 
@@ -417,24 +506,32 @@ describe('PerformanceBudgetsConstants', () => {
 
     it('should return false when no budget patterns', () => {
       const content = '{ "optimization": true }';
-      expect(PerformanceBudgetsConstants.hasAngularBudgets(content)).toBe(false);
+      expect(PerformanceBudgetsConstants.hasAngularBudgets(content)).toBe(
+        false
+      );
     });
   });
 
   describe('hasWebpackPerformance', () => {
     it('should return true when performance is present', () => {
       const content = 'module.exports = { performance: {} }';
-      expect(PerformanceBudgetsConstants.hasWebpackPerformance(content)).toBe(true);
+      expect(PerformanceBudgetsConstants.hasWebpackPerformance(content)).toBe(
+        true
+      );
     });
 
     it('should return true when maxAssetSize is present', () => {
       const content = 'module.exports = { maxAssetSize: 500000 }';
-      expect(PerformanceBudgetsConstants.hasWebpackPerformance(content)).toBe(true);
+      expect(PerformanceBudgetsConstants.hasWebpackPerformance(content)).toBe(
+        true
+      );
     });
 
     it('should return false when no webpack performance patterns', () => {
       const content = 'module.exports = { entry: "./src" }';
-      expect(PerformanceBudgetsConstants.hasWebpackPerformance(content)).toBe(false);
+      expect(PerformanceBudgetsConstants.hasWebpackPerformance(content)).toBe(
+        false
+      );
     });
   });
 });

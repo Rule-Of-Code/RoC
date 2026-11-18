@@ -24,7 +24,11 @@ import { glob } from 'glob';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
-import { clientGraph, envReads, type NextModuleGraph } from '../../utils/react/next-module-graph';
+import {
+  clientGraph,
+  envReads,
+  type NextModuleGraph,
+} from '../../utils/react/next-module-graph';
 import { NextThresholds } from '../../utils/react/next-thresholds';
 import { ReactProject } from '../../utils/react/react-project';
 import { LawBase } from '../law-base';
@@ -33,10 +37,21 @@ import { listed, readProject } from './next-server-support';
 const PREFIX = 'NEXT_PUBLIC_';
 const SECRET_WORDS = ['SECRET', 'TOKEN', 'PASSWORD', 'PRIVATE', 'KEY'];
 const NEXT_BUILD = /\bnext\s+build\b/;
-const GENERIC_BUILD = /\b(?:(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?build\b|turbo\s+(?:run\s+)?build\b|nx\s+(?:run\s+\S*:build|build|run-many\b.*\bbuild))/;
-const SCAN_IGNORE = ['**/node_modules/**', '**/.next/**', '**/dist/**', '**/.git/**'];
+const GENERIC_BUILD =
+  /\b(?:(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?build\b|turbo\s+(?:run\s+)?build\b|nx\s+(?:run\s+\S*:build|build|run-many\b.*\bbuild))/;
+const SCAN_IGNORE = [
+  '**/node_modules/**',
+  '**/.next/**',
+  '**/dist/**',
+  '**/.git/**',
+];
 const DOCKERFILES = '**/{Dockerfile,Dockerfile.*,*.Dockerfile,*.dockerfile}';
-const CI_FILES = ['.github/workflows/*.{yml,yaml}', '.gitlab-ci.yml', 'bitbucket-pipelines.yml', 'azure-pipelines.yml'];
+const CI_FILES = [
+  '.github/workflows/*.{yml,yaml}',
+  '.gitlab-ci.yml',
+  'bitbucket-pipelines.yml',
+  'azure-pipelines.yml',
+];
 const ALLOWED_KEY = 'thresholds.next.publicEnvAllowed';
 const SOURCE_KEY = 'thresholds.next.publicEnvBuildSource';
 
@@ -57,17 +72,34 @@ export class NextPublicEnvIsBuildTimeLaw extends LawBase {
     for (const file of sources) {
       for (const read of envReads(file)) {
         // Only an inlined read takes its value from the build.
-        if (read.inlined && read.name?.startsWith(PREFIX) && !reads.has(read.name)) {
-          reads.set(read.name, `${graph?.relative(file.fileName) ?? file.fileName}:${read.line}`);
+        if (
+          read.inlined &&
+          read.name?.startsWith(PREFIX) &&
+          !reads.has(read.name)
+        ) {
+          reads.set(
+            read.name,
+            `${graph?.relative(file.fileName) ?? file.fileName}:${read.line}`
+          );
         }
       }
     }
     const sites = this.buildSites(context.projectRoot);
     const dotenv = this.dotenvNames(context.projectRoot);
-    if (reads.size > 0 && !source.value) violations.push(...this.undeclared(reads, sites, dotenv));
+    if (reads.size > 0 && !source.value)
+      violations.push(...this.undeclared(reads, sites, dotenv));
     if (graph) violations.push(...this.computedInClient(graph, context));
-    const names = new Set([...reads.keys(), ...dotenv, ...sites.flatMap(site => [...site.declared])]);
-    violations.push(...this.secretLooking(names, new Set((allowed.value ?? []).map(entry => entry.key))));
+    const names = new Set([
+      ...reads.keys(),
+      ...dotenv,
+      ...sites.flatMap(site => [...site.declared]),
+    ]);
+    violations.push(
+      ...this.secretLooking(
+        names,
+        new Set((allowed.value ?? []).map(entry => entry.key))
+      )
+    );
     return this.createResult(
       violations,
       this.LAW_NAME,
@@ -83,8 +115,14 @@ export class NextPublicEnvIsBuildTimeLaw extends LawBase {
   }
 
   /** Rule 2: computed, destructured or whole-object process.env in a client graph module. */
-  private static computedInClient(graph: NextModuleGraph, context: LawCheckContext): string[] {
-    const client = clientGraph(graph, ReactProject.nextApps(context.projectRoot));
+  private static computedInClient(
+    graph: NextModuleGraph,
+    context: LawCheckContext
+  ): string[] {
+    const client = clientGraph(
+      graph,
+      ReactProject.nextApps(context.projectRoot)
+    );
     const violations: string[] = [];
     for (const [file, visit] of client.modules) {
       for (const read of envReads(visit.source).filter(r => !r.inlined)) {
@@ -93,14 +131,22 @@ export class NextPublicEnvIsBuildTimeLaw extends LawBase {
         );
       }
     }
-    return [...violations, ...client.unresolved.map(item => graph.describeUnresolved(item))];
+    return [
+      ...violations,
+      ...client.unresolved.map(item => graph.describeUnresolved(item)),
+    ];
   }
 
   /** Rule 3: NEXT_PUBLIC_ names that read like secrets and are not allowed with a reason. */
-  private static secretLooking(names: Set<string>, exempt: Set<string>): string[] {
+  private static secretLooking(
+    names: Set<string>,
+    exempt: Set<string>
+  ): string[] {
     const violations: string[] = [];
     for (const name of [...names].sort()) {
-      const word = SECRET_WORDS.find(w => name.slice(PREFIX.length).includes(w));
+      const word = SECRET_WORDS.find(w =>
+        name.slice(PREFIX.length).includes(w)
+      );
       if (!name.startsWith(PREFIX) || !word || exempt.has(name)) continue;
       violations.push(
         `${name}: a NEXT_PUBLIC_ name containing ${word} — its value is in the JavaScript every visitor downloads. Keep secrets server-side, or list a publishable value in ${ALLOWED_KEY} with the reason`
@@ -109,7 +155,11 @@ export class NextPublicEnvIsBuildTimeLaw extends LawBase {
     return violations;
   }
 
-  private static undeclared(reads: Map<string, string>, sites: BuildSite[], dotenv: Set<string>): string[] {
+  private static undeclared(
+    reads: Map<string, string>,
+    sites: BuildSite[],
+    dotenv: Set<string>
+  ): string[] {
     const names = [...reads.keys()].filter(name => !dotenv.has(name)).sort();
     if (names.length === 0) return [];
     if (sites.length === 0) {
@@ -121,24 +171,44 @@ export class NextPublicEnvIsBuildTimeLaw extends LawBase {
       const missing = names.filter(name => !site.declared.has(name));
       return missing.length === 0
         ? []
-        : [`${site.where}: builds Next without ${listed(missing)} — each is inlined as undefined, and setting it at runtime changes nothing. Add ARG ${missing[0]} (and the rest) before the build`];
+        : [
+            `${site.where}: builds Next without ${listed(missing)} — each is inlined as undefined, and setting it at runtime changes nothing. Add ARG ${missing[0]} (and the rest) before the build`,
+          ];
     });
   }
 
   /** Dockerfile stages that build Next; when there are none, CI files that do. */
   static buildSites(projectRoot: string): BuildSite[] {
     const docker = glob
-      .sync(DOCKERFILES, { cwd: projectRoot, absolute: true, dot: true, ignore: SCAN_IGNORE })
+      .sync(DOCKERFILES, {
+        cwd: projectRoot,
+        absolute: true,
+        dot: true,
+        ignore: SCAN_IGNORE,
+      })
       .flatMap(file => this.dockerSites(projectRoot, file));
     if (docker.length > 0) return docker;
     return glob
-      .sync(CI_FILES, { cwd: projectRoot, absolute: true, dot: true, ignore: SCAN_IGNORE })
+      .sync(CI_FILES, {
+        cwd: projectRoot,
+        absolute: true,
+        dot: true,
+        ignore: SCAN_IGNORE,
+      })
       .flatMap(file => {
         const text = FileUtils.readFileContentSync(file) ?? '';
-        const builds = NEXT_BUILD.test(text) || (GENERIC_BUILD.test(text) && /\.next\b|NEXT_PUBLIC_/.test(text));
+        const builds =
+          NEXT_BUILD.test(text) ||
+          (GENERIC_BUILD.test(text) && /\.next\b|NEXT_PUBLIC_/.test(text));
         if (!builds) return [];
-        const declared = new Set([...text.matchAll(/\b(NEXT_PUBLIC_[A-Z0-9_]+)\s*[:=]/g)].map(m => m[1] as string));
-        return [{ where: PathOperations.getRelative(projectRoot, file), declared }];
+        const declared = new Set(
+          [...text.matchAll(/\b(NEXT_PUBLIC_[A-Z0-9_]+)\s*[:=]/g)].map(
+            m => m[1] as string
+          )
+        );
+        return [
+          { where: PathOperations.getRelative(projectRoot, file), declared },
+        ];
       });
   }
 
@@ -158,10 +228,17 @@ export class NextPublicEnvIsBuildTimeLaw extends LawBase {
       if (upper === 'FROM') declared = new Set();
       if (upper === 'ARG') declared.add(rest.split('=')[0]?.trim() ?? '');
       if (upper === 'ENV') {
-        for (const match of rest.matchAll(/(?:^|\s)([A-Za-z_]\w*)(?==|\s)/g)) declared.add(match[1] as string);
+        for (const match of rest.matchAll(/(?:^|\s)([A-Za-z_]\w*)(?==|\s)/g))
+          declared.add(match[1] as string);
       }
-      if (upper === 'RUN' && (NEXT_BUILD.test(rest) || (generic && GENERIC_BUILD.test(rest)))) {
-        sites.push({ where: `${PathOperations.getRelative(projectRoot, file)}:${index + 1}`, declared: new Set(declared) });
+      if (
+        upper === 'RUN' &&
+        (NEXT_BUILD.test(rest) || (generic && GENERIC_BUILD.test(rest)))
+      ) {
+        sites.push({
+          where: `${PathOperations.getRelative(projectRoot, file)}:${index + 1}`,
+          declared: new Set(declared),
+        });
       }
     });
     return sites;
@@ -172,8 +249,13 @@ export class NextPublicEnvIsBuildTimeLaw extends LawBase {
     const names = new Set<string>();
     for (const app of ReactProject.nextApps(projectRoot)) {
       for (const name of ['.env', '.env.production']) {
-        const text = FileUtils.readFileContentSync(PathOperations.join(app.root, name)) ?? '';
-        for (const match of text.matchAll(/^\s*(?:export\s+)?(NEXT_PUBLIC_[A-Z0-9_]+)\s*=/gm)) names.add(match[1] as string);
+        const text =
+          FileUtils.readFileContentSync(PathOperations.join(app.root, name)) ??
+          '';
+        for (const match of text.matchAll(
+          /^\s*(?:export\s+)?(NEXT_PUBLIC_[A-Z0-9_]+)\s*=/gm
+        ))
+          names.add(match[1] as string);
       }
     }
     return names;

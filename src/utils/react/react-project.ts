@@ -47,7 +47,10 @@ export interface NextApp {
   pagesDirs: string[];
 }
 
-type Manifest = { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
+type Manifest = {
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+};
 
 export class ReactProject {
   /**
@@ -68,13 +71,18 @@ export class ReactProject {
   }
 
   /** Parse `files` with the project's TypeScript; see ParsedSources for the contract. */
-  static parse(context: LawCheckContext, files: readonly string[]): ParsedSources {
+  static parse(
+    context: LawCheckContext,
+    files: readonly string[]
+  ): ParsedSources {
     if (files.length === 0) return { sources: [], unread: [] };
     const ts: TypeScriptModule | null = loadTypeScript(context.projectRoot);
     if (!ts) {
       return {
         sources: [],
-        unread: [`${files.length} file(s): ${parserUnavailable(context.projectRoot)}`],
+        unread: [
+          `${files.length} file(s): ${parserUnavailable(context.projectRoot)}`,
+        ],
       };
     }
     const sources: TsxSource[] = [];
@@ -91,7 +99,9 @@ export class ReactProject {
       const [syntaxError] = source.parseErrors();
       if (syntaxError) {
         // Half a tree is not a reading: the code after the error is not in it.
-        unread.push(`${this.relative(context, file)}: could not be parsed (${syntaxError}) — its code was NOT read`);
+        unread.push(
+          `${this.relative(context, file)}: could not be parsed (${syntaxError}) — its code was NOT read`
+        );
         continue;
       }
       sources.push(source);
@@ -107,7 +117,10 @@ export class ReactProject {
   /** Every workspace package that declares `next`, with its router directories. */
   static nextApps(projectRoot: string): NextApp[] {
     const apps: NextApp[] = [];
-    for (const manifestFile of NxWorkspace.resolveSourceFiles(projectRoot, 'package.json')) {
+    for (const manifestFile of NxWorkspace.resolveSourceFiles(
+      projectRoot,
+      'package.json'
+    )) {
       let manifest: Manifest | null = null;
       try {
         manifest = FileSystemOperations.readJsonFile<Manifest>(manifestFile);

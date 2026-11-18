@@ -59,8 +59,7 @@ export class CdnAnalyzerService extends PerformanceAnalyzerBase {
           angularJsonPath
         );
       const projects = angularJson.projects as
-        | Record<string, unknown>
-        | undefined;
+        Record<string, unknown> | undefined;
       if (!projects) return false;
 
       for (const project of Object.values(projects)) {

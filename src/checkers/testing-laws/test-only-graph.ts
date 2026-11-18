@@ -49,7 +49,10 @@ export function readsEnvironment(ts: TypeScriptModule, node: TS.Node): boolean {
 }
 
 /** True when `node` sits in a branch taken only under a condition that reads `process.env`. */
-export function underEnvironmentCondition(ts: TypeScriptModule, node: TS.Node): boolean {
+export function underEnvironmentCondition(
+  ts: TypeScriptModule,
+  node: TS.Node
+): boolean {
   let child: TS.Node = node;
   let parent: TS.Node | undefined = node.parent;
   while (parent) {
@@ -60,14 +63,23 @@ export function underEnvironmentCondition(ts: TypeScriptModule, node: TS.Node): 
   return false;
 }
 
-function isGuardedBranch(ts: TypeScriptModule, parent: TS.Node, child: TS.Node): boolean {
+function isGuardedBranch(
+  ts: TypeScriptModule,
+  parent: TS.Node,
+  child: TS.Node
+): boolean {
   if (ts.isIfStatement(parent)) {
-    return child !== parent.expression && readsEnvironment(ts, parent.expression);
+    return (
+      child !== parent.expression && readsEnvironment(ts, parent.expression)
+    );
   }
   if (ts.isConditionalExpression(parent)) {
     return child !== parent.condition && readsEnvironment(ts, parent.condition);
   }
-  if (ts.isBinaryExpression(parent) && parent.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken) {
+  if (
+    ts.isBinaryExpression(parent) &&
+    parent.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken
+  ) {
     return child === parent.right && readsEnvironment(ts, parent.left);
   }
   return false;
@@ -81,7 +93,12 @@ export function selfGated(source: TsxSource): boolean {
   const ts = source.ts;
   let gated = false;
   source.walk(node => {
-    if (gated || !ts.isIfStatement(node) || !readsEnvironment(ts, node.expression)) return;
+    if (
+      gated ||
+      !ts.isIfStatement(node) ||
+      !readsEnvironment(ts, node.expression)
+    )
+      return;
     gated = stops(ts, node.thenStatement);
   });
   return gated;
@@ -94,7 +111,9 @@ function stops(ts: TypeScriptModule, branch: TS.Node): boolean {
     if (
       ts.isReturnStatement(node) ||
       ts.isThrowStatement(node) ||
-      (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'notFound')
+      (ts.isCallExpression(node) &&
+        ts.isIdentifier(node.expression) &&
+        node.expression.text === 'notFound')
     ) {
       found = true;
       return;
@@ -119,8 +138,15 @@ export class ImportGraph {
   }
 
   /** The app's compiler options from its tsconfig (extends followed), or none. */
-  private static compilerOptions(ts: TypeScriptModule, appRoot: string): TS.CompilerOptions {
-    const configFile = ts.findConfigFile(appRoot, ts.sys.fileExists, 'tsconfig.json');
+  private static compilerOptions(
+    ts: TypeScriptModule,
+    appRoot: string
+  ): TS.CompilerOptions {
+    const configFile = ts.findConfigFile(
+      appRoot,
+      ts.sys.fileExists,
+      'tsconfig.json'
+    );
     if (!configFile) return { allowJs: true, jsx: ts.JsxEmit.Preserve };
     const read = ts.readConfigFile(configFile, ts.sys.readFile);
     if (read.error) return { allowJs: true, jsx: ts.JsxEmit.Preserve };
@@ -144,11 +170,16 @@ export class ImportGraph {
       // An import the compiler erases (used only as a type) loads nothing.
       const specifier = this.compiled.runtimeSpecifier(source, statement);
       if (specifier === null) continue;
-      add(specifier, ts.isImportDeclaration(statement) && this.importIsGated(source, statement));
+      add(
+        specifier,
+        ts.isImportDeclaration(statement) &&
+          this.importIsGated(source, statement)
+      );
     }
     source.walk(node => {
       const specifier = this.loadedModule(node);
-      if (specifier !== null) add(specifier, underEnvironmentCondition(ts, node));
+      if (specifier !== null)
+        add(specifier, underEnvironmentCondition(ts, node));
     });
     return edges;
   }
@@ -161,18 +192,24 @@ export class ImportGraph {
       node.expression.kind === ts.SyntaxKind.ImportKeyword ||
       (ts.isIdentifier(node.expression) && node.expression.text === 'require');
     const [argument] = node.arguments;
-    return isLoad && argument && ts.isStringLiteralLike(argument) ? argument.text : null;
+    return isLoad && argument && ts.isStringLiteralLike(argument)
+      ? argument.text
+      : null;
   }
 
   /** A static import is gated when every use of what it binds is under an env condition. */
-  private importIsGated(source: TsxSource, statement: TS.ImportDeclaration): boolean {
+  private importIsGated(
+    source: TsxSource,
+    statement: TS.ImportDeclaration
+  ): boolean {
     const ts = this.ts;
     const clause = statement.importClause;
     if (!clause) return false;
     const names = new Set<string>();
     if (clause.name) names.add(clause.name.text);
     const bindings = clause.namedBindings;
-    if (bindings && ts.isNamespaceImport(bindings)) names.add(bindings.name.text);
+    if (bindings && ts.isNamespaceImport(bindings))
+      names.add(bindings.name.text);
     if (bindings && ts.isNamedImports(bindings)) {
       // `type` bindings are erased: where they are written gates nothing.
       for (const element of bindings.elements) {
@@ -181,9 +218,16 @@ export class ImportGraph {
     }
     const uses: TS.Node[] = [];
     source.walk(node => {
-      if (ts.isIdentifier(node) && names.has(node.text) && !this.isInImport(node)) uses.push(node);
+      if (
+        ts.isIdentifier(node) &&
+        names.has(node.text) &&
+        !this.isInImport(node)
+      )
+        uses.push(node);
     });
-    return uses.length > 0 && uses.every(use => underEnvironmentCondition(ts, use));
+    return (
+      uses.length > 0 && uses.every(use => underEnvironmentCondition(ts, use))
+    );
   }
 
   private isInImport(node: TS.Node): boolean {
@@ -197,11 +241,16 @@ export class ImportGraph {
 
   /** The project file a specifier resolves to, or null for a package or an unresolved name. */
   private resolve(specifier: string, from: string): string | null {
-    const resolved = this.ts.resolveModuleName(specifier, from, this.options, this.ts.sys)
-      .resolvedModule;
+    const resolved = this.ts.resolveModuleName(
+      specifier,
+      from,
+      this.options,
+      this.ts.sys
+    ).resolvedModule;
     if (!resolved || resolved.isExternalLibraryImport) return null;
     const file = PathOperations.resolve(resolved.resolvedFileName);
-    if (/\.d\.[cm]?ts$/.test(file) || file.includes('/node_modules/')) return null;
+    if (/\.d\.[cm]?ts$/.test(file) || file.includes('/node_modules/'))
+      return null;
     return PathOperations.isInDirectory(file, this.projectRoot) ? file : null;
   }
 }

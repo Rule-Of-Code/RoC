@@ -227,6 +227,13 @@ import {
   TestServerLoopbackAddressMatchLaw,
   TracingExplainsLatencyLaw,
 } from '../checkers/measurement-laws';
+// Cache and harness laws — read caches, single-flight, route rigs, perf harness
+import {
+  AsyncCacheSingleFlightLaw,
+  DatabaseReadCacheSafetyLaw,
+  PerfHarnessMatchesProductionLaw,
+  TestRigKeepsRouteGuardsLaw,
+} from '../checkers/cache-harness-laws';
 // React Laws Modular Imports — gated by `requires` on react / next
 import {
   NextOpenRedirectGuardedLaw,
@@ -663,6 +670,11 @@ export class ModularLawsRegistry {
     'LatencyBudgetHarnessRealismLaw.check': LatencyBudgetHarnessRealismLaw,
     'TracingExplainsLatencyLaw.check': TracingExplainsLatencyLaw,
     'TestServerLoopbackAddressMatchLaw.check': TestServerLoopbackAddressMatchLaw,
+    // Cache and harness laws
+    'DatabaseReadCacheSafetyLaw.check': DatabaseReadCacheSafetyLaw,
+    'AsyncCacheSingleFlightLaw.check': AsyncCacheSingleFlightLaw,
+    'TestRigKeepsRouteGuardsLaw.check': TestRigKeepsRouteGuardsLaw,
+    'PerfHarnessMatchesProductionLaw.check': PerfHarnessMatchesProductionLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

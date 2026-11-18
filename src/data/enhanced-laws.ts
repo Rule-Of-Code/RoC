@@ -6,6 +6,7 @@
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { ACCESSIBILITY_LAWS } from './accessibility-laws';
 import { ANGULAR_LAWS } from './angular-laws';
+import { CACHE_HARNESS_LAWS } from './cache-harness-laws';
 import { CAPACITOR_BRIDGE_LAWS } from './capacitor-bridge-laws';
 import { CAPACITOR_LAWS } from './capacitor-laws';
 import { CAPACITOR_NATIVE_LAWS } from './capacitor-native-laws';
@@ -66,6 +67,7 @@ export const ALL_ENHANCED_CONSTITUTIONAL_LAWS: EnhancedConstitutionalLaw[] = [
   ...CLIENT_DEPLOY_LAWS, // 🌐 Client start-up and deploy-settings laws (IDs 892+)
   ...MEASUREMENT_LAWS, // ⏱️ Measurement laws (latency budget harness, tracing, test-server loopback; IDs 889–891)
   ...REQUEST_PATH_LAWS, // ⏱️ Request-path laws (Python + TS/JS call sites; IDs 886+)
+  ...CACHE_HARNESS_LAWS, // 🗃️ Cache and harness laws (read caches, single-flight, route rigs, perf harness; IDs 900–903)
 ];
 
 // Re-export for easy access

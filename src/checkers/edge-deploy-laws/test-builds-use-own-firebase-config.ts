@@ -32,6 +32,28 @@ const CONSEQUENCE =
 const under = (dir: string, rel: string): boolean => dir === '' || rel.startsWith(`${dir}/`);
 const variantName = (variant: Variant): string => (variant.flavor ? `${variant.flavor}/${variant.buildType}` : variant.buildType);
 
+/**
+ * The accepted fixes, named in every Android finding — a warning that
+ * lands on any app with one google-services.json must say how to clear
+ * it, or it teaches people to waive it. Each one is a tested green.
+ */
+function androidFixes(module: string, buildTypes: string[]): string {
+  const set = buildTypes.length === 1 ? (buildTypes[0] ?? '') : '<buildType>';
+  const src = `${module ? `${module}/` : ''}src/${set}`;
+  const each = buildTypes.length === 1 ? '' : ` (for each of ${buildTypes.join(', ')})`;
+  return [
+    `fix one of${each}: (1) ${src}/google-services.json from a dev Firebase project`,
+    `(2) <meta-data android:name="firebase_messaging_auto_init_enabled" android:value="false" /> in ${src}/AndroidManifest.xml`,
+    `(3) android:value="\${key}" in the manifest with manifestPlaceholders key = "false" in the ${set} build type`,
+  ].join('; ');
+}
+
+/** The accepted fixes, named in every iOS finding. */
+function iosFixes(configurations: string[]): string {
+  const names = configurations.join(', ');
+  return `fix one of: (1) a GoogleService-Info.plist per configuration (a dev project's for ${names}, copied in by a build phase); (2) FirebaseMessagingAutoInitEnabled = <false/> in the app's Info.plist, or $(VAR) with VAR = NO in the build settings of ${names}`;
+}
+
 export class TestBuildsUseOwnFirebaseConfigLaw extends EdgeDeployLawBase {
   static readonly LAW_NAME = 'Test Builds Use Own Firebase Config';
 
@@ -88,7 +110,7 @@ export class TestBuildsUseOwnFirebaseConfigLaw extends EdgeDeployLawBase {
       tally.notes.push(`${gradleRel}: more than one flavour dimension — the combined variants are not followed, not judged`);
       return;
     }
-    const exposed = new Map<ConfigFile, string[]>();
+    const exposed = new Map<ConfigFile, Variant[]>();
     for (const flavor of variants.flavors.length > 0 ? variants.flavors.map(block => block.name) : [null]) {
       const release = resolveConfig(files, { flavor, buildType: 'release' });
       if (!release?.projectId) continue;
@@ -98,12 +120,13 @@ export class TestBuildsUseOwnFirebaseConfigLaw extends EdgeDeployLawBase {
         if (!config) continue;
         tally.judged++;
         if (config.projectId !== release.projectId || autoInitDisabled(variant, autoInit, variants)) continue;
-        exposed.set(config, [...(exposed.get(config) ?? []), variantName(variant)]);
+        exposed.set(config, [...(exposed.get(config) ?? []), variant]);
       }
     }
-    for (const [config, names] of exposed) {
+    for (const [config, list] of exposed) {
+      const buildTypes = [...new Set(list.map(variant => variant.buildType))];
       tally.findings.push(
-        `${config.rel}:${config.line}: non-release build variant(s) ${names.join(', ')} (${gradleRel}) use this config — the same project_id as the release build — with Firebase Messaging auto-init not disabled; ${CONSEQUENCE}`
+        `${config.rel}:${config.line}: non-release build variant(s) ${list.map(variantName).join(', ')} (${gradleRel}) use this config — the same project_id as the release build — with Firebase Messaging auto-init not disabled; ${CONSEQUENCE} — ${androidFixes(locate(config.rel).module, buildTypes)}`
       );
     }
   }
@@ -134,7 +157,7 @@ export class TestBuildsUseOwnFirebaseConfigLaw extends EdgeDeployLawBase {
     const exposed = nonRelease.filter(configuration => !iosAutoInitDisabled(configuration, infoPlists)).map(configuration => configuration.name);
     if (exposed.length === 0) return;
     tally.findings.push(
-      `${first.rel}:1: Xcode configuration(s) ${exposed.join(', ')} bundle this one GoogleService-Info.plist — the one Release ships — with Firebase Messaging auto-init not disabled (FirebaseMessagingAutoInitEnabled); ${CONSEQUENCE}`
+      `${first.rel}:1: Xcode configuration(s) ${exposed.join(', ')} bundle this one GoogleService-Info.plist — the one Release ships — with Firebase Messaging auto-init not disabled (FirebaseMessagingAutoInitEnabled); ${CONSEQUENCE} — ${iosFixes(exposed)}`
     );
   }
 }

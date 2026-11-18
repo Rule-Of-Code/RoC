@@ -95,4 +95,44 @@ export const CLIENT_DEPLOY_LAWS: EnhancedConstitutionalLaw[] = [
     remediation:
       'Preload the unicode-range subset that covers the default locale in the entry document, with crossorigin',
   },
+
+  {
+    id: generateLawId(
+      'Serverless Deploy Pins Resources',
+      'A serverless deploy command or definition pins cpu, memory, concurrency, timeout and the instance cap instead of inheriting platform defaults',
+      'deployment'
+    ),
+    legacyId: 894,
+    article: 'VIII',
+    subsection: '8.12',
+    title: 'Serverless Deploy Pins Resources',
+    rationale:
+      'A deploy command that omits resource and scaling flags relies on the platform defaults. The running service keeps what it was given once, so nothing looks wrong — until the same command creates a new service (another region, a recreated one), which silently starts on the defaults. The two then differ in cpu, memory and concurrency, and a latency comparison between them measures the settings, not the code.',
+    satisfiedBy: {
+      python:
+        'Cloud Run: gcloud run deploy <service> --cpu=1 --memory=512Mi --concurrency=80 --timeout=60 --max-instances=10 in the CI step (or the same keys in the service YAML it applies).',
+      typescript:
+        'The same flags in the deploy step; AWS SAM: MemorySize and Timeout on each function or in Globals.Function; Serverless Framework: provider.memorySize and provider.timeout; Azure Functions: functionTimeout in host.json.',
+    },
+    detectionLimits: [
+      'A registry of platforms, each flag checked against the platform reference: gcloud run deploy (--cpu, --memory, --concurrency, --timeout, --max-instances), gcloud run services replace and the deploy-cloudrun GitHub Action metadata (resources.limits.cpu/memory, template.spec.containerConcurrency, template.spec.timeoutSeconds, autoscaling.knative.dev/maxScale or run.googleapis.com/maxScale), the deploy-cloudrun action flags/timeout inputs, aws lambda create-function (--memory-size, --timeout), az functionapp create with --flexconsumption-location (--instance-memory, --maximum-instance-count), SAM/CloudFormation function MemorySize/Timeout (SAM Globals.Function counts), serverless.yml memorySize/timeout (provider or function) and host.json functionTimeout. Other platforms and tools (gcloud functions deploy, Cloud Run jobs, Terraform, Pulumi, CDK, Knative CLI) are not read.',
+      'Not demanded: Lambda reserved concurrency (a separate put-function-concurrency call, and reserving it also takes from the account pool), Azure Functions concurrency (set after creation with scale config) and settings of plans that fix them (Azure Consumption, an App Service plan). A deploy that updates an existing function in place (update-function-code, update-function-configuration) is not judged.',
+      'Commands are found as text in CI files (the provider list plus pathMappings.cicdConfig), *.yml/*.yaml, *.sh/*.bash/*.ps1, Makefiles/*.mk and package.json scripts, across continuation lines and YAML folded scalars; global flags written before the command words (gcloud --project x run deploy) hide the command, and a command inside an echo or a heredoc is read like any other.',
+      'A command that passes a whole-argument expansion ($EXTRA_FLAGS, ${{ inputs.flags }}, $(cat …)) where flags could be, a --flags-file or service YAML whose path cannot be resolved (a variable, a file outside the repository), or a deploy-cloudrun flags input that is an expression is listed as a note and not judged. The YAML reader follows indentation (no anchors, aliases or flow mappings).',
+      'Without any readable deploy command or definition the law judged nothing and does not pass; a project that deploys no serverless service declares it in laws.notApplicable.',
+    ],
+    emoji: '📏',
+    description:
+      'A serverless deploy command or definition pins cpu, memory, concurrency, timeout and the instance cap instead of inheriting platform defaults',
+    priority: 'MEDIUM',
+    category: 'DEPLOYMENT',
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'ServerlessDeployPinsResourcesLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article VIII.8.12: A serverless deploy leaves resource or scaling settings to platform defaults',
+    remediation:
+      'Pass cpu, memory, concurrency, timeout and max-instances in the deploy command, or keep them in the definition it applies',
+  },
 ];

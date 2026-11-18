@@ -4,3 +4,4 @@
 
 export { StartupRequestFanOutLaw } from './startup-request-fan-out';
 export { PrimaryLocaleFontPreloadedLaw } from './primary-locale-font-preloaded';
+export { ServerlessDeployPinsResourcesLaw } from './serverless-deploy-pins-resources';

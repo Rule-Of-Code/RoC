@@ -4,4 +4,5 @@
  * shared model in `utils/request-path`.
  */
 
+export * from './document-read-once-per-request';
 export * from './independent-awaits-run-concurrently';

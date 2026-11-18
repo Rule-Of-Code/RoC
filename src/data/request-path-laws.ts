@@ -10,6 +10,7 @@
 
 import type { EnhancedConstitutionalLaw, LawRequirement } from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
+import { REQUIRES_DATA_CLIENT } from '../utils/request-path/data-clients';
 
 /**
  * A project with a JS/TS or Python toolchain: where async code can exist.
@@ -57,5 +58,45 @@ export const REQUEST_PATH_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article VI.6.24: Independent awaits run one after another',
     remediation:
       'Run independent awaited calls together (asyncio.gather / Promise.all), or mark an intended order with roc: sequential-ok <reason>',
+  },
+
+  {
+    id: generateLawId(
+      'Document Read Once Per Request',
+      'One request reads each document once: helpers on the same request path share the value instead of reading it again',
+      'performance'
+    ),
+    legacyId: 887,
+    article: 'VI',
+    subsection: '6.25',
+    title: 'Document Read Once Per Request',
+    rationale:
+      'Helpers on one request path that each read the same document — the caller\'s profile, a settings record — make the request pay for it two or three times, in round trips and in decoding. Nothing in the code looks wrong in either helper alone; the cost only shows when the path is read as a whole.',
+    satisfiedBy: {
+      python:
+        'Read the document once where the request starts and pass the value down to the helpers that need it, or keep it in a request-scoped cache (a FastAPI dependency is cached once per request).',
+      typescript:
+        'Read the document once where the request starts and pass the value down, or keep it in a request-scoped cache.',
+    },
+    detectionLimits: [
+      'Heuristic, precision before recall. Two reads are the same document only when the collection is a string literal (or a module-level string constant, also one imported from a project module) and the id expression is identical once a helper\'s parameters are replaced by the arguments the caller passed (str() / String() wrappers kept). A collection or id computed at run time is not compared.',
+      'Document reads recognised: Firestore collection(…).document(…)/doc(…).get() and a path argument, modular getDoc(doc(db, …)) (also through a local ref), Mongo find_one / findOne by _id and findById, Prisma findUnique by id, SQLAlchemy session.get(Model, id), Django objects.get / aget by pk or id. A one-key repository read — an awaited read-shaped call with one argument, users.get(uid) — counts by its receiver, method and argument.',
+      'Scope: a function, its own reads, and the functions it calls one step deep — same module, self./this. methods of its class, or one relative / project import. A read two calls deep, or through an object whose class is not known statically, is not seen.',
+      'Not a duplicate: a re-read after a write between the two reads (a write call, or a helper whose body writes), since it sees the new state. Branches are not distinguished: two reads on mutually exclusive paths of one handler can be reported.',
+      'Selected where a database client from the registry is declared in package.json or a Python manifest; with no read it can key, it reports judged nothing.',
+    ],
+    emoji: '📄',
+    description:
+      'One request reads each document once: helpers on the same request path share the value instead of reading it again',
+    priority: 'MEDIUM',
+    category: 'PERFORMANCE',
+    requires: REQUIRES_DATA_CLIENT,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'DocumentReadOncePerRequestLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article VI.6.25: The same document is read more than once in one request',
+    remediation: 'Read the document once and pass the value down, or cache it per request',
   },
 ];

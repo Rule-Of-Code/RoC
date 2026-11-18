@@ -328,6 +328,19 @@ function importsOf(nodes: readonly PyNode[]): ImportBinding[] {
   return nodes.filter(node => node.keyword === null).flatMap(node => importBindings(node.text));
 }
 
+const STRING_CONSTANT = /^([A-Za-z_]\w*)\s*(?::\s*[\w[\]., ]+)?=\s*«(\d+)»$/;
+
+/** Module-level `NAME = "literal"` (an annotation such as `Final` allowed). */
+function constantsOf(nodes: readonly PyNode[], literals: readonly PyLiteral[]): Map<string, string> {
+  const constants = new Map<string, string>();
+  for (const node of nodes) {
+    const m = node.keyword === null ? STRING_CONSTANT.exec(node.text) : null;
+    const literal = m ? literals[Number(m[2])] : undefined;
+    if (m && literal && !literal.formatted) constants.set(m[1] as string, literal.value);
+  }
+  return constants;
+}
+
 /** Parse a Python module into the request-path model. Never throws. */
 export function pythonModule(file: string, rel: string, content: string): ModuleModel {
   const { code, literals } = lexPython(content);
@@ -340,6 +353,7 @@ export function pythonModule(file: string, rel: string, content: string): Module
     language: 'python',
     functions,
     imports: importsOf(tree),
+    constants: constantsOf(tree, literals),
     lines: content.split(/\r\n|\r|\n/),
   };
 }

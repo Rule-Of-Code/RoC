@@ -50,7 +50,8 @@ export interface SequentialRun {
   language: ModuleModel['language'];
 }
 
-function orderedCall(call: CallSite, clients: ProjectClients, module: ModuleModel): boolean {
+/** A call whose order is its meaning: a write, a side effect, a wait, or one already concurrent. */
+export function orderedCall(call: CallSite, clients: ProjectClients, module: ModuleModel): boolean {
   // The first word of the name: `_create_follows` → create, `#pushAll` → push.
   const verb = /^[_#$]*([a-z]+)/.exec(call.method)?.[1] ?? call.method;
   return (

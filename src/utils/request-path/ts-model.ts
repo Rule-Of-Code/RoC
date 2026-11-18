@@ -501,6 +501,22 @@ class TsModelBuilder {
     return out;
   }
 
+  /** Module-level `const NAME = 'literal'` (exported or not). */
+  constants(): Map<string, string> {
+    const ts = this.ts;
+    const constants = new Map<string, string>();
+    for (const statement of this.sf.statements) {
+      if (!ts.isVariableStatement(statement) || !(statement.declarationList.flags & ts.NodeFlags.Const)) continue;
+      for (const decl of statement.declarationList.declarations) {
+        const init = decl.initializer ? this.unwrap(decl.initializer) : null;
+        if (ts.isIdentifier(decl.name) && init && (ts.isStringLiteral(init) || ts.isNoSubstitutionTemplateLiteral(init))) {
+          constants.set(decl.name.text, init.text);
+        }
+      }
+    }
+    return constants;
+  }
+
   imports(): ImportBinding[] {
     return this.src.imports().flatMap(info => [
       ...(info.defaultName ? [{ local: info.defaultName, module: info.module, imported: 'default' }] : []),
@@ -520,6 +536,7 @@ export function typescriptModule(ts: TypeScriptModule, file: string, rel: string
     language: 'typescript',
     functions: builder.functions(),
     imports: builder.imports(),
+    constants: builder.constants(),
     lines: content.split(/\r\n|\r|\n/),
   };
 }

@@ -134,6 +134,8 @@ export interface ModuleModel {
   language: SourceLanguage;
   functions: FunctionModel[];
   imports: ImportBinding[];
+  /** Module-level names bound to a plain string literal (`USERS = "users"`, `const USERS = 'users'`). */
+  constants: Map<string, string>;
   /** The raw source lines (comments included), for line markers. */
   lines: string[];
 }

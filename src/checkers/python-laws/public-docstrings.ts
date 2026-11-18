@@ -77,7 +77,9 @@ export class PublicDocstringsLaw extends PythonLawBase {
         continue;
       }
 
-      const firstBody = (lines[this.firstBodyStatementIndex(lines, sigEnd)] ?? '').trim();
+      const firstBody = (
+        lines[this.firstBodyStatementIndex(lines, sigEnd)] ?? ''
+      ).trim();
       if (!this.DOCSTRING.test(firstBody)) {
         violations.push(
           `${rel}:${i + 1}: public ${kind} ${name} has no docstring — add a one-line docstring describing its purpose`
@@ -88,7 +90,10 @@ export class PublicDocstringsLaw extends PythonLawBase {
   }
 
   /** Index of the first real statement in the body (skip blanks and comment lines). */
-  private static firstBodyStatementIndex(lines: string[], sigEnd: number): number {
+  private static firstBodyStatementIndex(
+    lines: string[],
+    sigEnd: number
+  ): number {
     let k = sigEnd + 1;
     while (k < lines.length) {
       const t = (lines[k] ?? '').trim();
@@ -127,7 +132,10 @@ export class PublicDocstringsLaw extends PythonLawBase {
     return idx < 0 ? '' : code.slice(idx + 1).trim();
   }
 
-  private static hasOverloadDecorator(lines: string[], headerIdx: number): boolean {
+  private static hasOverloadDecorator(
+    lines: string[],
+    headerIdx: number
+  ): boolean {
     for (let k = headerIdx - 1; k >= 0; k--) {
       const prev = (lines[k] ?? '').trim();
       if (prev === '') continue;

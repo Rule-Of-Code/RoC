@@ -40,7 +40,9 @@ export class NextProxyPlacementAndMatcherLaw extends LawBase {
     const violations = [...withoutMatcher.problems];
     const graph = NextModuleGraph.create(context);
     for (const app of ReactProject.nextApps(context.projectRoot)) {
-      violations.push(...this.checkApp(context, app, graph, withoutMatcher.value));
+      violations.push(
+        ...this.checkApp(context, app, graph, withoutMatcher.value)
+      );
     }
     if (typeof graph !== 'string') violations.push(...graph.unread);
     return this.createResult(
@@ -75,12 +77,20 @@ export class NextProxyPlacementAndMatcherLaw extends LawBase {
     if (naming) violations.push(naming);
     const effective = expected === 'proxy' ? (proxy ?? middleware) : middleware;
     if (!effective) return violations;
-    if (typeof graph === 'string') return [...violations, `${rel(effective)}: ${graph}`];
+    if (typeof graph === 'string')
+      return [...violations, `${rel(effective)}: ${graph}`];
     const source = graph.source(effective);
     if (!source) return violations;
-    violations.push(...this.exportProblems(source, rel(effective), effective === proxy ? 'proxy' : 'middleware'));
+    violations.push(
+      ...this.exportProblems(
+        source,
+        rel(effective),
+        effective === proxy ? 'proxy' : 'middleware'
+      )
+    );
     const matcher = this.matcherProblem(source);
-    if (matcher && !(withoutMatcher && matcher.absent)) violations.push(`${rel(effective)}: ${matcher.message}`);
+    if (matcher && !(withoutMatcher && matcher.absent))
+      violations.push(`${rel(effective)}: ${matcher.message}`);
     return violations;
   }
 
@@ -98,7 +108,10 @@ export class NextProxyPlacementAndMatcherLaw extends LawBase {
         const file = specialFile(dir, name);
         if (!file) continue;
         if (PathOperations.normalize(dir) === loaded) found.set(name, file);
-        else violations.push(`${rel(file)}: is never loaded — Next looks for ${name} only in ${rel(conventionDir) || '.'}, beside the router directory it uses. Move it there`);
+        else
+          violations.push(
+            `${rel(file)}: is never loaded — Next looks for ${name} only in ${rel(conventionDir) || '.'}, beside the router directory it uses. Move it there`
+          );
       }
     }
     return { found, violations };
@@ -123,30 +136,46 @@ export class NextProxyPlacementAndMatcherLaw extends LawBase {
     return null;
   }
 
-  private static exportProblems(source: TsxSource, where: string, name: string): string[] {
+  private static exportProblems(
+    source: TsxSource,
+    where: string,
+    name: string
+  ): string[] {
     const names = moduleExports(source).map(entry => entry.name);
     const hasDefault = names.includes('default');
     const hasNamed = names.includes(name);
     if (hasDefault && hasNamed) {
-      return [`${where}: exports both a default and a named ${name} function — Next supports one proxy per file. Keep one`];
+      return [
+        `${where}: exports both a default and a named ${name} function — Next supports one proxy per file. Keep one`,
+      ];
     }
     if (!hasDefault && !hasNamed) {
-      return [`${where}: exports no default and no '${name}' function — Next has nothing to run`];
+      return [
+        `${where}: exports no default and no '${name}' function — Next has nothing to run`,
+      ];
     }
     return [];
   }
 
   /** What is wrong with `config.matcher`; `absent` when there is none at all. */
-  private static matcherProblem(source: TsxSource): { message: string; absent: boolean } | null {
+  private static matcherProblem(
+    source: TsxSource
+  ): { message: string; absent: boolean } | null {
     const ts = source.ts;
     const config = this.exportedConfig(source);
     const absentMessage = `has no config.matcher — it runs on every request, static files and images included. Export a literal matcher, or declare the reason in ${MATCHER_KEY}`;
     if (config === undefined) return { message: absentMessage, absent: true };
     if (config === null) {
-      return { message: 'config is not a literal object — Next reads it statically and ignores what it cannot evaluate', absent: false };
+      return {
+        message:
+          'config is not a literal object — Next reads it statically and ignores what it cannot evaluate',
+        absent: false,
+      };
     }
     const property = config.properties.find(
-      (p): p is TS.PropertyAssignment => ts.isPropertyAssignment(p) && p.name.getText(source.sourceFile) === 'matcher'
+      (p): p is TS.PropertyAssignment =>
+        ts.isPropertyAssignment(p) &&
+        p.name.getText(source.sourceFile) === 'matcher'
     );
     if (!property) return { message: absentMessage, absent: true };
     if (!this.isLiteralMatcher(ts, property.initializer)) {
@@ -159,44 +188,71 @@ export class NextProxyPlacementAndMatcherLaw extends LawBase {
   }
 
   /** The exported `config` object literal; null when it is exported but not a literal; undefined when absent. */
-  private static exportedConfig(source: TsxSource): TS.ObjectLiteralExpression | null | undefined {
+  private static exportedConfig(
+    source: TsxSource
+  ): TS.ObjectLiteralExpression | null | undefined {
     const ts = source.ts;
     const declaration = source.sourceFile.statements
       .filter(ts.isVariableStatement)
-      .filter(statement => (ts.getModifiers(statement) ?? []).some(m => m.kind === ts.SyntaxKind.ExportKeyword))
+      .filter(statement =>
+        (ts.getModifiers(statement) ?? []).some(
+          m => m.kind === ts.SyntaxKind.ExportKeyword
+        )
+      )
       .flatMap(statement => [...statement.declarationList.declarations])
       .find(d => ts.isIdentifier(d.name) && d.name.text === 'config');
     if (declaration) {
-      const value = declaration.initializer ? unwrap(ts, declaration.initializer) : undefined;
+      const value = declaration.initializer
+        ? unwrap(ts, declaration.initializer)
+        : undefined;
       return value && ts.isObjectLiteralExpression(value) ? value : null;
     }
-    return moduleExports(source).some(entry => entry.name === 'config') ? null : undefined;
+    return moduleExports(source).some(entry => entry.name === 'config')
+      ? null
+      : undefined;
   }
 
   private static isLiteralMatcher(ts: typeof TS, node: TS.Expression): boolean {
     const value = unwrap(ts, node);
     if (ts.isStringLiteralLike(value)) return true;
-    if (!ts.isArrayLiteralExpression(value) || value.elements.length === 0) return false;
-    return value.elements.every(element => this.isLiteralMatcherItem(ts, unwrap(ts, element)));
+    if (!ts.isArrayLiteralExpression(value) || value.elements.length === 0)
+      return false;
+    return value.elements.every(element =>
+      this.isLiteralMatcherItem(ts, unwrap(ts, element))
+    );
   }
 
   /** A path string, or `{ source: '…', has/missing/locale }` written as constants. */
-  private static isLiteralMatcherItem(ts: typeof TS, item: TS.Expression): boolean {
+  private static isLiteralMatcherItem(
+    ts: typeof TS,
+    item: TS.Expression
+  ): boolean {
     if (ts.isStringLiteralLike(item)) return true;
     if (!ts.isObjectLiteralExpression(item)) return false;
     const hasSource = item.properties.some(
-      p => ts.isPropertyAssignment(p) && p.name.getText() === 'source' && ts.isStringLiteralLike(unwrap(ts, p.initializer))
+      p =>
+        ts.isPropertyAssignment(p) &&
+        p.name.getText() === 'source' &&
+        ts.isStringLiteralLike(unwrap(ts, p.initializer))
     );
     return hasSource && this.isConstant(ts, item);
   }
 
   private static isConstant(ts: typeof TS, node: TS.Expression): boolean {
     const value = unwrap(ts, node);
-    if (ts.isStringLiteralLike(value) || ts.isNumericLiteral(value)) return true;
-    if (value.kind === ts.SyntaxKind.TrueKeyword || value.kind === ts.SyntaxKind.FalseKeyword) return true;
-    if (ts.isArrayLiteralExpression(value)) return value.elements.every(e => this.isConstant(ts, e));
+    if (ts.isStringLiteralLike(value) || ts.isNumericLiteral(value))
+      return true;
+    if (
+      value.kind === ts.SyntaxKind.TrueKeyword ||
+      value.kind === ts.SyntaxKind.FalseKeyword
+    )
+      return true;
+    if (ts.isArrayLiteralExpression(value))
+      return value.elements.every(e => this.isConstant(ts, e));
     if (ts.isObjectLiteralExpression(value)) {
-      return value.properties.every(p => ts.isPropertyAssignment(p) && this.isConstant(ts, p.initializer));
+      return value.properties.every(
+        p => ts.isPropertyAssignment(p) && this.isConstant(ts, p.initializer)
+      );
     }
     return false;
   }
@@ -204,8 +260,14 @@ export class NextProxyPlacementAndMatcherLaw extends LawBase {
   /** The installed next major, else the one the manifest declares; null when neither is readable. */
   static nextMajor(app: NextApp): number | null {
     try {
-      const manifestPath = require.resolve('next/package.json', { paths: [app.root] });
-      const version = (JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as { version?: string }).version;
+      const manifestPath = require.resolve('next/package.json', {
+        paths: [app.root],
+      });
+      const version = (
+        JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as {
+          version?: string;
+        }
+      ).version;
       const major = /^(\d+)/.exec(version ?? '')?.[1];
       if (major) return Number(major);
     } catch {
@@ -215,7 +277,8 @@ export class NextProxyPlacementAndMatcherLaw extends LawBase {
       dependencies?: Record<string, string>;
       devDependencies?: Record<string, string>;
     }>(PathOperations.join(app.root, 'package.json'), {});
-    const range = manifest?.dependencies?.next ?? manifest?.devDependencies?.next ?? '';
+    const range =
+      manifest?.dependencies?.next ?? manifest?.devDependencies?.next ?? '';
     const declared = /(\d+)/.exec(range)?.[1];
     return declared ? Number(declared) : null;
   }

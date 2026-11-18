@@ -24,21 +24,35 @@ export function readProject(context: LawCheckContext): ReadProject {
   const files = ReactProject.sourceFiles(context);
   const graph = NextModuleGraph.create(context);
   if (typeof graph === 'string') {
-    return { graph: null, sources: [], unread: files.length > 0 ? [`${files.length} file(s): ${graph}`] : [] };
+    return {
+      graph: null,
+      sources: [],
+      unread: files.length > 0 ? [`${files.length} file(s): ${graph}`] : [],
+    };
   }
   const sources = graph.sourcesOf(files);
   return { graph, sources, unread: graph.unread };
 }
 
 /** A call whose callee is one of `guards` (`requireUser()`, `auth.requireUser()`). */
-export function isGuardCall(source: TsxSource, call: TS.CallExpression, guards: readonly string[]): boolean {
+export function isGuardCall(
+  source: TsxSource,
+  call: TS.CallExpression,
+  guards: readonly string[]
+): boolean {
   const callee = unwrap(source.ts, call.expression).getText(source.sourceFile);
   return calleeNamed(callee, guards);
 }
 
 /** A call built from a guard anywhere in its callee chain (`withAuth(fn)`, `authClient.action(fn)`). */
-export function isGuardWrapper(source: TsxSource, call: TS.CallExpression, guards: readonly string[]): boolean {
-  return calleeChain(source.ts, call, source).some(name => calleeNamed(name, guards));
+export function isGuardWrapper(
+  source: TsxSource,
+  call: TS.CallExpression,
+  guards: readonly string[]
+): boolean {
+  return calleeChain(source.ts, call, source).some(name =>
+    calleeNamed(name, guards)
+  );
 }
 
 /** Whether `node`'s subtree calls a guard (nested functions included when `ownBodyOnly` is false). */
@@ -48,11 +62,15 @@ export function callsGuard(
   guards: readonly string[],
   ownBodyOnly: boolean
 ): boolean {
-  return callsIn(source.ts, node, ownBodyOnly).some(call => isGuardCall(source, call, guards));
+  return callsIn(source.ts, node, ownBodyOnly).some(call =>
+    isGuardCall(source, call, guards)
+  );
 }
 
 /** `a, b, c` — at most `limit` names, then `… and N more`. */
 export function listed(names: readonly string[], limit = 5): string {
   const shown = names.slice(0, limit).join(', ');
-  return names.length > limit ? `${shown} … and ${names.length - limit} more` : shown;
+  return names.length > limit
+    ? `${shown} … and ${names.length - limit} more`
+    : shown;
 }

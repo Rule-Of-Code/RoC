@@ -174,7 +174,8 @@ export class GenericAngularLaw extends AngularLawBase {
     }
 
     // Check for proper file naming
-    const fileName = PathOperations.getBasename(filePath);
+    // The name WITH its extension: the pattern ends in `\.ts$` (#369).
+    const fileName = PathOperations.getFilename(filePath);
     if (
       !fileName.match(
         /^[a-z0-9-]+\.(component|service|module|pipe|directive|guard)\.ts$/

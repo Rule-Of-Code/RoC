@@ -46,7 +46,7 @@ describe('BundleOptimizationStrategyLaw - Main Law', () => {
         performance: {
           parallel: true,
           maxConcurrent: 4,
-          cache: true,
+          cache: true,
         },
       },
     };

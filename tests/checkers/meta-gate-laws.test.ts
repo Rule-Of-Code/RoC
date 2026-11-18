@@ -38,9 +38,9 @@ describe('226 Audit Liveness Assertion', () => {
       AuditLivenessLaw.check(ctx({ __plannedLawCount: 44, minLawsChecked: 40 }))
         .passed
     ).toBe(true);
-    expect(
-      AuditLivenessLaw.check(ctx({ __plannedLawCount: 86 })).passed
-    ).toBe(true);
+    expect(AuditLivenessLaw.check(ctx({ __plannedLawCount: 86 })).passed).toBe(
+      true
+    );
   });
 
   it('passes when no planned count is injected (direct invocation)', () => {
@@ -59,7 +59,11 @@ describe('227 Config Integrity Guard', () => {
     );
     expect(r.passed).toBe(false);
     expect(r.violations).toHaveLength(3);
-    expect((r.violations ?? []).some(v => /laws\.severity: unknown law 'modul-syze'/.test(v))).toBe(true);
+    expect(
+      (r.violations ?? []).some(v =>
+        /laws\.severity: unknown law 'modul-syze'/.test(v)
+      )
+    ).toBe(true);
   });
 
   it('accepts every identity spelling and skips legacy law-N keys', () => {

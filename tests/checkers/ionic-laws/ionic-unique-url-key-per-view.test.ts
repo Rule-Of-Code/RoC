@@ -8,7 +8,10 @@ import { ctx, manifest, project, removeProjects } from '../toolkit-fixture';
 
 afterAll(removeProjects);
 
-const IONIC = manifest({ '@angular/core': '20.0.0', '@ionic/angular': '8.8.17' });
+const IONIC = manifest({
+  '@angular/core': '20.0.0',
+  '@ionic/angular': '8.8.17',
+});
 const OUTLET = {
   'src/app/app.component.ts':
     "@Component({ template: '<ion-app><ion-router-outlet></ion-router-outlet></ion-app>' })\nexport class AppComponent {}",
@@ -24,8 +27,10 @@ describe('IonicUniqueUrlKeyPerViewLaw without an ion-router-outlet', () => {
       ctx(
         project({
           'package.json': IONIC,
-          'src/main.ts': 'bootstrapApplication(App, { providers: [provideRouter(routes)] });',
-          'src/app/a.ts': "router.navigate(['/x'], { skipLocationChange: true }); signOut();",
+          'src/main.ts':
+            'bootstrapApplication(App, { providers: [provideRouter(routes)] });',
+          'src/app/a.ts':
+            "router.navigate(['/x'], { skipLocationChange: true }); signOut();",
         })
       )
     );
@@ -38,7 +43,8 @@ describe('IonicUniqueUrlKeyPerViewLaw without an ion-router-outlet', () => {
       ctx(
         project({
           'package.json': IONIC,
-          'src/app/app.component.ts': '// TODO: <ion-router-outlet>\nexport class AppComponent {}',
+          'src/app/app.component.ts':
+            '// TODO: <ion-router-outlet>\nexport class AppComponent {}',
         })
       )
     );
@@ -60,7 +66,9 @@ describe('IonicUniqueUrlKeyPerViewLaw (#148)', () => {
     );
     expect(result.passed).toBe(false);
     expect(result.violations).toEqual([
-      expect.stringMatching(/app\.routes\.ts:2: 2 routes render a component at path '' \(lines 2, 3\)/),
+      expect.stringMatching(
+        /app\.routes\.ts:2: 2 routes render a component at path '' \(lines 2, 3\)/
+      ),
     ]);
   });
 
@@ -80,7 +88,7 @@ describe('IonicUniqueUrlKeyPerViewLaw (#148)', () => {
     expect(result.violations).toEqual([]);
   });
 
-  it('a collision inside a children array is found; a child path is not its parent\'s', () => {
+  it("a collision inside a children array is found; a child path is not its parent's", () => {
     const result = IonicUniqueUrlKeyPerViewLaw.check(
       withOutlet({
         'src/app/tabs.routes.ts': [
@@ -94,6 +102,8 @@ describe('IonicUniqueUrlKeyPerViewLaw (#148)', () => {
         ].join('\n'),
       })
     );
-    expect(result.violations).toEqual([expect.stringContaining("at path 'a' (lines 3, 4)")]);
+    expect(result.violations).toEqual([
+      expect.stringContaining("at path 'a' (lines 3, 4)"),
+    ]);
   });
 });

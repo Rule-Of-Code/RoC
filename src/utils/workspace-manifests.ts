@@ -30,10 +30,15 @@ export class WorkspaceManifests {
   /** Every readable package.json; an unreadable one declares nothing. */
   static all(projectRoot: string): WorkspaceManifest[] {
     const result: WorkspaceManifest[] = [];
-    for (const file of NxWorkspace.resolveSourceFiles(projectRoot, 'package.json')) {
+    for (const file of NxWorkspace.resolveSourceFiles(
+      projectRoot,
+      'package.json'
+    )) {
       let raw: RawManifest & Record<string, unknown>;
       try {
-        raw = FileSystemOperations.readJsonFile<RawManifest & Record<string, unknown>>(file);
+        raw = FileSystemOperations.readJsonFile<
+          RawManifest & Record<string, unknown>
+        >(file);
       } catch {
         continue;
       }
@@ -44,7 +49,10 @@ export class WorkspaceManifests {
       }
       result.push({
         dir: PathOperations.getDirectory(file),
-        dependencies: { ...(raw.dependencies ?? {}), ...(raw.devDependencies ?? {}) },
+        dependencies: {
+          ...(raw.dependencies ?? {}),
+          ...(raw.devDependencies ?? {}),
+        },
         scripts,
         raw,
       });
@@ -54,11 +62,15 @@ export class WorkspaceManifests {
 
   /** Every script command in every manifest. */
   static scriptCommands(projectRoot: string): string[] {
-    return this.all(projectRoot).flatMap(manifest => Object.values(manifest.scripts));
+    return this.all(projectRoot).flatMap(manifest =>
+      Object.values(manifest.scripts)
+    );
   }
 
   /** True when any manifest declares `name` as a dependency or devDependency. */
   static declares(projectRoot: string, name: string): boolean {
-    return this.all(projectRoot).some(manifest => name in manifest.dependencies);
+    return this.all(projectRoot).some(
+      manifest => name in manifest.dependencies
+    );
   }
 }

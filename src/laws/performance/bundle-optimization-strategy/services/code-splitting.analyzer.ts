@@ -50,7 +50,9 @@ export class CodeSplittingAnalyzerService {
     // whether or not the file also contains `.then(` — the substring rule
     // below never saw it.
     if (react && react.dynamicImports.length > 0) {
-      strategies.push(`Lazy-loaded code: ${react.dynamicImports.slice(0, 3).join(', ')}`);
+      strategies.push(
+        `Lazy-loaded code: ${react.dynamicImports.slice(0, 3).join(', ')}`
+      );
     }
 
     return {
@@ -86,8 +88,7 @@ export class CodeSplittingAnalyzerService {
       try {
         const content = FileUtils.readFile(file, { encoding: 'utf8' });
         const lazyRoute =
-          content.includes('loadChildren') ||
-          content.includes('loadComponent');
+          content.includes('loadChildren') || content.includes('loadComponent');
         if (
           lazyRoute &&
           content.includes(

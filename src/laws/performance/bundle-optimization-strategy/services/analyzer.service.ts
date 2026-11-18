@@ -33,7 +33,12 @@ export class BundleOptimizationStrategyAnalyzerService {
     isConfigured: boolean;
     strategies: string[];
   } {
-    return CodeSplittingAnalyzerService.analyze(projectRoot, config, react, bundler);
+    return CodeSplittingAnalyzerService.analyze(
+      projectRoot,
+      config,
+      react,
+      bundler
+    );
   }
 
   /**
@@ -111,9 +116,9 @@ export class BundleOptimizationStrategyAnalyzerService {
     score: number,
     config: ViolationConfig
   ): number {
-    const {VIOLATION_MESSAGES} = BundleOptimizationStrategyTypesConstants;
-    const {SUGGESTION_MESSAGES} = BundleOptimizationStrategyTypesConstants;
-    const {SCORE_PENALTIES} = BundleOptimizationStrategyTypesConstants;
+    const { VIOLATION_MESSAGES } = BundleOptimizationStrategyTypesConstants;
+    const { SUGGESTION_MESSAGES } = BundleOptimizationStrategyTypesConstants;
+    const { SCORE_PENALTIES } = BundleOptimizationStrategyTypesConstants;
 
     violations.push(VIOLATION_MESSAGES[config.violation]);
     suggestions.push(SUGGESTION_MESSAGES[config.suggestion]);

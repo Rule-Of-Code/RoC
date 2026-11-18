@@ -123,7 +123,8 @@ export class AngularTestingExcellenceLaw extends AngularLawBase {
       (testedSource !== testFile &&
         FileUtils.exists(testedSource) &&
         AngularComponentFiles.isKind(testedSource, ['component']));
-    if (isComponentSpec) this.checkComponentTest(content, relativePath, violations);
+    if (isComponentSpec)
+      this.checkComponentTest(content, relativePath, violations);
 
     // Check service tests
     this.checkServiceTest(content, relativePath, violations);
@@ -160,7 +161,9 @@ export class AngularTestingExcellenceLaw extends AngularLawBase {
     // inferred, so the word need not appear. Requiring the word failed a
     // correct spec the moment unsuffixed specs were read (#343).
     const hasFixture =
-      code.includes('ComponentFixture') || /\bcreateComponent\s*\(/.test(code) || testingLibrary;
+      code.includes('ComponentFixture') ||
+      /\bcreateComponent\s*\(/.test(code) ||
+      testingLibrary;
     if (!hasFixture) {
       violations.push(
         `Component test missing ComponentFixture: ${relativePath}`

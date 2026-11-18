@@ -15,7 +15,8 @@ export class NoLiveNetworkInTestsLaw extends PythonLawBase {
   private static readonly LAW_NAME = 'No Live Network In Tests';
   private static readonly NETWORK =
     /\b(requests|httpx)\.(get|post|put|patch|delete|head|request)\s*\(|\burllib\.request\.urlopen\s*\(|\bsocket\.socket\s*\(|\bhttpx\.Client\s*\(/;
-  private static readonly INTEGRATION = /(integration|e2e|end_to_end|functional)/i;
+  private static readonly INTEGRATION =
+    /(integration|e2e|end_to_end|functional)/i;
 
   static check(context: LawCheckContext): LawResult {
     const { projectRoot } = context;

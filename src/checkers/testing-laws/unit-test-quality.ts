@@ -50,7 +50,7 @@ export class UnitTestQualityLaw extends TestingLawBase {
     const realDataMode = config.thresholds?.testing?.realDataMode === true;
     const finalViolations = realDataMode
       ? violations.filter(
-          (v) => !/no mocking detected|hardcoded test data/i.test(v)
+          v => !/no mocking detected|hardcoded test data/i.test(v)
         )
       : violations;
 
@@ -102,7 +102,8 @@ export class UnitTestQualityLaw extends TestingLawBase {
         const content = FileUtils.readFile(file);
 
         // Test structure analysis
-        const structureAnalysis = await TestStructureAnalyzer.analyzeTestFile(file);
+        const structureAnalysis =
+          await TestStructureAnalyzer.analyzeTestFile(file);
         const structViolations = this.extractViolations(structureAnalysis);
         violations.push(...structViolations.map(named));
         const structSuggestions = this.extractSuggestions(structureAnalysis);

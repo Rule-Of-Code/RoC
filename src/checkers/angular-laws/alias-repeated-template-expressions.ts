@@ -62,9 +62,7 @@ export class AliasRepeatedTemplateExpressionsLaw extends AngularLawBase {
       for (const expr of matches) {
         counts.set(expr, (counts.get(expr) ?? 0) + 1);
       }
-      const repeated = [...counts.entries()].filter(
-        ([, n]) => n >= threshold
-      );
+      const repeated = [...counts.entries()].filter(([, n]) => n >= threshold);
       if (repeated.length > 0) {
         const list = repeated
           .map(([expr, n]) => `${expr} ×${n}`)

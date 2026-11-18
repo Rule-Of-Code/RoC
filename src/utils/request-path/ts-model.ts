@@ -28,7 +28,8 @@ import { finishLoop, type WalkedLoop } from './loop-dependence';
 import { TsxSource, type TypeScriptModule } from '../react/tsx-source';
 
 /** A call whose callback runs inside a database transaction. */
-const TRANSACTION_CALL = /^(?:runTransaction|\$transaction|transaction|withTransaction)$/;
+const TRANSACTION_CALL =
+  /^(?:runTransaction|\$transaction|transaction|withTransaction)$/;
 const TRANSACTION_PARAM = /^(?:transaction|txn|tx)$/;
 const FRESH_MUTABLE_CTOR = /^(?:Map|Set|Array|Object|WeakMap|WeakSet)$/;
 
@@ -92,7 +93,10 @@ class TsModelBuilder {
 
   argument(node: TS.Expression): CallArgument {
     const ts = this.ts;
-    const literal = ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node) ? node.text : null;
+    const literal =
+      ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)
+        ? node.text
+        : null;
     return { text: this.norm(node), literal, keyword: null };
   }
 
@@ -100,7 +104,10 @@ class TsModelBuilder {
     const ts = this.ts;
     const expr = this.unwrap(node);
     if (ts.isPropertyAccessExpression(expr)) {
-      return [...this.chain(expr.expression), { name: expr.name.text, args: null }];
+      return [
+        ...this.chain(expr.expression),
+        { name: expr.name.text, args: null },
+      ];
     }
     if (ts.isCallExpression(expr)) {
       const links = this.chain(expr.expression);
@@ -120,10 +127,16 @@ class TsModelBuilder {
     const ts = this.ts;
     const callee = this.unwrap(node.expression);
     const chain = this.chain(callee);
-    const receiver = ts.isPropertyAccessExpression(callee) || ts.isElementAccessExpression(callee) ? callee.expression : null;
+    const receiver =
+      ts.isPropertyAccessExpression(callee) ||
+      ts.isElementAccessExpression(callee)
+        ? callee.expression
+        : null;
     const names = new Set<string>();
     if (receiver) this.namesIn(receiver).forEach(name => names.add(name));
-    node.arguments.forEach(arg => this.namesIn(arg).forEach(name => names.add(name)));
+    node.arguments.forEach(arg =>
+      this.namesIn(arg).forEach(name => names.add(name))
+    );
     return {
       line: this.line(node),
       callee: this.norm(callee),
@@ -193,8 +206,12 @@ class TsModelBuilder {
     const expr = this.unwrap(node);
     const chain = this.pureChain(expr);
     if (chain) return [chain];
-    if (ts.isElementAccessExpression(expr)) return this.targetNames(expr.expression);
-    if (ts.isArrayLiteralExpression(expr)) return expr.elements.flatMap(e => this.targetNames(ts.isSpreadElement(e) ? e.expression : e));
+    if (ts.isElementAccessExpression(expr))
+      return this.targetNames(expr.expression);
+    if (ts.isArrayLiteralExpression(expr))
+      return expr.elements.flatMap(e =>
+        this.targetNames(ts.isSpreadElement(e) ? e.expression : e)
+      );
     if (ts.isObjectLiteralExpression(expr)) {
       return expr.properties.flatMap(p => {
         if (ts.isShorthandPropertyAssignment(p)) return [p.name.text];
@@ -203,7 +220,10 @@ class TsModelBuilder {
         return [];
       });
     }
-    if (ts.isBinaryExpression(expr) && expr.operatorToken.kind === ts.SyntaxKind.EqualsToken) {
+    if (
+      ts.isBinaryExpression(expr) &&
+      expr.operatorToken.kind === ts.SyntaxKind.EqualsToken
+    ) {
       return this.targetNames(expr.left);
     }
     return [];
@@ -222,17 +242,30 @@ class TsModelBuilder {
     const ts = this.ts;
     if (!node) return false;
     const expr = this.unwrap(node);
-    if (ts.isArrayLiteralExpression(expr) || ts.isObjectLiteralExpression(expr)) return true;
-    return ts.isNewExpression(expr) && ts.isIdentifier(expr.expression) && FRESH_MUTABLE_CTOR.test(expr.expression.text);
+    if (ts.isArrayLiteralExpression(expr) || ts.isObjectLiteralExpression(expr))
+      return true;
+    return (
+      ts.isNewExpression(expr) &&
+      ts.isIdentifier(expr.expression) &&
+      FRESH_MUTABLE_CTOR.test(expr.expression.text)
+    );
   }
 
-  defUse(statement: TS.Statement): { bound: string[]; used: string[]; mutable: string[] } {
+  defUse(statement: TS.Statement): {
+    bound: string[];
+    used: string[];
+    mutable: string[];
+  } {
     const ts = this.ts;
     if (ts.isVariableStatement(statement)) {
       const decls = statement.declarationList.declarations;
       const bound = decls.flatMap(d => this.bindingNames(d.name));
-      const used = decls.flatMap(d => (d.initializer ? this.namesIn(d.initializer) : []));
-      const mutable = decls.filter(d => this.isFreshMutable(d.initializer)).flatMap(d => this.bindingNames(d.name));
+      const used = decls.flatMap(d =>
+        d.initializer ? this.namesIn(d.initializer) : []
+      );
+      const mutable = decls
+        .filter(d => this.isFreshMutable(d.initializer))
+        .flatMap(d => this.bindingNames(d.name));
       return { bound, used, mutable };
     }
     if (ts.isExpressionStatement(statement)) {
@@ -241,7 +274,11 @@ class TsModelBuilder {
         const bound = this.targetNames(expr.left);
         const compound = expr.operatorToken.kind !== ts.SyntaxKind.EqualsToken;
         const used = [...this.namesIn(expr.right), ...(compound ? bound : [])];
-        return { bound, used, mutable: this.isFreshMutable(expr.right) ? bound : [] };
+        return {
+          bound,
+          used,
+          mutable: this.isFreshMutable(expr.right) ? bound : [],
+        };
       }
     }
     return { bound: [], used: this.namesIn(statement), mutable: [] };
@@ -283,31 +320,56 @@ class TsModelBuilder {
 
   isSimple(statement: TS.Statement): boolean {
     const ts = this.ts;
-    return ts.isExpressionStatement(statement) || ts.isVariableStatement(statement) || ts.isReturnStatement(statement);
+    return (
+      ts.isExpressionStatement(statement) ||
+      ts.isVariableStatement(statement) ||
+      ts.isReturnStatement(statement)
+    );
   }
 
   statement(statement: TS.Statement): StatementModel {
     const simple = this.isSimple(statement);
-    const { bound, used, mutable } = simple ? this.defUse(statement) : { bound: [], used: [], mutable: [] };
+    const { bound, used, mutable } = simple
+      ? this.defUse(statement)
+      : { bound: [], used: [], mutable: [] };
     return {
       line: this.line(statement),
       endLine: this.endLine(statement),
       simple,
       awaits: simple ? this.outermostAwaits(statement) : [],
-      bound: bound.flatMap(name => (name.includes('.') ? [name] : chainPrefixes(name))),
+      bound: bound.flatMap(name =>
+        name.includes('.') ? [name] : chainPrefixes(name)
+      ),
       used,
       mutableBindings: mutable,
       text: this.norm(statement).slice(0, 2000),
     };
   }
 
-  functionName(node: TS.FunctionLikeDeclaration): { name: string; shortName: string } {
+  functionName(node: TS.FunctionLikeDeclaration): {
+    name: string;
+    shortName: string;
+  } {
     const ts = this.ts;
-    const own = node.name && (ts.isIdentifier(node.name) || ts.isStringLiteral(node.name)) ? node.name.text : null;
+    const own =
+      node.name && (ts.isIdentifier(node.name) || ts.isStringLiteral(node.name))
+        ? node.name.text
+        : null;
     const parent = node.parent;
     let short = own;
-    if (!short && parent && ts.isVariableDeclaration(parent) && ts.isIdentifier(parent.name)) short = parent.name.text;
-    if (!short && parent && (ts.isPropertyAssignment(parent) || ts.isPropertyDeclaration(parent)) && ts.isIdentifier(parent.name)) {
+    if (
+      !short &&
+      parent &&
+      ts.isVariableDeclaration(parent) &&
+      ts.isIdentifier(parent.name)
+    )
+      short = parent.name.text;
+    if (
+      !short &&
+      parent &&
+      (ts.isPropertyAssignment(parent) || ts.isPropertyDeclaration(parent)) &&
+      ts.isIdentifier(parent.name)
+    ) {
       short = parent.name.text;
     }
     if (!short && ts.isConstructorDeclaration(node)) short = 'constructor';
@@ -318,16 +380,29 @@ class TsModelBuilder {
 
   ownerClass(node: TS.Node): string | null {
     const ts = this.ts;
-    const parent = ts.isPropertyDeclaration(node.parent) ? node.parent.parent : node.parent;
-    if (parent && (ts.isClassDeclaration(parent) || ts.isClassExpression(parent))) return parent.name?.text ?? null;
+    const parent = ts.isPropertyDeclaration(node.parent)
+      ? node.parent.parent
+      : node.parent;
+    if (
+      parent &&
+      (ts.isClassDeclaration(parent) || ts.isClassExpression(parent))
+    )
+      return parent.name?.text ?? null;
     return null;
   }
 
   /** The call a function is passed to as a callback, and the method that call makes. */
-  callbackOf(node: TS.FunctionLikeDeclaration): { call: TS.CallExpression; method: string } | null {
+  callbackOf(
+    node: TS.FunctionLikeDeclaration
+  ): { call: TS.CallExpression; method: string } | null {
     const ts = this.ts;
     const parent = node.parent;
-    if (!parent || !ts.isCallExpression(parent) || !parent.arguments.includes(node as TS.Expression)) return null;
+    if (
+      !parent ||
+      !ts.isCallExpression(parent) ||
+      !parent.arguments.includes(node as TS.Expression)
+    )
+      return null;
     const callee = this.unwrap(parent.expression);
     let method = '';
     if (ts.isPropertyAccessExpression(callee)) method = callee.name.text;
@@ -337,7 +412,11 @@ class TsModelBuilder {
 
   isAsync(node: TS.FunctionLikeDeclaration): boolean {
     const ts = this.ts;
-    return (ts.getCombinedModifierFlags(node as TS.Declaration) & ts.ModifierFlags.Async) !== 0;
+    return (
+      (ts.getCombinedModifierFlags(node as TS.Declaration) &
+        ts.ModifierFlags.Async) !==
+      0
+    );
   }
 
   newFunction(node: TS.FunctionLikeDeclaration): FunctionModel {
@@ -356,7 +435,8 @@ class TsModelBuilder {
       calls: [],
       nameUses: new Map(),
       transactional:
-        params.some(p => TRANSACTION_PARAM.test(p)) || (callback !== null && TRANSACTION_CALL.test(callback.method)),
+        params.some(p => TRANSACTION_PARAM.test(p)) ||
+        (callback !== null && TRANSACTION_CALL.test(callback.method)),
     };
   }
 
@@ -364,14 +444,35 @@ class TsModelBuilder {
   loopOf(node: TS.Node): Loop | null {
     const ts = this.ts;
     const line = this.line(node);
-    const loop = (kind: string, targets: string[], fixedCount = false): Loop => ({ line, kind, fixedCount, targets, statements: [], awaits: [] });
+    const loop = (
+      kind: string,
+      targets: string[],
+      fixedCount = false
+    ): Loop => ({
+      line,
+      kind,
+      fixedCount,
+      targets,
+      statements: [],
+      awaits: [],
+    });
     if (ts.isForOfStatement(node)) {
-      const fixedCount = !node.awaitModifier && this.fixedIterable(node.expression);
-      return loop(node.awaitModifier ? 'for await' : 'for-of', this.initializerNames(node.initializer), fixedCount);
+      const fixedCount =
+        !node.awaitModifier && this.fixedIterable(node.expression);
+      return loop(
+        node.awaitModifier ? 'for await' : 'for-of',
+        this.initializerNames(node.initializer),
+        fixedCount
+      );
     }
-    if (ts.isForInStatement(node)) return loop('for-in', this.initializerNames(node.initializer));
+    if (ts.isForInStatement(node))
+      return loop('for-in', this.initializerNames(node.initializer));
     if (ts.isForStatement(node)) {
-      return loop('for', node.initializer ? this.initializerNames(node.initializer) : [], this.literalBound(node));
+      return loop(
+        'for',
+        node.initializer ? this.initializerNames(node.initializer) : [],
+        this.literalBound(node)
+      );
     }
     if (ts.isWhileStatement(node)) return loop('while', []);
     if (ts.isDoStatement(node)) return loop('do', []);
@@ -381,7 +482,8 @@ class TsModelBuilder {
   /** Names a loop initializer binds: `const x`, `let [a, b]`, or an assignment target. */
   initializerNames(initializer: TS.ForInitializer): string[] {
     const ts = this.ts;
-    if (ts.isVariableDeclarationList(initializer)) return initializer.declarations.flatMap(d => this.bindingNames(d.name));
+    if (ts.isVariableDeclarationList(initializer))
+      return initializer.declarations.flatMap(d => this.bindingNames(d.name));
     return this.targetNames(initializer);
   }
 
@@ -393,10 +495,19 @@ class TsModelBuilder {
     const ts = this.ts;
     const names = new Set<string>();
     for (const statement of this.sf.statements) {
-      if (!ts.isVariableStatement(statement) || !(statement.declarationList.flags & ts.NodeFlags.Const)) continue;
+      if (
+        !ts.isVariableStatement(statement) ||
+        !(statement.declarationList.flags & ts.NodeFlags.Const)
+      )
+        continue;
       for (const decl of statement.declarationList.declarations) {
         const init = decl.initializer ? this.unwrap(decl.initializer) : null;
-        if (ts.isIdentifier(decl.name) && init && (ts.isArrayLiteralExpression(init) || ts.isObjectLiteralExpression(init))) {
+        if (
+          ts.isIdentifier(decl.name) &&
+          init &&
+          (ts.isArrayLiteralExpression(init) ||
+            ts.isObjectLiteralExpression(init))
+        ) {
           names.add(decl.name.text);
         }
       }
@@ -409,20 +520,29 @@ class TsModelBuilder {
   fixedIterable(expression: TS.Expression): boolean {
     const ts = this.ts;
     const iterable = this.unwrap(expression);
-    return ts.isArrayLiteralExpression(iterable) || (ts.isIdentifier(iterable) && this.literalCollections().has(iterable.text));
+    return (
+      ts.isArrayLiteralExpression(iterable) ||
+      (ts.isIdentifier(iterable) &&
+        this.literalCollections().has(iterable.text))
+    );
   }
 
   /** `for (let i = 0; i < 3; i++)`: the bound is a number literal. */
   literalBound(node: TS.ForStatement): boolean {
     const ts = this.ts;
     const condition = node.condition ? this.unwrap(node.condition) : null;
-    return condition !== null && ts.isBinaryExpression(condition) && ts.isNumericLiteral(this.unwrap(condition.right));
+    return (
+      condition !== null &&
+      ts.isBinaryExpression(condition) &&
+      ts.isNumericLiteral(this.unwrap(condition.right))
+    );
   }
 
   /** The part of a loop evaluated once, before the first iteration. */
   onceParts(node: TS.Node): TS.Node[] {
     const ts = this.ts;
-    if (ts.isForOfStatement(node) || ts.isForInStatement(node)) return [node.initializer, node.expression];
+    if (ts.isForOfStatement(node) || ts.isForInStatement(node))
+      return [node.initializer, node.expression];
     if (ts.isForStatement(node) && node.initializer) return [node.initializer];
     return [];
   }
@@ -436,7 +556,13 @@ class TsModelBuilder {
     // `.forEach(item => …)`: the callback body is the loop body, its parameters the item.
     const forEachLoop: Loop | null =
       callback && callback.method === 'forEach'
-        ? { line: this.line(callback.call), kind: 'forEach', targets: fn.params, statements: [], awaits: [] }
+        ? {
+            line: this.line(callback.call),
+            kind: 'forEach',
+            targets: fn.params,
+            statements: [],
+            awaits: [],
+          }
         : null;
     const loops: Loop[] = forEachLoop ? [forEachLoop] : [];
     if (!ts.isBlock(body)) {
@@ -460,7 +586,11 @@ class TsModelBuilder {
     };
   }
 
-  recordBlock(fn: FunctionModel, statements: readonly TS.Statement[], loops: readonly Loop[]): void {
+  recordBlock(
+    fn: FunctionModel,
+    statements: readonly TS.Statement[],
+    loops: readonly Loop[]
+  ): void {
     const block = statements.map(s => this.statement(s));
     fn.blocks.push(block);
     for (const loop of loops) loop.statements.push(...block);
@@ -500,30 +630,49 @@ class TsModelBuilder {
   visit(fn: FunctionModel, node: TS.Node, loops: Loop[]): void {
     const ts = this.ts;
     if (this.isFunctionLike(node)) return;
-    if (ts.isBlock(node) || ts.isCaseClause(node) || ts.isDefaultClause(node)) this.recordBlock(fn, node.statements, loops);
-    if (ts.isAwaitExpression(node)) this.recordLoopAwait(fn, loops, this.awaitSite(node));
+    if (ts.isBlock(node) || ts.isCaseClause(node) || ts.isDefaultClause(node))
+      this.recordBlock(fn, node.statements, loops);
+    if (ts.isAwaitExpression(node))
+      this.recordLoopAwait(fn, loops, this.awaitSite(node));
     if (ts.isCallExpression(node)) fn.calls.push(this.call(node));
     const loop = this.loopOf(node);
     if (!loop) {
       ts.forEachChild(node, child => this.visit(fn, child, loops));
       return;
     }
-    if (ts.isForOfStatement(node) && node.awaitModifier) this.recordForAwait(fn, loops, node);
+    if (ts.isForOfStatement(node) && node.awaitModifier)
+      this.recordForAwait(fn, loops, node);
     const once = this.onceParts(node);
-    ts.forEachChild(node, child => this.visit(fn, child, once.includes(child) ? loops : [...loops, loop]));
+    ts.forEachChild(node, child =>
+      this.visit(fn, child, once.includes(child) ? loops : [...loops, loop])
+    );
     finishLoop(loop);
   }
 
-  recordLoopAwait(fn: FunctionModel, loops: readonly Loop[], site: AwaitSite): void {
+  recordLoopAwait(
+    fn: FunctionModel,
+    loops: readonly Loop[],
+    site: AwaitSite
+  ): void {
     const loop = loops[loops.length - 1];
     if (!loop) return;
-    const loopAwait: LoopAwait = { loopLine: loop.line, loopKind: loop.kind, fixedCount: loop.fixedCount === true, dependsOnLoop: false, site };
+    const loopAwait: LoopAwait = {
+      loopLine: loop.line,
+      loopKind: loop.kind,
+      fixedCount: loop.fixedCount === true,
+      dependsOnLoop: false,
+      site,
+    };
     fn.loopAwaits.push(loopAwait);
     loop.awaits.push(loopAwait);
   }
 
   /** `for await (… of stream)`: each step is a round trip, in the enclosing loop. */
-  recordForAwait(fn: FunctionModel, loops: readonly Loop[], node: TS.ForOfStatement): void {
+  recordForAwait(
+    fn: FunctionModel,
+    loops: readonly Loop[],
+    node: TS.ForOfStatement
+  ): void {
     const ts = this.ts;
     const iterable = this.unwrap(node.expression);
     this.recordLoopAwait(fn, loops, {
@@ -550,10 +699,18 @@ class TsModelBuilder {
     const ts = this.ts;
     const constants = new Map<string, string>();
     for (const statement of this.sf.statements) {
-      if (!ts.isVariableStatement(statement) || !(statement.declarationList.flags & ts.NodeFlags.Const)) continue;
+      if (
+        !ts.isVariableStatement(statement) ||
+        !(statement.declarationList.flags & ts.NodeFlags.Const)
+      )
+        continue;
       for (const decl of statement.declarationList.declarations) {
         const init = decl.initializer ? this.unwrap(decl.initializer) : null;
-        if (ts.isIdentifier(decl.name) && init && (ts.isStringLiteral(init) || ts.isNoSubstitutionTemplateLiteral(init))) {
+        if (
+          ts.isIdentifier(decl.name) &&
+          init &&
+          (ts.isStringLiteral(init) || ts.isNoSubstitutionTemplateLiteral(init))
+        ) {
           constants.set(decl.name.text, init.text);
         }
       }
@@ -563,15 +720,34 @@ class TsModelBuilder {
 
   imports(): ImportBinding[] {
     return this.src.imports().flatMap(info => [
-      ...(info.defaultName ? [{ local: info.defaultName, module: info.module, imported: 'default' }] : []),
-      ...(info.namespaceName ? [{ local: info.namespaceName, module: info.module, imported: null }] : []),
-      ...info.named.map(n => ({ local: n.local, module: info.module, imported: n.imported })),
+      ...(info.defaultName
+        ? [
+            {
+              local: info.defaultName,
+              module: info.module,
+              imported: 'default',
+            },
+          ]
+        : []),
+      ...(info.namespaceName
+        ? [{ local: info.namespaceName, module: info.module, imported: null }]
+        : []),
+      ...info.named.map(n => ({
+        local: n.local,
+        module: info.module,
+        imported: n.imported,
+      })),
     ]);
   }
 }
 
 /** Parse a TS/JS module into the request-path model. */
-export function typescriptModule(ts: TypeScriptModule, file: string, rel: string, content: string): ModuleModel {
+export function typescriptModule(
+  ts: TypeScriptModule,
+  file: string,
+  rel: string,
+  content: string
+): ModuleModel {
   const src = TsxSource.parse(ts, file, content);
   const builder = new TsModelBuilder(ts, src);
   return {

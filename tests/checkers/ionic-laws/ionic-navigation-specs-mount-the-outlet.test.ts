@@ -7,9 +7,13 @@ import { ctx, manifest, project, removeProjects } from '../toolkit-fixture';
 
 afterAll(removeProjects);
 
-const IONIC = manifest({ '@angular/core': '20.0.0', '@ionic/angular': '8.8.17' });
+const IONIC = manifest({
+  '@angular/core': '20.0.0',
+  '@ionic/angular': '8.8.17',
+});
 const OUTLET = {
-  'src/app/app.component.html': '<ion-app><ion-router-outlet></ion-router-outlet></ion-app>',
+  'src/app/app.component.html':
+    '<ion-app><ion-router-outlet></ion-router-outlet></ion-app>',
 };
 const run = (files: Record<string, string>) =>
   Law.check(ctx(project({ 'package.json': IONIC, ...OUTLET, ...files })));
@@ -45,12 +49,15 @@ describe('IonicNavigationSpecsMountTheOutletLaw', () => {
   });
 
   it('a spec that does not assert navigation is not read', () => {
-    expect(run({ 'src/app/a.spec.ts': 'expect(sum(1, 2)).toBe(3);' }).violations).toEqual([]);
+    expect(
+      run({ 'src/app/a.spec.ts': 'expect(sum(1, 2)).toBe(3);' }).violations
+    ).toEqual([]);
   });
 
   it('an outlet named only in a comment does not count', () => {
     const result = run({
-      'src/app/a.spec.ts': "// TODO mount <ion-router-outlet>\nexpect(location.path()).toBe('/x');",
+      'src/app/a.spec.ts':
+        "// TODO mount <ion-router-outlet>\nexpect(location.path()).toBe('/x');",
     });
     expect(result.violations).toHaveLength(1);
   });
@@ -65,7 +72,12 @@ describe('IonicNavigationSpecsMountTheOutletLaw', () => {
 
   it('without an outlet it passes and says so', () => {
     const result = Law.check(
-      ctx(project({ 'package.json': IONIC, 'src/app/a.spec.ts': 'expect(router.url).toBe("/");' }))
+      ctx(
+        project({
+          'package.json': IONIC,
+          'src/app/a.spec.ts': 'expect(router.url).toBe("/");',
+        })
+      )
     );
     expect(result.passed).toBe(true);
     expect(result.message).toContain('no <ion-router-outlet>');

@@ -26,7 +26,9 @@ export class CoreWebVitalsPolicyAnalyzerService {
     // app reports from a client component rendered by the root layout, not
     // from main.ts or app.component.ts, which it does not have.
     if (react && react.webVitalsReports.length > 0) {
-      implementations.push(`Core Web Vitals reported: ${react.webVitalsReports[0]}`);
+      implementations.push(
+        `Core Web Vitals reported: ${react.webVitalsReports[0]}`
+      );
     }
 
     // Check for web-vitals library usage

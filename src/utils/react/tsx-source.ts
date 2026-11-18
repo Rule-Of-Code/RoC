@@ -32,7 +32,9 @@ export function loadTypeScript(projectRoot: string): TypeScriptModule | null {
   if (loaded.has(projectRoot)) return loaded.get(projectRoot) ?? null;
   let ts: TypeScriptModule | null = null;
   try {
-    const entry = require.resolve('typescript', { paths: [projectRoot, __dirname] });
+    const entry = require.resolve('typescript', {
+      paths: [projectRoot, __dirname],
+    });
     ts = require(entry) as TypeScriptModule;
   } catch {
     ts = null;
@@ -102,14 +104,20 @@ export class TsxSource {
     );
   }
 
-  static parse(ts: TypeScriptModule, fileName: string, text: string): TsxSource {
+  static parse(
+    ts: TypeScriptModule,
+    fileName: string,
+    text: string
+  ): TsxSource {
     return new TsxSource(ts, fileName, text);
   }
 
   /** 1-based line of a node's first token. */
   lineOf(node: TS.Node): number {
     return (
-      this.sourceFile.getLineAndCharacterOfPosition(node.getStart(this.sourceFile)).line + 1
+      this.sourceFile.getLineAndCharacterOfPosition(
+        node.getStart(this.sourceFile)
+      ).line + 1
     );
   }
 
@@ -121,13 +129,17 @@ export class TsxSource {
    */
   parseErrors(): string[] {
     const diagnostics =
-      (this.sourceFile as unknown as { parseDiagnostics?: readonly TS.Diagnostic[] })
-        .parseDiagnostics ?? [];
+      (
+        this.sourceFile as unknown as {
+          parseDiagnostics?: readonly TS.Diagnostic[];
+        }
+      ).parseDiagnostics ?? [];
     return diagnostics.map(diagnostic => {
       const line =
         diagnostic.start === undefined
           ? 0
-          : this.sourceFile.getLineAndCharacterOfPosition(diagnostic.start).line + 1;
+          : this.sourceFile.getLineAndCharacterOfPosition(diagnostic.start)
+              .line + 1;
       return `line ${line}: ${this.ts.flattenDiagnosticMessageText(diagnostic.messageText, ' ')}`;
     });
   }
@@ -158,7 +170,11 @@ export class TsxSource {
       ) {
         return;
       }
-      if (ts.isHeritageClause(node) && node.token === ts.SyntaxKind.ImplementsKeyword) return;
+      if (
+        ts.isHeritageClause(node) &&
+        node.token === ts.SyntaxKind.ImplementsKeyword
+      )
+        return;
       if (ts.isExpressionWithTypeArguments(node)) {
         // `extends Base<T>`: Base is a value, T is a type.
         recurse(node.expression);
@@ -213,7 +229,10 @@ export class TsxSource {
     return result;
   }
 
-  private importInfo(statement: TS.ImportDeclaration, module: string): ImportInfo {
+  private importInfo(
+    statement: TS.ImportDeclaration,
+    module: string
+  ): ImportInfo {
     const ts = this.ts;
     const clause = statement.importClause;
     const info: ImportInfo = {
@@ -243,7 +262,8 @@ export class TsxSource {
     const ts = this.ts;
     const elements: JsxElementInfo[] = [];
     this.walk(node => {
-      if (!ts.isJsxOpeningElement(node) && !ts.isJsxSelfClosingElement(node)) return;
+      if (!ts.isJsxOpeningElement(node) && !ts.isJsxSelfClosingElement(node))
+        return;
       const attributes: JsxAttributeInfo[] = [];
       let hasSpread = false;
       for (const property of node.attributes.properties) {
@@ -284,7 +304,11 @@ export class TsxSource {
         value: expression ? expression.getText(this.sourceFile) : '',
       };
     }
-    return { name, kind: 'expression', value: initializer.getText(this.sourceFile) };
+    return {
+      name,
+      kind: 'expression',
+      value: initializer.getText(this.sourceFile),
+    };
   }
 }
 

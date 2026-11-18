@@ -1,7 +1,7 @@
 /**
  * Tests for CommitDescriptionStandardsLaw — real git repos, no mocks.
  */
-import { execSync } from 'child_process';
+import { execSync } from '../../../src/utils/child-process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -111,7 +111,10 @@ describe('checkers/git-laws/commit-description-standards', () => {
       const dir = repo([
         'fix: old\nPre-adoption body with no blank line that should be exempt.\n',
       ]);
-      execSync('git tag adoption', { cwd: dir, stdio: ['pipe', 'pipe', 'pipe'] });
+      execSync('git tag adoption', {
+        cwd: dir,
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
       // Only the pre-baseline (bad) commit exists → nothing after baseline.
       expect(
         CommitDescriptionStandardsLaw.check(ctxBaseline(dir, 'adoption')).passed
@@ -119,15 +122,17 @@ describe('checkers/git-laws/commit-description-standards', () => {
     });
 
     it('still flags a bad body authored after the baseline', () => {
-      const dir = repo([
-        'fix: old\nPre-adoption body, exempt.\n',
-      ]);
-      execSync('git tag adoption', { cwd: dir, stdio: ['pipe', 'pipe', 'pipe'] });
+      const dir = repo(['fix: old\nPre-adoption body, exempt.\n']);
+      execSync('git tag adoption', {
+        cwd: dir,
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
       fs.writeFileSync(path.join(dir, 'new.txt'), 'x');
       execSync('git add -A', { cwd: dir, stdio: ['pipe', 'pipe', 'pipe'] });
       execSync('git commit -q -F -', {
         cwd: dir,
-        input: 'feat: new\nNew post-baseline body with no blank line, must be flagged.\n',
+        input:
+          'feat: new\nNew post-baseline body with no blank line, must be flagged.\n',
         stdio: ['pipe', 'pipe', 'pipe'],
       });
       expect(

@@ -17,7 +17,12 @@ const config = {
   hooks: { preCommit: false, prePush: false, commitMsg: false },
   includes: { global: [] },
   excludes: {},
-  reporting: { format: 'console', verbose: false, onlyFailures: false, scoring: false },
+  reporting: {
+    format: 'console',
+    verbose: false,
+    onlyFailures: false,
+    scoring: false,
+  },
   performance: { parallel: false, maxConcurrent: 3, cache: true },
 } as unknown as RuleOfCodeConfig;
 

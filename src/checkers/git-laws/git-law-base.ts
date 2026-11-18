@@ -3,7 +3,7 @@
  * Base functionality for Git-specific law implementations
  */
 
-import { execSync } from 'child_process';
+import { execSync } from '../../utils/child-process';
 import type { LawCheckContext, LawResult } from '../../types';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';

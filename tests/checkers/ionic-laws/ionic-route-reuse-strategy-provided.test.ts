@@ -8,7 +8,10 @@ import { ctx, manifest, project, removeProjects } from '../toolkit-fixture';
 
 afterAll(removeProjects);
 
-const IONIC = manifest({ '@angular/core': '20.0.0', '@ionic/angular': '8.8.17' });
+const IONIC = manifest({
+  '@angular/core': '20.0.0',
+  '@ionic/angular': '8.8.17',
+});
 const OUTLET = {
   'src/app/app.component.ts':
     "@Component({ template: '<ion-app><ion-router-outlet></ion-router-outlet></ion-app>' })\nexport class AppComponent {}",
@@ -24,8 +27,10 @@ describe('IonicRouteReuseStrategyProvidedLaw without an ion-router-outlet', () =
       ctx(
         project({
           'package.json': IONIC,
-          'src/main.ts': 'bootstrapApplication(App, { providers: [provideRouter(routes)] });',
-          'src/app/a.ts': "router.navigate(['/x'], { skipLocationChange: true }); signOut();",
+          'src/main.ts':
+            'bootstrapApplication(App, { providers: [provideRouter(routes)] });',
+          'src/app/a.ts':
+            "router.navigate(['/x'], { skipLocationChange: true }); signOut();",
         })
       )
     );
@@ -38,7 +43,8 @@ describe('IonicRouteReuseStrategyProvidedLaw without an ion-router-outlet', () =
       ctx(
         project({
           'package.json': IONIC,
-          'src/app/app.component.ts': '// TODO: <ion-router-outlet>\nexport class AppComponent {}',
+          'src/app/app.component.ts':
+            '// TODO: <ion-router-outlet>\nexport class AppComponent {}',
         })
       )
     );
@@ -85,10 +91,13 @@ describe('IonicRouteReuseStrategyProvidedLaw (#150)', () => {
       withOutlet({
         'apps/mobile/src/main.ts':
           'bootstrapApplication(A, { providers: [{ provide: RouteReuseStrategy, useClass: IonicRouteStrategy }, provideRouter(r)] });',
-        'apps/kiosk/src/main.ts': 'bootstrapApplication(B, { providers: [provideRouter(r)] });',
+        'apps/kiosk/src/main.ts':
+          'bootstrapApplication(B, { providers: [provideRouter(r)] });',
       })
     );
-    expect(result.violations).toEqual([expect.stringMatching(/^apps\/kiosk: no RouteReuseStrategy/)]);
+    expect(result.violations).toEqual([
+      expect.stringMatching(/^apps\/kiosk: no RouteReuseStrategy/),
+    ]);
   });
 
   it('a provider named only in a comment does not count', () => {

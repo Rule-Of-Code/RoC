@@ -3,14 +3,25 @@
  * Advanced enterprise-grade type definitions with Pareto optimization
  */
 
-export type LawPriority = "CRITICAL" | "HIGH" | "LOW" | "MEDIUM";
+export type LawPriority = 'CRITICAL' | 'HIGH' | 'LOW' | 'MEDIUM';
 
 export type LawCategory =
-  "ACCESSIBILITY" | "CODE_QUALITY" | "DEPLOYMENT" | "DOCUMENTATION" | "FRAMEWORK" | "PERFORMANCE" | "PROJECT_SPECIFIC" | "PYTHON" | "SACRED_LAW" | "SECURITY" | "TESTING" | "VERSION_CONTROL";
+  | 'ACCESSIBILITY'
+  | 'CODE_QUALITY'
+  | 'DEPLOYMENT'
+  | 'DOCUMENTATION'
+  | 'FRAMEWORK'
+  | 'PERFORMANCE'
+  | 'PROJECT_SPECIFIC'
+  | 'PYTHON'
+  | 'SACRED_LAW'
+  | 'SECURITY'
+  | 'TESTING'
+  | 'VERSION_CONTROL';
 
-export type AutomationType = "AUTOMATED" | "CONFIGURABLE" | "MANUAL";
+export type AutomationType = 'AUTOMATED' | 'CONFIGURABLE' | 'MANUAL';
 
-export type LawSeverity = "error" | "info" | "warning";
+export type LawSeverity = 'error' | 'info' | 'warning';
 
 /**
  * Stack scope of a law — which project stacks it is meaningful for. Omitted means
@@ -22,7 +33,7 @@ export type LawSeverity = "error" | "info" | "warning";
  * so e.g. Core Web Vitals / bundle / NgRx never fire on a Python backend and the
  * Python laws never fire on an Angular frontend.
  */
-export type LawStack = "frontend" | "python" | "typescript";
+export type LawStack = 'frontend' | 'python' | 'typescript';
 
 /**
  * What a project must DECLARE before a law is selected at all — finer than
@@ -149,6 +160,12 @@ export interface EnhancedConstitutionalLaw {
    * canonical name or slug; the engine refuses ambiguous keys (v7.10.0).
    */
   legacyId?: number;
+  /**
+   * Titles this law had before a rename. Each stays a public identity: a
+   * config key written with it (`laws.severity`, `laws.notApplicable`,
+   * `laws.enabled`, `ignores.byRule`) resolves to this law, as do its slugs.
+   */
+  formerTitles?: readonly string[];
   stack?: LawStack; // Stack scope (omitted = universal). See LawStack.
   /** Declared dependencies/files without which the law is not selected. See LawRequirement. */
   requires?: LawRequirement;

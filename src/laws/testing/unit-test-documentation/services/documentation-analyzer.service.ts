@@ -127,7 +127,8 @@ export class UnitTestDocumentationAnalyzerService {
         );
         poorDescriptions += poor.length;
         const relative = PathOperations.getRelative(projectRoot, testFile);
-        for (const testCase of poor) examples.push(`${relative}: "${testCase}"`);
+        for (const testCase of poor)
+          examples.push(`${relative}: "${testCase}"`);
       } catch (_error) {
         unread.push(PathOperations.getRelative(projectRoot, testFile));
       }

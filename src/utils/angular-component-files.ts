@@ -9,13 +9,17 @@ const COMPONENT_DECORATOR = /@Component\s*\(/;
 const COMPONENT_SUFFIX = '.component.ts';
 
 /** The Angular class kinds a law may scope itself to. */
-export type AngularKind = 'component' | 'directive' | 'guard' | 'module' | 'pipe' | 'service';
+export type AngularKind =
+  'component' | 'directive' | 'guard' | 'module' | 'pipe' | 'service';
 
 /**
  * Each kind's pre-20 file suffix and the code that makes a file that kind
  * whatever its name. A functional guard has no decorator: its type does.
  */
-const ANGULAR_KINDS: Record<AngularKind, { suffix: string; decorator: RegExp }> = {
+const ANGULAR_KINDS: Record<
+  AngularKind,
+  { suffix: string; decorator: RegExp }
+> = {
   component: { suffix: COMPONENT_SUFFIX, decorator: COMPONENT_DECORATOR },
   directive: { suffix: '.directive.ts', decorator: /@Directive\s*\(/ },
   service: { suffix: '.service.ts', decorator: /@Injectable\s*\(/ },
@@ -23,7 +27,8 @@ const ANGULAR_KINDS: Record<AngularKind, { suffix: string; decorator: RegExp }> 
   module: { suffix: '.module.ts', decorator: /@NgModule\s*\(/ },
   guard: {
     suffix: '.guard.ts',
-    decorator: /\b(?:CanActivate|CanActivateChild|CanDeactivate|CanMatch)(?:Fn)?\b/,
+    decorator:
+      /\b(?:CanActivate|CanActivateChild|CanDeactivate|CanMatch)(?:Fn)?\b/,
   },
 };
 
@@ -70,10 +75,15 @@ export class AngularComponentFiles {
    * `endsWith('.component.ts')` passed every Angular 20 app in silence (#330).
    */
   static isKind(file: string, kinds: readonly AngularKind[]): boolean {
-    if (!file.endsWith('.ts') || /\.(?:spec|test)\.ts$/.test(file) || file.endsWith('.d.ts')) {
+    if (
+      !file.endsWith('.ts') ||
+      /\.(?:spec|test)\.ts$/.test(file) ||
+      file.endsWith('.d.ts')
+    ) {
       return false;
     }
-    if (kinds.some(kind => file.endsWith(ANGULAR_KINDS[kind].suffix))) return true;
+    if (kinds.some(kind => file.endsWith(ANGULAR_KINDS[kind].suffix)))
+      return true;
     let content: string;
     try {
       content = FileUtils.readFile(file);

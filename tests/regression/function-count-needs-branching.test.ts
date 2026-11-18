@@ -105,9 +105,9 @@ describe('the function ceiling asks whether the file also branches', () => {
     it('honours maxFunctionsPerFile', () => {
       write('src/handlers.ts', branchingCallbacks(24));
 
-      expect(countFindings(withThresholds({ maxFunctionsPerFile: 100 }))).toEqual(
-        []
-      );
+      expect(
+        countFindings(withThresholds({ maxFunctionsPerFile: 100 }))
+      ).toEqual([]);
     });
 
     /** A config written before the two were separated keeps its meaning. */

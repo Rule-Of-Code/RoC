@@ -36,7 +36,8 @@ afterAll(() => {
 function ctx(root: string, allowed?: string[]): LawCheckContext {
   const config = FileUtils.getMinimalDefaultConfig();
   config.project.componentPrefix = 'app';
-  if (allowed) config.thresholds = { angular: { allowedComponentPrefixes: allowed } };
+  if (allowed)
+    config.thresholds = { angular: { allowedComponentPrefixes: allowed } };
   return { projectRoot: root, config } as never;
 }
 
@@ -61,7 +62,9 @@ describe('ComponentSelectorPrefixLaw', () => {
       'src/a.component.ts': 'app-foo',
       'src/c.component.ts': 't3-button',
     });
-    expect(ComponentSelectorPrefixLaw.check(ctx(dir, ['t3'])).passed).toBe(true);
+    expect(ComponentSelectorPrefixLaw.check(ctx(dir, ['t3'])).passed).toBe(
+      true
+    );
   });
 
   it('still flags genuinely wrong prefixes under multi-prefix config', () => {
@@ -77,6 +80,8 @@ describe('ComponentSelectorPrefixLaw', () => {
 
   it('tolerates prefixes written with a trailing dash ("t3-")', () => {
     const dir = fixture({ 'src/c.component.ts': 't3-button' });
-    expect(ComponentSelectorPrefixLaw.check(ctx(dir, ['t3-'])).passed).toBe(true);
+    expect(ComponentSelectorPrefixLaw.check(ctx(dir, ['t3-'])).passed).toBe(
+      true
+    );
   });
 });

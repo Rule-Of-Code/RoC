@@ -53,52 +53,92 @@ describe('TESTING detector bugs', () => {
       expect(result.passed).toBe(true);
     });
 
-    const invariantHolds = async (
-      result: { passed: boolean; violations?: string[] }
-    ): Promise<void> => {
+    const invariantHolds = async (result: {
+      passed: boolean;
+      violations?: string[];
+    }): Promise<void> => {
       // passed must equal "no violations" — never a failing verdict with an empty list.
       expect(result.passed).toBe((result.violations ?? []).length === 0);
     };
 
     it('Professional Component Testing keeps passed ≡ (no violations)', async () => {
-      write('package.json', JSON.stringify({ name: 'a', dependencies: { '@angular/core': '^17' } }));
+      write(
+        'package.json',
+        JSON.stringify({ name: 'a', dependencies: { '@angular/core': '^17' } })
+      );
       write('angular.json', '{}');
-      write('src/app/foo/foo.component.ts', 'export class FooComponent { title="x"; }');
+      write(
+        'src/app/foo/foo.component.ts',
+        'export class FooComponent { title="x"; }'
+      );
       write(
         'src/app/foo/foo.component.spec.ts',
         `describe('FooComponent', () => {\n  it('should a', () => { const s = jest.fn(); expect(s).toBeDefined(); expect(1).toBe(1); });\n  it('should b', () => { expect(true).toBe(true); });\n});`
       );
       await invariantHolds(
         await Promise.resolve(
-          ProfessionalComponentTestingPolicyLaw.check({ projectRoot: root, config: config('angular') })
+          ProfessionalComponentTestingPolicyLaw.check({
+            projectRoot: root,
+            config: config('angular'),
+          })
         )
       );
     });
 
     it('API Testing Standards keeps passed ≡ (no violations)', async () => {
-      write('package.json', JSON.stringify({ name: 'a', devDependencies: { jest: '^29', supertest: '^6' } }));
-      write('src/tests/api.spec.ts', `describe('api', () => { it('GET', async () => { const r = await get('/x'); expect(r.status).toBe(200); expect(r.status).toBe(404); }); });`);
+      write(
+        'package.json',
+        JSON.stringify({
+          name: 'a',
+          devDependencies: { jest: '^29', supertest: '^6' },
+        })
+      );
+      write(
+        'src/tests/api.spec.ts',
+        `describe('api', () => { it('GET', async () => { const r = await get('/x'); expect(r.status).toBe(200); expect(r.status).toBe(404); }); });`
+      );
       await invariantHolds(
-        await APITestingStandardsLaw.check({ projectRoot: root, config: config('node') })
+        await APITestingStandardsLaw.check({
+          projectRoot: root,
+          config: config('node'),
+        })
       );
     });
 
     it('Performance Test Requirements keeps passed ≡ (no violations)', async () => {
-      write('package.json', JSON.stringify({ name: 'a', devDependencies: { k6: '^0.1', 'web-vitals': '^3' } }));
-      write('src/app.perf.spec.ts', 'test("login flow perf", () => { expect(1).toBe(1); });');
+      write(
+        'package.json',
+        JSON.stringify({
+          name: 'a',
+          devDependencies: { k6: '^0.1', 'web-vitals': '^3' },
+        })
+      );
+      write(
+        'src/app.perf.spec.ts',
+        'test("login flow perf", () => { expect(1).toBe(1); });'
+      );
       await invariantHolds(
         await Promise.resolve(
-          PerformanceTestRequirementsLaw.check({ projectRoot: root, config: config('angular') })
+          PerformanceTestRequirementsLaw.check({
+            projectRoot: root,
+            config: config('angular'),
+          })
         )
       );
     });
 
     it('Test Documentation Requirements keeps passed ≡ (no violations)', async () => {
       write('TESTING.md', '# Testing\n'.padEnd(200, 'x'));
-      write('src/a.spec.ts', `describe('a', () => { it('should do the thing clearly', () => { expect(1).toBe(1); }); });`);
+      write(
+        'src/a.spec.ts',
+        `describe('a', () => { it('should do the thing clearly', () => { expect(1).toBe(1); }); });`
+      );
       await invariantHolds(
         await Promise.resolve(
-          TestDocumentationRequirementsLaw.check({ projectRoot: root, config: config('node') })
+          TestDocumentationRequirementsLaw.check({
+            projectRoot: root,
+            config: config('node'),
+          })
         )
       );
     });
@@ -116,7 +156,12 @@ describe('TESTING detector bugs', () => {
           jest: {
             collectCoverage: true,
             coverageThreshold: {
-              global: { lines: metrics, functions: metrics, branches: metrics, statements: metrics },
+              global: {
+                lines: metrics,
+                functions: metrics,
+                branches: metrics,
+                statements: metrics,
+              },
             },
           },
         })
@@ -125,7 +170,10 @@ describe('TESTING detector bugs', () => {
 
     it('fails a coverageThreshold below 100 (it used to falsely pass)', () => {
       withThreshold(50);
-      const result = JestUnitTest100CoverageMandateLaw.check({ projectRoot: root, config: config('node') });
+      const result = JestUnitTest100CoverageMandateLaw.check({
+        projectRoot: root,
+        config: config('node'),
+      });
       expect(
         (result.violations ?? []).some(v => /100% coverage thresholds/.test(v))
       ).toBe(true);
@@ -133,7 +181,10 @@ describe('TESTING detector bugs', () => {
 
     it('accepts a coverageThreshold of 100 on every metric', () => {
       withThreshold(100);
-      const result = JestUnitTest100CoverageMandateLaw.check({ projectRoot: root, config: config('node') });
+      const result = JestUnitTest100CoverageMandateLaw.check({
+        projectRoot: root,
+        config: config('node'),
+      });
       expect(
         (result.violations ?? []).some(v => /100% coverage thresholds/.test(v))
       ).toBe(false);

@@ -135,7 +135,7 @@ describe('cli/init-command', () => {
     });
 
     it('should log setup header', async () => {
-      const options: InitOptions = { quick: true, force: true };
+      const options: InitOptions = { quick: true, force: true, hooks: false };
 
       await executeInitAction(options, tempDir);
 
@@ -145,7 +145,7 @@ describe('cli/init-command', () => {
     });
 
     it('should handle quick mode', async () => {
-      const options: InitOptions = { quick: true, force: true };
+      const options: InitOptions = { quick: true, force: true, hooks: false };
 
       const result = await executeInitAction(options, tempDir);
 
@@ -161,7 +161,7 @@ describe('cli/init-command', () => {
         JSON.stringify({ version: '6.0.0' })
       );
 
-      const options: InitOptions = { quick: true, force: true };
+      const options: InitOptions = { quick: true, force: true, hooks: false };
 
       const result = await executeInitAction(options, tempDir);
 
@@ -170,7 +170,7 @@ describe('cli/init-command', () => {
 
     it('should handle non-force option with no existing config', async () => {
       // No existing config, force: false
-      const options: InitOptions = { quick: true, force: false };
+      const options: InitOptions = { quick: true, force: false, hooks: false };
 
       const result = await executeInitAction(options, tempDir);
 
@@ -223,7 +223,7 @@ describe('cli/init-command', () => {
       // Fake prompt function that returns true for overwrite
       const fakePrompt = async () => ({ overwrite: true });
 
-      const options: InitOptions = { force: false, quick: true };
+      const options: InitOptions = { force: false, quick: true, hooks: false };
 
       const result = await executeInitAction(
         options,
@@ -245,7 +245,7 @@ describe('cli/init-command', () => {
     // ======================================================================
 
     it('falls back to the quick defaults instead of prompting into the void', async () => {
-      const options: InitOptions = { force: true };
+      const options: InitOptions = { force: true, hooks: false };
 
       const result = await executeInitAction(options, tempDir);
 
@@ -254,7 +254,9 @@ describe('cli/init-command', () => {
       expect(calls).toContain('No interactive terminal detected');
       // It really ran the setup, rather than reporting success and doing nothing.
       expect(
-        FileUtils.exists(PathOperations.join(tempDir, 'ruleofcode.config.js')) ||
+        FileUtils.exists(
+          PathOperations.join(tempDir, 'ruleofcode.config.js')
+        ) ||
           FileUtils.exists(
             PathOperations.join(tempDir, 'ruleofcode.config.json')
           )
@@ -285,13 +287,37 @@ describe('cli/init-command', () => {
         JSON.stringify({ version: '6.0.0' })
       );
 
-      const options: InitOptions = { force: true };
+      const options: InitOptions = { force: true, hooks: false };
 
       const result = await executeInitAction(options, tempDir);
 
       expect(result.success).toBe(true);
       const calls = consoleSpy.mock.calls.map(c => c[0]).join(' ');
       expect(calls).toContain('No interactive terminal detected');
+    });
+
+    // The cases above pass --no-hooks: their subject is the setup flow, and
+    // with hooks on every one of them ran `npm install husky` in a directory
+    // that is not a repository. That combination now fails closed (#372).
+    it('fails closed when hooks are asked for outside a git repository', async () => {
+      const options: InitOptions = { quick: true, force: true };
+
+      const result = await executeInitAction(options, tempDir);
+
+      expect(result.success).toBe(false);
+      expect(result.error?.message).toMatch(/not inside one/);
+      const calls = consoleSpy.mock.calls.map(c => String(c[0])).join(' ');
+      expect(calls).not.toContain('installed successfully');
+      expect(calls).not.toContain('Installing Husky');
+      // The configuration is still written; only the hook claim is refused.
+      expect(
+        FileUtils.exists(
+          PathOperations.join(tempDir, 'ruleofcode.config.js')
+        ) ||
+          FileUtils.exists(
+            PathOperations.join(tempDir, 'ruleofcode.config.json')
+          )
+      ).toBe(true);
     });
 
     it('should run interactive setup when not quick mode', async () => {

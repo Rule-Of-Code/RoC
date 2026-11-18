@@ -37,6 +37,9 @@ jobs:
       - name: Lint (eslint — 0 errors)
         run: npm run lint
 
+      - name: Format (prettier --check, never --write)
+        run: npm run format:check
+
       - name: Test (full jest suite)
         run: npx jest --ci --silent
 

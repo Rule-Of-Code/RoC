@@ -45,9 +45,31 @@ export interface UnreadCheck {
   reason: string;
 }
 
-const CONSTRAINT_STARTS = new Set(['constraint', 'check', 'primary', 'unique', 'foreign', 'exclude']);
-const NOT_NULL_TYPES = new Set(['serial', 'bigserial', 'smallserial', 'serial4', 'serial8', 'serial2']);
-const CREATE_MODIFIERS = new Set(['or', 'replace', 'temp', 'temporary', 'unlogged', 'global', 'local']);
+const CONSTRAINT_STARTS = new Set([
+  'constraint',
+  'check',
+  'primary',
+  'unique',
+  'foreign',
+  'exclude',
+]);
+const NOT_NULL_TYPES = new Set([
+  'serial',
+  'bigserial',
+  'smallserial',
+  'serial4',
+  'serial8',
+  'serial2',
+]);
+const CREATE_MODIFIERS = new Set([
+  'or',
+  'replace',
+  'temp',
+  'temporary',
+  'unlogged',
+  'global',
+  'local',
+]);
 const OUTSIDE_THE_CHAIN = 'it is not created in the tracked migrations';
 const DOMAIN_PREFIX = 'domain ';
 const CHECK = 'check';
@@ -59,7 +81,8 @@ const isPunct = (token: SqlToken | undefined, punct: string): boolean =>
 
 /** `"public"."users"` → `users`; `audit.log` → `audit.log`. */
 function tableKey(parts: string[]): string {
-  const named = parts[0] === 'public' && parts.length > 1 ? parts.slice(1) : parts;
+  const named =
+    parts[0] === 'public' && parts.length > 1 ? parts.slice(1) : parts;
   return named.join('.');
 }
 
@@ -95,7 +118,10 @@ export class SqlSchema {
       this.unread.push({
         file: this.file,
         line: this.line(first),
-        reason: `a CHECK in a "${statement.slice(0, 3).map(t => t.value).join(' ')} …" statement this law does not take apart`,
+        reason: `a CHECK in a "${statement
+          .slice(0, 3)
+          .map(t => t.value)
+          .join(' ')} …" statement this law does not take apart`,
       });
     }
   }
@@ -109,14 +135,18 @@ export class SqlSchema {
     const verb = tokens[0];
     if (isWord(verb, 'create')) {
       i = 1;
-      while (CREATE_MODIFIERS.has(tokens[i]?.value ?? '') && !tokens[i]?.quoted) i += 1;
+      while (CREATE_MODIFIERS.has(tokens[i]?.value ?? '') && !tokens[i]?.quoted)
+        i += 1;
       if (isWord(tokens[i], 'table')) this.createTable(tokens, i + 1);
       else if (isWord(tokens[i], 'domain')) this.createDomain(tokens, i + 1);
     } else if (isWord(verb, 'alter') && isWord(tokens[1], 'table')) {
       this.alterTable(tokens, 2);
     } else if (isWord(verb, 'alter') && isWord(tokens[1], 'domain')) {
       this.alterDomain(tokens, 2);
-    } else if (isWord(verb, 'drop') && (isWord(tokens[1], 'table') || isWord(tokens[1], 'domain'))) {
+    } else if (
+      isWord(verb, 'drop') &&
+      (isWord(tokens[1], 'table') || isWord(tokens[1], 'domain'))
+    ) {
       this.drop(tokens, isWord(tokens[1], 'domain'));
     }
   }
@@ -125,8 +155,14 @@ export class SqlSchema {
   private skipQualifiers(tokens: SqlToken[], i: number): number {
     let at = i;
     for (;;) {
-      if (isWord(tokens[at], 'if') && isWord(tokens[at + 1], 'not') && isWord(tokens[at + 2], 'exists')) at += 3;
-      else if (isWord(tokens[at], 'if') && isWord(tokens[at + 1], 'exists')) at += 2;
+      if (
+        isWord(tokens[at], 'if') &&
+        isWord(tokens[at + 1], 'not') &&
+        isWord(tokens[at + 2], 'exists')
+      )
+        at += 3;
+      else if (isWord(tokens[at], 'if') && isWord(tokens[at + 1], 'exists'))
+        at += 2;
       else if (isWord(tokens[at], 'only')) at += 1;
       else return at;
     }
@@ -159,7 +195,8 @@ export class SqlSchema {
     this.tables.set(key, table);
     this.dropChecksOf(key);
     if (!isPunct(tokens[next], '(')) {
-      table.partial = 'its columns come from a query or another type (AS / OF / PARTITION OF)';
+      table.partial =
+        'its columns come from a query or another type (AS / OF / PARTITION OF)';
       return;
     }
     const close = closingParen(tokens, next);
@@ -181,7 +218,11 @@ export class SqlSchema {
       table.partial = 'its columns are copied with LIKE';
       return [];
     }
-    if (first.kind === 'ident' && !first.quoted && CONSTRAINT_STARTS.has(first.value)) {
+    if (
+      first.kind === 'ident' &&
+      !first.quoted &&
+      CONSTRAINT_STARTS.has(first.value)
+    ) {
       return this.tableConstraint(table, def);
     }
     this.column(table, def);
@@ -201,12 +242,20 @@ export class SqlSchema {
     }
     if (isWord(def[i], 'primary') && isPunct(def[i + 2], '(')) {
       const close = closingParen(def, i + 2);
-      return def.slice(i + 3, close).filter(t => t.kind === 'ident').map(t => t.value);
+      return def
+        .slice(i + 3, close)
+        .filter(t => t.kind === 'ident')
+        .map(t => t.value);
     }
     return [];
   }
 
-  private addCheck(table: string, name: string, tokens: SqlToken[], open: number): void {
+  private addCheck(
+    table: string,
+    name: string,
+    tokens: SqlToken[],
+    open: number
+  ): void {
     const close = closingParen(tokens, open);
     this.added += 1;
     this.checks.push({
@@ -249,7 +298,11 @@ export class SqlSchema {
     );
   }
 
-  private setNullable(table: SqlTable, column: string, nullable: boolean): void {
+  private setNullable(
+    table: SqlTable,
+    column: string,
+    nullable: boolean
+  ): void {
     const existing = table.columns.get(column);
     if (existing) existing.nullable = nullable;
     else if (table.partial) table.columns.set(column, { nullable });
@@ -270,7 +323,8 @@ export class SqlSchema {
     else if (verb === 'alter') this.alterColumnAction(this.table(key), action);
     else if (verb === 'drop') this.dropAction(this.table(key), action);
     else if (verb === 'rename') this.renameAction(key, action);
-    else if (verb === 'modify' || verb === 'change') this.modifyAction(this.table(key), action);
+    else if (verb === 'modify' || verb === 'change')
+      this.modifyAction(this.table(key), action);
   }
 
   private addAction(table: SqlTable, action: SqlToken[]): void {
@@ -285,11 +339,22 @@ export class SqlSchema {
     const i = isWord(action[1], 'column') ? 2 : 1;
     const column = action[i]?.value ?? '';
     const rest = action.slice(i + 1);
-    if (isWord(rest[0], 'set') && isWord(rest[1], 'not') && isWord(rest[2], 'null')) {
+    if (
+      isWord(rest[0], 'set') &&
+      isWord(rest[1], 'not') &&
+      isWord(rest[2], 'null')
+    ) {
       this.setNullable(table, column, false);
-    } else if (isWord(rest[0], 'drop') && isWord(rest[1], 'not') && isWord(rest[2], 'null')) {
+    } else if (
+      isWord(rest[0], 'drop') &&
+      isWord(rest[1], 'not') &&
+      isWord(rest[2], 'null')
+    ) {
       this.setNullable(table, column, true);
-    } else if (isWord(rest[0], 'add') && rest.some(t => isWord(t, 'identity'))) {
+    } else if (
+      isWord(rest[0], 'add') &&
+      rest.some(t => isWord(t, 'identity'))
+    ) {
       this.setNullable(table, column, false);
     }
   }
@@ -297,14 +362,18 @@ export class SqlSchema {
   private dropAction(table: SqlTable, action: SqlToken[]): void {
     if (isWord(action[1], 'constraint')) {
       const name = action[this.skipQualifiers(action, 2)]?.value;
-      this.removeChecks(check => check.table === table.name && check.name === name);
+      this.removeChecks(
+        check => check.table === table.name && check.name === name
+      );
       return;
     }
     const i = this.skipQualifiers(action, isWord(action[1], 'column') ? 2 : 1);
     const column = action[i]?.value ?? '';
     table.columns.delete(column);
     this.removeChecks(
-      check => check.table === table.name && check.tokens.some(t => t.kind === 'ident' && t.value === column)
+      check =>
+        check.table === table.name &&
+        check.tokens.some(t => t.kind === 'ident' && t.value === column)
     );
   }
 
@@ -315,16 +384,22 @@ export class SqlSchema {
       this.tables.delete(key);
       table.name = target;
       this.tables.set(target, table);
-      for (const check of this.checks) if (check.table === key) check.table = target;
+      for (const check of this.checks)
+        if (check.table === key) check.table = target;
       return;
     }
     if (isWord(action[1], 'constraint')) {
       const [from, to] = [action[2]?.value, action[4]?.value ?? ''];
-      for (const check of this.checks) if (check.table === key && check.name === from) check.name = to;
+      for (const check of this.checks)
+        if (check.table === key && check.name === from) check.name = to;
       return;
     }
     const i = isWord(action[1], 'column') ? 2 : 1;
-    this.renameColumn(table, action[i]?.value ?? '', action[i + 2]?.value ?? '');
+    this.renameColumn(
+      table,
+      action[i]?.value ?? '',
+      action[i + 2]?.value ?? ''
+    );
   }
 
   private renameColumn(table: SqlTable, from: string, to: string): void {
@@ -335,7 +410,9 @@ export class SqlSchema {
     }
     for (const check of this.checks) {
       if (check.table !== table.name) continue;
-      check.tokens = check.tokens.map(t => (t.kind === 'ident' && t.value === from ? { ...t, value: to } : t));
+      check.tokens = check.tokens.map(t =>
+        t.kind === 'ident' && t.value === from ? { ...t, value: to } : t
+      );
     }
   }
 
@@ -343,7 +420,11 @@ export class SqlSchema {
   private modifyAction(table: SqlTable, action: SqlToken[]): void {
     let i = isWord(action[1], 'column') ? 2 : 1;
     if (isWord(action[0], 'change')) {
-      this.renameColumn(table, action[i]?.value ?? '', action[i + 1]?.value ?? '');
+      this.renameColumn(
+        table,
+        action[i]?.value ?? '',
+        action[i + 1]?.value ?? ''
+      );
       i += 1;
     }
     this.column(table, action.slice(i));
@@ -380,18 +461,25 @@ export class SqlSchema {
     const table: SqlTable = { name: full, columns: new Map(), partial: null };
     this.tables.set(full, table);
     this.dropChecksOf(full);
-    this.column(table, [{ kind: 'ident', value: 'value', pos: tokens[0]?.pos ?? 0, quoted: true }, ...tokens.slice(next)]);
+    this.column(table, [
+      { kind: 'ident', value: 'value', pos: tokens[0]?.pos ?? 0, quoted: true },
+      ...tokens.slice(next),
+    ]);
   }
 
   private alterDomain(tokens: SqlToken[], from: number): void {
     const { key, next } = this.name(tokens, from);
     const table = this.table(`${DOMAIN_PREFIX}${key}`);
     table.partial = null;
-    if (!table.columns.has('value')) table.columns.set('value', { nullable: true });
+    if (!table.columns.has('value'))
+      table.columns.set('value', { nullable: true });
     const action = tokens.slice(next);
-    if (isWord(action[0], 'set') && isWord(action[1], 'not')) this.setNullable(table, 'value', false);
-    else if (isWord(action[0], 'drop') && isWord(action[1], 'not')) this.setNullable(table, 'value', true);
-    else if (isWord(action[0], 'add')) this.tableConstraint(table, action.slice(1));
+    if (isWord(action[0], 'set') && isWord(action[1], 'not'))
+      this.setNullable(table, 'value', false);
+    else if (isWord(action[0], 'drop') && isWord(action[1], 'not'))
+      this.setNullable(table, 'value', true);
+    else if (isWord(action[0], 'add'))
+      this.tableConstraint(table, action.slice(1));
     else if (isWord(action[0], 'drop')) this.dropAction(table, action);
   }
 }

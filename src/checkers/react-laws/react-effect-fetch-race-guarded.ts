@@ -38,7 +38,8 @@ export class ReactEffectFetchRaceGuardedLaw extends LawBase {
     for (const source of sources) {
       for (const effect of effectCalls(source)) {
         const finding = this.judge(source, effect);
-        if (finding) violations.push(`${where(context, source, effect.call)}: ${finding}`);
+        if (finding)
+          violations.push(`${where(context, source, effect.call)}: ${finding}`);
       }
     }
     return this.createResult(
@@ -74,7 +75,8 @@ export class ReactEffectFetchRaceGuardedLaw extends LawBase {
     const aborts = cleanup.some(node => this.callsAbort(ts, node));
     const unsignalled = fetches.filter(call => !this.passesSignal(ts, call));
     if (unsignalled.length === 0 && aborts) return null;
-    const count = fetches.length === 1 ? 'a fetch' : `${fetches.length} fetches`;
+    const count =
+      fetches.length === 1 ? 'a fetch' : `${fetches.length} fetches`;
     if (unsignalled.length === 0) {
       return `${effect.hook} passes a signal to ${count} but its cleanup never calls abort() — a superseded response still lands. Return () => controller.abort()`;
     }
@@ -82,14 +84,18 @@ export class ReactEffectFetchRaceGuardedLaw extends LawBase {
   }
 
   /** `fetch(url, { signal })` or `fetch(url, { signal: controller.signal })`. */
-  private static passesSignal(ts: TypeScriptModule, call: TS.CallExpression): boolean {
+  private static passesSignal(
+    ts: TypeScriptModule,
+    call: TS.CallExpression
+  ): boolean {
     const init = call.arguments[1];
     if (!init) return false;
     const value = unwrap(ts, init);
     if (!ts.isObjectLiteralExpression(value)) return false;
     return value.properties.some(
       property =>
-        (ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property)) &&
+        (ts.isPropertyAssignment(property) ||
+          ts.isShorthandPropertyAssignment(property)) &&
         property.name.getText() === 'signal'
     );
   }
@@ -97,7 +103,8 @@ export class ReactEffectFetchRaceGuardedLaw extends LawBase {
   private static callsAbort(ts: TypeScriptModule, root: TS.Node): boolean {
     let found = false;
     walkWithin(ts, root, node => {
-      if (ts.isCallExpression(node) && callTarget(ts, node)?.name === 'abort') found = true;
+      if (ts.isCallExpression(node) && callTarget(ts, node)?.name === 'abort')
+        found = true;
     });
     return found;
   }
@@ -137,18 +144,29 @@ export class ReactEffectFetchRaceGuardedLaw extends LawBase {
     return assigned.some(left => {
       const flag = this.flagText(ts, left);
       if (!flag || !read.has(flag)) return false;
-      return ts.isIdentifier(left) ? lets.has(flag) : declared.has(flag.split('.')[0] as string);
+      return ts.isIdentifier(left)
+        ? lets.has(flag)
+        : declared.has(flag.split('.')[0] as string);
     });
   }
 
-  private static isAssignment(ts: TypeScriptModule, node: TS.Node): node is TS.BinaryExpression {
-    return ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken;
+  private static isAssignment(
+    ts: TypeScriptModule,
+    node: TS.Node
+  ): node is TS.BinaryExpression {
+    return (
+      ts.isBinaryExpression(node) &&
+      node.operatorToken.kind === ts.SyntaxKind.EqualsToken
+    );
   }
 
   /** `ignore` or `state.ignore` — a name, or one property of a name. */
   private static flagText(ts: TypeScriptModule, node: TS.Node): string | null {
     if (ts.isIdentifier(node)) return node.text;
-    if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression)) {
+    if (
+      ts.isPropertyAccessExpression(node) &&
+      ts.isIdentifier(node.expression)
+    ) {
       return `${node.expression.text}.${node.name.text}`;
     }
     return null;
@@ -158,7 +176,10 @@ export class ReactEffectFetchRaceGuardedLaw extends LawBase {
   private static isRead(ts: TypeScriptModule, node: TS.Node): boolean {
     const parent = node.parent;
     if (ts.isVariableDeclaration(parent) && parent.name === node) return false;
-    if (ts.isPropertyAccessExpression(parent) && (parent.name === node || parent.expression === node)) {
+    if (
+      ts.isPropertyAccessExpression(parent) &&
+      (parent.name === node || parent.expression === node)
+    ) {
       return false;
     }
     return !(this.isAssignment(ts, parent) && parent.left === node);

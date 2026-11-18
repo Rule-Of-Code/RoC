@@ -16,12 +16,16 @@ export interface XcodeConfiguration {
   settings: string;
 }
 
-const CONFIGURATION = /isa\s*=\s*XCBuildConfiguration;\s*buildSettings\s*=\s*\{([\s\S]*?)\};\s*name\s*=\s*"?([^";\n]+)"?;/g;
-const AUTO_INIT = /<key>FirebaseMessagingAutoInitEnabled<\/key>\s*(<false\s*\/>|<true\s*\/>|<string>([^<]*)<\/string>)/;
+const CONFIGURATION =
+  /isa\s*=\s*XCBuildConfiguration;\s*buildSettings\s*=\s*\{([\s\S]*?)\};\s*name\s*=\s*"?([^";\n]+)"?;/g;
+const AUTO_INIT =
+  /<key>FirebaseMessagingAutoInitEnabled<\/key>\s*(<false\s*\/>|<true\s*\/>|<string>([^<]*)<\/string>)/;
 
 /** The directory that holds an .xcodeproj, from the path of its project.pbxproj. */
 export function projectDirectory(pbxprojRel: string): string | null {
-  const match = /^(?:(.*)\/)?[^/]+\.xcodeproj\/project\.pbxproj$/.exec(pbxprojRel);
+  const match = /^(?:(.*)\/)?[^/]+\.xcodeproj\/project\.pbxproj$/.exec(
+    pbxprojRel
+  );
   return match ? (match[1] ?? '') : null;
 }
 
@@ -37,14 +41,21 @@ export function xcodeConfigurations(pbxproj: string): XcodeConfiguration[] {
 }
 
 /** Is auto-init off for a configuration, given the app's Info.plist texts? */
-export function iosAutoInitDisabled(configuration: XcodeConfiguration, infoPlists: string[]): boolean {
+export function iosAutoInitDisabled(
+  configuration: XcodeConfiguration,
+  infoPlists: string[]
+): boolean {
   for (const plist of infoPlists) {
     const match = AUTO_INIT.exec(plist);
     if (!match) continue;
     if (/^<false/.test(match[1] ?? '')) return true;
-    const variable = /^\$\(([A-Za-z_]\w*)\)$/.exec((match[2] ?? '').trim())?.[1];
+    const variable = /^\$\(([A-Za-z_]\w*)\)$/.exec(
+      (match[2] ?? '').trim()
+    )?.[1];
     if (!variable) return false;
-    const value = new RegExp(String.raw`\b${variable}\s*=\s*"?(\w+)"?;`).exec(configuration.settings)?.[1];
+    const value = new RegExp(String.raw`\b${variable}\s*=\s*"?(\w+)"?;`).exec(
+      configuration.settings
+    )?.[1];
     return value !== undefined && /^(?:NO|false|0)$/i.test(value);
   }
   return false;

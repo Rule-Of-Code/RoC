@@ -40,7 +40,10 @@ afterAll(() => {
     }
   }
 });
-const ctx = (root: string, extra?: Partial<RuleOfCodeConfig>): LawCheckContext => {
+const ctx = (
+  root: string,
+  extra?: Partial<RuleOfCodeConfig>
+): LawCheckContext => {
   const config = FileUtils.getMinimalDefaultConfig();
   config.project.type = 'python';
   if (extra) Object.assign(config, extra);
@@ -51,7 +54,8 @@ describe('231 No Wall-Clock In Domain', () => {
   it('flags wall-clock reads in domain/application layers', () => {
     const dir = fixture({
       'src/domain/pricing.py': 'import time\nnow = time.time()\n',
-      'src/application/uc.py': 'from datetime import datetime\nn = datetime.now(tz=UTC)\n',
+      'src/application/uc.py':
+        'from datetime import datetime\nn = datetime.now(tz=UTC)\n',
     });
     const r = NoWallClockInDomainLaw.check(ctx(dir));
     expect(r.passed).toBe(false);
@@ -154,7 +158,8 @@ describe('237 Seeded Randomness', () => {
 describe('238 No Wall-Clock In Tests', () => {
   it('flags wall-clock in tests, exempts frozen-time files', () => {
     const dir = fixture({
-      'tests/test_hot.py': 'import time\ndef test_x():\n    assert time.time() > 0\n',
+      'tests/test_hot.py':
+        'import time\ndef test_x():\n    assert time.time() > 0\n',
       'tests/test_frozen.py':
         'from freezegun import freeze_time\nimport time\ndef test_y():\n    assert time.time() > 0\n',
     });
@@ -210,7 +215,9 @@ describe('enhancement: Centralized Logging python branch', () => {
     });
     const r = CentralizedLoggingLaw.check(ctx(dir));
     expect(r.passed).toBe(false);
-    expect((r.violations ?? []).filter(v => /print\(\)/.test(v))).toHaveLength(1);
+    expect((r.violations ?? []).filter(v => /print\(\)/.test(v))).toHaveLength(
+      1
+    );
     expect((r.violations ?? [])[0]).toMatch(/svc\.py/);
   });
 });
@@ -224,7 +231,9 @@ describe('enhancement: Settings envBoundary mode (209)', () => {
     expect(red.passed).toBe(false);
 
     const green = SettingsViaBaseSettingsLaw.check(
-      ctx(dir, { thresholds: { python: { envBoundary: ['wsgi.py'] } } } as never)
+      ctx(dir, {
+        thresholds: { python: { envBoundary: ['wsgi.py'] } },
+      } as never)
     );
     expect(green.passed).toBe(true);
   });

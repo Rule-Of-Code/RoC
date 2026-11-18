@@ -11,10 +11,17 @@
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { configValue, resolvedProjects } from '../../utils/capacitor/capacitor-law-support';
+import {
+  configValue,
+  resolvedProjects,
+} from '../../utils/capacitor/capacitor-law-support';
 import { LawBase } from '../law-base';
 
-const LOGGING_KEYS = ['loggingBehavior', 'android.loggingBehavior', 'ios.loggingBehavior'];
+const LOGGING_KEYS = [
+  'loggingBehavior',
+  'android.loggingBehavior',
+  'ios.loggingBehavior',
+];
 
 export class CapacitorLoggingNeverProductionLaw extends LawBase {
   static readonly LAW_NAME = 'Capacitor Logging Never Production';

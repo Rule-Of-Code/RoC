@@ -2,7 +2,7 @@
  * Regression tests for v7.1.1 git-hook generation (FE-flagged on Windows/Git-Bash
  * + husky v9.1.7). Generates real hook files into a temp dir and validates them.
  */
-import { execFileSync } from 'child_process';
+import { execFileSync } from '../../src/utils/child-process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -35,7 +35,10 @@ function read(huskyDir: string, hook: string): string {
 
 const shAvailable = ((): boolean => {
   try {
-    execFileSync('sh', ['-c', 'exit 0'], { stdio: ['pipe', 'pipe', 'pipe'] });
+    execFileSync('sh', ['-c', 'exit 0'], {
+      cwd: os.tmpdir(),
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
     return true;
   } catch {
     return false;
@@ -80,6 +83,7 @@ describe('Hook generation — commit-msg POSIX validity (FE Git-Bash crash)', ()
       for (const hook of ['pre-commit', 'pre-push', 'commit-msg']) {
         // sh -n throws on syntax error → would fail the test.
         execFileSync('sh', ['-n', path.join(husky, hook)], {
+          cwd: path.dirname(husky),
           stdio: ['pipe', 'pipe', 'pipe'],
         });
       }
@@ -88,6 +92,7 @@ describe('Hook generation — commit-msg POSIX validity (FE Git-Bash crash)', ()
         fs.writeFileSync(msgFile, `${subject}\n`);
         try {
           execFileSync('sh', [path.join(husky, 'commit-msg'), msgFile], {
+            cwd: path.dirname(husky),
             stdio: ['pipe', 'pipe', 'pipe'],
           });
           return 0;
@@ -156,6 +161,7 @@ describe('Hook generation — commit-msg POSIX validity (FE Git-Bash crash)', ()
         const husky = installTyped('python');
         for (const hook of ['pre-commit', 'pre-push']) {
           execFileSync('sh', ['-n', path.join(husky, hook)], {
+            cwd: path.dirname(husky),
             stdio: ['pipe', 'pipe', 'pipe'],
           });
         }
@@ -167,7 +173,10 @@ describe('Hook generation — commit-msg POSIX validity (FE Git-Bash crash)', ()
           'else return 0; fi; }; roc_py definitely_not_a_real_tool_xyz check .';
         const status = (() => {
           try {
-            execFileSync('sh', ['-c', probe], { stdio: ['pipe', 'pipe', 'pipe'] });
+            execFileSync('sh', ['-c', probe], {
+              cwd: os.tmpdir(),
+              stdio: ['pipe', 'pipe', 'pipe'],
+            });
             return 0;
           } catch (e) {
             return (e as { status?: number }).status ?? 1;
@@ -187,6 +196,7 @@ describe('Hook generation — commit-msg POSIX validity (FE Git-Bash crash)', ()
         fs.writeFileSync(msgFile, msg);
         try {
           execFileSync('sh', [path.join(husky, 'commit-msg'), msgFile], {
+            cwd: path.dirname(husky),
             stdio: ['pipe', 'pipe', 'pipe'],
           });
           return 0;
@@ -197,13 +207,15 @@ describe('Hook generation — commit-msg POSIX validity (FE Git-Bash crash)', ()
       // Well-formed body → pass.
       expect(run('feat: x\n\nA short, well-formed body line.\n')).toBe(0);
       // Body not separated by a blank line → fail.
-      expect(run('fix: y\nBody on the line right after the subject.\n')).toBe(1);
+      expect(run('fix: y\nBody on the line right after the subject.\n')).toBe(
+        1
+      );
       // Over-long wrappable body line → fail.
       expect(run(`docs: z\n\n${'word '.repeat(20)}\n`)).toBe(1);
       // Long URL is exempt → pass.
-      expect(run(`chore: u\n\nSee https://example.com/${'x'.repeat(90)}\n`)).toBe(
-        0
-      );
+      expect(
+        run(`chore: u\n\nSee https://example.com/${'x'.repeat(90)}\n`)
+      ).toBe(0);
       // Merge commit body is exempt → pass.
       expect(run("Merge branch 'main'\nno blank line but exempt")).toBe(0);
     }

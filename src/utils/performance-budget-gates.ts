@@ -35,9 +35,14 @@ import { JsConfigSource } from './react/js-config-source';
 import { WorkspaceManifests } from './workspace-manifests';
 import type { RuleOfCodeConfig } from '../config/types';
 
-type CiConfig = { pathMappings?: { cicdConfig?: string | string[] } } | RuleOfCodeConfig;
+type CiConfig =
+  { pathMappings?: { cicdConfig?: string | string[] } } | RuleOfCodeConfig;
 
-const SIZE_LIMIT_JSON_FILES = ['.size-limit.json', '.size-limit.jsonc', '.size-limit'];
+const SIZE_LIMIT_JSON_FILES = [
+  '.size-limit.json',
+  '.size-limit.jsonc',
+  '.size-limit',
+];
 const SIZE_LIMIT_CODE_FILES = [
   '.size-limit.js',
   '.size-limit.mjs',
@@ -50,14 +55,16 @@ const SIZE_LIMIT_KEY = 'size-limit';
 const RUNS_SIZE_LIMIT = /\bsize-limit\b/;
 
 /** A command that runs a budget tool. */
-const RUNS_BUDGET_TOOL = /\blhci\b|lighthouse-ci|\bsize-limit\b|\bbundlesize\b|\bbundlewatch\b/i;
+const RUNS_BUDGET_TOOL =
+  /\blhci\b|lighthouse-ci|\bsize-limit\b|\bbundlesize\b|\bbundlewatch\b/i;
 
 /** A command that runs the Angular production build (which fails on `maximumError`). */
 const RUNS_ANGULAR_BUILD =
   /\bng\s+build\b|\bnx\s+build\b|\bnx\s+run\s+\S+:build\b|\bnx\s+(?:run-many|affected)\b[^\n]*\bbuild\b/;
 
 /** `npm run x`, `npm test`, `yarn x`, `pnpm x`, `bun run x` → the script name. */
-const SCRIPT_REFERENCE = /\b(?:npm\s+run|npm|yarn(?:\s+run)?|pnpm(?:\s+run)?|bun\s+run)\s+([\w:.-]+)/g;
+const SCRIPT_REFERENCE =
+  /\b(?:npm\s+run|npm|yarn(?:\s+run)?|pnpm(?:\s+run)?|bun\s+run)\s+([\w:.-]+)/g;
 
 const SCRIPT_DEPTH = 5;
 
@@ -110,18 +117,23 @@ export class PerformanceBudgetGates {
   /** size-limit: declared checks with a limit, and what runs them. */
   static sizeLimit(projectRoot: string, config?: CiConfig): SizeLimitStatus {
     const status: SizeLimitStatus = { declaredIn: [], runBy: [], unread: [] };
-    const relative = (file: string): string => PathOperations.getRelative(projectRoot, file) || '.';
+    const relative = (file: string): string =>
+      PathOperations.getRelative(projectRoot, file) || '.';
     for (const manifest of WorkspaceManifests.all(projectRoot)) {
       if (checksDeclareLimit(manifest.raw[SIZE_LIMIT_KEY])) {
-        status.declaredIn.push(relative(PathOperations.join(manifest.dir, 'package.json')));
+        status.declaredIn.push(
+          relative(PathOperations.join(manifest.dir, 'package.json'))
+        );
       }
       this.sizeLimitFiles(projectRoot, manifest.dir, status, relative);
       for (const [name, command] of Object.entries(manifest.scripts)) {
-        if (RUNS_SIZE_LIMIT.test(command)) status.runBy.push(`script "${name}"`);
+        if (RUNS_SIZE_LIMIT.test(command))
+          status.runBy.push(`script "${name}"`);
       }
     }
     for (const file of this.ciFiles(projectRoot, config)) {
-      if (RUNS_SIZE_LIMIT.test(commandText(this.read(file)))) status.runBy.push(`CI ${relative(file)}`);
+      if (RUNS_SIZE_LIMIT.test(commandText(this.read(file))))
+        status.runBy.push(`CI ${relative(file)}`);
     }
     return status;
   }
@@ -136,37 +148,51 @@ export class PerformanceBudgetGates {
       const file = PathOperations.join(dir, name);
       if (!FileUtils.exists(file)) continue;
       const parsed = readJsonc(file);
-      if (parsed === undefined) status.unread.push(`${relative(file)}: not valid JSON`);
-      else if (checksDeclareLimit(parsed)) status.declaredIn.push(relative(file));
+      if (parsed === undefined)
+        status.unread.push(`${relative(file)}: not valid JSON`);
+      else if (checksDeclareLimit(parsed))
+        status.declaredIn.push(relative(file));
     }
     for (const name of SIZE_LIMIT_CODE_FILES) {
       const file = PathOperations.join(dir, name);
       if (!FileUtils.exists(file)) continue;
       const read = JsConfigSource.read(projectRoot, file);
       if (!read.source) status.unread.push(read.unread);
-      else if (JsConfigSource.valuesOf(read.source, 'limit').length > 0) status.declaredIn.push(relative(file));
+      else if (JsConfigSource.valuesOf(read.source, 'limit').length > 0)
+        status.declaredIn.push(relative(file));
     }
   }
 
   /** A size-limit budget that something runs, described; null when there is none. */
-  static enforcedSizeLimit(projectRoot: string, config?: CiConfig): string | null {
+  static enforcedSizeLimit(
+    projectRoot: string,
+    config?: CiConfig
+  ): string | null {
     const status = this.sizeLimit(projectRoot, config);
-    if (status.declaredIn.length === 0 || status.runBy.length === 0) return null;
+    if (status.declaredIn.length === 0 || status.runBy.length === 0)
+      return null;
     return `size-limit (${status.declaredIn.join(', ')}; run by ${status.runBy.join(', ')})`;
   }
 
   /** Lighthouse assertions that something runs, described; null when there are none. */
-  static enforcedLighthouse(projectRoot: string, config?: CiConfig): string | null {
-    const gate = inspectLighthouseGate(projectRoot, config as RuleOfCodeConfig | undefined);
+  static enforcedLighthouse(
+    projectRoot: string,
+    config?: CiConfig
+  ): string | null {
+    const gate = inspectLighthouseGate(
+      projectRoot,
+      config as RuleOfCodeConfig | undefined
+    );
     if (!gate.isWired || !gate.declaresThreshold) return null;
     return `Lighthouse assertions (${gate.configFiles.join(', ')}; ${gate.evidence.join(', ')})`;
   }
 
   /** Every toolchain-neutral enforced budget (size-limit, Lighthouse). */
   static enforcedBudgets(projectRoot: string, config?: CiConfig): string[] {
-    return [this.enforcedSizeLimit(projectRoot, config), this.enforcedLighthouse(projectRoot, config)].filter(
-      (budget): budget is string => budget !== null
-    );
+    return [
+      this.enforcedSizeLimit(projectRoot, config),
+      this.enforcedLighthouse(projectRoot, config),
+    ].filter((budget): budget is string => budget !== null);
   }
 
   /**
@@ -181,7 +207,10 @@ export class PerformanceBudgetGates {
       const gates: string[] = [];
       for (const file of ciFiles) {
         const how = this.runsBudget(projectRoot, commandText(this.read(file)));
-        if (how) gates.push(`CI ${PathOperations.getRelative(projectRoot, file)} runs ${how}`);
+        if (how)
+          gates.push(
+            `CI ${PathOperations.getRelative(projectRoot, file)} runs ${how}`
+          );
       }
       return { hostedCi: true, gates };
     }
@@ -193,15 +222,19 @@ export class PerformanceBudgetGates {
     const hooks: Array<[string, string]> = [];
     for (const name of LOCAL_HOOK_FILES) {
       const file = PathOperations.join(projectRoot, name);
-      if (FileUtils.exists(file)) hooks.push([name, commandText(this.read(file))]);
+      if (FileUtils.exists(file))
+        hooks.push([name, commandText(this.read(file))]);
     }
     const rootManifest = WorkspaceManifests.all(projectRoot).find(
       manifest => PathOperations.getRelative(projectRoot, manifest.dir) === ''
     );
     const simpleGitHooks = rootManifest?.raw['simple-git-hooks'];
     if (simpleGitHooks && typeof simpleGitHooks === 'object') {
-      for (const [hook, command] of Object.entries(simpleGitHooks as Record<string, unknown>)) {
-        if (typeof command === 'string') hooks.push([`simple-git-hooks ${hook}`, command]);
+      for (const [hook, command] of Object.entries(
+        simpleGitHooks as Record<string, unknown>
+      )) {
+        if (typeof command === 'string')
+          hooks.push([`simple-git-hooks ${hook}`, command]);
       }
     }
     const gates: string[] = [];
@@ -215,7 +248,8 @@ export class PerformanceBudgetGates {
   /** What budget tool `commands` runs (following package scripts), or null. */
   static runsBudget(projectRoot: string, commands: string): string | null {
     const scripts: Record<string, string> = {};
-    for (const manifest of WorkspaceManifests.all(projectRoot)) Object.assign(scripts, manifest.scripts);
+    for (const manifest of WorkspaceManifests.all(projectRoot))
+      Object.assign(scripts, manifest.scripts);
     const angularBudgets = this.angularBuildEnforcesBudgets(projectRoot);
     return this.resolve(commands, scripts, angularBudgets, SCRIPT_DEPTH);
   }
@@ -228,7 +262,8 @@ export class PerformanceBudgetGates {
   ): string | null {
     const tool = RUNS_BUDGET_TOOL.exec(commands);
     if (tool) return tool[0];
-    if (angularBudgets && RUNS_ANGULAR_BUILD.test(commands)) return 'the Angular build (maximumError budgets)';
+    if (angularBudgets && RUNS_ANGULAR_BUILD.test(commands))
+      return 'the Angular build (maximumError budgets)';
     if (depth === 0) return null;
     for (const match of commands.matchAll(SCRIPT_REFERENCE)) {
       const name = match[1];
@@ -250,7 +285,10 @@ export class PerformanceBudgetGates {
   /** CI configuration files; a workflows directory contributes each file in it. */
   private static ciFiles(projectRoot: string, config?: CiConfig): string[] {
     const files: string[] = [];
-    for (const entry of ciConfigPaths(projectRoot, config as Parameters<typeof ciConfigPaths>[1])) {
+    for (const entry of ciConfigPaths(
+      projectRoot,
+      config as Parameters<typeof ciConfigPaths>[1]
+    )) {
       if (!FileUtils.isDirectory(entry)) {
         files.push(entry);
         continue;

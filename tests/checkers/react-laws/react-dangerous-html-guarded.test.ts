@@ -11,17 +11,28 @@ import { ctx, manifest, project, removeProjects } from '../toolkit-fixture';
 
 afterAll(removeProjects);
 
-const REACT = { 'package.json': manifest({ react: '19.3.0', 'react-dom': '19.3.0' }) };
-const check = (code: string, overrides: Record<string, unknown> = {}, file = 'src/Post.tsx') =>
-  ReactDangerousHtmlGuardedLaw.check(ctx(project({ ...REACT, [file]: code }), overrides));
-const violations = (result: { violations?: string[] }): string[] => result.violations ?? [];
+const REACT = {
+  'package.json': manifest({ react: '19.3.0', 'react-dom': '19.3.0' }),
+};
+const check = (
+  code: string,
+  overrides: Record<string, unknown> = {},
+  file = 'src/Post.tsx'
+) =>
+  ReactDangerousHtmlGuardedLaw.check(
+    ctx(project({ ...REACT, [file]: code }), overrides)
+  );
+const violations = (result: { violations?: string[] }): string[] =>
+  result.violations ?? [];
 const sink = (html: string): string =>
   `export const Post = ({ body, data }) => (\n  <div dangerouslySetInnerHTML={{ __html: ${html} }} />\n);`;
 
 describe('ReactDangerousHtmlGuarded (#223): red', () => {
   it('a raw prop as __html, named with file and line', () => {
     expect(violations(check(sink('body')))).toEqual([
-      expect.stringMatching(/^src\/Post\.tsx:2: __html is `body` — not a literal, a sanitizer call/),
+      expect.stringMatching(
+        /^src\/Post\.tsx:2: __html is `body` — not a literal, a sanitizer call/
+      ),
     ]);
   });
 
@@ -33,12 +44,16 @@ describe('ReactDangerousHtmlGuarded (#223): red', () => {
     const code =
       'export const Ld = ({ data }) => (\n  <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />\n);';
     expect(violations(check(code))).toEqual([
-      expect.stringMatching(/:2: __html is JSON\.stringify\(\.\.\.\), which does not escape '<'/),
+      expect.stringMatching(
+        /:2: __html is JSON\.stringify\(\.\.\.\), which does not escape '<'/
+      ),
     ]);
   });
 
   it("an escape that is not \\u003c (a bare '\\u003c' string is '<' itself)", () => {
-    expect(violations(check(sink("JSON.stringify(data).replace(/</g, '\\u003c')")))).toHaveLength(1);
+    expect(
+      violations(check(sink("JSON.stringify(data).replace(/</g, '\\u003c')")))
+    ).toHaveLength(1);
   });
 
   it('a sanitizer-looking call that is not configured', () => {
@@ -46,16 +61,21 @@ describe('ReactDangerousHtmlGuarded (#223): red', () => {
   });
 
   it('a variable instead of { __html } cannot be read: flagged as unreadable', () => {
-    const code = 'export const Post = ({ html }) => <div dangerouslySetInnerHTML={html} />;';
+    const code =
+      'export const Post = ({ html }) => <div dangerouslySetInnerHTML={html} />;';
     expect(violations(check(code))).toEqual([
-      expect.stringMatching(/dangerouslySetInnerHTML is given `html`, not an object literal/),
+      expect.stringMatching(
+        /dangerouslySetInnerHTML is given `html`, not an object literal/
+      ),
     ]);
   });
 
   it('the props-object form (createElement) is a sink too', () => {
     const code =
       "import { createElement } from 'react';\nexport const P = (b) => createElement('div', { dangerouslySetInnerHTML: { __html: b } });";
-    expect(violations(check(code, {}, 'src/p.ts'))).toEqual([expect.stringMatching(/^src\/p\.ts:2: __html is `b`/)]);
+    expect(violations(check(code, {}, 'src/p.ts'))).toEqual([
+      expect.stringMatching(/^src\/p\.ts:2: __html is `b`/),
+    ]);
   });
 
   it('a .jsx file is read too', () => {
@@ -64,10 +84,16 @@ describe('ReactDangerousHtmlGuarded (#223): red', () => {
 
   it('an allow-listed function without a reason is reported and not honoured', () => {
     const result = check(sink('renderMarkdown(body)'), {
-      thresholds: { react: { trustedHtmlFunctions: [{ name: 'renderMarkdown', reason: ' ' }] } },
+      thresholds: {
+        react: {
+          trustedHtmlFunctions: [{ name: 'renderMarkdown', reason: ' ' }],
+        },
+      },
     });
     expect(violations(result)).toEqual([
-      expect.stringMatching(/^thresholds\.react\.trustedHtmlFunctions: 'renderMarkdown' has no reason/),
+      expect.stringMatching(
+        /^thresholds\.react\.trustedHtmlFunctions: 'renderMarkdown' has no reason/
+      ),
       expect.stringMatching(/__html is `renderMarkdown\(body\)`/),
     ]);
   });
@@ -80,7 +106,10 @@ describe('ReactDangerousHtmlGuarded (#223): green', () => {
     ['literals behind ?:', "body ? '<b>a</b>' : '<i>b</i>'"],
     ['DOMPurify.sanitize', 'DOMPurify.sanitize(body)'],
     ['DOMPurify.sanitize through a cast', 'DOMPurify.sanitize(body) as string'],
-    ['JSON with < escaped (the Next JSON-LD form)', "JSON.stringify(data).replace(/</g, '\\\\u003c')"],
+    [
+      'JSON with < escaped (the Next JSON-LD form)',
+      "JSON.stringify(data).replace(/</g, '\\\\u003c')",
+    ],
   ])('%s', (_label, html) => {
     expect(check(sink(html)).violations).toEqual([]);
   });
@@ -94,18 +123,30 @@ describe('ReactDangerousHtmlGuarded (#223): green', () => {
 
   it('an allow-listed function with a reason', () => {
     const result = check(sink('renderMarkdown(body)'), {
-      thresholds: { react: { trustedHtmlFunctions: [{ name: 'renderMarkdown', reason: 'escapes all input; no raw HTML' }] } },
+      thresholds: {
+        react: {
+          trustedHtmlFunctions: [
+            {
+              name: 'renderMarkdown',
+              reason: 'escapes all input; no raw HTML',
+            },
+          ],
+        },
+      },
     });
     expect(result.violations).toEqual([]);
   });
 
   it('a configured JSON serializer', () => {
-    const result = check(sink('serialize(data)'), { thresholds: { react: { jsonSerializers: ['serialize'] } } });
+    const result = check(sink('serialize(data)'), {
+      thresholds: { react: { jsonSerializers: ['serialize'] } },
+    });
     expect(result.violations).toEqual([]);
   });
 
   it('dangerouslySetInnerHTML only in a comment or a string is not a sink', () => {
-    const code = "// never use dangerouslySetInnerHTML={{ __html: body }}\nexport const note = 'dangerouslySetInnerHTML';";
+    const code =
+      "// never use dangerouslySetInnerHTML={{ __html: body }}\nexport const note = 'dangerouslySetInnerHTML';";
     expect(check(code).passed).toBe(true);
   });
 
@@ -121,7 +162,11 @@ describe('ReactDangerousHtmlGuarded (#223): cannot read', () => {
     try {
       const result = check(sink("'<b>literal</b>'"));
       expect(result.passed).toBe(false);
-      expect(violations(result)).toEqual([expect.stringMatching(/^1 file\(s\): could not load the 'typescript' package/)]);
+      expect(violations(result)).toEqual([
+        expect.stringMatching(
+          /^1 file\(s\): could not load the 'typescript' package/
+        ),
+      ]);
     } finally {
       spy.mockRestore();
     }
@@ -129,7 +174,9 @@ describe('ReactDangerousHtmlGuarded (#223): cannot read', () => {
 });
 
 describe('ReactDangerousHtmlGuarded (#223): selection', () => {
-  const card = REACT_SECURITY_LAWS.find(law => law.checkFunction === 'ReactDangerousHtmlGuardedLaw.check');
+  const card = REACT_SECURITY_LAWS.find(
+    law => law.checkFunction === 'ReactDangerousHtmlGuardedLaw.check'
+  );
 
   it('is selected where a workspace manifest declares react', () => {
     expect(card?.requires).toEqual({ anyDependency: ['react'] });
@@ -138,15 +185,31 @@ describe('ReactDangerousHtmlGuarded (#223): selection', () => {
       lawRequirementsMet(
         card?.requires,
         project({
-          'package.json': JSON.stringify({ name: 'mono', workspaces: ['apps/*'] }),
-          'apps/web/package.json': manifest({ next: '16.4.6', react: '19.3.0' }),
+          'package.json': JSON.stringify({
+            name: 'mono',
+            workspaces: ['apps/*'],
+          }),
+          'apps/web/package.json': manifest({
+            next: '16.4.6',
+            react: '19.3.0',
+          }),
         })
       )
     ).toBe(true);
   });
 
   it('is not selected on an Angular or a Python project', () => {
-    expect(lawRequirementsMet(card?.requires, project({ 'package.json': manifest({ '@angular/core': '20.0.0' }) }))).toBe(false);
-    expect(lawRequirementsMet(card?.requires, project({ 'pyproject.toml': "[project]\nname = 'x'\n" }))).toBe(false);
+    expect(
+      lawRequirementsMet(
+        card?.requires,
+        project({ 'package.json': manifest({ '@angular/core': '20.0.0' }) })
+      )
+    ).toBe(false);
+    expect(
+      lawRequirementsMet(
+        card?.requires,
+        project({ 'pyproject.toml': "[project]\nname = 'x'\n" })
+      )
+    ).toBe(false);
   });
 });

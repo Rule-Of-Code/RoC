@@ -27,7 +27,8 @@ export class RootServiceNoTimerLaw extends FeArchLawBase {
     /(?<![.\w])(?:interval|timer)\s*\(|\bsetInterval\s*\(/;
   // The sanctioned tick source that ROC-FE-01 mandates lives in these files —
   // same exemption as poll-via-sanctioned-source, or the two laws eat each other.
-  private static readonly HELPER_FILE = /(page-visibility|poll-signal|poll-ticks)/i;
+  private static readonly HELPER_FILE =
+    /(page-visibility|poll-signal|poll-ticks)/i;
 
   /** Root-provided classes in one file that own a timer, honoring the allowlist. */
   private static collectRootTimerViolations(

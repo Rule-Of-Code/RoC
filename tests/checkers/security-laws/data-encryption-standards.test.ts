@@ -70,13 +70,17 @@ describe('DataEncryptionStandardsLaw', () => {
       it('should include details array', () => {
         const result = DataEncryptionStandardsLaw.check(context);
 
-        expect(result.details === undefined || Array.isArray(result.details)).toBe(true);
+        expect(
+          result.details === undefined || Array.isArray(result.details)
+        ).toBe(true);
       });
 
       it('should include fixable property', () => {
         const result = DataEncryptionStandardsLaw.check(context);
 
-        expect(result.fixable === undefined || typeof result.fixable === 'boolean').toBe(true);
+        expect(
+          result.fixable === undefined || typeof result.fixable === 'boolean'
+        ).toBe(true);
       });
 
       it('should include config in result', () => {

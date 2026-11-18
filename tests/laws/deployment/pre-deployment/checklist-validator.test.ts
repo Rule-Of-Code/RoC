@@ -41,7 +41,6 @@ describe('ChecklistDocumentValidator', () => {
         parallel: false,
         maxConcurrent: 3,
         cache: true,
-
       },
     };
     mockContext = {

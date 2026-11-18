@@ -44,53 +44,140 @@ const one = (file: string, code: string): string =>
 
 describe('NoEvalExecLaw', () => {
   it('flags eval()/exec()', () => {
-    expect(NoEvalExecLaw.check(ctx(one('src/a.py', 'x = eval(user_in)\n'))).passed).toBe(false);
+    expect(
+      NoEvalExecLaw.check(ctx(one('src/a.py', 'x = eval(user_in)\n'))).passed
+    ).toBe(false);
   });
   it('does not flag ast.literal_eval', () => {
-    expect(NoEvalExecLaw.check(ctx(one('src/a.py', 'import ast\nx = ast.literal_eval(s)\n'))).passed).toBe(true);
+    expect(
+      NoEvalExecLaw.check(
+        ctx(one('src/a.py', 'import ast\nx = ast.literal_eval(s)\n'))
+      ).passed
+    ).toBe(true);
   });
 });
 
 describe('InsecureDeserializationLaw', () => {
   it('flags pickle.loads and yaml.load without SafeLoader', () => {
-    expect(InsecureDeserializationLaw.check(ctx(one('src/a.py', 'import pickle\nd = pickle.loads(raw)\n'))).passed).toBe(false);
-    expect(InsecureDeserializationLaw.check(ctx(one('src/a.py', 'import yaml\nd = yaml.load(s)\n'))).passed).toBe(false);
+    expect(
+      InsecureDeserializationLaw.check(
+        ctx(one('src/a.py', 'import pickle\nd = pickle.loads(raw)\n'))
+      ).passed
+    ).toBe(false);
+    expect(
+      InsecureDeserializationLaw.check(
+        ctx(one('src/a.py', 'import yaml\nd = yaml.load(s)\n'))
+      ).passed
+    ).toBe(false);
   });
   it('passes json and yaml.safe_load / SafeLoader', () => {
-    expect(InsecureDeserializationLaw.check(ctx(one('src/a.py', 'import json\nd = json.loads(raw)\n'))).passed).toBe(true);
-    expect(InsecureDeserializationLaw.check(ctx(one('src/a.py', 'import yaml\nd = yaml.safe_load(s)\n'))).passed).toBe(true);
-    expect(InsecureDeserializationLaw.check(ctx(one('src/a.py', 'import yaml\nd = yaml.load(s, Loader=yaml.SafeLoader)\n'))).passed).toBe(true);
+    expect(
+      InsecureDeserializationLaw.check(
+        ctx(one('src/a.py', 'import json\nd = json.loads(raw)\n'))
+      ).passed
+    ).toBe(true);
+    expect(
+      InsecureDeserializationLaw.check(
+        ctx(one('src/a.py', 'import yaml\nd = yaml.safe_load(s)\n'))
+      ).passed
+    ).toBe(true);
+    expect(
+      InsecureDeserializationLaw.check(
+        ctx(
+          one(
+            'src/a.py',
+            'import yaml\nd = yaml.load(s, Loader=yaml.SafeLoader)\n'
+          )
+        )
+      ).passed
+    ).toBe(true);
   });
 });
 
 describe('NoShellInjectionLaw', () => {
   it('flags shell=True and os.system', () => {
-    expect(NoShellInjectionLaw.check(ctx(one('src/a.py', 'import subprocess\nsubprocess.run(cmd, shell=True)\n'))).passed).toBe(false);
-    expect(NoShellInjectionLaw.check(ctx(one('src/a.py', 'import os\nos.system(cmd)\n'))).passed).toBe(false);
+    expect(
+      NoShellInjectionLaw.check(
+        ctx(
+          one(
+            'src/a.py',
+            'import subprocess\nsubprocess.run(cmd, shell=True)\n'
+          )
+        )
+      ).passed
+    ).toBe(false);
+    expect(
+      NoShellInjectionLaw.check(
+        ctx(one('src/a.py', 'import os\nos.system(cmd)\n'))
+      ).passed
+    ).toBe(false);
   });
   it('passes an argument list with shell=False (default)', () => {
-    expect(NoShellInjectionLaw.check(ctx(one('src/a.py', 'import subprocess\nsubprocess.run(["git", "status"])\n'))).passed).toBe(true);
+    expect(
+      NoShellInjectionLaw.check(
+        ctx(
+          one(
+            'src/a.py',
+            'import subprocess\nsubprocess.run(["git", "status"])\n'
+          )
+        )
+      ).passed
+    ).toBe(true);
   });
 });
 
 describe('RequestsHaveTimeoutLaw', () => {
   it('flags requests without a timeout', () => {
-    expect(RequestsHaveTimeoutLaw.check(ctx(one('src/a.py', 'import requests\nr = requests.get(url)\n'))).passed).toBe(false);
+    expect(
+      RequestsHaveTimeoutLaw.check(
+        ctx(one('src/a.py', 'import requests\nr = requests.get(url)\n'))
+      ).passed
+    ).toBe(false);
   });
   it('passes requests with timeout', () => {
-    expect(RequestsHaveTimeoutLaw.check(ctx(one('src/a.py', 'import requests\nr = requests.get(url, timeout=5)\n'))).passed).toBe(true);
+    expect(
+      RequestsHaveTimeoutLaw.check(
+        ctx(
+          one('src/a.py', 'import requests\nr = requests.get(url, timeout=5)\n')
+        )
+      ).passed
+    ).toBe(true);
   });
 });
 
 describe('NoHardcodedSecretsPythonLaw', () => {
   it('flags a secret assigned to a string literal', () => {
-    expect(NoHardcodedSecretsPythonLaw.check(ctx(one('src/a.py', 'API_KEY = "sk_live_abc123XYZ789"\n'))).passed).toBe(false);
+    expect(
+      NoHardcodedSecretsPythonLaw.check(
+        ctx(one('src/a.py', 'API_KEY = "sk_live_abc123XYZ789"\n'))
+      ).passed
+    ).toBe(false);
   });
   it('exempts env reads, header names, placeholders, URLs and test files', () => {
-    expect(NoHardcodedSecretsPythonLaw.check(ctx(one('src/a.py', 'import os\nAPI_KEY = os.getenv("API_KEY")\n'))).passed).toBe(true);
-    expect(NoHardcodedSecretsPythonLaw.check(ctx(one('src/a.py', 'API_KEY_HEADER = "X-Api-Key"\n'))).passed).toBe(true);
-    expect(NoHardcodedSecretsPythonLaw.check(ctx(one('src/a.py', 'PASSWORD = "changeme"\n'))).passed).toBe(true);
-    expect(NoHardcodedSecretsPythonLaw.check(ctx(one('src/a.py', 'TOKEN_URL = "https://auth.example.com/token"\n'))).passed).toBe(true);
-    expect(NoHardcodedSecretsPythonLaw.check(ctx(one('tests/test_a.py', 'TOKEN = "sk_test_realish_value"\n'))).passed).toBe(true);
+    expect(
+      NoHardcodedSecretsPythonLaw.check(
+        ctx(one('src/a.py', 'import os\nAPI_KEY = os.getenv("API_KEY")\n'))
+      ).passed
+    ).toBe(true);
+    expect(
+      NoHardcodedSecretsPythonLaw.check(
+        ctx(one('src/a.py', 'API_KEY_HEADER = "X-Api-Key"\n'))
+      ).passed
+    ).toBe(true);
+    expect(
+      NoHardcodedSecretsPythonLaw.check(
+        ctx(one('src/a.py', 'PASSWORD = "changeme"\n'))
+      ).passed
+    ).toBe(true);
+    expect(
+      NoHardcodedSecretsPythonLaw.check(
+        ctx(one('src/a.py', 'TOKEN_URL = "https://auth.example.com/token"\n'))
+      ).passed
+    ).toBe(true);
+    expect(
+      NoHardcodedSecretsPythonLaw.check(
+        ctx(one('tests/test_a.py', 'TOKEN = "sk_test_realish_value"\n'))
+      ).passed
+    ).toBe(true);
   });
 });

@@ -30,13 +30,7 @@ export class ModernAngularControlFlowLaw extends AngularLawBase {
     // Check Angular version - this law only applies to Angular 18+
     const angularVersion = this.getAngularVersion(projectRoot);
     if (!angularVersion || !this.isAngular18Plus(angularVersion)) {
-      return this.createResult(
-        [],
-        this.LAW_NAME,
-        'ANGULAR_LAW',
-        [],
-        context
-      );
+      return this.createResult([], this.LAW_NAME, 'ANGULAR_LAW', [], context);
     }
 
     // Find all Angular template files

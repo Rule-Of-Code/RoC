@@ -39,6 +39,7 @@ export const MEASUREMENT_LAWS: EnhancedConstitutionalLaw[] = [
       'All three checks are text matches over the harness set, not an execution: concurrency is a primitive or load-tool setting above one (Promise.all, asyncio.gather, ThreadPoolExecutor, autocannon, k6 vus, Artillery arrivalRate, Locust -u, hey/wrk/ab -c, concurrency=N, xargs -P); a concurrent call that never runs, or one in a comment, counts.',
       'Network delay is asked for only when the harness names an emulator (the *_EMULATOR_HOST variables, firebase/gcloud emulators, DynamoDB Local, LocalStack, Cosmos DB emulator, mongodb-memory-server, Azurite); it counts toxiproxy, netem, or an identifier like injected_delay / NETWORK_LATENCY / rpcDelay — a variable that only measures network latency under such a name also counts.',
       'The baseline counts when any harness file mentions "baseline" or a *baseline*.json/csv/yaml/toml/txt/ndjson file exists; whether the comparison is per endpoint, and against which branch, is not checked.',
+      'A harness with a concurrent scenario is also asked for a report of document reads repeated across its requests (#375), reported at the line of each concurrent scenario: words or identifiers in any harness file for total documents read (total_docs, totalReads), distinct documents (distinct_docs, uniqueKeys), the repeat ratio (repeat_ratio, duplicateRate) and a split per collection (by_collection, per collection, group by collection). It is a text match: a report produced by app code or a module the harness does not name (a read-logging middleware), and whether the numbers are right, are not seen; no threshold on the ratio is applied.',
     ],
     emoji: '⏱️',
     description:
@@ -52,7 +53,8 @@ export const MEASUREMENT_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'LatencyBudgetHarnessRealismLaw.check',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article VII.7.38: Latency budget measured one request at a time, without network delay or baseline',
-    remediation: 'Add a concurrent scenario, inject network delay against the emulator, and record a baseline to compare with',
+    remediation:
+      'Add a concurrent scenario, inject network delay against the emulator, and record a baseline to compare with',
   },
 
   {
@@ -80,7 +82,8 @@ export const MEASUREMENT_LAWS: EnhancedConstitutionalLaw[] = [
       "The client table is fixed: Python google-cloud-firestore, google-cloud-datastore, sqlalchemy, psycopg2(-binary), psycopg, asyncpg, aiopg, pymysql, mysqlclient, mysql-connector-python, pymongo, redis; Node mongodb, mongoose, pg, mysql, mysql2, ioredis, redis, tedious, knex, @google-cloud/firestore, @google-cloud/datastore, @prisma/client. A client reached only through a wrapper (firebase-admin's Firestore, an ORM over an undeclared driver) is not seen.",
     ],
     emoji: '🔭',
-    description: 'OpenTelemetry tracing chooses its sampler explicitly and instruments the database clients the project uses',
+    description:
+      'OpenTelemetry tracing chooses its sampler explicitly and instruments the database clients the project uses',
     priority: 'MEDIUM',
     category: 'PERFORMANCE',
     requires: REQUIRES_OTEL_SDK,
@@ -90,7 +93,8 @@ export const MEASUREMENT_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'TracingExplainsLatencyLaw.check',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article VI.6.27: Tracing on the default sampler, or a database client without instrumentation',
-    remediation: 'Choose the sampler in code or OTEL_TRACES_SAMPLER, and declare instrumentation for each database client',
+    remediation:
+      'Choose the sampler in code or OTEL_TRACES_SAMPLER, and declare instrumentation for each database client',
   },
 
   {
@@ -118,14 +122,17 @@ export const MEASUREMENT_LAWS: EnhancedConstitutionalLaw[] = [
       'Only an IPv4-only bind called through localhost is reported; a server on localhost called as 127.0.0.1, and a server on 0.0.0.0, are not. A project whose test files bind no server to 127.0.0.1 passes: there is nothing to compare, and the pass message says how many test/perf files were read ("0 test/perf files — nothing to compare" when there are none).',
     ],
     emoji: '🔁',
-    description: 'A test or perf server bound to 127.0.0.1 is not called through localhost',
+    description:
+      'A test or perf server bound to 127.0.0.1 is not called through localhost',
     priority: 'LOW',
     category: 'TESTING',
     defaultEnabled: true,
     defaultSeverity: 'warning',
     automation: 'AUTOMATED',
     checkFunction: 'TestServerLoopbackAddressMatchLaw.check',
-    violationMessage: 'CONSTITUTIONAL VIOLATION Article VII.7.39: Test server bound to 127.0.0.1 while the client calls localhost',
-    remediation: 'Bind the test server dual-stack, or use the same loopback literal on both sides',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article VII.7.39: Test server bound to 127.0.0.1 while the client calls localhost',
+    remediation:
+      'Bind the test server dual-stack, or use the same loopback literal on both sides',
   },
 ];

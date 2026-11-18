@@ -69,7 +69,7 @@ export class NgRxAnalysisUtilities {
     devtoolsIssues: number;
     featureStoreIssues: number;
   } {
-    const {categories} = this.SEVERITY_CONFIG;
+    const { categories } = this.SEVERITY_CONFIG;
     const allIssues = [...violations, ...suggestions];
 
     const countByCategory = (category: string) =>

@@ -12,7 +12,11 @@
  * commit is exactly the box-ticking this project refuses to accept from anyone
  * else, and it would make the guard decorative.
  */
-import { execSync } from 'child_process';
+import * as path from 'path';
+import { execSync } from '../../src/utils/child-process';
+
+/** This repository: its own history is the subject. */
+const REPO_ROOT = path.resolve(__dirname, '..', '..');
 
 /** Commits that carry the trailer by historical accident, kept deliberately. */
 const GRANDFATHERED = new Set([
@@ -32,6 +36,7 @@ const FORBIDDEN = /^Co-Authored-By:/im;
 function git(args: string): string | null {
   try {
     return execSync(`git ${args}`, {
+      cwd: REPO_ROOT,
       encoding: 'utf8',
       stdio: ['pipe', 'pipe', 'pipe'],
       maxBuffer: 32 * 1024 * 1024,
@@ -48,7 +53,9 @@ describe('regression: no Co-Authored-By trailer in commit messages', () => {
     // this whole project exists to prevent.
     const head = git('rev-parse HEAD');
     if (head === null) {
-      console.warn('⚠️  no git repository here — the trailer guard cannot run.');
+      console.warn(
+        '⚠️  no git repository here — the trailer guard cannot run.'
+      );
     }
     expect(head === null || head.trim().length > 0).toBe(true);
   });

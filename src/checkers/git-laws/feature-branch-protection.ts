@@ -3,7 +3,7 @@
  * CodeNamingAnalyzer: Ensures feature branches follow naming conventions and protection rules
  */
 
-import { execSync } from 'child_process';
+import { execSync } from '../../utils/child-process';
 import type { RuleOfCodeConfig } from '../../config/types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils';
@@ -164,8 +164,9 @@ export class FeatureBranchProtectionLaw extends GitLawBase {
     // a repository on any other provider — or with its config at a declared
     // path — was told to configure something it already had.
     const pipelineText = ciConfigContent(projectRoot, config);
-    const hasBranchValidation =
-      /branches:|pull_request|feature|branch/i.test(pipelineText);
+    const hasBranchValidation = /branches:|pull_request|feature|branch/i.test(
+      pipelineText
+    );
 
     if (!hasBranchValidation) {
       suggestions.push('Configure CI/CD to run on feature branch pushes');

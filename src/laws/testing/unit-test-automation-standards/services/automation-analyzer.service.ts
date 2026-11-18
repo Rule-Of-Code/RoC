@@ -49,8 +49,7 @@ export class UnitTestAutomationStandardsAnalyzerService {
 
         // Check for parallelization in test scripts
         const scripts = packageJson.scripts as
-          | Record<string, string>
-          | undefined;
+          Record<string, string> | undefined;
         const testScript = scripts?.test ?? scripts?.['test:unit'] ?? '';
         hasParallelization =
           UnitTestAutomationStandardsConstants.hasParallelization(testScript);

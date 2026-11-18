@@ -3,7 +3,7 @@
  */
 
 import chalk from 'chalk';
-import { execFileSync } from 'child_process';
+import { execFileSync } from '../../utils/child-process';
 import * as fs from 'fs';
 import { ConfigLoader } from '../../config/loader';
 import { GitHooksInstaller } from '../../hooks/installer';
@@ -17,12 +17,25 @@ import {
   describeRequirement,
   lawRequirementsMet,
 } from '../../utils/law-requirements';
-import { describeLivenessFloor, livenessFloorOf, narrowingOf } from '../../utils/liveness-floor';
+import {
+  CATEGORIES_KEY,
+  categoriesOf,
+  describeLivenessFloor,
+  livenessFloorOf,
+  narrowingOf,
+} from '../../utils/liveness-floor';
 import { honouredWaiverReason } from '../../utils/law-waivers';
 import { NxWorkspace } from '../../utils/nx-workspace';
 import { PathOperations } from '../../utils/path-operations';
+import { selectionProjectType } from '../../utils/selection-project-type';
 import { AuditCache } from './audit-cache';
-import type { AuditOptions, AuditProjectType, AuditResult, AuditScope, WaivedLaw } from './audit-types';
+import type {
+  AuditOptions,
+  AuditProjectType,
+  AuditResult,
+  AuditScope,
+  WaivedLaw,
+} from './audit-types';
 import { AuditResultProcessor } from './result-processor';
 
 // Force chalk to use colors in all environments
@@ -137,6 +150,17 @@ export class RuleOfCodeAuditor {
 
     // Store scoring config for result processor
     (this.options as any).scoring = configScoring;
+
+    // A narrowing by `categories` is recorded in the config the run audits
+    // with (a copy, the caller's object is left alone): the selector, the
+    // scope and the Audit Liveness law then read one value (#370).
+    const categories = this.options.categories ?? [];
+    if (categories.length > 0) {
+      this.config = {
+        ...this.config,
+        laws: { ...this.config.laws, [CATEGORIES_KEY]: [...categories] },
+      } as RuleOfCodeConfig;
+    }
   }
 
   async audit(): Promise<AuditResult> {
@@ -237,7 +261,9 @@ export class RuleOfCodeAuditor {
         project: this.projectTypeInfo(),
         scope: this.scopeOf(
           substantive.length,
-          laws.filter(law => !(law as { alwaysEnabled?: boolean }).alwaysEnabled).length
+          laws.filter(
+            law => !(law as { alwaysEnabled?: boolean }).alwaysEnabled
+          ).length
         ),
       };
       // Set before the cache write, so a cached run returns the same verdict.
@@ -272,7 +298,11 @@ export class RuleOfCodeAuditor {
    * carried in `refused` and never disguised as counts. The waivers are named
    * here too: they are part of why the selection is what it is (#350).
    */
-  private refuse(selected: number, floor: number, startTime: number): AuditResult {
+  private refuse(
+    selected: number,
+    floor: number,
+    startTime: number
+  ): AuditResult {
     const chalkForced = new chalk.Instance({ level: 3 });
     const scope = this.scopeOf(selected, 0, true);
     this.displayWaivers(scope, chalkForced);
@@ -334,8 +364,10 @@ export class RuleOfCodeAuditor {
   private projectTypeInfo(): AuditProjectType {
     const type = this.detectProjectType();
     // The detector answers null (not undefined) when it recognises nothing.
-    const detected = ProjectTypeDetector.detectProjectType(this.projectRoot) ?? undefined;
-    if (detected !== undefined && detected === type) return { type, source: 'detected' };
+    const detected =
+      ProjectTypeDetector.detectProjectType(this.projectRoot) ?? undefined;
+    if (detected !== undefined && detected === type)
+      return { type, source: 'detected' };
     if (detected === undefined && (type === undefined || type === 'generic')) {
       return { type, source: 'default' };
     }
@@ -358,12 +390,13 @@ export class RuleOfCodeAuditor {
    * every pre-commit, and the value that passed pre-commit left slack in full.
    */
   private getSelectedLaws(config: RuleOfCodeConfig = this.config): unknown[] {
-    const registry = ModularLawsRegistry.getInstance();
-
-    const selected =
-      this.options.categories && this.options.categories.length > 0
-        ? registry.getLawsByCategories(this.options.categories)
-        : ModularLawsRegistry.getEnabled(config);
+    // `categories` narrows the default selection, it does not replace it:
+    // waivers, the opt-in rule and the meta-gates hold exactly as without
+    // it (#370). It came from a separate registry call that honoured none.
+    const selected = ModularLawsRegistry.inCategories(
+      ModularLawsRegistry.getEnabled(config),
+      categoriesOf(config.laws)
+    );
 
     // Stack gating: skip laws whose stack scope does not match the project type
     // (e.g. Core Web Vitals / NgRx never run on a Python backend, and the Python
@@ -421,9 +454,10 @@ export class RuleOfCodeAuditor {
   /** Detected project type — config override first, then filesystem detection. */
   /**
    * How much of the applicable law set this run covers (#348). M is what the
-   * same selection gives with no `laws.enabled` allowlist and no Pareto — the
-   * laws that apply to this project; N is the substantive laws selected. A
-   * run narrowed either way, with N < M, is PARTIAL: an allowlist of 2 laws
+   * same selection gives with no `laws.enabled` allowlist, no Pareto and no
+   * `categories` (#370) — the laws that apply to this project; N is the
+   * substantive laws selected. A run narrowed any way, with N < M, is
+   * PARTIAL: an allowlist of 2 laws
    * out of 77 printed "CONSTITUTIONAL COMPLIANCE: PASSED" and the victory art,
    * because only Pareto was treated as partial.
    */
@@ -438,7 +472,10 @@ export class RuleOfCodeAuditor {
     // The same open selection with no waivers: what applied before
     // laws.notApplicable. The difference IS the waived set, so the counts
     // and the list cannot disagree (M₀ = M + W).
-    const beforeWaivers = this.openSelection({ ...laws, notApplicable: undefined });
+    const beforeWaivers = this.openSelection({
+      ...laws,
+      notApplicable: undefined,
+    });
     const applicableLaws = applicable.length;
     return {
       // What actually ran: 0 on a refusal, the selection minus the history
@@ -448,23 +485,37 @@ export class RuleOfCodeAuditor {
       selectedLaws: selectedSubstantive,
       applicableLaws,
       applicableBeforeWaivers: beforeWaivers.length,
-      waivedLaws: this.waivedLawsOf(applicable, beforeWaivers, laws.notApplicable),
+      waivedLaws: this.waivedLawsOf(
+        applicable,
+        beforeWaivers,
+        laws.notApplicable
+      ),
       narrowedBy,
       // Partial is about the SELECTION: a pre-commit defers the history laws
       // by design, which is not a narrowing. A refusal is not partial — no
       // law ran at all; `refused` says so, and narrowedBy still says why the
       // selection was small.
-      partial: !refused && narrowedBy !== undefined && selectedSubstantive < applicableLaws,
+      partial:
+        !refused &&
+        narrowedBy !== undefined &&
+        selectedSubstantive < applicableLaws,
       // The floor Audit Liveness judges by, from the function the law uses.
       liveness: livenessFloorOf(this.config, this.projectRoot),
     };
   }
 
-  /** Substantive laws the config selects with no allowlist and no Pareto. */
-  private openSelection(laws: Record<string, unknown>): Array<{ id: string; name: string }> {
+  /** Substantive laws the config selects with no allowlist, no Pareto and no categories. */
+  private openSelection(
+    laws: Record<string, unknown>
+  ): Array<{ id: string; name: string }> {
     const open = {
       ...this.config,
-      laws: { ...laws, enabled: undefined, paretoMode: false },
+      laws: {
+        ...laws,
+        enabled: undefined,
+        paretoMode: false,
+        [CATEGORIES_KEY]: undefined,
+      },
     } as unknown as RuleOfCodeConfig;
     return this.getSelectedLaws(open).filter(
       law => !(law as { alwaysEnabled?: boolean }).alwaysEnabled
@@ -484,21 +535,26 @@ export class RuleOfCodeAuditor {
         law: law.name,
         lawId: law.id,
         reason:
-          ModularLawsRegistry.waiverReasonOf(law, notApplicable as Record<string, unknown> | undefined) ?? '',
+          ModularLawsRegistry.waiverReasonOf(
+            law,
+            notApplicable as Record<string, unknown> | undefined
+          ) ?? '',
       }))
       .sort((a, b) => a.law.localeCompare(b.law));
   }
 
   /** `ignores.global`: what the project says is not its own code (#326). */
   private globalIgnores(): readonly string[] {
-    return (this.config as { ignores?: { global?: readonly string[] } }).ignores?.global ?? [];
+    return (
+      (this.config as { ignores?: { global?: readonly string[] } }).ignores
+        ?.global ?? []
+    );
   }
 
   private detectProjectType(): string | undefined {
     const configured = (this.config as { project?: { type?: string } }).project
       ?.type;
-    if (configured && configured !== 'generic') return configured;
-    return ProjectTypeDetector.detectProjectType(this.projectRoot) ?? configured;
+    return selectionProjectType(configured, this.projectRoot);
   }
 
   private async executeLawChecks(laws: unknown[]): Promise<unknown[]> {
@@ -618,7 +674,11 @@ export class RuleOfCodeAuditor {
     const known = new Map<string, KnownLaw>();
     for (const law of ModularLawsRegistry.getAll()) {
       for (const key of ModularLawsRegistry.lawIdentityKeys(law)) {
-        known.set(key, { stack: law.stack, requires: law.requires, staticSiteHtml: law.staticSiteHtml });
+        known.set(key, {
+          stack: law.stack,
+          requires: law.requires,
+          staticSiteHtml: law.staticSiteHtml,
+        });
       }
     }
 
@@ -635,12 +695,24 @@ export class RuleOfCodeAuditor {
           `⚠️  laws.severity: unknown law '${key}' — this override gates nothing. Check the name with 'roc laws --list'.`
         );
       } else if (
-        !ModularLawsRegistry.lawAppliesToProjectType(law.stack, projectType, this.projectRoot, law, this.globalIgnores())
+        !ModularLawsRegistry.lawAppliesToProjectType(
+          law.stack,
+          projectType,
+          this.projectRoot,
+          law,
+          this.globalIgnores()
+        )
       ) {
         console.warn(
           `ℹ️  laws.severity: '${key}' exists but does not apply to this project type (${projectType ?? 'unknown'}) — stack-gated, kept for shared configs.`
         );
-      } else if (!lawRequirementsMet(law.requires, this.projectRoot, this.globalIgnores())) {
+      } else if (
+        !lawRequirementsMet(
+          law.requires,
+          this.projectRoot,
+          this.globalIgnores()
+        )
+      ) {
         console.warn(
           `ℹ️  laws.severity: '${key}' exists but this project does not declare ${describeRequirement(law.requires ?? {})} — requirement-gated, kept for shared configs.`
         );
@@ -745,12 +817,25 @@ export class RuleOfCodeAuditor {
       const law = known.get(key);
       if (
         law &&
-        !ModularLawsRegistry.lawAppliesToProjectType(law.stack, projectType, this.projectRoot, law, this.globalIgnores())
+        !ModularLawsRegistry.lawAppliesToProjectType(
+          law.stack,
+          projectType,
+          this.projectRoot,
+          law,
+          this.globalIgnores()
+        )
       ) {
         console.warn(
           `ℹ️  laws.notApplicable: '${key}' is already stack-gated off this project type (${projectType ?? 'unknown'}) — the waiver is redundant here.`
         );
-      } else if (law && !lawRequirementsMet(law.requires, this.projectRoot, this.globalIgnores())) {
+      } else if (
+        law &&
+        !lawRequirementsMet(
+          law.requires,
+          this.projectRoot,
+          this.globalIgnores()
+        )
+      ) {
         console.warn(
           `ℹ️  laws.notApplicable: '${key}' is already requirement-gated off this project (it needs ${describeRequirement(law.requires ?? {})}) — the waiver is redundant here.`
         );
@@ -845,14 +930,21 @@ export class RuleOfCodeAuditor {
    * the waivers nowhere in the output — a reviewer had to read the config to
    * learn what had not run. Printed only when something was waived.
    */
-  private displayWaivers(scope: AuditScope | undefined, chalk: chalk.Chalk): void {
+  private displayWaivers(
+    scope: AuditScope | undefined,
+    chalk: chalk.Chalk
+  ): void {
     const waived = scope?.waivedLaws ?? [];
     if (waived.length === 0) return;
     console.log(
-      chalk.yellow.bold(`📋 ${waived.length} law(s) waived by laws.notApplicable — not run, not passed:`)
+      chalk.yellow.bold(
+        `📋 ${waived.length} law(s) waived by laws.notApplicable — not run, not passed:`
+      )
     );
     for (const { law, reason } of waived) {
-      console.log(`${chalk.gray('   – ')}${chalk.white(law)}${chalk.gray(`: ${reason}`)}`);
+      console.log(
+        `${chalk.gray('   – ')}${chalk.white(law)}${chalk.gray(`: ${reason}`)}`
+      );
     }
     console.log('');
   }
@@ -920,8 +1012,7 @@ export class RuleOfCodeAuditor {
       );
     }
     this.displayLivenessFloor(auditResult.scope, chalk);
-    console.log(''
-    );
+    console.log('');
     console.log(
       `${chalk.green('✓ Passed:')} ${chalk.bold.green(auditResult.passedLaws)}`
     );
@@ -952,7 +1043,10 @@ export class RuleOfCodeAuditor {
    * effect invisible, and a user setting laws.minLawsChecked could not see
    * what the default had been.
    */
-  private displayLivenessFloor(scope: AuditScope | undefined, chalk: chalk.Chalk): void {
+  private displayLivenessFloor(
+    scope: AuditScope | undefined,
+    chalk: chalk.Chalk
+  ): void {
     if (!scope?.liveness) return;
     console.log(
       `${chalk.gray('  Audit Liveness:')} ${chalk.white(describeLivenessFloor(scope.liveness, scope.narrowedBy))}`
@@ -998,7 +1092,9 @@ export class RuleOfCodeAuditor {
   ): void {
     if ((auditResult.warningLaws ?? 0) === 0) return;
 
-    console.log(chalk.yellow.bold('⚠️  WARNING LAWS (reported, not blocking):'));
+    console.log(
+      chalk.yellow.bold('⚠️  WARNING LAWS (reported, not blocking):')
+    );
     console.log(chalk.gray('─'.repeat(60)));
     console.log('');
 
@@ -1251,24 +1347,31 @@ export class RuleOfCodeAuditor {
   private displayPartialVerdict(scope: AuditScope, chalk: chalk.Chalk): void {
     const { executedLaws, applicableLaws, narrowedBy } = scope;
     const waived = scope.waivedLaws?.length ?? 0;
-    const why = waived > 0 ? `${narrowedBy}; ${waived} waived` : `${narrowedBy}`;
+    const why =
+      waived > 0 ? `${narrowedBy}; ${waived} waived` : `${narrowedBy}`;
     console.log(
       chalk.yellowBright.bold(
         `⚠️  PARTIAL SCAN — ${executedLaws} of ${applicableLaws} applicable laws ran (narrowed by ${why}). The selected laws passed; no compliance verdict.`
       )
     );
     console.log(
-      chalk.yellow(
-        '   The laws that did not run cannot have passed.'
-      )
+      chalk.yellow('   The laws that did not run cannot have passed.')
     );
     console.log(
       chalk.gray(
-        `   For a compliance verdict run the full set: ${narrowedBy === 'laws.enabled' ? 'remove the laws.enabled allowlist' : 'paretoMode: false and no --mode=fast'}.`
+        `   For a compliance verdict run the full set: ${RuleOfCodeAuditor.fullSetRemedy(narrowedBy)}.`
       )
     );
     console.log(chalk.cyan('═'.repeat(60)));
     console.log('');
+  }
+
+  /** What to remove for a run of the full set, by what narrowed this one. */
+  private static fullSetRemedy(narrowedBy: AuditScope['narrowedBy']): string {
+    if (narrowedBy === 'laws.enabled')
+      return 'remove the laws.enabled allowlist';
+    if (narrowedBy === 'categories') return 'run without categories';
+    return 'paretoMode: false and no --mode=fast';
   }
 
   /**
@@ -1276,7 +1379,10 @@ export class RuleOfCodeAuditor {
    * how many, and the victory art stays for a run in which every law that
    * applies ran. The waivers themselves are listed just above.
    */
-  private displayPassedVerdict(auditResult: AuditResult, chalk: chalk.Chalk): void {
+  private displayPassedVerdict(
+    auditResult: AuditResult,
+    chalk: chalk.Chalk
+  ): void {
     const scope = auditResult.scope;
     const waived = scope?.waivedLaws?.length ?? 0;
     if (scope && waived > 0) {

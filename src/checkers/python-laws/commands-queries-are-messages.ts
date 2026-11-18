@@ -78,7 +78,10 @@ export class CommandsQueriesAreMessagesLaw extends PythonLawBase {
   }
 
   /** Look upward over decorator lines for a dataclass/attrs decorator. */
-  private static hasDtoDecoratorAbove(lines: string[], classLine: number): boolean {
+  private static hasDtoDecoratorAbove(
+    lines: string[],
+    classLine: number
+  ): boolean {
     for (let k = classLine - 1; k >= 0; k--) {
       const prev = (lines[k] ?? '').trim();
       if (prev === '') continue;

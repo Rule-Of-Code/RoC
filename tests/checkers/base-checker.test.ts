@@ -387,7 +387,9 @@ describe('BaseChecker', () => {
       const result = checker.testExecuteCommand('pwd', tempDir);
 
       expect(result.success).toBe(true);
-      expect(result.stdout.trim()).toContain(PathOperations.getBasename(tempDir));
+      expect(result.stdout.trim()).toContain(
+        PathOperations.getBasename(tempDir)
+      );
     });
   });
 

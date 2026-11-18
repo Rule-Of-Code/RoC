@@ -76,10 +76,12 @@ export class UnitTestDataManagementConstants {
   static readonly EXTERNAL_RESOURCE_PATTERNS = {
     // Clients and calls, not words: `/database/i` matched any identifier
     // naming a database and `io\(` matched `radio(`.
-    DATABASE: /\bdb\.\w+\s*\(|\.connect\s*\(|\bcreateConnection\s*\(|\bcreatePool\s*\(|\bnew\s+(?:Pool|PrismaClient|Sequelize)\s*\(|\bknex\s*\(/,
+    DATABASE:
+      /\bdb\.\w+\s*\(|\.connect\s*\(|\bcreateConnection\s*\(|\bcreatePool\s*\(|\bnew\s+(?:Pool|PrismaClient|Sequelize)\s*\(|\bknex\s*\(/,
     STORAGE: /localStorage|sessionStorage/,
     FILE_HANDLE: /createReadStream|createWriteStream|fs\.open\(/,
-    WEBSOCKET: /\bnew\s+WebSocket\s*\(|\bio\s*\(|\bsocket\.(?:emit|on|send|connect)\s*\(/,
+    WEBSOCKET:
+      /\bnew\s+WebSocket\s*\(|\bio\s*\(|\bsocket\.(?:emit|on|send|connect)\s*\(/,
     TIMER: /setInterval\(/,
   };
 
@@ -120,7 +122,8 @@ export class UnitTestDataManagementConstants {
     // Object.defineProperty + jest.fn() is no longer reported as "not mocked".
     JEST_FN: /jest\.fn\(/,
     VI_FN: /\bvi\.fn\(/,
-    MOCK_IMPL: /mockImplementation|mockReturnValue|mockResolvedValue|mockRejectedValue/,
+    MOCK_IMPL:
+      /mockImplementation|mockReturnValue|mockResolvedValue|mockRejectedValue/,
     DEFINE_PROPERTY: /Object\.defineProperty/,
     // Network doubles that intercept requests instead of replacing a module.
     NETWORK_DOUBLE: /\bsetupServer\s*\(|\bnock\s*\(/,

@@ -46,7 +46,9 @@ export class PerformanceBudgetsAnalyzer {
     // Toolchain-neutral budgets: a size-limit check or Lighthouse assertions
     // that something actually runs. Without these, a Next or Vite project
     // could only satisfy this by adding a webpack config it does not use.
-    if (PerformanceBudgetGates.enforcedBudgets(projectRoot, config).length > 0) {
+    if (
+      PerformanceBudgetGates.enforcedBudgets(projectRoot, config).length > 0
+    ) {
       return violations;
     }
 

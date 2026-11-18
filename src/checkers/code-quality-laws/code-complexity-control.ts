@@ -127,7 +127,8 @@ export class CodeComplexityControlLaw extends CodeQualityLawBase {
         const content = FileUtils.readFile(file);
         const complexity = this.calculateFileComplexity(content);
 
-        const maxFileLines = config.thresholds?.codeQuality?.maxFileLines ?? 300;
+        const maxFileLines =
+          config.thresholds?.codeQuality?.maxFileLines ?? 300;
         if (complexity.lines > maxFileLines) {
           complexFilesFound++;
           violations.push(

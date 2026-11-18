@@ -219,16 +219,28 @@ describe('AuditResultProcessor', () => {
 
     it('isWarningResult classifies correctly', () => {
       expect(
-        AuditResultProcessor.isWarningResult({ passed: false, severity: 'warning' })
+        AuditResultProcessor.isWarningResult({
+          passed: false,
+          severity: 'warning',
+        })
       ).toBe(true);
       expect(
-        AuditResultProcessor.isWarningResult({ passed: false, severity: 'info' })
+        AuditResultProcessor.isWarningResult({
+          passed: false,
+          severity: 'info',
+        })
       ).toBe(true);
       expect(
-        AuditResultProcessor.isWarningResult({ passed: false, severity: 'error' })
+        AuditResultProcessor.isWarningResult({
+          passed: false,
+          severity: 'error',
+        })
       ).toBe(false);
       expect(
-        AuditResultProcessor.isWarningResult({ passed: true, severity: 'warning' })
+        AuditResultProcessor.isWarningResult({
+          passed: true,
+          severity: 'warning',
+        })
       ).toBe(false);
       expect(
         AuditResultProcessor.isWarningResult(

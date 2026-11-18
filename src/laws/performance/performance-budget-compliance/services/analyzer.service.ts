@@ -82,6 +82,10 @@ export class PerformanceBudgetComplianceAnalyzerService {
     monitored: boolean;
     services: string[];
   } {
-    return ProductionMonitoringAnalyzerService.analyze(projectRoot, config, react);
+    return ProductionMonitoringAnalyzerService.analyze(
+      projectRoot,
+      config,
+      react
+    );
   }
 }

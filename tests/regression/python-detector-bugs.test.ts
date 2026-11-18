@@ -29,11 +29,15 @@ describe('PYTHON detector bugs (priority)', () => {
     fs.writeFileSync(file, content);
   };
   const ctx = () => ({ projectRoot: root, config: config() });
-  const violations = (r: { violations?: string[] }): string[] => r.violations ?? [];
+  const violations = (r: { violations?: string[] }): string[] =>
+    r.violations ?? [];
 
   beforeEach(() => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-pybug-'));
-    write('pyproject.toml', '[project]\nname = "svc"\nrequires-python = ">=3.12"\n');
+    write(
+      'pyproject.toml',
+      '[project]\nname = "svc"\nrequires-python = ">=3.12"\n'
+    );
   });
   afterEach(() => {
     fs.rmSync(root, { recursive: true, force: true });
@@ -65,8 +69,12 @@ describe('PYTHON detector bugs (priority)', () => {
     });
     it('still fails a project with no linter/checker/SAST at all', () => {
       fs.rmSync(path.join(root, '.pre-commit-config.yaml'));
-      expect(violations(RuffConfiguredLaw.check(ctx())).length).toBeGreaterThan(0);
-      expect(violations(BanditConfiguredLaw.check(ctx())).length).toBeGreaterThan(0);
+      expect(violations(RuffConfiguredLaw.check(ctx())).length).toBeGreaterThan(
+        0
+      );
+      expect(
+        violations(BanditConfiguredLaw.check(ctx())).length
+      ).toBeGreaterThan(0);
     });
   });
 
@@ -77,7 +85,9 @@ describe('PYTHON detector bugs (priority)', () => {
         '[project]\n\n[tool.ruff]\nname = "linter-thing"\ntarget-version = "py312"\n'
       );
       expect(
-        violations(PyprojectMetadataLaw.check(ctx())).some(v => /no project name/.test(v))
+        violations(PyprojectMetadataLaw.check(ctx())).some(v =>
+          /no project name/.test(v)
+        )
       ).toBe(true);
     });
     it('accepts a correct [project] table', () => {
@@ -102,7 +112,9 @@ describe('PYTHON detector bugs (priority)', () => {
     });
     it('still flags an unmarked async test with no project-wide marker', () => {
       write('tests/test_a.py', 'async def test_y():\n    assert True\n');
-      expect(violations(AsyncTestsAreMarkedLaw.check(ctx())).length).toBeGreaterThan(0);
+      expect(
+        violations(AsyncTestsAreMarkedLaw.check(ctx())).length
+      ).toBeGreaterThan(0);
     });
   });
 
@@ -124,20 +136,30 @@ describe('PYTHON detector bugs (priority)', () => {
         'import pytest\n\n@pytest.mark.xfail(reason="bug")\ndef test_z():\n    assert False\n'
       );
       expect(
-        violations(StrictExpectedFailuresLaw.check(ctx())).some(v => /strict=True/.test(v))
+        violations(StrictExpectedFailuresLaw.check(ctx())).some(v =>
+          /strict=True/.test(v)
+        )
       ).toBe(true);
     });
   });
 
   describe('Requests Have Timeout treats timeout=None as no timeout', () => {
     it('flags timeout=None (it never times out)', () => {
-      write('src/client.py', 'import requests\ndef f(): return requests.get("http://x", timeout=None)\n');
+      write(
+        'src/client.py',
+        'import requests\ndef f(): return requests.get("http://x", timeout=None)\n'
+      );
       expect(
-        violations(RequestsHaveTimeoutLaw.check(ctx())).some(v => /timeout=None|never times out/.test(v))
+        violations(RequestsHaveTimeoutLaw.check(ctx())).some(v =>
+          /timeout=None|never times out/.test(v)
+        )
       ).toBe(true);
     });
     it('accepts a real timeout', () => {
-      write('src/client.py', 'import requests\ndef f(): return requests.get("http://x", timeout=5)\n');
+      write(
+        'src/client.py',
+        'import requests\ndef f(): return requests.get("http://x", timeout=5)\n'
+      );
       expect(violations(RequestsHaveTimeoutLaw.check(ctx()))).toEqual([]);
     });
   });

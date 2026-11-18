@@ -7,11 +7,16 @@ import { ctx, manifest, project, removeProjects } from '../toolkit-fixture';
 
 afterAll(removeProjects);
 
-const IONIC = manifest({ '@angular/core': '20.0.0', '@ionic/angular': '8.8.17' });
+const IONIC = manifest({
+  '@angular/core': '20.0.0',
+  '@ionic/angular': '8.8.17',
+});
 const run = (files: Record<string, string>) =>
   Law.check(ctx(project({ 'package.json': IONIC, ...files })));
 const page = (...body: string[]) =>
-  ['export class LaunchPage {', ...body.map(line => `  ${line}`), '}'].join('\n');
+  ['export class LaunchPage {', ...body.map(line => `  ${line}`), '}'].join(
+    '\n'
+  );
 
 describe('IonicPageStateReadOnEnterLaw', () => {
   it('red: navigation state read in a field initialiser', () => {
@@ -41,7 +46,9 @@ describe('IonicPageStateReadOnEnterLaw', () => {
 
   it('red: history.state read in the constructor', () => {
     const result = run({
-      'src/app/item.page.ts': page('constructor() { this.from = history.state?.from; }'),
+      'src/app/item.page.ts': page(
+        'constructor() { this.from = history.state?.from; }'
+      ),
     });
     expect(result.violations).toEqual([
       expect.stringContaining('reads history.state in the constructor'),
@@ -68,15 +75,20 @@ describe('IonicPageStateReadOnEnterLaw', () => {
 
   it('a component whose sibling template has <ion-content> is a page', () => {
     const result = run({
-      'src/app/item/item.component.ts': page('ngOnInit() { this.s = history.state; }'),
-      'src/app/item/item.component.html': '<ion-header></ion-header><ion-content></ion-content>',
+      'src/app/item/item.component.ts': page(
+        'ngOnInit() { this.s = history.state; }'
+      ),
+      'src/app/item/item.component.html':
+        '<ion-header></ion-header><ion-content></ion-content>',
     });
     expect(result.violations).toHaveLength(1);
   });
 
   it('a component that is not a page is not read', () => {
     const result = run({
-      'src/app/widget.component.ts': page('ngOnInit() { this.s = history.state; }'),
+      'src/app/widget.component.ts': page(
+        'ngOnInit() { this.s = history.state; }'
+      ),
     });
     expect(result.violations).toEqual([]);
   });

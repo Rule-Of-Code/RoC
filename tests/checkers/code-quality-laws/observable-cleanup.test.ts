@@ -545,9 +545,14 @@ export function useCount(store: Store) {
 `;
 
     it('does not read a store subscription in a React module as an RxJS leak', () => {
-      FileUtils.writeFile(PathOperations.join(tempDir, 'src', 'count-store.ts'), storeModule(''));
+      FileUtils.writeFile(
+        PathOperations.join(tempDir, 'src', 'count-store.ts'),
+        storeModule('')
+      );
       const result = ObservableCleanupLaw.check(mockContext);
-      expect(result.violations?.some(v => v.includes('count-store.ts'))).toBe(false);
+      expect(result.violations?.some(v => v.includes('count-store.ts'))).toBe(
+        false
+      );
     });
 
     it('still reads a React module that imports RxJS (the control)', () => {
@@ -556,7 +561,9 @@ export function useCount(store: Store) {
         storeModule("import { interval } from 'rxjs';")
       );
       const result = ObservableCleanupLaw.check(mockContext);
-      expect(result.violations?.some(v => v.includes('count-store.ts'))).toBe(true);
+      expect(result.violations?.some(v => v.includes('count-store.ts'))).toBe(
+        true
+      );
     });
   });
 });

@@ -59,7 +59,10 @@ export interface LighthouseGate {
   configFiles: string[];
 }
 
-function findConfigs(projectRoot: string): { names: string[]; content: string } {
+function findConfigs(projectRoot: string): {
+  names: string[];
+  content: string;
+} {
   const names: string[] = [];
   let content = '';
 

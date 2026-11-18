@@ -1,4 +1,4 @@
-import { execSync } from 'child_process';
+import { execSync } from '../../src/utils/child-process';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -55,7 +55,10 @@ describe('commit size measures authored change, not generated lines', () => {
     git('git init -q .');
     git('git config user.email t@example.com');
     git('git config user.name Test');
-    write('CONTRIBUTING.md', '# Contributing\n\nAtomic commits: one per change.\n');
+    write(
+      'CONTRIBUTING.md',
+      '# Contributing\n\nAtomic commits: one per change.\n'
+    );
     write('package.json', '{"name":"p","version":"1.0.0"}');
     git('git add -A');
     git('git commit -qm "chore: init"');
@@ -140,7 +143,10 @@ describe('commit size measures authored change, not generated lines', () => {
       const config = FileUtils.getMinimalDefaultConfig();
       config.thresholds = {
         ...config.thresholds,
-        git: { ...config.thresholds?.git, commitSize: { baseline: adoptionPoint } },
+        git: {
+          ...config.thresholds?.git,
+          commitSize: { baseline: adoptionPoint },
+        },
       };
 
       expect(sizeFindings(config)).toEqual([]);
@@ -155,7 +161,10 @@ describe('commit size measures authored change, not generated lines', () => {
       const config = FileUtils.getMinimalDefaultConfig();
       config.thresholds = {
         ...config.thresholds,
-        git: { ...config.thresholds?.git, commitSize: { baseline: adoptionPoint } },
+        git: {
+          ...config.thresholds?.git,
+          commitSize: { baseline: adoptionPoint },
+        },
       };
 
       expect(sizeFindings(config).length).toBeGreaterThan(0);

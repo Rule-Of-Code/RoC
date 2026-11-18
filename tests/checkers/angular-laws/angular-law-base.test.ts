@@ -37,7 +37,7 @@ describe('checkers/angular-laws/angular-law-base', () => {
         performance: {
           parallel: false,
           maxConcurrent: 3,
-          cache: true,
+          cache: true,
         },
       },
     };

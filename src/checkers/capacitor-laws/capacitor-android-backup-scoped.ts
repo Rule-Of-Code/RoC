@@ -44,8 +44,13 @@ export class CapacitorAndroidBackupScopedLaw extends LawBase {
 
   static check(context: LawCheckContext): LawResult {
     const { projects, notRead } = projectsWithPlatform(context, 'android');
-    const verdicts = projects.map(project => this.checkProject(context, project));
-    const violations = [...notRead, ...verdicts.flatMap(verdict => verdict.violations)];
+    const verdicts = projects.map(project =>
+      this.checkProject(context, project)
+    );
+    const violations = [
+      ...notRead,
+      ...verdicts.flatMap(verdict => verdict.violations),
+    ];
     const result = this.createResult(
       violations,
       this.LAW_NAME,
@@ -60,43 +65,65 @@ export class CapacitorAndroidBackupScopedLaw extends LawBase {
     return result;
   }
 
-  private static checkProject(context: LawCheckContext, { native }: PlatformProject): ProjectVerdict {
+  private static checkProject(
+    context: LawCheckContext,
+    { native }: PlatformProject
+  ): ProjectVerdict {
     const where = relative(context, native.androidManifest);
     const shell = AndroidShell.committed(context.projectRoot, native);
     const read = shell.read(native.androidManifest);
     if (read.state !== 'read') {
       return {
-        violations: [`${where}: ${notReadReason(read)} — this law reads the committed main manifest and does not pass without it`],
+        violations: [
+          `${where}: ${notReadReason(read)} — this law reads the committed main manifest and does not pass without it`,
+        ],
         decisions: [],
       };
     }
     const attributes = AndroidShell.applicationAttributes(read.text);
     if (!attributes) {
       return {
-        violations: [`${where}: no readable <application> element — this law reads the main manifest and does not pass without it`],
+        violations: [
+          `${where}: no readable <application> element — this law reads the main manifest and does not pass without it`,
+        ],
         decisions: [],
       };
     }
     const allow = attributes.get(ALLOW_BACKUP)?.trim();
     if (allow?.includes('${')) {
       return {
-        violations: [`${where}: ${ALLOW_BACKUP}="${allow}" is filled in by the build — not judged, and not passed`],
+        violations: [
+          `${where}: ${ALLOW_BACKUP}="${allow}" is filled in by the build — not judged, and not passed`,
+        ],
         decisions: [],
       };
     }
-    if (allow?.toLowerCase() === 'false') return { violations: [], decisions: [`${where}: backup off`] };
+    if (allow?.toLowerCase() === 'false')
+      return { violations: [], decisions: [`${where}: backup off`] };
 
-    const stated = allow === undefined ? `${ALLOW_BACKUP} absent (Android's default is true)` : `${ALLOW_BACKUP}="${allow}"`;
+    const stated =
+      allow === undefined
+        ? `${ALLOW_BACKUP} absent (Android's default is true)`
+        : `${ALLOW_BACKUP}="${allow}"`;
     const missing: string[] = [];
     const decisions: string[] = [];
     for (const { attribute, api } of RULE_ATTRIBUTES) {
       const reference = attributes.get(attribute);
-      const resource = reference === undefined ? null : AndroidShell.xmlResource(native, shell, 'main', reference);
+      const resource =
+        reference === undefined
+          ? null
+          : AndroidShell.xmlResource(native, shell, 'main', reference);
       if (!resource) {
-        missing.push(reference === undefined ? `${attribute} (${api})` : `${attribute}="${reference}" (no such res/xml file)`);
+        missing.push(
+          reference === undefined
+            ? `${attribute} (${api})`
+            : `${attribute}="${reference}" (no such res/xml file)`
+        );
         continue;
       }
-      decisions.push(`${relative(context, resource.file)}: ${this.excluded(resource.text)}`);
+      decisions.push(
+        `${relative(context, resource.file)}: ${this.excluded(resource.text)}`
+      );
     }
     if (missing.length === 0) return { violations: [], decisions };
     return {
@@ -109,10 +136,14 @@ export class CapacitorAndroidBackupScopedLaw extends LawBase {
 
   /** What a rules file excludes, in its own words: `sharedpref:x.xml, database:.`. */
   private static excluded(xml: string): string {
-    const excludes = [...AndroidShell.withoutComments(xml).matchAll(EXCLUDE)].map(match => {
+    const excludes = [
+      ...AndroidShell.withoutComments(xml).matchAll(EXCLUDE),
+    ].map(match => {
       const attributes = AndroidShell.attributes(match[1] ?? '');
       return `${attributes.get('domain') ?? '?'}:${attributes.get('path') ?? '?'}`;
     });
-    return excludes.length > 0 ? `excludes ${[...new Set(excludes)].join(', ')}` : 'excludes nothing';
+    return excludes.length > 0
+      ? `excludes ${[...new Set(excludes)].join(', ')}`
+      : 'excludes nothing';
   }
 }

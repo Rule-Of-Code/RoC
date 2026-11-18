@@ -7,7 +7,7 @@
  * failed. Human text now goes to stderr. Spawns the built dist/cli.js, the
  * way a consumer runs it (run `npm run build` first).
  */
-import { spawnSync } from 'child_process';
+import { spawnSync } from '../../src/utils/child-process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';

@@ -397,9 +397,9 @@ describe('XSSPreventionLaw', () => {
 
         const result = XSSPreventionLaw.check(context);
 
-        expect(
-          (result.violations ?? []).some(v => /saniti/i.test(v))
-        ).toBe(false);
+        expect((result.violations ?? []).some(v => /saniti/i.test(v))).toBe(
+          false
+        );
       });
     });
 

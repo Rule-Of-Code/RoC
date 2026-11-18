@@ -33,7 +33,8 @@ describe('IonicViewHooksOnlyOnPagesLaw', () => {
     const result = run({
       'src/app/child.component.ts': CHILD,
       'src/app/home.page.ts': PARENT,
-      'src/app/app.routes.ts': "import { HomePage } from './home.page';\nexport const routes = [{ path: '', component: HomePage }];",
+      'src/app/app.routes.ts':
+        "import { HomePage } from './home.page';\nexport const routes = [{ path: '', component: HomePage }];",
     });
     expect(result.passed).toBe(false);
     expect(result.violations).toEqual([
@@ -56,7 +57,9 @@ describe('IonicViewHooksOnlyOnPagesLaw', () => {
       ].join('\n'),
       'src/app/home.page.ts': PARENT,
     });
-    expect(result.violations).toEqual([expect.stringContaining('ChildComponent.ionViewWillEnter')]);
+    expect(result.violations).toEqual([
+      expect.stringContaining('ChildComponent.ionViewWillEnter'),
+    ]);
   });
 
   it('red: a class that only implements ViewWillEnter (the hook inherited) counts as declaring it', () => {
@@ -69,23 +72,40 @@ describe('IonicViewHooksOnlyOnPagesLaw', () => {
       'src/app/home.page.ts': PARENT,
     });
     expect(result.violations).toEqual([
-      expect.stringContaining('ChildComponent implements ViewWillEnter — ChildComponent is rendered only from a template'),
+      expect.stringContaining(
+        'ChildComponent implements ViewWillEnter — ChildComponent is rendered only from a template'
+      ),
     ]);
   });
 
   it('red: declared in an NgModule and never routed', () => {
     const result = run({
       'src/app/child.component.ts': CHILD,
-      'src/app/child.module.ts': "import { ChildComponent } from './child.component';\n@NgModule({ declarations: [ChildComponent] })\nexport class ChildModule {}",
+      'src/app/child.module.ts':
+        "import { ChildComponent } from './child.component';\n@NgModule({ declarations: [ChildComponent] })\nexport class ChildModule {}",
     });
-    expect(result.violations).toEqual([expect.stringContaining('listed at src/app/child.module.ts:2')]);
+    expect(result.violations).toEqual([
+      expect.stringContaining('listed at src/app/child.module.ts:2'),
+    ]);
   });
 
   it.each([
-    ['a route component', "import { ChildComponent } from './child.component';\nexport const routes = [{ path: 'c', component: ChildComponent }];"],
-    ['loadComponent … .then(m => m.X)', "export const routes = [{ path: 'c', loadComponent: () => import('./child.component').then((m) => m.ChildComponent) }];"],
-    ['ModalController.create({ component })', "import { ChildComponent } from './child.component';\nexport class Opener { open(m: any) { return m.create({ component: ChildComponent }); } }"],
-    ['ion-nav push', "import { ChildComponent } from './child.component';\nexport class Navs { go(nav: any) { return nav.push(ChildComponent); } }"],
+    [
+      'a route component',
+      "import { ChildComponent } from './child.component';\nexport const routes = [{ path: 'c', component: ChildComponent }];",
+    ],
+    [
+      'loadComponent … .then(m => m.X)',
+      "export const routes = [{ path: 'c', loadComponent: () => import('./child.component').then((m) => m.ChildComponent) }];",
+    ],
+    [
+      'ModalController.create({ component })',
+      "import { ChildComponent } from './child.component';\nexport class Opener { open(m: any) { return m.create({ component: ChildComponent }); } }",
+    ],
+    [
+      'ion-nav push',
+      "import { ChildComponent } from './child.component';\nexport class Navs { go(nav: any) { return nav.push(ChildComponent); } }",
+    ],
   ])('green: %s, even though a template also renders it', (_label, creator) => {
     const result = run({
       'src/app/child.component.ts': CHILD,
@@ -98,9 +118,13 @@ describe('IonicViewHooksOnlyOnPagesLaw', () => {
 
   it('green: a default export loaded by loadComponent', () => {
     const result = run({
-      'src/app/child.component.ts': CHILD.replace('export class ChildComponent', 'export default class ChildComponent'),
+      'src/app/child.component.ts': CHILD.replace(
+        'export class ChildComponent',
+        'export default class ChildComponent'
+      ),
       'src/app/home.page.ts': PARENT,
-      'src/app/app.routes.ts': "export const routes = [{ path: 'c', loadComponent: () => import('./child.component') }];",
+      'src/app/app.routes.ts':
+        "export const routes = [{ path: 'c', loadComponent: () => import('./child.component') }];",
     });
     expect(result.violations).toEqual([]);
   });
@@ -111,8 +135,10 @@ describe('IonicViewHooksOnlyOnPagesLaw', () => {
         'export abstract class AbstractBase { ionViewWillEnter(): void {} }',
         'export class Base { ionViewDidEnter(): void {} }',
       ].join('\n'),
-      'src/app/event.page.ts': "import { Base } from './base';\nexport class EventPage extends Base {}",
-      'src/app/app.routes.ts': "import { EventPage } from './event.page';\nexport const routes = [{ path: 'e', component: EventPage }];",
+      'src/app/event.page.ts':
+        "import { Base } from './base';\nexport class EventPage extends Base {}",
+      'src/app/app.routes.ts':
+        "import { EventPage } from './event.page';\nexport const routes = [{ path: 'e', component: EventPage }];",
     });
     expect(result.violations).toEqual([]);
   });
@@ -120,11 +146,18 @@ describe('IonicViewHooksOnlyOnPagesLaw', () => {
   it('not judged (a note, not red): a class passed through a variable', () => {
     const result = run({
       'src/app/child.component.ts': CHILD,
-      'src/app/home.page.ts': PARENT.replace('export class HomePage {}', 'export class HomePage { readonly root = ChildComponent; }'),
+      'src/app/home.page.ts': PARENT.replace(
+        'export class HomePage {}',
+        'export class HomePage { readonly root = ChildComponent; }'
+      ),
     });
     expect(result.violations).toEqual([]);
     expect(result.suggestions).toEqual(
-      expect.arrayContaining([expect.stringMatching(/ChildComponent\.ionViewWillEnter not judged — it is passed by value at src\/app\/home\.page\.ts:4/)])
+      expect.arrayContaining([
+        expect.stringMatching(
+          /ChildComponent\.ionViewWillEnter not judged — it is passed by value at src\/app\/home\.page\.ts:4/
+        ),
+      ])
     );
   });
 
@@ -132,9 +165,12 @@ describe('IonicViewHooksOnlyOnPagesLaw', () => {
     const result = run({
       'src/app/child.component.ts': CHILD,
       'src/app/home.page.ts': PARENT,
-      'src/app/model.ts': "import type { ChildComponent } from './child.component';\nexport interface Holder { ChildComponent: ChildComponent }\nexport const k = { ChildComponent: 1 };",
+      'src/app/model.ts':
+        "import type { ChildComponent } from './child.component';\nexport interface Holder { ChildComponent: ChildComponent }\nexport const k = { ChildComponent: 1 };",
     });
-    expect(result.violations).toEqual([expect.stringContaining('ChildComponent.ionViewWillEnter')]);
+    expect(result.violations).toEqual([
+      expect.stringContaining('ChildComponent.ionViewWillEnter'),
+    ]);
   });
 
   it('control: a project without any ionView* hook has nothing to judge, and says nothing', () => {
@@ -145,9 +181,12 @@ describe('IonicViewHooksOnlyOnPagesLaw', () => {
 
   it('cannot read: an unreadable templateUrl is reported, never passed', () => {
     const result = run({
-      'src/app/home.page.ts': "import { Component } from '@angular/core';\n@Component({ selector: 'app-home', templateUrl: './missing.html' })\nexport class HomePage {}",
+      'src/app/home.page.ts':
+        "import { Component } from '@angular/core';\n@Component({ selector: 'app-home', templateUrl: './missing.html' })\nexport class HomePage {}",
     });
     expect(result.passed).toBe(false);
-    expect(result.violations).toEqual([expect.stringContaining("'./missing.html' could not be read")]);
+    expect(result.violations).toEqual([
+      expect.stringContaining("'./missing.html' could not be read"),
+    ]);
   });
 });

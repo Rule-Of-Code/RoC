@@ -27,11 +27,23 @@ import type { LawRequirement } from '../../types/enhanced-law.types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { declaredDependencies } from '../../utils/law-requirements';
 import { NxWorkspace } from '../../utils/nx-workspace';
-import { declaredPythonDependencies, normalizePythonName, pythonManifestFiles } from '../../utils/python-dependencies';
+import {
+  declaredPythonDependencies,
+  normalizePythonName,
+  pythonManifestFiles,
+} from '../../utils/python-dependencies';
 import { LawBase } from '../law-base';
-import { firstMatch, isTestFile, readProjectFiles, type TextFile } from './project-text-files';
+import {
+  firstMatch,
+  isTestFile,
+  readProjectFiles,
+  type TextFile,
+} from './project-text-files';
 
-export const PYTHON_OTEL_SDKS: readonly string[] = ['opentelemetry-sdk', 'opentelemetry-distro'];
+export const PYTHON_OTEL_SDKS: readonly string[] = [
+  'opentelemetry-sdk',
+  'opentelemetry-distro',
+];
 export const NODE_OTEL_SDKS: readonly string[] = [
   '@opentelemetry/sdk-node',
   '@opentelemetry/sdk-trace-node',
@@ -41,7 +53,10 @@ export const NODE_OTEL_SDKS: readonly string[] = [
 
 /** Selected where either ecosystem's SDK is declared. */
 export const REQUIRES_OTEL_SDK: LawRequirement = {
-  anyOf: [{ anyPythonDependency: PYTHON_OTEL_SDKS }, { anyDependency: NODE_OTEL_SDKS }],
+  anyOf: [
+    { anyPythonDependency: PYTHON_OTEL_SDKS },
+    { anyDependency: NODE_OTEL_SDKS },
+  ],
 };
 
 export interface ClientInstrumentation {
@@ -168,10 +183,15 @@ const PYTHON_BOOTSTRAP = /\bopentelemetry-bootstrap\b/;
 const PY_PROVIDER = /\bTracerProvider\s*\(/;
 const PY_SAMPLER =
   /\bsampler\s*=|\b(?:TraceIdRatioBased|ParentBasedTraceIdRatio|ParentBased|StaticSampler|ALWAYS_ON|ALWAYS_OFF|DEFAULT_ON|DEFAULT_OFF)\b/;
-const JS_PROVIDER = /\bnew\s+(?:NodeSDK|NodeTracerProvider|BasicTracerProvider)\s*\(/;
-const JS_SAMPLER = /\bsampler\s*:|\b(?:AlwaysOnSampler|AlwaysOffSampler|ParentBasedSampler|TraceIdRatioBasedSampler)\b/;
+const JS_PROVIDER =
+  /\bnew\s+(?:NodeSDK|NodeTracerProvider|BasicTracerProvider)\s*\(/;
+const JS_SAMPLER =
+  /\bsampler\s*:|\b(?:AlwaysOnSampler|AlwaysOffSampler|ParentBasedSampler|TraceIdRatioBasedSampler)\b/;
 /** Zero-code setup: the sampler can only come from the environment. */
-const ZERO_CODE = [/\bopentelemetry-instrument\b/, /@opentelemetry\/auto-instrumentations-node\/register\b/];
+const ZERO_CODE = [
+  /\bopentelemetry-instrument\b/,
+  /@opentelemetry\/auto-instrumentations-node\/register\b/,
+];
 
 /** OTEL_TRACES_SAMPLER given a value: KEY=, KEY:, "KEY", (k8s) name: KEY, (Dockerfile) ENV KEY value. */
 const ENV_SAMPLER = [
@@ -199,15 +219,21 @@ export class TracingExplainsLatencyLaw extends LawBase {
 
   static check(context: LawCheckContext): LawResult {
     const { projectRoot } = context;
-    const files = readProjectFiles(projectRoot, FILES).filter(file => !file.rel.endsWith('.d.ts'));
+    const files = readProjectFiles(projectRoot, FILES).filter(
+      file => !file.rel.endsWith('.d.ts')
+    );
     const own = files.filter(file => !isTestFile(file.rel));
     const python = declaredPythonDependencies(projectRoot);
     const node = declaredDependencies(projectRoot);
-    const pythonActive = PYTHON_OTEL_SDKS.some(name => python.has(normalizePythonName(name)));
+    const pythonActive = PYTHON_OTEL_SDKS.some(name =>
+      python.has(normalizePythonName(name))
+    );
     const nodeActive = NODE_OTEL_SDKS.some(name => node.has(name));
     const violations = [
       ...this.samplerFindings(projectRoot, own, pythonActive, nodeActive),
-      ...(pythonActive ? this.pythonClientFindings(projectRoot, python, files) : []),
+      ...(pythonActive
+        ? this.pythonClientFindings(projectRoot, python, files)
+        : []),
       ...(nodeActive ? this.nodeClientFindings(projectRoot, node) : []),
     ];
     return this.createResult(
@@ -222,13 +248,26 @@ export class TracingExplainsLatencyLaw extends LawBase {
     );
   }
 
-  private static samplerFindings(projectRoot: string, own: TextFile[], pythonActive: boolean, nodeActive: boolean): string[] {
+  private static samplerFindings(
+    projectRoot: string,
+    own: TextFile[],
+    pythonActive: boolean,
+    nodeActive: boolean
+  ): string[] {
     if (own.some(file => firstMatch(file.content, ENV_SAMPLER))) return [];
-    const pyCode = own.filter(file => file.rel.endsWith('.py') && PY_PROVIDER.test(file.content));
-    const jsCode = own.filter(file => !file.rel.endsWith('.py') && SOURCE.test(file.rel) && JS_PROVIDER.test(file.content));
+    const pyCode = own.filter(
+      file => file.rel.endsWith('.py') && PY_PROVIDER.test(file.content)
+    );
+    const jsCode = own.filter(
+      file =>
+        !file.rel.endsWith('.py') &&
+        SOURCE.test(file.rel) &&
+        JS_PROVIDER.test(file.content)
+    );
     const pyUnsampled = pyCode.filter(file => !PY_SAMPLER.test(file.content));
     const jsUnsampled = jsCode.filter(file => !JS_SAMPLER.test(file.content));
-    const sampledInCode = pyUnsampled.length < pyCode.length || jsUnsampled.length < jsCode.length;
+    const sampledInCode =
+      pyUnsampled.length < pyCode.length || jsUnsampled.length < jsCode.length;
     const zeroCode = sampledInCode
       ? []
       : own.flatMap(file => {
@@ -242,8 +281,12 @@ export class TracingExplainsLatencyLaw extends LawBase {
     ];
     const noSetup = !sampledInCode && zeroCode.length === 0;
     const undeclaredSetup = [
-      ...(noSetup && pythonActive && pyCode.length === 0 ? this.pythonDeclaration(projectRoot, PYTHON_OTEL_SDKS) : []),
-      ...(noSetup && nodeActive && jsCode.length === 0 ? this.nodeDeclaration(projectRoot, NODE_OTEL_SDKS) : []),
+      ...(noSetup && pythonActive && pyCode.length === 0
+        ? this.pythonDeclaration(projectRoot, PYTHON_OTEL_SDKS)
+        : []),
+      ...(noSetup && nodeActive && jsCode.length === 0
+        ? this.nodeDeclaration(projectRoot, NODE_OTEL_SDKS)
+        : []),
     ];
     return [
       ...sites.map(
@@ -257,20 +300,44 @@ export class TracingExplainsLatencyLaw extends LawBase {
     ];
   }
 
-  private static pythonClientFindings(projectRoot: string, declared: Set<string>, files: TextFile[]): string[] {
+  private static pythonClientFindings(
+    projectRoot: string,
+    declared: Set<string>,
+    files: TextFile[]
+  ): string[] {
     if (files.some(file => PYTHON_BOOTSTRAP.test(file.content))) return [];
     return PYTHON_DB_INSTRUMENTATION.filter(
-      row => declared.has(normalizePythonName(row.client)) && !row.instrumentations.some(name => declared.has(normalizePythonName(name)))
-    ).flatMap(row => this.pythonDeclaration(projectRoot, [row.client]).map(place => this.clientFinding(place, row)));
+      row =>
+        declared.has(normalizePythonName(row.client)) &&
+        !row.instrumentations.some(name =>
+          declared.has(normalizePythonName(name))
+        )
+    ).flatMap(row =>
+      this.pythonDeclaration(projectRoot, [row.client]).map(place =>
+        this.clientFinding(place, row)
+      )
+    );
   }
 
-  private static nodeClientFindings(projectRoot: string, declared: Set<string>): string[] {
+  private static nodeClientFindings(
+    projectRoot: string,
+    declared: Set<string>
+  ): string[] {
     return NODE_DB_INSTRUMENTATION.filter(
-      row => declared.has(row.client) && !row.instrumentations.some(name => declared.has(name))
-    ).flatMap(row => this.nodeDeclaration(projectRoot, [row.client]).map(place => this.clientFinding(place, row)));
+      row =>
+        declared.has(row.client) &&
+        !row.instrumentations.some(name => declared.has(name))
+    ).flatMap(row =>
+      this.nodeDeclaration(projectRoot, [row.client]).map(place =>
+        this.clientFinding(place, row)
+      )
+    );
   }
 
-  private static clientFinding(place: Place, row: ClientInstrumentation): string {
+  private static clientFinding(
+    place: Place,
+    row: ClientInstrumentation
+  ): string {
     return `${place.rel}:${place.line}: ${row.client} is a dependency, but no OpenTelemetry instrumentation for it is declared (${row.instrumentations.join(' or ')}) — its calls produce no spans, so a trace cannot show where the database time went`;
   }
 
@@ -282,7 +349,10 @@ export class TracingExplainsLatencyLaw extends LawBase {
   }
 
   /** The first line of each Python manifest that declares one of `names`. */
-  private static pythonDeclaration(projectRoot: string, names: readonly string[]): Place[] {
+  private static pythonDeclaration(
+    projectRoot: string,
+    names: readonly string[]
+  ): Place[] {
     const wanted = new Set(names.map(normalizePythonName));
     return pythonManifestFiles(projectRoot).flatMap(file =>
       this.firstLine(
@@ -290,22 +360,37 @@ export class TracingExplainsLatencyLaw extends LawBase {
         file,
         line =>
           !line.trim().startsWith('#') &&
-          (line.match(/[A-Za-z0-9][A-Za-z0-9._-]*/g) ?? []).some(token => wanted.has(normalizePythonName(token)))
+          (line.match(/[A-Za-z0-9][A-Za-z0-9._-]*/g) ?? []).some(token =>
+            wanted.has(normalizePythonName(token))
+          )
       )
     );
   }
 
   /** The line of each workspace package.json that declares one of `names`. */
-  private static nodeDeclaration(projectRoot: string, names: readonly string[]): Place[] {
+  private static nodeDeclaration(
+    projectRoot: string,
+    names: readonly string[]
+  ): Place[] {
     const keys = names.map(name => `"${name}"`);
     const declares = (line: string) => {
       const trimmed = line.trim();
-      return keys.some(key => trimmed.startsWith(key) && trimmed.slice(key.length).trimStart().startsWith(':'));
+      return keys.some(
+        key =>
+          trimmed.startsWith(key) &&
+          trimmed.slice(key.length).trimStart().startsWith(':')
+      );
     };
-    return NxWorkspace.resolveSourceFiles(projectRoot, 'package.json').flatMap(file => this.firstLine(projectRoot, file, declares));
+    return NxWorkspace.resolveSourceFiles(projectRoot, 'package.json').flatMap(
+      file => this.firstLine(projectRoot, file, declares)
+    );
   }
 
-  private static firstLine(projectRoot: string, file: string, accept: (line: string) => boolean): Place[] {
+  private static firstLine(
+    projectRoot: string,
+    file: string,
+    accept: (line: string) => boolean
+  ): Place[] {
     let content: string;
     try {
       content = fs.readFileSync(file, 'utf8');

@@ -24,21 +24,101 @@
  */
 
 import { apisFor, isWrite, type ProjectClients } from './data-clients';
-import type { CallSite, FunctionModel, ModuleModel, StatementModel } from './model';
+import type {
+  CallSite,
+  FunctionModel,
+  ModuleModel,
+  StatementModel,
+} from './model';
 
 /** Calls whose order is their meaning, whatever the client. */
 const ORDERED = new Set([
-  'save', 'insert', 'put', 'post', 'patch', 'send', 'publish', 'emit', 'delete', 'remove', 'update', 'upsert',
-  'commit', 'rollback', 'flush', 'refresh', 'write', 'append', 'sleep', 'wait', 'wait_for', 'acquire', 'release',
-  'lock', 'unlock', 'close', 'connect', 'disconnect', 'start', 'stop', 'join', 'shutdown', 'create', 'add', 'set',
-  'increment', 'decrement', 'grant', 'revoke', 'record', 'log', 'notify', 'enqueue', 'dispatch', 'schedule',
-  'drop', 'move', 'copy', 'apply', 'archive', 'purge', 'clear', 'reset', 'mark', 'assign', 'attach', 'detach',
-  'register', 'subscribe', 'unsubscribe', 'accept', 'reject', 'approve', 'cancel', 'expire', 'push', 'tick',
-  'process', 'sweep', 'migrate', 'backfill', 'seed', 'sync', 'run',
+  'save',
+  'insert',
+  'put',
+  'post',
+  'patch',
+  'send',
+  'publish',
+  'emit',
+  'delete',
+  'remove',
+  'update',
+  'upsert',
+  'commit',
+  'rollback',
+  'flush',
+  'refresh',
+  'write',
+  'append',
+  'sleep',
+  'wait',
+  'wait_for',
+  'acquire',
+  'release',
+  'lock',
+  'unlock',
+  'close',
+  'connect',
+  'disconnect',
+  'start',
+  'stop',
+  'join',
+  'shutdown',
+  'create',
+  'add',
+  'set',
+  'increment',
+  'decrement',
+  'grant',
+  'revoke',
+  'record',
+  'log',
+  'notify',
+  'enqueue',
+  'dispatch',
+  'schedule',
+  'drop',
+  'move',
+  'copy',
+  'apply',
+  'archive',
+  'purge',
+  'clear',
+  'reset',
+  'mark',
+  'assign',
+  'attach',
+  'detach',
+  'register',
+  'subscribe',
+  'unsubscribe',
+  'accept',
+  'reject',
+  'approve',
+  'cancel',
+  'expire',
+  'push',
+  'tick',
+  'process',
+  'sweep',
+  'migrate',
+  'backfill',
+  'seed',
+  'sync',
+  'run',
 ]);
 
 /** Already concurrent: the fix itself. */
-const CONCURRENT = new Set(['gather', 'all', 'allSettled', 'any', 'race', 'as_completed', 'TaskGroup']);
+const CONCURRENT = new Set([
+  'gather',
+  'all',
+  'allSettled',
+  'any',
+  'race',
+  'as_completed',
+  'TaskGroup',
+]);
 
 const MARKER = /roc:\s*sequential-ok\s+\S/;
 
@@ -51,7 +131,11 @@ export interface SequentialRun {
 }
 
 /** A call whose order is its meaning: a write, a side effect, a wait, or one already concurrent. */
-export function orderedCall(call: CallSite, clients: ProjectClients, module: ModuleModel): boolean {
+export function orderedCall(
+  call: CallSite,
+  clients: ProjectClients,
+  module: ModuleModel
+): boolean {
   // The first word of the name: `_create_follows` → create, `#pushAll` → push.
   const verb = /^[_#$]*([a-z]+)/.exec(call.method)?.[1] ?? call.method;
   return (
@@ -63,7 +147,9 @@ export function orderedCall(call: CallSite, clients: ProjectClients, module: Mod
 }
 
 function marked(module: ModuleModel, statement: StatementModel): boolean {
-  return module.lines.slice(statement.line - 1, statement.endLine).some(line => MARKER.test(line));
+  return module.lines
+    .slice(statement.line - 1, statement.endLine)
+    .some(line => MARKER.test(line));
 }
 
 /** The calls a statement awaits, or null when it cuts the run. */
@@ -72,13 +158,20 @@ function memberCalls(
   statement: StatementModel,
   clients: ProjectClients
 ): CallSite[] | null {
-  if (!statement.simple || statement.awaits.length === 0 || marked(module, statement)) return null;
+  if (
+    !statement.simple ||
+    statement.awaits.length === 0 ||
+    marked(module, statement)
+  )
+    return null;
   // `await guard(...)` as a statement of its own: the result is discarded,
   // so the call is awaited for its effect (a check that raises, a write).
-  if (statement.bound.length === 0 && /^await\b/.test(statement.text)) return null;
+  if (statement.bound.length === 0 && /^await\b/.test(statement.text))
+    return null;
   const calls: CallSite[] = [];
   for (const site of statement.awaits) {
-    if (site.nested || !site.call || orderedCall(site.call, clients, module)) return null;
+    if (site.nested || !site.call || orderedCall(site.call, clients, module))
+      return null;
     calls.push(site.call);
   }
   return calls;
@@ -89,7 +182,11 @@ interface Member {
   calls: CallSite[];
 }
 
-function dependsOn(member: Member, group: readonly Member[], mutable: ReadonlySet<string>): boolean {
+function dependsOn(
+  member: Member,
+  group: readonly Member[],
+  mutable: ReadonlySet<string>
+): boolean {
   const used = new Set(member.statement.used);
   return group.some(
     earlier =>
@@ -98,10 +195,22 @@ function dependsOn(member: Member, group: readonly Member[], mutable: ReadonlySe
   );
 }
 
-function runOf(module: ModuleModel, fn: FunctionModel, group: readonly Member[]): SequentialRun | null {
-  const calls = group.flatMap(m => m.calls.map(c => ({ callee: c.callee, line: c.line })));
+function runOf(
+  module: ModuleModel,
+  fn: FunctionModel,
+  group: readonly Member[]
+): SequentialRun | null {
+  const calls = group.flatMap(m =>
+    m.calls.map(c => ({ callee: c.callee, line: c.line }))
+  );
   if (calls.length < 2) return null;
-  return { rel: module.rel, line: group[0]?.statement.line ?? fn.line, function: fn.name, calls, language: module.language };
+  return {
+    rel: module.rel,
+    line: group[0]?.statement.line ?? fn.line,
+    function: fn.name,
+    calls,
+    language: module.language,
+  };
 }
 
 /** Runs of independent awaits in one statement list. */
@@ -150,14 +259,17 @@ export function scanSequentialAwaits(
       asyncFunctions++;
       if (fn.transactional) continue;
       const mutable = new Set(fn.blocks.flat().flatMap(s => s.mutableBindings));
-      for (const block of fn.blocks) runs.push(...runsInBlock(module, fn, block, clients, mutable));
+      for (const block of fn.blocks)
+        runs.push(...runsInBlock(module, fn, block, clients, mutable));
     }
   }
   return { runs, asyncFunctions };
 }
 
 export function describeSequentialRun(run: SequentialRun): string {
-  const listed = run.calls.map(c => `${c.callee}() (line ${c.line})`).join(', ');
+  const listed = run.calls
+    .map(c => `${c.callee}() (line ${c.line})`)
+    .join(', ');
   const fix =
     run.language === 'python'
       ? "run them together with asyncio.gather(...), or mark the line '# roc: sequential-ok <reason>'"

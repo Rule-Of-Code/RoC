@@ -330,7 +330,10 @@ export class LaunchReadinessChecklistLaw {
       'monitoring.config.json',
     ];
 
-    hasMonitoringReadiness = this.hasDocumentNamed(projectRoot, monitoringFiles);
+    hasMonitoringReadiness = this.hasDocumentNamed(
+      projectRoot,
+      monitoringFiles
+    );
 
     // Check for monitoring configuration in other files
     if (!hasMonitoringReadiness) {

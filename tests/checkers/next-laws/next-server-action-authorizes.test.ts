@@ -12,17 +12,22 @@ import { nextApp, nextCtx, withoutTypeScript } from './next-server-fixture';
 afterAll(removeProjects);
 
 const GUARDS = { authGuards: ['requireUser'] };
-const run = (files: Record<string, string>, next: Record<string, unknown> | null = GUARDS) =>
-  Law.check(nextCtx(nextApp(files), next ?? undefined));
+const run = (
+  files: Record<string, string>,
+  next: Record<string, unknown> | null = GUARDS
+) => Law.check(nextCtx(nextApp(files), next ?? undefined));
 
 describe('NextServerActionAuthorizesLaw — module actions', () => {
   it('red: an exported async action whose first statement is not a guard', () => {
     const result = run({
-      'src/app/actions.ts': "'use server';\nexport async function deletePost(id: string) {\n  await db.delete(id);\n  await requireUser();\n}\n",
+      'src/app/actions.ts':
+        "'use server';\nexport async function deletePost(id: string) {\n  await db.delete(id);\n  await requireUser();\n}\n",
     });
     expect(result.passed).toBe(false);
     expect(result.violations).toEqual([
-      expect.stringMatching(/^src\/app\/actions\.ts:2: Server Action 'deletePost' does not call a guard \(requireUser\)/),
+      expect.stringMatching(
+        /^src\/app\/actions\.ts:2: Server Action 'deletePost' does not call a guard \(requireUser\)/
+      ),
     ]);
   });
 
@@ -49,7 +54,9 @@ describe('NextServerActionAuthorizesLaw — module actions', () => {
       ].join('\n'),
     });
     expect(result.violations).toHaveLength(3);
-    expect(result.violations?.join('\n')).toMatch(/'a'.*\n.*'default'.*\n.*'c'/);
+    expect(result.violations?.join('\n')).toMatch(
+      /'a'.*\n.*'default'.*\n.*'c'/
+    );
   });
 
   it('green: a wrapper named in authGuards; red: a builder that is not', () => {
@@ -61,33 +68,48 @@ describe('NextServerActionAuthorizesLaw — module actions', () => {
       ].join('\n'),
     };
     const result = run(files, { authGuards: ['authClient'] });
-    expect(result.violations).toEqual([expect.stringContaining("Server Action 'bad' does not call a guard")]);
+    expect(result.violations).toEqual([
+      expect.stringContaining("Server Action 'bad' does not call a guard"),
+    ]);
   });
 
   it('red: a re-export cannot be read and is reported', () => {
-    const result = run({ 'src/app/actions.ts': "'use server';\nexport { deletePost } from './impl';\n" });
-    expect(result.violations).toEqual([expect.stringContaining("is re-exported from './impl'")]);
+    const result = run({
+      'src/app/actions.ts':
+        "'use server';\nexport { deletePost } from './impl';\n",
+    });
+    expect(result.violations).toEqual([
+      expect.stringContaining("is re-exported from './impl'"),
+    ]);
   });
 
   it('red: an empty action is still a public endpoint', () => {
-    const result = run({ 'src/app/actions.ts': "'use server';\nexport async function noop() {}\n" });
+    const result = run({
+      'src/app/actions.ts': "'use server';\nexport async function noop() {}\n",
+    });
     expect(result.violations).toEqual([expect.stringContaining('empty body')]);
   });
 
   it('control: a module without the directive is not an action module', () => {
-    const result = run({ 'src/lib/util.ts': 'export async function helper() { return 1; }\n' });
+    const result = run({
+      'src/lib/util.ts': 'export async function helper() { return 1; }\n',
+    });
     expect(result.violations).toEqual([]);
   });
 });
 
 describe('NextServerActionAuthorizesLaw — inline actions', () => {
-  it('red/green: an inline \'use server\' function in a Server Component', () => {
+  it("red/green: an inline 'use server' function in a Server Component", () => {
     const red = run({
-      'src/app/page.tsx': "export default function Page() {\n  async function save() {\n    'use server';\n    await db.save();\n  }\n  return <form action={save} />;\n}\n",
+      'src/app/page.tsx':
+        "export default function Page() {\n  async function save() {\n    'use server';\n    await db.save();\n  }\n  return <form action={save} />;\n}\n",
     });
-    expect(red.violations).toEqual([expect.stringMatching(/^src\/app\/page\.tsx:2: Server Action 'save'/)]);
+    expect(red.violations).toEqual([
+      expect.stringMatching(/^src\/app\/page\.tsx:2: Server Action 'save'/),
+    ]);
     const green = run({
-      'src/app/page.tsx': "export default function Page() {\n  async function save() {\n    'use server';\n    await requireUser();\n    await db.save();\n  }\n  return <form action={save} />;\n}\n",
+      'src/app/page.tsx':
+        "export default function Page() {\n  async function save() {\n    'use server';\n    await requireUser();\n    await db.save();\n  }\n  return <form action={save} />;\n}\n",
     });
     expect(green.violations).toEqual([]);
   });
@@ -95,31 +117,62 @@ describe('NextServerActionAuthorizesLaw — inline actions', () => {
 
 describe('NextServerActionAuthorizesLaw — fail closed', () => {
   it('fails when actions exist and thresholds.next.authGuards is not declared', () => {
-    const result = run({ 'src/app/actions.ts': "'use server';\nexport async function a() { await requireUser(); }\n" }, null);
+    const result = run(
+      {
+        'src/app/actions.ts':
+          "'use server';\nexport async function a() { await requireUser(); }\n",
+      },
+      null
+    );
     expect(result.passed).toBe(false);
-    expect(result.violations).toEqual([expect.stringMatching(/1 Server Action\(s\) .* and no thresholds\.next\.authGuards/)]);
+    expect(result.violations).toEqual([
+      expect.stringMatching(
+        /1 Server Action\(s\) .* and no thresholds\.next\.authGuards/
+      ),
+    ]);
   });
 
   it('fails on a malformed authGuards', () => {
-    const result = run({ 'src/app/actions.ts': "'use server';\nexport async function a() {}\n" }, { authGuards: 'requireUser' });
-    expect(result.violations).toEqual(['thresholds.next.authGuards must be a list of non-empty names']);
+    const result = run(
+      { 'src/app/actions.ts': "'use server';\nexport async function a() {}\n" },
+      { authGuards: 'requireUser' }
+    );
+    expect(result.violations).toEqual([
+      'thresholds.next.authGuards must be a list of non-empty names',
+    ]);
   });
 
   it('fails, naming the files, when the parser cannot be loaded', () => {
-    const root = nextApp({ 'src/app/actions.ts': "'use server';\nexport async function a() {}\n" });
+    const root = nextApp({
+      'src/app/actions.ts': "'use server';\nexport async function a() {}\n",
+    });
     const result = withoutTypeScript(() => Law.check(nextCtx(root, GUARDS)));
     expect(result.passed).toBe(false);
-    expect(result.violations?.[0]).toMatch(/file\(s\): could not load the 'typescript' package/);
+    expect(result.violations?.[0]).toMatch(
+      /file\(s\): could not load the 'typescript' package/
+    );
   });
 });
 
 describe('NextServerActionAuthorizesLaw selection', () => {
-  const card = NEXT_SERVER_LAWS.find(law => law.checkFunction === 'NextServerActionAuthorizesLaw.check');
+  const card = NEXT_SERVER_LAWS.find(
+    law => law.checkFunction === 'NextServerActionAuthorizesLaw.check'
+  );
 
   it('is selected where next is declared, not in a React-only or Python project', () => {
     expect(card?.defaultSeverity).toBe('error');
     expect(lawRequirementsMet(card?.requires, nextApp({}))).toBe(true);
-    expect(lawRequirementsMet(card?.requires, project({ 'package.json': manifest({ react: '19.0.0' }) }))).toBe(false);
-    expect(lawRequirementsMet(card?.requires, project({ 'pyproject.toml': '[project]\nname = "x"\n' }))).toBe(false);
+    expect(
+      lawRequirementsMet(
+        card?.requires,
+        project({ 'package.json': manifest({ react: '19.0.0' }) })
+      )
+    ).toBe(false);
+    expect(
+      lawRequirementsMet(
+        card?.requires,
+        project({ 'pyproject.toml': '[project]\nname = "x"\n' })
+      )
+    ).toBe(false);
   });
 });

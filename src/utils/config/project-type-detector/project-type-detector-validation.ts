@@ -9,7 +9,15 @@ import { ProjectTypeDetectorConfiguration } from './project-type-detector-config
 const FRAMEWORK_TYPES = ['ionic', 'angular', 'react', 'vue', 'node'] as const;
 
 /** Types identified by a marker file at the root, strongest first. */
-const MARKER_ORDER = ['ionic', 'angular', 'react', 'vue', 'node', 'python', 'typescript'] as const;
+const MARKER_ORDER = [
+  'ionic',
+  'angular',
+  'react',
+  'vue',
+  'node',
+  'python',
+  'typescript',
+] as const;
 
 /**
  * ProjectTypeDetectorValidation
@@ -40,7 +48,8 @@ export class ProjectTypeDetectorValidation {
       if (patterns.dependencies.some(name => declared.has(name))) return type;
     }
     for (const type of MARKER_ORDER) {
-      if (this.hasAnyFile(projectRoot, this.patternsFor(type).files)) return type;
+      if (this.hasAnyFile(projectRoot, this.patternsFor(type).files))
+        return type;
     }
     if (declared.has('typescript')) return 'typescript';
     return null;

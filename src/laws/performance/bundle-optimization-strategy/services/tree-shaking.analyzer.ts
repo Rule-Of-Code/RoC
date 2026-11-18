@@ -250,8 +250,7 @@ export class TreeShakingAnalyzerService {
     }
 
     const configurations = build.configurations as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     if (configurations) {
       for (const configValue of Object.values(configurations)) {
         if (typeof configValue === 'object' && configValue !== null) {

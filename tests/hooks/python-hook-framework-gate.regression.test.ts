@@ -12,7 +12,7 @@
  * and it must not weaken husky detection for JS/TS at all — hence the JS rows
  * and the bare-Python row below, which must all still fire.
  */
-import { execSync } from 'child_process';
+import { execSync } from '../../src/utils/child-process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -98,7 +98,8 @@ function fixture(
   return dir;
 }
 
-const PYPROJECT = "[project]\nname='svc'\nversion='0.1.0'\ndependencies=['flask']\n";
+const PYPROJECT =
+  "[project]\nname='svc'\nversion='0.1.0'\ndependencies=['flask']\n";
 const FLASK_APP = 'from flask import Flask\napp = Flask(__name__)\n';
 
 /** Python + pre-commit framework — the concern is satisfied, the Python way. */

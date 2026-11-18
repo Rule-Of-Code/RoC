@@ -13,15 +13,22 @@ import { ctx, manifest, project, removeProjects } from '../toolkit-fixture';
 afterAll(removeProjects);
 
 const V = (r: { violations?: string[] }): string[] => r.violations ?? [];
-const REACT = { 'package.json': manifest({ react: '^19.0.0', next: '^16.0.0' }) };
+const REACT = {
+  'package.json': manifest({ react: '^19.0.0', next: '^16.0.0' }),
+};
 type Law = { check: typeof FormControlLabelingLaw.check };
-const run = (law: Law, files: Record<string, string>, thresholds: Record<string, unknown> = {}) =>
-  law.check(ctx(project({ ...REACT, ...files }), { thresholds }));
+const run = (
+  law: Law,
+  files: Record<string, string>,
+  thresholds: Record<string, unknown> = {}
+) => law.check(ctx(project({ ...REACT, ...files }), { thresholds }));
 const component = (body: string) =>
   `export function C({ open, setOpen, id, props }: any) {\n  return (\n${body}\n  );\n}\n`;
 
 describe('every JSX law reports a file it cannot parse', () => {
-  const broken = { 'src/app/broken.tsx': 'export const A = () => <div><button>x</div>;\n' };
+  const broken = {
+    'src/app/broken.tsx': 'export const A = () => <div><button>x</div>;\n',
+  };
   it.each([
     ['FormControlLabeling', FormControlLabelingLaw],
     ['ExplicitButtonType', ExplicitButtonTypeLaw],
@@ -31,7 +38,9 @@ describe('every JSX law reports a file it cannot parse', () => {
     const result = run(law, broken);
     expect(result.passed).toBe(false);
     expect(V(result)).toEqual([
-      expect.stringMatching(/src\/app\/broken\.tsx: could not be parsed \(line 1: .*\) — its code was NOT read/),
+      expect.stringMatching(
+        /src\/app\/broken\.tsx: could not be parsed \(line 1: .*\) — its code was NOT read/
+      ),
     ]);
   });
 });
@@ -54,8 +63,12 @@ describe('ExplicitButtonTypeLaw in JSX', () => {
       ),
     });
     expect(V(result)).toEqual([
-      expect.stringContaining('src/app/page.tsx: 1 <button> without an explicit type (defaults to submit) at line 4'),
-      expect.stringContaining('1 <button {...spread}> with no type written at line 10 — whether the spread sets it cannot be read'),
+      expect.stringContaining(
+        'src/app/page.tsx: 1 <button> without an explicit type (defaults to submit) at line 4'
+      ),
+      expect.stringContaining(
+        '1 <button {...spread}> with no type written at line 10 — whether the spread sets it cannot be read'
+      ),
     ]);
   });
 
@@ -71,7 +84,12 @@ describe('ExplicitButtonTypeLaw in JSX', () => {
           '      <Button>D</Button>',
           '    </div>',
         ].join('\n')
-      ).replace('props }: any', 'props, kind }: any').replace('export function', "import { Button } from './b';\nexport function"),
+      )
+        .replace('props }: any', 'props, kind }: any')
+        .replace(
+          'export function',
+          "import { Button } from './b';\nexport function"
+        ),
     });
     expect(V(result)).toEqual([]);
     expect(result.passed).toBe(true);
@@ -93,9 +111,15 @@ describe('FormControlLabelingLaw in JSX', () => {
       ),
     });
     expect(V(result)).toEqual([
-      expect.stringContaining('src/app/form.tsx: 1 form control(s) without an accessible label (<label htmlFor>/wrapping <label>/aria-label/aria-labelledby) at line 4'),
-      expect.stringContaining('1 control id(s) that no htmlFor in this file points at (id "phone" line 5)'),
-      expect.stringContaining('1 form control(s) with a {...spread} and no label written at line 7'),
+      expect.stringContaining(
+        'src/app/form.tsx: 1 form control(s) without an accessible label (<label htmlFor>/wrapping <label>/aria-label/aria-labelledby) at line 4'
+      ),
+      expect.stringContaining(
+        '1 control id(s) that no htmlFor in this file points at (id "phone" line 5)'
+      ),
+      expect.stringContaining(
+        '1 form control(s) with a {...spread} and no label written at line 7'
+      ),
     ]);
   });
 
@@ -138,8 +162,12 @@ describe('DisclosureControlAriaStateLaw in JSX (advisory)', () => {
       ),
     });
     expect(V(result)).toEqual([
-      expect.stringContaining('src/app/menu.tsx: 1 disclosure button(s) toggling a panel/menu without aria-expanded at line 4'),
-      expect.stringContaining('1 disclosure button(s) with a {...spread} and no aria-expanded written at line 5'),
+      expect.stringContaining(
+        'src/app/menu.tsx: 1 disclosure button(s) toggling a panel/menu without aria-expanded at line 4'
+      ),
+      expect.stringContaining(
+        '1 disclosure button(s) with a {...spread} and no aria-expanded written at line 5'
+      ),
     ]);
   });
 
@@ -169,7 +197,9 @@ describe('ModalDialogAccessibilityLaw in JSX', () => {
       ),
     });
     expect(V(result)).toEqual([
-      expect.stringContaining('src/app/modal.tsx: dialog at line 3 without aria-modal="true" + a focus trap (named in thresholds.accessibility.focusTrapTokens)'),
+      expect.stringContaining(
+        'src/app/modal.tsx: dialog at line 3 without aria-modal="true" + a focus trap (named in thresholds.accessibility.focusTrapTokens)'
+      ),
     ]);
   });
 
@@ -183,7 +213,7 @@ describe('ModalDialogAccessibilityLaw in JSX', () => {
   it('green: a native <dialog> opened with showModal()', () => {
     const result = run(ModalDialogAccessibilityLaw, {
       'src/app/modal.tsx':
-        "import { useEffect, useRef } from 'react';\nexport function M() {\n  const ref = useRef<HTMLDialogElement>(null);\n  useEffect(() => ref.current?.showModal(), []);\n  return <dialog ref={ref}><form method=\"dialog\"><button type=\"submit\">Close</button></form></dialog>;\n}\n",
+        'import { useEffect, useRef } from \'react\';\nexport function M() {\n  const ref = useRef<HTMLDialogElement>(null);\n  useEffect(() => ref.current?.showModal(), []);\n  return <dialog ref={ref}><form method="dialog"><button type="submit">Close</button></form></dialog>;\n}\n',
     });
     expect(V(result)).toEqual([]);
   });
@@ -192,11 +222,17 @@ describe('ModalDialogAccessibilityLaw in JSX', () => {
     const files = {
       'src/app/modal.tsx':
         "import FocusTrap from 'focus-trap-react';\n" +
-        component('    <FocusTrap>\n      <div role="dialog" aria-modal="true">Hi</div>\n    </FocusTrap>'),
+        component(
+          '    <FocusTrap>\n      <div role="dialog" aria-modal="true">Hi</div>\n    </FocusTrap>'
+        ),
     };
     expect(run(ModalDialogAccessibilityLaw, files).passed).toBe(false);
     expect(
-      V(run(ModalDialogAccessibilityLaw, files, { accessibility: { focusTrapTokens: ['FocusTrap'] } }))
+      V(
+        run(ModalDialogAccessibilityLaw, files, {
+          accessibility: { focusTrapTokens: ['FocusTrap'] },
+        })
+      )
     ).toEqual([]);
   });
 
@@ -204,17 +240,25 @@ describe('ModalDialogAccessibilityLaw in JSX', () => {
     const files = {
       'src/app/modal.tsx':
         "import * as Dialog from './dialog';\n" +
-        component('    <Dialog.Content>\n      <div role="dialog">Hi</div>\n    </Dialog.Content>'),
+        component(
+          '    <Dialog.Content>\n      <div role="dialog">Hi</div>\n    </Dialog.Content>'
+        ),
     };
     expect(run(ModalDialogAccessibilityLaw, files).passed).toBe(false);
     expect(
-      V(run(ModalDialogAccessibilityLaw, files, { accessibility: { accessibleDialogComponents: ['Dialog.Content'] } }))
+      V(
+        run(ModalDialogAccessibilityLaw, files, {
+          accessibility: { accessibleDialogComponents: ['Dialog.Content'] },
+        })
+      )
     ).toEqual([]);
   });
 
   it('a page with no dialog is not judged', () => {
     const result = run(ModalDialogAccessibilityLaw, {
-      'src/app/page.tsx': component('    <main className="fixed top-0">x</main>'),
+      'src/app/page.tsx': component(
+        '    <main className="fixed top-0">x</main>'
+      ),
     });
     expect(V(result)).toEqual([]);
   });
@@ -240,38 +284,56 @@ describe('AccessibilityLintingEnforcementLaw on JSX', () => {
         "import nextVitals from 'eslint-config-next/core-web-vitals';\nexport default [...nextVitals];\n",
     });
     expect(V(result)).toEqual([
-      'eslint-plugin-jsx-a11y rules missing: click-events-have-key-events, label-has-associated-control — enable them, or use the plugin\'s recommended preset.',
+      "eslint-plugin-jsx-a11y rules missing: click-events-have-key-events, label-has-associated-control — enable them, or use the plugin's recommended preset.",
     ]);
   });
 
   it.each([
-    ['flat preset by name', "import jsxA11y from 'eslint-plugin-jsx-a11y';\nexport default [jsxA11y.flatConfigs.recommended];\n", 'eslint.config.mjs'],
-    ['flat strict through require', "const a11y = require('eslint-plugin-jsx-a11y');\nmodule.exports = [a11y.flatConfigs.strict];\n", 'eslint.config.cjs'],
-    ['legacy extends', '{ "extends": ["plugin:jsx-a11y/recommended"] }\n', '.eslintrc.json'],
+    [
+      'flat preset by name',
+      "import jsxA11y from 'eslint-plugin-jsx-a11y';\nexport default [jsxA11y.flatConfigs.recommended];\n",
+      'eslint.config.mjs',
+    ],
+    [
+      'flat strict through require',
+      "const a11y = require('eslint-plugin-jsx-a11y');\nmodule.exports = [a11y.flatConfigs.strict];\n",
+      'eslint.config.cjs',
+    ],
+    [
+      'legacy extends',
+      '{ "extends": ["plugin:jsx-a11y/recommended"] }\n',
+      '.eslintrc.json',
+    ],
     [
       'next + the two rules named',
       "import nextVitals from 'eslint-config-next/core-web-vitals';\nexport default [...nextVitals, { rules: { 'jsx-a11y/click-events-have-key-events': 'error', 'jsx-a11y/label-has-associated-control': 'error' } }];\n",
       'eslint.config.mjs',
     ],
   ])('green: %s', (_name, content, file) => {
-    const result = run(AccessibilityLintingEnforcementLaw, { ...page, [file]: content });
+    const result = run(AccessibilityLintingEnforcementLaw, {
+      ...page,
+      [file]: content,
+    });
     expect(V(result)).toEqual([]);
   });
 
-  it('a preset of ANOTHER plugin does not count as jsx-a11y\'s', () => {
+  it("a preset of ANOTHER plugin does not count as jsx-a11y's", () => {
     const result = run(AccessibilityLintingEnforcementLaw, {
       ...page,
       'eslint.config.mjs':
         "import jsxA11y from 'eslint-plugin-jsx-a11y';\nimport react from 'eslint-plugin-react';\nexport default [{ plugins: { 'jsx-a11y': jsxA11y } }, react.configs.recommended];\n",
     });
-    expect(V(result).join()).toContain('eslint-plugin-jsx-a11y rules missing: alt-text, aria-props');
+    expect(V(result).join()).toContain(
+      'eslint-plugin-jsx-a11y rules missing: alt-text, aria-props'
+    );
   });
 
   it('an .html file in a project without Angular does not ask for @angular-eslint', () => {
     const result = run(AccessibilityLintingEnforcementLaw, {
       ...page,
       'public/index.html': '<!doctype html><html><body></body></html>\n',
-      'eslint.config.mjs': "import jsxA11y from 'eslint-plugin-jsx-a11y';\nexport default [jsxA11y.flatConfigs.recommended];\n",
+      'eslint.config.mjs':
+        "import jsxA11y from 'eslint-plugin-jsx-a11y';\nexport default [jsxA11y.flatConfigs.recommended];\n",
     });
     expect(V(result)).toEqual([]);
   });

@@ -145,6 +145,17 @@ function fileContains(projectRoot: string, entry: FileContaining): boolean {
   return found;
 }
 
+/**
+ * Every file an `anyFileContaining` entry's globs name whose content matches
+ * its pattern (absolute paths) — the same files, read the same way, as the
+ * gate, for a law that must judge exactly what selected it.
+ */
+export function filesContaining(projectRoot: string, entry: FileContaining): string[] {
+  const pattern = new RegExp(entry.pattern, 'm');
+  const files = new Set(entry.files.flatMap(files => containingCandidates(projectRoot, files)));
+  return [...files].sort().filter(file => contentMatches(file, pattern));
+}
+
 /** `anyDependency` and `allDependencies`, read from the workspace package.json manifests. */
 function packageRequirementsMet(requires: LawRequirement, projectRoot: string): boolean {
   if (!requires.anyDependency?.length && !requires.allDependencies?.length) return true;

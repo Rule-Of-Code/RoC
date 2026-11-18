@@ -23,6 +23,7 @@ import { INTEGRITY_LAWS } from './integrity-laws';
 import { IONIC_LAWS } from './ionic-laws';
 import { NEXT_SERVER_LAWS } from './next-server-laws';
 import { IONIC_RENDERING_LAWS } from './ionic-rendering-laws';
+import { MEASUREMENT_LAWS } from './measurement-laws';
 import { META_GATE_LAWS } from './meta-gate-laws';
 import { NEXT_CLIENT_LAWS } from './next-client-laws';
 import { PERFORMANCE_LAWS } from './performance-laws';
@@ -62,6 +63,7 @@ export const ALL_ENHANCED_CONSTITUTIONAL_LAWS: EnhancedConstitutionalLaw[] = [
   ...CAPACITOR_NATIVE_LAWS, // 🤖 Capacitor native-shell laws (frontend, + the platform package; IDs 431+)
   ...CAPACITOR_BRIDGE_LAWS, // 🌉 Capacitor bridge laws (frontend, requires @capacitor/core + config; IDs 441+)
   ...CLIENT_DEPLOY_LAWS, // 🌐 Client start-up and deploy-settings laws (IDs 892+)
+  ...MEASUREMENT_LAWS, // ⏱️ Measurement laws (latency budget harness, tracing, test-server loopback; IDs 889–891)
 ];
 
 // Re-export for easy access

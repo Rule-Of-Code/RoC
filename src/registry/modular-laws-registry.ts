@@ -221,6 +221,12 @@ import {
   SqlCheckConstraintNullPassesLaw,
   TsconfigExcludeLeavesCodeUntypedLaw,
 } from '../checkers/integrity-laws';
+// Measurement Laws Modular Imports — latency budget harness, tracing, test-server loopback
+import {
+  LatencyBudgetHarnessRealismLaw,
+  TestServerLoopbackAddressMatchLaw,
+  TracingExplainsLatencyLaw,
+} from '../checkers/measurement-laws';
 // React Laws Modular Imports — gated by `requires` on react / next
 import {
   NextOpenRedirectGuardedLaw,
@@ -647,6 +653,10 @@ export class ModularLawsRegistry {
     'StartupRequestFanOutLaw.check': StartupRequestFanOutLaw,
     'PrimaryLocaleFontPreloadedLaw.check': PrimaryLocaleFontPreloadedLaw,
     'ServerlessDeployPinsResourcesLaw.check': ServerlessDeployPinsResourcesLaw,
+    // Measurement Laws (latency budget harness, tracing, test-server loopback)
+    'LatencyBudgetHarnessRealismLaw.check': LatencyBudgetHarnessRealismLaw,
+    'TracingExplainsLatencyLaw.check': TracingExplainsLatencyLaw,
+    'TestServerLoopbackAddressMatchLaw.check': TestServerLoopbackAddressMatchLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

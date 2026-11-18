@@ -52,11 +52,8 @@ interface Run {
   stderr: string;
 }
 
-const made: string[] = [];
-
 function fixture(laws: Record<string, unknown>): string {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-350-cli-'));
-  made.push(root);
   const files: Record<string, string> = {
     'package.json': JSON.stringify({ name: 'neutral-fixture', version: '1.0.0', devDependencies: { typescript: '5.6.3' } }),
     'tsconfig.json': JSON.stringify({ compilerOptions: { strict: true } }),
@@ -72,38 +69,38 @@ function fixture(laws: Record<string, unknown>): string {
 
 function audit(laws: Record<string, unknown>): Run {
   const cwd = fixture(laws);
-  // spawnSync, not execFileSync: stderr (the warnings) is kept on exit 0 too.
-  const run = spawnSync(process.execPath, [CLI, 'audit', '--mode=full', '--json'], { cwd, encoding: 'utf8' });
-  return { code: run.status ?? 1, json: JSON.parse(run.stdout || '{}'), stderr: run.stderr ?? '' };
+  try {
+    // spawnSync, not execFileSync: stderr (the warnings) is kept on exit 0 too.
+    const run = spawnSync(process.execPath, [CLI, 'audit', '--mode=full', '--json'], { cwd, encoding: 'utf8' });
+    return { code: run.status ?? 1, json: JSON.parse(run.stdout || '{}'), stderr: run.stderr ?? '' };
+  } finally {
+    fs.rmSync(cwd, { recursive: true, force: true }); // each run owns its fixture
+  }
 }
 
 const plain = (text: string): string[] =>
   // eslint-disable-next-line no-control-regex
   text.replace(/\u001b\[[0-9;]*m/g, '').split(/\r?\n/);
 
-/** Every law the fixture fails or warns on, except the one under test, waived. */
-let background: Record<string, string> = {};
-
-beforeAll(() => {
+/**
+ * Every law the fixture fails or warns on, except the one under test, waived.
+ * Computed by each row for itself, so no state is shared between rows.
+ */
+function backgroundWaivers(): Record<string, string> {
   if (!fs.existsSync(CLI)) throw new Error(`${CLI} missing — run \`npm run build\` before jest`);
-  const baseline = audit({});
-  const failing = baseline.json.results
-    .filter(r => !r.passed && r.lawTitle && !META_GATES.includes(r.lawTitle))
+  const failing = audit({})
+    .json.results.filter(r => !r.passed && r.lawTitle && !META_GATES.includes(r.lawTitle))
     .map(r => r.lawTitle as string);
   expect(failing).toContain(LAW); // the law under test fails when it runs
-  background = Object.fromEntries(failing.filter(t => t !== LAW).map(t => [t, 'not a concern of this fixture']));
-}, 120000);
-
-afterAll(() => {
-  for (const dir of made) fs.rmSync(dir, { recursive: true, force: true });
-});
+  return Object.fromEntries(failing.filter(t => t !== LAW).map(t => [t, 'not a concern of this fixture']));
+}
 
 describe.each(ROWS)('laws.notApplicable[law] = $value', row => {
   let run: Run;
   beforeAll(() => {
-    const notApplicable = { ...background, ...(row.entry.present ? { [LAW]: row.entry.value } : {}) };
+    const notApplicable = { ...backgroundWaivers(), ...(row.entry.present ? { [LAW]: row.entry.value } : {}) };
     run = audit({ notApplicable });
-  }, 120000);
+  }, 240000);
 
   it(`(a) the law ${row.waived ? 'does not run' : 'runs'}`, () => {
     expect(run.json.results.some(r => r.lawTitle === LAW)).toBe(!row.waived);

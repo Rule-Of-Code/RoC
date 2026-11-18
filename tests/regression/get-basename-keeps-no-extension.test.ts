@@ -18,7 +18,10 @@ import { ModularLawsRegistry } from '../../src/registry/modular-laws-registry';
 import { GenericAngularLaw } from '../../src/checkers/angular-laws/generic-angular';
 import { TestCoverageRequirementsLaw } from '../../src/checkers/testing-laws/test-coverage-requirements';
 import { CheckerUtils } from '../../src/utils/checker-utils';
-import { lawAppliesToProjectType } from '../../src/utils/law-identity';
+import {
+  lawAppliesToProjectType,
+  runsWithoutAllowlist,
+} from '../../src/utils/law-identity';
 import { lawRequirementsMet } from '../../src/utils/law-requirements';
 import { ProjectTypeDetector } from '../../src/utils/config/project-type-detector';
 import { project, removeProjects } from '../checkers/toolkit-fixture';
@@ -66,13 +69,17 @@ const law = (title: string) => {
 function selectedFor(root: string, title: string): boolean {
   const l = law(title);
   // The engine's rule: a configured type wins, except `generic`, then the detector.
-  const configured = ConfigLoader.loadConfig(root).project?.type;
+  const config = ConfigLoader.loadConfig(root);
+  const configured = config.project?.type;
   const type =
     configured && configured !== 'generic'
       ? configured
       : (ProjectTypeDetector.detectProjectType(root) ?? configured);
   return (
-    l.defaultEnabled !== false &&
+    runsWithoutAllowlist(
+      l,
+      (config.laws as { severity?: Record<string, unknown> }).severity
+    ) &&
     lawAppliesToProjectType(l.stack, type, root, l) &&
     lawRequirementsMet(l.requires, root)
   );
@@ -92,8 +99,15 @@ const violations = (result: LawResult): string[] =>
 
 describe('#369 rows reachable from a registered law: red on 7.27.0, green now', () => {
   it('row 1 — Error Handling Standards sees the source files (a JSON.parse with no try is reported)', async () => {
-    const bad = await run('Error Handling Standards', {
+    // Opt-in since #390: turned on the way a project does, by laws.severity.
+    const ON = {
       ...TS,
+      'ruleofcode.config.json': JSON.stringify({
+        laws: { severity: { 'Error Handling Standards': 'warning' } },
+      }),
+    };
+    const bad = await run('Error Handling Standards', {
+      ...ON,
       'src/store.ts':
         'export const load = (raw: string): unknown => JSON.parse(raw);\n',
     });
@@ -101,7 +115,7 @@ describe('#369 rows reachable from a registered law: red on 7.27.0, green now', 
       '1 critical areas missing try-catch blocks'
     );
     const good = await run('Error Handling Standards', {
-      ...TS,
+      ...ON,
       'src/store.ts':
         'export const load = (raw: string): unknown => {\n  try {\n    return JSON.parse(raw);\n  } catch (error) {\n    return null;\n  }\n};\n',
     });

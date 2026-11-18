@@ -116,23 +116,36 @@ describe('#364 Hosting Rewrite Region Matches Deploy — acceptance', () => {
     ).toBe(false);
   });
 
-  it('deploys that name no region at all → not judged, never a guess', () => {
+  it('deploys that name no region at all → a pass with the counter and the note, never a guess and never "judged nothing"', () => {
     const result = check({
       'firebase.json': firebase('europe-west1'),
       'scripts/deploy.sh': 'gcloud run deploy worker --image x\n',
     });
-    expect(result.judgedNothing).toBe(true);
+    expect(result.passed).toBe(true);
+    expect(result.judgedNothing).not.toBe(true);
+    expect(result.message).toMatch(
+      /1 file\(s\) read, 0 rewrite\(s\) compared with the deploy configuration; 1 case\(s\) not judged/
+    );
+    expect(result.metrics).toMatchObject({
+      filesRead: 1,
+      judged: 0,
+      notJudged: 1,
+    });
     expect(result.suggestions?.join(' ')).toMatch(
       /no deploy configuration in this repository names a region/
     );
   });
 
-  it('a region that cannot be resolved is a note, never a guess', () => {
+  it('a region that cannot be resolved is a note, never a guess — and the read is a pass', () => {
     const result = check({
       'firebase.json': firebase('europe-west1'),
       'scripts/deploy.sh': 'gcloud run deploy api --region "$1"\n',
     });
-    expect(result.judgedNothing).toBe(true);
+    expect(result.passed).toBe(true);
+    expect(result.judgedNothing).not.toBe(true);
+    expect(result.suggestions?.join(' ')).toMatch(
+      /with a region that could not be read — not judged/
+    );
   });
 
   it('red/green: a Cloud Run deterministic URL in vercel.json', () => {

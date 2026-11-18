@@ -135,11 +135,20 @@ describe('#366 — the registry', () => {
     ]);
   });
 
-  it('a jq projection or a $(…) capture is listed as not judged', () => {
+  it('a jq projection or a $(…) capture is listed as not judged — a pass with the counter, never "judged nothing"', () => {
     const result = one(
       "gcloud scheduler jobs list --format=json | jq '.[].name' > names.txt\nOUT=$(gcloud scheduler jobs describe n)\n"
     );
-    expect(result.judgedNothing).toBe(true);
+    expect(result.passed).toBe(true);
+    expect(result.judgedNothing).not.toBe(true);
+    expect(result.message).toMatch(
+      /1 file\(s\) read, 0 definition dump command\(s\) judged; 2 case\(s\) not judged/
+    );
+    expect(result.metrics).toMatchObject({
+      filesRead: 1,
+      judged: 0,
+      notJudged: 2,
+    });
     const notes = result.suggestions?.join(' ') ?? '';
     expect(notes).toMatch(
       /jobs\.sh:1: .*a jq\/yq filter whose output is not evaluated/

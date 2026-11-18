@@ -57,21 +57,7 @@ export function lawRequirementsMet(
   projectRoot: string
 ): boolean {
   if (!requires) return true;
-  if (requires.anyDependency?.length || requires.allDependencies?.length) {
-    const declared = declaredDependencies(projectRoot);
-    if (
-      requires.anyDependency?.length &&
-      !requires.anyDependency.some(name => declared.has(name))
-    ) {
-      return false;
-    }
-    if (
-      requires.allDependencies?.length &&
-      !requires.allDependencies.every(name => declared.has(name))
-    ) {
-      return false;
-    }
-  }
+  if (!packageRequirementsMet(requires, projectRoot)) return false;
   if (requires.anyFile?.length) {
     if (presentRequiredFiles(projectRoot, requires.anyFile).length === 0) {
       return false;
@@ -83,7 +69,28 @@ export function lawRequirementsMet(
       return false;
     }
   }
+  if (requires.anyOf?.length) {
+    if (!requires.anyOf.some(alternative => lawRequirementsMet(alternative, projectRoot))) {
+      return false;
+    }
+  }
   return true;
+}
+
+/** `anyDependency` and `allDependencies`, read from the workspace package.json manifests. */
+function packageRequirementsMet(requires: LawRequirement, projectRoot: string): boolean {
+  if (!requires.anyDependency?.length && !requires.allDependencies?.length) return true;
+  const declared = declaredDependencies(projectRoot);
+  if (
+    requires.anyDependency?.length &&
+    !requires.anyDependency.some(name => declared.has(name))
+  ) {
+    return false;
+  }
+  return !(
+    requires.allDependencies?.length &&
+    !requires.allDependencies.every(name => declared.has(name))
+  );
 }
 
 /**
@@ -226,6 +233,9 @@ export function describeRequirement(requires: LawRequirement): string {
   }
   if (requires.anyPythonDependency?.length) {
     parts.push(`a Python dependency on ${requires.anyPythonDependency.join(' or ')}`);
+  }
+  if (requires.anyOf?.length) {
+    parts.push(`either ${requires.anyOf.map(alternative => `(${describeRequirement(alternative)})`).join(' or ')}`);
   }
   return parts.join(', and ');
 }

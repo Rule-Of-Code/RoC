@@ -154,6 +154,32 @@ describe('declaredDependencies', () => {
   });
 });
 
+describe('lawRequirementsMet: anyOf', () => {
+  const EITHER = {
+    anyOf: [{ anyPythonDependency: ['some-sdk'] }, { anyDependency: ['@scope/some-sdk'] }],
+  };
+
+  it('is met by either alternative alone', () => {
+    expect(lawRequirementsMet(EITHER, project({ 'requirements.txt': 'some-sdk==1.0\n' }))).toBe(true);
+    expect(lawRequirementsMet(EITHER, project({ 'package.json': manifest({ '@scope/some-sdk': '1' }) }))).toBe(true);
+  });
+
+  it('is not met when no alternative holds', () => {
+    expect(lawRequirementsMet(EITHER, project({ 'package.json': manifest({ other: '1' }) }))).toBe(false);
+  });
+
+  it('is ANDed with the other conditions', () => {
+    const root = project({ 'requirements.txt': 'some-sdk\n' });
+    expect(lawRequirementsMet({ ...EITHER, anyFile: ['absent.cfg'] }, root)).toBe(false);
+  });
+
+  it('is named in words', () => {
+    expect(describeRequirement(EITHER)).toBe(
+      'either (a Python dependency on some-sdk) or (a dependency on @scope/some-sdk)'
+    );
+  });
+});
+
 describe('describeRequirement', () => {
   it('names both halves in words', () => {
     expect(describeRequirement(CAPACITOR)).toBe(

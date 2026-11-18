@@ -26,13 +26,27 @@ export function waiverReasonFor(
   if (!notApplicable) return null;
 
   for (const key of lawIdentityKeys({ name: lawName })) {
-    const reason = notApplicable[key];
-    if (typeof reason === 'string' && reason.trim().length > 0) {
-      return reason.trim();
-    }
+    const reason = honouredWaiverReason(notApplicable[key]);
+    if (reason !== null) return reason;
   }
 
   return null;
+}
+
+/**
+ * The reason of a `laws.notApplicable` entry when the entry IS a waiver, else
+ * null: a string with something in it besides whitespace, trimmed.
+ *
+ * One rule for every reader. The registry used to waive on any truthy value
+ * (`' '` waived, `''` did not) while this file trimmed, so a whitespace-only
+ * entry removed the law from the audit and was "no waiver" to the laws that
+ * defer to waivers — and the audit could not name the reason it acted on.
+ * A waiver without a reason is not one: the law runs, and the engine warns.
+ */
+export function honouredWaiverReason(reason: unknown): string | null {
+  if (typeof reason !== 'string') return null;
+  const trimmed = reason.trim();
+  return trimmed.length > 0 ? trimmed : null;
 }
 
 /** Has this project declared the law that owns this concern inapplicable? */

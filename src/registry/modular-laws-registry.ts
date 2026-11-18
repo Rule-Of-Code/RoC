@@ -5,6 +5,7 @@
 
 import { FileFilterUtils } from '../utils/file-filter-utils';
 import * as LawIdentity from '../utils/law-identity';
+import { honouredWaiverReason } from '../utils/law-waivers';
 
 // Sacred Laws Modular Imports
 import {
@@ -205,6 +206,13 @@ import {
   CapacitorWebviewOriginDeclaredLaw,
 } from '../checkers/capacitor-laws';
 
+// Client start-up and deploy-settings laws
+import {
+  PrimaryLocaleFontPreloadedLaw,
+  ServerlessDeployPinsResourcesLaw,
+  StartupRequestFanOutLaw,
+} from '../checkers/client-deploy-laws';
+
 // Integrity Laws Modular Imports — migrations, CHECKs, guards, tsconfig, retention
 import {
   DrizzleMigrationJournalIntegrityLaw,
@@ -213,6 +221,12 @@ import {
   SqlCheckConstraintNullPassesLaw,
   TsconfigExcludeLeavesCodeUntypedLaw,
 } from '../checkers/integrity-laws';
+// Measurement Laws Modular Imports — latency budget harness, tracing, test-server loopback
+import {
+  LatencyBudgetHarnessRealismLaw,
+  TestServerLoopbackAddressMatchLaw,
+  TracingExplainsLatencyLaw,
+} from '../checkers/measurement-laws';
 // React Laws Modular Imports — gated by `requires` on react / next
 import {
   NextOpenRedirectGuardedLaw,
@@ -297,6 +311,12 @@ import { BundleOptimizationStrategyLaw } from '../laws/performance/bundle-optimi
 import { CdnCachingStrategyLaw } from '../laws/performance/cdn-caching-strategy';
 import { CoreWebVitalsComplianceLaw } from '../laws/performance/core-web-vitals-compliance';
 import { DatabaseQueryOptimizationLaw } from '../laws/performance/database-query-optimization';
+// Request-path laws (round trips per request, Python + TS/JS call sites)
+import {
+  CountWithAggregationLaw,
+  DocumentReadOncePerRequestLaw,
+  IndependentAwaitsRunConcurrentlyLaw,
+} from '../checkers/request-path-laws';
 import { PerformanceBudgetComplianceLaw } from '../laws/performance/performance-budget-compliance';
 import { PerformanceMonitoringPolicyLaw } from '../laws/performance/performance-monitoring-policy';
 import { PerformanceMonitoringStandardsLaw } from '../laws/performance/performance-monitoring-standards';
@@ -635,6 +655,15 @@ export class ModularLawsRegistry {
     'TsconfigExcludeLeavesCodeUntypedLaw.check': TsconfigExcludeLeavesCodeUntypedLaw,
     'RetentionRegistryCoversSchemaLaw.check': RetentionRegistryCoversSchemaLaw,
 
+    // Client start-up and deploy-settings laws
+    'StartupRequestFanOutLaw.check': StartupRequestFanOutLaw,
+    'PrimaryLocaleFontPreloadedLaw.check': PrimaryLocaleFontPreloadedLaw,
+    'ServerlessDeployPinsResourcesLaw.check': ServerlessDeployPinsResourcesLaw,
+    // Measurement Laws (latency budget harness, tracing, test-server loopback)
+    'LatencyBudgetHarnessRealismLaw.check': LatencyBudgetHarnessRealismLaw,
+    'TracingExplainsLatencyLaw.check': TracingExplainsLatencyLaw,
+    'TestServerLoopbackAddressMatchLaw.check': TestServerLoopbackAddressMatchLaw,
+
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,
     'IonicPageStateReadOnEnterLaw.check': IonicPageStateReadOnEnterLaw,
@@ -683,6 +712,9 @@ export class ModularLawsRegistry {
     checkBundleOptimizationStrategy: BundleOptimizationStrategyLaw,
     checkPerformanceStandards: PerformanceStandardsLaw,
     checkDatabaseQueryOptimization: DatabaseQueryOptimizationLaw,
+    'IndependentAwaitsRunConcurrentlyLaw.check': IndependentAwaitsRunConcurrentlyLaw,
+    'DocumentReadOncePerRequestLaw.check': DocumentReadOncePerRequestLaw,
+    'CountWithAggregationLaw.check': CountWithAggregationLaw,
     checkCDNAndCachingStrategy: CdnCachingStrategyLaw,
     checkCDNCachingStrategy: CdnCachingStrategyLaw,
     checkPerformanceBudgetCompliance: PerformanceBudgetComplianceLaw,
@@ -824,6 +856,24 @@ export class ModularLawsRegistry {
   private static ambiguousKeys: Set<string> | undefined;
 
   /**
+   * The reason `laws.notApplicable` gives for this law, when an entry waives
+   * it: keyed by an UNAMBIGUOUS identity of the law, with a non-blank reason
+   * (trimmed). Null when nothing waives it. The selection drops a law exactly
+   * when this is non-null, and the audit names the waiver with this reason.
+   */
+  static waiverReasonOf(
+    law: { name?: string; id?: string; legacyId?: number | string },
+    notApplicable: Record<string, unknown> | undefined
+  ): string | null {
+    if (!notApplicable) return null;
+    for (const key of ModularLawsRegistry.unambiguousIdentityKeys(law)) {
+      const reason = honouredWaiverReason(notApplicable[key]);
+      if (reason !== null) return reason;
+    }
+    return null;
+  }
+
+  /**
    * Get enabled laws based on config
    */
   static getEnabled(config: RuleOfCodeConfig): ConstitutionalLaw[] {
@@ -846,14 +896,11 @@ export class ModularLawsRegistry {
       // produced by us, in the tool whose whole purpose is to make waivers
       // visible (a downstream consumer). Config Integrity Guard reports such a key as a
       // violation; here we simply refuse to act on it.
+      // An entry with no reason ('' or whitespace only) is not a waiver:
+      // the law runs, and the engine warns about the entry.
       const notApplicable = (config.laws as Record<string, unknown>)
-        .notApplicable as Record<string, string> | undefined;
-      if (
-        notApplicable &&
-        ModularLawsRegistry.unambiguousIdentityKeys(law).some(
-          key => notApplicable[key]
-        )
-      ) {
+        .notApplicable as Record<string, unknown> | undefined;
+      if (ModularLawsRegistry.waiverReasonOf(law, notApplicable) !== null) {
         return false;
       }
 

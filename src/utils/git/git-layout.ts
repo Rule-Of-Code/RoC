@@ -185,6 +185,9 @@ export function trackedModesByBasename(
  */
 export type GitExposure = 'tracked' | 'unignored' | 'ignored' | 'absent';
 
+/** `git rev-parse --is-inside-work-tree`: prints true inside a work tree. */
+const INSIDE_WORK_TREE = ['rev-parse', '--is-inside-work-tree'];
+
 /** Run git with arguments (no shell); null when it cannot run at all. */
 function gitRun(
   args: string[],
@@ -213,7 +216,7 @@ export function gitExposure(
   projectRoot: string,
   paths: readonly string[]
 ): Map<string, GitExposure> | null {
-  const inside = gitRun(['rev-parse', '--is-inside-work-tree'], projectRoot);
+  const inside = gitRun(INSIDE_WORK_TREE, projectRoot);
   if (!inside || inside.status !== 0 || inside.stdout.trim() !== 'true') {
     return null;
   }
@@ -248,13 +251,45 @@ export function trackedFiles(
   projectRoot: string,
   paths: readonly string[]
 ): Set<string> | null {
-  const inside = gitRun(['rev-parse', '--is-inside-work-tree'], projectRoot);
+  const inside = gitRun(INSIDE_WORK_TREE, projectRoot);
   if (!inside || inside.status !== 0 || inside.stdout.trim() !== 'true') {
     return null;
   }
   const listed = gitRun(['ls-files', '-z', '--', ...paths], projectRoot);
   if (!listed || listed.status !== 0) return null;
   return new Set(listed.stdout.split('\0').filter(Boolean));
+}
+
+/** What git would publish from a project directory, by path relative to it. */
+export interface PublishedListing {
+  /** In the index. */
+  tracked: Set<string>;
+  /** Untracked and not ignored: `git add -A` publishes them. */
+  unignored: Set<string>;
+  /** Tracked files whose working copy differs from the index (or is deleted). */
+  changed: Set<string>;
+}
+
+/**
+ * Every file git would publish from `projectRoot` (tracked, or untracked and
+ * not ignored), paths relative to it with forward slashes; null when git
+ * cannot answer (no git binary, not inside a work tree). git runs with
+ * `cwd = projectRoot` and the inherited environment (an inherited GIT_DIR
+ * still wins over cwd — #372).
+ */
+export function publishedListing(projectRoot: string): PublishedListing | null {
+  const inside = gitRun(INSIDE_WORK_TREE, projectRoot);
+  if (!inside || inside.status !== 0 || inside.stdout.trim() !== 'true') return null;
+  const list = (args: string[]): Set<string> | null => {
+    const out = gitRun(args, projectRoot);
+    return out && out.status === 0 ? new Set(out.stdout.split('\0').filter(Boolean)) : null;
+  };
+  const tracked = list(['ls-files', '-z', '--cached']);
+  const unignored = list(['ls-files', '-z', '--others', '--exclude-standard']);
+  // Plumbing: diff-files never refreshes or writes the index (porcelain diff may).
+  const changed = list(['diff-files', '--name-only', '--relative', '-z']);
+  if (!tracked || !unignored || !changed) return null;
+  return { tracked, unignored, changed };
 }
 
 /**

@@ -50,7 +50,9 @@ export class DatabaseQueryOptimizationFileDiscoveryService {
       );
 
       for (const filePath of allFiles) {
-        const filename = PathOperations.getBasename(filePath);
+        // The patterns match the full file name (`roles.service.ts`); a
+        // basename without its extension never matches any of them (#368).
+        const filename = PathOperations.getFilename(filePath);
         if (
           DatabaseQueryOptimizationFileDiscoveryConstants.isServiceFile(
             filename

@@ -298,7 +298,11 @@ import { CdnCachingStrategyLaw } from '../laws/performance/cdn-caching-strategy'
 import { CoreWebVitalsComplianceLaw } from '../laws/performance/core-web-vitals-compliance';
 import { DatabaseQueryOptimizationLaw } from '../laws/performance/database-query-optimization';
 // Request-path laws (round trips per request, Python + TS/JS call sites)
-import { DocumentReadOncePerRequestLaw, IndependentAwaitsRunConcurrentlyLaw } from '../checkers/request-path-laws';
+import {
+  CountWithAggregationLaw,
+  DocumentReadOncePerRequestLaw,
+  IndependentAwaitsRunConcurrentlyLaw,
+} from '../checkers/request-path-laws';
 import { PerformanceBudgetComplianceLaw } from '../laws/performance/performance-budget-compliance';
 import { PerformanceMonitoringPolicyLaw } from '../laws/performance/performance-monitoring-policy';
 import { PerformanceMonitoringStandardsLaw } from '../laws/performance/performance-monitoring-standards';
@@ -687,6 +691,7 @@ export class ModularLawsRegistry {
     checkDatabaseQueryOptimization: DatabaseQueryOptimizationLaw,
     'IndependentAwaitsRunConcurrentlyLaw.check': IndependentAwaitsRunConcurrentlyLaw,
     'DocumentReadOncePerRequestLaw.check': DocumentReadOncePerRequestLaw,
+    'CountWithAggregationLaw.check': CountWithAggregationLaw,
     checkCDNAndCachingStrategy: CdnCachingStrategyLaw,
     checkCDNCachingStrategy: CdnCachingStrategyLaw,
     checkPerformanceBudgetCompliance: PerformanceBudgetComplianceLaw,

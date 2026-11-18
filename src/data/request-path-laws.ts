@@ -99,4 +99,43 @@ export const REQUEST_PATH_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article VI.6.25: The same document is read more than once in one request',
     remediation: 'Read the document once and pass the value down, or cache it per request',
   },
+
+  {
+    id: generateLawId(
+      'Count With An Aggregation',
+      'A number of documents is asked of the database with a count aggregation, not computed by fetching the documents',
+      'performance'
+    ),
+    legacyId: 888,
+    article: 'VI',
+    subsection: '6.26',
+    title: 'Count With An Aggregation',
+    rationale:
+      'Fetching documents only to take their number makes the database bill and transfer every one of them, and the client library decode and copy each one: on a busy instance that CPU, not the application code, is what slows every request. A count aggregation returns the number alone.',
+    satisfiedBy: {
+      python:
+        'Count on the server: await query.count().get() (Firestore), collection.count_documents(filter) (MongoDB), select(func.count()) (SQLAlchemy), .count() / await .acount() (Django).',
+      typescript:
+        'Count on the server: getCountFromServer(query) (Firebase web) or query.count().get() (Admin SDK), countDocuments(filter) (MongoDB), count() (Prisma, TypeORM, Sequelize).',
+    },
+    detectionLimits: [
+      'Python: len() of a whole-result fetch — list(fetch), a comprehension over a fetch with no if filter, await fetch, the fetch itself — or of a local whose only binding is such a fetch and that is used nowhere else in the function. TS/JS: (await fetch).size / .length / .docs.length, or the same on a local bound only to await fetch and read once.',
+      'A fetch is a call the client registry lists as returning a whole result set: Firestore stream / getDocs and get on a query, Mongo find / to_list / toArray, SQLAlchemy .all(), Django .all() / .filter(), Prisma findMany, TypeORM find / findBy / getMany, Sequelize findAll. Generic names (get, find, all, filter) count only when awaited or, in Python, chained from a query builder (collection, where, order_by, objects, execute …), so len(data.get(…)) is not one.',
+      'Not seen: a count through a repository method whose name the registry does not list (len(await repo.list_ids(x))), a count over a filtered comprehension (the filter may not be expressible on the server), and documents counted in a helper the fetch was passed to.',
+      'Selected where a database client from the registry is declared in package.json or a Python manifest; with no whole-result fetch in the sources it reports judged nothing.',
+    ],
+    emoji: '🔢',
+    description:
+      'A number of documents is asked of the database with a count aggregation, not computed by fetching the documents',
+    priority: 'MEDIUM',
+    category: 'PERFORMANCE',
+    requires: REQUIRES_DATA_CLIENT,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'CountWithAggregationLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article VI.6.26: Documents fetched only to be counted',
+    remediation: 'Replace the fetch-and-count with a count aggregation query',
+  },
 ];

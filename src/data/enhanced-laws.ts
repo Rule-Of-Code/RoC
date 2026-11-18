@@ -28,6 +28,7 @@ import { PERFORMANCE_LAWS } from './performance-laws';
 import { PYTHON_LAWS } from './python-laws';
 import { REACT_LAWS } from './react-laws';
 import { REACT_SECURITY_LAWS } from './react-security-laws';
+import { REQUEST_PATH_LAWS } from './request-path-laws';
 import { SACRED_LAWS } from './sacred-laws';
 import { SECURITY_LAWS } from './security-laws';
 import { TEST_INTEGRITY_LAWS } from './test-integrity-laws';
@@ -60,6 +61,7 @@ export const ALL_ENHANCED_CONSTITUTIONAL_LAWS: EnhancedConstitutionalLaw[] = [
   ...REACT_SECURITY_LAWS, // 🧯 React security laws (frontend, requires react / next; IDs 581+)
   ...CAPACITOR_NATIVE_LAWS, // 🤖 Capacitor native-shell laws (frontend, + the platform package; IDs 431+)
   ...CAPACITOR_BRIDGE_LAWS, // 🌉 Capacitor bridge laws (frontend, requires @capacitor/core + config; IDs 441+)
+  ...REQUEST_PATH_LAWS, // ⏱️ Request-path laws (Python + TS/JS call sites; IDs 886+)
 ];
 
 // Re-export for easy access

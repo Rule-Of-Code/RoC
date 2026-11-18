@@ -1,7 +1,8 @@
-import type { RuleOfCodeConfig } from '../../../../types/law.types';
+import type { LawCheckContext, RuleOfCodeConfig } from '../../../../types/law.types';
+import type { SourceLanguage } from '../../../../utils/request-path/model';
 import { FirestoreOptimizationAnalyzerService } from './firestore-optimization.analyzer';
 import { IndexingAnalyzerService } from './indexing.analyzer';
-import { NPlusOneAnalyzerService } from './nplus-one.analyzer';
+import { type NPlusOneAnalysis, NPlusOneAnalyzerService } from './nplus-one.analyzer';
 import { PaginationAnalyzerService } from './pagination.analyzer';
 import { QueryBatchingAnalyzerService } from './query-batching.analyzer';
 import { QueryCachingAnalyzerService } from './query-caching.analyzer';
@@ -71,14 +72,12 @@ export class DatabaseQueryOptimizationAnalyzerService {
   }
 
   /**
-   * Analyze N+1 query prevention
+   * Analyze N+1 queries per call site, in the given languages
    */
   static analyzeNPlusOneQueryPrevention(
-    projectRoot: string,
-    config: RuleOfCodeConfig
-  ): {
-    addressed: boolean;
-  } {
-    return NPlusOneAnalyzerService.analyze(projectRoot, config);
+    context: LawCheckContext,
+    languages: readonly SourceLanguage[]
+  ): NPlusOneAnalysis {
+    return NPlusOneAnalyzerService.analyze(context, languages);
   }
 }

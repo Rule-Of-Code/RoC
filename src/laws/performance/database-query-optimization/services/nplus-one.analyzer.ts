@@ -1,81 +1,43 @@
-import type { RuleOfCodeConfig } from '../../../../types/law.types';
-import {
-  DatabaseQueryOptimizationCheckConstants,
-  DatabaseQueryOptimizationFileDiscoveryConstants,
-} from '../constants';
-import { DatabaseQueryOptimizationFileDiscoveryService } from './file-discovery.service';
+import type { LawCheckContext } from '../../../../types/law.types';
+import { declaredClients } from '../../../../utils/request-path/data-clients';
+import { describeLoopRead, scanLoopReads } from '../../../../utils/request-path/loop-reads';
+import type { SourceLanguage } from '../../../../utils/request-path/model';
+import { projectSources } from '../../../../utils/request-path/sources';
+
+/** The N+1 verdict: one finding per call site, plus what was read to reach it. */
+export interface NPlusOneAnalysis {
+  addressed: boolean;
+  /** `rel/path:line: …` for every read that runs once per loop item. */
+  sites: string[];
+  /** Files that could not be parsed: never counted as clean. */
+  unread: string[];
+  /** Awaited reads the client registry recognised anywhere (0 = nothing to judge). */
+  recognisedReads: number;
+  files: Record<SourceLanguage, number>;
+}
 
 /**
  * NPlusOneAnalyzerService
  *
- * Responsibility:
- * - Analyze N+1 query prevention patterns
- * - Detect loop + query anti-patterns
+ * Judges N+1 per call site (#352). It used to return "addressed" for the
+ * whole project as soon as one service file contained a batching word, so a
+ * read per item in a loop in any other file passed. Every source file is
+ * read now (not only `*.service.ts`), through the shared request-path model:
+ * an awaited read in the body of a loop of the same function is a finding at
+ * its own line, unless that call reads many keys at once or the reads are
+ * gathered concurrently.
  */
 export class NPlusOneAnalyzerService {
-  /**
-   * Analyze N+1 query prevention
-   */
-  static analyze(
-    projectRoot: string,
-    config: RuleOfCodeConfig
-  ): { addressed: boolean } {
-    const serviceFiles =
-      DatabaseQueryOptimizationFileDiscoveryService.findServiceFiles(
-        projectRoot,
-        config
-      );
-
-    for (const serviceFile of serviceFiles) {
-      const content =
-        DatabaseQueryOptimizationFileDiscoveryService.readServiceFileContent(
-          serviceFile
-        );
-
-      // Check for prevention patterns
-      if (
-        DatabaseQueryOptimizationCheckConstants.hasNPlusOnePrevention(content)
-      ) {
-        return { addressed: true };
-      }
-
-      // Check for N+1 anti-patterns
-      if (this.detectNPlusOneAntiPattern(content)) {
-        if (
-          !DatabaseQueryOptimizationCheckConstants.hasNPlusOnePrevention(
-            content
-          )
-        ) {
-          return { addressed: false };
-        }
-      }
-    }
-
-    // If no obvious N+1 patterns found, assume it's addressed
-    return { addressed: true };
-  }
-
-  /**
-   * Detect N+1 anti-pattern (loop with query)
-   */
-  private static detectNPlusOneAntiPattern(content: string): boolean {
-    const lines = content.split('\n');
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i] ?? '';
-      if (DatabaseQueryOptimizationFileDiscoveryConstants.hasLoop(line)) {
-        // Check next few lines for database queries
-        for (let j = i + 1; j <= Math.min(i + 3, lines.length - 1); j++) {
-          const nextLine = lines[j] ?? '';
-          if (
-            DatabaseQueryOptimizationFileDiscoveryConstants.hasQuery(nextLine)
-          ) {
-            return true;
-          }
-        }
-      }
-    }
-
-    return false;
+  static analyze(context: LawCheckContext, languages: readonly SourceLanguage[]): NPlusOneAnalysis {
+    const sources = projectSources(context, languages);
+    const scan = scanLoopReads(sources.modules, declaredClients(context.projectRoot));
+    const sites = scan.sites.map(describeLoopRead);
+    return {
+      addressed: sites.length === 0 && sources.unread.length === 0,
+      sites,
+      unread: sources.unread,
+      recognisedReads: scan.recognisedReads,
+      files: sources.counts,
+    };
   }
 }

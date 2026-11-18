@@ -15,19 +15,24 @@ import { PathOperations } from '../../utils/path-operations';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
 import { DatabaseQueryOptimizationCheckConstants } from './database-query-optimization/constants';
 import { DatabaseQueryOptimizationAnalyzerService } from './database-query-optimization/services';
+import type { NPlusOneAnalysis } from './database-query-optimization/services/nplus-one.analyzer';
+
+const N_PLUS_ONE_SUGGESTION =
+  'Read the keys of a loop in one call (get_all / getAll, an "in" query, $in, findMany with in), or gather the reads concurrently (asyncio.gather / Promise.all)';
 
 /** The concern this law owns does not exist without its substrate. */
 const NOT_APPLICABLE_MESSAGE =
   '📋 Not applicable — no database layer in this project';
 
 /**
- * The analyzer reads .ts/.js query code (Firestore/ORM call shapes). A project
- * with a database but no JS/TS sources — a Python backend on SQLAlchemy — is
- * not compliant-by-luck and not violating either: this law simply cannot judge
- * it. Say so, honestly, instead of failing it for a language it cannot read.
+ * The index, batching, pagination and caching checks read .ts/.js query code
+ * (Firestore/ORM call shapes). The N+1 check reads Python too (#352), call
+ * site by call site. A Python project whose sources hold no awaited read the
+ * client registry recognises gives that check nothing to judge, and the other
+ * checks cannot read it: say so, honestly, instead of passing or failing it.
  */
-const NOT_ANALYSABLE_MESSAGE =
-  '📋 Not applicable — query analysis is JS/TS-only; this project has no JS/TS sources (Python DB access is not statically analysed by this law)';
+const notAnalysableMessage = (pythonFiles: number): string =>
+  `📋 Not applicable — no awaited database read recognised in ${pythonFiles} Python file(s); the N+1 call-site check reads Python, the index, batching, pagination and caching checks are JS/TS-only`;
 
 /** Schema/rules files that prove a database layer even without a manifest. */
 const DATABASE_CONFIG_FILES = [
@@ -146,6 +151,31 @@ export class DatabaseQueryOptimizationLaw {
     };
   }
 
+  /**
+   * A database and Python sources, no JS/TS: only the N+1 call-site check can
+   * read the project. Its findings are the verdict; with no recognised read
+   * at all it has judged nothing, and the law says it is not applicable.
+   */
+  private static pythonOnlyResult(context: LawCheckContext, nPlusOne: NPlusOneAnalysis): LawResult {
+    if (nPlusOne.recognisedReads === 0 && nPlusOne.sites.length === 0) {
+      return this.createNotApplicableResult(context, notAnalysableMessage(nPlusOne.files.python));
+    }
+    const violations = [...nPlusOne.unread, ...nPlusOne.sites];
+    const passed = violations.length === 0;
+    return {
+      passed,
+      score: passed ? 100 : 100 - DatabaseQueryOptimizationCheckConstants.getScoreDeduction('N_PLUS_ONE'),
+      message: passed
+        ? `No read runs once per loop item: ${nPlusOne.recognisedReads} awaited read(s) in ${nPlusOne.files.python} Python file(s) checked (the index, batching, pagination and caching checks are JS/TS-only)`
+        : `Query optimization issues found: ${nPlusOne.sites.length} read(s) run once per loop item (N+1)`,
+      violations,
+      details: violations,
+      suggestions: passed ? [] : [N_PLUS_ONE_SUGGESTION],
+      fixable: true,
+      config: context.config,
+    };
+  }
+
   static async check(context: LawCheckContext): Promise<LawResult> {
     const { projectRoot } = context;
 
@@ -153,11 +183,16 @@ export class DatabaseQueryOptimizationLaw {
       return Promise.resolve(this.createNotApplicableResult(context));
     }
 
-    // A database exists, but this analyzer only reads JS/TS query code.
-    if (!PythonSatisfaction.hasJsTsSources(projectRoot)) {
-      return Promise.resolve(
-        this.createNotApplicableResult(context, NOT_ANALYSABLE_MESSAGE)
+    // A database exists. Without JS/TS sources, only the N+1 call-site check
+    // (which reads Python) can judge the project.
+    const hasJsTs = PythonSatisfaction.hasJsTsSources(projectRoot);
+    const nPlusOneDetection =
+      DatabaseQueryOptimizationAnalyzerService.analyzeNPlusOneQueryPrevention(
+        context,
+        hasJsTs ? ['python', 'typescript'] : ['python']
       );
+    if (!hasJsTs) {
+      return Promise.resolve(this.pythonOnlyResult(context, nPlusOneDetection));
     }
 
     const violations: string[] = [];
@@ -231,15 +266,11 @@ export class DatabaseQueryOptimizationLaw {
         DatabaseQueryOptimizationCheckConstants.getScoreDeduction('CACHING');
     }
 
-    // Analyze N+1 query prevention
-    const nPlusOneDetection =
-      DatabaseQueryOptimizationAnalyzerService.analyzeNPlusOneQueryPrevention(
-        context.projectRoot,
-        context.config
-      );
+    // N+1, per call site (#352): every site is a violation of its own; the
+    // score deducts once, as the project-level summary.
     if (!nPlusOneDetection.addressed) {
-      violations.push('N+1 query patterns detected or not addressed');
-      suggestions.push('Use batch reads or proper data denormalization');
+      violations.push(...nPlusOneDetection.unread, ...nPlusOneDetection.sites);
+      suggestions.push(N_PLUS_ONE_SUGGESTION);
       score -=
         DatabaseQueryOptimizationCheckConstants.getScoreDeduction('N_PLUS_ONE');
     }

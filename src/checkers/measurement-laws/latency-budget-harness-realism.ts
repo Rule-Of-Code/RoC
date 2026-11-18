@@ -109,7 +109,7 @@ export class LatencyBudgetHarnessRealismLaw extends LawBase {
 
   static check(context: LawCheckContext): LawResult {
     const { projectRoot } = context;
-    const budgets = this.latencyBudgets(projectRoot);
+    const budgets = this.latencyBudgets(projectRoot, context.config.ignores?.global ?? []);
     const harness = this.harnessFiles(projectRoot, budgets);
     const violations =
       harness.length === 0
@@ -132,9 +132,9 @@ export class LatencyBudgetHarnessRealismLaw extends LawBase {
   }
 
   /** The latency budgets the gate matched, read through the gate's own reader so the two cannot disagree. */
-  private static latencyBudgets(projectRoot: string): TextFile[] {
+  private static latencyBudgets(projectRoot: string, ignores: readonly string[]): TextFile[] {
     return REQUIRES_LATENCY_BUDGET.anyFileContaining!.flatMap(entry =>
-      readFilesContaining(projectRoot, entry).map(({ rel, content }) => ({ rel, content }))
+      readFilesContaining(projectRoot, entry, ignores).map(({ rel, content }) => ({ rel, content }))
     );
   }
 

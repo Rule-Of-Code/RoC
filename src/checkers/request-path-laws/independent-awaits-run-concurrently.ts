@@ -27,7 +27,7 @@ export class IndependentAwaitsRunConcurrentlyLaw extends LawBase {
 
   static check(context: LawCheckContext): LawResult {
     // The files that selected the law (requires.anyFileContaining), read the way the gate read them.
-    const files = (REQUIRES_ASYNC_CODE.anyFileContaining ?? []).flatMap(entry => readFilesContaining(context.projectRoot, entry));
+    const files = (REQUIRES_ASYNC_CODE.anyFileContaining ?? []).flatMap(entry => readFilesContaining(context.projectRoot, entry, context.config.ignores?.global ?? []));
     const sources = sourcesFromFiles(context.projectRoot, files);
     const { runs, asyncFunctions } = scanSequentialAwaits(sources.modules, declaredClients(context.projectRoot));
     const suggestions = [

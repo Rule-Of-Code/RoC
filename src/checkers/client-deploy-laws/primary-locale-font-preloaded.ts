@@ -163,7 +163,7 @@ export class PrimaryLocaleFontPreloadedLaw extends LawBase {
     const documents = read(context, scan(DOCUMENT_EXTENSIONS));
     // The faces come from exactly the files that selected the law (its
     // requires.anyFileContaining set, read through the gate's reader).
-    const faceFiles = (REQUIRES_UNICODE_RANGE_FONT.anyFileContaining ?? []).flatMap(entry => readFilesContaining(context.projectRoot, entry));
+    const faceFiles = (REQUIRES_UNICODE_RANGE_FONT.anyFileContaining ?? []).flatMap(entry => readFilesContaining(context.projectRoot, entry, context.config.ignores?.global ?? []));
     const faces = faceFiles.flatMap(found =>
       STYLE_FILE.test(found.rel) ? facesIn(found.rel, found.content) : styleBlocks({ file: found.file, rel: found.rel, text: found.content })
     );

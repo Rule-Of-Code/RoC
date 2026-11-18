@@ -71,8 +71,10 @@ export interface LawRequirement {
    * Inside a git work tree only what git publishes is read — tracked files
    * (from the index when the working copy differs) and untracked files that
    * are not ignored — so a git-ignored file never selects a law; outside git
-   * the disk is walked. A law gated this way reads its files through
-   * readFilesContaining, so what selects it is what it judges.
+   * the disk is walked. The project's `ignores.global` (#326) is passed by
+   * every caller and leaves those files out. A law gated this way reads its
+   * files through readFilesContaining with the same ignores, so what selects
+   * it is what it judges.
    * For a law whose subject is written in files no manifest declares — a
    * deploy command in a CI step, a split @font-face in a stylesheet — so the
    * law is not selected where the subject is absent.

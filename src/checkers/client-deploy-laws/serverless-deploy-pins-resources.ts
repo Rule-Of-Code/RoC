@@ -78,7 +78,7 @@ const SHELL_FILE = /(?:\.(?:sh|bash|ps1|mk)|^(?:gnu)?makefile)$/i;
 function deployFiles(context: LawCheckContext): DeployFile[] {
   const byRel = new Map<string, DeployFile>();
   for (const entry of REQUIRES_SERVERLESS_DEPLOY.anyFileContaining ?? []) {
-    for (const found of readFilesContaining(context.projectRoot, entry)) {
+    for (const found of readFilesContaining(context.projectRoot, entry, context.config.ignores?.global ?? [])) {
       byRel.set(found.rel, { abs: found.file, rel: found.rel, name: (found.rel.split('/').pop() ?? '').toLowerCase(), text: found.content });
     }
   }

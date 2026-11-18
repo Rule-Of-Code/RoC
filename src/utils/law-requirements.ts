@@ -53,9 +53,14 @@ export function presentRequiredFiles(
 }
 
 /** True when the project declares everything `requires` asks for (or it asks for nothing). */
+/**
+ * `ignores` is the project's `ignores.global` (#326): files it names select
+ * no law through `anyFileContaining`, as the laws do not read them either.
+ */
 export function lawRequirementsMet(
   requires: LawRequirement | undefined,
-  projectRoot: string
+  projectRoot: string,
+  ignores: readonly string[] = []
 ): boolean {
   if (!requires) return true;
   if (!packageRequirementsMet(requires, projectRoot)) return false;
@@ -71,12 +76,12 @@ export function lawRequirementsMet(
     }
   }
   if (requires.anyOf?.length) {
-    if (!requires.anyOf.some(alternative => lawRequirementsMet(alternative, projectRoot))) {
+    if (!requires.anyOf.some(alternative => lawRequirementsMet(alternative, projectRoot, ignores))) {
       return false;
     }
   }
   if (requires.anyFileContaining?.length) {
-    if (!requires.anyFileContaining.some(entry => fileContains(projectRoot, entry))) {
+    if (!requires.anyFileContaining.some(entry => fileContains(projectRoot, entry, ignores))) {
       return false;
     }
   }
@@ -139,14 +144,14 @@ function readDisk(file: string): string | null {
 }
 
 /** Outside a git work tree: the disk, walked. */
-function diskCandidates(projectRoot: string, entry: FileContaining): Candidate[] {
+function diskCandidates(projectRoot: string, entry: FileContaining, ignores: readonly string[]): Candidate[] {
   const files = glob.sync(entry.files.map(widened), {
     cwd: projectRoot,
     absolute: true,
     dot: true,
     nodir: true,
     maxDepth: CONTAINING_MAX_DEPTH,
-    ignore: [...CONTAINING_IGNORE, ...(entry.exclude ?? [])],
+    ignore: [...CONTAINING_IGNORE, ...(entry.exclude ?? []), ...ignores],
   });
   return [...new Set(files)].map(file => ({
     file,
@@ -161,11 +166,11 @@ function diskCandidates(projectRoot: string, entry: FileContaining): Candidate[]
  * untracked but not ignored. A git-ignored file never selects a law: it is
  * generated output or a local note, and the project cannot act on it.
  */
-function publishedCandidates(projectRoot: string, entry: FileContaining): Candidate[] | null {
+function publishedCandidates(projectRoot: string, entry: FileContaining, ignores: readonly string[]): Candidate[] | null {
   const listing = publishedListing(projectRoot);
   if (!listing) return null;
   const globs = entry.files.map(widened);
-  const skip = [...CONTAINING_IGNORE, ...(entry.exclude ?? [])];
+  const skip = [...CONTAINING_IGNORE, ...(entry.exclude ?? []), ...ignores];
   const wanted = (rel: string): boolean =>
     rel.split('/').length <= CONTAINING_MAX_DEPTH + 1 &&
     globs.some(pattern => minimatch(rel, pattern, { dot: true })) &&
@@ -185,17 +190,22 @@ function publishedCandidates(projectRoot: string, entry: FileContaining): Candid
 }
 
 /** The entry's candidate files: what git publishes, or the disk outside git. */
-function containingCandidates(projectRoot: string, entry: FileContaining): Candidate[] {
-  return publishedCandidates(projectRoot, entry) ?? diskCandidates(projectRoot, entry);
+/**
+ * The entry's candidate files: what git publishes, or the disk outside git,
+ * less what the project says is not its own code (`ignores.global`, #326) —
+ * the selector and the law pass the same list, so the set stays one.
+ */
+function containingCandidates(projectRoot: string, entry: FileContaining, ignores: readonly string[]): Candidate[] {
+  return publishedCandidates(projectRoot, entry, ignores) ?? diskCandidates(projectRoot, entry, ignores);
 }
 
 /** One `anyFileContaining` entry: a file it names contains its pattern. Reads until the first match. */
-function fileContains(projectRoot: string, entry: FileContaining): boolean {
-  const key = `${projectRoot}|${JSON.stringify(entry)}`;
+function fileContains(projectRoot: string, entry: FileContaining, ignores: readonly string[]): boolean {
+  const key = `${projectRoot}|${JSON.stringify(entry)}|${JSON.stringify(ignores)}`;
   const cached = containingCache.get(key);
   if (cached !== undefined) return cached;
   const pattern = new RegExp(entry.pattern, 'm');
-  const found = containingCandidates(projectRoot, entry).some(candidate => {
+  const found = containingCandidates(projectRoot, entry, ignores).some(candidate => {
     const text = candidate.read();
     return text !== null && pattern.test(text);
   });
@@ -209,9 +219,9 @@ function fileContains(projectRoot: string, entry: FileContaining): boolean {
  * matched, sorted by path — the gate's own set, read the gate's own way, for
  * a law that must judge exactly the files that selected it.
  */
-export function readFilesContaining(projectRoot: string, entry: FileContaining): ContainingFile[] {
+export function readFilesContaining(projectRoot: string, entry: FileContaining, ignores: readonly string[] = []): ContainingFile[] {
   const pattern = new RegExp(entry.pattern, 'm');
-  return containingCandidates(projectRoot, entry)
+  return containingCandidates(projectRoot, entry, ignores)
     .sort((a, b) => a.rel.localeCompare(b.rel))
     .flatMap(candidate => {
       const content = candidate.read();
@@ -220,8 +230,8 @@ export function readFilesContaining(projectRoot: string, entry: FileContaining):
 }
 
 /** The absolute paths of {@link readFilesContaining}. */
-export function filesContaining(projectRoot: string, entry: FileContaining): string[] {
-  return readFilesContaining(projectRoot, entry).map(found => found.file);
+export function filesContaining(projectRoot: string, entry: FileContaining, ignores: readonly string[] = []): string[] {
+  return readFilesContaining(projectRoot, entry, ignores).map(found => found.file);
 }
 
 

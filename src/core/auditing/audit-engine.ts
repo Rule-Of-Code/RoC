@@ -385,7 +385,8 @@ export class RuleOfCodeAuditor {
     return stackApplicable.filter(law =>
       lawRequirementsMet(
         (law as { requires?: LawRequirement }).requires,
-        this.projectRoot
+        this.projectRoot,
+        this.globalIgnores()
       )
     );
   }
@@ -639,7 +640,7 @@ export class RuleOfCodeAuditor {
         console.warn(
           `ℹ️  laws.severity: '${key}' exists but does not apply to this project type (${projectType ?? 'unknown'}) — stack-gated, kept for shared configs.`
         );
-      } else if (!lawRequirementsMet(law.requires, this.projectRoot)) {
+      } else if (!lawRequirementsMet(law.requires, this.projectRoot, this.globalIgnores())) {
         console.warn(
           `ℹ️  laws.severity: '${key}' exists but this project does not declare ${describeRequirement(law.requires ?? {})} — requirement-gated, kept for shared configs.`
         );
@@ -749,7 +750,7 @@ export class RuleOfCodeAuditor {
         console.warn(
           `ℹ️  laws.notApplicable: '${key}' is already stack-gated off this project type (${projectType ?? 'unknown'}) — the waiver is redundant here.`
         );
-      } else if (law && !lawRequirementsMet(law.requires, this.projectRoot)) {
+      } else if (law && !lawRequirementsMet(law.requires, this.projectRoot, this.globalIgnores())) {
         console.warn(
           `ℹ️  laws.notApplicable: '${key}' is already requirement-gated off this project (it needs ${describeRequirement(law.requires ?? {})}) — the waiver is redundant here.`
         );

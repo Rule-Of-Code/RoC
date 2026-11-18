@@ -83,6 +83,14 @@ export interface AuditOptions {
   includeWarnings?: boolean;
   outputFormat?: string;
   failOnWarnings?: boolean;
+  /**
+   * Narrow the run to laws of these categories (a constructor option; no CLI
+   * flag). A value matches a law's TIER — `foundational`, `maintainability`,
+   * `performance` (the `tier` field of `roc laws --json`, not its upper-case
+   * `category`) — or a word of a law id (`deployment`, `git`, `docs`, …).
+   * The run is partial (`narrowedBy: 'categories'`); a value that matches no
+   * law is named in the refusal with the valid values.
+   */
   categories?: string[];
   excludePatterns?: string[];
 }

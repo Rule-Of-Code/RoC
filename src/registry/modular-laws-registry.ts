@@ -422,6 +422,27 @@ export class ModularLawsRegistry {
     );
   }
 
+  /** What `categories` can match: each law's tier, and the word before `_` in each law id. */
+  static categoryVocabulary(): { tiers: string[]; idWords: string[] } {
+    const laws = this.getAll();
+    const sorted = (values: string[]): string[] =>
+      [...new Set(values)].sort((a, b) => a.localeCompare(b));
+    return {
+      tiers: sorted(laws.map(law => law.category)),
+      idWords: sorted(
+        laws.map(law => law.id.split('_')[0] ?? '').filter(Boolean)
+      ),
+    };
+  }
+
+  /** The `categories` values that match no law at all. */
+  static unknownCategories(categories: readonly string[]): string[] {
+    const laws = this.getAll();
+    return categories.filter(
+      category => !laws.some(law => this.matchesCategories(law, [category]))
+    );
+  }
+
   /**
    * Narrow a selection to `categories` (none: unchanged). The always-on
    * meta-gates stay whatever their category: a narrowing must not remove

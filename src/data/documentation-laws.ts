@@ -320,6 +320,7 @@ export const DOCUMENTATION_LAWS: EnhancedConstitutionalLaw[] = [
         'Every outbound HTTP call (urlopen, requests, httpx, aiohttp) must sit inside a try/except — that guard is the one check with a real Python path.',
     },
     detectionLimits: [
+      'Off by default since 7.28.0 (opt-in): once it could see source files (#369), all five paths were measured on real code and 0 of 42 sampled findings were true — try/catch around propagating awaits and non-erroring subscriptions, error handling without a log call, values read as user messages, every HttpClient import. Turn it on with laws.severity (e.g. "warning"); see #390.',
       'The try/catch, logging, message and Observable checks scan only .ts files, so on a pure Python repo they pass vacuously and the law reduces to the HTTP-guard check.',
       'Detection is file-level, not per-function — a file that handles errors with .catch() but has no `try {` anywhere is still flagged as missing try/catch.',
       'The user-friendly-message check matches patterns like status: 200 or throw new Error(CODE) inside strings and config literals, producing false positives.',
@@ -330,7 +331,8 @@ export const DOCUMENTATION_LAWS: EnhancedConstitutionalLaw[] = [
     priority: 'HIGH',
     category: 'DOCUMENTATION',
     automation: 'CONFIGURABLE',
-    defaultEnabled: true,
+    // Opt-in: its findings were 0 of 42 true on real code (#390).
+    defaultEnabled: false,
     defaultSeverity: 'error',
     checkFunction: 'checkErrorHandlingStandards',
     violationMessage:

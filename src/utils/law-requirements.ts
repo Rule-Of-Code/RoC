@@ -15,7 +15,8 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import type { LawRequirement } from '../types/enhanced-law.types';
+import { glob } from 'glob';
+import type { FileContaining, LawRequirement } from '../types/enhanced-law.types';
 import { minimatch } from 'minimatch';
 import { FileSystemOperations } from './file-system-operations';
 import { trackedFiles } from './git/git-layout';
@@ -57,21 +58,7 @@ export function lawRequirementsMet(
   projectRoot: string
 ): boolean {
   if (!requires) return true;
-  if (requires.anyDependency?.length || requires.allDependencies?.length) {
-    const declared = declaredDependencies(projectRoot);
-    if (
-      requires.anyDependency?.length &&
-      !requires.anyDependency.some(name => declared.has(name))
-    ) {
-      return false;
-    }
-    if (
-      requires.allDependencies?.length &&
-      !requires.allDependencies.every(name => declared.has(name))
-    ) {
-      return false;
-    }
-  }
+  if (!packageRequirementsMet(requires, projectRoot)) return false;
   if (requires.anyFile?.length) {
     if (presentRequiredFiles(projectRoot, requires.anyFile).length === 0) {
       return false;
@@ -83,7 +70,95 @@ export function lawRequirementsMet(
       return false;
     }
   }
+  if (requires.anyOf?.length) {
+    if (!requires.anyOf.some(alternative => lawRequirementsMet(alternative, projectRoot))) {
+      return false;
+    }
+  }
+  if (requires.anyFileContaining?.length) {
+    if (!requires.anyFileContaining.some(entry => fileContains(projectRoot, entry))) {
+      return false;
+    }
+  }
   return true;
+}
+
+/** Trees that hold installed, built, generated or virtualenv files, not the project's own. */
+const CONTAINING_IGNORE = [
+  '**/node_modules/**',
+  '**/dist/**',
+  '**/.git/**',
+  '**/coverage/**',
+  '**/.venv/**',
+  '**/venv/**',
+  '**/vendor/**',
+  '**/.angular/**',
+  '**/.nx/**',
+  '**/cdk.out/**',
+  '**/.aws-sam/**',
+  '**/.serverless/**',
+  '**/.terraform/**',
+];
+const CONTAINING_MAX_DEPTH = 8;
+const CONTAINING_MAX_BYTES = 2 * 1024 * 1024;
+const CONTAINING_CACHE_LIMIT = 256;
+
+/**
+ * Answers by project root and entry. The selector, the liveness floor and
+ * the config-key validators each ask the same question in one audit, and
+ * the answer means walking and reading files; a later audit of the same
+ * root in the same process gets the first answer.
+ */
+const containingCache = new Map<string, boolean>();
+
+/** The files a glob names: anywhere it reaches with `**`, else at the root or in a workspace project directory. */
+function containingCandidates(projectRoot: string, pattern: string): string[] {
+  const where = pattern.includes('**') ? pattern : `${NxWorkspace.PROJECT_DIRS}${pattern}`;
+  return glob.sync(where, {
+    cwd: projectRoot,
+    absolute: true,
+    dot: true,
+    nodir: true,
+    maxDepth: CONTAINING_MAX_DEPTH,
+    ignore: CONTAINING_IGNORE,
+  });
+}
+
+function contentMatches(file: string, pattern: RegExp): boolean {
+  try {
+    if (fs.statSync(file).size > CONTAINING_MAX_BYTES) return false;
+    return pattern.test(fs.readFileSync(file, 'utf8'));
+  } catch {
+    return false; // an unreadable file contains nothing
+  }
+}
+
+/** One `anyFileContaining` entry: a file its globs name contains its pattern. Reads until the first match. */
+function fileContains(projectRoot: string, entry: FileContaining): boolean {
+  const key = `${projectRoot}|${JSON.stringify(entry)}`;
+  const cached = containingCache.get(key);
+  if (cached !== undefined) return cached;
+  const pattern = new RegExp(entry.pattern, 'm');
+  const found = entry.files.some(files => containingCandidates(projectRoot, files).some(file => contentMatches(file, pattern)));
+  if (containingCache.size >= CONTAINING_CACHE_LIMIT) containingCache.clear();
+  containingCache.set(key, found);
+  return found;
+}
+
+/** `anyDependency` and `allDependencies`, read from the workspace package.json manifests. */
+function packageRequirementsMet(requires: LawRequirement, projectRoot: string): boolean {
+  if (!requires.anyDependency?.length && !requires.allDependencies?.length) return true;
+  const declared = declaredDependencies(projectRoot);
+  if (
+    requires.anyDependency?.length &&
+    !requires.anyDependency.some(name => declared.has(name))
+  ) {
+    return false;
+  }
+  return !(
+    requires.allDependencies?.length &&
+    !requires.allDependencies.every(name => declared.has(name))
+  );
 }
 
 /**
@@ -226,6 +301,12 @@ export function describeRequirement(requires: LawRequirement): string {
   }
   if (requires.anyPythonDependency?.length) {
     parts.push(`a Python dependency on ${requires.anyPythonDependency.join(' or ')}`);
+  }
+  for (const entry of requires.anyFileContaining ?? []) {
+    parts.push(`a file (${entry.files.join(' or ')}) containing /${entry.pattern}/`);
+  }
+  if (requires.anyOf?.length) {
+    parts.push(`either ${requires.anyOf.map(alternative => `(${describeRequirement(alternative)})`).join(' or ')}`);
   }
   return parts.join(', and ');
 }

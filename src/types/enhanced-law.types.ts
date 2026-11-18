@@ -37,7 +37,8 @@ export type LawStack = "frontend" | "python" | "typescript";
  * check.
  *
  * Every listed condition must hold; within `anyDependency` and `anyFile`, one
- * entry is enough; within `allDependencies`, every entry is required.
+ * entry is enough; within `allDependencies`, every entry is required; within
+ * `anyOf`, one whole requirement set is enough.
  */
 export interface LawRequirement {
   /** At least one of these packages is a dependency or devDependency of a workspace package.json. */
@@ -57,6 +58,29 @@ export interface LawRequirement {
    * so a law about a Python library cannot be gated with it.
    */
   anyPythonDependency?: readonly string[];
+  /**
+   * At least one of these requirement sets holds. The conditions above are
+   * ANDed, so "a Python SDK OR a Node SDK" — one law about a library that
+   * ships for both ecosystems — cannot be said without this.
+   */
+  anyOf?: readonly LawRequirement[];
+  /**
+   * At least one entry holds: a file matched by one of its globs (relative
+   * to the workspace root or a workspace project directory, outside
+   * installed, built and virtualenv trees) contains its regular expression.
+   * For a law whose subject is written in files no manifest declares — a
+   * deploy command in a CI step, a split @font-face in a stylesheet — so the
+   * law is not selected where the subject is absent.
+   */
+  anyFileContaining?: readonly FileContaining[];
+}
+
+/** One `anyFileContaining` entry: where to look, and what must be there. */
+export interface FileContaining {
+  /** Globs, e.g. `**\/*.sh`, `.github/workflows/*.yml`, `cloudbuild.yaml`. */
+  files: readonly string[];
+  /** Regular-expression source, compiled with the `m` flag. */
+  pattern: string;
 }
 
 export interface EnhancedConstitutionalLaw {

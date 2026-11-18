@@ -1,7 +1,7 @@
 # 🏛️ RuleOfCode (RoC)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-gold.svg)](https://opensource.org/licenses/MIT)
-[![Constitutional Laws](https://img.shields.io/badge/Constitutional%20Laws-247-red.svg)](#-laws-and-scope)
+[![Constitutional Laws](https://img.shields.io/badge/Constitutional%20Laws-256-red.svg)](#-laws-and-scope)
 [![Tests](https://img.shields.io/badge/Tests-14%2C300%2B%20passing-success.svg)](#-development-and-release)
 [![Fail Closed](https://img.shields.io/badge/Gate-fail--closed-blue.svg)](#-severity-semantics-and-fail-closed-guarantees)
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-Strict%20Mode-blue.svg)](https://www.typescriptlang.org/)
@@ -46,13 +46,13 @@ npx ruleofcode laws --list   # the law catalog with canonical names
 
 ## ⚖️ Laws and scope
 
-**247 laws**, scoped per stack via automatic stack gating — laws outside the project's
+**256 laws**, scoped per stack via automatic stack gating — laws outside the project's
 stack do not run and are not counted:
 
 | Scope | Laws | Applies to |
 |---|---|---|
-| Universal | 61 | every project |
-| Frontend (Angular/NgRx, FE architecture, Ionic/Capacitor) | 126 | angular / react / vue / ionic |
+| Universal | 68 | every project |
+| Frontend (Angular/NgRx, FE architecture, Ionic/Capacitor) | 128 | angular / react / vue / ionic |
 | Python (FastAPI, Clean Architecture/CQRS) | 37 | python |
 | TypeScript | 23 | all TS/JS projects |
 
@@ -79,8 +79,8 @@ IDE panel, a dashboard. It is versioned by `schemaVersion` (currently `2`).
 {
   "schemaVersion": 2,
   "tool": "ruleofcode",          // the package name this build was published under
-  "version": "7.26.10",
-  "registryTotal": 247,
+  "version": "7.27.0",
+  "registryTotal": 256,
   "satisfiedByStacks": {          // the mapping described below — read it, don't hardcode it
     "keys": ["typescript", "angular", "react", "python", "ionic", "capacitor"],
     "stackToKey": { "frontend": "angular", "typescript": "typescript", "python": "python" },
@@ -99,18 +99,18 @@ This is the part that looks like an inconsistency and is not:
 |---|---|---|
 | `stack` | **selection** — does this law run on this project at all? | `frontend`, `typescript`, `python`, or absent (universal) |
 | `satisfiedBy` keys | **guidance** — which technology are these instructions written for? | `typescript`, `angular`, `react`, `python`, `ionic`, `capacitor` |
-| `requires` | **selection, finer** — does the project declare the toolkit this law is about? | `{ anyDependency, allDependencies, anyFile }`, or `null` |
+| `requires` | **selection, finer** — does the project declare the toolkit this law is about? | `{ anyDependency, allDependencies, anyFile, anyPythonDependency, anyFileContaining, anyOf }`, or `null` |
 
 **They are orthogonal. A `satisfiedBy` key is not a stack label**, and no key maps 1:1
 onto a stack. Measured against the shipped registry:
 
 | key | laws | spread across stacks |
 |---|---|---|
-| `typescript` | 80 | 2 `frontend` + 20 `typescript` + 58 universal |
-| `angular` | 65 | 57 `frontend` + 3 `typescript` + 5 universal |
-| `react` | 57 | 56 `frontend` + 1 `typescript` |
-| `python` | 70 | 37 `python` + 33 universal |
-| `ionic` | 23 | 23 `frontend` |
+| `typescript` | 87 | 2 `frontend` + 20 `typescript` + 65 universal |
+| `angular` | 67 | 59 `frontend` + 3 `typescript` + 5 universal |
+| `react` | 58 | 57 `frontend` + 1 `typescript` |
+| `python` | 77 | 37 `python` + 40 universal |
+| `ionic` | 24 | 24 `frontend` |
 | `capacitor` | 23 | 21 `frontend` + 2 universal |
 
 `angular` appearing on TypeScript-stack and universal laws is the clearest evidence:

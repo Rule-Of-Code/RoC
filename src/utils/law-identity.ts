@@ -78,12 +78,34 @@ export function lawIdentityKeys(law: {
   if (law.id) keys.push(law.id);
   if (law.legacyId !== undefined) keys.push(String(law.legacyId));
   if (law.name) {
-    const stripped = law.name.replace(/\s*\([^)]*\)\s*$/, '').trim();
-    for (const n of new Set([law.name, stripped])) {
-      keys.push(n, slugifyLawName(n), configKeySlug(n));
+    for (const title of [law.name, ...formerTitlesOf(law.name)]) {
+      const stripped = title.replace(/\s*\([^)]*\)\s*$/, '').trim();
+      for (const n of new Set([title, stripped])) {
+        keys.push(n, slugifyLawName(n), configKeySlug(n));
+      }
     }
   }
   return [...new Set(keys)];
+}
+
+let formerTitles: Map<string, readonly string[]> | undefined;
+
+/**
+ * The titles a law had before a rename (`formerTitles` on its card), by its
+ * current title. Looked up by name so that every reader of the identity —
+ * including the ones that know only a law's name — resolves an old key the
+ * same way. Read lazily: the registry data imports modules that import this.
+ */
+function formerTitlesOf(name: string): readonly string[] {
+  if (!formerTitles) {
+    const { ALL_ENHANCED_CONSTITUTIONAL_LAWS } = require('../data/enhanced-laws') as {
+      ALL_ENHANCED_CONSTITUTIONAL_LAWS: Array<{ title: string; formerTitles?: readonly string[] }>;
+    };
+    formerTitles = new Map(
+      ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(law => law.formerTitles?.length).map(law => [law.title, law.formerTitles ?? []])
+    );
+  }
+  return formerTitles.get(name) ?? [];
 }
 
 /** The values `laws.severity` accepts. */

@@ -12,7 +12,7 @@ import { ALL_ENHANCED_CONSTITUTIONAL_LAWS } from '../../../src/data/enhanced-law
 import { FileUtils } from '../../../src/utils/file-utils';
 
 const LAW = ALL_ENHANCED_CONSTITUTIONAL_LAWS.find(
-  l => l.title === 'NgRx Selectors Memoization Mandate (SACRED LAW)'
+  l => l.title === 'NgRx Selectors Memoization Mandate'
 )!;
 
 const dirs: string[] = [];

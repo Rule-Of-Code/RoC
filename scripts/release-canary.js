@@ -64,6 +64,29 @@ const STACKS = {
     // `requires`-gated laws must not be selected where the toolkit is absent.
     mustNotRun: ['Ionic No Skip Location Change', 'Capacitor Logging Never Production'],
   },
+  ngrx: {
+    floor: 90, // the angular arm + the NgRx laws its `requires` admit
+    files: {
+      'package.json': JSON.stringify({
+        name: 'canary-ngrx',
+        dependencies: { '@angular/core': '^20.0.0', '@ngrx/store': '^20.0.0', '@ngrx/effects': '^20.0.0', rxjs: '^7.8.0' },
+      }),
+      'angular.json': '{}',
+      'libs/bot/src/+state/bot.actions.ts':
+        "import { createAction, props } from '@ngrx/store';\nexport const loadBot = createAction('[Bot] Load', props<{ id: string }>());\n",
+    },
+    // An effects class without @Injectable: the NgRx effect-pattern pass reads *.effects.ts (#369).
+    redFile: {
+      'libs/bot/src/+state/bot.effects.ts':
+        "import { createEffect } from '@ngrx/effects';\nexport class BotEffects {\n  load$ = createEffect(() => this.actions$);\n}\n",
+    },
+    redLaw: 'NgRx RxJS Operators Selection Mandate',
+    redThresholds: undefined,
+    projectType: 'angular',
+    // `requires` admits the NgRx laws here, and still not Ionic's.
+    mustRun: ['NgRx Store Pattern Mandate', 'NgRx Actions Hygiene Mandate'],
+    mustNotRun: ['Ionic No Skip Location Change'],
+  },
   ionic: {
     floor: 95, // the angular arm + the Ionic and Capacitor laws its `requires` admit
     files: {
@@ -111,7 +134,7 @@ const STACKS = {
     mustRun: ['React Dangerous HTML Guarded', 'Next Server Only Boundary'],
     mustNotRun: [
       'OnPush Change Detection Strategy',
-      'NgRx Store Pattern Mandate (SACRED LAW)',
+      'NgRx Store Pattern Mandate',
       'Ionic No Skip Location Change',
       'Next Route JS Budget',
     ],

@@ -37,7 +37,8 @@ export type LawStack = "frontend" | "python" | "typescript";
  * check.
  *
  * Every listed condition must hold; within `anyDependency` and `anyFile`, one
- * entry is enough; within `allDependencies`, every entry is required.
+ * entry is enough; within `allDependencies`, every entry is required; within
+ * `anyOf`, one whole requirement set is enough.
  */
 export interface LawRequirement {
   /** At least one of these packages is a dependency or devDependency of a workspace package.json. */
@@ -57,6 +58,12 @@ export interface LawRequirement {
    * so a law about a Python library cannot be gated with it.
    */
   anyPythonDependency?: readonly string[];
+  /**
+   * At least one of these requirement sets holds. The conditions above are
+   * ANDed, so "a Python SDK OR a Node SDK" — one law about a library that
+   * ships for both ecosystems — cannot be said without this.
+   */
+  anyOf?: readonly LawRequirement[];
 }
 
 export interface EnhancedConstitutionalLaw {

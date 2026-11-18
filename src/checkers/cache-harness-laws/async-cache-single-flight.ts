@@ -102,7 +102,10 @@ export class AsyncCacheSingleFlightLaw extends LawBase {
     const findings = sites.flatMap(site => describeFlightSite(site) ?? []);
     const shared = sites.filter(site => !site.perCall);
     const inFlight = shared.filter(site => site.inFlight).length;
-    const afterAwait = shared.length - inFlight;
+    const joined = shared.filter(
+      site => !site.inFlight && site.joinedFlight
+    ).length;
+    const afterAwait = shared.length - inFlight - joined;
     const perCall = sites.length - shared.length;
     return subjectResult({
       lawName: this.LAW_NAME,
@@ -120,13 +123,14 @@ export class AsyncCacheSingleFlightLaw extends LawBase {
           : 'no file that selected the law could be read',
       judged: sites.length,
       noSubject: `0 functions that check a keyed container and store an awaited or in-flight value into it — nothing to judge (${all.length} sync check-then-store site(s) read, nothing to coalesce)`,
-      passSummary: `${sites.length} async check-then-store site(s) in ${filesRead} file(s): ${inFlight} shared cache(s) store the in-flight future/promise and remove it on failure, ${afterAwait} store after an await under a lock, ${perCall} per-call memo(s) not shared by concurrent requests`,
+      passSummary: `${sites.length} async check-then-store site(s) in ${filesRead} file(s): ${inFlight} shared cache(s) store the in-flight future/promise and remove it on failure, ${joined} store the result of awaiting such a shared flight, ${afterAwait} store after an await under a lock, ${perCall} per-call memo(s) not shared by concurrent requests`,
       notSeen:
         'not seen: a store and its check in different functions, a cache behind a wrapper class (cache.get_or_set), a value awaited through more than three assignments, and concurrency inside one call over a per-call memo',
       metrics: {
         filesRead,
         cacheSites: sites.length,
         inFlightSites: inFlight,
+        joinedFlightSites: joined,
         storeAfterAwaitSites: afterAwait,
         perCallSites: perCall,
         syncSites: all.length - sites.length,

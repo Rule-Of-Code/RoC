@@ -177,35 +177,49 @@ export function authorizationUses(
   site: CacheSite,
   ctx: UsageContext
 ): Array<{ rel: string; line: number; check: string }> {
-  const checks = everyFunction(ctx).filter(isAuthorizationCheck);
-  if (site.kind === 'decorator') {
-    const decorated = site.decorated;
-    return checks.flatMap(ref => {
-      if (ref.fn === decorated)
-        return [{ rel: ref.module.rel, line: ref.fn.line, check: ref.fn.name }];
-      const call = ref.fn.calls.find(c => {
-        const target = ctx.graph.resolve(ref.module, ref.fn, c);
-        return target !== null
-          ? target.fn === decorated
-          : c.method === site.name &&
-              c.chain.length === 1 &&
-              ref.module === site.module;
-      });
-      return call
-        ? [{ rel: ref.module.rel, line: call.line, check: ref.fn.name }]
-        : [];
+  return everyFunction(ctx)
+    .filter(isAuthorizationCheck)
+    .flatMap(ref => {
+      const direct = readThroughCache(site, ref, ctx);
+      if (direct !== null)
+        return [{ rel: ref.module.rel, line: direct, check: ref.fn.name }];
+      // One step deep: a helper the check calls (require_admin → is_admin) reads through the cache.
+      for (const call of ref.fn.calls) {
+        const target = ctx.graph.resolve(ref.module, ref.fn, call);
+        if (target === null || target.fn === ref.fn) continue;
+        if (readThroughCache(site, target, ctx) !== null) {
+          const check = `${ref.fn.name} (through ${target.fn.name})`;
+          return [{ rel: ref.module.rel, line: call.line, check }];
+        }
+      }
+      return [];
     });
+}
+
+/** The line where a function reads through the cache — calls the decorated function, or reads the container — or null. */
+function readThroughCache(
+  site: CacheSite,
+  ref: FunctionRef,
+  ctx: UsageContext
+): number | null {
+  if (site.kind === 'decorator') {
+    if (ref.fn === site.decorated) return ref.fn.line;
+    const call = ref.fn.calls.find(c => {
+      const target = ctx.graph.resolve(ref.module, ref.fn, c);
+      return target !== null
+        ? target.fn === site.decorated
+        : c.method === site.name &&
+            c.chain.length === 1 &&
+            ref.module === site.module;
+    });
+    return call ? call.line : null;
   }
   const read = new RegExp(
     String.raw`(?<![\w$])${escapeRe(site.name)}(?:\.(?:get|has)\s*\(|\s*\[)|\bin\s+(?:[\w.]*\.)?${escapeRe(site.name)}\b`
   );
-  return checks.flatMap(ref => {
-    const lines = ref.module.lines.slice(ref.fn.line - 1, ref.fn.endLine);
-    const index = lines.findIndex(line => read.test(line));
-    return index >= 0
-      ? [{ rel: ref.module.rel, line: ref.fn.line + index, check: ref.fn.name }]
-      : [];
-  });
+  const lines = ref.module.lines.slice(ref.fn.line - 1, ref.fn.endLine);
+  const index = lines.findIndex(line => read.test(line));
+  return index >= 0 ? ref.fn.line + index : null;
 }
 
 /** Names reachable from `seed` through the function's own assignments (a key built in a local). */

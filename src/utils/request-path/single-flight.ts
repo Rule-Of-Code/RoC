@@ -44,6 +44,8 @@ export interface FlightSite {
   locked: boolean;
   /** The container belongs to the call (created in it, or a parameter): concurrent requests do not share it. */
   perCall: boolean;
+  /** The awaited value is the result of a flight shared by every caller (an in-flight map's task or promise). */
+  joinedFlight: boolean;
 }
 
 const escapeRe = (text: string): string =>
@@ -175,10 +177,44 @@ function sources(fn: FunctionModel, store: Store): StatementModel[] {
     for (const s of earlier) {
       if (found.includes(s) || !s.bound.some(name => names.has(name))) continue;
       found.push(s);
+      // What an await yields is a value: the task or promise behind it is its producer, not the value.
+      if (s.awaits.length > 0) continue;
       s.used.forEach(name => names.add(name.split('.')[0] as string));
     }
   }
   return found;
+}
+
+/**
+ * The await joins a flight started for every caller: it awaits a name (not
+ * a call) that the function stores into a container or reads from one, or
+ * binds to a future / task / promise. `value = await task` after
+ * `task = inflight.get(k)` / `inflight[k] = task` is the coalesced fetch.
+ */
+function joinsFlight(
+  module: ModuleModel,
+  fn: FunctionModel,
+  awaitStatement: StatementModel
+): boolean {
+  const site = awaitStatement.awaits[0];
+  if (!site || site.call !== null) return false;
+  const operand = /\bawait\s+([A-Za-z_$][\w$]*)(?![\w$.([])/.exec(
+    awaitStatement.text
+  )?.[1];
+  if (!operand) return false;
+  const name = escapeRe(operand);
+  const stored = new RegExp(
+    String.raw`\[[^\]]+\]\s*=\s*${name}\s*$|\.set\([^,]+,\s*${name}\s*\)`
+  );
+  const flight = module.language === 'python' ? PY_FUTURE : TS_PROMISE;
+  return fn.blocks
+    .flat()
+    .some(
+      s =>
+        stored.test(s.text) ||
+        (s.bound.includes(operand) &&
+          (/\.get\(/.test(s.text) || flight.test(s.text)))
+    );
 }
 
 /** Does the stored value (or what it comes from) hold an in-flight future / promise? */
@@ -189,10 +225,11 @@ function inFlightValue(
   from: readonly StatementModel[]
 ): boolean {
   const texts = [store.value, ...from.map(s => s.text)];
-  if (module.language === 'python')
-    return texts.some(text => PY_FUTURE.test(text));
+  // A value that comes from an await is a result, whatever the awaited thing was.
   if (/\bawait\b/.test(store.value) || from.some(s => s.awaits.length > 0))
     return false;
+  if (module.language === 'python')
+    return texts.some(text => PY_FUTURE.test(text));
   const asyncNames = new Set(
     module.functions.filter(f => f.isAsync).map(f => f.shortName)
   );
@@ -220,7 +257,7 @@ function awaitedSource(
   store: Store,
   from: readonly StatementModel[],
   checkLine: number
-): { text: string; line: number } | null {
+): { text: string; line: number; statement: StatementModel } | null {
   const candidates = [store.statement, ...from].filter(s => s.line > checkLine);
   for (const s of candidates) {
     const site = s.awaits[0];
@@ -228,6 +265,7 @@ function awaitedSource(
       return {
         text: site.call ? `${site.call.callee}(…)` : 'await',
         line: site.line,
+        statement: s,
       };
     }
   }
@@ -286,8 +324,10 @@ function siteOf(
   if (!check) return null;
   const from = sources(fn, store);
   const inFlight = inFlightValue(module, fn, store, from);
-  const awaited = inFlight ? null : awaitedSource(store, from, check.line);
+  const source = inFlight ? null : awaitedSource(store, from, check.line);
+  const awaited = source ? { text: source.text, line: source.line } : null;
   return {
+    joinedFlight: source !== null && joinsFlight(module, fn, source.statement),
     perCall: isLocal(fn, store.container),
     rel: module.rel,
     line: store.line,
@@ -320,6 +360,6 @@ export function describeFlightSite(site: FlightSite): string | null {
       ? null
       : `${site.rel}:${site.line}: ${site.function} stores the in-flight future/promise in ${site.container} but never removes it when it fails — the error is cached and every later caller gets it; remove the entry in except/finally (Python) or .catch/finally (TS/JS)`;
   }
-  if (site.locked || !site.awaited) return null;
+  if (site.locked || site.joinedFlight || !site.awaited) return null;
   return `${site.rel}:${site.line}: ${site.function} checks ${site.container} (line ${site.checkLine}) and stores into it only after awaiting ${site.awaited.text} (line ${site.awaited.line}) — concurrent callers all miss and all run the fetch; store the in-flight future/promise before the await (single-flight), and drop it on failure`;
 }

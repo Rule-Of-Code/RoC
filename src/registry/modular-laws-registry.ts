@@ -367,6 +367,7 @@ import { TodoManagementStandardsLaw } from '../laws/documentation/todo-managemen
 
 import { ComponentSelectorPrefixLaw } from '../checkers/angular-laws/component-selector-prefix';
 import { ALL_ENHANCED_CONSTITUTIONAL_LAWS } from '../data/enhanced-laws';
+import { paretoCoreIds } from '../data/pareto-core';
 import type { EnhancedConstitutionalLaw, LawRequirement } from '../types/enhanced-law.types';
 import type {
   ConstitutionalLaw,
@@ -387,12 +388,25 @@ export class ModularLawsRegistry {
    * Get laws by categories
    */
   getLawsByCategories(categories: string[]): ConstitutionalLaw[] {
-    const constitution = this.getAllLaws();
-    return constitution.filter((law: ConstitutionalLaw) =>
-      categories.some(
-        category => law.category === category || law.id.includes(category)
-      )
-    );
+    return this.getAllLaws().filter(law => ModularLawsRegistry.matchesCategories(law, categories));
+  }
+
+  /** A law of one of `categories` (by its category, or a category word in its id). */
+  static matchesCategories(law: { id: string; category: string }, categories: readonly string[]): boolean {
+    return categories.some(category => law.category === category || law.id.includes(category));
+  }
+
+  /**
+   * Narrow a selection to `categories` (none: unchanged). The always-on
+   * meta-gates stay whatever their category: a narrowing must not remove
+   * the gates that judge it (#370).
+   */
+  static inCategories<T extends { id: string; category: string; alwaysEnabled?: boolean }>(
+    laws: T[],
+    categories: readonly string[]
+  ): T[] {
+    if (categories.length === 0) return laws;
+    return laws.filter(law => law.alwaysEnabled === true || this.matchesCategories(law, categories));
   }
 
   /**
@@ -1087,11 +1101,16 @@ export class ModularLawsRegistry {
     return 'low';
   }
 
+  /**
+   * Whether a law is in the Pareto core — derived from the registry's own
+   * fields by the rule in data/pareto-core (#383), never from a list.
+   */
   static isParetoCore(law: EnhancedConstitutionalLaw): boolean {
-    // Import the actual Pareto categories to ensure consistency
-    const { PARETO_CATEGORIES } = require('../data/pareto-optimization');
-    return PARETO_CATEGORIES.HIGH_IMPACT.includes(law.id);
+    this.paretoCore ??= paretoCoreIds(ALL_ENHANCED_CONSTITUTIONAL_LAWS);
+    return this.paretoCore.has(law.id);
   }
+
+  private static paretoCore: Set<string> | undefined;
 
   /**
    * The frameworks a law is about. `requires` is the authority: a law gated

@@ -12,13 +12,29 @@
  * the always-on meta-gates: waiving laws must not lower the floor, which is
  * the point of a floor. It is a different set from `scope.applicableLaws` (M,
  * after waivers, without the meta-gates); on a plain config L = M + W + G.
+ *
+ * L is counted for the configured type AND for the type the selection uses,
+ * and the larger count is taken (#371): a config saying `generic` on a
+ * project detected as Python counted 60 laws while 95 applied, so the floor
+ * was 15 where 25% of what runs is 24. Taking the selection's type alone
+ * could LOWER a floor (no configured type counts every law), so the floor
+ * may only go up.
  */
 import { ALL_ENHANCED_CONSTITUTIONAL_LAWS } from '../data/enhanced-laws';
 import { lawAppliesToProjectType, runsWithoutAllowlist } from './law-identity';
 import { lawRequirementsMet } from './law-requirements';
+import { selectionProjectType } from './selection-project-type';
 
 export type LivenessFloorSource = 'default-25%' | 'laws.minLawsChecked' | 'narrowed';
-export type LawNarrowing = 'laws.enabled' | 'paretoMode';
+export type LawNarrowing = 'laws.enabled' | 'paretoMode' | 'categories';
+
+/**
+ * Where the engine records a narrowing by `categories` (a constructor option,
+ * not a config key) in the config it audits with, so that the selector, the
+ * scope and the Audit Liveness law — which receives only the config — read
+ * one value.
+ */
+export const CATEGORIES_KEY = '__categories';
 
 export interface LivenessFloor {
   /** L: registry laws applicable to this project, before waivers, meta-gates included. */
@@ -47,16 +63,26 @@ interface LivenessLawsConfig {
   enabled?: Record<string, boolean>;
   paretoMode?: boolean;
   severity?: Record<string, unknown>;
+  [CATEGORIES_KEY]?: unknown;
+}
+
+/** The categories the run is narrowed to; empty when it is not. */
+export function categoriesOf(laws: unknown): string[] {
+  const value = ((laws ?? {}) as LivenessLawsConfig)[CATEGORIES_KEY];
+  return Array.isArray(value) ? value.filter((c): c is string => typeof c === 'string') : [];
 }
 
 /**
- * What deliberately narrowed the selection, if anything. Pareto wins when both
- * are set — it is applied first by the selector.
+ * What deliberately narrowed the selection, if anything. Every one of them
+ * makes a run with fewer laws than apply partial; the first that applies is
+ * named: Pareto (applied first by the selector), then a `laws.enabled`
+ * allowlist, then `categories` (#370).
  */
 export function narrowingOf(laws: unknown): LawNarrowing | undefined {
   const config = (laws ?? {}) as LivenessLawsConfig;
   if (config.paretoMode === true) return 'paretoMode';
-  return config.enabled !== undefined ? 'laws.enabled' : undefined;
+  if (config.enabled !== undefined) return 'laws.enabled';
+  return categoriesOf(laws).length > 0 ? 'categories' : undefined;
 }
 
 /**
@@ -64,10 +90,19 @@ export function narrowingOf(laws: unknown): LawNarrowing | undefined {
  * declares their subject, and an opt-in law (`defaultEnabled: false`) counts
  * when its severity turns it on — the selector's own rules, so the floor is a
  * fraction of what can actually run. `laws.notApplicable` is NOT subtracted.
+ * The larger of the counts for the configured type and for the type the
+ * selection uses (see the header).
  */
 export function livenessApplicableLaws(config: LivenessConfig, projectRoot: string): number {
+  const configured = config.project?.type;
+  const selected = selectionProjectType(configured, projectRoot);
+  const forConfigured = applicableLawsFor(configured, config, projectRoot);
+  return selected === configured ? forConfigured : Math.max(forConfigured, applicableLawsFor(selected, config, projectRoot));
+}
+
+/** L for one project type. */
+function applicableLawsFor(projectType: string | undefined, config: LivenessConfig, projectRoot: string): number {
   const severity = (config.laws as LivenessLawsConfig | undefined)?.severity;
-  const projectType = config.project?.type;
   return ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(
     l =>
       runsWithoutAllowlist({ name: l.title, id: l.id, defaultEnabled: l.defaultEnabled }, severity) &&
@@ -77,9 +112,9 @@ export function livenessApplicableLaws(config: LivenessConfig, projectRoot: stri
 }
 
 /**
- * The floor in effect. A `laws.enabled` allowlist or Pareto is a DELIBERATE
- * narrowing: the default 25% would punish an explicit choice, so there the
- * project declares its own floor via `laws.minLawsChecked`.
+ * The floor in effect. A `laws.enabled` allowlist, Pareto or `categories` is
+ * a DELIBERATE narrowing: the default 25% would punish an explicit choice, so
+ * there the project declares its own floor via `laws.minLawsChecked`.
  */
 export function livenessFloorOf(config: LivenessConfig, projectRoot: string): LivenessFloor {
   const laws = (config.laws ?? {}) as LivenessLawsConfig;

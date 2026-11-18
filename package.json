@@ -12,6 +12,7 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "lint": "eslint .",
+    "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\" \"scripts/**/*.js\"",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch --passWithNoTests",
     "test:coverage": "jest --coverage --passWithNoTests",
@@ -106,6 +107,7 @@
   },
   "lint-staged": {
     "*.{ts,js}": [
+      "prettier --check",
       "npx ruleofcode audit --mode=pre-commit --staged"
     ]
   }

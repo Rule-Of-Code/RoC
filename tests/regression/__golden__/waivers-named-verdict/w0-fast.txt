@@ -1,0 +1,62 @@
+🏛️  RuleOfCode v<version> — constitutional audit
+🎯 PARETO MODE — a SUBSET of the law set will run (high-impact laws only).
+   This cannot produce a compliance verdict: the laws that do not run cannot pass.
+
+🔍 Starting constitutional audit...
+Project: <root>
+Mode: fast
+Project type: typescript (detected)
+
+⚠️  Warning: Missing git hooks: All hooks - .husky directory not found
+   Run 'npx ruleofcode reinstall-hooks' to install them
+
+⚖️  Executing constitutional checks...
+🔍 Processing 22 laws (parallel: true)
+
+
+════════════════════════════════════════════════════════════
+   🏛️  CONSTITUTIONAL AUDIT RESULTS
+════════════════════════════════════════════════════════════
+
+📊 AUDIT SUMMARY:
+────────────────────────────────────────────────────────────
+Total Laws Checked: 22
+  of which count for the liveness floor: 20 (+2 always-on meta-gates — set laws.minLawsChecked against 20)
+
+✓ Passed: 22
+✗ Failed: 0
+Score: 100% (Pass Rate: 100%)
+Execution time: <n>ms
+
+✅ PASSED CONSTITUTIONAL LAWS:
+────────────────────────────────────────────────────────────
+
+1. Zero Tolerance Doctrine (SACRED LAW) (Score: 100/100)
+2. Investment-Grade Quality (SACRED LAW) (Score: 100/100)
+3. TypeScript Strict Mode (SACRED LAW) (Score: 100/100)
+4. Constitutional Supremacy Doctrine (Score: 100/100)
+5. Professional Excellence Mandate (Score: 100/100)
+6. Automation First Principle (Score: 100/100)
+7. Continuous Compliance Doctrine (Score: 100/100)
+8. Absolute Zero Tolerance Doctrine (Score: 100/100)
+9. Semantic Versioning Standards (Score: 100/100)
+10. Environment Variables Policy (Score: 100/100)
+11. Environment Security Enforcement (Score: 100/100)
+12. Security Vulnerability Response (Score: 100/100)
+13. Data Encryption Standards (Score: 100/100)
+14. Authentication Security (Score: 100/100)
+15. API Security Standards (Score: 100/100)
+16. Dependency Security Scanning (Score: 100/100)
+17. Jest Unit Test 100% Coverage Mandate (Score: 100/100)
+18. Pre-Deployment Checklist (MANDATORY) (Score: 100/100)
+19. CI/CD Constitutional Tribunal (Score: 100/100)
+20. Launch Readiness Checklist (Score: 100/100)
+21. Audit Liveness Assertion (Score: 100/100)
+22. Config Integrity Guard (Score: 100/100)
+
+════════════════════════════════════════════════════════════
+⚠️  PARTIAL SCAN — 20 of 77 applicable laws ran (narrowed by paretoMode). The selected laws passed; no compliance verdict.
+   The laws that did not run cannot have passed.
+   For a compliance verdict run the full set: paretoMode: false and no --mode=fast.
+════════════════════════════════════════════════════════════
+

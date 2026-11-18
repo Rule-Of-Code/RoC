@@ -213,6 +213,9 @@ import {
   StartupRequestFanOutLaw,
 } from '../checkers/client-deploy-laws';
 
+// Edge proxy and deploy-security laws
+import { ProxyTargetKeepsOriginHostLaw } from '../checkers/edge-deploy-laws';
+
 // Integrity Laws Modular Imports — migrations, CHECKs, guards, tsconfig, retention
 import {
   DrizzleMigrationJournalIntegrityLaw,
@@ -659,6 +662,8 @@ export class ModularLawsRegistry {
     'StartupRequestFanOutLaw.check': StartupRequestFanOutLaw,
     'PrimaryLocaleFontPreloadedLaw.check': PrimaryLocaleFontPreloadedLaw,
     'ServerlessDeployPinsResourcesLaw.check': ServerlessDeployPinsResourcesLaw,
+    // Edge proxy and deploy-security laws
+    'ProxyTargetKeepsOriginHostLaw.check': ProxyTargetKeepsOriginHostLaw,
     // Measurement Laws (latency budget harness, tracing, test-server loopback)
     'LatencyBudgetHarnessRealismLaw.check': LatencyBudgetHarnessRealismLaw,
     'TracingExplainsLatencyLaw.check': TracingExplainsLatencyLaw,

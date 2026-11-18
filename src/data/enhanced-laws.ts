@@ -13,6 +13,7 @@ import { CLIENT_DEPLOY_LAWS } from './client-deploy-laws';
 import { CODE_QUALITY_LAWS } from './code-quality-laws';
 import { DEPLOYMENT_LAWS } from './deployment-laws';
 import { DOCUMENTATION_LAWS } from './documentation-laws';
+import { EDGE_DEPLOY_SECURITY_LAWS } from './edge-deploy-security-laws';
 import {
   FRAMEWORK_LAWS,
   PARETO_CATEGORIES,
@@ -64,6 +65,7 @@ export const ALL_ENHANCED_CONSTITUTIONAL_LAWS: EnhancedConstitutionalLaw[] = [
   ...CAPACITOR_NATIVE_LAWS, // 🤖 Capacitor native-shell laws (frontend, + the platform package; IDs 431+)
   ...CAPACITOR_BRIDGE_LAWS, // 🌉 Capacitor bridge laws (frontend, requires @capacitor/core + config; IDs 441+)
   ...CLIENT_DEPLOY_LAWS, // 🌐 Client start-up and deploy-settings laws (IDs 892+)
+  ...EDGE_DEPLOY_SECURITY_LAWS, // 🛡️ Edge proxy and deploy-security laws (IDs 895+)
   ...MEASUREMENT_LAWS, // ⏱️ Measurement laws (latency budget harness, tracing, test-server loopback; IDs 889–891)
   ...REQUEST_PATH_LAWS, // ⏱️ Request-path laws (Python + TS/JS call sites; IDs 886+)
 ];

@@ -122,6 +122,24 @@ describe('TestServerLoopbackAddressMatchLaw (#360)', () => {
     expect(run({ 'perf/mock-api.js': MOCK_SERVER, 'e2e/playwright.config.ts': other }).violations).toEqual([]);
   });
 
+  it('a pass says how many test/perf files it read, and never "compliance verified" over none', () => {
+    const none = run({ 'src/app.ts': 'export const x = 1;\n' });
+    expect(none.passed).toBe(true);
+    expect(none.judgedNothing).toBeUndefined();
+    expect(none.message).toBe('Test Server Loopback Address Match: 0 test/perf files — nothing to compare');
+    const noBind = run({ 'tests/api.test.ts': "fetch('http://localhost:4010');\n", 'e2e/run.e2e.ts': '' });
+    expect(noBind.message).toBe(
+      'Test Server Loopback Address Match: 2 test/perf files read, none binds a server to 127.0.0.1 only — nothing to compare'
+    );
+    const matched = run({
+      'perf/mock-api.js': MOCK_SERVER,
+      'src/environments/environment.e2e.ts': TEST_ENV.replace('localhost', '127.0.0.1'),
+    });
+    expect(matched.message).toBe(
+      'Test Server Loopback Address Match: 2 test/perf files read, no server bound to 127.0.0.1 only is called through localhost'
+    );
+  });
+
   it('a database host in a test config is not a server bind', () => {
     const result = run({
       'tests/conftest.py': 'engine = connect(host="127.0.0.1", port=5432)\nBASE = "http://localhost:5432"\n',

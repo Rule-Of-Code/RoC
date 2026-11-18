@@ -76,7 +76,7 @@ export class TestServerLoopbackAddressMatchLaw extends LawBase {
       const calling = clients.filter(client => client.port !== null && (bind.port === null || client.port === bind.port));
       return calling.length === 0 ? [] : [this.finding(bind, calling)];
     });
-    return this.createResult(
+    const result = this.createResult(
       violations,
       this.LAW_NAME,
       'TESTING',
@@ -85,6 +85,16 @@ export class TestServerLoopbackAddressMatchLaw extends LawBase {
       ],
       context
     );
+    return result.passed ? { ...result, message: this.passMessage(files.length, binds.length) } : result;
+  }
+
+  /** A pass says what it read: "compliance verified" over zero files would claim more than was checked. */
+  private static passMessage(read: number, binds: number): string {
+    if (read === 0) return `${this.LAW_NAME}: 0 test/perf files — nothing to compare`;
+    const files = `${read} test/perf file${read === 1 ? '' : 's'} read`;
+    return binds === 0
+      ? `${this.LAW_NAME}: ${files}, none binds a server to 127.0.0.1 only — nothing to compare`
+      : `${this.LAW_NAME}: ${files}, no server bound to 127.0.0.1 only is called through localhost`;
   }
 
   private static isTestLike(rel: string): boolean {

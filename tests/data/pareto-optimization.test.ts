@@ -172,8 +172,12 @@ describe('Pareto Optimization', () => {
     });
 
     it('getOptimizationCategory should return MEDIUM_IMPACT for medium impact laws', () => {
-      if (PARETO_CATEGORIES.MEDIUM_IMPACT.length > 0) {
-        const mediumImpactId = PARETO_CATEGORIES.MEDIUM_IMPACT[0] as string;
+      // HIGH_IMPACT (the derived core, #383) is checked first and may hold
+      // laws the static MEDIUM_IMPACT list also names: take one it does not.
+      const mediumOnly = PARETO_CATEGORIES.MEDIUM_IMPACT.filter(id => !PARETO_CATEGORIES.HIGH_IMPACT.includes(id));
+      expect(mediumOnly.length).toBeGreaterThan(0);
+      if (mediumOnly.length > 0) {
+        const mediumImpactId = mediumOnly[0] as string;
         const category = getOptimizationCategory(mediumImpactId);
         expect(category).toBe('MEDIUM_IMPACT');
       }

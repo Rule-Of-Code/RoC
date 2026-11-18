@@ -368,25 +368,42 @@ describe('#383 the Pareto core is ~20% of what each project profile selects', ()
     expect(run.json.verdict).toBe('compliance');
   }, 60000);
 
-  it('P5 — a law added to the registry passes through the rule, no list is edited; every profile stays in the band (ratchet)', async () => {
+  it('P5 — laws added to the registry pass through the rule, no list is edited; gated ones move no other project (ratchet)', async () => {
+    // Before: what each profile selects with the registry as shipped.
+    const before: Record<string, ProfileShare> = {};
+    for (const profile of PROFILES) before[profile] = await profileShare(profile);
+
     let Auditor: typeof RuleOfCodeAuditor = RuleOfCodeAuditor;
     let Fresh: typeof ModularLawsRegistry = ModularLawsRegistry;
     jest.isolateModules(() => {
       jest.doMock('../../src/data/python-laws', () => {
         const actual = jest.requireActual('../../src/data/python-laws');
         const base = actual.PYTHON_LAWS[0] as EnhancedConstitutionalLaw;
-        const added = (title: string, priority: EnhancedConstitutionalLaw['priority'], defaultSeverity: 'error' | 'info'): EnhancedConstitutionalLaw => ({
+        const added = (
+          title: string,
+          fields: Pick<EnhancedConstitutionalLaw, 'priority' | 'defaultSeverity'> & Partial<EnhancedConstitutionalLaw>
+        ): EnhancedConstitutionalLaw => ({
           ...base,
           id: `ratchet-${title.toLowerCase().replace(/\s+/g, '-')}`,
           legacyId: 9990,
           title,
-          priority,
-          defaultSeverity,
           requires: undefined,
+          ...fields,
         });
+        const many = (prefix: string, n: number, fields: Partial<EnhancedConstitutionalLaw>): EnhancedConstitutionalLaw[] =>
+          Array.from({ length: n }, (_, k) => added(`${prefix} ${k + 1}`, { priority: 'HIGH', defaultSeverity: 'error', ...fields }));
         return {
           ...actual,
-          PYTHON_LAWS: [...actual.PYTHON_LAWS, added('Ratchet Critical Python Law', 'CRITICAL', 'error'), added('Ratchet Minor Python Law', 'LOW', 'info')],
+          PYTHON_LAWS: [
+            ...actual.PYTHON_LAWS,
+            // Ungated: the critical one is core, the minor one is not.
+            added('Ratchet Critical Python Law', { priority: 'CRITICAL', defaultSeverity: 'error' }),
+            added('Ratchet Minor Python Law', { priority: 'LOW', defaultSeverity: 'info' }),
+            // Gated, several at once: universal laws for a package no profile declares…
+            ...many('Ratchet Gated Universal Law', 8, { stack: undefined, requires: { anyDependency: ['ratchet-neutral-package'] } }),
+            // …and frontend laws for a package the angular and ionic profiles declare.
+            ...many('Ratchet Gated Angular Law', 5, { stack: 'frontend', requires: { anyDependency: ['@angular/core'] } }),
+          ],
         };
       });
       Fresh = require('../../src/registry/modular-laws-registry').ModularLawsRegistry;
@@ -401,17 +418,25 @@ describe('#383 the Pareto core is ~20% of what each project profile selects', ()
       const law = (title: string) => Fresh.getAll().find(l => l.name === title);
       expect(law('Ratchet Critical Python Law')?.paretoCore).toBe(true);
       expect(law('Ratchet Minor Python Law')?.paretoCore).toBe(false);
-      const python = await profileShare('python', Auditor);
-      expect(python.ran).toContain('Ratchet Critical Python Law');
+      const after: Record<string, ProfileShare> = {};
       for (const profile of PROFILES) {
-        const { applicable, core } = await profileShare(profile, Auditor);
+        after[profile] = await profileShare(profile, Auditor);
+        const { applicable, core } = after[profile] as ProfileShare;
         expect(core / applicable).toBeGreaterThanOrEqual(BAND.min);
         expect(core / applicable).toBeLessThanOrEqual(BAND.max);
       }
+      expect(after.python?.ran).toContain('Ratchet Critical Python Law');
+      // A gated law that does not apply to a project changes nothing there:
+      // eight universal gated laws let no ungated law into node or react.
+      expect(after.node?.core).toBe(before.node?.core);
+      expect(after.react?.core).toBe(before.react?.core);
+      expect(after.python?.core).toBe((before.python?.core ?? 0) + 1);
+      // Where the gate is met, the laws count on both sides of the share.
+      expect(after.angular?.applicable).toBe((before.angular?.applicable ?? 0) + 5);
     } finally {
       spy.mockRestore();
     }
-  }, 120000);
+  }, 180000);
 });
 
 it('the cells find their laws in the registry', () => {

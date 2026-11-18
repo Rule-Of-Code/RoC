@@ -273,16 +273,23 @@ def save(request):
     expect(result.metrics).toMatchObject({ caches: 1, databaseReadCaches: 0 });
   });
 
-  it('judged nothing, never compliant, when the selecting text was only a comment', () => {
+  it('the selecting text only in a comment: a pass with the counter, never judged nothing', () => {
     const result = run({
       'app/notes.py':
         '# replaced TTLCache(maxsize=1, ttl=1) with a request-scoped value\nVALUE = 1\n',
     });
+    expect(result.judgedNothing).toBeUndefined();
+    expect(result.passed).toBe(true);
+    expect(result.message).toMatch(
+      /1 file\(s\) read, 0 in-process caches .* — nothing to judge/
+    );
+    expect(result.metrics).toMatchObject({ filesRead: 1, caches: 0 });
+  });
+
+  it('judged nothing only when no file could be read', () => {
+    const result = run({ 'app/main.py': 'print(1)\n' });
     expect(result.passed).toBe(false);
     expect(result.judgedNothing).toBe(true);
-    expect(result.violations?.[0]).toMatch(
-      /nothing was judged — no in-process cache found in the 1 file/
-    );
   });
 
   describe('TS/JS', () => {

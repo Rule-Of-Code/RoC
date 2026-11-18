@@ -100,7 +100,7 @@ describe('AsyncCacheSingleFlightLaw (#374)', () => {
     expect(result.violations).toEqual([]);
     expect(result.passed).toBe(true);
     expect(result.message).toMatch(
-      /1 check-then-store site\(s\) in 1 file\(s\): 1 shared cache\(s\) store the in-flight future\/promise and remove it on failure/
+      /1 async check-then-store site\(s\) in 1 file\(s\): 1 shared cache\(s\) store the in-flight future\/promise and remove it on failure/
     );
     expect(result.metrics).toMatchObject({
       filesRead: 1,
@@ -191,12 +191,92 @@ async def shared_zone(group_id):
     expect(result.metrics).toMatchObject({ cacheSites: 1, perCallSites: 1 });
   });
 
-  it('judged nothing, never compliant, when the check and the store sit in two functions', () => {
+  it('a check and a store with nothing async between them do not select the law', () => {
     const split =
       'REGISTRY = {}\n\n\nasync def known(name):\n    return REGISTRY.get(name)\n\n\ndef register(name, value):\n    REGISTRY[name] = value\n';
-    const result = run({ 'app/registry.py': split });
+    expect(
+      lawRequirementsMet(LAW?.requires, project({ 'app/registry.py': split }))
+    ).toBe(false);
+  });
+
+  it('judged nothing only when no file could be read: called on a project with none', () => {
+    const result = run({ 'app/main.py': 'print(1)\n' });
     expect(result.passed).toBe(false);
     expect(result.judgedNothing).toBe(true);
+    expect(result.violations?.[0]).toMatch(
+      /nothing was judged — no file that selected the law could be read/
+    );
+  });
+
+  describe('a sync memo in a build script (.mjs) — the site generator shape', () => {
+    // A slug registry: check, then store, nothing awaited — there is nothing to coalesce.
+    const SYNC_MEMO = [
+      'const seen = new Map();',
+      'for (const law of laws) {',
+      '  if (seen.has(law.urlSlug)) {',
+      '    throw new Error(`duplicate slug "${seen.get(law.urlSlug)}" and "${law.name}"`);',
+      '  }',
+      '  seen.set(law.urlSlug, law.name);',
+      '}',
+      "const loaders = 'new Map<string, () => Promise<unknown>>([' + laws.map(l => `import('./${l.urlSlug}.json').then(m => m.default)`).join(',') + '])';",
+      '',
+    ].join('\n');
+
+    it('does not select the law', () => {
+      expect(
+        lawRequirementsMet(
+          LAW?.requires,
+          project({ 'tools/generate-registry.mjs': SYNC_MEMO })
+        )
+      ).toBe(false);
+    });
+
+    it('selected by an await between check and store, but the stored value is not awaited: a pass with the counter, never judged nothing', () => {
+      const awaitedLog = [
+        'const seen = new Map();',
+        'export async function build(laws) {',
+        '  for (const law of laws) {',
+        '    if (seen.has(law.urlSlug)) continue;',
+        '    await log(law.urlSlug);',
+        '    seen.set(law.urlSlug, law.name);',
+        '  }',
+        '}',
+        '',
+      ].join('\n');
+      const files = { 'tools/generate-registry.mjs': awaitedLog };
+      expect(lawRequirementsMet(LAW?.requires, project(files))).toBe(true);
+      const result = run(files);
+      expect(result.judgedNothing).toBeUndefined();
+      expect(result.passed).toBe(true);
+      expect(result.message).toMatch(
+        /1 file\(s\) read, 0 functions that check a keyed container and store an awaited or in-flight value into it — nothing to judge \(1 sync check-then-store site\(s\) read/
+      );
+      expect(result.metrics).toMatchObject({
+        filesRead: 1,
+        cacheSites: 0,
+        syncSites: 1,
+      });
+    });
+
+    it('red: store-after-await in an .mjs module', () => {
+      const storeAfterAwait = [
+        'const profiles = new Map();',
+        'export async function getProfile(id) {',
+        '  if (profiles.has(id)) return profiles.get(id);',
+        '  const value = await loadProfile(id);',
+        '  profiles.set(id, value);',
+        '  return value;',
+        '}',
+        '',
+      ].join('\n');
+      const files = { 'tools/profiles.mjs': storeAfterAwait };
+      expect(lawRequirementsMet(LAW?.requires, project(files))).toBe(true);
+      expect(run(files).violations).toEqual([
+        expect.stringMatching(
+          /^tools\/profiles\.mjs:5: getProfile checks profiles \(line 3\) and stores into it only after awaiting loadProfile\(…\) \(line 4\)/
+        ),
+      ]);
+    });
   });
 
   describe('TS/JS', () => {

@@ -9,6 +9,7 @@ import { ANGULAR_LAWS } from './angular-laws';
 import { CAPACITOR_BRIDGE_LAWS } from './capacitor-bridge-laws';
 import { CAPACITOR_LAWS } from './capacitor-laws';
 import { CAPACITOR_NATIVE_LAWS } from './capacitor-native-laws';
+import { CLIENT_DEPLOY_LAWS } from './client-deploy-laws';
 import { CODE_QUALITY_LAWS } from './code-quality-laws';
 import { DEPLOYMENT_LAWS } from './deployment-laws';
 import { DOCUMENTATION_LAWS } from './documentation-laws';
@@ -60,6 +61,7 @@ export const ALL_ENHANCED_CONSTITUTIONAL_LAWS: EnhancedConstitutionalLaw[] = [
   ...REACT_SECURITY_LAWS, // 🧯 React security laws (frontend, requires react / next; IDs 581+)
   ...CAPACITOR_NATIVE_LAWS, // 🤖 Capacitor native-shell laws (frontend, + the platform package; IDs 431+)
   ...CAPACITOR_BRIDGE_LAWS, // 🌉 Capacitor bridge laws (frontend, requires @capacitor/core + config; IDs 441+)
+  ...CLIENT_DEPLOY_LAWS, // 🌐 Client start-up and deploy-settings laws (IDs 892+)
 ];
 
 // Re-export for easy access

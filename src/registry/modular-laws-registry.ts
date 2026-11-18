@@ -205,6 +205,9 @@ import {
   CapacitorWebviewOriginDeclaredLaw,
 } from '../checkers/capacitor-laws';
 
+// Client start-up and deploy-settings laws
+import { StartupRequestFanOutLaw } from '../checkers/client-deploy-laws';
+
 // Integrity Laws Modular Imports — migrations, CHECKs, guards, tsconfig, retention
 import {
   DrizzleMigrationJournalIntegrityLaw,
@@ -634,6 +637,9 @@ export class ModularLawsRegistry {
     'GuardFunctionHasProductionCallerLaw.check': GuardFunctionHasProductionCallerLaw,
     'TsconfigExcludeLeavesCodeUntypedLaw.check': TsconfigExcludeLeavesCodeUntypedLaw,
     'RetentionRegistryCoversSchemaLaw.check': RetentionRegistryCoversSchemaLaw,
+
+    // Client start-up and deploy-settings laws
+    'StartupRequestFanOutLaw.check': StartupRequestFanOutLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

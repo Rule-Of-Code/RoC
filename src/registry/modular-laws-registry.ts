@@ -206,7 +206,7 @@ import {
 } from '../checkers/capacitor-laws';
 
 // Client start-up and deploy-settings laws
-import { StartupRequestFanOutLaw } from '../checkers/client-deploy-laws';
+import { PrimaryLocaleFontPreloadedLaw, StartupRequestFanOutLaw } from '../checkers/client-deploy-laws';
 
 // Integrity Laws Modular Imports — migrations, CHECKs, guards, tsconfig, retention
 import {
@@ -640,6 +640,7 @@ export class ModularLawsRegistry {
 
     // Client start-up and deploy-settings laws
     'StartupRequestFanOutLaw.check': StartupRequestFanOutLaw,
+    'PrimaryLocaleFontPreloadedLaw.check': PrimaryLocaleFontPreloadedLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

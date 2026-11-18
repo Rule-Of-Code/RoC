@@ -3,3 +3,4 @@
  */
 
 export { StartupRequestFanOutLaw } from './startup-request-fan-out';
+export { PrimaryLocaleFontPreloadedLaw } from './primary-locale-font-preloaded';

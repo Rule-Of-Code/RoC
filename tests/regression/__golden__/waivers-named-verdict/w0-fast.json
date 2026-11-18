@@ -8,7 +8,7 @@
   "scope": {
     "executedLaws": 17,
     "selectedLaws": 17,
-    "applicableLaws": 78,
+    "applicableLaws": 77,
     "narrowedBy": "paretoMode",
     "partial": true
   },

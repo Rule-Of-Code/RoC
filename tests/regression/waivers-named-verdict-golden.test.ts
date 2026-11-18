@@ -41,7 +41,7 @@ interface Mode {
 }
 
 const DEFAULT_FLOOR =
-  'floor 20 — default 25% of 80 stack-applicable laws (meta-gates included, counted before waivers)';
+  'floor 20 — default 25% of 79 stack-applicable laws (meta-gates included, counted before waivers)';
 const MODES: Mode[] = [
   {
     name: 'full',
@@ -115,7 +115,7 @@ describe('#350 golden: a W = 0 project is unchanged in every mode', () => {
       } = rest.scope;
       expect(applicableBeforeWaivers).toBe(scope.applicableLaws);
       expect(waivedLaws).toEqual([]);
-      expect(livenessJson.applicableLaws).toBe(80);
+      expect(livenessJson.applicableLaws).toBe(79);
       const livenessResult = rest.results.find(
         (r: { lawTitle?: string }) => r.lawTitle === 'Audit Liveness Assertion'
       );

@@ -197,7 +197,7 @@ export class TestRigKeepsRouteGuardsLaw extends LawBase {
     if (!ts) {
       return subjectResult({
         ...this.empty(context, suggestions),
-        nothingJudged: `${specs.length} test file(s): ${parserUnavailable(context.projectRoot)}`,
+        nothingRead: `${specs.length} test file(s): ${parserUnavailable(context.projectRoot)}`,
       });
     }
     const rigs = specs.map(file => readRig(ts, file));
@@ -229,8 +229,11 @@ export class TestRigKeepsRouteGuardsLaw extends LawBase {
       context,
       findings,
       suggestions,
+      filesRead: specs.length,
+      nothingRead: 'no test file that selected the law could be read',
       judged: setups,
-      nothingJudged: `no router setup (provideRouter, RouterTestingModule.withRoutes, RouterModule.forRoot/forChild) in the ${specs.length} test file(s) that selected the law`,
+      noSubject:
+        '0 router setups (provideRouter, RouterTestingModule.withRoutes, RouterModule.forRoot/forChild — the selecting text was in a comment or a string) — nothing to judge',
       passSummary: `${setups} router setup(s) in ${specs.length} test file(s), ${routes.length} route(s) declared by hand, ${compared.length} of them also a guarded app route (${[...app.values()].flat().length} guarded app route(s) read) — none drops a guard`,
       notSeen:
         'not seen: app routes loaded from another file through loadChildren (their paths are read without the parent prefix), routes built by a function, and test routes passed through a variable of another file',
@@ -250,7 +253,9 @@ export class TestRigKeepsRouteGuardsLaw extends LawBase {
       context,
       findings: [],
       suggestions,
+      filesRead: 0,
       judged: 0,
+      noSubject: '',
       passSummary: '',
       notSeen: '',
       metrics: {

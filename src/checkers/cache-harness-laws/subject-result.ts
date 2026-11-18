@@ -3,11 +3,17 @@
  *
  * Each of these laws is selected by what git publishes (`requires`) and
  * judges a subject it finds in exactly those files: a cache, a router set up
- * by a test, a perf script. It passes only when it judged at least one, and
- * then says how many, and what it does not see, in the message, the details
- * and `metrics`. When the files that selected it hold no subject after all
- * (the gate's text sat in a comment or a string), it reports judged nothing,
- * never compliant.
+ * by a test, a perf script. The verdict follows the 7.27.0 rule:
+ *
+ * - no file could be read (none left, or the parser did not load): judged
+ *   nothing — the law saw nothing, and says so;
+ * - files read, a violation: the findings, each at file:line;
+ * - files read, no violation: a pass that says what it read and judged, and
+ *   what it does not see — in the message, the details and `metrics`;
+ * - files read, but no subject in them (the gate's text matched where the
+ *   parser finds nothing to judge): also a pass, with the counters saying
+ *   "0 … — nothing to judge". A law that read its files and found no
+ *   violation never reports judged nothing.
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
@@ -20,10 +26,14 @@ export interface SubjectVerdict {
   context: LawCheckContext;
   findings: string[];
   suggestions: string[];
-  /** How many subjects were judged; 0 → judged nothing. */
+  /** Files of the subject the law read (and could parse). 0 → judged nothing. */
+  filesRead: number;
+  /** Why no file was read, said when `filesRead` is 0. */
+  nothingRead: string;
+  /** How many subjects were judged in the files read. */
   judged: number;
-  /** Why nothing was judged, said when `judged` is 0. */
-  nothingJudged: string;
+  /** What a read with no subject found: `0 async functions that check then store a keyed container — nothing to judge`. */
+  noSubject: string;
   /** What a clean read judged: `3 cache(s) of database reads in 2 file(s)`. */
   passSummary: string;
   /** What the law does not see, said with every pass. */
@@ -32,13 +42,13 @@ export interface SubjectVerdict {
 }
 
 export function subjectResult(verdict: SubjectVerdict): LawResult {
-  const { lawName, category, context, findings, suggestions, judged, metrics } =
+  const { lawName, category, context, findings, suggestions, metrics } =
     verdict;
-  if (judged === 0) {
+  if (verdict.filesRead === 0) {
     return {
       ...markJudgedNothing(
         LawBase.createResult(
-          [`${lawName}: nothing was judged — ${verdict.nothingJudged}`],
+          [`${lawName}: nothing was judged — ${verdict.nothingRead}`],
           lawName,
           category,
           suggestions,
@@ -56,7 +66,11 @@ export function subjectResult(verdict: SubjectVerdict): LawResult {
     context
   );
   if (!result.passed) return { ...result, metrics };
-  const message = `${lawName}: ${verdict.passSummary}; ${verdict.notSeen}`;
+  const summary =
+    verdict.judged === 0
+      ? `${verdict.filesRead} file(s) read, ${verdict.noSubject}`
+      : verdict.passSummary;
+  const message = `${lawName}: ${summary}; ${verdict.notSeen}`;
   return { ...result, message, details: [message], metrics };
 }
 

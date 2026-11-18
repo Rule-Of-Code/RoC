@@ -107,9 +107,6 @@
   "lint-staged": {
     "*.{ts,js}": [
       "npx ruleofcode audit --mode=pre-commit --staged"
-    ],
-    "*.{ts,js,json,md}": [
-      "prettier --write"
     ]
   }
 }

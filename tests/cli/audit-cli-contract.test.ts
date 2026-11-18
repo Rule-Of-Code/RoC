@@ -4,7 +4,7 @@
  * on real temp fixtures — run `npm run build` first; the suite fails loudly
  * if dist is missing.
  */
-import { execFileSync } from 'child_process';
+import { execFileSync } from '../../src/utils/child-process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';

@@ -16,7 +16,7 @@
  * Built CLI only — run `npm run build` first. `ROC_CLI=<path to cli.js>` runs
  * the same rows against another build (used to show them red on the base).
  */
-import { spawnSync } from 'child_process';
+import { spawnSync } from '../../src/utils/child-process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';

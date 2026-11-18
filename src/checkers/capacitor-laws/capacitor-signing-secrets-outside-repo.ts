@@ -15,7 +15,7 @@
  * repeated in a finding.
  */
 
-import { execFileSync } from 'child_process';
+import { execFileSync } from '../../utils/child-process';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { relative } from '../../utils/capacitor/capacitor-law-support';
 import { CapacitorProjects } from '../../utils/capacitor/capacitor-project';

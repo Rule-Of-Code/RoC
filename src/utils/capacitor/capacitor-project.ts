@@ -21,7 +21,7 @@
  * could not look must say it could not look; it must never pass.
  */
 
-import { execFileSync } from 'child_process';
+import { execFileSync } from '../child-process';
 import * as fs from 'fs';
 import { FileSystemOperations } from '../file-system-operations';
 import { resolveGitDir } from '../git/git-layout';

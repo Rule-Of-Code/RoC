@@ -3,7 +3,7 @@
  * @description Tests for branch naming conventions and git workflow governance
  */
 
-import { execSync } from 'child_process';
+import { execSync } from '../../../src/utils/child-process';
 import { BranchGovernanceLaw } from '../../../src/checkers/git-laws/branch-governance';
 import type { LawCheckContext } from '../../../src/types/law.types';
 import { FileUtils } from '../../../src/utils/file-utils';

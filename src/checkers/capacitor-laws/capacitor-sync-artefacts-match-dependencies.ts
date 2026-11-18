@@ -13,7 +13,7 @@
  * is reported as not read — never as green.
  */
 
-import { execFileSync } from 'child_process';
+import { execFileSync } from '../../utils/child-process';
 import * as fs from 'fs';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { configValue, relative } from '../../utils/capacitor/capacitor-law-support';

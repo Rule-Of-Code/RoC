@@ -12,7 +12,7 @@
  * and it must not weaken husky detection for JS/TS at all — hence the JS rows
  * and the bare-Python row below, which must all still fire.
  */
-import { execSync } from 'child_process';
+import { execSync } from '../../src/utils/child-process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';

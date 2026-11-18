@@ -11,7 +11,7 @@
  *      `.lighthouserc.js` could never count, so a monitored app could pass only
  *      with a vendor file it does not use.
  */
-import { execFileSync } from 'child_process';
+import { execFileSync } from '../../src/utils/child-process';
 import { CommitSizeControlLaw } from '../../src/checkers/git-laws/commit-size-control';
 import { ReactDangerousHtmlGuardedLaw } from '../../src/checkers/react-laws/react-dangerous-html-guarded';
 import { PerformanceAlertingPolicyAnalyzerService as Alerts } from '../../src/laws/performance/performance-monitoring-policy/services/performance-alerting-policy.analyzer';

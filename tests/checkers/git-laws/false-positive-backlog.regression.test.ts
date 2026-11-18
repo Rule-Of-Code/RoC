@@ -5,7 +5,7 @@
  * the exact `git` interactions they rely on in production — matching the project's
  * real-data testing philosophy.
  */
-import { execFileSync, execSync } from 'child_process';
+import { execFileSync, execSync } from '../../../src/utils/child-process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';

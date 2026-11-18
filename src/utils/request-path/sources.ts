@@ -5,7 +5,9 @@
  * build output excluded; `ignores.global` and `includes.global` honoured);
  * TS/JS files from the shared scanner (the law's ignores honoured). Test
  * files are left out of both: a test that reads in a loop to set up a
- * fixture is not a request path.
+ * fixture is not a request path. Nor is a one-off script (scripts/,
+ * migrations/, bin/, management commands …, see one-off-scripts.ts): those
+ * are left out too, and counted, so a verdict says what it did not judge.
  *
  * Parsing TS/JS needs the `typescript` package; when it cannot be loaded the
  * files are reported as unread, never treated as clean.
@@ -19,6 +21,7 @@ import { FileUtils } from '../file-utils';
 import { PathOperations } from '../path-operations';
 import { loadTypeScript, parserUnavailable } from '../react/tsx-source';
 import type { ModuleModel, SourceLanguage } from './model';
+import { isOneOffScript } from './one-off-scripts';
 import { pythonModule } from './python-model';
 import { typescriptModule } from './ts-model';
 
@@ -33,6 +36,8 @@ export interface ProjectSources {
   unread: string[];
   /** Files read, per language. */
   counts: Record<SourceLanguage, number>;
+  /** Source files left out as one-off scripts (#384). */
+  oneOffScripts: number;
 }
 
 const cache = new Map<string, { content: string; model: ModuleModel }>();
@@ -49,21 +54,31 @@ function parsed(file: string, content: string, build: () => ModuleModel): Module
   return model;
 }
 
-export function pythonSourceFiles(context: LawCheckContext): string[] {
-  return PythonLawBase.getPythonFiles(context.projectRoot, context.config).filter(
-    file => !PY_TEST_FILE.test(relativeOf(context.projectRoot, file))
-  );
+/** Split `files` into request-path candidates and one-off scripts. */
+function withoutOneOffScripts(projectRoot: string, files: string[]): { files: string[]; oneOffScripts: number } {
+  const kept = files.filter(file => !isOneOffScript(relativeOf(projectRoot, file)));
+  return { files: kept, oneOffScripts: files.length - kept.length };
 }
 
-export function typescriptSourceFiles(context: LawCheckContext): string[] {
-  return CheckerUtils.findFilesByExtension(context.projectRoot, TS_EXTENSIONS, context.config, context.lawId).filter(file => {
+function pythonSourceFiles(context: LawCheckContext): { files: string[]; oneOffScripts: number } {
+  const files = PythonLawBase.getPythonFiles(context.projectRoot, context.config).filter(
+    file => !PY_TEST_FILE.test(relativeOf(context.projectRoot, file))
+  );
+  return withoutOneOffScripts(context.projectRoot, files);
+}
+
+function typescriptSourceFiles(context: LawCheckContext): { files: string[]; oneOffScripts: number } {
+  const files = CheckerUtils.findFilesByExtension(context.projectRoot, TS_EXTENSIONS, context.config, context.lawId).filter(file => {
     const rel = relativeOf(context.projectRoot, file);
     return !TS_TEST_FILE.test(rel) && !DECLARATION_FILE.test(rel);
   });
+  return withoutOneOffScripts(context.projectRoot, files);
 }
 
 function readPython(context: LawCheckContext, into: ProjectSources): void {
-  for (const file of pythonSourceFiles(context)) {
+  const { files, oneOffScripts } = pythonSourceFiles(context);
+  into.oneOffScripts += oneOffScripts;
+  for (const file of files) {
     const content = FileUtils.readFileContentSync(file);
     if (content === null || content === undefined) continue;
     into.modules.push(parsed(file, content, () => pythonModule(file, relativeOf(context.projectRoot, file), content)));
@@ -73,7 +88,8 @@ function readPython(context: LawCheckContext, into: ProjectSources): void {
 
 function readTypeScript(context: LawCheckContext, into: ProjectSources): void {
   const { projectRoot } = context;
-  const files = typescriptSourceFiles(context);
+  const { files, oneOffScripts } = typescriptSourceFiles(context);
+  into.oneOffScripts += oneOffScripts;
   if (files.length === 0) return;
   const ts = loadTypeScript(projectRoot);
   if (!ts) {
@@ -93,7 +109,7 @@ export function projectSources(
   context: LawCheckContext,
   languages: readonly SourceLanguage[] = ['python', 'typescript']
 ): ProjectSources {
-  const sources: ProjectSources = { modules: [], unread: [], counts: { python: 0, typescript: 0 } };
+  const sources: ProjectSources = { modules: [], unread: [], counts: { python: 0, typescript: 0 }, oneOffScripts: 0 };
   if (languages.includes('python')) readPython(context, sources);
   if (languages.includes('typescript')) readTypeScript(context, sources);
   return sources;
@@ -104,10 +120,12 @@ const PYTHON_FILE = /\.py$/;
 /**
  * The request-path model of exactly these files — the ones a law's
  * `requires.anyFileContaining` gate matched (see readFilesContaining), so
- * the files that select the law are the files it judges.
+ * the files that select the law are the files it judges. One-off scripts are
+ * left out by that gate's own `exclude` (ONE_OFF_SCRIPT_GLOBS), not here, so
+ * the gate and the law cannot disagree.
  */
 export function sourcesFromFiles(projectRoot: string, files: readonly ContainingFile[]): ProjectSources {
-  const sources: ProjectSources = { modules: [], unread: [], counts: { python: 0, typescript: 0 } };
+  const sources: ProjectSources = { modules: [], unread: [], counts: { python: 0, typescript: 0 }, oneOffScripts: 0 };
   const scripts = files.filter(found => !PYTHON_FILE.test(found.rel));
   for (const found of files.filter(candidate => PYTHON_FILE.test(candidate.rel))) {
     sources.modules.push(parsed(found.file, found.content, () => pythonModule(found.file, found.rel, found.content)));

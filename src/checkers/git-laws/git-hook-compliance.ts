@@ -17,7 +17,11 @@ import {
   resolveGitHooksDir,
   trackedModesByBasename,
 } from '../../utils/git/git-layout';
-import { resolveGitHookStatus } from '../../utils/git-hook-status';
+import {
+  hookVerdictBasis,
+  notInstalledFinding,
+  resolveGitHookStatus,
+} from '../../utils/git-hook-status';
 import { PathOperations } from '../../utils/path-operations';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
 import { GitLawBase } from './git-law-base';
@@ -36,6 +40,7 @@ export class GitHookComplianceLaw extends GitLawBase {
 
     const violations: string[] = [];
     const suggestions: string[] = [];
+    let statuses: Record<string, GitHookStatus> = {};
 
     // `.pre-commit-config.yaml` is the Python-native husky: the framework OWNS
     // the hooks and installs them into `.git/hooks` on `pre-commit install`.
@@ -54,6 +59,7 @@ export class GitHookComplianceLaw extends GitLawBase {
       );
       violations.push(...hooksAnalysis.violations);
       suggestions.push(...hooksAnalysis.suggestions);
+      statuses = hooksAnalysis.statuses;
 
       // Check for automated hook management
       const automationAnalysis = this.checkHookAutomation(
@@ -73,56 +79,61 @@ export class GitHookComplianceLaw extends GitLawBase {
     violations.push(...executableAnalysis.violations);
     suggestions.push(...executableAnalysis.suggestions);
 
-    return GitLawBase.createResult(
+    const result = GitLawBase.createResult(
       violations,
       'Git Hook Compliance',
       'Version Control',
       suggestions,
       context
     );
+    // Say which fact the verdict rests on: the hooks git runs here, or (in a
+    // CI checkout) only the committed configuration.
+    const basis = hookVerdictBasis(statuses);
+    result.metrics = { ...result.metrics, hooks: statuses, checked: basis.checked };
+    if (basis.note) result.message = `${result.message} (${basis.note})`;
+    return result;
   }
 
   private static checkEssentialHooks(
     projectRoot: string,
     _config: RuleOfCodeConfig
-  ): { violations: string[]; suggestions: string[] } {
+  ): {
+    violations: string[];
+    suggestions: string[];
+    statuses: Record<string, GitHookStatus>;
+  } {
     const { violations, suggestions, exists, hooksDir } =
       this.initializeHooksCheck(projectRoot, true);
     if (!exists) {
-      return { violations, suggestions };
+      return { violations, suggestions, statuses: {} };
     }
 
     const essentialHooks = ['pre-commit', 'pre-push', 'commit-msg'];
-    const { missingHooks, sampleHooks } = this.analyzeHookStatus(
-      hooksDir,
-      essentialHooks,
-      projectRoot
-    );
-
-    this.addHookViolations(missingHooks, sampleHooks, violations, suggestions);
-
-    return { violations, suggestions };
-  }
-
-  private static analyzeHookStatus(
-    hooksDir: string,
-    essentialHooks: string[],
-    projectRoot: string
-  ): { missingHooks: string[]; sampleHooks: string[] } {
-    const missingHooks: string[] = [];
-    const sampleHooks: string[] = [];
-
+    const statuses: Record<string, GitHookStatus> = {};
     for (const hook of essentialHooks) {
-      const hookStatus = this.getHookStatus(hooksDir, hook, projectRoot);
+      statuses[hook] = this.getHookStatus(hooksDir, hook, projectRoot);
+    }
+    const having = (status: GitHookStatus): string[] =>
+      essentialHooks.filter(hook => statuses[hook] === status);
 
-      if (hookStatus === 'missing') {
-        missingHooks.push(hook);
-      } else if (hookStatus === 'sample') {
-        sampleHooks.push(hook);
-      }
+    this.addHookViolations(
+      having('missing'),
+      having('sample'),
+      violations,
+      suggestions
+    );
+    const notInstalled = notInstalledFinding(
+      projectRoot,
+      having('not-installed')
+    );
+    if (notInstalled) {
+      violations.push(notInstalled);
+      suggestions.push(
+        'Activate the committed hooks: npx husky (and keep "prepare": "husky" in package.json)'
+      );
     }
 
-    return { missingHooks, sampleHooks };
+    return { violations, suggestions, statuses };
   }
 
   private static getHookStatus(

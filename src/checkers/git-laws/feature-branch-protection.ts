@@ -3,7 +3,7 @@
  * CodeNamingAnalyzer: Ensures feature branches follow naming conventions and protection rules
  */
 
-import { execSync } from 'child_process';
+import { execSync } from '../../utils/child-process';
 import type { RuleOfCodeConfig } from '../../config/types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils';

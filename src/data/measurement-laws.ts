@@ -10,6 +10,7 @@
  */
 
 import { LATENCY_BUDGET_FILES } from '../checkers/measurement-laws/latency-budget-harness-realism';
+import { REQUIRES_OTEL_SDK } from '../checkers/measurement-laws/tracing-explains-latency';
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
 
@@ -52,5 +53,43 @@ export const MEASUREMENT_LAWS: EnhancedConstitutionalLaw[] = [
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article VII.7.38: Latency budget measured one request at a time, without network delay or baseline',
     remediation: 'Add a concurrent scenario, inject network delay against the emulator, and record a baseline to compare with',
+  },
+
+  {
+    id: generateLawId(
+      'Tracing Explains Latency',
+      'OpenTelemetry tracing chooses its sampler explicitly and instruments the database clients the project uses',
+      'measurement'
+    ),
+    legacyId: 890,
+    article: 'VI',
+    subsection: '6.27',
+    title: 'Tracing Explains Latency',
+    rationale:
+      "OpenTelemetry can be installed and exporting and still unable to say where a slow request's time went. With no sampler chosen, the SDK default parentbased_always_on follows the caller's sampled flag whenever a trace context arrives, and a platform front end that forwards mostly unsampled contexts leaves most requests without a trace although their log lines carry a trace id. Without instrumentation for the database client, spans stop at the HTTP layer and the time spent in database calls is one opaque server span.",
+    satisfiedBy: {
+      typescript:
+        'Pass sampler: new ParentBasedSampler({ root: new TraceIdRatioBasedSampler(r) }) to NodeSDK, or set OTEL_TRACES_SAMPLER in the deployed environment; declare the instrumentation for each database client (or @opentelemetry/auto-instrumentations-node).',
+      python:
+        'Pass sampler= to TracerProvider, or set OTEL_TRACES_SAMPLER in the deployed environment; declare the instrumentation for each database client (opentelemetry-instrumentation-grpc for the Google Cloud gRPC clients, -sqlalchemy, -psycopg, -asyncpg, -pymongo, -redis, …) or run opentelemetry-bootstrap.',
+    },
+    detectionLimits: [
+      'Selected where opentelemetry-sdk or opentelemetry-distro (Python manifests), or @opentelemetry/sdk-node, sdk-trace-node, sdk-trace-base or sdk-trace (package.json) is declared; a vendor distribution that bundles the SDK under another name does not select it.',
+      'A sampler counts per setup file: a file that constructs TracerProvider / NodeSDK / NodeTracerProvider / BasicTracerProvider counts as sampled when it mentions sampler= / sampler: or a built-in sampler class anywhere. OTEL_TRACES_SAMPLER given a value in any non-test file (env, Dockerfile, YAML, TOML, JSON, shell, code) counts for the whole repository — which service a deploy file belongs to is not checked.',
+      "Instrumentation counts when declared in a manifest — not whether it is activated (instrument() / registerInstrumentations), and not a client's own built-in tracing (some database and cloud clients emit spans themselves when enabled). opentelemetry-bootstrap mentioned in any file counts as instrumenting every Python client.",
+      "The client table is fixed: Python google-cloud-firestore, google-cloud-datastore, sqlalchemy, psycopg2(-binary), psycopg, asyncpg, aiopg, pymysql, mysqlclient, mysql-connector-python, pymongo, redis; Node mongodb, mongoose, pg, mysql, mysql2, ioredis, redis, tedious, knex, @google-cloud/firestore, @google-cloud/datastore, @prisma/client. A client reached only through a wrapper (firebase-admin's Firestore, an ORM over an undeclared driver) is not seen.",
+    ],
+    emoji: '🔭',
+    description: 'OpenTelemetry tracing chooses its sampler explicitly and instruments the database clients the project uses',
+    priority: 'MEDIUM',
+    category: 'PERFORMANCE',
+    requires: REQUIRES_OTEL_SDK,
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'TracingExplainsLatencyLaw.check',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article VI.6.27: Tracing on the default sampler, or a database client without instrumentation',
+    remediation: 'Choose the sampler in code or OTEL_TRACES_SAMPLER, and declare instrumentation for each database client',
   },
 ];

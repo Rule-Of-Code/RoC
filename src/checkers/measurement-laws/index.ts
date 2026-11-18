@@ -4,3 +4,4 @@
  */
 
 export { LatencyBudgetHarnessRealismLaw } from './latency-budget-harness-realism';
+export { TracingExplainsLatencyLaw } from './tracing-explains-latency';

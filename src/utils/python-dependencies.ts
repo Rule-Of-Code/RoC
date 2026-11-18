@@ -207,16 +207,20 @@ function namesIn(file: string, content: string): string[] {
   return readRequirementsTxt(content);
 }
 
-/** Every Python distribution any manifest in the project declares (PEP 503 names). */
-export function declaredPythonDependencies(projectRoot: string): Set<string> {
-  const names = new Set<string>();
-  const files = glob.sync(MANIFEST_GLOB, {
+/** The Python manifests this module reads (absolute paths). */
+export function pythonManifestFiles(projectRoot: string): string[] {
+  return glob.sync(MANIFEST_GLOB, {
     cwd: projectRoot,
     absolute: true,
     nodir: true,
     ignore: IGNORE,
   });
-  for (const file of files) {
+}
+
+/** Every Python distribution any manifest in the project declares (PEP 503 names). */
+export function declaredPythonDependencies(projectRoot: string): Set<string> {
+  const names = new Set<string>();
+  for (const file of pythonManifestFiles(projectRoot)) {
     let content: string;
     try {
       content = fs.readFileSync(file, 'utf8');

@@ -216,6 +216,7 @@ import {
 // Measurement Laws Modular Imports — latency budget harness, tracing, test-server loopback
 import {
   LatencyBudgetHarnessRealismLaw,
+  TracingExplainsLatencyLaw,
 } from '../checkers/measurement-laws';
 // React Laws Modular Imports — gated by `requires` on react / next
 import {
@@ -641,6 +642,7 @@ export class ModularLawsRegistry {
 
     // Measurement Laws (latency budget harness, tracing, test-server loopback)
     'LatencyBudgetHarnessRealismLaw.check': LatencyBudgetHarnessRealismLaw,
+    'TracingExplainsLatencyLaw.check': TracingExplainsLatencyLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

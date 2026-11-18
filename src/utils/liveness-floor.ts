@@ -105,6 +105,6 @@ export function describeLivenessFloor(floor: LivenessFloor, narrowedBy?: LawNarr
     case 'narrowed':
       return `floor 0 — narrowed by ${narrowedBy ?? 'laws.enabled'}; set laws.minLawsChecked`;
     default:
-      return `floor ${floor.floor} — default 25% of ${floor.applicableLaws} stack-applicable laws (counted before waivers)`;
+      return `floor ${floor.floor} — default 25% of ${floor.applicableLaws} stack-applicable laws (meta-gates included, counted before waivers)`;
   }
 }

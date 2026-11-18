@@ -214,7 +214,7 @@ function assertLivenessLine(cell: Cell, run: AuditRun): void {
   if (cell.outcome === 'refused') return; // the refusal prints its own floor
   const { floor, applicableLaws } = run.json.scope.liveness;
   const expected = {
-    'default-25%': `floor ${floor} — default 25% of ${applicableLaws} stack-applicable laws (counted before waivers)`,
+    'default-25%': `floor ${floor} — default 25% of ${applicableLaws} stack-applicable laws (meta-gates included, counted before waivers)`,
     'laws.minLawsChecked': `floor ${floor} — laws.minLawsChecked`,
     narrowed: `floor 0 — narrowed by ${cell.narrowedBy}; set laws.minLawsChecked`,
   }[cell.floorSource];

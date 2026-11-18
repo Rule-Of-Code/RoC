@@ -34,7 +34,7 @@ interface Mode {
   liveness: string;
 }
 
-const DEFAULT_FLOOR = 'floor 20 — default 25% of 80 stack-applicable laws (counted before waivers)';
+const DEFAULT_FLOOR = 'floor 20 — default 25% of 80 stack-applicable laws (meta-gates included, counted before waivers)';
 const MODES: Mode[] = [
   { name: 'full', mode: 'full', laws: {}, verdict: 'compliance', liveness: DEFAULT_FLOOR },
   { name: 'pre-commit', mode: 'pre-commit', laws: {}, verdict: 'compliance', liveness: DEFAULT_FLOOR },

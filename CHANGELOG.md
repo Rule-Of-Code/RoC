@@ -129,8 +129,10 @@ No victory art when anything was waived; a partial scan says
 `(narrowed by X; W waived)`. **The exit code is unchanged in every case.** A
 project with no waivers prints what it printed before, plus one line: Audit
 Liveness now states its floor and where it comes from on a pass too —
-`Audit Liveness: floor 20 — default 25% of 80 stack-applicable laws (counted
-before waivers)`, or `— laws.minLawsChecked`, or `floor 0 — narrowed by …`.
+`Audit Liveness: floor 20 — default 25% of 80 stack-applicable laws (meta-gates
+included, counted before waivers)`, or `— laws.minLawsChecked`, or
+`floor 0 — narrowed by …`. The 80 includes the two always-on meta-gates; the
+summary's "count for the liveness floor" (the laws selected) does not.
 
 The JSON (`--json` and `--export json`) gains:
 

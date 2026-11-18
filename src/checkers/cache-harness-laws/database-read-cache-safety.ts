@@ -125,6 +125,7 @@ export class DatabaseReadCacheSafetyLaw extends LawBase {
       readFilesContaining(projectRoot, entry, ignores)
     );
     const sources = sourcesFromFiles(projectRoot, subject);
+    const filesRead = sources.counts.python + sources.counts.typescript;
     const graph = new ModuleGraph(sources.modules, clients);
     const caches = findCaches(sources.modules, { clients, graph });
     const dbCaches = caches.filter(holdsDatabaseReads);
@@ -165,16 +166,19 @@ export class DatabaseReadCacheSafetyLaw extends LawBase {
         'Clear it on every write path of the collections it holds (any non-GET request, or the writes themselves)',
         'Never read authorization state (active, suspended, roles) through a cache; key per-user reads by the user id',
       ],
-      judged: caches.length,
-      nothingJudged:
+      filesRead,
+      nothingRead:
         sources.unread.length > 0
           ? sources.unread.join('; ')
-          : `no in-process cache found in the ${subject.length} file(s) that selected the law (the match was in a comment or a string)`,
-      passSummary: `${caches.length} in-process cache(s) found in ${subject.length} file(s), ${dbCaches.length} of them holding database reads, each with an expiry, a size bound, invalidation on a write path, no authorization use and a key that carries the user`,
+          : 'no file that selected the law could be read',
+      judged: caches.length,
+      noSubject:
+        '0 in-process caches (the selecting text was in a comment, a string or another shape) — nothing to judge',
+      passSummary: `${caches.length} in-process cache(s) found in ${filesRead} file(s), ${dbCaches.length} of them holding database reads, each with an expiry, a size bound, invalidation on a write path, no authorization use and a key that carries the user`,
       notSeen:
         'not seen: caches held in other shapes (a class wrapping a dict under another name, functools.cached_property), reads through a client the registry does not list, and write paths more than one call away from the invalidation',
       metrics: {
-        filesRead: subject.length,
+        filesRead,
         referenceFiles: references.length,
         caches: caches.length,
         databaseReadCaches: dbCaches.length,

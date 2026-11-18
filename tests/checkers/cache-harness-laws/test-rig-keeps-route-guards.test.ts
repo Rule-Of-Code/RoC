@@ -209,10 +209,20 @@ TestBed.configureTestingModule({ providers: [provideRouter(testRoutes)] });
     ]);
   });
 
-  it('judged nothing when the selecting text holds no router setup (a comment)', () => {
+  it('the selecting text holds no router setup (a comment): a pass with the counter, never judged nothing', () => {
     const commented =
       "// provideRouter([{ path: 'items' }]) was replaced by the harness\nexport const x = { path: 'y' };\n";
     const result = run({ 'src/app/notes.spec.ts': commented });
+    expect(result.judgedNothing).toBeUndefined();
+    expect(result.passed).toBe(true);
+    expect(result.message).toMatch(
+      /1 file\(s\) read, 0 router setups .* — nothing to judge/
+    );
+    expect(result.metrics).toMatchObject({ filesRead: 1, routerSetups: 0 });
+  });
+
+  it('judged nothing only when no test file could be read', () => {
+    const result = run({});
     expect(result.passed).toBe(false);
     expect(result.judgedNothing).toBe(true);
   });

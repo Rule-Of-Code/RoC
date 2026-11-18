@@ -5,6 +5,7 @@
 import { ProxyTargetKeepsOriginHostLaw } from '../../../src/checkers/edge-deploy-laws/proxy-target-keeps-origin-host';
 import { EDGE_DEPLOY_SECURITY_LAWS } from '../../../src/data/edge-deploy-security-laws';
 import { lawRequirementsMet } from '../../../src/utils/law-requirements';
+import * as tsxSource from '../../../src/utils/react/tsx-source';
 import { repo } from '../../utils/git-fixture';
 import { ctx, project, removeProjects } from '../toolkit-fixture';
 
@@ -168,6 +169,49 @@ describe('#362 — selection is the subject, and the gate set is the read set', 
   it('ignores.global: the file is neither a selector nor judged', () => {
     const root = project({ 'legacy/worker.ts': WORKER_RED });
     expect(lawRequirementsMet(LAW?.requires, root, ['legacy/**'])).toBe(false);
+  });
+
+  it('selected by the gate, but no URL with a base in the code (inside a block comment) → a pass with the counter', () => {
+    const files = {
+      'src/w.ts':
+        "/* example:\n   new URL(path, base) */\nexport const r = fetch('/x');\n",
+    };
+    expect(lawRequirementsMet(LAW?.requires, project(files))).toBe(true);
+    const result = check(files);
+    expect(result.passed).toBe(true);
+    expect(result.judgedNothing).not.toBe(true);
+    expect(result.metrics).toMatchObject({ filesRead: 1, judged: 0 });
+  });
+
+  it('the one exception: TypeScript cannot be loaded for the JS/TS files → judged nothing', () => {
+    const spy = jest.spyOn(tsxSource, 'loadTypeScript').mockReturnValue(null);
+    try {
+      const result = check({ 'src/worker.ts': WORKER_RED });
+      expect(result.judgedNothing).toBe(true);
+      expect(result.passed).toBe(false);
+      expect(result.suggestions?.join(' ')).toMatch(
+        /could not load the 'typescript' package/
+      );
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('without TypeScript, a Python file still judged makes it a pass that lists the unread files', () => {
+    const spy = jest.spyOn(tsxSource, 'loadTypeScript').mockReturnValue(null);
+    try {
+      const py =
+        'from urllib.parse import urljoin\nimport httpx\nhttpx.get(urljoin(ORIGIN, "/health"))\n';
+      const result = check({ 'src/worker.ts': WORKER_RED, 'app/h.py': py });
+      expect(result.passed).toBe(true);
+      expect(result.metrics).toMatchObject({
+        filesRead: 2,
+        judged: 1,
+        notJudged: 1,
+      });
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('no file read → judged nothing, never a pass', () => {

@@ -6,8 +6,9 @@
  * what a script writes to disk. None of it shows in a unit test: each is a
  * property of the configuration or of one line that builds a URL. Each law
  * is selected only where its subject is in the files git publishes, reports
- * every finding file and line, and says it judged nothing when it could not
- * read its subject. legacyId range: 895–899.
+ * every finding file and line, and passes a read with its counts (what it
+ * could not judge listed as notes, never as a violation); it says it judged
+ * nothing only when its parser cannot be loaded. legacyId range: 895–899.
  */
 
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';

@@ -180,10 +180,12 @@ export class PerfHarnessMatchesProductionLaw extends LawBase {
         'Start the app under test with the log level production runs (INFO): --log-level info, or the production LOG_LEVEL',
         'Profile with a sampler that sees every thread: py-spy record (add --threads for per-thread stacks), or yappi with profile_threads left on',
       ],
+      filesRead: files.length,
+      nothingRead: 'no perf, benchmark, load or profiling script could be read',
+      // Every script read is judged: its log level lines and its profilers.
       judged: files.length,
-      nothingJudged:
-        'no perf, benchmark, load or profiling script could be read',
-      passSummary: `${files.length} perf script(s) read; ${debug.length} DEBUG/TRACE log level setting(s), ${pinned.length} setting(s) at a production level${debug.length > 0 && pinned.length > 0 ? ' (a harness pins the production level, so the DEBUG runs are not the measuring ones)' : ''};${profilers.length} single-thread profiler use(s), ${threadAware} file(s) with a thread-aware profiler; threaded client(s) declared: ${threaded.length === 0 ? 'none' : threaded.join(', ')}`,
+      noSubject: '',
+      passSummary: `${files.length} perf script(s) read; ${debug.length} DEBUG/TRACE log level setting(s), ${pinned.length} setting(s) at a production level${debug.length > 0 && pinned.length > 0 ? ' (a harness pins the production level, so the DEBUG runs are not the measuring ones)' : ''}; ${profilers.length} single-thread profiler use(s), ${threadAware} file(s) with a thread-aware profiler; threaded client(s) declared: ${threaded.length === 0 ? 'none' : threaded.join(', ')}`,
       notSeen:
         'not seen: a log level set in app code or config the scripts do not name, a level passed through a variable, and profilers other than cProfile, profile, yappi and py-spy',
       metrics: {

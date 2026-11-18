@@ -1,11 +1,13 @@
 /**
  * One verdict shape for the edge and deploy-security laws.
  *
- * A law that read no file of its subject judged nothing. One that read
- * files but could judge none of what it found (every case a note) judged
- * nothing too. One whose files held nothing it takes for its subject (the
- * gate matched a comment) passes and says it found nothing to judge. A pass
- * otherwise counts what it judged, in the message and in `metrics`, and says
+ * A law that read no file of its subject judged nothing (the gate does not
+ * select it then). A read of one or more files is a pass unless a finding
+ * says otherwise — also when every case it found is a note it could not
+ * judge (listed, with the counts), and when the files held nothing it takes
+ * for its subject (the gate matched a comment). "Nothing was judged" is
+ * never a violation, except when the parser the law needs cannot be loaded.
+ * A pass counts what it judged, in the message and in `metrics`, and says
  * what it does not see — "compliance verified" alone would claim more.
  */
 
@@ -35,6 +37,8 @@ export interface Conclusion {
   notSeen: string;
   recommendations: string[];
   metrics?: Record<string, number>;
+  /** The parser the law needs could not be loaded — the one case a read with nothing judged is "judged nothing". */
+  parserUnavailable?: boolean;
 }
 
 export abstract class EdgeDeployLawBase extends LawBase {
@@ -70,17 +74,18 @@ export abstract class EdgeDeployLawBase extends LawBase {
   }
 
   private static unjudged(context: LawCheckContext, c: Conclusion): LawResult {
-    if (c.filesRead > 0 && c.tally.notes.length === 0) {
+    if (c.filesRead > 0 && !c.parserUnavailable) {
       const result = this.createResult([], c.name, c.category, [], context);
-      return {
-        ...result,
-        message: `${c.name}: ${c.filesRead} file(s) read, none holds ${c.subject} this law can judge (what selected it is not one here, e.g. a commented-out line)`,
-      };
+      const message =
+        c.tally.notes.length === 0
+          ? `${c.name}: ${c.filesRead} file(s) read, none holds ${c.subject} this law can judge (what selected it is not one here, e.g. a commented-out line)`
+          : `${c.name}: ${c.filesRead} file(s) read, 0 ${c.unit}; ${c.tally.notes.length} case(s) not judged (listed in the notes) — no finding`;
+      return withNotes({ ...result, message }, c.tally.notes);
     }
     const why =
       c.filesRead === 0
         ? `read no file with ${c.subject}`
-        : `read ${c.filesRead} file(s) with ${c.subject} but could judge none of it (see the notes)`;
+        : `could not parse the ${c.filesRead} file(s) it read (see the notes)`;
     const result = this.createResult(
       [`${c.name} ${why} — this law judged nothing`],
       c.name,

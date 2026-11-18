@@ -1,0 +1,170 @@
+🏛️  RuleOfCode v<version> — constitutional audit
+🏛️  FULL MODE — the whole applicable law set will run.
+   The executed count is reported below, after config selection.
+
+🔍 Starting constitutional audit...
+Project: <root>
+Mode: pre-push
+Project type: typescript (detected)
+
+⚠️  Warning: Missing git hooks: All hooks - .husky directory not found
+   Run 'npx ruleofcode reinstall-hooks' to install them
+
+⚖️  Executing constitutional checks...
+🔍 Processing 80 laws (parallel: true)
+
+
+════════════════════════════════════════════════════════════
+   🏛️  CONSTITUTIONAL AUDIT RESULTS
+════════════════════════════════════════════════════════════
+
+📊 AUDIT SUMMARY:
+────────────────────────────────────────────────────────────
+Total Laws Checked: 80
+  of which count for the liveness floor: 78 (+2 always-on meta-gates — set laws.minLawsChecked against 78)
+
+✓ Passed: 80
+✗ Failed: 0
+Score: 100% (Pass Rate: 100%)
+Execution time: <n>ms
+
+✅ PASSED CONSTITUTIONAL LAWS:
+────────────────────────────────────────────────────────────
+
+1. Zero Tolerance Doctrine (SACRED LAW) (Score: 100/100)
+2. Investment-Grade Quality (SACRED LAW) (Score: 100/100)
+3. TypeScript Strict Mode (SACRED LAW) (Score: 100/100)
+4. Constitutional Supremacy Doctrine (Score: 100/100)
+5. Professional Excellence Mandate (Score: 100/100)
+6. Automation First Principle (Score: 100/100)
+7. Continuous Compliance Doctrine (Score: 100/100)
+8. Absolute Zero Tolerance Doctrine (Score: 100/100)
+9. NX Commands Only Policy (Score: 100/100)
+10. Code Documentation Standards (Score: 100/100)
+11. Code Complexity Control (Score: 100/100)
+12. Naming Convention Enforcement (Score: 100/100)
+13. Dead Code Elimination (Score: 100/100)
+14. Magic Number Prevention (Score: 100/100)
+15. Code Duplication Control (Score: 100/100)
+16. Error Handling Completeness (Score: 100/100)
+17. No Explicit Any / Non-Null Assertion (Score: 100/100)
+18. No Double Cast (Score: 100/100)
+19. Typed HTTP Boundaries (Score: 100/100)
+20. Prefer Union Over Enum (Score: 100/100)
+21. Centralized Logging (Score: 100/100)
+22. Branch Governance Standards (Score: 100/100)
+23. Commit Message Standards (Score: 100/100)
+24. Commit Description Standards (Score: 100/100)
+25. Pull Request Workflow Standards (Score: 100/100)
+26. Git Ignore Standards (Score: 100/100)
+27. Git Hooks Standards (Score: 100/100)
+28. Branch Protection Standards (Score: 100/100)
+29. Git History Integrity (Score: 100/100)
+30. Feature Branch Protection (Score: 100/100)
+31. Commit Size Control (Score: 100/100)
+32. Merge Conflict Prevention (Score: 100/100)
+33. Release Tag Standards (Score: 100/100)
+34. Code Review Quality (Score: 100/100)
+35. Git Hook Compliance (Score: 100/100)
+36. Semantic Versioning Standards (Score: 100/100)
+37. Constitutional Compliance Headers (Score: 100/100)
+38. Environment Variables Policy (Score: 100/100)
+39. Environment Security Enforcement (Score: 100/100)
+40. Security Vulnerability Response (Score: 100/100)
+41. Data Encryption Standards (Score: 100/100)
+42. Authentication Security (Score: 100/100)
+43. API Security Testing Requirements (Score: 100/100)
+44. API Security Standards (Score: 100/100)
+45. Dependency Security Scanning (Score: 100/100)
+46. Comprehensive Security Testing Requirements (Score: 100/100)
+47. Performance Monitoring Standards (Score: 100/100)
+48. Memory Leak Prevention (Score: 100/100)
+49. Database Query Optimization (Score: 100/100)
+50. CDN and Caching Strategy (Score: 100/100)
+51. Test Coverage Constitutional Standard (Score: 100/100)
+52. E2E Testing Standards (Score: 100/100)
+53. Unit Test Quality Standards (Score: 100/100)
+54. Test Data Management (Score: 100/100)
+55. Test Isolation Enforcement (Score: 100/100)
+56. API Testing Standards (Score: 100/100)
+57. Test Documentation Requirements (Score: 100/100)
+58. Jest Unit Test 100% Coverage Mandate (Score: 100/100)
+59. Pre-Deployment Checklist (MANDATORY) (Score: 100/100)
+60. CI/CD Constitutional Tribunal (Score: 100/100)
+61. Launch Readiness Checklist (Score: 100/100)
+62. Pre-PR Quality Gates (Score: 100/100)
+63. Automated Code Quality Gates (Score: 100/100)
+64. Environment Parity Standards (Score: 100/100)
+65. Health Check Monitoring (Score: 100/100)
+66. Documentation Standards (Score: 100/100)
+67. Project Structure Standards (Score: 100/100)
+68. MD Footer Template (MANDATORY) (Score: 100/100)
+69. TODO Management Constitutional Requirements (Score: 100/100)
+70. TODO Management Standards (Score: 100/100)
+71. MD Footer Footer Consistency (Score: 100/100)
+72. Strategic Document Updates (Score: 100/100)
+73. Error Handling Standards (Score: 100/100)
+74. Incident Response Protocol (Score: 100/100)
+75. Audit Liveness Assertion (Score: 100/100)
+76. Config Integrity Guard (Score: 100/100)
+77. Golden Fixture Immutability (Score: 100/100)
+78. Guard Function Has Production Caller (Score: 100/100)
+79. Tsconfig Exclude Leaves Code Untyped (Score: 100/100)
+80. Test Server Loopback Address Match (Score: 100/100)
+
+════════════════════════════════════════════════════════════
+✅ CONSTITUTIONAL COMPLIANCE: PASSED
+════════════════════════════════════════════════════════════
+
+
+                        ::
+                        ;.::                               ::
+                         :.::                            ::::
+                         ::.:;  .;                      :::::
+                          ;...;x . +;+:.              ::::::
+                        ;::;;;;X .::+;;;::;         .:::::;:
+                      :::+;;+++X+  ;++;;;::;       :.:::::::                            .:
+                     +:;+;;+;;;      ;+;+: ::    :..:. :::::                         ::...
+                    ;;++;;++++;       +;+:.:;  :....  ::::::                    .::.  .:
+                      +;;+x.   .      ;+;:::.;. ..  .:: :::.            .::....    .:;:
+                      :x;   X:;       ;;;:::..;..  .:  .;;;     ..::..      ...::;:::::
+                      :      +;       +;:::...:  .:.    .:;;..       ...  ::::::::::
+                     ;          ..    +;::...:;+..  .:..;.    .::;:..  ..::::::::::::
+                    :                 +;::..;:;;; .:..:.  .:::.  ...:..;:::::::::::
+                   ;               :  ;;;;..;::;;;. .;   ;:...:..  ...::::::::::::
+                   ;:.   .   :;:;      :+;;;x::;;: .:   .::.  ..::...:::::::::::.
+                    :   .. :   ;       :+;:;:::;;:.;.  :::       ..:::::::::::
+                              :       ;+;:;:::;;;:;.  ::.. .::.... :::::::::::
+                            :       ;+;:;;:::+;;+:  .;:.     ...::;::::::::
+               :;;         ;      ;+;:;;;:::;;;+.  .:..  .....  .::::::::::
+              :     :     x;     ;;;X;;;:::;;+;   ::.   .....:;;:::::::..
+            :    .    :  :.+;:  ++. ;;;:::++;   ::.  ..... . .:::::::::
+                .+      ;  :;;;+Xx;x;;:::+;  .::.  . ...  .:::::::;:
+           :    : :.    ;          +;;:;;. ...     ..  ..::::::::::
+           :   :    :  ..          :;;:  :   . .:.. ..++;::::::
+          :.  .;:     .+:           ;;:   .:  .:. .:;::::::
+          ::::;;+     .;             ;+     .:.::....:;:: :
+           :+x+:  ;                                        ;+++++
+                ;                                   :;;    :+:..++++
+               .   :;::;+++++:.                            : .+..;++;
+              :   ;          ::                 :;;   ::   : ;+..;+++
+             .   :              ::              .:;       ++;::.:+++
+             +   .                 .;..                 ++;;:;..++;;
+             +  ;;X                   :   ::;:        ;+;;;:;..+++x
+             +;:;++                   .     :.       ;+;;;;:...++;;.
+             +:;++                     .     ;       X;;;;;::..;+;;;;;
+              ;;                       ..    :       X;;;;;:. ...++;;;;;+:
+                                        :    .+      x;;;;+;;:::...:+++;;;;;:
+                                        ;   :  :     .+;;;;;;;::::... :+++;;;+.
+                                       .   .     .    ;x;;;;;;;;;:::.....;++;:+
+                                      :    :     ..   .  ++;;;;;;;;:::.....+;  ;
+                                     x     .      :   :     ;x+;;;;;;::... :+;:;.
+                                     +:::++:     :    :         :++;;;:;....+;;+
+                                      ;+++x:    .    ..            :x;:;...:+;;;
+                                                ;    :      +.     .;;:... +;;;
+                                               :;::;++      ;..::;++:....:+;;+
+                                                :+;;+;       +;........;+;;+
+                                                               :+++++++++.
+
+
+

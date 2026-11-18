@@ -3,6 +3,25 @@
  */
 
 import type { RuleOfCodeConfig } from "../../types";
+import type { LivenessFloor } from '../../utils/liveness-floor';
+
+/**
+ * The one-word answer of a run (#350), for badges and CI steps. `compliance`
+ * is a clean pass of every law that applies; `compliance-with-waivers` passed
+ * with `laws.notApplicable` waivers (named in `scope.waivedLaws`); `partial`
+ * passed a narrowed subset; `failed` and `refused` say what they say. The exit
+ * code does not depend on it: 0 for the three passes, 1 otherwise, as before.
+ */
+export type AuditVerdict = 'compliance' | 'compliance-with-waivers' | 'failed' | 'partial' | 'refused';
+
+/** A law `laws.notApplicable` took out of the run, with the reason given. */
+export interface WaivedLaw {
+  /** Canonical registry title. */
+  law: string;
+  lawId: string;
+  /** The reason, trimmed. */
+  reason: string;
+}
 
 export interface AuditResult {
   passed: boolean;
@@ -38,6 +57,8 @@ export interface AuditResult {
   project?: AuditProjectType;
   /** How much of the applicable law set ran, and whether that is partial (#348). */
   scope?: AuditScope;
+  /** The run's verdict (#350); exported as the top-level `verdict` of the JSON. */
+  verdict?: AuditVerdict;
   results: Map<string, unknown>;
   duration: number;
   paretoMode: boolean;
@@ -70,12 +91,29 @@ export interface AuditScope {
   executedLaws: number;
   /** Substantive laws the config selected — what the liveness floor and "partial" compare. */
   selectedLaws: number;
-  /** Substantive laws that apply with no allowlist and no Pareto — the "M" in "N of M". */
+  /** Substantive laws that apply with no allowlist and no Pareto, after waivers — the "M" in "N of M". */
   applicableLaws: number;
+  /** The same count before `laws.notApplicable`: `applicableLaws + waivedLaws.length` (#350). */
+  applicableBeforeWaivers: number;
+  /**
+   * The laws `laws.notApplicable` took out of the run, by name and reason,
+   * sorted by `law` (#350). Only laws that would otherwise run: a key naming
+   * no law, an ambiguous key, a law already gated off by stack or
+   * requirement, a meta-gate and an entry with no reason waive nothing and are
+   * not listed. Counted against the OPEN selection, so a waived law that an
+   * allowlist would also have dropped is still listed.
+   */
+  waivedLaws: WaivedLaw[];
   /** What narrowed the run, if anything. `laws.notApplicable` waivers do not: they change what applies. */
   narrowedBy: 'laws.enabled' | 'paretoMode' | undefined;
   /** Narrowed AND fewer laws selected than apply: no compliance verdict is printed. Always false on a refusal (no law ran; see `refused`). */
   partial: boolean;
+  /**
+   * The Audit Liveness floor and its source (#350). Its `applicableLaws` (L)
+   * is counted from the registry BEFORE waivers and WITH the meta-gates, so
+   * it is not M: on a plain config L = applicableBeforeWaivers + meta-gates.
+   */
+  liveness: LivenessFloor;
 }
 
 export interface AuditProjectType {

@@ -401,6 +401,14 @@ export interface RuleOfCodeConfig {
     performance?: {
       /** Maximum module lines before requiring lazy loading */
       maxModuleLines?: number;
+      /**
+       * Startup Request Fan-Out: the most HTTP requests one component may
+       * start synchronously from its opening hooks (constructor, ngOnInit,
+       * ionViewWillEnter), directly or through one service method. More is a
+       * finding. Default 4. A value that is not a whole number of 1 or more
+       * is reported, never replaced by the default.
+       */
+      maxStartupRequests?: number;
     };
     angular?: {
       /** Maximum signal mutations before suggesting refactoring */

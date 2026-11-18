@@ -13,68 +13,46 @@
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { ALL_ENHANCED_CONSTITUTIONAL_LAWS } from '../../data/enhanced-laws';
-import { lawAppliesToProjectType, runsWithoutAllowlist } from '../../utils/law-identity';
-import { lawRequirementsMet } from '../../utils/law-requirements';
+import { describeLivenessFloor, livenessFloorOf, narrowingOf } from '../../utils/liveness-floor';
 import { LawBase } from '../law-base';
 
 export class AuditLivenessLaw extends LawBase {
   private static readonly LAW_NAME = 'Audit Liveness Assertion';
-  /** Default floor: 25% of the registry laws applicable to this stack. */
-  private static readonly DEFAULT_FLOOR_RATIO = 0.25;
 
   static check(context: LawCheckContext): LawResult {
     const { config } = context;
-    const laws = config.laws as {
-      minLawsChecked?: number;
-      __plannedLawCount?: number;
-      enabled?: Record<string, boolean>;
-      paretoMode?: boolean;
-    };
-    const planned = laws.__plannedLawCount;
+    const planned = (config.laws as { __plannedLawCount?: number }).__plannedLawCount;
+    if (typeof planned !== 'number') return this.result([], context);
 
-    // A laws.enabled allowlist or paretoMode is a DELIBERATE narrowing — the
-    // default 25% floor would punish an explicit choice. In those modes the
-    // project declares its own floor via laws.minLawsChecked (which the engine
-    // enforces as a hard refusal). Everywhere else, a low count means
-    // something collapsed, and that is what this law is for.
-    const deliberatelyNarrowed =
-      laws.enabled !== undefined || laws.paretoMode === true;
-
-    const violations: string[] = [];
-    if (typeof planned === 'number') {
-      const projectType = config.project?.type;
-      // Requirement-gated laws (Ionic, Capacitor) count only where the project
-      // declares their subject — the same rule the selector applies, so the
-      // floor is a fraction of what can actually run. An opt-in law
-      // (`defaultEnabled: false`) counts when its severity turns it on — the
-      // selector's own rule, so the floor and the run never disagree.
-      const severity = (config.laws as { severity?: Record<string, unknown> }).severity;
-      const applicable = ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(
-        l =>
-          runsWithoutAllowlist({ name: l.title, id: l.id, defaultEnabled: l.defaultEnabled }, severity) &&
-          lawAppliesToProjectType(l.stack, projectType, context.projectRoot, l, config.ignores?.global) &&
-          lawRequirementsMet(l.requires, context.projectRoot)
-      ).length;
-      const defaultFloor = deliberatelyNarrowed
-        ? 0
-        : Math.max(
-            1,
-            Math.ceil(AuditLivenessLaw.DEFAULT_FLOOR_RATIO * applicable)
-          );
-      const floor = laws.minLawsChecked ?? defaultFloor;
-
-      if (planned < floor) {
-        violations.push(
-          `Audit is executing only ${planned} laws — below the liveness floor of ${floor} (${
-            laws.minLawsChecked !== undefined
+    // The floor and its source come from the one function the engine also
+    // reports in scope.liveness, so the number printed is the number judged.
+    // A laws.enabled allowlist or paretoMode is a DELIBERATE narrowing: the
+    // default 25% would punish an explicit choice, so there the project sets
+    // laws.minLawsChecked (which the engine enforces as a hard refusal).
+    const floor = livenessFloorOf(config, context.projectRoot);
+    if (planned < floor.floor) {
+      return this.result(
+        [
+          `Audit is executing only ${planned} laws — below the liveness floor of ${floor.floor} (${
+            floor.floorSource === 'laws.minLawsChecked'
               ? 'laws.minLawsChecked'
-              : `default 25% of ${applicable} stack-applicable laws`
-          }). A collapsed law selection is a disarmed gate, not compliance.`
-        );
-      }
+              : `default 25% of ${floor.applicableLaws} stack-applicable laws`
+          }). A collapsed law selection is a disarmed gate, not compliance.`,
+        ],
+        context
+      );
     }
 
+    // A pass names the floor it passed, and where the floor comes from: "compliance
+    // verified" alone left the floor in effect invisible (#350).
+    const passed = this.result([], context);
+    return {
+      ...passed,
+      message: `${this.LAW_NAME}: ${planned} laws selected — ${describeLivenessFloor(floor, narrowingOf(config.laws))}`,
+    };
+  }
+
+  private static result(violations: string[], context: LawCheckContext): LawResult {
     return this.createResult(
       violations,
       this.LAW_NAME,

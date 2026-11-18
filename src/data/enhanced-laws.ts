@@ -9,6 +9,7 @@ import { ANGULAR_LAWS } from './angular-laws';
 import { CAPACITOR_BRIDGE_LAWS } from './capacitor-bridge-laws';
 import { CAPACITOR_LAWS } from './capacitor-laws';
 import { CAPACITOR_NATIVE_LAWS } from './capacitor-native-laws';
+import { CLIENT_DEPLOY_LAWS } from './client-deploy-laws';
 import { CODE_QUALITY_LAWS } from './code-quality-laws';
 import { DEPLOYMENT_LAWS } from './deployment-laws';
 import { DOCUMENTATION_LAWS } from './documentation-laws';
@@ -22,12 +23,14 @@ import { INTEGRITY_LAWS } from './integrity-laws';
 import { IONIC_LAWS } from './ionic-laws';
 import { NEXT_SERVER_LAWS } from './next-server-laws';
 import { IONIC_RENDERING_LAWS } from './ionic-rendering-laws';
+import { MEASUREMENT_LAWS } from './measurement-laws';
 import { META_GATE_LAWS } from './meta-gate-laws';
 import { NEXT_CLIENT_LAWS } from './next-client-laws';
 import { PERFORMANCE_LAWS } from './performance-laws';
 import { PYTHON_LAWS } from './python-laws';
 import { REACT_LAWS } from './react-laws';
 import { REACT_SECURITY_LAWS } from './react-security-laws';
+import { REQUEST_PATH_LAWS } from './request-path-laws';
 import { SACRED_LAWS } from './sacred-laws';
 import { SECURITY_LAWS } from './security-laws';
 import { TEST_INTEGRITY_LAWS } from './test-integrity-laws';
@@ -60,6 +63,9 @@ export const ALL_ENHANCED_CONSTITUTIONAL_LAWS: EnhancedConstitutionalLaw[] = [
   ...REACT_SECURITY_LAWS, // 🧯 React security laws (frontend, requires react / next; IDs 581+)
   ...CAPACITOR_NATIVE_LAWS, // 🤖 Capacitor native-shell laws (frontend, + the platform package; IDs 431+)
   ...CAPACITOR_BRIDGE_LAWS, // 🌉 Capacitor bridge laws (frontend, requires @capacitor/core + config; IDs 441+)
+  ...CLIENT_DEPLOY_LAWS, // 🌐 Client start-up and deploy-settings laws (IDs 892+)
+  ...MEASUREMENT_LAWS, // ⏱️ Measurement laws (latency budget harness, tracing, test-server loopback; IDs 889–891)
+  ...REQUEST_PATH_LAWS, // ⏱️ Request-path laws (Python + TS/JS call sites; IDs 886+)
 ];
 
 // Re-export for easy access

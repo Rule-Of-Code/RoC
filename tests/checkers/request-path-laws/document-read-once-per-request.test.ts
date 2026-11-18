@@ -6,6 +6,7 @@
  * different ids; a collection name that is not a literal.
  */
 import { DocumentReadOncePerRequestLaw } from '../../../src/checkers/request-path-laws/document-read-once-per-request';
+import * as tsxSource from '../../../src/utils/react/tsx-source';
 import { ctx, project, removeProjects } from '../toolkit-fixture';
 
 afterAll(removeProjects);
@@ -191,9 +192,51 @@ describe('Document Read Once Per Request (#353)', () => {
     });
   });
 
-  it('a project with no read by literal collection and id has nothing to judge: it says so', () => {
-    const result = check({ 'pyproject.toml': PYPROJECT, 'app/x.py': lines('async def f(q):', '    return [d async for d in q.stream()]') });
-    expect(result.passed).toBe(false);
-    expect(result.violations?.[0]).toMatch(/nothing was judged/);
+  describe('the verdict says what it read', () => {
+    const DYNAMIC_ONLY = {
+      'pyproject.toml': PYPROJECT,
+      'app/__init__.py': '',
+      'app/handlers.py': lines('from app import a, b', '', 'async def get(uid, db, coll):', '    return await a.load(db, coll, uid), await b.load(db, coll, uid)'),
+      'app/a.py': lines('async def load(db, coll, uid):', '    return await db.collection(coll).document(uid).get()'),
+      'app/b.py': lines('async def load(db, coll, uid):', '    return await db.collection(coll).document(uid).get()'),
+    };
+
+    it('a DB client and only dynamic collections: PASS with the counter and what it did not compare, never judged nothing', () => {
+      const result = check(DYNAMIC_ONLY);
+      expect(result.passed).toBe(true);
+      expect(result.judgedNothing).toBeUndefined();
+      expect(result.message).toBe(
+        'Document Read Once Per Request: 4 source file(s) read (4 Python, 0 TS/JS), 0 document reads keyed by a literal collection — nothing to compare; not compared: reads whose collection or id is computed at run time, reads through a repository or wrapper the reader does not resolve, and reads more than one call deep'
+      );
+      expect(result.details).toEqual([result.message]);
+      expect(result.metrics).toEqual({ filesRead: 4, pythonFiles: 4, typescriptFiles: 0, compared: 0 });
+    });
+
+    it('keyed reads and no duplicate: PASS that counts what it compared', () => {
+      const result = check({ ...DYNAMIC_ONLY, 'app/c.py': lines('async def settings(db):', '    return await db.collection("config").document("main").get()') });
+      expect(result.passed).toBe(true);
+      expect(result.message).toMatch(/: 5 source file\(s\) read \(5 Python, 0 TS\/JS\), 1 keyed document read\(s\) compared, no document read twice in one request; not compared: /);
+      expect(result.metrics).toMatchObject({ filesRead: 5, compared: 1 });
+    });
+
+    it('no source file to read: judged nothing, never a pass', () => {
+      const result = check({ 'pyproject.toml': PYPROJECT, 'tests/test_x.py': lines('async def test_x():', '    pass') });
+      expect(result.passed).toBe(false);
+      expect(result.score).toBe(0);
+      expect(result.judgedNothing).toBe(true);
+      expect(result.violations?.[0]).toMatch(/nothing was judged — no source file could be read: the project has no Python or TS\/JS source file outside tests/);
+    });
+
+    it('the TS parser cannot be loaded: judged nothing, saying why', () => {
+      const spy = jest.spyOn(tsxSource, 'loadTypeScript').mockReturnValue(null);
+      try {
+        const result = check({ 'package.json': PACKAGE, 'src/a.ts': 'export const a = 1;\n' });
+        expect(result.passed).toBe(false);
+        expect(result.judgedNothing).toBe(true);
+        expect(result.violations?.[0]).toMatch(/nothing was judged — no source file could be read: 1 TS\/JS file\(s\): could not load the 'typescript' package/);
+      } finally {
+        spy.mockRestore();
+      }
+    });
   });
 });

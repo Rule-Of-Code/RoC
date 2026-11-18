@@ -68,6 +68,8 @@ export function isFetchExpression(text: string, language: ModuleModel['language'
   if (!call || !fetchMethods(call.method)) return false;
   if (ALWAYS_FETCH.has(call.method)) return true;
   if (call.receiver === '') return false;
+  // `….document(id).get()` / `….doc(id).get()` reads one document, not a result set.
+  if (/\.(?:document|doc)\([^()]*\)\s*$/.test(call.receiver)) return false;
   if (awaited) return true;
   return language === 'python' && QUERY_LINK.test(`${call.receiver}.`);
 }
@@ -145,6 +147,16 @@ function tsSites(fn: FunctionModel, isFetch: (t: string) => boolean): Site[] {
   return fn.blocks.flat().flatMap(statement => [...inlineCounts(statement, isFetch), ...localCounts(fn, statement, isFetch)]);
 }
 
+/** The whole-result fetches of a function, each call once whether seen as a call or as an awaited call. */
+function fetchCount(fn: FunctionModel, isFetch: (t: string) => boolean): number {
+  const fetchCalls = new Set<string>();
+  for (const call of fn.calls) if (isFetch(call.text)) fetchCalls.add(`${call.line}:${call.text}`);
+  for (const site of fn.blocks.flat().flatMap(s => s.awaits)) {
+    if (site.call && isFetch(`await ${site.call.text}`)) fetchCalls.add(`${site.call.line}:${site.call.text}`);
+  }
+  return fetchCalls.size;
+}
+
 /** Every count-by-fetch site, and how many whole-result fetches were seen at all. */
 export function scanCountByFetch(modules: readonly ModuleModel[], clients: ProjectClients): { sites: CountByFetch[]; fetches: number } {
   const sites: CountByFetch[] = [];
@@ -154,8 +166,7 @@ export function scanCountByFetch(modules: readonly ModuleModel[], clients: Proje
     const fetchMethod = (m: string): boolean => isFetchAll(m, apis);
     const isFetch = (t: string): boolean => isFetchExpression(t, module.language, fetchMethod);
     for (const fn of module.functions) {
-      fetches += fn.calls.filter(c => isFetch(c.text)).length;
-      fetches += fn.blocks.flat().flatMap(s => s.awaits).filter(a => a.call && isFetch(`await ${a.call.text}`)).length;
+      fetches += fetchCount(fn, isFetch);
       const found = module.language === 'python' ? pythonSites(fn, isFetch) : tsSites(fn, isFetch);
       for (const site of found) {
         sites.push({ rel: module.rel, line: site.line, expression: site.expression, language: module.language, counts: countCalls(apis) });

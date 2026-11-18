@@ -10,11 +10,11 @@
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { markJudgedNothing } from '../../utils/judged-nothing';
 import { describeCountByFetch, scanCountByFetch } from '../../utils/request-path/count-by-fetch';
 import { declaredClients } from '../../utils/request-path/data-clients';
 import { projectSources } from '../../utils/request-path/sources';
 import { LawBase } from '../law-base';
+import { requestPathResult } from './request-path-result';
 
 export class CountWithAggregationLaw extends LawBase {
   static readonly LAW_NAME = 'Count With An Aggregation';
@@ -22,27 +22,21 @@ export class CountWithAggregationLaw extends LawBase {
   static check(context: LawCheckContext): LawResult {
     const sources = projectSources(context);
     const { sites, fetches } = scanCountByFetch(sources.modules, declaredClients(context.projectRoot));
-    if (fetches === 0 && sources.unread.length === 0) {
-      return markJudgedNothing(
-        this.createResult(
-          [
-            `${this.LAW_NAME}: nothing was judged — no whole-result query fetch in ${sources.counts.python} Python and ${sources.counts.typescript} TS/JS source file(s)`,
-          ],
-          this.LAW_NAME,
-          'PERFORMANCE',
-          ['Declare the law not applicable (laws.notApplicable) with a reason if the project runs no queries'],
-          context
-        )
-      );
-    }
-    return this.createResult(
-      [...sources.unread, ...sites.map(describeCountByFetch)],
-      this.LAW_NAME,
-      'PERFORMANCE',
-      [
+    return requestPathResult({
+      lawName: this.LAW_NAME,
+      context,
+      sources,
+      findings: sites.map(describeCountByFetch),
+      suggestions: [
         'Ask the database for the number: a count aggregation (Firestore count() / getCountFromServer, Mongo count_documents / countDocuments, SQL COUNT, an ORM count())',
       ],
-      context
-    );
+      compared: fetches,
+      passSummary:
+        fetches === 0
+          ? 'no whole-result fetch counted — nothing to check'
+          : `${fetches} whole-result fetch(es) checked, none fetched only to be counted`,
+      notSeen:
+        'not checked: counts through a repository method the client registry does not list, and documents counted in a helper the fetch was passed to',
+    });
   }
 }

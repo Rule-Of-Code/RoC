@@ -12,11 +12,15 @@
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { markJudgedNothing } from '../../utils/judged-nothing';
 import { declaredClients } from '../../utils/request-path/data-clients';
 import { describeDuplicateRead, scanDuplicateReads } from '../../utils/request-path/duplicate-reads';
 import { projectSources } from '../../utils/request-path/sources';
 import { LawBase } from '../law-base';
+import { requestPathResult } from './request-path-result';
+
+/** Said with every pass: what the comparison cannot see. */
+const NOT_SEEN =
+  'not compared: reads whose collection or id is computed at run time, reads through a repository or wrapper the reader does not resolve, and reads more than one call deep';
 
 export class DocumentReadOncePerRequestLaw extends LawBase {
   static readonly LAW_NAME = 'Document Read Once Per Request';
@@ -24,28 +28,21 @@ export class DocumentReadOncePerRequestLaw extends LawBase {
   static check(context: LawCheckContext): LawResult {
     const sources = projectSources(context);
     const { duplicates, keyedReads } = scanDuplicateReads(sources.modules, declaredClients(context.projectRoot));
-    if (keyedReads === 0 && sources.unread.length === 0) {
-      return markJudgedNothing(
-        this.createResult(
-          [
-            `${this.LAW_NAME}: nothing was judged — no read of one document by a literal collection and an id in ${sources.counts.python} Python and ${sources.counts.typescript} TS/JS source file(s)`,
-          ],
-          this.LAW_NAME,
-          'PERFORMANCE',
-          ['Declare the law not applicable (laws.notApplicable) with a reason if the project reads no documents by key'],
-          context
-        )
-      );
-    }
-    return this.createResult(
-      [...sources.unread, ...duplicates.map(describeDuplicateRead)],
-      this.LAW_NAME,
-      'PERFORMANCE',
-      [
+    return requestPathResult({
+      lawName: this.LAW_NAME,
+      context,
+      sources,
+      findings: duplicates.map(describeDuplicateRead),
+      suggestions: [
         'Read the document once at the top of the request and pass the value down to the helpers that need it',
         'Or keep it in a request-scoped cache (a dependency scoped to the request, a per-request memo)',
       ],
-      context
-    );
+      compared: keyedReads,
+      passSummary:
+        keyedReads === 0
+          ? '0 document reads keyed by a literal collection — nothing to compare'
+          : `${keyedReads} keyed document read(s) compared, no document read twice in one request`,
+      notSeen: NOT_SEEN,
+    });
   }
 }

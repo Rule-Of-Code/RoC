@@ -6,6 +6,7 @@
  * query.
  */
 import { CountWithAggregationLaw } from '../../../src/checkers/request-path-laws/count-with-aggregation';
+import * as tsxSource from '../../../src/utils/react/tsx-source';
 import { ctx, project, removeProjects } from '../toolkit-fixture';
 
 afterAll(removeProjects);
@@ -115,9 +116,43 @@ describe('Count With An Aggregation (#354)', () => {
     ).toEqual([]);
   });
 
-  it('a project with no query fetch has nothing to judge: it says so', () => {
-    const result = check({ 'pyproject.toml': PYPROJECT, 'app/x.py': lines('def f(items):', '    return len(items)') });
-    expect(result.passed).toBe(false);
-    expect(result.violations?.[0]).toMatch(/nothing was judged/);
+  describe('the verdict says what it read', () => {
+    it('a DB client and no whole-result fetch: PASS with the counter and what it did not check, never judged nothing', () => {
+      const result = check({ 'pyproject.toml': PYPROJECT, 'app/x.py': lines('def f(items):', '    return len(items)') });
+      expect(result.passed).toBe(true);
+      expect(result.judgedNothing).toBeUndefined();
+      expect(result.message).toBe(
+        'Count With An Aggregation: 1 source file(s) read (1 Python, 0 TS/JS), no whole-result fetch counted — nothing to check; not checked: counts through a repository method the client registry does not list, and documents counted in a helper the fetch was passed to'
+      );
+      expect(result.details).toEqual([result.message]);
+      expect(result.metrics).toEqual({ filesRead: 1, pythonFiles: 1, typescriptFiles: 0, compared: 0 });
+    });
+
+    it('fetches and no count by fetching: PASS that counts what it checked', () => {
+      const result = check({ 'pyproject.toml': PYPROJECT, 'app/x.py': lines('async def page(q):', '    return [d.to_dict() for d in await q.get()]') });
+      expect(result.passed).toBe(true);
+      expect(result.message).toMatch(/: 1 source file\(s\) read \(1 Python, 0 TS\/JS\), 1 whole-result fetch\(es\) checked, none fetched only to be counted; not checked: /);
+      expect(result.metrics).toMatchObject({ filesRead: 1, compared: 1 });
+    });
+
+    it('no source file to read: judged nothing, never a pass', () => {
+      const result = check({ 'pyproject.toml': PYPROJECT });
+      expect(result.passed).toBe(false);
+      expect(result.score).toBe(0);
+      expect(result.judgedNothing).toBe(true);
+      expect(result.violations?.[0]).toMatch(/nothing was judged — no source file could be read: the project has no Python or TS\/JS source file outside tests/);
+    });
+
+    it('the TS parser cannot be loaded: judged nothing, saying why', () => {
+      const spy = jest.spyOn(tsxSource, 'loadTypeScript').mockReturnValue(null);
+      try {
+        const result = check({ 'package.json': PACKAGE, 'src/a.ts': 'export const a = 1;\n' });
+        expect(result.passed).toBe(false);
+        expect(result.judgedNothing).toBe(true);
+        expect(result.violations?.[0]).toMatch(/nothing was judged — no source file could be read: 1 TS\/JS file\(s\): could not load the 'typescript' package/);
+      } finally {
+        spy.mockRestore();
+      }
+    });
   });
 });

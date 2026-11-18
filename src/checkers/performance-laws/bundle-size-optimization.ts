@@ -292,7 +292,8 @@ export class BundleSizeOptimizationLaw {
     );
 
     return allTsFiles.filter(file => {
-      const fileName = PathOperations.getBasename(file);
+      // The name WITH its extension, which the `.ts` test needs (#369).
+      const fileName = PathOperations.getFilename(file);
       return (
         fileName.includes(this.ROUTING_FILE_PATTERN) && fileName.endsWith('.ts')
       );

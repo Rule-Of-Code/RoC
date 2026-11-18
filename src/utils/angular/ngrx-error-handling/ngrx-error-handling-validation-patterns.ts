@@ -28,7 +28,8 @@ export class NgRxErrorHandlingValidationPatterns {
       [FILE_EXTENSIONS.EFFECTS_TS, FILE_EXTENSIONS.EFFECT_TS],
       config
     ).filter(file => {
-      const fileName = PathOperations.getBasename(file);
+      // The name WITH its extension: isEffectsFile looks for `.effects.` (#369).
+      const fileName = PathOperations.getFilename(file);
       return this.Config.isEffectsFile(fileName);
     });
 

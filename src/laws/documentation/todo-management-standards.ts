@@ -198,7 +198,8 @@ export class TodoManagementStandardsLaw {
       );
 
       for (const filePath of allFiles) {
-        if (this.isCodeFile(PathOperations.getBasename(filePath))) {
+        // The name WITH its extension: isCodeFile matches extensions (#369).
+        if (this.isCodeFile(PathOperations.getFilename(filePath))) {
           this.extractTODOsFromFile(filePath, todos);
         }
       }

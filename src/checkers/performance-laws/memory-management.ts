@@ -105,13 +105,14 @@ export class MemoryManagementLaw {
 
     const suggestions: string[] = [];
 
+    // Test files are already left out by the scanner (includeTests: false
+    // ignores every TEST_FILE_GLOBS pattern, whatever the config). The filter
+    // that stood here tested a name with its extension stripped, so it never
+    // removed anything (#369).
     const componentFiles = CheckerUtils.findAngularFiles(
       context.projectRoot,
       context.config
-    ).filter(file => {
-      const fileName = PathOperations.getBasename(file);
-      return !fileName.endsWith('.spec.ts') && !fileName.endsWith('.test.ts');
-    });
+    );
 
     if (componentFiles.length === 0) {
       return {

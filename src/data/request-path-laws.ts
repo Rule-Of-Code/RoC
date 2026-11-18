@@ -13,11 +13,18 @@ import { generateLawId } from '../utils/id-generator';
 import { REQUIRES_DATA_CLIENT } from '../utils/request-path/data-clients';
 
 /**
- * A project with a JS/TS or Python toolchain: where async code can exist.
- * Without one (a Go module, a static site) these laws would inspect nothing.
+ * A project that has async code to judge: a Python `async def`, or a TS/JS
+ * async function, arrow or method. Without one (a sync Django app, a Go
+ * module, a static site) the law has nothing to read and is not selected.
  */
-const REQUIRES_PY_OR_JS_PROJECT: LawRequirement = {
-  anyFile: ['package.json', 'tsconfig.json', 'pyproject.toml', 'requirements.txt', 'setup.py', 'setup.cfg', 'Pipfile'],
+export const REQUIRES_ASYNC_CODE: LawRequirement = {
+  anyFileContaining: [
+    { files: ['**/*.py'], pattern: String.raw`^\s*async\s+def\s` },
+    {
+      files: ['**/*.{ts,tsx,mts,cts,js,mjs,cjs}'],
+      pattern: String.raw`\basync\s+(?:function\b|\(|[A-Za-z_$][\w$]*\s*(?:=>|\())`,
+    },
+  ],
 };
 
 export const REQUEST_PATH_LAWS: EnhancedConstitutionalLaw[] = [
@@ -43,13 +50,13 @@ export const REQUEST_PATH_LAWS: EnhancedConstitutionalLaw[] = [
       'Reads async functions in Python (a structural reader of logical lines and indented blocks, not a Python AST) and TS/JS (the TypeScript compiler), test files excluded. A run is two or more consecutive statements in one block that each await a call, plus several awaits inside one expression; it is reported once, at its first line, with every call.',
       'Independence is simple def-use: a later call depends on an earlier one when its statement reads a name (or attribute chain) the earlier statement bound, or both receive the same freshly created list/dict/Map. A dependency through shared object state (a method that mutates self, a module global) is not seen and can be reported as independent.',
       'A run is cut, never reported across, by any statement that is not a simple await (a guard, a branch, a plain computation), by a call whose name is a write or an ordered side effect (save, update, delete, commit, send, sleep, lock and the registry\'s write calls), by gather / Promise.all, by an await of a value that is not a call, by a statement that is only await call(…) (its result discarded: awaited for its effect, such as a guard that raises), and by a marked line (roc: sequential-ok with a reason). A function decorated as a transaction, passed to runTransaction / $transaction / transaction(), or taking a tx / transaction parameter is not judged.',
-      'Selected where a package.json, tsconfig.json or a Python manifest (pyproject.toml, requirements.txt, setup.py, setup.cfg, Pipfile) sits at the root or in a workspace project; a Python service in a subdirectory of a repository without one at its root is not selected. A project with no async function is reported as judged nothing, not as compliant.',
+      'Selected only where some .py file has an async def, or some TS/JS file an async function, arrow or method (a text match over the project, test files and comments included, outside installed and built trees, at most eight levels deep); a project without one does not get the law. When it is selected but its parse finds no async function outside tests, it reports judged nothing, not compliant.',
     ],
     emoji: '⏱️',
     description: 'Awaited calls that do not use each other\'s results are started together, not one after another',
     priority: 'MEDIUM',
     category: 'PERFORMANCE',
-    requires: REQUIRES_PY_OR_JS_PROJECT,
+    requires: REQUIRES_ASYNC_CODE,
     defaultEnabled: true,
     defaultSeverity: 'warning',
     automation: 'AUTOMATED',

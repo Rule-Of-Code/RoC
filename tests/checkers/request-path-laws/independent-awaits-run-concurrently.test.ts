@@ -7,6 +7,10 @@
  * marker, and anything outside an async function.
  */
 import { IndependentAwaitsRunConcurrentlyLaw } from '../../../src/checkers/request-path-laws/independent-awaits-run-concurrently';
+import { ConfigLoader } from '../../../src/config/loader';
+import { RuleOfCodeAuditor } from '../../../src/core/auditing/audit-engine';
+import { REQUEST_PATH_LAWS } from '../../../src/data/request-path-laws';
+import { lawRequirementsMet } from '../../../src/utils/law-requirements';
 import { ctx, project, removeProjects } from '../toolkit-fixture';
 
 afterAll(removeProjects);
@@ -161,8 +165,39 @@ describe('Independent Awaits Run Concurrently (#351)', () => {
     });
   });
 
-  it('a project with no async function has nothing to judge: it says so and does not pass', () => {
-    const result = check(py(['def f(repo):', '    return repo.a()']));
+  describe('selection: only a project with async code gets the law', () => {
+    const LAW = REQUEST_PATH_LAWS.find(l => l.checkFunction === 'IndependentAwaitsRunConcurrentlyLaw.check');
+    const selected = (root: string): string[] =>
+      (new RuleOfCodeAuditor(ConfigLoader.load(root), root) as unknown as { getSelectedLaws(): Array<{ name: string }> })
+        .getSelectedLaws()
+        .map(l => l.name);
+
+    it.each([
+      ['a Python async def', { 'pyproject.toml': PYPROJECT, 'app/a.py': 'async def f():\n    return 1\n' }],
+      ['a TS async function', { 'package.json': PACKAGE, 'src/a.ts': 'export async function f() { return 1; }\n' }],
+      ['a TS async arrow', { 'package.json': PACKAGE, 'src/a.ts': 'export const f = async (x: number) => x;\n' }],
+      ['a TS async method', { 'package.json': PACKAGE, 'src/a.ts': 'export class A {\n  async load(id: string) { return id; }\n}\n' }],
+    ])('is required and selected with %s', (_, files) => {
+      const root = project(files);
+      expect(lawRequirementsMet(LAW?.requires, root)).toBe(true);
+      expect(selected(root)).toContain(LAW?.title);
+    });
+
+    it.each([
+      ['a sync Python project', { 'pyproject.toml': PYPROJECT, 'app/a.py': 'def f(asynchronous):\n    return asynchronous\n' }],
+      ['a TS project without async code', { 'package.json': PACKAGE, 'src/a.ts': 'export function f(x: Promise<number>) { return x.then(v => v); }\n' }],
+    ])('is not required nor selected in %s', (_, files) => {
+      const root = project(files);
+      expect(lawRequirementsMet(LAW?.requires, root)).toBe(false);
+      expect(selected(root)).not.toContain(LAW?.title);
+    });
+  });
+
+  it('selected but its parse finds no async function outside tests: it says it judged nothing', () => {
+    // The gate matches the async def in the test file; the law reads no tests.
+    const files = { ...py(['def f(repo):', '    return repo.a()']), 'tests/test_f.py': 'async def test_f():\n    pass\n' };
+    expect(lawRequirementsMet(REQUEST_PATH_LAWS[0]?.requires, project(files))).toBe(true);
+    const result = check(files);
     expect(result.passed).toBe(false);
     expect(result.score).toBe(0);
     expect(result.violations?.[0]).toMatch(/nothing was judged — no async function in 1 Python and 0 TS\/JS source file\(s\)/);

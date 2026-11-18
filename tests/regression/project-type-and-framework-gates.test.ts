@@ -34,7 +34,7 @@ const titleOf = (fragment: string): string => {
 };
 
 const ONPUSH = titleOf('OnPush Change Detection Strategy');
-const NGRX_STORE = titleOf('NgRx Store Pattern Mandate (SACRED LAW)');
+const NGRX_STORE = titleOf('NgRx Store Pattern Mandate');
 const NGRX_DEVTOOLS = titleOf('NgRx DevTools Integration Mandate');
 const OBSERVABLE_CLEANUP = titleOf('Observable Cleanup Requirements');
 

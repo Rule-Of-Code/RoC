@@ -322,7 +322,10 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     legacyId: 90,
     article: 'VI',
     subsection: '6.15',
-    title: 'NgRx Store Pattern Mandate (SACRED LAW)',
+    title: 'NgRx Store Pattern Mandate',
+    // Renamed in 7.28.0: a FRAMEWORK law, not a SACRED one (#388). The id keeps
+    // the old title as its input; config keys written with it still resolve.
+    formerTitles: ['NgRx Store Pattern Mandate (SACRED LAW)'],
     rationale:
       'NgRx without its shape — typed state, createAction, createReducer, createSelector — is a Redux-shaped pile of any. This law asks that the store files follow the pattern the library exists to enforce.',
     satisfiedBy: { angular: 'Type your .state.ts, use createAction/props in .actions.ts, createReducer/on() in .reducer.ts, createSelector in .selectors.ts.' },
@@ -357,7 +360,10 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     legacyId: 91,
     article: 'VI',
     subsection: '6.16',
-    title: 'NgRx Actions Hygiene Mandate (SACRED LAW)',
+    title: 'NgRx Actions Hygiene Mandate',
+    // Renamed in 7.28.0: a FRAMEWORK law, not a SACRED one (#388). The id keeps
+    // the old title as its input; config keys written with it still resolve.
+    formerTitles: ['NgRx Actions Hygiene Mandate (SACRED LAW)'],
     rationale:
       'An action named inconsistently or carrying an untyped payload is a debugging session waiting to happen — NgRx\'s power is that every state change is a named, typed event. This law keeps action declarations honest.',
     satisfiedBy: { angular: 'Name actions in camelCase, type payloads with props<...> (not a bare payload), and export them as constants.' },
@@ -392,7 +398,10 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     legacyId: 92,
     article: 'VI',
     subsection: '6.17',
-    title: 'NgRx Effects Error Handling Mandate (SACRED LAW)',
+    title: 'NgRx Effects Error Handling Mandate',
+    // Renamed in 7.28.0: a FRAMEWORK law, not a SACRED one (#388). The id keeps
+    // the old title as its input; config keys written with it still resolve.
+    formerTitles: ['NgRx Effects Error Handling Mandate (SACRED LAW)'],
     rationale:
       'An effect with no catchError dies on the first failed request — and takes the whole effect stream down with it, so the feature silently stops working. Error handling in effects keeps one bad response from breaking the app.',
     satisfiedBy: { angular: 'Give every createEffect a catchError that returns an error action via of(...); use switchMap/mergeMap with catchError.' },
@@ -427,7 +436,10 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     legacyId: 93,
     article: 'VI',
     subsection: '6.18',
-    title: 'NgRx Selectors Memoization Mandate (SACRED LAW)',
+    title: 'NgRx Selectors Memoization Mandate',
+    // Renamed in 7.28.0: a FRAMEWORK law, not a SACRED one (#388). The id keeps
+    // the old title as its input; config keys written with it still resolve.
+    formerTitles: ['NgRx Selectors Memoization Mandate (SACRED LAW)'],
     rationale:
       'A selector that isn\'t memoized recomputes on every state change, and a component reaching into state directly bypasses selectors entirely — both turn a fast store slow. This law asks that reads go through memoized selectors.',
     satisfiedBy: { angular: 'Derive state with createSelector/createFeatureSelector; do not access store state directly in components.' },
@@ -462,7 +474,10 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     legacyId: 94,
     article: 'VI',
     subsection: '6.19',
-    title: 'NgRx Reducers Immutability Mandate (SACRED LAW)',
+    title: 'NgRx Reducers Immutability Mandate',
+    // Renamed in 7.28.0: a FRAMEWORK law, not a SACRED one (#388). The id keeps
+    // the old title as its input; config keys written with it still resolve.
+    formerTitles: ['NgRx Reducers Immutability Mandate (SACRED LAW)'],
     rationale:
       'A reducer that mutates state is the bug NgRx exists to prevent — the store guarantees every state is a new object, and a stray push breaks time-travel, memoization and change detection at once.',
     satisfiedBy: { angular: 'Return new state (spread / Immer) from reducers; never mutate state.x, push/pop, or delete state.y.' },
@@ -497,7 +512,10 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     legacyId: 95,
     article: 'VI',
     subsection: '6.20',
-    title: 'NgRx Feature Store Structure Mandate (SACRED LAW)',
+    title: 'NgRx Feature Store Structure Mandate',
+    // Renamed in 7.28.0: a FRAMEWORK law, not a SACRED one (#388). The id keeps
+    // the old title as its input; config keys written with it still resolve.
+    formerTitles: ['NgRx Feature Store Structure Mandate (SACRED LAW)'],
     rationale:
       'A feature store scattered across inconsistent filenames is one nobody can navigate. This law asks for the conventional +state layout so every feature looks the same and a barrel exports it cleanly.',
     satisfiedBy: { angular: 'Give each feature a +state/ folder with {feature}.actions/.reducer/.selectors/.models.ts and an index.ts barrel.' },

@@ -149,6 +149,12 @@ export interface EnhancedConstitutionalLaw {
    * canonical name or slug; the engine refuses ambiguous keys (v7.10.0).
    */
   legacyId?: number;
+  /**
+   * Titles this law had before a rename. Each stays a public identity: a
+   * config key written with it (`laws.severity`, `laws.notApplicable`,
+   * `laws.enabled`, `ignores.byRule`) resolves to this law, as do its slugs.
+   */
+  formerTitles?: readonly string[];
   stack?: LawStack; // Stack scope (omitted = universal). See LawStack.
   /** Declared dependencies/files without which the law is not selected. See LawRequirement. */
   requires?: LawRequirement;

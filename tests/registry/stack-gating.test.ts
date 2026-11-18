@@ -59,7 +59,7 @@ describe('law stack tagging', () => {
       'Core Web Vitals Compliance',
       'Bundle Size Optimization',
       'Performance Budget Compliance',
-      'NgRx Store Pattern Mandate (SACRED LAW)',
+      'NgRx Store Pattern Mandate',
       'Component Selector Prefix Compliance',
       'Accessibility Linting Enforcement',
       'Angular Security XSS Prevention Policy',

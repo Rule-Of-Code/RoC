@@ -300,7 +300,7 @@ describe('#371 the liveness floor is computed over the type the selection uses (
 // ── #383 ─────────────────────────────────────────────────────────────────────
 
 /**
- * The five project profiles of the release canary, from its own STACKS table
+ * The project profiles of the release canary, from its own STACKS table
  * (one source): what a project of each kind actually selects. The band is
  * measured on the SELECTION — core laws a Pareto run selects / laws a full
  * run selects — not on the `stack` field, whose frontend group is shared by
@@ -310,7 +310,7 @@ describe('#371 the liveness floor is computed over the type the selection uses (
 const { STACKS: CANARY } = require('../../scripts/release-canary') as {
   STACKS: Record<string, { files: Record<string, string>; projectType: string }>;
 };
-const PROFILES = ['python', 'angular', 'ionic', 'react', 'node'] as const;
+const PROFILES = ['python', 'angular', 'ngrx', 'ionic', 'react', 'node'] as const;
 const BAND = { min: 0.15, max: 0.25 };
 
 interface ProfileShare {

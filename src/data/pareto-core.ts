@@ -47,8 +47,8 @@
  *
  * A project gets its universal share plus the share of each stack group
  * that applies to it, so the core is about 20% of what it selects. A
- * ratchet test measures exactly that on the release canary's five project
- * profiles (python, angular, ionic, react, node), core selected / laws
+ * ratchet test measures exactly that on the release canary's project
+ * profiles (python, angular, ngrx, ionic, react, node), core selected / laws
  * selected, in [15%, 25%], and adds laws to the registry (ungated, and
  * gated several at once) to show they pass through the rule with no list
  * edited and that a gated law moves no project it does not apply to. The run itself stays PARTIAL: a

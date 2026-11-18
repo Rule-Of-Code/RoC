@@ -5,7 +5,7 @@
 import chalk from 'chalk';
 import type { RuleOfCodeConfig } from '../../types';
 import { normalizeJudgedNothing } from '../../utils/judged-nothing';
-import type { AuditRefusal, AuditResult, AuditStats } from './audit-types';
+import type { AuditRefusal, AuditResult, AuditStats, AuditVerdict } from './audit-types';
 
 export class AuditResultProcessor {
   /**
@@ -22,6 +22,19 @@ export class AuditResultProcessor {
       !failOnWarnings &&
       (lawResult.severity === 'warning' || lawResult.severity === 'info')
     );
+  }
+
+  /**
+   * The verdict of a run (#350), from the facts already in it: a refusal, a
+   * failure, a narrowed subset, a pass with `laws.notApplicable` waivers, or a
+   * clean pass. A result that carries no `verdict` (cached by a build that
+   * predates the field) gets the same answer here.
+   */
+  static verdictOf(result: Pick<AuditResult, 'passed' | 'refused' | 'scope'>): AuditVerdict {
+    if (result.refused) return 'refused';
+    if (!result.passed) return 'failed';
+    if (result.scope?.partial) return 'partial';
+    return (result.scope?.waivedLaws?.length ?? 0) > 0 ? 'compliance-with-waivers' : 'compliance';
   }
 
   /**
@@ -271,6 +284,8 @@ export class AuditResultProcessor {
   private static exportToJson(result: AuditResult): string {
     const exportData = {
       passed: result.passed,
+      // compliance | compliance-with-waivers | partial | failed | refused (#350).
+      verdict: result.verdict ?? this.verdictOf(result),
       score: result.score,
       // The type that selected the laws, and its source (#320).
       ...(result.project ? { project: result.project } : {}),

@@ -17,10 +17,12 @@ import {
   describeRequirement,
   lawRequirementsMet,
 } from '../../utils/law-requirements';
+import { describeLivenessFloor, livenessFloorOf, narrowingOf } from '../../utils/liveness-floor';
+import { honouredWaiverReason } from '../../utils/law-waivers';
 import { NxWorkspace } from '../../utils/nx-workspace';
 import { PathOperations } from '../../utils/path-operations';
 import { AuditCache } from './audit-cache';
-import type { AuditOptions, AuditProjectType, AuditResult, AuditScope } from './audit-types';
+import type { AuditOptions, AuditProjectType, AuditResult, AuditScope, WaivedLaw } from './audit-types';
 import { AuditResultProcessor } from './result-processor';
 
 // Force chalk to use colors in all environments
@@ -204,46 +206,7 @@ export class RuleOfCodeAuditor {
         (this.config.laws as { minLawsChecked?: number }).minLawsChecked ?? 0;
 
       if (substantive.length === 0 || substantive.length < floor) {
-        const chalkForced = new chalk.Instance({ level: 3 });
-        const reason =
-          substantive.length === 0
-            ? 'No laws executed'
-            : `Only ${substantive.length} laws selected — below the liveness floor (laws.minLawsChecked: ${floor})`;
-        console.log(
-          chalkForced.red.bold(`\n❌ ${reason} — refusing to report compliance.`)
-        );
-        console.log(
-          chalkForced.yellow(
-            '   The law selection collapsed. Check laws.enabled / laws.paretoMode / laws.notApplicable and the detected project type. A shrunken audit is a disarmed gate, never a compliance verdict.'
-          )
-        );
-        // No law ran, so no law passed AND no law failed. Reporting the
-        // selection as `failedLaws` told every dashboard and CI parser that
-        // N laws failed when none had been judged. The refusal is its own
-        // fact, carried in `refused` and never disguised as counts.
-        return {
-          passed: false,
-          score: 0,
-          totalLaws: 0,
-          passedLaws: 0,
-          failedLaws: 0,
-          warningLaws: 0,
-          substantiveLaws: substantive.length,
-          refused: {
-            reason: substantive.length === 0 ? 'no-laws' : 'liveness-floor',
-            selectedLaws: substantive.length,
-            floor,
-          },
-          results: new Map(),
-          duration: 0,
-          paretoMode: false,
-          executionTime: Date.now() - startTime,
-          timestamp: new Date().toISOString(),
-          projectRoot: this.projectRoot,
-          config: this.config,
-          project: this.projectTypeInfo(),
-          scope: this.scopeOf(substantive.length, 0, true),
-        };
+        return this.refuse(substantive.length, floor, startTime);
       }
 
       // The Audit Liveness Assertion law compares the planned law count
@@ -277,6 +240,8 @@ export class RuleOfCodeAuditor {
           laws.filter(law => !(law as { alwaysEnabled?: boolean }).alwaysEnabled).length
         ),
       };
+      // Set before the cache write, so a cached run returns the same verdict.
+      auditResult.verdict = AuditResultProcessor.verdictOf(auditResult);
 
       // Save to cache if enabled — under the key computed before the run.
       if (cacheKey) {
@@ -297,6 +262,56 @@ export class RuleOfCodeAuditor {
       process.stderr.write(`Audit failed: ${errorMessage}\n`);
       throw error;
     }
+  }
+
+  /**
+   * FAIL-CLOSED refusal: the selection collapsed, or fell below
+   * `laws.minLawsChecked`. No law ran, so no law passed AND no law failed.
+   * Reporting the selection as `failedLaws` told every dashboard and CI parser
+   * that N laws failed when none had been judged. The refusal is its own fact,
+   * carried in `refused` and never disguised as counts. The waivers are named
+   * here too: they are part of why the selection is what it is (#350).
+   */
+  private refuse(selected: number, floor: number, startTime: number): AuditResult {
+    const chalkForced = new chalk.Instance({ level: 3 });
+    const scope = this.scopeOf(selected, 0, true);
+    this.displayWaivers(scope, chalkForced);
+    const reason =
+      selected === 0
+        ? 'No laws executed'
+        : `Only ${selected} laws selected — below the liveness floor (laws.minLawsChecked: ${floor})`;
+    console.log(
+      chalkForced.red.bold(`\n❌ ${reason} — refusing to report compliance.`)
+    );
+    console.log(
+      chalkForced.yellow(
+        '   The law selection collapsed. Check laws.enabled / laws.paretoMode / laws.notApplicable and the detected project type. A shrunken audit is a disarmed gate, never a compliance verdict.'
+      )
+    );
+    return {
+      passed: false,
+      score: 0,
+      totalLaws: 0,
+      passedLaws: 0,
+      failedLaws: 0,
+      warningLaws: 0,
+      substantiveLaws: selected,
+      refused: {
+        reason: selected === 0 ? 'no-laws' : 'liveness-floor',
+        selectedLaws: selected,
+        floor,
+      },
+      verdict: 'refused',
+      results: new Map(),
+      duration: 0,
+      paretoMode: false,
+      executionTime: Date.now() - startTime,
+      timestamp: new Date().toISOString(),
+      projectRoot: this.projectRoot,
+      config: this.config,
+      project: this.projectTypeInfo(),
+      scope,
+    };
   }
 
   private logAuditStart(): void {
@@ -417,15 +432,13 @@ export class RuleOfCodeAuditor {
     refused = false
   ): AuditScope {
     const laws = this.config.laws as Record<string, unknown>;
-    const narrowedBy: AuditScope['narrowedBy'] =
-      laws.paretoMode === true ? 'paretoMode' : laws.enabled !== undefined ? 'laws.enabled' : undefined;
-    const open = {
-      ...this.config,
-      laws: { ...laws, enabled: undefined, paretoMode: false },
-    } as unknown as RuleOfCodeConfig;
-    const applicableLaws = this.getSelectedLaws(open).filter(
-      law => !(law as { alwaysEnabled?: boolean }).alwaysEnabled
-    ).length;
+    const narrowedBy = narrowingOf(laws);
+    const applicable = this.openSelection(laws);
+    // The same open selection with no waivers: what applied before
+    // laws.notApplicable. The difference IS the waived set, so the counts
+    // and the list cannot disagree (M₀ = M + W).
+    const beforeWaivers = this.openSelection({ ...laws, notApplicable: undefined });
+    const applicableLaws = applicable.length;
     return {
       // What actually ran: 0 on a refusal, the selection minus the history
       // laws a pre-commit defers. Reporting the selection here said "2 ran"
@@ -433,13 +446,46 @@ export class RuleOfCodeAuditor {
       executedLaws: executedSubstantive,
       selectedLaws: selectedSubstantive,
       applicableLaws,
+      applicableBeforeWaivers: beforeWaivers.length,
+      waivedLaws: this.waivedLawsOf(applicable, beforeWaivers, laws.notApplicable),
       narrowedBy,
       // Partial is about the SELECTION: a pre-commit defers the history laws
       // by design, which is not a narrowing. A refusal is not partial — no
       // law ran at all; `refused` says so, and narrowedBy still says why the
       // selection was small.
       partial: !refused && narrowedBy !== undefined && selectedSubstantive < applicableLaws,
+      // The floor Audit Liveness judges by, from the function the law uses.
+      liveness: livenessFloorOf(this.config, this.projectRoot),
     };
+  }
+
+  /** Substantive laws the config selects with no allowlist and no Pareto. */
+  private openSelection(laws: Record<string, unknown>): Array<{ id: string; name: string }> {
+    const open = {
+      ...this.config,
+      laws: { ...laws, enabled: undefined, paretoMode: false },
+    } as unknown as RuleOfCodeConfig;
+    return this.getSelectedLaws(open).filter(
+      law => !(law as { alwaysEnabled?: boolean }).alwaysEnabled
+    ) as Array<{ id: string; name: string }>;
+  }
+
+  /** The laws in `beforeWaivers` that the waivers removed, with their reasons. */
+  private waivedLawsOf(
+    applicable: Array<{ id: string }>,
+    beforeWaivers: Array<{ id: string; name: string }>,
+    notApplicable: unknown
+  ): WaivedLaw[] {
+    const kept = new Set(applicable.map(law => law.id));
+    return beforeWaivers
+      .filter(law => !kept.has(law.id))
+      .map(law => ({
+        law: law.name,
+        lawId: law.id,
+        reason:
+          ModularLawsRegistry.waiverReasonOf(law, notApplicable as Record<string, unknown> | undefined) ?? '',
+      }))
+      .sort((a, b) => a.law.localeCompare(b.law));
   }
 
   /** `ignores.global`: what the project says is not its own code (#326). */
@@ -689,9 +735,10 @@ export class RuleOfCodeAuditor {
         );
         continue;
       }
-      if (typeof reason !== 'string' || reason.trim().length === 0) {
+      if (honouredWaiverReason(reason) === null) {
+        // Not a waiver: the selector runs the law (see waiverReasonOf).
         console.warn(
-          `⚠️  laws.notApplicable['${key}'] has no reason. A waiver without a documented reason is a silent one.`
+          `⚠️  laws.notApplicable['${key}'] has no reason — it waives nothing and the law still runs. Give the reason: laws.notApplicable = { "${key}": "why it does not apply" }`
         );
       }
       const law = known.get(key);
@@ -787,7 +834,26 @@ export class RuleOfCodeAuditor {
     this.displayFailedLaws(auditResult, chalkForced, options);
     this.displayWarningLaws(auditResult, chalkForced, options);
     this.displayPassedLaws(auditResult, chalkForced, options);
+    this.displayWaivers(auditResult.scope, chalkForced);
     this.displayFinalVerdict(auditResult, chalkForced);
+  }
+
+  /**
+   * The waived laws, by name and reason, in every outcome (#350). Fifty laws
+   * waived with `laws.notApplicable` printed a bare COMPLIANCE: PASSED, with
+   * the waivers nowhere in the output — a reviewer had to read the config to
+   * learn what had not run. Printed only when something was waived.
+   */
+  private displayWaivers(scope: AuditScope | undefined, chalk: chalk.Chalk): void {
+    const waived = scope?.waivedLaws ?? [];
+    if (waived.length === 0) return;
+    console.log(
+      chalk.yellow.bold(`📋 ${waived.length} law(s) waived by laws.notApplicable — not run, not passed:`)
+    );
+    for (const { law, reason } of waived) {
+      console.log(`${chalk.gray('   – ')}${chalk.white(law)}${chalk.gray(`: ${reason}`)}`);
+    }
+    console.log('');
   }
 
   /** Warning result = violations at warning/info severity (non-blocking). */
@@ -852,6 +918,7 @@ export class RuleOfCodeAuditor {
         )}`
       );
     }
+    this.displayLivenessFloor(auditResult.scope, chalk);
     console.log(''
     );
     console.log(
@@ -876,6 +943,19 @@ export class RuleOfCodeAuditor {
       `${chalk.gray('Execution time:')} ${chalk.white(auditResult.executionTime + 'ms')}`
     );
     console.log('');
+  }
+
+  /**
+   * The floor Audit Liveness judged this run by, and where it comes from —
+   * on a pass too (#350): "compliance verified" alone left the floor in
+   * effect invisible, and a user setting laws.minLawsChecked could not see
+   * what the default had been.
+   */
+  private displayLivenessFloor(scope: AuditScope | undefined, chalk: chalk.Chalk): void {
+    if (!scope?.liveness) return;
+    console.log(
+      `${chalk.gray('  Audit Liveness:')} ${chalk.white(describeLivenessFloor(scope.liveness, scope.narrowedBy))}`
+    );
   }
 
   private displayFailedLaws(
@@ -1149,39 +1229,12 @@ export class RuleOfCodeAuditor {
     // printed for it: "PARTIAL SCAN PASSED" and "never PASSED" were quoted
     // against each other.
     if (auditResult.passed && auditResult.scope?.partial) {
-      const { executedLaws, applicableLaws, narrowedBy } = auditResult.scope;
-      console.log(
-        chalk.yellowBright.bold(
-          `⚠️  PARTIAL SCAN — ${executedLaws} of ${applicableLaws} applicable laws ran (narrowed by ${narrowedBy}). The selected laws passed; no compliance verdict.`
-        )
-      );
-      console.log(
-        chalk.yellow(
-          '   The laws that did not run cannot have passed.'
-        )
-      );
-      console.log(
-        chalk.gray(
-          `   For a compliance verdict run the full set: ${narrowedBy === 'laws.enabled' ? 'remove the laws.enabled allowlist' : 'paretoMode: false and no --mode=fast'}.`
-        )
-      );
-      console.log(chalk.cyan('═'.repeat(60)));
-      console.log('');
+      this.displayPartialVerdict(auditResult.scope, chalk);
       return;
     }
 
     if (auditResult.passed) {
-      console.log(chalk.green.bold('✅ CONSTITUTIONAL COMPLIANCE: PASSED'));
-      if ((auditResult.warningLaws ?? 0) > 0) {
-        console.log(
-          chalk.yellow(
-            `⚠️  ${auditResult.warningLaws} law(s) reported warnings — address them in the warn cycle (or enforce with failOnWarnings).`
-          )
-        );
-      }
-      console.log(chalk.cyan('═'.repeat(60)));
-      console.log('');
-      this.displayVictoryArt(chalk);
+      this.displayPassedVerdict(auditResult, chalk);
     } else {
       console.log(chalk.red.bold('❌ CONSTITUTIONAL COMPLIANCE: FAILED'));
       console.log(
@@ -1192,6 +1245,58 @@ export class RuleOfCodeAuditor {
       console.log(chalk.cyan('═'.repeat(60)));
       console.log('');
     }
+  }
+
+  private displayPartialVerdict(scope: AuditScope, chalk: chalk.Chalk): void {
+    const { executedLaws, applicableLaws, narrowedBy } = scope;
+    const waived = scope.waivedLaws?.length ?? 0;
+    const why = waived > 0 ? `${narrowedBy}; ${waived} waived` : `${narrowedBy}`;
+    console.log(
+      chalk.yellowBright.bold(
+        `⚠️  PARTIAL SCAN — ${executedLaws} of ${applicableLaws} applicable laws ran (narrowed by ${why}). The selected laws passed; no compliance verdict.`
+      )
+    );
+    console.log(
+      chalk.yellow(
+        '   The laws that did not run cannot have passed.'
+      )
+    );
+    console.log(
+      chalk.gray(
+        `   For a compliance verdict run the full set: ${narrowedBy === 'laws.enabled' ? 'remove the laws.enabled allowlist' : 'paretoMode: false and no --mode=fast'}.`
+      )
+    );
+    console.log(chalk.cyan('═'.repeat(60)));
+    console.log('');
+  }
+
+  /**
+   * A pass with waivers is not the clean pass (#350): it says WITH WAIVERS and
+   * how many, and the victory art stays for a run in which every law that
+   * applies ran. The waivers themselves are listed just above.
+   */
+  private displayPassedVerdict(auditResult: AuditResult, chalk: chalk.Chalk): void {
+    const scope = auditResult.scope;
+    const waived = scope?.waivedLaws?.length ?? 0;
+    if (scope && waived > 0) {
+      console.log(
+        chalk.green.bold(
+          `✅ CONSTITUTIONAL COMPLIANCE: PASSED WITH WAIVERS — ${scope.executedLaws} of ${scope.applicableLaws} applicable laws ran (${waived} waived)`
+        )
+      );
+    } else {
+      console.log(chalk.green.bold('✅ CONSTITUTIONAL COMPLIANCE: PASSED'));
+    }
+    if ((auditResult.warningLaws ?? 0) > 0) {
+      console.log(
+        chalk.yellow(
+          `⚠️  ${auditResult.warningLaws} law(s) reported warnings — address them in the warn cycle (or enforce with failOnWarnings).`
+        )
+      );
+    }
+    console.log(chalk.cyan('═'.repeat(60)));
+    console.log('');
+    if (waived === 0) this.displayVictoryArt(chalk);
   }
 
   private displayVictoryArt(chalk: chalk.Chalk): void {

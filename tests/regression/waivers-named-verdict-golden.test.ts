@@ -34,7 +34,7 @@ interface Mode {
   liveness: string;
 }
 
-const DEFAULT_FLOOR = 'floor 20 — default 25% of 79 stack-applicable laws (counted before waivers)';
+const DEFAULT_FLOOR = 'floor 20 — default 25% of 80 stack-applicable laws (counted before waivers)';
 const MODES: Mode[] = [
   { name: 'full', mode: 'full', laws: {}, verdict: 'compliance', liveness: DEFAULT_FLOOR },
   { name: 'pre-commit', mode: 'pre-commit', laws: {}, verdict: 'compliance', liveness: DEFAULT_FLOOR },
@@ -75,7 +75,7 @@ describe('#350 golden: a W = 0 project is unchanged in every mode', () => {
     const { applicableBeforeWaivers, waivedLaws, liveness: livenessJson, ...scope } = rest.scope;
     expect(applicableBeforeWaivers).toBe(scope.applicableLaws);
     expect(waivedLaws).toEqual([]);
-    expect(livenessJson.applicableLaws).toBe(79);
+    expect(livenessJson.applicableLaws).toBe(80);
     const livenessResult = rest.results.find((r: { lawTitle?: string }) => r.lawTitle === 'Audit Liveness Assertion');
     expect(livenessResult.message).toBe(`Audit Liveness Assertion: ${scope.selectedLaws} laws selected — ${liveness}`);
     livenessResult.message = 'Audit Liveness Assertion compliance verified';

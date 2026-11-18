@@ -11,7 +11,7 @@ Project type: typescript (detected)
    Run 'npx ruleofcode reinstall-hooks' to install them
 
 ⚖️  Executing constitutional checks...
-🔍 Processing 76 laws (parallel: true)
+🔍 Processing 77 laws (parallel: true)
 
 
 ════════════════════════════════════════════════════════════
@@ -20,10 +20,10 @@ Project type: typescript (detected)
 
 📊 AUDIT SUMMARY:
 ────────────────────────────────────────────────────────────
-Total Laws Checked: 76
-  the liveness floor counts the selection: 77 (74 run here + 3 history laws deferred to pre-push in --mode=pre-commit, +2 always-on meta-gates — set laws.minLawsChecked against 77, the same in every mode)
+Total Laws Checked: 77
+  the liveness floor counts the selection: 78 (75 run here + 3 history laws deferred to pre-push in --mode=pre-commit, +2 always-on meta-gates — set laws.minLawsChecked against 78, the same in every mode)
 
-✓ Passed: 76
+✓ Passed: 77
 ✗ Failed: 0
 Score: 100% (Pass Rate: 100%)
 Execution time: <n>ms
@@ -107,6 +107,7 @@ Execution time: <n>ms
 74. Golden Fixture Immutability (Score: 100/100)
 75. Guard Function Has Production Caller (Score: 100/100)
 76. Tsconfig Exclude Leaves Code Untyped (Score: 100/100)
+77. Test Server Loopback Address Match (Score: 100/100)
 
 ════════════════════════════════════════════════════════════
 ✅ CONSTITUTIONAL COMPLIANCE: PASSED

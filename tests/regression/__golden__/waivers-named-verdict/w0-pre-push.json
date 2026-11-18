@@ -6,15 +6,15 @@
     "source": "detected"
   },
   "scope": {
-    "executedLaws": 77,
-    "selectedLaws": 77,
-    "applicableLaws": 77,
+    "executedLaws": 78,
+    "selectedLaws": 78,
+    "applicableLaws": 78,
     "partial": false
   },
   "stats": {
-    "executedLaws": 79,
-    "totalLaws": 79,
-    "passedLaws": 79,
+    "executedLaws": 80,
+    "totalLaws": 80,
+    "passedLaws": 80,
     "failedLaws": 0,
     "warningLaws": 0,
     "score": 100
@@ -1046,6 +1046,19 @@
       "message": "stub pass",
       "severity": "warning",
       "lawName": "tsconfig-exclude-leaves-code-untyped"
+    },
+    {
+      "id": "law-79",
+      "lawId": "measurement_be445ad1",
+      "legacyId": 891,
+      "lawTitle": "Test Server Loopback Address Match",
+      "passed": true,
+      "score": 100,
+      "violations": [],
+      "suggestions": [],
+      "message": "stub pass",
+      "severity": "warning",
+      "lawName": "test-server-loopback-address-match"
     }
   ]
 }

@@ -47,7 +47,75 @@ describe('LatencyBudgetHarnessRealismLaw (#355)', () => {
     expect(LAW?.requires).toBeDefined();
     expect(lawRequirementsMet(LAW?.requires, project({ 'src/app.py': 'print(1)\n' }))).toBe(false);
     expect(lawRequirementsMet(LAW?.requires, project({ 'perf/latency_budget.json': BUDGET }))).toBe(true);
-    expect(lawRequirementsMet(LAW?.requires, project({ 'bench/latency-budget/run.sh': 'k6 run x.js\n' }))).toBe(true);
+    expect(lawRequirementsMet(LAW?.requires, project({ 'budgets/api.yaml': 'p95_ms: 300\n' }))).toBe(true);
+    expect(lawRequirementsMet(LAW?.requires, project({ 'perf/slo.json': '{"latency_ms": 300}' }))).toBe(true);
+    expect(lawRequirementsMet(LAW?.requires, project({ 'config/slots.json': '{"latency_ms": 300}' }))).toBe(false);
+  });
+
+  it('angular.json budgets (bundle size) do not select the law', () => {
+    const angular = JSON.stringify({
+      projects: {
+        app: { architect: { build: { configurations: { production: { budgets: [{ type: 'initial', maximumWarning: '500kb' }] } } } } },
+      },
+    });
+    expect(lawRequirementsMet(LAW?.requires, project({ 'angular.json': angular }))).toBe(false);
+  });
+
+  it('a Lighthouse budget.json is not a latency budget: no harness is asked of it, and the law says it judged nothing', () => {
+    const lighthouse = JSON.stringify([
+      {
+        path: '/*',
+        timings: [{ metric: 'interactive', budget: 3000 }],
+        resourceSizes: [{ resourceType: 'script', budget: 300 }],
+        resourceCounts: [{ resourceType: 'third-party', budget: 10 }],
+      },
+    ]);
+    const result = run({ 'budget.json': lighthouse, 'scripts/lighthouse.sh': 'lighthouse --budget-path=budget.json\n' });
+    expect(result.passed).toBe(false);
+    expect(result.judgedNothing).toBe(true);
+    expect(result.violations).toEqual([expect.stringMatching(/^budget\.json: no endpoint latency budget .*judged nothing$/)]);
+  });
+
+  describe('a budget named budget.json, measured by scripts/perf_budget.py', () => {
+    const budget = JSON.stringify({ endpoints: { '/items': { p95_ms: 300 }, '/profile': { p95_ms: 300 } } });
+    const sequential = `import json, time, httpx
+budget = json.load(open("perf/budget.json"))
+for path, limit in budget["endpoints"].items():
+    t0 = time.perf_counter()
+    httpx.get("http://127.0.0.1:8000" + path)
+    assert (time.perf_counter() - t0) * 1000 < limit["p95_ms"]
+`;
+    const parallel = `import asyncio, json, httpx
+budget = json.load(open("perf/budget.json"))
+baseline = json.load(open("perf/baseline.json"))
+
+async def burst(client):
+    return await asyncio.gather(*(client.get(path) for path in budget["endpoints"]))
+`;
+
+    it('red: one request at a time and no baseline, each named at the harness', () => {
+      const result = run({ 'perf/budget.json': budget, 'scripts/perf_budget.py': sequential });
+      expect(result.passed).toBe(false);
+      expect(result.violations).toEqual([
+        expect.stringMatching(/^scripts\/perf_budget\.py:2: .*no concurrent scenario/),
+        expect.stringMatching(/^scripts\/perf_budget\.py:2: no recorded baseline/),
+      ]);
+    });
+
+    it('green: a parallel scenario and a recorded baseline (no emulator, so no delay is asked)', () => {
+      const result = run({ 'perf/budget.json': budget, 'perf/baseline.json': '{}', 'scripts/perf_budget.py': parallel });
+      expect(result.violations).toEqual([]);
+      expect(result.passed).toBe(true);
+    });
+  });
+
+  it('a budget directory is named by the harness that reads it', () => {
+    const result = run({
+      'budgets/api.yaml': '/items: 300ms\n/profile: 250ms\n',
+      'perf/run.js': '// reads every file in budgets/ and compares with the baseline\nawait Promise.all(paths.map(p => fetch(p)));\n',
+    });
+    expect(result.violations).toEqual([]);
+    expect(result.passed).toBe(true);
   });
 
   it('red: a single-request harness on an emulator names each missing scenario at the harness file', () => {

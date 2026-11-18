@@ -9,28 +9,42 @@
  * while production is red. And without a recorded baseline, the harness can
  * only say "under the absolute budget", never "no endpoint got slower".
  *
- * The law applies where a latency budget exists — a file whose name says so
- * (`requires.anyFile`, {@link LATENCY_BUDGET_FILES}). The harness is that file
- * when it is a script, plus every script or config that names it. Across that
- * harness set it asks for three things, each reported at the harness file
- * that lacks it: a concurrent scenario; when an emulator is the database, an
- * injected network delay; and a recorded baseline to compare with.
+ * A latency budget is a JSON/YAML/TOML file with "budget" in its name or in a
+ * directory's name, or "slo" as a word of either ({@link LATENCY_BUDGET_CANDIDATES}),
+ * whose content holds endpoint latency keys — p50/p90/p95/p99, latency,
+ * response time, `*_ms`, a `"/path": 300ms` value — and none of the keys of a
+ * frontend size or timing budget (Lighthouse, Angular, webpack, bundlesize,
+ * size-limit): {@link LATENCY_BUDGET_PATTERN}. The harness is every script or
+ * config that names a budget file (or its budget directory). Across that
+ * harness set the law asks for three things, each reported at the harness
+ * file that lacks it: a concurrent scenario; when an emulator is the
+ * database, an injected network delay; and a recorded baseline.
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
+import { markJudgedNothing } from '../../utils/judged-nothing';
 import { LawBase } from '../law-base';
 import { firstMatch, readProjectFiles, type TextFile } from './project-text-files';
 
-/** A latency budget, by file or directory name. Also the law's `requires.anyFile`. */
-export const LATENCY_BUDGET_FILES: readonly string[] = [
-  '**/*latency*budget*',
-  '**/*budget*latency*',
-  '**/*response-time*budget*',
-  '**/*response_time*budget*',
+/** Budget candidates by name: "budget" in the file or a directory name, or "slo" as a word of either. */
+export const LATENCY_BUDGET_CANDIDATES: readonly string[] = [
+  '**/*{budget,Budget}*.{json,yaml,yml,toml}',
+  '**/*{budget,Budget}*/**/*.{json,yaml,yml,toml}',
+  '**/{,*[-_.]}{slo,SLO}{,s}{,[-_.]*}.{json,yaml,yml,toml}',
+  '**/{,*[-_.]}{slo,SLO}{,s}{,[-_.]*}/**/*.{json,yaml,yml,toml}',
 ];
 
-/** A budget file that is itself a script measures the budget; a JSON/YAML/TOML budget is data. */
-const SCRIPT = /\.(?:py|[cm]?js|[cm]?ts|sh|bash)$/i;
+/** Keys of budgets that are not endpoint latency: Lighthouse, Angular, webpack, bundlesize, size-limit. */
+const NOT_ENDPOINT_LATENCY = String.raw`resourceSizes|resourceCounts|["']?timings["']?\s*:|maximumWarning|maximumError|maxAssetSize|maxEntrypointSize|bundlesize|size-limit`;
+/** Endpoint latency keys and values; case is spelled out so the pattern needs no flags. */
+const LATENCY_KEY = String.raw`(?<![A-Za-z])[pP](?:50|90|95|99)(?![0-9])|[lL]atency|LATENCY|[rR]esponse[_-]?[tT]ime|RESPONSE_TIME|[A-Za-z0-9]_(?:ms|MS)\b|["']?/[\w/{}:.-]*["']?\s*:\s*["']?\d+(?:\.\d+)?\s*ms\b`;
+/** A candidate's content is a latency budget: a latency key, and no key of a frontend size or timing budget. */
+export const LATENCY_BUDGET_PATTERN = String.raw`^(?![\s\S]*(?:${NOT_ENDPOINT_LATENCY}))[\s\S]*?(?:${LATENCY_KEY})`;
+const LATENCY_BUDGET = new RegExp(LATENCY_BUDGET_PATTERN);
+
+/** A directory name that makes its files budget candidates. */
+const BUDGET_DIRECTORY = /budget|(?:^|[-_.])slos?(?:[-_.]|$)/i;
+
 /** Files that run or read a harness: scripts, and the YAML/TOML that configures load tools and CI. */
 const HARNESS_CANDIDATES = ['**/*.{py,js,mjs,cjs,ts,mts,cts,sh,bash,yml,yaml,toml}'];
 
@@ -82,10 +96,9 @@ export class LatencyBudgetHarnessRealismLaw extends LawBase {
 
   static check(context: LawCheckContext): LawResult {
     const { projectRoot } = context;
-    const budgets = readProjectFiles(
-      projectRoot,
-      LATENCY_BUDGET_FILES.flatMap(glob => [glob, `${glob}/**`])
-    );
+    const candidates = readProjectFiles(projectRoot, LATENCY_BUDGET_CANDIDATES);
+    const budgets = candidates.filter(file => LATENCY_BUDGET.test(file.content));
+    if (budgets.length === 0) return this.noLatencyBudget(candidates, context);
     const harness = this.harnessFiles(projectRoot, budgets);
     const violations =
       harness.length === 0
@@ -107,17 +120,39 @@ export class LatencyBudgetHarnessRealismLaw extends LawBase {
     );
   }
 
-  /** Budget files that are scripts, plus every script or config that names a budget file. */
+  /** Budget-named files, none of them an endpoint latency budget: nothing to judge, and the result says so. */
+  private static noLatencyBudget(candidates: TextFile[], context: LawCheckContext): LawResult {
+    const named = candidates.slice(0, 3).map(file => file.rel);
+    const more = candidates.length > 3 ? ` and ${candidates.length - 3} more` : '';
+    const seen = candidates.length === 0 ? 'no budget or SLO file' : `${named.join(', ')}${more}`;
+    return markJudgedNothing(
+      this.createResult(
+        [
+          `${seen}: no endpoint latency budget (p50–p99, latency, response time, *_ms keys; frontend size and timing budgets excluded) — this law judged nothing`,
+        ],
+        this.LAW_NAME,
+        'TESTING',
+        [],
+        context
+      )
+    );
+  }
+
+  /** Every script or config that names a budget file, or the budget directory it sits in. */
   private static harnessFiles(projectRoot: string, budgets: TextFile[]): TextFile[] {
-    const stems = [...new Set(budgets.map(budget => (budget.rel.split('/').pop() ?? '').replace(/\.[^.]+$/, '')))].filter(
-      stem => stem.length > 0
-    );
+    const references = [
+      ...new Set(
+        budgets.flatMap(budget => {
+          const segments = budget.rel.split('/');
+          const directories = segments.slice(0, -1).filter(segment => BUDGET_DIRECTORY.test(segment));
+          return [segments[segments.length - 1] ?? budget.rel, ...directories.map(directory => `${directory}/`)];
+        })
+      ),
+    ];
     const budgetRels = new Set(budgets.map(budget => budget.rel));
-    const scripts = budgets.filter(budget => SCRIPT.test(budget.rel));
-    const naming = readProjectFiles(projectRoot, HARNESS_CANDIDATES).filter(
-      file => !budgetRels.has(file.rel) && stems.some(stem => file.content.includes(stem))
+    return readProjectFiles(projectRoot, HARNESS_CANDIDATES).filter(
+      file => !budgetRels.has(file.rel) && references.some(reference => file.content.includes(reference))
     );
-    return [...scripts, ...naming];
   }
 
   private static missingConcurrency(harness: TextFile[]): string[] {

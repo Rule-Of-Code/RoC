@@ -4,6 +4,9 @@
  * service method, against thresholds.performance.maxStartupRequests.
  */
 import { StartupRequestFanOutLaw as Law } from '../../../src/checkers/client-deploy-laws/startup-request-fan-out';
+import { ConfigLoader } from '../../../src/config/loader';
+import { RuleOfCodeAuditor } from '../../../src/core/auditing/audit-engine';
+import { AuditResultProcessor } from '../../../src/core/auditing/result-processor';
 import { ctx, manifest, project, removeProjects } from '../toolkit-fixture';
 
 afterAll(removeProjects);
@@ -179,10 +182,53 @@ describe('StartupRequestFanOutLaw', () => {
     expect(result.violations?.[0]).toContain("fetch('/api/x')");
   });
 
-  it('judged nothing: an Angular project without a component fails, score 0', () => {
-    const result = run({ 'src/main.ts': 'export const x = 1;' });
+  it('a library without a component: a pass that counts what it read and says what it does not see', () => {
+    const result = run({
+      'libs/api/src/user.service.ts': "import { HttpClient } from '@angular/common/http';\nexport class UserService { constructor(private http: HttpClient) {} me() { return this.http.get('/me'); } }",
+      'libs/api/src/index.ts': "export * from './user.service';",
+    });
+    expect(result.passed).toBe(true);
+    expect(result.judgedNothing).not.toBe(true);
+    expect(result.message).toMatch(/^Startup Request Fan-Out: 2 TypeScript file\(s\) read, 0 Angular components — no screen to count requests for/);
+    expect(result.message).toContain('not followed: a callback handed to a helper, free functions that receive a service, inject*() factories');
+    expect(result.metrics).toMatchObject({ tsFilesRead: 2, components: 0 });
+  });
+
+  it('components under the threshold: a pass with the counts', () => {
+    const result = run({ 'src/app/profile.page.ts': page("  constructor(private http: HttpClient) {}\n  ngOnInit() { this.http.get('/api/me').subscribe(); }") });
+    expect(result.passed).toBe(true);
+    expect(result.message).toMatch(/1 component\(s\) read \(1 with an opening hook\), none starts more than 4 requests on open \(most: 1\)/);
+    expect(result.metrics).toMatchObject({ tsFilesRead: 1, components: 1, componentsWithOpeningHook: 1, threshold: 4, mostRequests: 1 });
+  });
+
+  it('judged nothing: no TypeScript file to read at all', () => {
+    const result = run({ 'README.md': '# app\n' });
     expect(result.passed).toBe(false);
     expect(result.score).toBe(0);
     expect(result.judgedNothing).toBe(true);
+  });
+
+  it('the counts reach the JSON report (results[].metrics)', async () => {
+    const root = project({
+      'package.json': ANGULAR,
+      'src/app/profile.page.ts': page("  constructor(private http: HttpClient) {}\n  ngOnInit() { this.http.get('/api/me').subscribe(); }"),
+      'ruleofcode.config.json': JSON.stringify({ project: { type: 'angular' }, laws: { enabled: { 'Startup Request Fan-Out': true } } }),
+    });
+    const spies = [
+      jest.spyOn(console, 'log').mockImplementation(() => undefined),
+      jest.spyOn(console, 'warn').mockImplementation(() => undefined),
+      jest.spyOn(process.stdout, 'write').mockImplementation(() => true),
+      jest.spyOn(process.stderr, 'write').mockImplementation(() => true),
+    ];
+    try {
+      const auditor = await RuleOfCodeAuditor.create({ projectRoot: root, config: ConfigLoader.load(root), mode: 'full' });
+      const json = JSON.parse(AuditResultProcessor.exportResults(await auditor.audit(), 'json')) as {
+        results: Array<{ lawName?: string; passed?: boolean; metrics?: Record<string, unknown> }>;
+      };
+      const mine = json.results.find(entry => entry.lawName === 'startup-request-fan-out');
+      expect(mine).toMatchObject({ passed: true, metrics: { tsFilesRead: 1, components: 1 } });
+    } finally {
+      for (const spy of spies) spy.mockRestore();
+    }
   });
 });

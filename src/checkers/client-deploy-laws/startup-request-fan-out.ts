@@ -46,29 +46,32 @@ export class StartupRequestFanOutLaw extends LawBase {
     }
     const scan = AngularComponents.scan(context);
     const rel = (file: string): string => AngularComponents.relative(context, file);
-    if (scan.components.length === 0) {
+    // Judged nothing only when nothing could be read: no TypeScript source,
+    // or no parser for it. A project with sources and no component (a
+    // library of services) was read in full, and its pass says so.
+    if (scan.sources.length === 0) {
       const why = scan.unread.length > 0 ? ` (${scan.unread.join('; ')})` : '';
-      const result = this.createResult(
-        [`found no Angular @Component class to read${why} — this law judged nothing. If the project's screens are not Angular components, declare the law in laws.notApplicable with the reason`],
-        this.LAW_NAME,
-        'PERFORMANCE',
-        [],
-        context
+      return markJudgedNothing(
+        this.createResult([`read no TypeScript source${why} — this law judged nothing`], this.LAW_NAME, 'PERFORMANCE', [], context)
       );
-      return markJudgedNothing(result);
     }
     const models = classModels(scan.sources);
     const violations: string[] = [];
+    let withHook = 0;
+    let most = 0;
     for (const component of scan.components) {
       const model = (models.get(component.className) ?? []).find(candidate => candidate.source === component.source);
       if (!model) continue;
+      if (OPENING_HOOKS.some(hook => model.methods.has(hook))) withHook++;
       const requests = startupRequests(model, models, rel);
+      most = Math.max(most, requests.length);
       if (requests.length <= threshold.value) continue;
       violations.push(
         `${rel(component.file)}:${component.line}: ${component.className} starts ${requests.length} HTTP requests when it opens (${OPENING_HOOKS.join(' / ')}; threshold ${threshold.value}): ${requests.map(listed).join('; ')} — sent together, they queue on the same backend and the screen waits for the slowest`
       );
     }
-    return this.createResult(
+    const counts = { tsFilesRead: scan.sources.length, components: scan.components.length, componentsWithOpeningHook: withHook, threshold: threshold.value, mostRequests: most };
+    const result = this.createResult(
       violations,
       this.LAW_NAME,
       'PERFORMANCE',
@@ -80,5 +83,20 @@ export class StartupRequestFanOutLaw extends LawBase {
       ],
       context
     );
+    return { ...(result.passed ? { ...result, message: this.passMessage(counts) } : result), metrics: counts };
+  }
+
+  /** A pass names what was read and what the count does not follow — "compliance verified" alone would claim more. */
+  private static passMessage(counts: { tsFilesRead: number; components: number; componentsWithOpeningHook: number; threshold: number; mostRequests: number }): string {
+    const read = `${this.LAW_NAME}: ${counts.tsFilesRead} TypeScript file(s) read, `;
+    const seen =
+      counts.components === 0
+        ? '0 Angular components — no screen to count requests for'
+        : `${counts.components} component(s) read (${counts.componentsWithOpeningHook} with an opening hook), none starts more than ${counts.threshold} requests on open (most: ${counts.mostRequests})`;
+    return `${read}${seen}; not followed: ${NOT_FOLLOWED}`;
   }
 }
+
+/** What the count does not see (detectionLimits says the same). */
+const NOT_FOLLOWED =
+  'a callback handed to a helper, free functions that receive a service, inject*() factories, a second service hop, stores and effects';

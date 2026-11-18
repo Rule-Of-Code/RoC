@@ -39,6 +39,7 @@ export const CLIENT_DEPLOY_LAWS: EnhancedConstitutionalLaw[] = [
       'A call inside a nested function is treated as deferred and not counted (subscribe/then callbacks, setTimeout, event handlers, a Promise executor, a callback handed to a helper that may call it at once). Callbacks of forEach/map/filter/some/every/find/reduce/flatMap are counted once per call site, whatever the array length.',
       'A call is counted where it is made, whether or not its Observable is subscribed: an HttpClient call assigned to a field the template never subscribes to is still counted.',
       'The threshold is thresholds.performance.maxStartupRequests (default 4); more than that many requests is a finding. An invalid value is reported and the law does not judge.',
+      'A pass says what it read (TypeScript files, components, components with an opening hook, the most requests one starts; also in the result\'s metrics) and what it does not follow. A project with TypeScript sources and no component (a library of services) passes with "0 Angular components"; only a project with no TypeScript source to read, or no parser for it, is judged nothing.',
     ],
     emoji: '🌐',
     description:

@@ -5,3 +5,4 @@
 
 export { LatencyBudgetHarnessRealismLaw } from './latency-budget-harness-realism';
 export { TracingExplainsLatencyLaw } from './tracing-explains-latency';
+export { TestServerLoopbackAddressMatchLaw } from './test-server-loopback-address-match';

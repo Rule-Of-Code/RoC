@@ -92,4 +92,40 @@ export const MEASUREMENT_LAWS: EnhancedConstitutionalLaw[] = [
       'CONSTITUTIONAL VIOLATION Article VI.6.27: Tracing on the default sampler, or a database client without instrumentation',
     remediation: 'Choose the sampler in code or OTEL_TRACES_SAMPLER, and declare instrumentation for each database client',
   },
+
+  {
+    id: generateLawId(
+      'Test Server Loopback Address Match',
+      'A test or perf server bound to 127.0.0.1 is not called through localhost',
+      'measurement'
+    ),
+    legacyId: 891,
+    article: 'VII',
+    subsection: '7.39',
+    title: 'Test Server Loopback Address Match',
+    rationale:
+      'localhost usually resolves to ::1 before 127.0.0.1. A test or perf server that listens on 127.0.0.1 only, called as http://localhost:…, makes every new connection try IPv6 first; where that attempt is not refused at once, a browser moves to IPv4 only when its Happy Eyeballs fallback timer fires (300 ms in Chromium). The harness still compares A and B fairly, but its absolute timings carry that delay on every new connection, the document included.',
+    satisfiedBy: {
+      typescript:
+        "Bind the server with host '::' (dual-stack) or to both loopback addresses, or point the client at http://127.0.0.1:<port> — the same literal on both sides.",
+      python:
+        'Run uvicorn/gunicorn/http.server with --host :: (dual-stack) or on both loopback addresses, or point the client at http://127.0.0.1:<port> — the same literal on both sides.',
+    },
+    detectionLimits: [
+      'Reads test and perf files only — by directory (tests/, e2e/, perf/, performance/, bench/, load-test/, harness/, mocks/, fixtures/, cypress/, playwright/, scripts/), by name (test, spec, e2e, perf, bench, load, harness, mock), playwright/cypress/vitest/jest/karma/wdio configs, and package.json scripts whose name says test, e2e, perf, bench, load, mock or harness.',
+      "A server bind is a line with --host/--bind/-b/-a/-H 127.0.0.1, .listen(port, '127.0.0.1'), a (\"127.0.0.1\", port) tuple on a server or bind call, or host: '127.0.0.1' within two lines of a server word; a bind spread over more lines, or an address built from a variable, is not seen. A file that also binds :: or ::1 is taken to listen on both families.",
+      "Ports are compared when both are known. A port from a variable (the server's argument, or a client URL's ${name}) resolves only through a numeric assignment of that name in the same file; an unresolved server port is paired with every localhost URL, an unresolved client port with none, and a port-0 bind (an OS-assigned port, whose address the client gets at runtime) is skipped. Client URLs are http(s)/ws(s)://localhost literals in the same file set; a base URL assembled otherwise is not seen.",
+      'Only an IPv4-only bind called through localhost is reported; a server on localhost called as 127.0.0.1, and a server on 0.0.0.0, are not. A project whose test files bind no server to 127.0.0.1 passes: there is nothing to compare.',
+    ],
+    emoji: '🔁',
+    description: 'A test or perf server bound to 127.0.0.1 is not called through localhost',
+    priority: 'LOW',
+    category: 'TESTING',
+    defaultEnabled: true,
+    defaultSeverity: 'warning',
+    automation: 'AUTOMATED',
+    checkFunction: 'TestServerLoopbackAddressMatchLaw.check',
+    violationMessage: 'CONSTITUTIONAL VIOLATION Article VII.7.39: Test server bound to 127.0.0.1 while the client calls localhost',
+    remediation: 'Bind the test server dual-stack, or use the same loopback literal on both sides',
+  },
 ];

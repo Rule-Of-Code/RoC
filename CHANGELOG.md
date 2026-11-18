@@ -5,6 +5,181 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.27.0] - 2026-11-18
+
+Nine performance laws from one production regression: a release passed every
+check and a per-endpoint latency budget measured one request at a time on an
+emulator, and was slower in production. None of the existing laws looked at the
+causes. Also: an existing law that passed because it looked at nothing (#368,
+#352), and waivers that bought a full verdict without being named (#350).
+Closes #350, #351, #352, #353, #354, #355, #356, #357, #358, #359, #360, #368.
+#361 (the umbrella) stays open: it also lists #362–#367, which are not in this
+release.
+
+### ⚠️ BREAKING — which laws your project gets
+
+Nine new laws are on by default, all at **severity `warning`**: with
+`failOnWarnings` off (the default) they do not change your exit code, but
+they are checked, counted and printed. Eight of them are selected only where
+their subject exists (Test Server Loopback Address Match reads the test and
+perf files of every project). A project without async code, a database
+client, a latency budget, a serverless deploy or an `@font-face` split by
+`unicode-range` does not get the matching law: it is not run, not counted and
+never a passing check.
+
+| Law | Article | Selected where |
+|---|---|---|
+| Independent Awaits Run Concurrently (#351) | VI.6.24 | async code (Python `async def`, TS/JS async functions) |
+| Document Read Once Per Request (#353) | VI.6.25 | a database client from the registry is declared |
+| Count With An Aggregation (#354) | VI.6.26 | a database client from the registry is declared |
+| Tracing Explains Latency (#358) | VI.6.27 | an OpenTelemetry SDK is declared (Python or Node) |
+| Startup Request Fan-Out (#356) | VI.6.28 | Angular |
+| Primary Locale Font Preloaded (#359) | VI.6.29 | own CSS/HTML with `@font-face` split by `unicode-range` |
+| Latency Budget Harness Realism (#355) | VII.7.38 | a latency budget file (by its content) |
+| Test Server Loopback Address Match (#360) | VII.7.39 | every project; it reads the test and perf files, and its pass says how many |
+| Serverless Deploy Pins Resources (#357) | VIII.8.12 | a serverless deploy command or definition |
+
+The database clients come from one registry, not one product: Firestore
+(Python and Node, Admin and web SDK), SQLAlchemy, Django ORM, MongoDB (pymongo,
+motor, mongodb, mongoose), Prisma, TypeORM, Sequelize. The serverless platforms
+likewise: Cloud Run (`gcloud run deploy`, `services replace`, the
+deploy-cloudrun action, Cloud Build), AWS Lambda (CLI, SAM/CloudFormation,
+Serverless Framework), Azure Functions (Flex Consumption, `host.json`).
+
+**Total Laws Checked, before (7.26.10) and after (7.27.0):**
+
+| Simulated consumer | 7.26.10 | 7.27.0 |
+|---|---|---|
+| canary: python | 97 | 98 |
+| canary: angular | 120 | 122 |
+| canary: ionic | 150 | 152 |
+| canary: react | 134 | 135 |
+| canary: node | 77 | 78 |
+| a FastAPI service with a document database (real project, own config) | refused: 86 selected, below its `minLawsChecked: 88` | 94 |
+| an Ionic/Angular Nx app (real project, own config) | 147 | 153 |
+| a static web front end (real project, own config) | 63 | 66 |
+
+The canary counts are `laws=` from `node scripts/release-canary.js --tarball`,
+run against the published 7.26.10 tarball and against this release's tarball;
+the three real projects are full audits with their own committed config,
+read-only.
+
+**What to do:** nothing, if a warning is fine for now. To enforce one, raise its
+severity in `laws.severity`. A law that does not apply to your project is not
+selected; if one is selected and you disagree, `laws.notApplicable` with a
+reason — and it will be named in the output (see #350 below).
+
+### ⚠️ BREAKING — Database Query Optimization judges N+1 per call site (#352, #368)
+
+This law is `error` by default, and it was passing every project on N+1:
+
+- **#368:** its service-file discovery compared a file name **without its
+  extension** against patterns that require one, so it found no files in any
+  project. The N+1 check never ran (always "addressed"), and the batching,
+  pagination and caching checks always said "not implemented", whatever the code.
+- **#352:** even with files, one batching word anywhere passed the whole project.
+
+Now every awaited read inside a loop of the same function is a finding with
+`file:line` — Python (`for`, `async for`, `while`, comprehensions) and TS/JS
+(`for`, `for…of`, `for await`, `for…in`, `while`, `do`, `.forEach`) — **when
+the read's arguments or receiver use the loop's item**. A retry or poll loop
+that re-reads the same key is not N+1. Accepted at the site: a batch read
+(`get_all`/`getAll`/`in_bulk`), an `in` / `$in` / `.in_()` / `__in` / `Op.in` /
+Prisma `in:` filter, a paged read, `asyncio.gather` / `Promise.all` over the
+loop, and a fixed fan-out over a literal (inline or a module-level constant).
+The project-level score stays as a summary.
+
+A Python project with a database and no JS/TS sources was always "N/A" here and
+is now judged by the N+1 check (still N/A when no awaited read is recognised).
+Measured on a real FastAPI service: 46 call sites; a hand check of 10 random
+ones found 9 true per-item reads, 0 false, 1 debatable (one query per rule over
+a computed list of rules). An in-memory fake repository is read like a real one.
+
+**What to do:** batch the named reads, or, where the loop is genuinely bounded
+and small, declare the law inapplicable with a reason.
+
+### ⚠️ BREAKING — a waiver needs a reason (#350)
+
+A `laws.notApplicable` entry whose value is whitespace only (`" "`) or not a
+string (`true`, `0`) used to waive the law. It no longer does: the law runs and
+the audit prints
+
+```
+⚠️  laws.notApplicable['<law>'] has no reason — it waives nothing and the law still runs. Give the reason: laws.notApplicable = { "<law>": "why it does not apply" }
+```
+
+`""` never waived and still does not; a `null` value is dropped by the config
+merger before the audit (as before) and behaves like a missing key. **What to
+do:** write the real reason.
+
+### ⚠️ Changes you will see — waivers are named and get their own verdict (#350)
+
+Waiving every failing law with `laws.notApplicable` printed a bare
+`✅ CONSTITUTIONAL COMPLIANCE: PASSED` and the victory art. Now, in every
+outcome (pass, fail, partial, refused), the waived laws are listed with their
+reasons before the verdict:
+
+```
+📋 2 law(s) waived by laws.notApplicable — not run, not passed:
+   – <law>: <reason>
+✅ CONSTITUTIONAL COMPLIANCE: PASSED WITH WAIVERS — 75 of 75 applicable laws ran (2 waived)
+```
+
+No victory art when anything was waived; a partial scan says
+`(narrowed by X; W waived)`. **The exit code is unchanged in every case.** A
+project with no waivers prints what it printed before, plus one line: Audit
+Liveness now states its floor and where it comes from on a pass too —
+`Audit Liveness: floor 20 — default 25% of 80 stack-applicable laws (counted
+before waivers)`, or `— laws.minLawsChecked`, or `floor 0 — narrowed by …`.
+
+The JSON (`--json` and `--export json`) gains:
+
+- a top-level `verdict`: `compliance` | `compliance-with-waivers` | `partial` |
+  `failed` | `refused`. **Read this instead of `passed`**: `passed` follows the
+  exit code and is `true` for a partial run and for a run with waivers;
+- `scope.waivedLaws: [{ law, lawId, reason }]` — the laws that would apply but
+  were removed by a waiver (not unknown keys, not redundant ones, never a
+  meta-gate);
+- `scope.applicableBeforeWaivers` = `scope.applicableLaws` + the waived count;
+- `scope.liveness: { applicableLaws, floor, floorSource }` — the count the
+  liveness floor is taken from. It is **not** `scope.applicableLaws`: it counts
+  before waivers and includes the two always-on meta-gates. The printed floor and
+  the judged floor come from one function. No floor value changed.
+
+The contract was written cell by cell before the code (waived × narrowed ×
+refused × mode × outcome, cache hit, invalid waivers, 50 waivers) and each cell
+is a test.
+
+### Added — `requires` can say more
+
+- `anyPythonDependency`: a Python distribution declared in requirements*.txt,
+  pyproject.toml (PEP 621, PEP 735, Poetry, uv, PDM), Pipfile, setup.cfg or
+  setup.py, up to three directories deep; names compare in PEP 503 form.
+- `anyFileContaining: [{ files, pattern }]`: a file the globs name whose content
+  matches. This is what keeps a law off a project that has nothing for it to judge.
+- `anyOf: [ … ]`: one of several requirement sets (a Python or a Node SDK).
+- `thresholds.performance.maxStartupRequests` (default 4) for Startup Request Fan-Out.
+
+### Known limitations
+
+- Startup Request Fan-Out does not follow requests started through a callback
+  handed to a helper, free functions that receive a service, or `inject*()`
+  factories; each component is judged on its own.
+- Independent Awaits Run Concurrently uses simple def-use: a dependency through
+  shared object state (a method that mutates `self`) is not seen.
+- Document Read Once Per Request does not distinguish branches: two reads on
+  mutually exclusive paths can be reported.
+- The Python reader is structural (logical lines and indented blocks), not a
+  Python AST: RoC has no Python runtime.
+
+### Not in this release
+
+Found during this wave, scheduled next: #369 (seven more places test a file name
+without its extension for one), #370 (narrowing by `categories` is not partial),
+#371 (the liveness floor is computed from the configured project type, not the
+detected one), #372 (an inherited `GIT_DIR` makes `audit` read, and `init`
+write, another repository).
+
 ## [7.26.10] - 2026-11-16
 
 Found by a clean install from the README's Quick start of 7.26.9, and QA's

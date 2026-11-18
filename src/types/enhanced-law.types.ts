@@ -64,6 +64,23 @@ export interface LawRequirement {
    * ships for both ecosystems — cannot be said without this.
    */
   anyOf?: readonly LawRequirement[];
+  /**
+   * At least one entry holds: a file matched by one of its globs (relative
+   * to the workspace root or a workspace project directory, outside
+   * installed, built and virtualenv trees) contains its regular expression.
+   * For a law whose subject is written in files no manifest declares — a
+   * deploy command in a CI step, a split @font-face in a stylesheet — so the
+   * law is not selected where the subject is absent.
+   */
+  anyFileContaining?: readonly FileContaining[];
+}
+
+/** One `anyFileContaining` entry: where to look, and what must be there. */
+export interface FileContaining {
+  /** Globs, e.g. `**\/*.sh`, `.github/workflows/*.yml`, `cloudbuild.yaml`. */
+  files: readonly string[];
+  /** Regular-expression source, compiled with the `m` flag. */
+  pattern: string;
 }
 
 export interface EnhancedConstitutionalLaw {

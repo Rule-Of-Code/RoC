@@ -187,3 +187,43 @@ describe('describeRequirement', () => {
     );
   });
 });
+
+describe('lawRequirementsMet: anyFileContaining', () => {
+  const DEPLOYS = { anyFileContaining: [{ files: ['**/*.sh', '.github/workflows/*.yml'], pattern: String.raw`gcloud\s+run\s+deploy\b` }] };
+
+  it('is met when a file matched by a glob contains the pattern', () => {
+    expect(lawRequirementsMet(DEPLOYS, project({ 'scripts/deploy.sh': 'gcloud run deploy api\n' }))).toBe(true);
+    expect(lawRequirementsMet(DEPLOYS, project({ '.github/workflows/release.yml': 'run: gcloud  run deploy api\n' }))).toBe(true);
+  });
+
+  it('is not met when the matching files lack the pattern, or the pattern sits in a file no glob names', () => {
+    expect(lawRequirementsMet(DEPLOYS, project({ 'scripts/build.sh': 'npm run build\n' }))).toBe(false);
+    expect(lawRequirementsMet(DEPLOYS, project({ 'docs/deploy.md': 'gcloud run deploy api\n' }))).toBe(false);
+  });
+
+  it('does not read installed, built or virtualenv trees', () => {
+    const root = project({
+      'node_modules/tool/deploy.sh': 'gcloud run deploy x\n',
+      'dist/deploy.sh': 'gcloud run deploy x\n',
+      '.venv/lib/deploy.sh': 'gcloud run deploy x\n',
+    });
+    expect(lawRequirementsMet(DEPLOYS, root)).toBe(false);
+  });
+
+  it('finds the file in a workspace project directory (monorepo)', () => {
+    const NAMED = { anyFileContaining: [{ files: ['cloudbuild.yaml'], pattern: 'run' }] };
+    expect(lawRequirementsMet(NAMED, project({ 'apps/api/cloudbuild.yaml': "args: ['run', 'deploy']\n" }))).toBe(true);
+    expect(lawRequirementsMet(NAMED, project({ 'apps/api/other.yaml': "args: ['run']\n" }))).toBe(false);
+  });
+
+  it('any one entry is enough, and it is ANDed with the other conditions', () => {
+    const TWO = { anyFileContaining: [{ files: ['host.json'], pattern: '"version"' }, ...DEPLOYS.anyFileContaining] };
+    expect(lawRequirementsMet(TWO, project({ 'host.json': '{ "version": "2.0" }' }))).toBe(true);
+    const root = project({ 'scripts/deploy.sh': 'gcloud run deploy api\n' });
+    expect(lawRequirementsMet({ ...DEPLOYS, anyDependency: ['absent'] }, root)).toBe(false);
+  });
+
+  it('is named in words', () => {
+    expect(describeRequirement(DEPLOYS)).toBe(String.raw`a file (**/*.sh or .github/workflows/*.yml) containing /gcloud\s+run\s+deploy\b/`);
+  });
+});

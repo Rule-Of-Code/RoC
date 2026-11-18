@@ -97,6 +97,62 @@ describe('#365 Test Builds Use Own Firebase Config — Android acceptance', () =
   });
 });
 
+describe('#365 — the implicit debug build: the finding says how to fix it, and each accepted fix is green', () => {
+  const ROOT_ONLY = { 'android/app/google-services.json': services('shop-prod') };
+  const PLAIN = "apply plugin: 'com.android.application'\nandroid {\n    buildTypes {\n        release { minifyEnabled true }\n    }\n}\n";
+  const PLACEHOLDER_MAIN = {
+    'android/app/src/main/AndroidManifest.xml': '<manifest><application><meta-data android:name="firebase_messaging_auto_init_enabled" android:value="${fcmAutoInit}" /></application></manifest>',
+  };
+  const kts = (debugBody: string): string =>
+    `android {\n  buildTypes {\n    getByName("release") { manifestPlaceholders["fcmAutoInit"] = "true" }\n    getByName("debug") { ${debugBody} }\n  }\n}\n`;
+
+  it('red: one google-services.json, no build type declared but release — debug is named, with every accepted fix', () => {
+    const result = check({ ...ROOT_ONLY, 'android/app/build.gradle': PLAIN });
+    expect(result.violations).toHaveLength(1);
+    const finding = result.violations?.[0] ?? '';
+    expect(finding).toMatch(/^android\/app\/google-services\.json:4: non-release build variant\(s\) debug \(android\/app\/build\.gradle\)/);
+    expect(finding).toContain('fix one of: (1) android/app/src/debug/google-services.json from a dev Firebase project');
+    expect(finding).toContain('(2) <meta-data android:name="firebase_messaging_auto_init_enabled" android:value="false" /> in android/app/src/debug/AndroidManifest.xml');
+    expect(finding).toContain('(3) android:value="${key}" in the manifest with manifestPlaceholders key = "false" in the debug build type');
+  });
+
+  it('(a) green: android/app/src/debug/google-services.json from another project', () => {
+    const result = check({ ...ROOT_ONLY, 'android/app/build.gradle': PLAIN, 'android/app/src/debug/google-services.json': services('shop-dev') });
+    expect(result.passed).toBe(true);
+    expect(result.metrics).toMatchObject({ judged: 1 });
+  });
+
+  it('(b) green: auto-init false as meta-data in src/debug/AndroidManifest.xml', () => {
+    expect(check({ ...ROOT_ONLY, 'android/app/build.gradle': PLAIN, 'android/app/src/debug/AndroidManifest.xml': AUTO_INIT_OFF }).passed).toBe(true);
+  });
+
+  it('(b) green: a ${placeholder} in the manifest, manifestPlaceholders false in the Groovy debug build type', () => {
+    const groovy = "android {\n    buildTypes {\n        release { manifestPlaceholders = [fcmAutoInit: \"true\"] }\n        debug { manifestPlaceholders = [fcmAutoInit: \"false\"] }\n    }\n}\n";
+    expect(check({ ...ROOT_ONLY, ...PLACEHOLDER_MAIN, 'android/app/build.gradle': groovy }).passed).toBe(true);
+  });
+
+  it.each([
+    ['manifestPlaceholders["key"] = "false"', 'manifestPlaceholders["fcmAutoInit"] = "false"'],
+    ['manifestPlaceholders += mapOf("key" to "false")', 'manifestPlaceholders += mapOf("fcmAutoInit" to "false")'],
+    ['manifestPlaceholders.put("key", "false")', 'manifestPlaceholders.put("fcmAutoInit", "false")'],
+  ])('(b) green: Kotlin DSL %s in the debug build type', (_name, body) => {
+    expect(check({ ...ROOT_ONLY, ...PLACEHOLDER_MAIN, 'android/app/build.gradle.kts': kts(body) }).passed).toBe(true);
+  });
+
+  it('(b) red: the placeholder set to true for debug', () => {
+    expect(check({ ...ROOT_ONLY, ...PLACEHOLDER_MAIN, 'android/app/build.gradle.kts': kts('manifestPlaceholders["fcmAutoInit"] = "true"') }).passed).toBe(false);
+  });
+
+  it('(c) not a fix: applicationIdSuffix ".debug" with its own client in the same project still writes into the production project', () => {
+    const twoClients = JSON.stringify({
+      project_info: { project_number: '1', project_id: 'shop-prod' },
+      client: [{ client_info: { android_client_info: { package_name: 'shop.app' } } }, { client_info: { android_client_info: { package_name: 'shop.app.debug' } } }],
+    }, null, 2);
+    const groovy = "android {\n    defaultConfig { applicationId \"shop.app\" }\n    buildTypes {\n        debug { applicationIdSuffix \".debug\" }\n    }\n}\n";
+    expect(check({ 'android/app/google-services.json': twoClients, 'android/app/build.gradle': groovy }).passed).toBe(false);
+  });
+});
+
 describe('#365 — iOS', () => {
   const pbxproj = (names: string[], settings = ''): string =>
     names.map(name => `\t\tA /* ${name} */ = {\n\t\t\tisa = XCBuildConfiguration;\n\t\t\tbuildSettings = {\n\t\t\t\tPRODUCT_NAME = App;${settings}\n\t\t\t};\n\t\t\tname = ${name};\n\t\t};`).join('\n');
@@ -105,6 +161,8 @@ describe('#365 — iOS', () => {
   it('red: one GoogleService-Info.plist used by Debug and Release', () => {
     const result = check({ 'ios/App/App.xcodeproj/project.pbxproj': pbxproj(['Debug', 'Release']), 'ios/App/App/GoogleService-Info.plist': PLIST });
     expect(result.violations).toEqual([expect.stringMatching(/^ios\/App\/App\/GoogleService-Info\.plist:1: Xcode configuration\(s\) Debug bundle this one GoogleService-Info\.plist/)]);
+    expect(result.violations?.[0]).toContain('fix one of: (1) a GoogleService-Info.plist per configuration');
+    expect(result.violations?.[0]).toContain('(2) FirebaseMessagingAutoInitEnabled = <false/> in the app\'s Info.plist, or $(VAR) with VAR = NO in the build settings of Debug');
   });
 
   it('green: FirebaseMessagingAutoInitEnabled set to NO through a per-configuration variable', () => {

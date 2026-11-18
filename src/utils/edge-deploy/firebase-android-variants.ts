@@ -120,7 +120,7 @@ export function autoInitDisabled(variant: Variant, values: Map<string, string>, 
   const placeholder = /^\$\{(\w+)\}$/.exec(value)?.[1];
   if (!placeholder) return false;
   const blocks = [variants.buildTypes.find(block => block.name === buildType)?.body, variants.flavors.find(block => block.name === flavor)?.body, variants.defaultConfig];
-  const assignment = new RegExp(String.raw`["']?\b${placeholder}\b["']?\]?\s*(?::|=|\bto\b)\s*["']?(\w+)`);
+  const assignment = new RegExp(String.raw`["']?\b${placeholder}\b["']?\]?\s*(?::|=|,|\bto\b)\s*["']?(\w+)`);
   const setting = blocks.map(body => (body ? assignment.exec(body)?.[1] : undefined)).find(found => found !== undefined);
   return setting === 'false';
 }

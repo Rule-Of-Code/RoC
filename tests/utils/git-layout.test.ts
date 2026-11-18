@@ -7,7 +7,7 @@
  * project root reported "no hooks" and "unable to read Git configuration" for
  * a worktree whose hooks had just blocked a push.
  */
-import { execSync } from 'child_process';
+import { execSync } from '../../src/utils/child-process';
 import { GitHooksStandardsLaw } from '../../src/checkers/version-control-laws/git-hooks-standards';
 import { VersionControlLawBase } from '../../src/checkers/version-control-laws/version-control-law-base';
 import type { LawCheckContext } from '../../src/types/law.types';

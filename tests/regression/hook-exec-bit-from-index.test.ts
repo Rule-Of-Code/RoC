@@ -13,7 +13,7 @@
  * about the real defect underneath — committed hooks at 100644 are not
  * executable when the repo is cloned on Linux.
  */
-import { execSync } from 'child_process';
+import { execSync } from '../../src/utils/child-process';
 import { GitHookComplianceLaw } from '../../src/checkers/git-laws/git-hook-compliance';
 import type { LawCheckContext } from '../../src/types/law.types';
 import { FileUtils } from '../../src/utils/file-utils';

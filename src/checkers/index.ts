@@ -10,10 +10,12 @@ export { TypeScriptChecker } from './typescript-checker';
 
 // Export modular law modules
 export * from './angular-laws';
+export * from './cache-harness-laws';
 export * from './capacitor-laws';
 export * from './client-deploy-laws';
 export * from './code-quality-laws';
 export * from './documentation-laws';
+export * from './edge-deploy-laws';
 export * from './git-laws';
 export * from './integrity-laws';
 export * from './ionic-laws';

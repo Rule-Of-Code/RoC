@@ -164,8 +164,11 @@ export function initCommand(program: Command): void {
     .option('--quick', 'quick setup with sensible defaults (recommended)')
     .action(async (options: InitOptions) => {
       const result = await executeInitAction(options);
-      if (!result.success && result.error) {
-        throw result.error;
+      // executeInitAction has already printed the reason. Rethrowing here
+      // escaped commander's synchronous parse() as an unhandled rejection:
+      // a second copy of the message with a stack trace, and exit code 7.
+      if (!result.success) {
+        process.exitCode = 1;
       }
     });
 }

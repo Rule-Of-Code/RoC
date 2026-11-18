@@ -4,7 +4,7 @@
  * way `cap config --json` does. Pass `extConfig: null` for a project whose CLI
  * is not installed.
  */
-import { execFileSync } from 'child_process';
+import { execFileSync } from '../../../src/utils/child-process';
 import { CapacitorProjects } from '../../../src/utils/capacitor/capacitor-project';
 import {
   fakeCapacitorCli,

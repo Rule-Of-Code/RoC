@@ -184,7 +184,9 @@ export const VERSION_CONTROL_LAWS: EnhancedConstitutionalLaw[] = [
       'Git hooks are where a team runs its lint and tests before a bad commit lands; a repo with hooks recommended but never installed loses that safety net. This law nudges toward configured hooks.',
     satisfiedBy: { typescript: 'Configure pre-commit and commit-msg hooks (husky or native); if husky is in devDependencies, actually configure .husky/.', python: 'A .pre-commit-config.yaml (or a "pre-commit" entry in gate config) short-circuits the whole hook/tool block as satisfied.' },
     detectionLimits: [
-      'A hook counts as configured if a committed .husky/<hook> exists or the .git/hooks file is not git\'s own template — it is never executed, so a hook that runs nothing still counts.',
+      'A committed .husky/<hook> counts only when git runs it in this checkout: the hooks directory is asked of git (core.hooksPath, else the common git dir hooks; worktrees and a relative hooksPath are resolved by git) and must hold the hook, and the husky 9 runner layout also needs the user script. Committed but not installed is a violation in a developer checkout.',
+      'In a CI checkout (the CI variable set, or HUSKY=0) hooks are not installed by design: a committed hook that is not installed is not a finding there, and the result message and metrics.checked say that only the committed configuration was checked. A CI runner that sets neither variable (Jenkins, Azure Pipelines without CI=true) is judged as a developer checkout.',
+      'A hook file in the hooks directory counts if it is not git\'s own template — it is never executed, so a hook that runs nothing still counts.',
       'It shares one hook-status resolver with Git Hook Compliance, so the two can no longer disagree about the same repo; the overlap between them is real and deliberate.',
       'It also flags half-installed husky — husky in devDependencies but no .husky directory.',
     ],
@@ -430,11 +432,13 @@ export const VERSION_CONTROL_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Git Hook Compliance',
     rationale:
       'A repo that declares hooks should actually have them installed and executable, not left as unconfigured samples. This law checks pre-commit, pre-push and commit-msg are real and runnable.',
-    satisfiedBy: { typescript: 'Install real pre-commit/pre-push/commit-msg hooks (committed .husky/ counts) with an exec bit and a shebang, and add a hook tool (husky/pre-commit/ghooks/yorkie) to devDependencies.', python: 'A .pre-commit-config.yaml on a detected Python project skips the whole hook/automation block as satisfied.' },
+    satisfiedBy: { typescript: 'Install real pre-commit/pre-push/commit-msg hooks (a committed .husky/ counts once husky has pointed core.hooksPath at it: npx husky, or "prepare": "husky") with an exec bit and a shebang, and add a hook tool (husky/pre-commit/ghooks/yorkie) to devDependencies.', python: 'A .pre-commit-config.yaml on a detected Python project skips the whole hook/automation block as satisfied.' },
     detectionLimits: [
       'On a stock git repo the default .sample hooks are read as unconfigured and fail — Git Hooks Standards now reads the same shared resolver and reaches the same verdict.',
       'A JavaScript/TypeScript repo that uses the pre-commit framework instead of husky is not recognised (that path is gated on the Python detector) and still fails.',
       'Recognition is husky-first; the hooks directory is resolved through git (common dir plus core.hooksPath), so linked worktrees and relocated hooks are found.',
+      'A committed .husky/<hook> counts only when git runs it in this checkout: the resolved hooks directory must hold the hook, and the husky 9 runner layout also needs the user script. Committed but not installed is a violation in a developer checkout.',
+      'In a CI checkout (the CI variable set, or HUSKY=0) hooks are not installed by design: a committed hook that is not installed is not a finding there, and the result message and metrics.checked say that only the committed configuration was checked. A CI runner that sets neither variable (Jenkins, Azure Pipelines without CI=true) is judged as a developer checkout.',
       'The executable bit is read from the git INDEX, so it is judged only for TRACKED hook files. Hooks generated at install time are untracked — husky ignores its whole `_` directory — and carry no mode that git or a consumer could set, so their executability is not checked at all.',
       'Only the names git actually runs as hooks are judged; other files sharing the hooks directory (husky keeps .gitignore, husky.sh and h there) are ignored, so a broken support file is invisible to this law.',
     ],

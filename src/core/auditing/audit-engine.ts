@@ -3,7 +3,7 @@
  */
 
 import chalk from 'chalk';
-import { execFileSync } from 'child_process';
+import { execFileSync } from '../../utils/child-process';
 import * as fs from 'fs';
 import { ConfigLoader } from '../../config/loader';
 import { GitHooksInstaller } from '../../hooks/installer';

@@ -15,7 +15,7 @@
  * Outside a git repository nothing can be asked, and the old disk reading is
  * kept as the fallback.
  */
-import { execFileSync } from 'child_process';
+import { execFileSync } from '../../src/utils/child-process';
 import fs from 'fs';
 import path from 'path';
 import { EnvironmentSecurityEnforcementLaw } from '../../src/checkers/security-laws/environment-security-enforcement';

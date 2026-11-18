@@ -34,6 +34,10 @@ const BUDGET = JSON.stringify({
   endpoints: ['/items', '/profile'],
 });
 
+/** What a burst reports about reads repeated across its requests (#375): total, distinct, repeat ratio, per collection. */
+const READ_REPORT_PY = 'report = {"total_docs": total, "distinct_docs": len(keys), "repeat_ratio": 1 - len(keys) / total, "by_collection": per_collection}\n';
+const READ_REPORT_JS = '// report: totalDocs, distinctDocs, repeatRatio, byCollection\n';
+
 /** One request per endpoint, one after another, against a local emulator. */
 const SEQUENTIAL = `import json, os, time, httpx
 os.environ["FIRESTORE_EMULATOR_HOST"] = "localhost:8080"
@@ -54,7 +58,7 @@ baseline = json.load(open("perf/baseline.json"))
 
 async def burst(client):
     return await asyncio.gather(*(client.get(path) for path in budget["endpoints"]))
-`;
+` + READ_REPORT_PY;
 
 describe('LatencyBudgetHarnessRealismLaw (#355)', () => {
   it('is gated on a latency budget: a project without one does not select the law', () => {
@@ -139,7 +143,7 @@ baseline = json.load(open("perf/baseline.json"))
 
 async def burst(client):
     return await asyncio.gather(*(client.get(path) for path in budget["endpoints"]))
-`;
+` + READ_REPORT_PY;
 
     it('red: one request at a time and no baseline, each named at the harness', () => {
       const result = run({ 'perf/budget.json': budget, 'scripts/perf_budget.py': sequential });
@@ -160,7 +164,7 @@ async def burst(client):
   it('a budget directory is named by the harness that reads it', () => {
     const result = run({
       'budgets/api.yaml': '/items: 300ms\n/profile: 250ms\n',
-      'perf/run.js': '// reads every file in budgets/ and compares with the baseline\nawait Promise.all(paths.map(p => fetch(p)));\n',
+      'perf/run.js': '// reads every file in budgets/ and compares with the baseline\nawait Promise.all(paths.map(p => fetch(p)));\n' + READ_REPORT_JS,
     });
     expect(result.violations).toEqual([]);
     expect(result.passed).toBe(true);
@@ -195,7 +199,7 @@ async def burst(client):
     const remote = SEQUENTIAL.replace('os.environ["FIRESTORE_EMULATOR_HOST"] = "localhost:8080"\n', '').replace(
       'for path',
       'tasks = [client.get(p) for p in budget["endpoints"]]\nawait asyncio.gather(*tasks)\nfor path'
-    );
+    ) + READ_REPORT_PY;
     const result = run({
       'perf/latency_budget.json': BUDGET,
       'perf/run_budget.py': remote,
@@ -208,7 +212,7 @@ async def burst(client):
     const result = run({
       'perf/latency_budget.json': BUDGET,
       'perf/run_budget.py': SEQUENTIAL.replace('localhost:8080"', 'localhost:8080"  # through toxiproxy') + '# baseline: perf/main.json\n',
-      'perf/burst.js': "// reads latency_budget.json\nexport const options = { vus: 8, duration: '30s' };\n",
+      'perf/burst.js': "// reads latency_budget.json\nexport const options = { vus: 8, duration: '30s' };\n" + READ_REPORT_JS,
     });
     expect(result.violations).toEqual([]);
   });
@@ -225,5 +229,56 @@ async def burst(client):
     const result = run({ 'docs/latency-budget.yaml': 'p95_ms: 300\n' });
     expect(result.passed).toBe(false);
     expect(result.violations).toEqual([expect.stringMatching(/^docs\/latency-budget\.yaml:1: declares a latency budget, but no script/)]);
+  });
+});
+
+/**
+ * #375: a burst harness must also say how many document reads were repeats
+ * across its concurrent requests — total, distinct, repeat ratio, per
+ * collection — at the line of the concurrent scenario.
+ */
+describe('LatencyBudgetHarnessRealismLaw — burst read report (#375)', () => {
+  const BURST = `import asyncio, json, httpx
+budget = json.load(open("perf/latency_budget.json"))
+baseline = json.load(open("perf/baseline.json"))
+
+async def burst(client):
+    return await asyncio.gather(*(client.get(path) for path in budget["endpoints"]))
+`;
+
+  it('red: a burst harness without a per-key read report is named at its concurrent scenario', () => {
+    const result = run({ 'perf/latency_budget.json': BUDGET, 'perf/run_budget.py': BURST });
+    expect(result.passed).toBe(false);
+    expect(result.violations).toEqual([
+      expect.stringMatching(
+        /^perf\/run_budget\.py:6: the concurrent scenario \(asyncio\.gather\) does not report document reads repeated across its requests — missing: total documents read, distinct documents, repeat ratio across requests, per collection/
+      ),
+    ]);
+  });
+
+  it('green: the burst reports total, distinct, repeat ratio and per collection', () => {
+    const result = run({ 'perf/latency_budget.json': BUDGET, 'perf/run_budget.py': BURST + READ_REPORT_PY });
+    expect(result.violations).toEqual([]);
+    expect(result.passed).toBe(true);
+  });
+
+  it('names only the missing items, and the report may sit in another harness file', () => {
+    const partial = BURST + 'print("distinct_docs", len(keys), "total_reads", total)\n';
+    expect(run({ 'perf/latency_budget.json': BUDGET, 'perf/run_budget.py': partial }).violations).toEqual([
+      expect.stringMatching(/^perf\/run_budget\.py:6: .*missing: repeat ratio across requests, per collection;/),
+    ]);
+    const split = {
+      'perf/latency_budget.json': BUDGET,
+      'perf/run_budget.py': partial,
+      'perf/read_report.py': '# summarises the run of latency_budget.json\nrows = {"repeat_ratio": r, "by_collection": c}\n',
+    };
+    expect(run(split).violations).toEqual([]);
+  });
+
+  it('a harness without a concurrent scenario is not asked for a read report (no burst to report on)', () => {
+    const sequential = 'import json\nbudget = json.load(open("perf/latency_budget.json"))\n# compares with baseline\n';
+    const violations = run({ 'perf/latency_budget.json': BUDGET, 'perf/run_budget.py': sequential }).violations ?? [];
+    expect(violations).toHaveLength(1);
+    expect(violations[0]).toMatch(/no concurrent scenario/);
   });
 });

@@ -213,6 +213,15 @@ import {
   StartupRequestFanOutLaw,
 } from '../checkers/client-deploy-laws';
 
+// Edge proxy and deploy-security laws
+import {
+  HostingRewriteRegionMatchesDeployLaw,
+  JobDefinitionDumpsMaskedLaw,
+  ProxyTargetKeepsOriginHostLaw,
+  TestBuildsUseOwnFirebaseConfigLaw,
+  WorkerPublicUrlsDeclaredLaw,
+} from '../checkers/edge-deploy-laws';
+
 // Integrity Laws Modular Imports — migrations, CHECKs, guards, tsconfig, retention
 import {
   DrizzleMigrationJournalIntegrityLaw,
@@ -227,6 +236,13 @@ import {
   TestServerLoopbackAddressMatchLaw,
   TracingExplainsLatencyLaw,
 } from '../checkers/measurement-laws';
+// Cache and harness laws — read caches, single-flight, route rigs, perf harness
+import {
+  AsyncCacheSingleFlightLaw,
+  DatabaseReadCacheSafetyLaw,
+  PerfHarnessMatchesProductionLaw,
+  TestRigKeepsRouteGuardsLaw,
+} from '../checkers/cache-harness-laws';
 // React Laws Modular Imports — gated by `requires` on react / next
 import {
   NextOpenRedirectGuardedLaw,
@@ -673,10 +689,21 @@ export class ModularLawsRegistry {
     'StartupRequestFanOutLaw.check': StartupRequestFanOutLaw,
     'PrimaryLocaleFontPreloadedLaw.check': PrimaryLocaleFontPreloadedLaw,
     'ServerlessDeployPinsResourcesLaw.check': ServerlessDeployPinsResourcesLaw,
+    // Edge proxy and deploy-security laws
+    'ProxyTargetKeepsOriginHostLaw.check': ProxyTargetKeepsOriginHostLaw,
+    'WorkerPublicUrlsDeclaredLaw.check': WorkerPublicUrlsDeclaredLaw,
+    'HostingRewriteRegionMatchesDeployLaw.check': HostingRewriteRegionMatchesDeployLaw,
+    'TestBuildsUseOwnFirebaseConfigLaw.check': TestBuildsUseOwnFirebaseConfigLaw,
+    'JobDefinitionDumpsMaskedLaw.check': JobDefinitionDumpsMaskedLaw,
     // Measurement Laws (latency budget harness, tracing, test-server loopback)
     'LatencyBudgetHarnessRealismLaw.check': LatencyBudgetHarnessRealismLaw,
     'TracingExplainsLatencyLaw.check': TracingExplainsLatencyLaw,
     'TestServerLoopbackAddressMatchLaw.check': TestServerLoopbackAddressMatchLaw,
+    // Cache and harness laws
+    'DatabaseReadCacheSafetyLaw.check': DatabaseReadCacheSafetyLaw,
+    'AsyncCacheSingleFlightLaw.check': AsyncCacheSingleFlightLaw,
+    'TestRigKeepsRouteGuardsLaw.check': TestRigKeepsRouteGuardsLaw,
+    'PerfHarnessMatchesProductionLaw.check': PerfHarnessMatchesProductionLaw,
 
     // Ionic Laws (gated on an Ionic binding)
     'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,

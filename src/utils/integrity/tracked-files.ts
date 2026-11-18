@@ -10,7 +10,7 @@
  * list would read as "nothing to check" and pass.
  */
 
-import { execFileSync } from 'child_process';
+import { execFileSync } from '../child-process';
 import * as fs from 'fs';
 import * as path from 'path';
 

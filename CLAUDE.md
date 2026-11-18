@@ -41,6 +41,10 @@ node dist/cli.js audit   # RoC against RoC
 Run the full suite, not the files you think you touched. It has caught changes that
 looked local and were not.
 
+The hooks are part of the gate. `npm ci` installs them (`prepare` runs `husky`);
+`git config --get core.hooksPath` must print `.husky/_`. If it prints nothing, no hook
+runs: run `npx husky` before your first commit.
+
 ## Changing a detector
 
 1. **Read the detector before you accuse the law.** Most reported "false positives"

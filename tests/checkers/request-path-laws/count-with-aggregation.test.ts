@@ -125,7 +125,7 @@ describe('Count With An Aggregation (#354)', () => {
         'Count With An Aggregation: 1 source file(s) read (1 Python, 0 TS/JS), no whole-result fetch counted — nothing to check; not checked: counts through a repository method the client registry does not list, and documents counted in a helper the fetch was passed to'
       );
       expect(result.details).toEqual([result.message]);
-      expect(result.metrics).toEqual({ filesRead: 1, pythonFiles: 1, typescriptFiles: 0, compared: 0 });
+      expect(result.metrics).toEqual({ filesRead: 1, pythonFiles: 1, typescriptFiles: 0, oneOffScriptsSkipped: 0, compared: 0 });
     });
 
     it('fetches and no count by fetching: PASS that counts what it checked', () => {

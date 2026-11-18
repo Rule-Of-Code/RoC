@@ -111,7 +111,7 @@ describe('a static site keeps the laws that read HTML (#323)', () => {
 describe('only the project\'s own HTML makes it a static site (#326)', () => {
   const git = (root: string, ...args: string[]): void => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    require('child_process').execFileSync('git', args, {
+    require('../../src/utils/child-process').execFileSync('git', args, {
       cwd: root,
       stdio: 'ignore',
       env: { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@example.com', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@example.com' },

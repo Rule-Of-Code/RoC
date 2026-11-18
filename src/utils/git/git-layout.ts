@@ -14,7 +14,7 @@
  * be run at all.
  */
 
-import { execSync, spawnSync } from 'child_process';
+import { execSync, spawnSync } from '../child-process';
 import { FileUtils } from '../file-utils';
 import { PathOperations } from '../path-operations';
 
@@ -117,13 +117,26 @@ export function resolveRemoteUrls(projectRoot: string): string[] {
  * The directory git will actually consult for hooks: `core.hooksPath` when the
  * project sets one (husky does), otherwise `<common git dir>/hooks`. Returns
  * null only when there is no repository to ask about.
+ *
+ * Git resolves it (`rev-parse --git-path hooks`): a relative `core.hooksPath`
+ * is relative to the top of the work tree, where git runs hooks, not to a
+ * package directory below it, and git prints it relative to `cwd`.
  */
 export function resolveGitHooksDir(projectRoot: string): string | null {
-  const configured = git('git config --get core.hooksPath', projectRoot);
-  if (configured) return absolute(configured, projectRoot);
+  const resolved = git('git rev-parse --git-path hooks', projectRoot);
+  if (resolved) return absolute(resolved, projectRoot);
 
   const commonDir = resolveGitCommonDir(projectRoot);
   return commonDir ? PathOperations.join(commonDir, 'hooks') : null;
+}
+
+/**
+ * `core.hooksPath` exactly as the repository of `projectRoot` configures it,
+ * or null when it is unset (git then runs `<common git dir>/hooks`) or there is
+ * no repository to ask.
+ */
+export function configuredHooksPath(projectRoot: string): string | null {
+  return git('git config --get core.hooksPath', projectRoot);
 }
 
 /**
@@ -274,8 +287,8 @@ export interface PublishedListing {
  * Every file git would publish from `projectRoot` (tracked, or untracked and
  * not ignored), paths relative to it with forward slashes; null when git
  * cannot answer (no git binary, not inside a work tree). git runs with
- * `cwd = projectRoot` and the inherited environment (an inherited GIT_DIR
- * still wins over cwd — #372).
+ * `cwd = projectRoot` and without the repository-local GIT_* variables, so an
+ * inherited GIT_DIR cannot point it at another repository (#372).
  */
 export function publishedListing(projectRoot: string): PublishedListing | null {
   const inside = gitRun(INSIDE_WORK_TREE, projectRoot);

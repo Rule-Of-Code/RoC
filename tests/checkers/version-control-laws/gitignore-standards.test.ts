@@ -5,7 +5,7 @@
  * repository (nested .gitignore files count) and by the ignore files' text
  * where there is not.
  */
-import { execFileSync } from 'child_process';
+import { execFileSync } from '../../../src/utils/child-process';
 import { GitIgnoreStandardsLaw as Law } from '../../../src/checkers/version-control-laws/gitignore-standards';
 import { ctx, manifest, project, removeProjects } from '../toolkit-fixture';
 

@@ -15,7 +15,7 @@
  * project has.
  */
 
-import { execFileSync } from 'child_process';
+import { execFileSync } from '../../utils/child-process';
 import { lawRequirementsMet } from '../../utils/law-requirements';
 import { REQUIRES_CAPACITOR } from '../../utils/capacitor/capacitor-law-support';
 import { CapacitorProjects } from '../../utils/capacitor/capacitor-project';

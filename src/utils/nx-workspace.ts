@@ -19,7 +19,7 @@ export class NxWorkspace {
    * `libs/<domain>/<type>/` (libs/events/data-access) is the layout `nx g lib` produces
    * for a scoped library, and a one-level pattern sees none of them.
    */
-  private static readonly PROJECT_DIRS =
+  static readonly PROJECT_DIRS =
     '{,apps/*/,apps/*/*/,libs/*/,libs/*/*/,packages/*/,packages/*/*/,projects/*/}';
 
   private static readonly IGNORE = [

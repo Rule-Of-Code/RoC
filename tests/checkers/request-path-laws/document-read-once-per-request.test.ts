@@ -209,7 +209,7 @@ describe('Document Read Once Per Request (#353)', () => {
         'Document Read Once Per Request: 4 source file(s) read (4 Python, 0 TS/JS), 0 document reads keyed by a literal collection — nothing to compare; not compared: reads whose collection or id is computed at run time, reads through a repository or wrapper the reader does not resolve, and reads more than one call deep'
       );
       expect(result.details).toEqual([result.message]);
-      expect(result.metrics).toEqual({ filesRead: 4, pythonFiles: 4, typescriptFiles: 0, compared: 0 });
+      expect(result.metrics).toEqual({ filesRead: 4, pythonFiles: 4, typescriptFiles: 0, oneOffScriptsSkipped: 0, compared: 0 });
     });
 
     it('keyed reads and no duplicate: PASS that counts what it compared', () => {

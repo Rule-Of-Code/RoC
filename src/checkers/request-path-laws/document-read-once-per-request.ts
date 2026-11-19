@@ -13,7 +13,10 @@
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { declaredClients } from '../../utils/request-path/data-clients';
-import { describeDuplicateRead, scanDuplicateReads } from '../../utils/request-path/duplicate-reads';
+import {
+  describeDuplicateRead,
+  scanDuplicateReads,
+} from '../../utils/request-path/duplicate-reads';
 import { projectSources } from '../../utils/request-path/sources';
 import { LawBase } from '../law-base';
 import { requestPathResult } from './request-path-result';
@@ -27,7 +30,10 @@ export class DocumentReadOncePerRequestLaw extends LawBase {
 
   static check(context: LawCheckContext): LawResult {
     const sources = projectSources(context);
-    const { duplicates, keyedReads } = scanDuplicateReads(sources.modules, declaredClients(context.projectRoot));
+    const { duplicates, keyedReads } = scanDuplicateReads(
+      sources.modules,
+      declaredClients(context.projectRoot)
+    );
     return requestPathResult({
       lawName: this.LAW_NAME,
       context,

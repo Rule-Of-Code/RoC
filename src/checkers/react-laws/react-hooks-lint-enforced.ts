@@ -30,7 +30,10 @@ import {
   type HooksConfigEvidence,
   RELIED_COMPILER_RULES,
 } from '../../utils/react/eslint-hooks-config';
-import { loadTypeScript, parserUnavailable } from '../../utils/react/tsx-source';
+import {
+  loadTypeScript,
+  parserUnavailable,
+} from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';
 
 type Manifest = {
@@ -99,7 +102,10 @@ export class ReactHooksLintEnforcedLaw extends LawBase {
     return violations;
   }
 
-  private static verdict(evidence: HooksConfigEvidence, shown: string): string[] {
+  private static verdict(
+    evidence: HooksConfigEvidence,
+    shown: string
+  ): string[] {
     const violations = [...evidence.unread];
     const relied = new Set([...CORE_HOOK_RULES, ...RELIED_COMPILER_RULES]);
     for (const { rule, at } of evidence.disabled) {
@@ -146,12 +152,15 @@ export class ReactHooksLintEnforcedLaw extends LawBase {
    * .eslintrc (and package.json `eslintConfig`) on the way — ESLint merges
    * that cascade.
    */
-  private static resolveConfig(dir: string, projectRoot: string): ResolvedConfig | null {
+  private static resolveConfig(
+    dir: string,
+    projectRoot: string
+  ): ResolvedConfig | null {
     const chain = this.ancestors(dir, projectRoot);
     for (const current of chain) {
-      const flat = FLAT_CONFIG_FILES.map(name => PathOperations.join(current, name)).find(file =>
-        FileSystemOperations.exists(file)
-      );
+      const flat = FLAT_CONFIG_FILES.map(name =>
+        PathOperations.join(current, name)
+      ).find(file => FileSystemOperations.exists(file));
       if (flat) return { files: [flat] };
     }
     const files: string[] = [];
@@ -161,7 +170,8 @@ export class ReactHooksLintEnforcedLaw extends LawBase {
         if (FileSystemOperations.exists(file)) files.push(file);
       }
       const manifestFile = PathOperations.join(current, MANIFEST);
-      if (this.manifest(manifestFile)?.eslintConfig !== undefined) files.push(manifestFile);
+      if (this.manifest(manifestFile)?.eslintConfig !== undefined)
+        files.push(manifestFile);
     }
     return files.length > 0 ? { files } : null;
   }
@@ -174,7 +184,11 @@ export class ReactHooksLintEnforcedLaw extends LawBase {
     for (;;) {
       chain.push(current);
       const parent = PathOperations.getDirectory(current);
-      if (!PathOperations.isInDirectory(current, root) || current === root || parent === current) {
+      if (
+        !PathOperations.isInDirectory(current, root) ||
+        current === root ||
+        parent === current
+      ) {
         break;
       }
       current = parent;

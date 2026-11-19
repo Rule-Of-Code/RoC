@@ -38,7 +38,10 @@ afterAll(() => {
     }
   }
 });
-const ctx = (root: string, extra?: Partial<RuleOfCodeConfig>): LawCheckContext => {
+const ctx = (
+  root: string,
+  extra?: Partial<RuleOfCodeConfig>
+): LawCheckContext => {
   const config = FileUtils.getMinimalDefaultConfig();
   config.project.type = 'python';
   if (extra) Object.assign(config, extra);
@@ -65,7 +68,8 @@ describe('Bug 2 — Public Docstrings robust to trailing comment on class line',
   it('passes a documented class with a # pragma (and unbalanced bracket) comment', () => {
     const dir = fixture({
       'pyproject.toml': "[project]\nname='x'\n",
-      'src/c.py': 'class KmsEnvelopeCipher:  # pragma: no cover (see ticket\n    """KMS envelope cipher."""\n    pass\n',
+      'src/c.py':
+        'class KmsEnvelopeCipher:  # pragma: no cover (see ticket\n    """KMS envelope cipher."""\n    pass\n',
     });
     expect(PublicDocstringsLaw.check(ctx(dir)).passed).toBe(true);
   });

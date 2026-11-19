@@ -16,15 +16,18 @@ const CAPAWESOME_WRAPPER =
 export const FIREBASE_ANDROID_DEPENDENCIES: readonly FirebaseAndroidRow[] = [
   {
     dependency: '@capacitor/push-notifications',
-    source: 'android/build.gradle:77 implementation com.google.firebase:firebase-messaging (8.1.2)',
+    source:
+      'android/build.gradle:77 implementation com.google.firebase:firebase-messaging (8.1.2)',
   },
   {
     dependency: '@capacitor-firebase/authentication',
-    source: 'android/build.gradle:63 implementation com.google.firebase:firebase-auth (8.4.0)',
+    source:
+      'android/build.gradle:63 implementation com.google.firebase:firebase-auth (8.4.0)',
   },
   {
     dependency: '@capacitor-firebase/firestore',
-    source: 'android/build.gradle:56 implementation com.google.firebase:firebase-firestore (8.4.0)',
+    source:
+      'android/build.gradle:56 implementation com.google.firebase:firebase-firestore (8.4.0)',
   },
   ...[
     'analytics',
@@ -36,7 +39,10 @@ export const FIREBASE_ANDROID_DEPENDENCIES: readonly FirebaseAndroidRow[] = [
     'performance',
     'remote-config',
     'storage',
-  ].map(name => ({ dependency: `@capacitor-firebase/${name}`, source: CAPAWESOME_WRAPPER })),
+  ].map(name => ({
+    dependency: `@capacitor-firebase/${name}`,
+    source: CAPAWESOME_WRAPPER,
+  })),
 ];
 
 /** An installed plugin that calls an API Apple asks to be declared with a reason. */

@@ -29,7 +29,12 @@ import type { TsxSource, TypeScriptModule } from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';
 
 /** Globals that exist only in a browser. */
-const BROWSER_GLOBALS = new Set(['window', 'document', 'localStorage', 'sessionStorage']);
+const BROWSER_GLOBALS = new Set([
+  'window',
+  'document',
+  'localStorage',
+  'sessionStorage',
+]);
 
 /** Hooks whose function argument runs DURING render: (hook → argument index). */
 const RENDER_TIME_CALLBACKS: Readonly<Record<string, number>> = {
@@ -38,7 +43,8 @@ const RENDER_TIME_CALLBACKS: Readonly<Record<string, number>> = {
   useReducer: 2,
 };
 
-type ComponentFunction = TS.ArrowFunction | TS.FunctionDeclaration | TS.FunctionExpression;
+type ComponentFunction =
+  TS.ArrowFunction | TS.FunctionDeclaration | TS.FunctionExpression;
 
 /** A component (`Page`, `UserCard`) or a hook (`useWidth`) — both run during render. */
 const RENDERS = /^(?:[A-Z]|use[A-Z])/;
@@ -48,13 +54,19 @@ export class ReactRenderNoBrowserGlobalLaw extends LawBase {
 
   static check(context: LawCheckContext): LawResult {
     const { sources, violations } = readReactSources(context, this.LAW_NAME);
-    const pagesDirs = ReactProject.nextApps(context.projectRoot).flatMap(app => app.pagesDirs);
+    const pagesDirs = ReactProject.nextApps(context.projectRoot).flatMap(
+      app => app.pagesDirs
+    );
     for (const source of sources) {
       if (!this.rendersOnServer(source, pagesDirs)) continue;
       const shadowed = this.declaredNames(source);
       const lines = new Set<number>();
       for (const component of this.components(source)) {
-        for (const reference of this.renderReferences(source, component, shadowed)) {
+        for (const reference of this.renderReferences(
+          source,
+          component,
+          shadowed
+        )) {
           const line = source.lineOf(reference);
           if (lines.has(line)) continue;
           lines.add(line);
@@ -77,11 +89,18 @@ export class ReactRenderNoBrowserGlobalLaw extends LawBase {
   }
 
   /** A `'use client'` file, or a file under a Pages Router directory (pages/api excluded). */
-  private static rendersOnServer(source: TsxSource, pagesDirs: string[]): boolean {
+  private static rendersOnServer(
+    source: TsxSource,
+    pagesDirs: string[]
+  ): boolean {
     if (source.directives().includes('use client')) return true;
     return pagesDirs.some(dir => {
       const relative = PathOperations.getRelative(dir, source.fileName);
-      if (relative === '' || relative.startsWith('..') || PathOperations.isAbsolute(relative)) {
+      if (
+        relative === '' ||
+        relative.startsWith('..') ||
+        PathOperations.isAbsolute(relative)
+      ) {
         return false;
       }
       return !relative.startsWith('api/');
@@ -90,10 +109,15 @@ export class ReactRenderNoBrowserGlobalLaw extends LawBase {
 
   /** Top-level functions that render: named components and hooks, a default export, memo/forwardRef. */
   private static components(source: TsxSource): ComponentFunction[] {
-    return source.sourceFile.statements.flatMap(statement => this.componentsOf(source.ts, statement));
+    return source.sourceFile.statements.flatMap(statement =>
+      this.componentsOf(source.ts, statement)
+    );
   }
 
-  private static componentsOf(ts: TypeScriptModule, statement: TS.Statement): ComponentFunction[] {
+  private static componentsOf(
+    ts: TypeScriptModule,
+    statement: TS.Statement
+  ): ComponentFunction[] {
     if (ts.isFunctionDeclaration(statement)) {
       const renders = !statement.name || RENDERS.test(statement.name.text);
       return statement.body && renders ? [statement] : [];
@@ -105,17 +129,27 @@ export class ReactRenderNoBrowserGlobalLaw extends LawBase {
     if (!ts.isVariableStatement(statement)) return [];
     const found: ComponentFunction[] = [];
     for (const declaration of statement.declarationList.declarations) {
-      if (!ts.isIdentifier(declaration.name) || !RENDERS.test(declaration.name.text)) continue;
-      const fn = declaration.initializer && this.renderFunction(ts, declaration.initializer);
+      if (
+        !ts.isIdentifier(declaration.name) ||
+        !RENDERS.test(declaration.name.text)
+      )
+        continue;
+      const fn =
+        declaration.initializer &&
+        this.renderFunction(ts, declaration.initializer);
       if (fn) found.push(fn);
     }
     return found;
   }
 
   /** `() => …`, `function () {}`, or the function wrapped by `memo(…)` / `forwardRef(…)`. */
-  private static renderFunction(ts: TypeScriptModule, expression: TS.Expression): ComponentFunction | null {
+  private static renderFunction(
+    ts: TypeScriptModule,
+    expression: TS.Expression
+  ): ComponentFunction | null {
     const value = unwrap(ts, expression);
-    if (ts.isArrowFunction(value) || ts.isFunctionExpression(value)) return value;
+    if (ts.isArrowFunction(value) || ts.isFunctionExpression(value))
+      return value;
     if (ts.isCallExpression(value) && value.arguments[0]) {
       return this.renderFunction(ts, value.arguments[0]);
     }
@@ -135,8 +169,17 @@ export class ReactRenderNoBrowserGlobalLaw extends LawBase {
       ts,
       component.body,
       node => {
-        if (!ts.isIdentifier(node) || !BROWSER_GLOBALS.has(node.text) || shadowed.has(node.text)) return;
-        if (!this.isValueReference(ts, node) || this.isGuarded(ts, node, component)) return;
+        if (
+          !ts.isIdentifier(node) ||
+          !BROWSER_GLOBALS.has(node.text) ||
+          shadowed.has(node.text)
+        )
+          return;
+        if (
+          !this.isValueReference(ts, node) ||
+          this.isGuarded(ts, node, component)
+        )
+          return;
         found.push(node);
       },
       node => isFunctionNode(ts, node) && !this.runsDuringRender(source, node)
@@ -161,30 +204,53 @@ export class ReactRenderNoBrowserGlobalLaw extends LawBase {
   }
 
   /** Used as a value: not `x.window`, not a key, a binding, a JSX attribute or a type. */
-  private static isValueReference(ts: TypeScriptModule, node: TS.Identifier): boolean {
+  private static isValueReference(
+    ts: TypeScriptModule,
+    node: TS.Identifier
+  ): boolean {
     const parent = node.parent;
     if (ts.isTypeOfExpression(parent)) return false;
-    if (ts.isPropertyAccessExpression(parent) && parent.name === node) return false;
-    if ((ts.isPropertyAssignment(parent) || ts.isJsxAttribute(parent)) && parent.name === node) {
+    if (ts.isPropertyAccessExpression(parent) && parent.name === node)
+      return false;
+    if (
+      (ts.isPropertyAssignment(parent) || ts.isJsxAttribute(parent)) &&
+      parent.name === node
+    ) {
       return false;
     }
-    for (let current: TS.Node = node; current.parent; current = current.parent) {
+    for (
+      let current: TS.Node = node;
+      current.parent;
+      current = current.parent
+    ) {
       if (ts.isTypeNode(current)) return false;
     }
     return true;
   }
 
   /** Under `typeof window !== 'undefined'` (if, ?:, &&), or after `if (typeof window === 'undefined') return`. */
-  private static isGuarded(ts: TypeScriptModule, node: TS.Node, component: ComponentFunction): boolean {
+  private static isGuarded(
+    ts: TypeScriptModule,
+    node: TS.Node,
+    component: ComponentFunction
+  ): boolean {
     let child: TS.Node = node;
-    for (let parent = node.parent; parent && child !== component; parent = parent.parent) {
+    for (
+      let parent = node.parent;
+      parent && child !== component;
+      parent = parent.parent
+    ) {
       if (this.guards(ts, parent, child)) return true;
       child = parent;
     }
     return false;
   }
 
-  private static guards(ts: TypeScriptModule, parent: TS.Node, child: TS.Node): boolean {
+  private static guards(
+    ts: TypeScriptModule,
+    parent: TS.Node,
+    child: TS.Node
+  ): boolean {
     if (ts.isIfStatement(parent) && child !== parent.expression) {
       return this.hasTypeofGuard(ts, parent.expression);
     }
@@ -199,11 +265,16 @@ export class ReactRenderNoBrowserGlobalLaw extends LawBase {
         operator === ts.SyntaxKind.QuestionQuestionToken;
       return logical && this.hasTypeofGuard(ts, parent.left);
     }
-    if (ts.isBlock(parent)) return this.afterEarlyReturnGuard(ts, parent, child);
+    if (ts.isBlock(parent))
+      return this.afterEarlyReturnGuard(ts, parent, child);
     return false;
   }
 
-  private static afterEarlyReturnGuard(ts: TypeScriptModule, block: TS.Block, child: TS.Node): boolean {
+  private static afterEarlyReturnGuard(
+    ts: TypeScriptModule,
+    block: TS.Block,
+    child: TS.Node
+  ): boolean {
     for (const statement of block.statements) {
       if (statement === child) return false;
       if (
@@ -217,12 +288,21 @@ export class ReactRenderNoBrowserGlobalLaw extends LawBase {
     return false;
   }
 
-  private static returns(ts: TypeScriptModule, statement: TS.Statement): boolean {
+  private static returns(
+    ts: TypeScriptModule,
+    statement: TS.Statement
+  ): boolean {
     if (ts.isReturnStatement(statement)) return true;
-    return ts.isBlock(statement) && statement.statements.some(inner => ts.isReturnStatement(inner));
+    return (
+      ts.isBlock(statement) &&
+      statement.statements.some(inner => ts.isReturnStatement(inner))
+    );
   }
 
-  private static hasTypeofGuard(ts: TypeScriptModule, expression: TS.Expression): boolean {
+  private static hasTypeofGuard(
+    ts: TypeScriptModule,
+    expression: TS.Expression
+  ): boolean {
     let found = false;
     walkWithin(ts, expression, node => {
       if (
@@ -242,7 +322,9 @@ export class ReactRenderNoBrowserGlobalLaw extends LawBase {
     const names = new Set<string>();
     source.walk(node => {
       if (
-        (ts.isVariableDeclaration(node) || ts.isParameter(node) || ts.isBindingElement(node)) &&
+        (ts.isVariableDeclaration(node) ||
+          ts.isParameter(node) ||
+          ts.isBindingElement(node)) &&
         ts.isIdentifier(node.name) &&
         BROWSER_GLOBALS.has(node.name.text)
       ) {

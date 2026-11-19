@@ -19,7 +19,10 @@ import {
   unwrapExpression,
   type AppFile,
 } from '../../utils/react/next-app-files';
-import { type NextSources, NextSourcesLoader } from '../../utils/react/next-sources';
+import {
+  type NextSources,
+  NextSourcesLoader,
+} from '../../utils/react/next-sources';
 import { ReactProject } from '../../utils/react/react-project';
 import type { TsxSource } from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';
@@ -36,7 +39,10 @@ export class NextMetadataDeclaredLaw extends LawBase {
   static check(context: LawCheckContext): LawResult {
     const sources = NextSourcesLoader.load(context);
     if (!NextSourcesLoader.hasRouter(sources)) {
-      return this.result([...sources.unread, NextAppFiles.noRouterDirectory(context)], context);
+      return this.result(
+        [...sources.unread, NextAppFiles.noRouterDirectory(context)],
+        context
+      );
     }
     const exempt = nextThresholds(context).metadataExemptRoutes ?? [];
     const violations = [
@@ -57,13 +63,16 @@ export class NextMetadataDeclaredLaw extends LawBase {
     return this.result(violations, context);
   }
 
-  private static result(violations: string[], context: LawCheckContext): LawResult {
+  private static result(
+    violations: string[],
+    context: LawCheckContext
+  ): LawResult {
     return this.createResult(
       violations,
       this.LAW_NAME,
       'FRAMEWORK',
       [
-        "Export `metadata` with a `title` (or `generateMetadata`) from the page, or from a layout above it — a root layout title with `title.template` covers every page",
+        'Export `metadata` with a `title` (or `generateMetadata`) from the page, or from a layout above it — a root layout title with `title.template` covers every page',
         'Pages Router: render <Head><title>…</title></Head> from next/head in the page or in _app',
         `List a route that needs no title of its own in ${EXEMPT_KEY}`,
       ],
@@ -71,14 +80,20 @@ export class NextMetadataDeclaredLaw extends LawBase {
     );
   }
 
-  private static appRouter(context: LawCheckContext, sources: NextSources, exempt: string[]): string[] {
+  private static appRouter(
+    context: LawCheckContext,
+    sources: NextSources,
+    exempt: string[]
+  ): string[] {
     const violations: string[] = [];
     for (const page of NextAppFiles.pages(sources.appFiles)) {
       const route = NextAppFiles.routeOf(page.appDir, page.segmentDir);
       if (matchesAny(route, exempt)) continue;
       const source = sources.parsed.get(page.file);
       if (!source) continue; // reported through sources.unread
-      const verdicts = this.chain(sources, page).map(file => this.verdictOf(sources.parsed.get(file)));
+      const verdicts = this.chain(sources, page).map(file =>
+        this.verdictOf(sources.parsed.get(file))
+      );
       if (verdicts.includes('titled')) continue;
       const where = ReactProject.relative(context, page.file);
       violations.push(
@@ -112,23 +127,37 @@ export class NextMetadataDeclaredLaw extends LawBase {
     return this.literalHasTitle(source.ts, value) ? 'titled' : 'untitled';
   }
 
-  private static literalHasTitle(ts: TsxSource['ts'], literal: TS.ObjectLiteralExpression): boolean {
+  private static literalHasTitle(
+    ts: TsxSource['ts'],
+    literal: TS.ObjectLiteralExpression
+  ): boolean {
     return literal.properties.some(
       property =>
         ts.isSpreadAssignment(property) ||
-        ((ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property)) &&
+        ((ts.isPropertyAssignment(property) ||
+          ts.isShorthandPropertyAssignment(property)) &&
           property.name.getText() === 'title')
     );
   }
 
-  private static pagesRouter(context: LawCheckContext, sources: NextSources, exempt: string[]): string[] {
+  private static pagesRouter(
+    context: LawCheckContext,
+    sources: NextSources,
+    exempt: string[]
+  ): string[] {
     const appTitled = sources.pagesFiles
       .filter(page => page.special === '_app')
       .some(page => this.headHasTitle(sources.parsed.get(page.file)));
     if (appTitled) return [];
     return sources.pagesFiles
-      .filter(page => !page.api && !page.special && !matchesAny(page.route, exempt))
-      .filter(page => sources.parsed.has(page.file) && !this.headHasTitle(sources.parsed.get(page.file)))
+      .filter(
+        page => !page.api && !page.special && !matchesAny(page.route, exempt)
+      )
+      .filter(
+        page =>
+          sources.parsed.has(page.file) &&
+          !this.headHasTitle(sources.parsed.get(page.file))
+      )
       .map(
         page =>
           `${ReactProject.relative(context, page.file)} (${page.route}): no <title> inside next/head in the page or in _app — the page has no title`
@@ -144,18 +173,25 @@ export class NextMetadataDeclaredLaw extends LawBase {
     let found = false;
     source.walk(node => {
       if (found || !ts.isJsxElement(node)) return;
-      if (!heads.has(node.openingElement.tagName.getText(source.sourceFile))) return;
+      if (!heads.has(node.openingElement.tagName.getText(source.sourceFile)))
+        return;
       found = this.containsTitle(source, node);
     });
     return found;
   }
 
-  private static containsTitle(source: TsxSource, head: TS.JsxElement): boolean {
+  private static containsTitle(
+    source: TsxSource,
+    head: TS.JsxElement
+  ): boolean {
     const ts = source.ts;
     let found = false;
     const visit = (node: TS.Node): void => {
       if (found) return;
-      if ((ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) && node.tagName.getText(source.sourceFile) === 'title') {
+      if (
+        (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) &&
+        node.tagName.getText(source.sourceFile) === 'title'
+      ) {
         found = true;
         return;
       }

@@ -3,7 +3,7 @@
  * @description Tests for branch naming conventions and git workflow governance
  */
 
-import { execSync } from 'child_process';
+import { execSync } from '../../../src/utils/child-process';
 import { BranchGovernanceLaw } from '../../../src/checkers/git-laws/branch-governance';
 import type { LawCheckContext } from '../../../src/types/law.types';
 import { FileUtils } from '../../../src/utils/file-utils';
@@ -542,9 +542,7 @@ describe('checkers/git-laws/branch-governance', () => {
       // The CI-reported name is judged like any other branch: this one breaks
       // the naming convention, so the law must say so rather than stay silent.
       expect(
-        (result.violations ?? []).some(v =>
-          /not-a-valid-prefix/.test(v)
-        )
+        (result.violations ?? []).some(v => /not-a-valid-prefix/.test(v))
       ).toBe(true);
     });
 

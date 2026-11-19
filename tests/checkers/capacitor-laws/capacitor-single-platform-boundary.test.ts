@@ -26,9 +26,14 @@ const libs = {
 
 describe('CapacitorSinglePlatformBoundaryLaw', () => {
   it('red: an import outside the configured boundary', () => {
-    const root = capacitorProject({ ...libs, 'libs/events/feature/src/share-button.ts': LEAK });
+    const root = capacitorProject({
+      ...libs,
+      'libs/events/feature/src/share-button.ts': LEAK,
+    });
     const result = Law.check(
-      ctx(root, { thresholds: { capacitor: { boundary: ['libs/shared/util/**'] } } })
+      ctx(root, {
+        thresholds: { capacitor: { boundary: ['libs/shared/util/**'] } },
+      })
     );
     expect(result.passed).toBe(false);
     expect(result.violations).toEqual([
@@ -41,7 +46,9 @@ describe('CapacitorSinglePlatformBoundaryLaw', () => {
   it('green: everything inside the configured boundary', () => {
     const root = capacitorProject(libs);
     const result = Law.check(
-      ctx(root, { thresholds: { capacitor: { boundary: ['libs/shared/util/**'] } } })
+      ctx(root, {
+        thresholds: { capacitor: { boundary: ['libs/shared/util/**'] } },
+      })
     );
     expect(result.violations).toEqual([]);
   });
@@ -51,7 +58,10 @@ describe('CapacitorSinglePlatformBoundaryLaw', () => {
   });
 
   it('unconfigured, two importing directories are named', () => {
-    const root = capacitorProject({ ...libs, 'libs/events/feature/src/share-button.ts': LEAK });
+    const root = capacitorProject({
+      ...libs,
+      'libs/events/feature/src/share-button.ts': LEAK,
+    });
     expect(Law.check(ctx(root)).violations).toEqual([
       expect.stringMatching(
         /from 2 project directories: libs\/events\/feature \(1 file\), libs\/shared\/util \(1 file\)/
@@ -80,14 +90,18 @@ describe('CapacitorSinglePlatformBoundaryLaw', () => {
     ).toEqual([]);
     const root = capacitorProject({
       ...libs,
-      'capacitor.config.ts': "import type { CapacitorConfig } from '@capacitor/cli';\nexport default {};",
+      'capacitor.config.ts':
+        "import type { CapacitorConfig } from '@capacitor/cli';\nexport default {};",
       'apps/web/project.json': '{}',
-      'apps/web/src/main.ts': "import { CapacitorConfig } from '@capacitor/cli';",
+      'apps/web/src/main.ts':
+        "import { CapacitorConfig } from '@capacitor/cli';",
     });
     expect(Law.check(ctx(root)).violations).toEqual([]);
   });
 
   it('a dynamic import counts', () => {
-    expect(Law.uses("const { Share } = await import('@capacitor/share');")).toEqual(['@capacitor/share']);
+    expect(
+      Law.uses("const { Share } = await import('@capacitor/share');")
+    ).toEqual(['@capacitor/share']);
   });
 });

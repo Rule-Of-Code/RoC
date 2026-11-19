@@ -14,7 +14,12 @@ export function nextManifest(
   return JSON.stringify({
     name: 'web',
     private: true,
-    scripts: { dev: 'next dev', build: 'next build', start: 'next start', ...scripts },
+    scripts: {
+      dev: 'next dev',
+      build: 'next build',
+      start: 'next start',
+      ...scripts,
+    },
     dependencies: {
       next: NEXT_VERSION,
       react: '19.3.0',

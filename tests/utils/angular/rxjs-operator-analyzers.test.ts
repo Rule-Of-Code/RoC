@@ -232,9 +232,9 @@ describe('utils/angular/rxjs-operator-usage/rxjs-operator-analyzers', () => {
         ]);
 
         expect(result.violations.some(v => v.includes('toPromise'))).toBe(true);
-        expect(
-          result.suggestions.some(s => s.includes('firstValueFrom'))
-        ).toBe(true);
+        expect(result.suggestions.some(s => s.includes('firstValueFrom'))).toBe(
+          true
+        );
       });
 
       it('should not flag modern operators', () => {

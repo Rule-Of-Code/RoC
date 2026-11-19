@@ -30,13 +30,16 @@ import { glob } from 'glob';
 
 /** PEP 503 normalised form of a distribution name. */
 export function normalizePythonName(name: string): string {
-  return name.trim().toLowerCase().replace(/[-_.]+/g, '-');
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[-_.]+/g, '-');
 }
 
-const MANIFEST_GLOB =
+export const PYTHON_MANIFEST_GLOB =
   '{,*/,*/*/,*/*/*/}{requirements*.txt,requirements/*.txt,pyproject.toml,Pipfile,setup.cfg,setup.py}';
 
-const IGNORE = [
+export const PYTHON_MANIFEST_IGNORE: readonly string[] = [
   '**/node_modules/**',
   '**/.venv/**',
   '**/venv/**',
@@ -64,7 +67,11 @@ function requirementsLineName(raw: string): string | null {
   const hasEgg = /#egg=/.test(raw);
   // -r/-c include another file (found by the glob on its own); -e and URL or
   // path requirements name a package only through #egg=; other options none.
-  if (line.startsWith('-') || /^[a-z]+:\/\//i.test(line) || /^[./]/.test(line)) {
+  if (
+    line.startsWith('-') ||
+    /^[a-z]+:\/\//i.test(line) ||
+    /^[./]/.test(line)
+  ) {
     return hasEgg ? requirementName(raw) : null;
   }
   return requirementName(line);
@@ -116,11 +123,18 @@ function tables(content: string): Array<{ header: string; body: string }> {
   const heads: Array<{ header: string; index: number; end: number }> = [];
   let m: RegExpExecArray | null;
   while ((m = re.exec(content)) !== null) {
-    heads.push({ header: (m[1] ?? '').trim(), index: m.index, end: re.lastIndex });
+    heads.push({
+      header: (m[1] ?? '').trim(),
+      index: m.index,
+      end: re.lastIndex,
+    });
   }
   heads.forEach((h, i) => {
     const next = heads[i + 1];
-    out.push({ header: h.header, body: content.slice(h.end, next ? next.index : undefined) });
+    out.push({
+      header: h.header,
+      body: content.slice(h.end, next ? next.index : undefined),
+    });
   });
   return out;
 }
@@ -156,8 +170,12 @@ function tableKeys(body: string): string[] {
 function readPyproject(content: string): string[] {
   const names: string[] = [];
   for (const { header, body } of tables(content)) {
-    if (header === 'project') names.push(...arrayRequirements(body, ['dependencies']));
-    else if (header === 'project.optional-dependencies' || header === 'dependency-groups') {
+    if (header === 'project')
+      names.push(...arrayRequirements(body, ['dependencies']));
+    else if (
+      header === 'project.optional-dependencies' ||
+      header === 'dependency-groups'
+    ) {
       names.push(...arrayRequirements(body));
     } else if (header === 'tool.uv') {
       names.push(...arrayRequirements(body, ['dev-dependencies']));
@@ -181,7 +199,9 @@ function readPipfile(content: string): string[] {
 }
 
 function readSetupCfg(content: string): string[] {
-  const m = content.match(/^\s*install_requires\s*=([^\n]*(?:\n[ \t]+[^\n]*)*)/m);
+  const m = content.match(
+    /^\s*install_requires\s*=([^\n]*(?:\n[ \t]+[^\n]*)*)/m
+  );
   if (!m?.[1]) return [];
   return m[1]
     .split(/[\n;]/)
@@ -198,7 +218,8 @@ function readSetupPy(content: string): string[] {
     .filter((n): n is string => n !== null);
 }
 
-function namesIn(file: string, content: string): string[] {
+/** The distributions one manifest declares, by its file name (PEP 503 names). */
+export function pythonNamesIn(file: string, content: string): string[] {
   const base = file.replace(/\\/g, '/').split('/').pop() ?? '';
   if (base === 'pyproject.toml') return readPyproject(content);
   if (base === 'Pipfile') return readPipfile(content);
@@ -209,11 +230,11 @@ function namesIn(file: string, content: string): string[] {
 
 /** The Python manifests this module reads (absolute paths). */
 export function pythonManifestFiles(projectRoot: string): string[] {
-  return glob.sync(MANIFEST_GLOB, {
+  return glob.sync(PYTHON_MANIFEST_GLOB, {
     cwd: projectRoot,
     absolute: true,
     nodir: true,
-    ignore: IGNORE,
+    ignore: [...PYTHON_MANIFEST_IGNORE],
   });
 }
 
@@ -227,7 +248,7 @@ export function declaredPythonDependencies(projectRoot: string): Set<string> {
     } catch {
       continue; // an unreadable manifest declares nothing
     }
-    for (const name of namesIn(file, content)) names.add(name);
+    for (const name of pythonNamesIn(file, content)) names.add(name);
   }
   return names;
 }

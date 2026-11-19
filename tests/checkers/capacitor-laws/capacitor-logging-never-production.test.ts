@@ -20,7 +20,9 @@ describe('CapacitorLoggingNeverProductionLaw without a runnable CLI', () => {
     const result = check(law, null);
     expect(result.passed).toBe(false);
     expect(result.violations).toEqual([
-      expect.stringMatching(/capacitor\.config\.ts: could not resolve the Capacitor config — @capacitor\/cli is not installed/),
+      expect.stringMatching(
+        /capacitor\.config\.ts: could not resolve the Capacitor config — @capacitor\/cli is not installed/
+      ),
     ]);
   });
 });
@@ -36,10 +38,13 @@ describe('CapacitorLoggingNeverProductionLaw (#153)', () => {
     expect(result.violations).toEqual([expect.stringContaining(`${key} is '`)]);
   });
 
-  it.each([[{}], [{ loggingBehavior: 'debug' }], [{ loggingBehavior: 'none', android: { loggingBehavior: 'debug' } }]])(
-    'green: %j',
-    config => {
-      expect(check(CapacitorLoggingNeverProductionLaw, config).violations).toEqual([]);
-    }
-  );
+  it.each([
+    [{}],
+    [{ loggingBehavior: 'debug' }],
+    [{ loggingBehavior: 'none', android: { loggingBehavior: 'debug' } }],
+  ])('green: %j', config => {
+    expect(
+      check(CapacitorLoggingNeverProductionLaw, config).violations
+    ).toEqual([]);
+  });
 });

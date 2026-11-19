@@ -89,38 +89,42 @@ export class NgRxNamingConventionsValidationPatterns {
       suggestions: string[]
     ) => void
   > = {
-    actions: (content, fileName, featureName, violations, suggestions) =>
-      { NgRxNamingConventionsValidationPatterns.validateActionNaming(
+    actions: (content, fileName, featureName, violations, suggestions) => {
+      NgRxNamingConventionsValidationPatterns.validateActionNaming(
         content,
         fileName,
         featureName,
         violations,
         suggestions
-      ); },
-    reducer: (content, fileName, featureName, violations, suggestions) =>
-      { NgRxNamingConventionsValidationPatterns.validateReducerNaming(
+      );
+    },
+    reducer: (content, fileName, featureName, violations, suggestions) => {
+      NgRxNamingConventionsValidationPatterns.validateReducerNaming(
         content,
         fileName,
         featureName,
         violations,
         suggestions
-      ); },
-    selectors: (content, fileName, featureName, violations, suggestions) =>
-      { NgRxNamingConventionsValidationPatterns.validateSelectorNaming(
+      );
+    },
+    selectors: (content, fileName, featureName, violations, suggestions) => {
+      NgRxNamingConventionsValidationPatterns.validateSelectorNaming(
         content,
         fileName,
         featureName,
         violations,
         suggestions
-      ); },
-    effects: (content, fileName, featureName, violations, suggestions) =>
-      { NgRxNamingConventionsValidationPatterns.validateEffectNaming(
+      );
+    },
+    effects: (content, fileName, featureName, violations, suggestions) => {
+      NgRxNamingConventionsValidationPatterns.validateEffectNaming(
         content,
         fileName,
         featureName,
         violations,
         suggestions
-      ); },
+      );
+    },
   };
 
   /**

@@ -41,7 +41,8 @@ export class DefensiveArrayCoercionLaw extends FeArchLawBase {
       const params = new Set<string>();
       this.RAW_PARAM.lastIndex = 0;
       let pm: RegExpExecArray | null;
-      while ((pm = this.RAW_PARAM.exec(content)) !== null) params.add(pm[1] ?? '');
+      while ((pm = this.RAW_PARAM.exec(content)) !== null)
+        params.add(pm[1] ?? '');
       if (params.size === 0) continue;
       const rel = PathOperations.getRelative(projectRoot, file);
 

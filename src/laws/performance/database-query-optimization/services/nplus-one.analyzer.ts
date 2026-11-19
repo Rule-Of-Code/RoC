@@ -1,6 +1,9 @@
 import type { LawCheckContext } from '../../../../types/law.types';
 import { declaredClients } from '../../../../utils/request-path/data-clients';
-import { describeLoopRead, scanLoopReads } from '../../../../utils/request-path/loop-reads';
+import {
+  describeLoopRead,
+  scanLoopReads,
+} from '../../../../utils/request-path/loop-reads';
 import type { SourceLanguage } from '../../../../utils/request-path/model';
 import { projectSources } from '../../../../utils/request-path/sources';
 
@@ -28,9 +31,15 @@ export interface NPlusOneAnalysis {
  * gathered concurrently.
  */
 export class NPlusOneAnalyzerService {
-  static analyze(context: LawCheckContext, languages: readonly SourceLanguage[]): NPlusOneAnalysis {
+  static analyze(
+    context: LawCheckContext,
+    languages: readonly SourceLanguage[]
+  ): NPlusOneAnalysis {
     const sources = projectSources(context, languages);
-    const scan = scanLoopReads(sources.modules, declaredClients(context.projectRoot));
+    const scan = scanLoopReads(
+      sources.modules,
+      declaredClients(context.projectRoot)
+    );
     const sites = scan.sites.map(describeLoopRead);
     return {
       addressed: sites.length === 0 && sources.unread.length === 0,

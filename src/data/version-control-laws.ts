@@ -19,7 +19,10 @@ export const VERSION_CONTROL_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Branch Governance Standards',
     rationale:
       'A branch model is what keeps work off main and reviewable; without a rule that names branches and blocks direct commits to a protected branch, a team drifts into committing straight to main. This law reads the real branch state and enforces the naming pattern.',
-    satisfiedBy: { typescript: 'Work on a feature/hotfix/bugfix/release branch (lowercase, dash-separated); never commit directly to main/master; keep commits-per-branch under the configured cap.' },
+    satisfiedBy: {
+      typescript:
+        'Work on a feature/hotfix/bugfix/release branch (lowercase, dash-separated); never commit directly to main/master; keep commits-per-branch under the configured cap.',
+    },
     detectionLimits: [
       'It judges the branch you are standing on and nothing else — source-identifier naming belongs to Naming Convention Enforcement and is deliberately not merged in here.',
       'The code-naming scan only reads src/**/*.ts, so on a Python or Go repo that half of the law is silently empty.',
@@ -51,7 +54,10 @@ export const VERSION_CONTROL_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Commit Message Standards',
     rationale:
       'A commit subject is the one line every reviewer, changelog and bisect reads; a wall of "wip" and "fix stuff" makes history useless. This law parses the actual git log and requires Conventional-Commit subjects.',
-    satisfiedBy: { typescript: 'Write subjects as type(scope): summary using feat/fix/docs/refactor/test/chore/perf/build/ci/revert; keep the subject within the configured length (default 72).' },
+    satisfiedBy: {
+      typescript:
+        'Write subjects as type(scope): summary using feat/fix/docs/refactor/test/chore/perf/build/ci/revert; keep the subject within the configured length (default 72).',
+    },
     detectionLimits: [
       'It judges the subject line only — a perfectly-typed `feat: x` with an empty or nonsensical body still passes.',
       'Merge, revert and "initial commit" subjects are exempted, so those are never graded.',
@@ -83,7 +89,10 @@ export const VERSION_CONTROL_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Commit Description Standards',
     rationale:
       'A commit body is where the why lives — the reasoning a diff can never show. This law reads the real commit bodies and enforces the format that keeps them readable: a blank line after the subject and wrapped body lines.',
-    satisfiedBy: { typescript: 'Separate subject and body with a blank line and wrap body lines at the configured width (default 72); URLs and trailer lines are exempt.' },
+    satisfiedBy: {
+      typescript:
+        'Separate subject and body with a blank line and wrap body lines at the configured width (default 72); URLs and trailer lines are exempt.',
+    },
     detectionLimits: [
       'It checks shape, never substance — a body that is wrapped correctly but says nothing still passes.',
       'Single-line commits (subject only) are skipped entirely rather than flagged for a missing body.',
@@ -117,7 +126,12 @@ export const VERSION_CONTROL_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Pull Request Workflow Standards',
     rationale:
       'A PR template, CODEOWNERS and CI on every pull request are what make review consistent instead of ad-hoc. This law checks that the repository is configured for a reviewed workflow.',
-    satisfiedBy: { typescript: 'Add a .github/ PR template and CODEOWNERS, wire CI, and give package.json precommit/prepush/test/lint/build scripts.', python: 'Provide a CI config the multi-provider detector recognises; the script-presence check is package.json-only and simply does not fire without one.' },
+    satisfiedBy: {
+      typescript:
+        'Add a .github/ PR template and CODEOWNERS, wire CI, and give package.json precommit/prepush/test/lint/build scripts.',
+      python:
+        'Provide a CI config the multi-provider detector recognises; the script-presence check is package.json-only and simply does not fire without one.',
+    },
     detectionLimits: [
       'It reads configuration files, not real pull requests — it can never see whether reviews actually happen.',
       'The required-scripts violation is package.json-only, so a repo with no package.json skips that check instead of failing it.',
@@ -149,7 +163,14 @@ export const VERSION_CONTROL_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Git Ignore Standards',
     rationale:
       'A .gitignore that misses the obvious — build output, secrets, logs — is how a committed .env or a 200MB dist/ ends up in history. This law checks the ignore file lists the usual dangerous paths.',
-    satisfiedBy: { typescript: 'List node_modules, dist, .env, *.log and .DS_Store in .gitignore, and keep those files untracked — a local .env on disk is expected.', python: 'List __pycache__, .venv, .env, *.log and .DS_Store — the Node artifacts are only required of projects that carry a package.json.', capacitor: 'Also ignore google-services.json and GoogleService-Info.plist, and keep the android/ and ios/ .gitignore files `cap add` writes (they cover the copied web build, the copied config and the build output).' },
+    satisfiedBy: {
+      typescript:
+        'List node_modules, dist, .env, *.log and .DS_Store in .gitignore, and keep those files untracked — a local .env on disk is expected.',
+      python:
+        'List __pycache__, .venv, .env, *.log and .DS_Store — the Node artifacts are only required of projects that carry a package.json.',
+      capacitor:
+        'Also ignore google-services.json and GoogleService-Info.plist, and keep the android/ and ios/ .gitignore files `cap add` writes (they cover the copied web build, the copied config and the build output).',
+    },
     detectionLimits: [
       'Matching is a raw substring test, so a comment mentioning node_modules, or a negation like !node_modules, counts as ignoring it.',
       'The sensitive-file check (.env, .env.local, .env.production, npm-debug.log, .DS_Store) asks git: tracked is a violation, present-but-not-ignored is a violation, ignored-and-untracked passes. Root level only. Outside a git repository it can only see presence, and reports a present file as "potentially tracked".',
@@ -182,9 +203,16 @@ export const VERSION_CONTROL_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Git Hooks Standards',
     rationale:
       'Git hooks are where a team runs its lint and tests before a bad commit lands; a repo with hooks recommended but never installed loses that safety net. This law nudges toward configured hooks.',
-    satisfiedBy: { typescript: 'Configure pre-commit and commit-msg hooks (husky or native); if husky is in devDependencies, actually configure .husky/.', python: 'A .pre-commit-config.yaml (or a "pre-commit" entry in gate config) short-circuits the whole hook/tool block as satisfied.' },
+    satisfiedBy: {
+      typescript:
+        'Configure pre-commit and commit-msg hooks (husky or native); if husky is in devDependencies, actually configure .husky/.',
+      python:
+        'A .pre-commit-config.yaml (or a "pre-commit" entry in gate config) short-circuits the whole hook/tool block as satisfied.',
+    },
     detectionLimits: [
-      'A hook counts as configured if a committed .husky/<hook> exists or the .git/hooks file is not git\'s own template — it is never executed, so a hook that runs nothing still counts.',
+      'A committed .husky/<hook> counts only when git runs it in this checkout: the hooks directory is asked of git (core.hooksPath, else the common git dir hooks; worktrees and a relative hooksPath are resolved by git) and must hold the hook, and the husky 9 runner layout also needs the user script. Committed but not installed is a violation in a developer checkout.',
+      'In a CI checkout (the CI variable set, or HUSKY=0) hooks are not installed by design: a committed hook that is not installed is not a finding there, and the result message and metrics.checked say that only the committed configuration was checked. A CI runner that sets neither variable (Jenkins, Azure Pipelines without CI=true) is judged as a developer checkout.',
+      "A hook file in the hooks directory counts if it is not git's own template — it is never executed, so a hook that runs nothing still counts.",
       'It shares one hook-status resolver with Git Hook Compliance, so the two can no longer disagree about the same repo; the overlap between them is real and deliberate.',
       'It also flags half-installed husky — husky in devDependencies but no .husky directory.',
     ],
@@ -244,7 +272,10 @@ export const VERSION_CONTROL_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Git History Integrity',
     rationale:
       'A protected history is one nobody force-pushes or silently rewrites; the intent is to keep the shared branch trustworthy. This law is meant to guard that discipline.',
-    satisfiedBy: { typescript: 'Either add a pre-push hook that guards force-push, OR declare your no-force-push policy in CONTRIBUTING.md / docs/BRANCH_PROTECTION.md — either one satisfies it, because a server-side ruleset is invisible from a clone.' },
+    satisfiedBy: {
+      typescript:
+        'Either add a pre-push hook that guards force-push, OR declare your no-force-push policy in CONTRIBUTING.md / docs/BRANCH_PROTECTION.md — either one satisfies it, because a server-side ruleset is invisible from a clone.',
+    },
     detectionLimits: [
       'Server-side branch protection (Bitbucket, GitHub, Azure rulesets) cannot be read from a clone, so a policy declared in a doc is ACCEPTED as the signal — that is presence of the words, never proof the host enforces anything.',
       'Despite the name it never inspects the reflog, force-push events, or rewritten commits — it verifies that a guard or a declared policy exists, not that history stayed clean.',
@@ -275,7 +306,10 @@ export const VERSION_CONTROL_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Feature Branch Protection',
     rationale:
       'Feature work belongs on a prefixed, adequately-named branch, documented so the team follows the same model. This law checks the current branch and that a branching policy is written down.',
-    satisfiedBy: { typescript: 'Document your branching model, and name feature work feature/bugfix/hotfix/release/chore-prefixed with a name at least the configured minimum length (default 10).' },
+    satisfiedBy: {
+      typescript:
+        'Document your branching model, and name feature work feature/bugfix/hotfix/release/chore-prefixed with a name at least the configured minimum length (default 10).',
+    },
     detectionLimits: [
       'It overlaps Branch Governance heavily — both regex the current branch, differing mainly in that this one also accepts chore/ and requires a branching doc.',
       'The policy check is keyword presence in a docs file, not an actual protection rule; it cannot read the remote branch-protection settings.',
@@ -306,10 +340,13 @@ export const VERSION_CONTROL_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Commit Size Control',
     rationale:
       'Small, atomic commits are reviewable and revertable; a 3,000-line "misc" commit is neither. The intent is to keep commits focused.',
-    satisfiedBy: { typescript: 'Document an atomic-commit policy in CONTRIBUTING/WORKFLOW; keep individual commits small and single-purpose.' },
+    satisfiedBy: {
+      typescript:
+        'Document an atomic-commit policy in CONTRIBUTING/WORKFLOW; keep individual commits small and single-purpose.',
+    },
     detectionLimits: [
       'It reads at most the last 10 commits from the past week, so an oversized commit older than that is invisible.',
-      'Size is measured from git\'s own --stat summary (files changed, insertions/deletions); a commit is oversized if it breaks either limit, and a generated or vendored file counts like any other.',
+      "Size is measured from git's own --stat summary (files changed, insertions/deletions); a commit is oversized if it breaks either limit, and a generated or vendored file counts like any other.",
       'The limits are configurable (thresholds.git.maxFilesPerCommit, default 10; maxLinesPerCommit, default 500), and the law also requires an atomic-commit policy doc.',
     ],
     emoji: '📏',
@@ -337,7 +374,10 @@ export const VERSION_CONTROL_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Merge Conflict Prevention',
     rationale:
       'An unresolved conflict marker committed to a branch breaks the build for everyone; a team also wants a written strategy for avoiding conflicts. This law scans the live tree for conflicts and asks for a documented approach.',
-    satisfiedBy: { typescript: 'Keep the tree free of conflict markers and out of a stuck merge/rebase, and document a conflict-prevention strategy (rebase workflow) in CONTRIBUTING/WORKFLOW.' },
+    satisfiedBy: {
+      typescript:
+        'Keep the tree free of conflict markers and out of a stuck merge/rebase, and document a conflict-prevention strategy (rebase workflow) in CONTRIBUTING/WORKFLOW.',
+    },
     detectionLimits: [
       'The live-conflict detection is genuine but only fires during an actual conflict, merge, or rebase; a clean checkout shows nothing.',
       'The always-firing violation is the missing conflict-prevention doc, so on most repos this reduces to a documentation check.',
@@ -368,7 +408,12 @@ export const VERSION_CONTROL_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Release Tag Standards',
     rationale:
       'Consistent, SemVer-shaped tags and a changelog are what make a release traceable. This law checks the version, the tag formats, and that release documentation exists.',
-    satisfiedBy: { typescript: 'Keep package.json version SemVer-valid, tag releases consistently (pick v-prefixed or bare, not both), and maintain a CHANGELOG.', python: 'A missing package.json is only a suggestion here, so a Python repo passes on a valid CHANGELOG plus consistent tags.' },
+    satisfiedBy: {
+      typescript:
+        'Keep package.json version SemVer-valid, tag releases consistently (pick v-prefixed or bare, not both), and maintain a CHANGELOG.',
+      python:
+        'A missing package.json is only a suggestion here, so a Python repo passes on a valid CHANGELOG plus consistent tags.',
+    },
     detectionLimits: [
       'It never verifies a tag points at a real release commit or matches a changelog entry — only that the string format is valid.',
       'The most common failure is a missing CHANGELOG/RELEASES/VERSIONING doc, which trips most repos regardless of their tagging.',
@@ -399,7 +444,12 @@ export const VERSION_CONTROL_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Code Review Quality',
     rationale:
       'Review guidelines, a PR template, CODEOWNERS and automated lint/CI are the scaffolding that makes review consistent. This law checks that scaffolding is present.',
-    satisfiedBy: { typescript: 'Add review guidelines (CONTRIBUTING), a PR template, a populated CODEOWNERS, an ESLint/Prettier config, and CI whose steps mention lint/test.', python: 'ruff, flake8, pylint, mypy or black are recognised as the linter, but only when the project is detected as Python (pyproject/setup.cfg/requirements).' },
+    satisfiedBy: {
+      typescript:
+        'Add review guidelines (CONTRIBUTING), a PR template, a populated CODEOWNERS, an ESLint/Prettier config, and CI whose steps mention lint/test.',
+      python:
+        'ruff, flake8, pylint, mypy or black are recognised as the linter, but only when the project is detected as Python (pyproject/setup.cfg/requirements).',
+    },
     detectionLimits: [
       'Everything is file-and-config presence — it never reads an actual review thread, approval, or comment.',
       'The linting-tool recognition is stack-gated: Python linters only count when the Python project detector fires first.',
@@ -430,11 +480,18 @@ export const VERSION_CONTROL_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Git Hook Compliance',
     rationale:
       'A repo that declares hooks should actually have them installed and executable, not left as unconfigured samples. This law checks pre-commit, pre-push and commit-msg are real and runnable.',
-    satisfiedBy: { typescript: 'Install real pre-commit/pre-push/commit-msg hooks (committed .husky/ counts) with an exec bit and a shebang, and add a hook tool (husky/pre-commit/ghooks/yorkie) to devDependencies.', python: 'A .pre-commit-config.yaml on a detected Python project skips the whole hook/automation block as satisfied.' },
+    satisfiedBy: {
+      typescript:
+        'Install real pre-commit/pre-push/commit-msg hooks (a committed .husky/ counts once husky has pointed core.hooksPath at it: npx husky, or "prepare": "husky") with an exec bit and a shebang, and add a hook tool (husky/pre-commit/ghooks/yorkie) to devDependencies.',
+      python:
+        'A .pre-commit-config.yaml on a detected Python project skips the whole hook/automation block as satisfied.',
+    },
     detectionLimits: [
       'On a stock git repo the default .sample hooks are read as unconfigured and fail — Git Hooks Standards now reads the same shared resolver and reaches the same verdict.',
       'A JavaScript/TypeScript repo that uses the pre-commit framework instead of husky is not recognised (that path is gated on the Python detector) and still fails.',
       'Recognition is husky-first; the hooks directory is resolved through git (common dir plus core.hooksPath), so linked worktrees and relocated hooks are found.',
+      'A committed .husky/<hook> counts only when git runs it in this checkout: the resolved hooks directory must hold the hook, and the husky 9 runner layout also needs the user script. Committed but not installed is a violation in a developer checkout.',
+      'In a CI checkout (the CI variable set, or HUSKY=0) hooks are not installed by design: a committed hook that is not installed is not a finding there, and the result message and metrics.checked say that only the committed configuration was checked. A CI runner that sets neither variable (Jenkins, Azure Pipelines without CI=true) is judged as a developer checkout.',
       'The executable bit is read from the git INDEX, so it is judged only for TRACKED hook files. Hooks generated at install time are untracked — husky ignores its whole `_` directory — and carry no mode that git or a consumer could set, so their executability is not checked at all.',
       'Only the names git actually runs as hooks are judged; other files sharing the hooks directory (husky keeps .gitignore, husky.sh and h there) are ignored, so a broken support file is invisible to this law.',
     ],
@@ -463,7 +520,14 @@ export const VERSION_CONTROL_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Semantic Versioning Standards',
     rationale:
       'A version number that lies about compatibility breaks every consumer that trusts it; SemVer is the contract. This law checks the declared version and that tags stay consistent with it.',
-    satisfiedBy: { typescript: 'Keep package.json version SemVer-valid, tag each release, and never let package.json fall behind the latest tag.', python: 'Declare a SemVer version in pyproject.toml — [project] version (PEP 621) or [tool.poetry] version — and tag releases to match.', capacitor: 'Keep android versionName and the Xcode MARKETING_VERSION equal to package.json, or inject both at build time from the release script; cap sync touches neither.' },
+    satisfiedBy: {
+      typescript:
+        'Keep package.json version SemVer-valid, tag each release, and never let package.json fall behind the latest tag.',
+      python:
+        'Declare a SemVer version in pyproject.toml — [project] version (PEP 621) or [tool.poetry] version — and tag releases to match.',
+      capacitor:
+        'Keep android versionName and the Xcode MARKETING_VERSION equal to package.json, or inject both at build time from the release script; cap sync touches neither.',
+    },
     detectionLimits: [
       'It reads package.json first and pyproject.toml ([project] or [tool.poetry]) for a Python project; a stack with neither manifest (Rust, Go) declares no version it can read, so the version check stays silent rather than inventing a finding.',
       'It duplicates the version/tag-format logic of Release Tag Standards but with a stricter, violation-level stance on the missing file.',

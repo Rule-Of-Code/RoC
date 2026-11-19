@@ -23,7 +23,7 @@ import {
 import { generateLawId } from '../utils/id-generator';
 
 const NO_SHELL_NO_PASS =
-  'Selected by the platform package; when no Capacitor project has that platform\'s shell on disk, the law reports that it could not read it rather than passing.';
+  "Selected by the platform package; when no Capacitor project has that platform's shell on disk, the law reports that it could not read it rather than passing.";
 
 export const CAPACITOR_NATIVE_LAWS: EnhancedConstitutionalLaw[] = [
   {
@@ -43,9 +43,9 @@ export const CAPACITOR_NATIVE_LAWS: EnhancedConstitutionalLaw[] = [
         "Keep android/app/src/main free of cleartext. Put a network security config that names only localhost / 127.0.0.1 / 10.0.2.2 in src/debug (or a dev build type or flavour) and reference it from that source set's own AndroidManifest.xml.",
     },
     detectionLimits: [
-      'Reads every source set\'s AndroidManifest.xml under android/app/src and the res/xml file its networkSecurityConfig names (the set\'s own, else main\'s); a ${placeholder} value or a reference that resolves to no file is reported as not judged.',
+      "Reads every source set's AndroidManifest.xml under android/app/src and the res/xml file its networkSecurityConfig names (the set's own, else main's); a ${placeholder} value or a reference that resolves to no file is reported as not judged.",
       'Does not know which build types or flavours are released: src/main, src/release and a manifest the build script routes them to with sourceSets.<main|release>.manifest.srcFile are treated as shipped; a flavour that ships with a cleartext opening is held to the debug rule (loopback only), not the release one.',
-      'Assumes targetSdk 28 or later (Capacitor 8\'s template targets 36), where cleartext is off by default; below 28 Android permits it without any attribute, and that is not judged.',
+      "Assumes targetSdk 28 or later (Capacitor 8's template targets 36), where cleartext is off by default; below 28 Android permits it without any attribute, and that is not judged.",
       'Android only: iOS NSAppTransportSecurity / NSAllowsArbitraryLoads in Info.plist is not read.',
       NO_SHELL_NO_PASS,
     ],

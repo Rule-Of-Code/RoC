@@ -36,12 +36,15 @@ export class ClientFetchResponseCheckedLaw extends LawBase {
 
   static check(context: LawCheckContext): LawResult {
     const { sources, violations } = readReactSources(context, this.LAW_NAME);
-    const nextRoots = ReactProject.nextApps(context.projectRoot).map(app => app.root);
+    const nextRoots = ReactProject.nextApps(context.projectRoot).map(
+      app => app.root
+    );
     for (const source of sources) {
       if (!this.isClientFile(source, nextRoots)) continue;
       const ts = source.ts;
       source.walk(node => {
-        if (!isFetchCall(ts, node) || this.verdict(ts, node) !== 'unchecked') return;
+        if (!isFetchCall(ts, node) || this.verdict(ts, node) !== 'unchecked')
+          return;
         violations.push(
           `${where(context, source, node)}: fetch response used without reading res.ok or res.status, and no catch around it — a 4xx/5xx resolves like a success and its error body is treated as data. Check res.ok before reading the body`
         );
@@ -62,10 +65,15 @@ export class ClientFetchResponseCheckedLaw extends LawBase {
   /** `'use client'`, or React source outside every Next app (it renders in the browser). */
   private static isClientFile(source: TsxSource, nextRoots: string[]): boolean {
     if (source.directives().includes('use client')) return true;
-    return !nextRoots.some(root => PathOperations.isInDirectory(source.fileName, root));
+    return !nextRoots.some(root =>
+      PathOperations.isInDirectory(source.fileName, root)
+    );
   }
 
-  private static verdict(ts: TypeScriptModule, call: TS.CallExpression): Verdict {
+  private static verdict(
+    ts: TypeScriptModule,
+    call: TS.CallExpression
+  ): Verdict {
     if (this.caught(ts, call)) return 'checked';
     let expression: TS.Node = call;
     while (
@@ -78,16 +86,23 @@ export class ClientFetchResponseCheckedLaw extends LawBase {
     }
     const parent = expression.parent;
     // `return fetch(…)` hands the response to a caller this law cannot follow.
-    if (ts.isReturnStatement(parent) || (ts.isArrowFunction(parent) && parent.body === expression)) {
+    if (
+      ts.isReturnStatement(parent) ||
+      (ts.isArrowFunction(parent) && parent.body === expression)
+    ) {
       return 'wrapper';
     }
     if (ts.isVariableDeclaration(parent) && parent.initializer === expression) {
-      return this.bindingChecked(ts, parent.name, this.scopeOf(ts, parent)) ? 'checked' : 'unchecked';
+      return this.bindingChecked(ts, parent.name, this.scopeOf(ts, parent))
+        ? 'checked'
+        : 'unchecked';
     }
     const callback = this.thenCallback(ts, expression);
     if (callback) {
       const param = callback.parameters[0];
-      return param && this.bindingChecked(ts, param.name, callback) ? 'checked' : 'unchecked';
+      return param && this.bindingChecked(ts, param.name, callback)
+        ? 'checked'
+        : 'unchecked';
     }
     return 'unchecked';
   }
@@ -98,15 +113,22 @@ export class ClientFetchResponseCheckedLaw extends LawBase {
     expression: TS.Node
   ): TS.ArrowFunction | TS.FunctionExpression | null {
     const access = expression.parent;
-    if (!ts.isPropertyAccessExpression(access) || access.name.text !== 'then') return null;
+    if (!ts.isPropertyAccessExpression(access) || access.name.text !== 'then')
+      return null;
     const call = access.parent;
     if (!ts.isCallExpression(call) || !call.arguments[0]) return null;
     const callback = unwrap(ts, call.arguments[0]);
-    return ts.isArrowFunction(callback) || ts.isFunctionExpression(callback) ? callback : null;
+    return ts.isArrowFunction(callback) || ts.isFunctionExpression(callback)
+      ? callback
+      : null;
   }
 
   /** `res` with `res.ok`/`res.status` read in `scope`, or `{ ok }` / `{ status }` destructured. */
-  private static bindingChecked(ts: TypeScriptModule, name: TS.BindingName, scope: TS.Node): boolean {
+  private static bindingChecked(
+    ts: TypeScriptModule,
+    name: TS.BindingName,
+    scope: TS.Node
+  ): boolean {
     if (ts.isObjectBindingPattern(name)) {
       return name.elements.some(element => {
         const key = element.propertyName ?? element.name;
@@ -138,17 +160,33 @@ export class ClientFetchResponseCheckedLaw extends LawBase {
   }
 
   /** Inside a try block (same function), or chained to `.catch(…)` / `.then(ok, onRejected)`. */
-  private static caught(ts: TypeScriptModule, call: TS.CallExpression): boolean {
+  private static caught(
+    ts: TypeScriptModule,
+    call: TS.CallExpression
+  ): boolean {
     let child: TS.Node = call;
-    for (let parent = call.parent; parent && !isFunctionNode(ts, parent); parent = parent.parent) {
-      if (ts.isTryStatement(parent) && parent.tryBlock === child && parent.catchClause) return true;
+    for (
+      let parent = call.parent;
+      parent && !isFunctionNode(ts, parent);
+      parent = parent.parent
+    ) {
+      if (
+        ts.isTryStatement(parent) &&
+        parent.tryBlock === child &&
+        parent.catchClause
+      )
+        return true;
       child = parent;
     }
     let link: TS.Node = call;
-    while (ts.isPropertyAccessExpression(link.parent) && ts.isCallExpression(link.parent.parent)) {
+    while (
+      ts.isPropertyAccessExpression(link.parent) &&
+      ts.isCallExpression(link.parent.parent)
+    ) {
       const chained = link.parent.parent;
       const name = callTarget(ts, chained)?.name;
-      if (name === 'catch' || (name === 'then' && chained.arguments.length > 1)) return true;
+      if (name === 'catch' || (name === 'then' && chained.arguments.length > 1))
+        return true;
       link = chained;
     }
     return false;
@@ -157,7 +195,8 @@ export class ClientFetchResponseCheckedLaw extends LawBase {
   /** The function (or file) a declaration lives in — where its reads are looked for. */
   private static scopeOf(ts: TypeScriptModule, node: TS.Node): TS.Node {
     let current: TS.Node = node;
-    while (current.parent && !isFunctionNode(ts, current.parent)) current = current.parent;
+    while (current.parent && !isFunctionNode(ts, current.parent))
+      current = current.parent;
     return current.parent ?? current;
   }
 }

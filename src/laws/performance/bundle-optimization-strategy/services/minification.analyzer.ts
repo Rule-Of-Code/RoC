@@ -42,7 +42,8 @@ export class MinificationAnalyzerService {
       return {
         isOptimal: true,
         configurations: optimizing.map(
-          app => `${WebBundlerConfig.label(projectRoot, app)} minifies its production build`
+          app =>
+            `${WebBundlerConfig.label(projectRoot, app)} minifies its production build`
         ),
       };
     }

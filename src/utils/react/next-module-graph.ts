@@ -25,7 +25,12 @@ import type * as TS from 'typescript';
 import type { LawCheckContext } from '../../types/law.types';
 import { PathOperations } from '../path-operations';
 import { CompiledImports } from './compiled-imports';
-import { loadTypeScript, parserUnavailable, TsxSource, type TypeScriptModule } from './tsx-source';
+import {
+  loadTypeScript,
+  parserUnavailable,
+  TsxSource,
+  type TypeScriptModule,
+} from './tsx-source';
 import { ReactProject, type NextApp } from './react-project';
 import { routerLayout, specialFile } from './next-routes';
 
@@ -72,7 +77,8 @@ export const DEFAULT_SERVER_MODULES: readonly string[] = [
 /** Packages Next resolves itself, with no node_modules entry needed. */
 const NEXT_PROVIDED = new Set(['server-only', 'client-only']);
 
-const ASSET = /\.(?:css|scss|sass|less|styl|svg|png|jpe?g|gif|webp|avif|ico|bmp|woff2?|ttf|otf|eot|mp4|webm|mp3|wav|txt|md|mdx|html|wasm|glsl)$/i;
+const ASSET =
+  /\.(?:css|scss|sass|less|styl|svg|png|jpe?g|gif|webp|avif|ico|bmp|woff2?|ttf|otf|eot|mp4|webm|mp3|wav|txt|md|mdx|html|wasm|glsl)$/i;
 
 const NODE_BUILTINS = new Set(builtinModules);
 
@@ -106,17 +112,23 @@ export interface WalkResult {
 }
 
 /** `node:fs/promises` → `fs/promises`. */
-const withoutNodeScheme = (specifier: string): string => specifier.replace(/^node:/, '');
+const withoutNodeScheme = (specifier: string): string =>
+  specifier.replace(/^node:/, '');
 
 /** The package a bare specifier names: `@a/b/c` → `@a/b`, `x/y` → `x`. */
 export function packageNameOf(specifier: string): string {
   const bare = withoutNodeScheme(specifier);
   const parts = bare.split('/');
-  return bare.startsWith('@') ? parts.slice(0, 2).join('/') : (parts[0] ?? bare);
+  return bare.startsWith('@')
+    ? parts.slice(0, 2).join('/')
+    : (parts[0] ?? bare);
 }
 
 /** Whether `specifier` is one of `modules` or a subpath of one. */
-export function isListedModule(specifier: string, modules: readonly string[]): boolean {
+export function isListedModule(
+  specifier: string,
+  modules: readonly string[]
+): boolean {
   const bare = withoutNodeScheme(specifier);
   return modules.some(name => {
     const listed = withoutNodeScheme(name);
@@ -146,7 +158,9 @@ export class NextModuleGraph {
   /** A graph for the project, or the reason it cannot be built (no TypeScript). */
   static create(context: LawCheckContext): NextModuleGraph | string {
     const ts = loadTypeScript(context.projectRoot);
-    return ts ? new NextModuleGraph(context, ts) : parserUnavailable(context.projectRoot);
+    return ts
+      ? new NextModuleGraph(context, ts)
+      : parserUnavailable(context.projectRoot);
   }
 
   /**
@@ -168,7 +182,10 @@ export class NextModuleGraph {
   }
 
   relative(file: string): string {
-    return PathOperations.getRelative(this.realRoot, NextModuleGraph.canonical(file));
+    return PathOperations.getRelative(
+      this.realRoot,
+      NextModuleGraph.canonical(file)
+    );
   }
 
   /** The parsed file, or null (recorded in `unread`) when it cannot be read. */
@@ -177,13 +194,19 @@ export class NextModuleGraph {
     if (this.sources.has(normal)) return this.sources.get(normal) ?? null;
     let parsed: TsxSource | null = null;
     try {
-      parsed = TsxSource.parse(this.ts, normal, fs.readFileSync(normal, 'utf8'));
+      parsed = TsxSource.parse(
+        this.ts,
+        normal,
+        fs.readFileSync(normal, 'utf8')
+      );
     } catch {
       this.unread.push(`${this.relative(normal)}: could not be read`);
     }
     const syntaxError = parsed?.parseErrors()[0];
     if (syntaxError) {
-      this.unread.push(`${this.relative(normal)}: could not be parsed (${syntaxError}) — its code was NOT read`);
+      this.unread.push(
+        `${this.relative(normal)}: could not be parsed (${syntaxError}) — its code was NOT read`
+      );
       parsed = null;
     }
     this.sources.set(normal, parsed);
@@ -192,7 +215,9 @@ export class NextModuleGraph {
 
   /** Parse every file; the unreadable ones land in `unread`. */
   sourcesOf(files: readonly string[]): TsxSource[] {
-    return files.map(file => this.source(file)).filter((s): s is TsxSource => s !== null);
+    return files
+      .map(file => this.source(file))
+      .filter((s): s is TsxSource => s !== null);
   }
 
   /**
@@ -206,15 +231,19 @@ export class NextModuleGraph {
     const found: ModuleImport[] = [];
     for (const statement of source.sourceFile.statements) {
       const module = this.compiled.runtimeSpecifier(source, statement);
-      if (module) found.push({ specifier: module, line: source.lineOf(statement) });
+      if (module)
+        found.push({ specifier: module, line: source.lineOf(statement) });
     }
     source.walk(node => {
       if (!ts.isCallExpression(node)) return;
       const [first] = node.arguments;
       if (!first || !ts.isStringLiteralLike(first)) return;
-      const dynamicImport = node.expression.kind === ts.SyntaxKind.ImportKeyword;
-      const requireCall = ts.isIdentifier(node.expression) && node.expression.text === 'require';
-      if (dynamicImport || requireCall) found.push({ specifier: first.text, line: source.lineOf(node) });
+      const dynamicImport =
+        node.expression.kind === ts.SyntaxKind.ImportKeyword;
+      const requireCall =
+        ts.isIdentifier(node.expression) && node.expression.text === 'require';
+      if (dynamicImport || requireCall)
+        found.push({ specifier: first.text, line: source.lineOf(node) });
     });
     return found;
   }
@@ -231,22 +260,37 @@ export class NextModuleGraph {
 
   private resolveUncached(specifier: string, fromFile: string): Resolution {
     const bare = !specifier.startsWith('.') && !specifier.startsWith('/');
-    if (specifier.startsWith('node:') || (bare && NODE_BUILTINS.has(packageNameOf(specifier)))) {
+    if (
+      specifier.startsWith('node:') ||
+      (bare && NODE_BUILTINS.has(packageNameOf(specifier)))
+    ) {
       return { kind: 'external', packageName: packageNameOf(specifier) };
     }
-    if (NEXT_PROVIDED.has(specifier)) return { kind: 'external', packageName: specifier };
+    if (NEXT_PROVIDED.has(specifier))
+      return { kind: 'external', packageName: specifier };
     const path = specifier.replace(/[?#].*$/, '');
     if (ASSET.test(path)) return { kind: 'asset' };
-    const result = this.ts.resolveModuleName(path, fromFile, this.compilerOptions(fromFile), this.ts.sys);
+    const result = this.ts.resolveModuleName(
+      path,
+      fromFile,
+      this.compilerOptions(fromFile),
+      this.ts.sys
+    );
     const resolved = result.resolvedModule?.resolvedFileName;
     if (!resolved) {
-      return { kind: 'unresolved', reason: 'could not be resolved — the modules behind it were NOT read' };
+      return {
+        kind: 'unresolved',
+        reason: 'could not be resolved — the modules behind it were NOT read',
+      };
     }
     const file = NextModuleGraph.canonical(resolved);
     if (!this.isFirstParty(file)) {
       return bare
         ? { kind: 'external', packageName: packageNameOf(specifier) }
-        : { kind: 'unresolved', reason: `resolves outside the workspace (${file})` };
+        : {
+            kind: 'unresolved',
+            reason: `resolves outside the workspace (${file})`,
+          };
     }
     if (/\.d\.[cm]?ts$/.test(file)) return this.implementationOf(file);
     if (/\.json$/.test(file)) return { kind: 'asset' };
@@ -257,7 +301,8 @@ export class NextModuleGraph {
   private implementationOf(declaration: string): Resolution {
     const stem = declaration.replace(/\.d\.[cm]?ts$/, '');
     for (const ext of ['.js', '.mjs', '.jsx', '.cjs']) {
-      if (fs.existsSync(stem + ext)) return { kind: 'source', file: stem + ext };
+      if (fs.existsSync(stem + ext))
+        return { kind: 'source', file: stem + ext };
     }
     return {
       kind: 'unresolved',
@@ -267,7 +312,9 @@ export class NextModuleGraph {
 
   private isFirstParty(file: string): boolean {
     const key = NextModuleGraph.key(file);
-    return key.startsWith(`${this.rootKey}/`) && !key.includes('/node_modules/');
+    return (
+      key.startsWith(`${this.rootKey}/`) && !key.includes('/node_modules/')
+    );
   }
 
   private compilerOptions(fromFile: string): TS.CompilerOptions {
@@ -306,7 +353,10 @@ export class NextModuleGraph {
    * Breadth-first from `entries`, following first-party source. `stop`
    * decides which reached modules are boundaries (not entered, not counted).
    */
-  walk(entries: readonly string[], stop: (source: TsxSource) => boolean = () => false): WalkResult {
+  walk(
+    entries: readonly string[],
+    stop: (source: TsxSource) => boolean = () => false
+  ): WalkResult {
     const modules = new Map<string, Visit>();
     const unresolved: Unresolved[] = [];
     const queue: string[] = [];
@@ -339,13 +389,24 @@ export class NextModuleGraph {
   ): string | null {
     const resolution = this.resolve(specifier, file);
     if (resolution.kind === 'unresolved') {
-      unresolved.push({ from: file, specifier, line, reason: resolution.reason });
+      unresolved.push({
+        from: file,
+        specifier,
+        line,
+        reason: resolution.reason,
+      });
       return null;
     }
-    if (resolution.kind !== 'source' || modules.has(resolution.file)) return null;
+    if (resolution.kind !== 'source' || modules.has(resolution.file))
+      return null;
     const next = this.source(resolution.file);
     if (!next) {
-      unresolved.push({ from: file, specifier, line, reason: 'could not be read' });
+      unresolved.push({
+        from: file,
+        specifier,
+        line,
+        reason: 'could not be read',
+      });
       return null;
     }
     if (stop(next)) return null;
@@ -382,7 +443,10 @@ export const isClientModule = (source: TsxSource): boolean =>
  * The client bundle's entry points: every non-test source file that opens
  * with `'use client'`, and each app's `instrumentation-client` file.
  */
-export function clientEntries(graph: NextModuleGraph, apps: readonly NextApp[]): string[] {
+export function clientEntries(
+  graph: NextModuleGraph,
+  apps: readonly NextApp[]
+): string[] {
   const entries = graph
     .sourcesOf(ReactProject.sourceFiles(graph.context))
     .filter(isClientModule)
@@ -396,7 +460,10 @@ export function clientEntries(graph: NextModuleGraph, apps: readonly NextApp[]):
 }
 
 /** The client graph: every module a client entry bundles, stopping at `'use server'` modules. */
-export function clientGraph(graph: NextModuleGraph, apps: readonly NextApp[]): WalkResult {
+export function clientGraph(
+  graph: NextModuleGraph,
+  apps: readonly NextApp[]
+): WalkResult {
   return graph.walk(clientEntries(graph, apps), isServerModule);
 }
 
@@ -431,14 +498,36 @@ export function envReads(source: TsxSource): EnvRead[] {
     const parent = node.parent;
     const text = (n: TS.Node): string => n.getText(source.sourceFile);
     if (ts.isPropertyAccessExpression(parent) && parent.expression === node) {
-      reads.push({ name: parent.name.text, line: source.lineOf(parent), text: text(parent), inlined: true });
-    } else if (ts.isElementAccessExpression(parent) && parent.expression === node) {
+      reads.push({
+        name: parent.name.text,
+        line: source.lineOf(parent),
+        text: text(parent),
+        inlined: true,
+      });
+    } else if (
+      ts.isElementAccessExpression(parent) &&
+      parent.expression === node
+    ) {
       const argument = parent.argumentExpression;
       const name = ts.isStringLiteralLike(argument) ? argument.text : null;
-      reads.push({ name, line: source.lineOf(parent), text: text(parent), inlined: name !== null });
+      reads.push({
+        name,
+        line: source.lineOf(parent),
+        text: text(parent),
+        inlined: name !== null,
+      });
     } else {
       const destructured = destructuredEnvReads(source, node);
-      reads.push(...(destructured ?? [{ name: null, line: source.lineOf(node), text: text(parent), inlined: false }]));
+      reads.push(
+        ...(destructured ?? [
+          {
+            name: null,
+            line: source.lineOf(node),
+            text: text(parent),
+            inlined: false,
+          },
+        ])
+      );
     }
   });
   return reads;
@@ -449,7 +538,10 @@ export function envReads(source: TsxSource): EnvRead[] {
  * process.env` or `({ A } = process.env)`, through parentheses and `as` —
  * or null when `env` is not destructured there.
  */
-function destructuredEnvReads(source: TsxSource, env: TS.Expression): EnvRead[] | null {
+function destructuredEnvReads(
+  source: TsxSource,
+  env: TS.Expression
+): EnvRead[] | null {
   const ts = source.ts;
   let value: TS.Node = env;
   while (
@@ -462,10 +554,22 @@ function destructuredEnvReads(source: TsxSource, env: TS.Expression): EnvRead[] 
     value = value.parent;
   }
   const holder = value.parent;
-  const elements: Array<{ key: TS.Node | undefined; rest: boolean; at: TS.Node }> = [];
-  if (ts.isVariableDeclaration(holder) && holder.initializer === value && ts.isObjectBindingPattern(holder.name)) {
+  const elements: Array<{
+    key: TS.Node | undefined;
+    rest: boolean;
+    at: TS.Node;
+  }> = [];
+  if (
+    ts.isVariableDeclaration(holder) &&
+    holder.initializer === value &&
+    ts.isObjectBindingPattern(holder.name)
+  ) {
     for (const element of holder.name.elements) {
-      elements.push({ key: element.propertyName ?? element.name, rest: element.dotDotDotToken !== undefined, at: element });
+      elements.push({
+        key: element.propertyName ?? element.name,
+        rest: element.dotDotDotToken !== undefined,
+        at: element,
+      });
     }
   } else if (
     ts.isBinaryExpression(holder) &&
@@ -474,25 +578,36 @@ function destructuredEnvReads(source: TsxSource, env: TS.Expression): EnvRead[] 
     ts.isObjectLiteralExpression(holder.left)
   ) {
     for (const property of holder.left.properties) {
-      elements.push({ key: property.name, rest: ts.isSpreadAssignment(property), at: property });
+      elements.push({
+        key: property.name,
+        rest: ts.isSpreadAssignment(property),
+        at: property,
+      });
     }
   } else {
     return null;
   }
   return elements.map(({ key, rest, at }) => {
     const literal =
-      key && (ts.isIdentifier(key) || ts.isStringLiteralLike(key)) && !rest ? key.text : null;
+      key && (ts.isIdentifier(key) || ts.isStringLiteralLike(key)) && !rest
+        ? key.text
+        : null;
     const written = at.getText(source.sourceFile);
     return {
       name: literal,
       line: source.lineOf(at),
-      text: literal ? `${literal} (destructured from process.env)` : `${written} (destructured from process.env)`,
+      text: literal
+        ? `${literal} (destructured from process.env)`
+        : `${written} (destructured from process.env)`,
       inlined: false,
     };
   });
 }
 
-function isProcessEnv(ts: TypeScriptModule, node: TS.Node): node is TS.PropertyAccessExpression {
+function isProcessEnv(
+  ts: TypeScriptModule,
+  node: TS.Node
+): node is TS.PropertyAccessExpression {
   return (
     ts.isPropertyAccessExpression(node) &&
     node.name.text === 'env' &&

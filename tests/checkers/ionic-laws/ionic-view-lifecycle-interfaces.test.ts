@@ -8,7 +8,10 @@ import { ctx, manifest, project, removeProjects } from '../toolkit-fixture';
 
 afterAll(removeProjects);
 
-const IONIC = manifest({ '@angular/core': '20.0.0', '@ionic/angular': '8.8.17' });
+const IONIC = manifest({
+  '@angular/core': '20.0.0',
+  '@ionic/angular': '8.8.17',
+});
 const run = (files: Record<string, string>) =>
   Law.check(ctx(project({ 'package.json': IONIC, ...files })));
 
@@ -54,7 +57,9 @@ describe('IonicViewLifecycleInterfacesLaw', () => {
       'src/app/a.page.ts': `export class APage {\n  ${name}(): void {}\n}`,
     });
     expect(result.violations).toEqual([
-      expect.stringContaining(`APage.${name} looks like \`${hook}\` and will never be bound`),
+      expect.stringContaining(
+        `APage.${name} looks like \`${hook}\` and will never be bound`
+      ),
     ]);
   });
 

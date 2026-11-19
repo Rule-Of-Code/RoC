@@ -13,7 +13,10 @@ import { DIRECTORY_NAMES } from '../constants';
 import { FileUtils } from '../file-utils';
 import { PathOperations } from '../path-operations';
 import { MessagePlaceholderHelper } from './message-placeholder-helper';
-import { AngularComponentFiles, type AngularKind } from '../angular-component-files';
+import {
+  AngularComponentFiles,
+  type AngularKind,
+} from '../angular-component-files';
 
 /** The Angular class suffixes an analyzer may list, and the kind each one names. */
 const ANGULAR_SUFFIX_KINDS: Record<string, AngularKind | undefined> = {
@@ -67,7 +70,11 @@ export abstract class AngularConfigurationBase {
       return { violations, suggestions, files: [] };
     }
 
-    const byName = CheckerUtils.findFilesByExtension(srcPath, extensions, config);
+    const byName = CheckerUtils.findFilesByExtension(
+      srcPath,
+      extensions,
+      config
+    );
     // An Angular class suffix in the list also admits Angular 20's unsuffixed
     // file of that kind — `hero.ts` with @Component — read by its decorator.
     // Every analyzer on this base picked files by suffix alone (#336/#337).
@@ -76,7 +83,11 @@ export abstract class AngularConfigurationBase {
       .filter((kind): kind is AngularKind => kind !== undefined);
     if (kinds.length === 0) return { violations, suggestions, files: byName };
     const named = new Set(byName);
-    const unsuffixed = CheckerUtils.findFilesByExtension(srcPath, ['.ts'], config).filter(
+    const unsuffixed = CheckerUtils.findFilesByExtension(
+      srcPath,
+      ['.ts'],
+      config
+    ).filter(
       file => !named.has(file) && AngularComponentFiles.isKind(file, kinds)
     );
     return { violations, suggestions, files: [...byName, ...unsuffixed] };

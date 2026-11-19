@@ -21,11 +21,17 @@ const DOCSTORE = { anyPythonDependency: ['docstore-client', 'sqlalchemy'] };
 
 describe('normalizePythonName / requirementName', () => {
   it('folds case and separator runs (PEP 503)', () => {
-    expect(normalizePythonName('Docstore_Client.Async')).toBe('docstore-client-async');
+    expect(normalizePythonName('Docstore_Client.Async')).toBe(
+      'docstore-client-async'
+    );
   });
   it('reads the name before extras, markers and specifiers', () => {
-    expect(requirementName('SQLAlchemy[asyncio]>=2.0 ; python_version>"3.9"')).toBe('sqlalchemy');
-    expect(requirementName('git+https://example.invalid/x.git#egg=Docstore_Client')).toBe('docstore-client');
+    expect(
+      requirementName('SQLAlchemy[asyncio]>=2.0 ; python_version>"3.9"')
+    ).toBe('sqlalchemy');
+    expect(
+      requirementName('git+https://example.invalid/x.git#egg=Docstore_Client')
+    ).toBe('docstore-client');
     expect(requirementName('  ')).toBeNull();
   });
 });
@@ -33,14 +39,19 @@ describe('normalizePythonName / requirementName', () => {
 describe('declaredPythonDependencies', () => {
   it('requirements.txt: skips comments, options and includes', () => {
     const root = project({
-      'requirements.txt': '# db\nSQLAlchemy==2.0.1  # orm\n-r base.txt\n--index-url https://x.invalid\nhttpx\n',
+      'requirements.txt':
+        '# db\nSQLAlchemy==2.0.1  # orm\n-r base.txt\n--index-url https://x.invalid\nhttpx\n',
     });
-    expect([...declaredPythonDependencies(root)].sort()).toEqual(['httpx', 'sqlalchemy']);
+    expect([...declaredPythonDependencies(root)].sort()).toEqual([
+      'httpx',
+      'sqlalchemy',
+    ]);
   });
 
   it('requirements/<env>.txt and an editable #egg= line', () => {
     const root = project({
-      'requirements/dev.txt': '-e git+https://example.invalid/r.git#egg=docstore_client\n',
+      'requirements/dev.txt':
+        '-e git+https://example.invalid/r.git#egg=docstore_client\n',
     });
     expect(declaredPythonDependencies(root).has('docstore-client')).toBe(true);
   });
@@ -77,17 +88,30 @@ describe('declaredPythonDependencies', () => {
         'pytest = "^8"',
       ].join('\n'),
     });
-    expect([...declaredPythonDependencies(root)].sort()).toEqual(['docstore-client', 'pytest']);
+    expect([...declaredPythonDependencies(root)].sort()).toEqual([
+      'docstore-client',
+      'pytest',
+    ]);
   });
 
   it('Pipfile, setup.cfg and setup.py', () => {
     const root = project({
-      'a/Pipfile': '[packages]\nsqlalchemy = "*"\n[dev-packages]\npytest = "*"\n',
-      'b/setup.cfg': '[options]\ninstall_requires =\n    httpx>=0.27\n    docstore-client\n',
-      'c/setup.py': 'setup(name="x", install_requires=["orm-lib>=1", "uvicorn[standard]"])',
+      'a/Pipfile':
+        '[packages]\nsqlalchemy = "*"\n[dev-packages]\npytest = "*"\n',
+      'b/setup.cfg':
+        '[options]\ninstall_requires =\n    httpx>=0.27\n    docstore-client\n',
+      'c/setup.py':
+        'setup(name="x", install_requires=["orm-lib>=1", "uvicorn[standard]"])',
     });
     const names = declaredPythonDependencies(root);
-    for (const n of ['sqlalchemy', 'pytest', 'httpx', 'docstore-client', 'orm-lib', 'uvicorn']) {
+    for (const n of [
+      'sqlalchemy',
+      'pytest',
+      'httpx',
+      'docstore-client',
+      'orm-lib',
+      'uvicorn',
+    ]) {
       expect(names.has(n)).toBe(true);
     }
   });
@@ -105,7 +129,8 @@ describe('lawRequirementsMet — anyPythonDependency', () => {
   it('a service in a subdirectory that declares the client meets it', () => {
     const root = project({
       'package.json': '{"name":"client"}',
-      'services/api/pyproject.toml': '[project]\ndependencies = ["SQLAlchemy>=2"]\n',
+      'services/api/pyproject.toml':
+        '[project]\ndependencies = ["SQLAlchemy>=2"]\n',
     });
     expect(lawRequirementsMet(DOCSTORE, root)).toBe(true);
   });
@@ -116,11 +141,15 @@ describe('lawRequirementsMet — anyPythonDependency', () => {
   });
 
   it('the same name in package.json does not meet a Python requirement', () => {
-    const root = project({ 'package.json': JSON.stringify({ dependencies: { sqlalchemy: '1' } }) });
+    const root = project({
+      'package.json': JSON.stringify({ dependencies: { sqlalchemy: '1' } }),
+    });
     expect(lawRequirementsMet(DOCSTORE, root)).toBe(false);
   });
 
   it('is described for the redundant-waiver message', () => {
-    expect(describeRequirement(DOCSTORE)).toBe('a Python dependency on docstore-client or sqlalchemy');
+    expect(describeRequirement(DOCSTORE)).toBe(
+      'a Python dependency on docstore-client or sqlalchemy'
+    );
   });
 });

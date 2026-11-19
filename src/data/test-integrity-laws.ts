@@ -23,7 +23,7 @@ const PARSED_WITH_PROJECT_TYPESCRIPT =
   "Parses with the project's own `typescript` (no type checker); without it installed the law reports that it could not read the files rather than passing.";
 /** How the Playwright laws find Playwright files. */
 const PLAYWRIGHT_FILES =
-  'Playwright files are those under a playwright.config.* `testDir` (a string literal; otherwise the config\'s directory) that are tests or import @playwright/test, plus any test file importing it. A custom `testMatch` is not read, and a helper outside `testDir` that does not import the runner is not seen.';
+  "Playwright files are those under a playwright.config.* `testDir` (a string literal; otherwise the config's directory) that are tests or import @playwright/test, plus any test file importing it. A custom `testMatch` is not read, and a helper outside `testDir` that does not import the runner is not seen.";
 
 export const TEST_INTEGRITY_LAWS: EnhancedConstitutionalLaw[] = [
   {
@@ -61,7 +61,8 @@ export const TEST_INTEGRITY_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'NoFocusedTestsLaw.check',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article VII.26.1: A focused test narrows the run',
-    remediation: 'Remove .only / fit / fdescribe; set forbidOnly (Playwright) or --forbid-only (Mocha) in CI',
+    remediation:
+      'Remove .only / fit / fdescribe; set forbidOnly (Playwright) or --forbid-only (Mocha) in CI',
   },
 
   {
@@ -82,7 +83,7 @@ export const TEST_INTEGRITY_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Finds `x.waitForTimeout(…)` calls; a sleep written as `new Promise(r => setTimeout(r, ms))` or a polling helper is not seen.',
-      'A comment on the call\'s line or ending on the line directly above its statement exempts the call; whether the reason is true is not judged. An eslint directive counts only for the text after its `--`.',
+      "A comment on the call's line or ending on the line directly above its statement exempts the call; whether the reason is true is not judged. An eslint directive counts only for the text after its `--`.",
       PLAYWRIGHT_FILES,
       PARSED_WITH_PROJECT_TYPESCRIPT,
     ],
@@ -98,7 +99,8 @@ export const TEST_INTEGRITY_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'PlaywrightNoFixedWaitLaw.check',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article VII.26.2: A Playwright test waits for a fixed time',
-    remediation: 'Replace waitForTimeout with a web-first assertion or a wait for the event; explain the pauses that stay',
+    remediation:
+      'Replace waitForTimeout with a web-first assertion or a wait for the event; explain the pauses that stay',
   },
 
   {
@@ -125,7 +127,8 @@ export const TEST_INTEGRITY_LAWS: EnhancedConstitutionalLaw[] = [
       PARSED_WITH_PROJECT_TYPESCRIPT,
     ],
     emoji: '🎯',
-    description: 'Most Playwright locators find an element by role, label or text',
+    description:
+      'Most Playwright locators find an element by role, label or text',
     priority: 'LOW',
     category: 'TESTING',
     stack: 'frontend',
@@ -136,7 +139,8 @@ export const TEST_INTEGRITY_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'PlaywrightLocatorsUserFacingLaw.check',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article VII.26.3: Too few Playwright locators are user-facing',
-    remediation: 'Replace test-id and CSS locators with getByRole / getByLabel / getByText where the element has them',
+    remediation:
+      'Replace test-id and CSS locators with getByRole / getByLabel / getByText where the element has them',
   },
 
   {
@@ -158,12 +162,13 @@ export const TEST_INTEGRITY_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'A ratio over all non-Playwright test files: user-facing = …ByRole/LabelText/PlaceholderText/Text/DisplayValue/AltText/Title; implementation = …ByTestId and querySelector/querySelectorAll in a file that uses Testing Library. The floor is a fixed 50%.',
       'Query names are matched by spelling (getBy/queryBy/findBy, All); a query renamed through a wrapper is not seen. Assertion quality is not judged.',
-      'Selected by @testing-library/react; the query names are Testing Library\'s documented API, not verified against an installed copy on a reference project. Other Testing Library bindings are out of scope.',
+      "Selected by @testing-library/react; the query names are Testing Library's documented API, not verified against an installed copy on a reference project. Other Testing Library bindings are out of scope.",
       'Fails when @testing-library/react is declared but no scanned file imports it (directly or through a non-test wrapper): nothing would have been inspected.',
       PARSED_WITH_PROJECT_TYPESCRIPT,
     ],
     emoji: '🧭',
-    description: 'Most React Testing Library queries find an element by role, label or text',
+    description:
+      'Most React Testing Library queries find an element by role, label or text',
     priority: 'LOW',
     category: 'TESTING',
     stack: 'frontend',
@@ -174,7 +179,8 @@ export const TEST_INTEGRITY_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'RtlQueryByRoleLaw.check',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article VII.26.4: Too few Testing Library queries are user-facing',
-    remediation: 'Replace getByTestId and querySelector with getByRole / getByLabelText / getByText where the element has them',
+    remediation:
+      'Replace getByTestId and querySelector with getByRole / getByLabelText / getByText where the element has them',
   },
 
   {
@@ -195,12 +201,13 @@ export const TEST_INTEGRITY_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Test-only files are matched by path from the project root: __mocks__, __fixtures__, mocks, test-utils, *.mock/mocks/fake/fakes/fixture/fixtures.*, and test/tests/e2e/__test__ segments under app/ or pages/, plus thresholds.testing.testOnlyPaths. A fake named otherwise is not seen.',
-      'Routes are every non-test file under app/, src/app, pages/ and src/pages of each package declaring next, plus middleware/proxy/instrumentation. Imports are resolved by the TypeScript resolver with the app\'s tsconfig; an import it cannot resolve, a package, and a computed import() are not followed.',
+      "Routes are every non-test file under app/, src/app, pages/ and src/pages of each package declaring next, plus middleware/proxy/instrumentation. Imports are resolved by the TypeScript resolver with the app's tsconfig; an import it cannot resolve, a package, and a computed import() are not followed.",
       'A gate is a use of the imported names (or an import()) only inside an if/?:/&& branch whose condition reads process.env, or a test-only file that returns, throws or calls notFound() under such an if. Whether the condition is right, or always true, is not judged; a re-export or side-effect import is never gated.',
       PARSED_WITH_PROJECT_TYPESCRIPT,
     ],
     emoji: '🧪',
-    description: 'No test-only file is reachable from a Next route without an environment gate',
+    description:
+      'No test-only file is reachable from a Next route without an environment gate',
     priority: 'HIGH',
     category: 'SECURITY',
     stack: 'frontend',
@@ -211,6 +218,7 @@ export const TEST_INTEGRITY_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'NoTestOnlyLeakageLaw.check',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article VII.26.5: A test-only file reaches the production build',
-    remediation: 'Gate the use of the test-only file on process.env, or make it stop itself outside tests',
+    remediation:
+      'Gate the use of the test-only file on process.env, or make it stop itself outside tests',
   },
 ];

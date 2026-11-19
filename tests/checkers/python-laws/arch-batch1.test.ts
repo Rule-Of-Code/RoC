@@ -34,7 +34,10 @@ afterAll(() => {
     }
   }
 });
-const ctx = (root: string, extra?: Partial<RuleOfCodeConfig>): LawCheckContext => {
+const ctx = (
+  root: string,
+  extra?: Partial<RuleOfCodeConfig>
+): LawCheckContext => {
   const config = FileUtils.getMinimalDefaultConfig();
   config.project.type = 'python';
   if (extra) Object.assign(config, extra);
@@ -83,7 +86,8 @@ describe('228 Timezone-Aware Datetimes', () => {
 describe('229 No Assert Guards In Production', () => {
   it('flags assert statements in source', () => {
     const dir = fixture({
-      'src/guard.py': 'def f(x):\n    assert x > 0, "must be positive"\n    return x\n',
+      'src/guard.py':
+        'def f(x):\n    assert x > 0, "must be positive"\n    return x\n',
     });
     const r = NoAssertGuardsLaw.check(ctx(dir));
     expect(r.passed).toBe(false);
@@ -93,8 +97,10 @@ describe('229 No Assert Guards In Production', () => {
   it('passes asserts in tests, explicit raises in source, and allowlisted paths', () => {
     const dir = fixture({
       'tests/test_g.py': 'def test_f():\n    assert f(1) == 1\n',
-      'src/ok.py': 'def f(x):\n    if x <= 0:\n        raise ValueError("must be positive")\n    return x\n',
-      'src/narrow.py': 'def g(x):\n    assert isinstance(x, int)\n    return x\n',
+      'src/ok.py':
+        'def f(x):\n    if x <= 0:\n        raise ValueError("must be positive")\n    return x\n',
+      'src/narrow.py':
+        'def g(x):\n    assert isinstance(x, int)\n    return x\n',
     });
     const c = ctx(dir, {
       thresholds: { python: { allowAssertIn: ['src/narrow.py'] } },
@@ -119,8 +125,12 @@ describe('230 Strict Expected Failures', () => {
     expect(r.passed).toBe(false);
     // xfail: has reason but no strict → 1; skip: no reason → 1; skipif has reason → 0
     expect(r.violations).toHaveLength(2);
-    expect((r.violations ?? []).some(v => /xfail without strict=True/.test(v))).toBe(true);
-    expect((r.violations ?? []).some(v => /mark\.skip without reason=/.test(v))).toBe(true);
+    expect(
+      (r.violations ?? []).some(v => /xfail without strict=True/.test(v))
+    ).toBe(true);
+    expect(
+      (r.violations ?? []).some(v => /mark\.skip without reason=/.test(v))
+    ).toBe(true);
   });
 
   it('passes strict, reasoned markers (incl. multi-line args) and ignores source files', () => {

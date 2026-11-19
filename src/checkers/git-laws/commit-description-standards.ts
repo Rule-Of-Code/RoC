@@ -123,7 +123,11 @@ export class CommitDescriptionStandardsLaw extends GitLawBase {
       [
         // The scope leads: a commit reported here that the reader did not write
         // means a stale baseline, not shared history they have to rewrite.
-        describeCommitScope(context.projectRoot, scopeBaseline, scopeMaxCommits),
+        describeCommitScope(
+          context.projectRoot,
+          scopeBaseline,
+          scopeMaxCommits
+        ),
         'Separate the subject from the body with a single blank line',
         `Wrap body lines at 72 characters (configurable via thresholds.git.maxCommitBodyLineLength)`,
         'Use the body to explain what and why, not how',

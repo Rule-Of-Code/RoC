@@ -23,14 +23,19 @@ const INSTALLED = {
   ].join('\n'),
 };
 
-const run = runner(ctx => Law.check(ctx), { 'package.json': IONIC_ANGULAR, ...INSTALLED });
-const STANDALONE = "import { IonContent, provideIonicAngular } from '@ionic/angular/standalone';\nexport const x = [IonContent, provideIonicAngular];";
+const run = runner(ctx => Law.check(ctx), {
+  'package.json': IONIC_ANGULAR,
+  ...INSTALLED,
+});
+const STANDALONE =
+  "import { IonContent, provideIonicAngular } from '@ionic/angular/standalone';\nexport const x = [IonContent, provideIonicAngular];";
 
 describe('IonicSingleBuildSystemLaw', () => {
   it('red: a module-build class imported in a standalone app, both sides named', () => {
     const result = run({
       'src/main.ts': STANDALONE,
-      'src/app/share.ts': "import { ModalController } from '@ionic/angular';\nexport class Share { constructor(readonly m: ModalController) {} }",
+      'src/app/share.ts':
+        "import { ModalController } from '@ionic/angular';\nexport class Share { constructor(readonly m: ModalController) {} }",
     });
     expect(result.passed).toBe(false);
     expect(result.violations).toEqual([
@@ -43,41 +48,57 @@ describe('IonicSingleBuildSystemLaw', () => {
   it('red: IonicModule, a namespace import and a re-export count too', () => {
     const result = run({
       'src/main.ts': STANDALONE,
-      'src/app/a.module.ts': "import { IonicModule } from '@ionic/angular';\nexport const m = IonicModule;",
-      'src/app/b.ts': "import * as ionic from '@ionic/angular';\nexport const b = ionic;",
+      'src/app/a.module.ts':
+        "import { IonicModule } from '@ionic/angular';\nexport const m = IonicModule;",
+      'src/app/b.ts':
+        "import * as ionic from '@ionic/angular';\nexport const b = ionic;",
       'src/app/index.ts': "export { IonButton } from '@ionic/angular';",
     });
     expect(result.violations).toHaveLength(3);
-    expect(result.violations?.join('\n')).toContain("the whole '@ionic/angular' entry");
+    expect(result.violations?.join('\n')).toContain(
+      "the whole '@ionic/angular' entry"
+    );
   });
 
   it('green, with a note: a shared class (re-exported from @ionic/angular/common) from the module entry', () => {
     const result = run({
       'src/main.ts': STANDALONE,
-      'src/app/nav.ts': "import { NavController, Platform } from '@ionic/angular';\nexport class Nav { constructor(readonly n: NavController, readonly p: Platform) {} }",
+      'src/app/nav.ts':
+        "import { NavController, Platform } from '@ionic/angular';\nexport class Nav { constructor(readonly n: NavController, readonly p: Platform) {} }",
     });
     expect(result.violations).toEqual([]);
     expect(result.passed).toBe(true);
-    expect(result.suggestions).toEqual([expect.stringContaining('NavController, Platform from \'@ionic/angular\' in a standalone app')]);
+    expect(result.suggestions).toEqual([
+      expect.stringContaining(
+        "NavController, Platform from '@ionic/angular' in a standalone app"
+      ),
+    ]);
   });
 
   it('green: type-only imports from the other entry are erased and ignored', () => {
     const result = run({
       'src/main.ts': STANDALONE,
-      'src/app/t.ts': "import type { ModalController } from '@ionic/angular';\nimport { type IonModal } from '@ionic/angular';\nexport type T = ModalController | IonModal;",
+      'src/app/t.ts':
+        "import type { ModalController } from '@ionic/angular';\nimport { type IonModal } from '@ionic/angular';\nexport type T = ModalController | IonModal;",
     });
     expect(result.violations).toEqual([]);
   });
 
   it('green: one entry only — the module build alone, or standalone alone', () => {
-    expect(run({ 'src/app/a.module.ts': "import { IonicModule, ModalController } from '@ionic/angular';\nexport const m = [IonicModule, ModalController];" }).violations).toEqual([]);
+    expect(
+      run({
+        'src/app/a.module.ts':
+          "import { IonicModule, ModalController } from '@ionic/angular';\nexport const m = [IonicModule, ModalController];",
+      }).violations
+    ).toEqual([]);
     expect(run({ 'src/main.ts': STANDALONE }).violations).toEqual([]);
   });
 
   it('specs are not the app: a spec importing the other entry is not judged', () => {
     const result = run({
       'src/main.ts': STANDALONE,
-      'src/app/share.spec.ts': "import { ModalController } from '@ionic/angular';\nexport const s = ModalController;",
+      'src/app/share.spec.ts':
+        "import { ModalController } from '@ionic/angular';\nexport const s = ModalController;",
     });
     expect(result.violations).toEqual([]);
   });
@@ -86,9 +107,14 @@ describe('IonicSingleBuildSystemLaw', () => {
     const bare = runner(ctx => Law.check(ctx));
     const result = bare({
       'src/main.ts': STANDALONE,
-      'src/app/share.ts': "import { ModalController } from '@ionic/angular';\nexport const s = ModalController;",
+      'src/app/share.ts':
+        "import { ModalController } from '@ionic/angular';\nexport const s = ModalController;",
     });
     expect(result.passed).toBe(false);
-    expect(result.violations).toEqual([expect.stringContaining('could not be read to tell the shared classes apart — NOT judged')]);
+    expect(result.violations).toEqual([
+      expect.stringContaining(
+        'could not be read to tell the shared classes apart — NOT judged'
+      ),
+    ]);
   });
 });

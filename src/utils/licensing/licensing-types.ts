@@ -13,9 +13,5 @@ export interface PackageJsonLicense {
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
   [key: string]:
-    | Record<string, string>
-    | unknown[]
-    | object
-    | string
-    | undefined;
+    Record<string, string> | unknown[] | object | string | undefined;
 }

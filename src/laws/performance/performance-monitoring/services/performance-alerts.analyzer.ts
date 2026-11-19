@@ -1,6 +1,7 @@
 import { FileUtils } from '../../../../utils/file-utils';
 import { PathOperations } from '../../../../utils/path-operations';
-import { PerformanceAlertsConstants } from '../constants/performance-alerts.constants';
+import { PerformanceAlertsConstants } from '../constants/performance-alerts.constants';
+
 import { PerformanceAlertingPolicyAnalyzerService } from '../../performance-monitoring-policy/services/performance-alerting-policy.analyzer';
 
 /**
@@ -31,7 +32,9 @@ export class PerformanceAlertsAnalyzerService {
     // this law too: two laws must not disagree on whether alerts exist.
     return {
       configured:
-        PerformanceAlertingPolicyAnalyzerService.checkPerformanceAlerting(projectRoot).hasAlerts,
+        PerformanceAlertingPolicyAnalyzerService.checkPerformanceAlerting(
+          projectRoot
+        ).hasAlerts,
     };
   }
 }

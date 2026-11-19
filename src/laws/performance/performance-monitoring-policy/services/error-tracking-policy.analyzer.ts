@@ -31,7 +31,12 @@ export class ErrorTrackingPolicyAnalyzerService {
       .slice(0, 1)
       .map(entry => `Error tracking imported (${entry})`);
 
-    const allTools = [...packageTools, ...configTools, ...appTools, ...sourceTools];
+    const allTools = [
+      ...packageTools,
+      ...configTools,
+      ...appTools,
+      ...sourceTools,
+    ];
     const uniqueTools = [...new Set(allTools)];
 
     return {

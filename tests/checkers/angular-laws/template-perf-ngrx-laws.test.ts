@@ -94,9 +94,9 @@ describe('SideEffectsInNgrxEffectsLaw', () => {
       'a.component.ts':
         'export class A {\n  ngOnInit() { interval(1000).subscribe(() => {}); }\n  save() { this.api.x().subscribe(() => this.store.dispatch(y())); }\n}\n',
     });
-    const v = (SideEffectsInNgrxEffectsLaw.check(ctx(dir)).violations ?? []).join(
-      ' || '
-    );
+    const v = (
+      SideEffectsInNgrxEffectsLaw.check(ctx(dir)).violations ?? []
+    ).join(' || ');
     expect(v.toLowerCase()).toContain('long-lived');
     expect(v.toLowerCase()).toContain('dispatch');
   });
@@ -145,9 +145,10 @@ describe('DeclarativeReadSubscriptionsLaw', () => {
 
 describe('DeferHeavyBlocksLaw', () => {
   it('flags a large dashboard template without @defer', () => {
-    const big = Array.from({ length: 300 }, (_, i) => `<div>row ${i}</div>`).join(
-      '\n'
-    );
+    const big = Array.from(
+      { length: 300 },
+      (_, i) => `<div>row ${i}</div>`
+    ).join('\n');
     const dir = fixture({ 'x-dashboard.component.html': big });
     expect(DeferHeavyBlocksLaw.check(ctx(dir)).passed).toBe(false);
   });
@@ -174,7 +175,9 @@ describe('AliasRepeatedTemplateExpressionsLaw', () => {
     const dir = fixture({
       'b.component.html': '<a>{{ isLong(h.side) }}</a><b>{{ other() }}</b>\n',
     });
-    expect(AliasRepeatedTemplateExpressionsLaw.check(ctx(dir)).passed).toBe(true);
+    expect(AliasRepeatedTemplateExpressionsLaw.check(ctx(dir)).passed).toBe(
+      true
+    );
   });
   it('does not count CSS functions (url/calc/rgba) or plain HTML as expressions', () => {
     // These are in inline styles / plain attributes, not Angular bindings — the
@@ -187,6 +190,8 @@ describe('AliasRepeatedTemplateExpressionsLaw', () => {
         '<div style="width:calc(100% - 10px)"></div>' +
         '<div style="width:calc(100% - 10px)"></div>\n',
     });
-    expect(AliasRepeatedTemplateExpressionsLaw.check(ctx(dir)).passed).toBe(true);
+    expect(AliasRepeatedTemplateExpressionsLaw.check(ctx(dir)).passed).toBe(
+      true
+    );
   });
 });

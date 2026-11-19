@@ -37,7 +37,7 @@ describe('checkers/git-laws/commit-message-standards', () => {
         performance: {
           parallel: false,
           maxConcurrent: 3,
-          cache: true,
+          cache: true,
         },
       },
     };

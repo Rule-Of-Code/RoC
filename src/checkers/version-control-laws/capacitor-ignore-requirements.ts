@@ -15,7 +15,7 @@
  * project has.
  */
 
-import { execFileSync } from 'child_process';
+import { execFileSync } from '../../utils/child-process';
 import { lawRequirementsMet } from '../../utils/law-requirements';
 import { REQUIRES_CAPACITOR } from '../../utils/capacitor/capacitor-law-support';
 import { CapacitorProjects } from '../../utils/capacitor/capacitor-project';
@@ -45,7 +45,8 @@ export class CapacitorIgnoreRequirements {
           : `Not ignored: ${req.path} (${req.why})`
       ),
       ...this.trackedCredentials(projectRoot).map(
-        file => `Tracked credential file: ${file} — remove it from the index (git rm --cached) and rotate the keys it holds`
+        file =>
+          `Tracked credential file: ${file} — remove it from the index (git rm --cached) and rotate the keys it holds`
       ),
     ];
   }
@@ -53,39 +54,102 @@ export class CapacitorIgnoreRequirements {
   /** The paths that must be ignored, for every platform directory that exists. */
   private static required(projectRoot: string): Requirement[] {
     const required: Requirement[] = [];
-    const rel = (file: string) => PathOperations.getRelative(projectRoot, file).replace(/\\/g, '/');
+    const rel = (file: string) =>
+      PathOperations.getRelative(projectRoot, file).replace(/\\/g, '/');
     for (const project of CapacitorProjects.find(projectRoot)) {
       const native = CapacitorProjects.defaultNativePaths(project.root);
       if (FileUtils.isDirectory(native.androidDir)) {
         const android = rel(native.androidDir);
         const assets = `${android}/app/src/main/assets`;
         required.push(
-          { path: `${android}/app/google-services.json`, why: 'Firebase configuration', credential: true },
-          { path: `${assets}/public`, why: 'the web build cap sync copies', credential: false, dir: true },
-          { path: `${assets}/capacitor.config.json`, why: 'the resolved config cap sync copies', credential: false },
-          { path: `${assets}/capacitor.plugins.json`, why: 'the plugin list cap sync writes', credential: false },
-          { path: `${android}/.gradle`, why: 'Gradle cache', credential: false, dir: true },
-          { path: `${android}/build`, why: 'Gradle build output', credential: false, dir: true },
-          { path: `${android}/app/build`, why: 'Gradle build output', credential: false, dir: true },
-          { path: `${android}/local.properties`, why: 'machine-local SDK paths', credential: false }
+          {
+            path: `${android}/app/google-services.json`,
+            why: 'Firebase configuration',
+            credential: true,
+          },
+          {
+            path: `${assets}/public`,
+            why: 'the web build cap sync copies',
+            credential: false,
+            dir: true,
+          },
+          {
+            path: `${assets}/capacitor.config.json`,
+            why: 'the resolved config cap sync copies',
+            credential: false,
+          },
+          {
+            path: `${assets}/capacitor.plugins.json`,
+            why: 'the plugin list cap sync writes',
+            credential: false,
+          },
+          {
+            path: `${android}/.gradle`,
+            why: 'Gradle cache',
+            credential: false,
+            dir: true,
+          },
+          {
+            path: `${android}/build`,
+            why: 'Gradle build output',
+            credential: false,
+            dir: true,
+          },
+          {
+            path: `${android}/app/build`,
+            why: 'Gradle build output',
+            credential: false,
+            dir: true,
+          },
+          {
+            path: `${android}/local.properties`,
+            why: 'machine-local SDK paths',
+            credential: false,
+          }
         );
       }
       if (FileUtils.isDirectory(native.iosDir)) {
         const target = rel(native.iosTargetDir);
         const app = rel(PathOperations.join(native.iosDir, 'App'));
         required.push(
-          { path: `${target}/GoogleService-Info.plist`, why: 'Firebase configuration', credential: true },
-          { path: `${target}/public`, why: 'the web build cap sync copies', credential: false, dir: true },
-          { path: `${target}/capacitor.config.json`, why: 'the resolved config cap sync copies', credential: false },
-          { path: `${app}/Pods`, why: 'CocoaPods output', credential: false, dir: true },
-          { path: `${app}/build`, why: 'Xcode build output', credential: false, dir: true }
+          {
+            path: `${target}/GoogleService-Info.plist`,
+            why: 'Firebase configuration',
+            credential: true,
+          },
+          {
+            path: `${target}/public`,
+            why: 'the web build cap sync copies',
+            credential: false,
+            dir: true,
+          },
+          {
+            path: `${target}/capacitor.config.json`,
+            why: 'the resolved config cap sync copies',
+            credential: false,
+          },
+          {
+            path: `${app}/Pods`,
+            why: 'CocoaPods output',
+            credential: false,
+            dir: true,
+          },
+          {
+            path: `${app}/build`,
+            why: 'Xcode build output',
+            credential: false,
+            dir: true,
+          }
         );
       }
     }
     return required;
   }
 
-  private static notIgnored(projectRoot: string, required: Requirement[]): Requirement[] {
+  private static notIgnored(
+    projectRoot: string,
+    required: Requirement[]
+  ): Requirement[] {
     if (required.length === 0) return [];
     const probe = (r: Requirement) => (r.dir ? `${r.path}/.roc-probe` : r.path);
     const ignored = this.ignoredByGit(projectRoot, required.map(probe));
@@ -94,16 +158,28 @@ export class CapacitorIgnoreRequirements {
   }
 
   /** The subset git ignores, or null when git cannot answer (not a repository). */
-  private static ignoredByGit(projectRoot: string, paths: string[]): Set<string> | null {
+  private static ignoredByGit(
+    projectRoot: string,
+    paths: string[]
+  ): Set<string> | null {
     try {
-      const out = execFileSync('git', ['check-ignore', '--no-index', '--stdin'], {
-        cwd: projectRoot,
-        input: paths.join('\n'),
-        encoding: 'utf8',
-        stdio: ['pipe', 'pipe', 'ignore'],
-        windowsHide: true,
-      });
-      return new Set(out.split('\n').map(line => line.trim()).filter(Boolean));
+      const out = execFileSync(
+        'git',
+        ['check-ignore', '--no-index', '--stdin'],
+        {
+          cwd: projectRoot,
+          input: paths.join('\n'),
+          encoding: 'utf8',
+          stdio: ['pipe', 'pipe', 'ignore'],
+          windowsHide: true,
+        }
+      );
+      return new Set(
+        out
+          .split('\n')
+          .map(line => line.trim())
+          .filter(Boolean)
+      );
     } catch (error) {
       // Exit 1 = "none of them is ignored", a real answer; anything else is not.
       return (error as { status?: number }).status === 1 ? new Set() : null;
@@ -116,14 +192,26 @@ export class CapacitorIgnoreRequirements {
     const top = path.split('/')[0] ?? '';
     files.push([`${top}/`, `${top}/.gitignore`]);
     return files.some(([prefix, file]) => {
-      const content = FileUtils.readFileContentSync(PathOperations.join(projectRoot, file)) ?? '';
+      const content =
+        FileUtils.readFileContentSync(PathOperations.join(projectRoot, file)) ??
+        '';
       if (!path.startsWith(prefix)) return false;
       const local = path.slice(prefix.length);
       return content
         .split('\n')
-        .map(line => line.trim().replace(/^\/|\/$/g, '').replace(/^\*\*\//, ''))
+        .map(line =>
+          line
+            .trim()
+            .replace(/^\/|\/$/g, '')
+            .replace(/^\*\*\//, '')
+        )
         .filter(line => line && !line.startsWith('#') && !line.startsWith('!'))
-        .some(line => local === line || local.startsWith(`${line}/`) || local.split('/').includes(line));
+        .some(
+          line =>
+            local === line ||
+            local.startsWith(`${line}/`) ||
+            local.split('/').includes(line)
+        );
     });
   }
 
@@ -133,9 +221,17 @@ export class CapacitorIgnoreRequirements {
       const out = execFileSync(
         'git',
         ['ls-files', '--', ...CREDENTIALS.map(name => `:(glob)**/${name}`)],
-        { cwd: projectRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true }
+        {
+          cwd: projectRoot,
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'ignore'],
+          windowsHide: true,
+        }
       );
-      return out.split('\n').map(line => line.trim()).filter(Boolean);
+      return out
+        .split('\n')
+        .map(line => line.trim())
+        .filter(Boolean);
     } catch {
       return [];
     }

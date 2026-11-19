@@ -16,7 +16,8 @@ import { TsClasses } from '../../utils/ts-classes';
 import { LawBase } from '../law-base';
 
 /** Browser-driven spec files: Playwright, WebdriverIO, Cypress. */
-const E2E_FILE = /(?:^|\/)(?:e2e|cypress)\/.*\.[jt]s$|\.e2e(?:\.spec)?\.[jt]s$|\.cy\.[jt]s$/;
+const E2E_FILE =
+  /(?:^|\/)(?:e2e|cypress)\/.*\.[jt]s$|\.e2e(?:\.spec)?\.[jt]s$|\.cy\.[jt]s$/;
 /** A selector string handed to a locator-style call. */
 const LOCATOR_CALL =
   /\b(?:locator|querySelector|querySelectorAll|\$\$?|get|find)\s*\(\s*(['"`])((?:\\.|(?!\1).)*)\1/g;
@@ -34,12 +35,19 @@ export class IonicE2eLocatorsTargetTheShownPageLaw extends LawBase {
       context.lawId,
       true
     ).filter(file =>
-      E2E_FILE.test(PathOperations.getRelative(context.projectRoot, file).replace(/\\/g, '/'))
+      E2E_FILE.test(
+        PathOperations.getRelative(context.projectRoot, file).replace(
+          /\\/g,
+          '/'
+        )
+      )
     );
     const violations: string[] = [];
     for (const file of files) {
       const where = PathOperations.getRelative(context.projectRoot, file);
-      violations.push(...this.checkFile(where, FileUtils.readFileContentSync(file) ?? ''));
+      violations.push(
+        ...this.checkFile(where, FileUtils.readFileContentSync(file) ?? '')
+      );
     }
     return this.createResult(
       violations,
@@ -58,9 +66,11 @@ export class IonicE2eLocatorsTargetTheShownPageLaw extends LawBase {
     const violations: string[] = [];
     for (const match of code.matchAll(LOCATOR_CALL)) {
       const selector = match[2] ?? '';
-      if (!IONIC_ELEMENT.test(selector) || SCOPED_TO_SHOWN.test(selector)) continue;
+      if (!IONIC_ELEMENT.test(selector) || SCOPED_TO_SHOWN.test(selector))
+        continue;
       // A visibility filter chained on the same expression also scopes it.
-      const rest = code.slice((match.index ?? 0) + match[0].length).split('\n')[0] ?? '';
+      const rest =
+        code.slice((match.index ?? 0) + match[0].length).split('\n')[0] ?? '';
       if (/visible\s*:\s*true|\.filter\(\s*\{\s*visible/.test(rest)) continue;
       violations.push(
         `${where}:${TsClasses.lineAt(content, match.index ?? 0)}: '${selector}' matches the hidden page first — Ionic keeps the left page in the DOM ahead of the shown one. Use '${selector}:visible' or scope to .ion-page:not(.ion-page-hidden)`

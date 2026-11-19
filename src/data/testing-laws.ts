@@ -20,7 +20,12 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Test Coverage Constitutional Standard',
     rationale:
       'Code without tests is code nobody can change without fear — every edit is a guess about what it might break. Coverage is not the goal, but its absence guarantees the goal was never pursued.',
-    satisfiedBy: { typescript: 'Configure Jest (a config + a test script + coverage) and keep tests alongside your source.', python: 'Configure pytest coverage (--cov with a fail_under, or [tool.coverage]) — recognised natively.' },
+    satisfiedBy: {
+      typescript:
+        'Configure Jest (a config + a test script + coverage) and keep tests alongside your source.',
+      python:
+        'Configure pytest coverage (--cov with a fail_under, or [tool.coverage]) — recognised natively.',
+    },
     detectionLimits: [
       'Presence, not a number: it checks that a test runner and coverage CONFIG exist plus a source-to-test FILE ratio — never the actual line/branch coverage percentage.',
       'Jest-biased for JS/TS — a project on Karma/Jasmine with no jest config trips "No Jest configuration found".',
@@ -53,7 +58,11 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'E2E Testing Standards',
     rationale:
       'Unit tests prove the pieces work; only an end-to-end test proves the assembled product does. The gap between them is where the demo breaks.',
-    satisfiedBy: { typescript: 'Add an E2E framework (Cypress/Playwright) with a config and real *.e2e-spec / *.cy specs.', angular: 'A Cypress or Playwright suite that drives the running app.' },
+    satisfiedBy: {
+      typescript:
+        'Add an E2E framework (Cypress/Playwright) with a config and real *.e2e-spec / *.cy specs.',
+      angular: 'A Cypress or Playwright suite that drives the running app.',
+    },
     detectionLimits: [
       'Pure presence — it never opens a spec; an empty Cypress config with zero real tests passes.',
       'Runs only for detected applications (Angular/React/Vue/Nest/Next); libraries are exempt, and a pure-Python app is skipped rather than failed.',
@@ -86,7 +95,10 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Unit Test Quality Standards',
     rationale:
       'A test that asserts nothing, mocks nothing, or covers only the happy path is a green light with no wiring behind it. Quality is what turns a test from decoration into a guarantee.',
-    satisfiedBy: { typescript: 'Write focused it()/describe() blocks with real assertions, handle async with await/fakeAsync, and mock external dependencies.' },
+    satisfiedBy: {
+      typescript:
+        'Write focused it()/describe() blocks with real assertions, handle async with await/fakeAsync, and mock external dependencies.',
+    },
     detectionLimits: [
       'Edge-case and mock detection are keyword heuristics (imports imply "has dependencies"; jest.mock/spyOn imply mocks) — a test that mocks via a helper import is misread; no semantics.',
       'It counts structure, not assertion strength; a test with one weak assertion passes.',
@@ -120,7 +132,10 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Angular Testing Excellence Policy',
     rationale:
       'An Angular test that never touches TestBed is testing a class, not a component — it misses the template, change detection and DI that make it Angular. Excellence is testing the thing as it actually runs.',
-    satisfiedBy: { angular: 'Use TestBed + ComponentFixture in component specs, TestBed.inject in service specs, async/fakeAsync for Observables, and "should" descriptions.' },
+    satisfiedBy: {
+      angular:
+        'Use TestBed + ComponentFixture in component specs, TestBed.inject in service specs, async/fakeAsync for Observables, and "should" descriptions.',
+    },
     detectionLimits: [
       'Coverage is a test-file-to-source FILE ratio (default 80%), not real coverage.',
       'Substring checks: a "TestBed" in a comment passes, and its absence fails a genuinely-fine test; the "must start with should" rule is stylistic and easily false-positive.',
@@ -156,7 +171,8 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     rationale:
       'A component test that does not configure a TestBed, assert an output, or exercise an interaction is testing that the component can be constructed, not that it works. This law asks for tests that actually drive it.',
     satisfiedBy: {
-      angular: 'Give each *.component.ts a spec that configures TestBed, renders via ComponentFixture, and asserts on inputs/outputs or user interaction.',
+      angular:
+        'Give each *.component.ts a spec that configures TestBed, renders via ComponentFixture, and asserts on inputs/outputs or user interaction.',
       react:
         'Give each client component X.tsx a co-located X.test.tsx (or __tests__/X.test.tsx) with at least two tests that query by role (screen.getByRole) and assert on what the user sees.',
     },
@@ -193,7 +209,10 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Test Data Management',
     rationale:
       'Tests that share hardcoded data or leak state between runs are flaky by construction — one test’s leftover is the next test’s mystery failure. Managed test data is what makes a suite deterministic.',
-    satisfiedBy: { typescript: 'Use beforeEach/afterEach for setup and teardown, build data via factories/builders, and mock external resources.' },
+    satisfiedBy: {
+      typescript:
+        'Use beforeEach/afterEach for setup and teardown, build data via factories/builders, and mock external resources.',
+    },
     detectionLimits: [
       'Project-wide OR: a SINGLE file with beforeEach marks the whole project as having setup.',
       'Hardcoded-data detection is a crude 20-char-string-literal heuristic; factory detection keys off filenames (factory/builder/fixture/mock/test-data).',
@@ -227,7 +246,10 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Test Isolation Enforcement',
     rationale:
       'A test that depends on another test’s side effects passes in one order and fails in another — and CI runs them in whatever order it likes. Isolation is what makes a green suite mean the same thing every time.',
-    satisfiedBy: { typescript: 'Keep no mutable state at module scope in specs, pair setup with teardown, and avoid it.only/fit and global-state writes.' },
+    satisfiedBy: {
+      typescript:
+        'Keep no mutable state at module scope in specs, pair setup with teardown, and avoid it.only/fit and global-state writes.',
+    },
     detectionLimits: [
       'Shared mutable state is a module-scope let, or a module-scope const that is later written to (push, property or index assignment); the analysis is regex over code with comments stripped, not a data-flow trace.',
       'External resources are read from code, not comments, and each offending file is named. Browser storage in a Playwright spec whose tests destructure a fixture is not counted — every test gets its own BrowserContext — unless a beforeAll could share a page; databases, sockets and network calls still count.',
@@ -262,7 +284,12 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'API Testing Standards',
     rationale:
       'An API that is not tested at its edge — its methods, its error paths — is one you find out about in production, from a 500. This law asks that the contract be exercised, not assumed.',
-    satisfiedBy: { typescript: 'Test each HTTP method and error scenario with supertest/Jest, and mock upstreams with msw/nock.', python: 'pytest against the app’s test client, asserting status codes and error paths — recognised natively.' },
+    satisfiedBy: {
+      typescript:
+        'Test each HTTP method and error scenario with supertest/Jest, and mock upstreams with msw/nock.',
+      python:
+        'pytest against the app’s test client, asserting status codes and error paths — recognised natively.',
+    },
     detectionLimits: [
       'Presence, not content: HTTP-method "coverage" is a very loose regex (the word GET anywhere, any .get(), any 4xx-looking number).',
       'API test files are found by filename, and only .ts (no .js).',
@@ -294,7 +321,8 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     rationale:
       'A feature that is correct but slow still fails the user. Performance tests turn "it feels fast" into a number that a regression cannot quietly cross.',
     satisfiedBy: {
-      angular: 'Add perf/load tests (k6/artillery), a bundle-size budget, and web-vitals (LCP/CLS/INP) tracking for critical flows.',
+      angular:
+        'Add perf/load tests (k6/artillery), a bundle-size budget, and web-vitals (LCP/CLS/INP) tracking for critical flows.',
       react:
         'Add a perf spec named *.perf.spec.ts or *.perf.test.ts under src/, tests/, test/, e2e/ or an {apps,libs,packages}/**/src directory, exercising a critical flow (login, checkout, payment). Declare size-limit or @next/bundle-analyzer, and web-vitals or Lighthouse, in the ROOT package.json: a workspace package manifest is not read.',
     },
@@ -329,7 +357,10 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Test Documentation Requirements',
     rationale:
       'A test suite nobody can read is one nobody will maintain — the next engineer deletes the failing test instead of understanding it. Documentation is what keeps a suite alive past its author.',
-    satisfiedBy: { typescript: 'Keep a TESTING.md (or a documented strategy), clear it()/describe() descriptions, and comments on non-obvious setup.' },
+    satisfiedBy: {
+      typescript:
+        'Keep a TESTING.md (or a documented strategy), clear it()/describe() descriptions, and comments on non-obvious setup.',
+    },
     detectionLimits: [
       '"Documentation" = presence of doc files (a min length) plus comment/description heuristics — it cannot judge whether the docs are useful.',
       'Structure-doc coverage is a heuristic ratio, not a real measure.',
@@ -361,7 +392,10 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Jest Unit Test 100% Coverage Mandate',
     rationale:
       'A coverage target below 100% is a decision about which lines are allowed to go untested — and that decision is almost never made deliberately. This law is the forcing function for the last, hardest, most bug-dense lines.',
-    satisfiedBy: { typescript: 'Configure Jest with coverageThreshold at 100 for lines/functions/branches/statements and keep the suite green against it.' },
+    satisfiedBy: {
+      typescript:
+        'Configure Jest with coverageThreshold at 100 for lines/functions/branches/statements and keep the suite green against it.',
+    },
     detectionLimits: [
       'It verifies that SOME coverage config exists, not that the thresholds are 100 — a project with coverageThreshold 50 satisfies the "100%" mandate unless a coverage-summary.json artifact is committed.',
       'The "source files lack unit tests" check does not currently fire.',

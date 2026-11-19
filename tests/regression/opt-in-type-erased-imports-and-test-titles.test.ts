@@ -26,22 +26,49 @@ import { FileUtils } from '../../src/utils/file-utils';
 import { NextHeavyLibInClientGraphLaw } from '../../src/checkers/next-laws/next-heavy-lib-in-client-graph';
 import { NextClientEnvPublicOnlyLaw } from '../../src/checkers/next-laws/next-client-env-public-only';
 import { NoTestOnlyLeakageLaw } from '../../src/checkers/testing-laws/no-test-only-leakage';
-import { ctx, manifest, project, removeProjects, writeFiles } from '../checkers/toolkit-fixture';
-import { INSTALLED, nextApp, nextCtx } from '../checkers/next-laws/next-server-fixture';
+import {
+  ctx,
+  manifest,
+  project,
+  removeProjects,
+  writeFiles,
+} from '../checkers/toolkit-fixture';
+import {
+  INSTALLED,
+  nextApp,
+  nextCtx,
+} from '../checkers/next-laws/next-server-fixture';
 
 afterAll(removeProjects);
 
-const OPT_IN = ['No Risk Literals', 'Retention Registry Covers Schema', 'Next Route JS Budget'];
+const OPT_IN = [
+  'No Risk Literals',
+  'Retention Registry Covers Schema',
+  'Next Route JS Budget',
+  // 7.28.0: its five paths measured 0 of 42 correct on real code (#390).
+  'Error Handling Standards',
+];
 
 describe('opt-in laws (defaultEnabled: false) are not run by default', () => {
-  it('exactly the three documented opt-in laws are opt-in', () => {
-    const optIn = ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(l => l.defaultEnabled === false).map(l => l.title);
+  it('exactly the documented opt-in laws are opt-in', () => {
+    const optIn = ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(
+      l => l.defaultEnabled === false
+    ).map(l => l.title);
     expect(optIn.sort()).toEqual([...OPT_IN].sort());
   });
 
   it('a Next app with no config does not select them', () => {
-    const root = project({ 'package.json': manifest({ next: '16.4.6', react: '19.3.0', 'react-dom': '19.3.0' }) });
-    const auditor = new RuleOfCodeAuditor(ConfigLoader.load(root), root) as unknown as {
+    const root = project({
+      'package.json': manifest({
+        next: '16.4.6',
+        react: '19.3.0',
+        'react-dom': '19.3.0',
+      }),
+    });
+    const auditor = new RuleOfCodeAuditor(
+      ConfigLoader.load(root),
+      root
+    ) as unknown as {
       getSelectedLaws(): Array<{ name: string }>;
     };
     const names = auditor.getSelectedLaws().map(l => l.name);
@@ -50,36 +77,62 @@ describe('opt-in laws (defaultEnabled: false) are not run by default', () => {
   });
 
   it('laws.enabled turns one on', () => {
-    const config = { laws: { enabled: { 'Next Route JS Budget': true } } } as unknown as RuleOfCodeConfig;
-    expect(ModularLawsRegistry.getEnabled(config).map(l => l.name)).toContain('Next Route JS Budget');
+    const config = {
+      laws: { enabled: { 'Next Route JS Budget': true } },
+    } as unknown as RuleOfCodeConfig;
+    expect(ModularLawsRegistry.getEnabled(config).map(l => l.name)).toContain(
+      'Next Route JS Budget'
+    );
   });
 
   it('a severity turns an opt-in law on without an allowlist; a non-severity value does not', () => {
     const names = (severity: Record<string, string>) =>
-      ModularLawsRegistry.getEnabled({ laws: { severity } } as unknown as RuleOfCodeConfig).map(l => l.name);
-    expect(names({ 'No Risk Literals': 'warning' })).toContain('No Risk Literals');
-    expect(names({ 'no-risk-literals': 'error' })).toContain('No Risk Literals');
-    expect(names({ 'No Risk Literals': 'notApplicable' })).not.toContain('No Risk Literals');
+      ModularLawsRegistry.getEnabled({
+        laws: { severity },
+      } as unknown as RuleOfCodeConfig).map(l => l.name);
+    expect(names({ 'No Risk Literals': 'warning' })).toContain(
+      'No Risk Literals'
+    );
+    expect(names({ 'no-risk-literals': 'error' })).toContain(
+      'No Risk Literals'
+    );
+    expect(names({ 'No Risk Literals': 'notApplicable' })).not.toContain(
+      'No Risk Literals'
+    );
     // Every other law is still selected: a severity is not an allowlist.
-    expect(names({ 'No Risk Literals': 'warning' })).toContain('Professional Component Testing Policy');
+    expect(names({ 'No Risk Literals': 'warning' })).toContain(
+      'Professional Component Testing Policy'
+    );
   });
 
   it('a Next app whose config gives Next Route JS Budget a severity runs it', () => {
     const root = project({
-      'package.json': manifest({ next: '16.4.6', react: '19.3.0', 'react-dom': '19.3.0' }),
-      'ruleofcode.config.json': JSON.stringify({ laws: { severity: { 'Next Route JS Budget': 'error' } } }),
+      'package.json': manifest({
+        next: '16.4.6',
+        react: '19.3.0',
+        'react-dom': '19.3.0',
+      }),
+      'ruleofcode.config.json': JSON.stringify({
+        laws: { severity: { 'Next Route JS Budget': 'error' } },
+      }),
     });
-    const auditor = new RuleOfCodeAuditor(ConfigLoader.load(root), root) as unknown as {
+    const auditor = new RuleOfCodeAuditor(
+      ConfigLoader.load(root),
+      root
+    ) as unknown as {
       getSelectedLaws(): Array<{ name: string }>;
     };
-    expect(auditor.getSelectedLaws().map(l => l.name)).toContain('Next Route JS Budget');
+    expect(auditor.getSelectedLaws().map(l => l.name)).toContain(
+      'Next Route JS Budget'
+    );
   });
 
   it('no law identity has the `law-N` shape the default config uses for every law', () => {
     // The default config writes `law-1`…`law-N` severities for all laws; if an
     // identity ever took that shape, every opt-in law would turn on silently.
     for (const law of ModularLawsRegistry.getAll()) {
-      for (const key of ModularLawsRegistry.lawIdentityKeys(law)) expect(key).not.toMatch(/^law-\d+$/);
+      for (const key of ModularLawsRegistry.lawIdentityKeys(law))
+        expect(key).not.toMatch(/^law-\d+$/);
     }
   });
 
@@ -88,33 +141,57 @@ describe('opt-in laws (defaultEnabled: false) are not run by default', () => {
     // severities that turn the opt-in laws on.
     for (const severity of [
       {},
-      { 'Next Route JS Budget': 'error', 'No Risk Literals': 'warning', 'Retention Registry Covers Schema': 'info' },
+      {
+        'Next Route JS Budget': 'error',
+        'No Risk Literals': 'warning',
+        'Retention Registry Covers Schema': 'info',
+      },
     ]) {
       const root = project({
-        'package.json': manifest({ next: '16.4.6', react: '19.3.0', 'react-dom': '19.3.0' }),
+        'package.json': manifest({
+          next: '16.4.6',
+          react: '19.3.0',
+          'react-dom': '19.3.0',
+        }),
         'ruleofcode.config.json': JSON.stringify({ laws: { severity } }),
       });
       const config = ConfigLoader.load(root);
       const selected = (
-        new RuleOfCodeAuditor(config, root) as unknown as { getSelectedLaws(): unknown[] }
+        new RuleOfCodeAuditor(config, root) as unknown as {
+          getSelectedLaws(): unknown[];
+        }
       ).getSelectedLaws().length;
       const result = AuditLivenessLaw.check({
         projectRoot: root,
         config: { ...config, laws: { ...config.laws, __plannedLawCount: 1 } },
       } as never);
-      const floor = Number(/liveness floor of (\d+)/.exec((result.violations ?? []).join(' '))?.[1]);
+      const floor = Number(
+        /liveness floor of (\d+)/.exec((result.violations ?? []).join(' '))?.[1]
+      );
       expect(floor).toBe(Math.max(1, Math.ceil(0.25 * selected)));
     }
   });
 
   it('runsWithoutAllowlist: a severity turns an opt-in law on; a legacyId or `law-N` key does not', () => {
-    const law = { name: 'Next Route JS Budget', id: 'next-route-js-budget', defaultEnabled: false };
+    const law = {
+      name: 'Next Route JS Budget',
+      id: 'next-route-js-budget',
+      defaultEnabled: false,
+    };
     expect(runsWithoutAllowlist(law, undefined)).toBe(false);
-    expect(runsWithoutAllowlist(law, { 'Next Route JS Budget': 'error' })).toBe(true);
-    expect(runsWithoutAllowlist(law, { 'next-route-js-budget': 'info' })).toBe(true);
-    expect(runsWithoutAllowlist(law, { 'Next Route JS Budget': 'off' })).toBe(false);
+    expect(runsWithoutAllowlist(law, { 'Next Route JS Budget': 'error' })).toBe(
+      true
+    );
+    expect(runsWithoutAllowlist(law, { 'next-route-js-budget': 'info' })).toBe(
+      true
+    );
+    expect(runsWithoutAllowlist(law, { 'Next Route JS Budget': 'off' })).toBe(
+      false
+    );
     expect(runsWithoutAllowlist(law, { 'law-200': 'error' })).toBe(false);
-    expect(runsWithoutAllowlist({ ...law, defaultEnabled: true }, undefined)).toBe(true);
+    expect(
+      runsWithoutAllowlist({ ...law, defaultEnabled: true }, undefined)
+    ).toBe(true);
   });
 
   it('a law that is not opt-in is still selected by default', () => {
@@ -126,7 +203,8 @@ describe('opt-in laws (defaultEnabled: false) are not run by default', () => {
 });
 
 describe('an import used only as a type is no edge in the Next module graph', () => {
-  const DB = "import 'server-only';\nimport { Pool } from 'pg';\nexport interface Row { id: number }\nexport const pool = new Pool();\n";
+  const DB =
+    "import 'server-only';\nimport { Pool } from 'pg';\nexport interface Row { id: number }\nexport const pool = new Pool();\n";
 
   it('green: a client component that only annotates with an imported type', () => {
     const result = NextServerOnlyBoundaryLaw.check(
@@ -151,7 +229,9 @@ describe('an import used only as a type is no edge in the Next module graph', ()
         })
       )
     );
-    expect(result.violations).toEqual([expect.stringContaining("src/lib/db.ts:2: imports 'pg'")]);
+    expect(result.violations).toEqual([
+      expect.stringContaining("src/lib/db.ts:2: imports 'pg'"),
+    ]);
   });
 
   it('red: under verbatimModuleSyntax the compiler keeps the import, so the edge stays', () => {
@@ -159,7 +239,11 @@ describe('an import used only as a type is no edge in the Next module graph', ()
       nextCtx(
         nextApp({
           'tsconfig.json': JSON.stringify({
-            compilerOptions: { verbatimModuleSyntax: true, baseUrl: '.', paths: { '@/*': ['./src/*'] } },
+            compilerOptions: {
+              verbatimModuleSyntax: true,
+              baseUrl: '.',
+              paths: { '@/*': ['./src/*'] },
+            },
           }),
           'src/components/List.tsx':
             "'use client';\nimport { Row } from '@/lib/db';\nexport function List(p: { rows: Row[] }) { return <p>{p.rows.length}</p>; }\n",
@@ -167,7 +251,9 @@ describe('an import used only as a type is no edge in the Next module graph', ()
         })
       )
     );
-    expect(result.violations).toEqual([expect.stringContaining("src/lib/db.ts:2: imports 'pg'")]);
+    expect(result.violations).toEqual([
+      expect.stringContaining("src/lib/db.ts:2: imports 'pg'"),
+    ]);
   });
 
   it('red: `class X extends Imported` uses the import as a value', () => {
@@ -176,11 +262,14 @@ describe('an import used only as a type is no edge in the Next module graph', ()
         nextApp({
           'src/components/List.tsx':
             "'use client';\nimport { Base } from '@/lib/base';\nclass Store extends Base {}\nexport const List = () => <p>{String(new Store())}</p>;\n",
-          'src/lib/base.ts': "import { Pool } from 'pg';\nexport class Base { pool = new Pool(); }\n",
+          'src/lib/base.ts':
+            "import { Pool } from 'pg';\nexport class Base { pool = new Pool(); }\n",
         })
       )
     );
-    expect(result.violations).toEqual([expect.stringContaining("src/lib/base.ts:1: imports 'pg'")]);
+    expect(result.violations).toEqual([
+      expect.stringContaining("src/lib/base.ts:1: imports 'pg'"),
+    ]);
   });
 });
 
@@ -191,20 +280,40 @@ describe('an import used only as a type is no edge in the Next module graph', ()
  * runtime edge. All three now ask one helper (CompiledImports).
  */
 describe('#316: every import graph drops an import used only as a type', () => {
-  const MANIFEST = manifest({ next: '16.4.6', react: '19.3.0', 'react-dom': '19.3.0', moment: '2.30.1', typescript: '5.9.3' });
-  const TSCONFIG = { jsx: 'preserve', module: 'esnext', moduleResolution: 'bundler' };
+  const MANIFEST = manifest({
+    next: '16.4.6',
+    react: '19.3.0',
+    'react-dom': '19.3.0',
+    moment: '2.30.1',
+    typescript: '5.9.3',
+  });
+  const TSCONFIG = {
+    jsx: 'preserve',
+    module: 'esnext',
+    moduleResolution: 'bundler',
+  };
   // The `typeonly2` shape from the issue, verbatim.
-  const typeOnly2 = (list: string, compilerOptions: Record<string, unknown> = TSCONFIG): string =>
+  const typeOnly2 = (
+    list: string,
+    compilerOptions: Record<string, unknown> = TSCONFIG
+  ): string =>
     project({
       'package.json': MANIFEST,
       ...INSTALLED,
-      'node_modules/moment/package.json': JSON.stringify({ name: 'moment', version: '2.30.1', main: 'index.js' }),
+      'node_modules/moment/package.json': JSON.stringify({
+        name: 'moment',
+        version: '2.30.1',
+        main: 'index.js',
+      }),
       'node_modules/moment/index.js': 'module.exports = {};',
       'tsconfig.json': JSON.stringify({ compilerOptions }),
-      'app/layout.tsx': 'export default function L({ children }) { return <html lang="en"><body>{children}</body></html>; }\n',
-      'app/page.tsx': "import { List } from './List';\nexport default function P() { return <List />; }\n",
+      'app/layout.tsx':
+        'export default function L({ children }) { return <html lang="en"><body>{children}</body></html>; }\n',
+      'app/page.tsx':
+        "import { List } from './List';\nexport default function P() { return <List />; }\n",
       'app/List.tsx': list,
-      'mocks/user.fixture.ts': 'export type FakeUser = { id: string };\nexport const fakeUser: FakeUser = { id: "1" };\n',
+      'mocks/user.fixture.ts':
+        'export type FakeUser = { id: string };\nexport const fakeUser: FakeUser = { id: "1" };\n',
     });
   const TYPE_ONLY = [
     "'use client';",
@@ -226,8 +335,10 @@ describe('#316: every import graph drops an import used only as a type', () => {
     '}',
     '',
   ].join('\n');
-  const heavy = (root: string) => NextHeavyLibInClientGraphLaw.check(ctx(root)).violations ?? [];
-  const leakage = (root: string) => NoTestOnlyLeakageLaw.check(ctx(root)).violations ?? [];
+  const heavy = (root: string) =>
+    NextHeavyLibInClientGraphLaw.check(ctx(root)).violations ?? [];
+  const leakage = (root: string) =>
+    NoTestOnlyLeakageLaw.check(ctx(root)).violations ?? [];
 
   it('green (Heavy Lib): `import { Moment } from "moment"` used only as a type', () => {
     expect(heavy(typeOnly2(TYPE_ONLY))).toEqual([]);
@@ -244,57 +355,99 @@ describe('#316: every import graph drops an import used only as a type', () => {
   });
 
   it('red (Heavy Lib, control): a value use of the same import is still an edge', () => {
-    expect(heavy(typeOnly2(VALUE_USE))).toEqual([expect.stringContaining("app/List.tsx:2: imports 'moment' statically")]);
+    expect(heavy(typeOnly2(VALUE_USE))).toEqual([
+      expect.stringContaining("app/List.tsx:2: imports 'moment' statically"),
+    ]);
   });
 
   it('red (No Test-Only Leakage, control): a value use of the fixture is still an edge', () => {
     expect(leakage(typeOnly2(VALUE_USE))).toEqual([
-      expect.stringContaining('mocks/user.fixture.ts is test-only and is reachable from app/List.tsx → mocks/user.fixture.ts'),
+      expect.stringContaining(
+        'mocks/user.fixture.ts is test-only and is reachable from app/List.tsx → mocks/user.fixture.ts'
+      ),
     ]);
   });
 
   it('red (Heavy Lib and No Test-Only Leakage): under verbatimModuleSyntax the import stays, so the edge stays', () => {
-    const root = typeOnly2(TYPE_ONLY, { ...TSCONFIG, verbatimModuleSyntax: true });
-    expect(heavy(root)).toEqual([expect.stringContaining("app/List.tsx:3: imports 'moment' statically")]);
-    expect(leakage(root)).toEqual([expect.stringContaining('mocks/user.fixture.ts is test-only')]);
+    const root = typeOnly2(TYPE_ONLY, {
+      ...TSCONFIG,
+      verbatimModuleSyntax: true,
+    });
+    expect(heavy(root)).toEqual([
+      expect.stringContaining("app/List.tsx:3: imports 'moment' statically"),
+    ]);
+    expect(leakage(root)).toEqual([
+      expect.stringContaining('mocks/user.fixture.ts is test-only'),
+    ]);
   });
 
   it('red (all three graphs): preserveValueImports keeps the edge as well', () => {
     const files = {
       'src/components/List.tsx':
         "'use client';\nimport { Row } from '@/lib/db';\nexport function List(p: { rows: Row[] }) { return <p>{p.rows.length}</p>; }\n",
-      'src/lib/db.ts': "import 'server-only';\nimport { Pool } from 'pg';\nexport interface Row { id: number }\nexport const pool = new Pool();\n",
+      'src/lib/db.ts':
+        "import 'server-only';\nimport { Pool } from 'pg';\nexport interface Row { id: number }\nexport const pool = new Pool();\n",
       'tsconfig.json': JSON.stringify({
-        compilerOptions: { preserveValueImports: true, isolatedModules: true, baseUrl: '.', paths: { '@/*': ['./src/*'] } },
+        compilerOptions: {
+          preserveValueImports: true,
+          isolatedModules: true,
+          baseUrl: '.',
+          paths: { '@/*': ['./src/*'] },
+        },
       }),
     };
-    expect(NextServerOnlyBoundaryLaw.check(nextCtx(nextApp(files))).violations).toEqual([
-      expect.stringContaining("src/lib/db.ts:2: imports 'pg'"),
+    expect(
+      NextServerOnlyBoundaryLaw.check(nextCtx(nextApp(files))).violations
+    ).toEqual([expect.stringContaining("src/lib/db.ts:2: imports 'pg'")]);
+    const root = typeOnly2(TYPE_ONLY, {
+      ...TSCONFIG,
+      preserveValueImports: true,
+      isolatedModules: true,
+    });
+    expect(heavy(root)).toEqual([
+      expect.stringContaining("app/List.tsx:3: imports 'moment' statically"),
     ]);
-    const root = typeOnly2(TYPE_ONLY, { ...TSCONFIG, preserveValueImports: true, isolatedModules: true });
-    expect(heavy(root)).toEqual([expect.stringContaining("app/List.tsx:3: imports 'moment' statically")]);
-    expect(leakage(root)).toEqual([expect.stringContaining('mocks/user.fixture.ts is test-only')]);
+    expect(leakage(root)).toEqual([
+      expect.stringContaining('mocks/user.fixture.ts is test-only'),
+    ]);
   });
 
   it('red (all three graphs): `import { type X }` under verbatimModuleSyntax still loads the module', () => {
     // TypeScript rewrites it to `import {} from '…'`, which runs the module.
-    const list = TYPE_ONLY.replace('{ Moment }', '{ type Moment }').replace('{ FakeUser }', '{ type FakeUser }');
+    const list = TYPE_ONLY.replace('{ Moment }', '{ type Moment }').replace(
+      '{ FakeUser }',
+      '{ type FakeUser }'
+    );
     const root = typeOnly2(list, { ...TSCONFIG, verbatimModuleSyntax: true });
-    expect(heavy(root)).toEqual([expect.stringContaining("app/List.tsx:3: imports 'moment' statically")]);
-    expect(leakage(root)).toEqual([expect.stringContaining('mocks/user.fixture.ts is test-only')]);
+    expect(heavy(root)).toEqual([
+      expect.stringContaining("app/List.tsx:3: imports 'moment' statically"),
+    ]);
+    expect(leakage(root)).toEqual([
+      expect.stringContaining('mocks/user.fixture.ts is test-only'),
+    ]);
     const server = nextApp({
-      'tsconfig.json': JSON.stringify({ compilerOptions: { verbatimModuleSyntax: true, baseUrl: '.', paths: { '@/*': ['./src/*'] } } }),
+      'tsconfig.json': JSON.stringify({
+        compilerOptions: {
+          verbatimModuleSyntax: true,
+          baseUrl: '.',
+          paths: { '@/*': ['./src/*'] },
+        },
+      }),
       'src/components/List.tsx':
         "'use client';\nimport { type Row } from '@/lib/db';\nexport function List(p: { rows: Row[] }) { return <p>{p.rows.length}</p>; }\n",
-      'src/lib/db.ts': "import 'server-only';\nimport { Pool } from 'pg';\nexport interface Row { id: number }\nexport const pool = new Pool();\n",
+      'src/lib/db.ts':
+        "import 'server-only';\nimport { Pool } from 'pg';\nexport interface Row { id: number }\nexport const pool = new Pool();\n",
     });
-    expect(NextServerOnlyBoundaryLaw.check(nextCtx(server)).violations).toEqual([
-      expect.stringContaining("src/lib/db.ts:2: imports 'pg'"),
-    ]);
+    expect(NextServerOnlyBoundaryLaw.check(nextCtx(server)).violations).toEqual(
+      [expect.stringContaining("src/lib/db.ts:2: imports 'pg'")]
+    );
   });
 
   it('green (No Test-Only Leakage): `export type { X } from` a fixture loads nothing', () => {
-    const list = TYPE_ONLY.replace("import { FakeUser } from '../mocks/user.fixture';", "export type { FakeUser } from '../mocks/user.fixture';\nimport type { FakeUser } from '../mocks/user.fixture';");
+    const list = TYPE_ONLY.replace(
+      "import { FakeUser } from '../mocks/user.fixture';",
+      "export type { FakeUser } from '../mocks/user.fixture';\nimport type { FakeUser } from '../mocks/user.fixture';"
+    );
     expect(leakage(typeOnly2(list))).toEqual([]);
   });
 
@@ -309,37 +462,55 @@ describe('#316: every import graph drops an import used only as a type', () => {
       'package.json': MANIFEST,
       'tsconfig.json': JSON.stringify({ compilerOptions: TSCONFIG }),
       'app/layout.tsx': layout,
-      'mocks/provider.tsx': 'export type MockProps = { a: 1 };\nexport const MockProvider = ({ children }) => children;\n',
+      'mocks/provider.tsx':
+        'export type MockProps = { a: 1 };\nexport const MockProvider = ({ children }) => children;\n',
     });
     expect(leakage(root)).toEqual([]);
   });
 
   it('red (fail closed): a tsconfig that cannot be parsed keeps the edge — whether the compiler keeps it is unknown', () => {
     const root = typeOnly2(TYPE_ONLY);
-    writeFiles(root, { 'tsconfig.json': '{ "compilerOptions": { "jsx": "preserve", ' });
+    writeFiles(root, {
+      'tsconfig.json': '{ "compilerOptions": { "jsx": "preserve", ',
+    });
     // Heavy Lib's resolver names the broken config on the kept edge; it never passes.
-    expect(heavy(root)).toEqual(expect.arrayContaining([expect.stringContaining('app/List.tsx:3: tsconfig.json: could not be parsed')]));
-    expect(leakage(root)).toEqual([expect.stringContaining('mocks/user.fixture.ts is test-only')]);
+    expect(heavy(root)).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining(
+          'app/List.tsx:3: tsconfig.json: could not be parsed'
+        ),
+      ])
+    );
+    expect(leakage(root)).toEqual([
+      expect.stringContaining('mocks/user.fixture.ts is test-only'),
+    ]);
     const server = nextApp({
       'tsconfig.json': '{ "compilerOptions": { "verbatimModuleSyntax": true, ',
       'src/components/List.tsx':
         "'use client';\nimport { Row } from '../lib/db';\nexport function List(p: { rows: Row[] }) { return <p>{p.rows.length}</p>; }\n",
-      'src/lib/db.ts': "import 'server-only';\nimport { Pool } from 'pg';\nexport interface Row { id: number }\nexport const pool = new Pool();\n",
+      'src/lib/db.ts':
+        "import 'server-only';\nimport { Pool } from 'pg';\nexport interface Row { id: number }\nexport const pool = new Pool();\n",
     });
-    expect(NextServerOnlyBoundaryLaw.check(nextCtx(server)).violations).toEqual([
-      expect.stringContaining("src/lib/db.ts:2: imports 'pg'"),
-    ]);
+    expect(NextServerOnlyBoundaryLaw.check(nextCtx(server)).violations).toEqual(
+      [expect.stringContaining("src/lib/db.ts:2: imports 'pg'")]
+    );
   });
 });
 
 describe('test titles are read from it()/test() calls, whole', () => {
   it("`.split('\\n')` is not a test", () => {
-    expect(Docs.extractTestCases("const lines = text.split('\\n');\nsubmit('x');\n")).toEqual([]);
+    expect(
+      Docs.extractTestCases("const lines = text.split('\\n');\nsubmit('x');\n")
+    ).toEqual([]);
   });
 
   it('a title with the other quote inside is not cut', () => {
-    expect(Docs.extractTestCases(`it("keeps the user's cart", () => {});`)).toEqual(["keeps the user's cart"]);
-    expect(Docs.extractTestCases(`it('keeps the user\\'s cart', () => {});`)).toEqual(["keeps the user's cart"]);
+    expect(
+      Docs.extractTestCases(`it("keeps the user's cart", () => {});`)
+    ).toEqual(["keeps the user's cart"]);
+    expect(
+      Docs.extractTestCases(`it('keeps the user\\'s cart', () => {});`)
+    ).toEqual(["keeps the user's cart"]);
   });
 
   it('read through the parser: a comment or a string that says `it (` is not a call', () => {
@@ -366,17 +537,27 @@ describe('test titles are read from it()/test() calls, whole', () => {
       'src/b.spec.ts': "it('keeps the cart after a reload', () => {});\n",
     });
     const read = FileUtils.readFile.bind(FileUtils);
-    const spy = jest.spyOn(FileUtils, 'readFile').mockImplementation(((file: string, options?: never) => {
+    const spy = jest.spyOn(FileUtils, 'readFile').mockImplementation(((
+      file: string,
+      options?: never
+    ) => {
       if (String(file).endsWith('b.spec.ts')) throw new Error('EACCES');
       return read(file, options);
     }) as typeof FileUtils.readFile);
     try {
       const result = TestDocumentationRequirementsLaw.check({
         projectRoot: root,
-        config: { ignores: { global: [], tests: [], build: [], design: [] }, thresholds: {} },
+        config: {
+          ignores: { global: [], tests: [], build: [], design: [] },
+          thresholds: {},
+        },
       } as never);
       expect(result.violations).toEqual(
-        expect.arrayContaining([expect.stringMatching(/1 test files could not be read: src\/b\.spec\.ts/)])
+        expect.arrayContaining([
+          expect.stringMatching(
+            /1 test files could not be read: src\/b\.spec\.ts/
+          ),
+        ])
       );
     } finally {
       spy.mockRestore();
@@ -387,11 +568,17 @@ describe('test titles are read from it()/test() calls, whole', () => {
     const root = project({ 'package.json': manifest({}) });
     const content =
       "test.describe('the mocks', () => {\n  test.fixme('waits for the network to settle', async () => {\n    await test.step('open', async () => {});\n  });\n});\n";
-    expect(Docs.extractTestCases(content, 'a.e2e.spec.ts', root)).toEqual(['waits for the network to settle']);
+    expect(Docs.extractTestCases(content, 'a.e2e.spec.ts', root)).toEqual([
+      'waits for the network to settle',
+    ]);
   });
 
   it('"should … never the network" is not "should … work"', () => {
-    expect(Docs.hasPoorDescription('should name the real refusal on a 403, never the network')).toBe(false);
+    expect(
+      Docs.hasPoorDescription(
+        'should name the real refusal on a 403, never the network'
+      )
+    ).toBe(false);
     expect(Docs.hasPoorDescription('should work')).toBe(true);
   });
 
@@ -400,6 +587,11 @@ describe('test titles are read from it()/test() calls, whole', () => {
       Docs.extractTestCases(
         "xit('skipped behaviour', f);\nfit('focused behaviour', f);\nit.only('only this one', f);\ntest.skip(`template title`, f);\n"
       )
-    ).toEqual(['skipped behaviour', 'focused behaviour', 'only this one', 'template title']);
+    ).toEqual([
+      'skipped behaviour',
+      'focused behaviour',
+      'only this one',
+      'template title',
+    ]);
   });
 });

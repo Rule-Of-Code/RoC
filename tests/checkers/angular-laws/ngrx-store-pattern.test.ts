@@ -37,7 +37,7 @@ describe('checkers/angular-laws/ngrx-store-pattern', () => {
         performance: {
           parallel: false,
           maxConcurrent: 3,
-          cache: true,
+          cache: true,
         },
       },
     };

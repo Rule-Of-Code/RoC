@@ -16,7 +16,9 @@
 import type { LawRequirement } from '../types/enhanced-law.types';
 
 /** Angular itself: components, templates, DI, the router's `loadChildren`. */
-export const REQUIRES_ANGULAR: LawRequirement = { anyDependency: ['@angular/core'] };
+export const REQUIRES_ANGULAR: LawRequirement = {
+  anyDependency: ['@angular/core'],
+};
 
 /** NgRx: the store, its actions, reducers, effects and selectors. */
 export const REQUIRES_NGRX: LawRequirement = { anyDependency: ['@ngrx/store'] };

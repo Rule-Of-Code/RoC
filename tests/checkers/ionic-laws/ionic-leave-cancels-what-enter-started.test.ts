@@ -7,13 +7,18 @@ import { ctx, manifest, project, removeProjects } from '../toolkit-fixture';
 
 afterAll(removeProjects);
 
-const IONIC = manifest({ '@angular/core': '20.0.0', '@ionic/angular': '8.8.17' });
+const IONIC = manifest({
+  '@angular/core': '20.0.0',
+  '@ionic/angular': '8.8.17',
+});
 const run = (body: string[]) =>
   Law.check(
     ctx(
       project({
         'package.json': IONIC,
-        'src/app/feed.page.ts': ['export class FeedPage {', ...body, '}'].join('\n'),
+        'src/app/feed.page.ts': ['export class FeedPage {', ...body, '}'].join(
+          '\n'
+        ),
       })
     )
   );
@@ -26,7 +31,9 @@ describe('IonicLeaveCancelsWhatEnterStartedLaw', () => {
     ]);
     expect(result.passed).toBe(false);
     expect(result.violations).toEqual([
-      expect.stringMatching(/feed\.page\.ts:2: FeedPage starts setInterval in ionViewWillEnter/),
+      expect.stringMatching(
+        /feed\.page\.ts:2: FeedPage starts setInterval in ionViewWillEnter/
+      ),
     ]);
   });
 
@@ -34,7 +41,9 @@ describe('IonicLeaveCancelsWhatEnterStartedLaw', () => {
     const result = run([
       '  ngOnInit() { this.svc.ticks$.pipe(takeUntilDestroyed(this.ref)).subscribe(); }',
     ]);
-    expect(result.violations).toEqual([expect.stringContaining('starts .subscribe in ngOnInit')]);
+    expect(result.violations).toEqual([
+      expect.stringContaining('starts .subscribe in ngOnInit'),
+    ]);
   });
 
   it('red: a timer in an effect with onCleanup (the incident)', () => {
@@ -44,7 +53,9 @@ describe('IonicLeaveCancelsWhatEnterStartedLaw', () => {
       '    onCleanup(() => clearTimeout(t));',
       '  });',
     ]);
-    expect(result.violations).toEqual([expect.stringContaining('starts setTimeout in an effect()')]);
+    expect(result.violations).toEqual([
+      expect.stringContaining('starts setTimeout in an effect()'),
+    ]);
   });
 
   it('green: the leave hook as a method', () => {
@@ -71,6 +82,8 @@ describe('IonicLeaveCancelsWhatEnterStartedLaw', () => {
   });
 
   it('a page that starts nothing passes', () => {
-    expect(run(['  ionViewWillEnter() { this.load(); }']).violations).toEqual([]);
+    expect(run(['  ionViewWillEnter() { this.load(); }']).violations).toEqual(
+      []
+    );
   });
 });

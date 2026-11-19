@@ -249,7 +249,11 @@ export class PrePrQualityGatesLaw {
    * therefore invisible to a static scan?
    */
   private static isServerSideProtectionHost(projectRoot: string): boolean {
-    if (FileUtils.exists(PathOperations.join(projectRoot, 'bitbucket-pipelines.yml'))) {
+    if (
+      FileUtils.exists(
+        PathOperations.join(projectRoot, 'bitbucket-pipelines.yml')
+      )
+    ) {
       return true;
     }
 

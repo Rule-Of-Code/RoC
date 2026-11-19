@@ -31,14 +31,20 @@ const AUTH_DEFINITIONS = [
 ].join('\n');
 
 const withAuthPlugin = (extConfig: Record<string, unknown>) => {
-  const root = capacitorProject({}, extConfig, { '@example/firebase-auth': '8.4.0' });
-  installPackage(root, '@example/firebase-auth', { 'dist/esm/definitions.d.ts': AUTH_DEFINITIONS });
+  const root = capacitorProject({}, extConfig, {
+    '@example/firebase-auth': '8.4.0',
+  });
+  installPackage(root, '@example/firebase-auth', {
+    'dist/esm/definitions.d.ts': AUTH_DEFINITIONS,
+  });
   return root;
 };
 
 describe('CapacitorPluginConfigDeclaredLaw', () => {
   it('red: an installed plugin augments PluginsConfig and the config has no block', () => {
-    const result = Law.check(ctx(withAuthPlugin({ plugins: { PushNotifications: {} } })));
+    const result = Law.check(
+      ctx(withAuthPlugin({ plugins: { PushNotifications: {} } }))
+    );
     expect(result.passed).toBe(false);
     expect(result.violations).toEqual([
       expect.stringMatching(
@@ -49,19 +55,28 @@ describe('CapacitorPluginConfigDeclaredLaw', () => {
 
   it('green: the block is stated', () => {
     const result = Law.check(
-      ctx(withAuthPlugin({ plugins: { FirebaseAuthentication: { providers: ['google.com'] } } }))
+      ctx(
+        withAuthPlugin({
+          plugins: { FirebaseAuthentication: { providers: ['google.com'] } },
+        })
+      )
     );
     expect(result.violations).toEqual([]);
   });
 
   it('green: an empty block states that the defaults are deliberate', () => {
-    expect(Law.check(ctx(withAuthPlugin({ plugins: { FirebaseAuthentication: {} } }))).violations).toEqual([]);
+    expect(
+      Law.check(
+        ctx(withAuthPlugin({ plugins: { FirebaseAuthentication: {} } }))
+      ).violations
+    ).toEqual([]);
   });
 
   it('a plugin that declares no PluginsConfig is not asked for one', () => {
     const root = capacitorProject({}, {}, { '@example/share': '1.0.0' });
     installPackage(root, '@example/share', {
-      'dist/esm/definitions.d.ts': 'export interface SharePlugin { share(): Promise<void>; }',
+      'dist/esm/definitions.d.ts':
+        'export interface SharePlugin { share(): Promise<void>; }',
     });
     expect(Law.check(ctx(root)).violations).toEqual([]);
   });
@@ -69,20 +84,26 @@ describe('CapacitorPluginConfigDeclaredLaw', () => {
   it('a commented-out augmentation is not a declaration', () => {
     const root = capacitorProject({}, {}, { '@example/x': '1.0.0' });
     installPackage(root, '@example/x', {
-      'dist/esm/definitions.d.ts': "/* declare module '@capacitor/cli' { interface PluginsConfig { X?: {} } } */",
+      'dist/esm/definitions.d.ts':
+        "/* declare module '@capacitor/cli' { interface PluginsConfig { X?: {} } } */",
     });
     expect(Law.check(ctx(root)).violations).toEqual([]);
   });
 
   it('fails when node_modules is not installed — it could not look', () => {
     const root = capacitorProject({}, {});
-    require('fs').rmSync(require('path').join(root, 'node_modules', '@capacitor', 'core'), {
-      recursive: true,
-      force: true,
-    });
+    require('fs').rmSync(
+      require('path').join(root, 'node_modules', '@capacitor', 'core'),
+      {
+        recursive: true,
+        force: true,
+      }
+    );
     const result = Law.check(ctx(root));
     expect(result.passed).toBe(false);
-    expect(result.violations).toEqual([expect.stringContaining('node_modules is not installed')]);
+    expect(result.violations).toEqual([
+      expect.stringContaining('node_modules is not installed'),
+    ]);
   });
 
   it('parses the real push-notifications shape (one key, options without @default)', () => {
@@ -101,7 +122,11 @@ describe('CapacitorPluginConfigDeclaredLaw', () => {
       ].join('\n')
     );
     expect(declared).toEqual([
-      { plugin: '@capacitor/push-notifications', key: 'PushNotifications', options: ['presentationOptions'] },
+      {
+        plugin: '@capacitor/push-notifications',
+        key: 'PushNotifications',
+        options: ['presentationOptions'],
+      },
     ]);
   });
 });

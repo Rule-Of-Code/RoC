@@ -107,7 +107,9 @@ describe('MagicNumberPreventionLaw', () => {
         'export function toMs(h: number) { return h * 3600; }\n'
       );
       const result = MagicNumberPreventionLaw.check(mockContext);
-      expect((result.violations ?? []).some(v => v.includes('3600'))).toBe(true);
+      expect((result.violations ?? []).some(v => v.includes('3600'))).toBe(
+        true
+      );
     });
   });
 

@@ -25,9 +25,18 @@
 
 import * as fs from 'fs';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { AngularComponents, type AngularComponent } from '../../utils/ionic/angular-components';
+import {
+  AngularComponents,
+  type AngularComponent,
+} from '../../utils/ionic/angular-components';
 import { AppIndexes } from '../../utils/ionic/app-index';
-import { CssRules, projectStyleSheets, type CssDeclaration, type CssRule, type StyleSheet } from '../../utils/ionic/css-rules';
+import {
+  CssRules,
+  projectStyleSheets,
+  type CssDeclaration,
+  type CssRule,
+  type StyleSheet,
+} from '../../utils/ionic/css-rules';
 import { HtmlTemplate } from '../../utils/ionic/html-template';
 import { withNotes } from '../../utils/ionic/law-notes';
 import { LawBase } from '../law-base';
@@ -64,12 +73,18 @@ export class IonicEdgeChromePaysSafeAreaLaw extends LawBase {
 
   static check(context: LawCheckContext): LawResult {
     if (!this.coversViewport(context.projectRoot)) {
-      return withNotes(this.createResult([], this.LAW_NAME, 'FRAMEWORK', [], context), [
-        'not judged: no index.html with viewport-fit=cover was found, so the insets are 0 everywhere — ionic-viewport-fit-cover reports that first',
-      ]);
+      return withNotes(
+        this.createResult([], this.LAW_NAME, 'FRAMEWORK', [], context),
+        [
+          'not judged: no index.html with viewport-fit=cover was found, so the insets are 0 everywhere — ionic-viewport-fit-cover reports that first',
+        ]
+      );
     }
     const scan = AngularComponents.scan(context);
-    const styles = projectStyleSheets(context, scan.components.flatMap(c => c.styles));
+    const styles = projectStyleSheets(
+      context,
+      scan.components.flatMap(c => c.styles)
+    );
     const violations = [...scan.unread, ...styles.unread];
     violations.push(...this.asymmetry(context, scan.components, styles.sheets));
     const declared = context.config.thresholds?.ionic?.edgeContainers;
@@ -93,7 +108,12 @@ export class IonicEdgeChromePaysSafeAreaLaw extends LawBase {
   private static coversViewport(projectRoot: string): boolean {
     return AppIndexes.find(projectRoot).some(index => {
       try {
-        return IonicViewportFitCoverLaw.judge('', fs.readFileSync(index.file, 'utf8')).violations.length === 0;
+        return (
+          IonicViewportFitCoverLaw.judge(
+            '',
+            fs.readFileSync(index.file, 'utf8')
+          ).violations.length === 0
+        );
       } catch {
         return false;
       }
@@ -101,26 +121,38 @@ export class IonicEdgeChromePaysSafeAreaLaw extends LawBase {
   }
 
   /** Every declaration of the project's CSS with where it is, in stylesheet order. */
-  private static declarations(context: LawCheckContext, sheets: StyleSheet[]): Array<Located & { selector: string }> {
+  private static declarations(
+    context: LawCheckContext,
+    sheets: StyleSheet[]
+  ): Array<Located & { selector: string }> {
     let order = 0;
-    return sheets.flatMap(sheet =>
-      sheet.rules.flatMap(rule =>
-        rule.declarations.map(d => ({
-          ...d,
-          selector: rule.selector,
-          where: `${AngularComponents.relative(context, sheet.file)}:${d.line}`,
-          order: order++,
-        }))
+    return sheets
+      .flatMap(sheet =>
+        sheet.rules.flatMap(rule =>
+          rule.declarations.map(d => ({
+            ...d,
+            selector: rule.selector,
+            where: `${AngularComponents.relative(context, sheet.file)}:${d.line}`,
+            order: order++,
+          }))
+        )
       )
-    ).sort((a, b) => a.order - b.order);
+      .sort((a, b) => a.order - b.order);
   }
 
   /** Part 1: one edge's inset read, the other never, and no Ionic element pays the other. */
-  static asymmetry(context: LawCheckContext, components: AngularComponent[], sheets: StyleSheet[]): string[] {
+  static asymmetry(
+    context: LawCheckContext,
+    components: AngularComponent[],
+    sheets: StyleSheet[]
+  ): string[] {
     const all = this.declarations(context, sheets);
-    const firstRead = (edge: Edge): Located | undefined => all.find(d => INSET[edge].test(d.value));
+    const firstRead = (edge: Edge): Located | undefined =>
+      all.find(d => INSET[edge].test(d.value));
     const uses = (tags: string[]): boolean =>
-      components.some(c => c.elements.some(element => tags.includes(element.tag)));
+      components.some(c =>
+        c.elements.some(element => tags.includes(element.tag))
+      );
     const top = firstRead('top');
     const bottom = firstRead('bottom');
     const found: string[] = [];
@@ -138,13 +170,19 @@ export class IonicEdgeChromePaysSafeAreaLaw extends LawBase {
   }
 
   /** Part 2, declared: each listed selector found, its last declaration on the edge reading the inset. */
-  static declaredContainers(sheets: StyleSheet[], declared: Array<{ selector: string; edge: Edge }>): string[] {
-    const normalize = (selector: string): string => selector.replace(/\s+/g, ' ').trim();
+  static declaredContainers(
+    sheets: StyleSheet[],
+    declared: Array<{ selector: string; edge: Edge }>
+  ): string[] {
+    const normalize = (selector: string): string =>
+      selector.replace(/\s+/g, ' ').trim();
     return declared.flatMap(({ selector, edge }) => {
       const wanted = normalize(selector);
       const decls = sheets.flatMap(sheet =>
         sheet.rules
-          .filter(rule => rule.selector.split(',').map(normalize).includes(wanted))
+          .filter(rule =>
+            rule.selector.split(',').map(normalize).includes(wanted)
+          )
           .flatMap(rule => rule.declarations)
       );
       if (decls.length === 0) {
@@ -168,12 +206,20 @@ export class IonicEdgeChromePaysSafeAreaLaw extends LawBase {
   }
 
   /** Part 2, heuristic: fixed/sticky at top: 0 (bottom: 0), used by a template, never paying that edge. */
-  static inferredContainers(context: LawCheckContext, components: AngularComponent[], sheets: StyleSheet[]): string[] {
+  static inferredContainers(
+    context: LawCheckContext,
+    components: AngularComponent[],
+    sheets: StyleSheet[]
+  ): string[] {
     const used = this.classUses(context, components);
-    const all = sheets.flatMap(sheet => sheet.rules.map(rule => ({ rule, sheet })));
+    const all = sheets.flatMap(sheet =>
+      sheet.rules.map(rule => ({ rule, sheet }))
+    );
     const cascadeOf = (name: string): CssDeclaration[] =>
       all
-        .filter(other => CssRules.subjectClasses(other.rule.selector).includes(name))
+        .filter(other =>
+          CssRules.subjectClasses(other.rule.selector).includes(name)
+        )
         .flatMap(other => other.rule.declarations);
     const found = new Map<string, string>();
     for (const { rule, sheet } of all) {
@@ -181,7 +227,12 @@ export class IonicEdgeChromePaysSafeAreaLaw extends LawBase {
         for (const name of CssRules.subjectClasses(rule.selector)) {
           const key = `${name}:${edge}`;
           const usedAt = used.get(name);
-          if (!usedAt || found.has(key) || this.readsOnEdge(cascadeOf(name), edge)) continue;
+          if (
+            !usedAt ||
+            found.has(key) ||
+            this.readsOnEdge(cascadeOf(name), edge)
+          )
+            continue;
           found.set(
             key,
             `${AngularComponents.relative(context, sheet.file)}:${rule.line}: .${name} (used at ${usedAt}) is ${position} at ${edge}: 0 and no rule for it reads --ion-safe-area-${edge} in its padding / margin / ${edge} / inset — a self-drawn edge container under the system bar on an edge-to-edge device (heuristic; declare the list in thresholds.ionic.edgeContainers)`
@@ -193,10 +244,16 @@ export class IonicEdgeChromePaysSafeAreaLaw extends LawBase {
   }
 
   /** Class name → the first template line that uses it. */
-  private static classUses(context: LawCheckContext, components: AngularComponent[]): Map<string, string> {
+  private static classUses(
+    context: LawCheckContext,
+    components: AngularComponent[]
+  ): Map<string, string> {
     const uses = new Map<string, string>();
     for (const component of components) {
-      const file = AngularComponents.relative(context, component.template?.file ?? component.file);
+      const file = AngularComponents.relative(
+        context,
+        component.template?.file ?? component.file
+      );
       for (const element of component.elements) {
         for (const name of HtmlTemplate.classes(element)) {
           if (!uses.has(name)) uses.set(name, `${file}:${element.line}`);
@@ -207,11 +264,21 @@ export class IonicEdgeChromePaysSafeAreaLaw extends LawBase {
   }
 
   /** The edges a rule pins an element to: `position: fixed|sticky` with `top: 0` / `bottom: 0`. */
-  private static edgesPinned(rule: CssRule): Array<{ edge: Edge; position: string }> {
-    const position = rule.declarations.find(d => d.property === 'position')?.value.toLowerCase().split(/\s/)[0] ?? '';
+  private static edgesPinned(
+    rule: CssRule
+  ): Array<{ edge: Edge; position: string }> {
+    const position =
+      rule.declarations
+        .find(d => d.property === 'position')
+        ?.value.toLowerCase()
+        .split(/\s/)[0] ?? '';
     if (position !== 'fixed' && position !== 'sticky') return [];
     return (['top', 'bottom'] as Edge[])
-      .filter(edge => rule.declarations.some(d => d.property === edge && /^0(?:px|rem|em|%)?$/.test(d.value.trim())))
+      .filter(edge =>
+        rule.declarations.some(
+          d => d.property === edge && /^0(?:px|rem|em|%)?$/.test(d.value.trim())
+        )
+      )
       .map(edge => ({ edge, position }));
   }
 

@@ -81,7 +81,10 @@ describe('async and HTTP test heuristics report what they can see', () => {
       );
 
     it.each([
-      ["// see https://example.com/docs\nit('works', () => {});", 'a URL in a comment'],
+      [
+        "// see https://example.com/docs\nit('works', () => {});",
+        'a URL in a comment',
+      ],
       ['const docs = "http://example.com";', 'a URL in a string'],
       ["import { A } from './http-utils';", 'a module path containing http'],
       ["it('works', () => { expect(1).toBe(1); });", 'no mention at all'],

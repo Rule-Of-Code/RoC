@@ -31,7 +31,12 @@ export interface GuardExemption {
   match: ExemptionMatch;
 }
 
-const MATCH_MODES: readonly ExemptionMatch[] = ['exact', 'prefix', 'glob', 'regex'];
+const MATCH_MODES: readonly ExemptionMatch[] = [
+  'exact',
+  'prefix',
+  'glob',
+  'regex',
+];
 
 type Bag = Record<string, unknown>;
 
@@ -52,7 +57,10 @@ function stringList(bag: Bag, key: string, label: string): Read<string[]> {
   const raw = bag[key];
   if (raw === undefined) return { value: undefined, problems: [] };
   if (!Array.isArray(raw) || !raw.every(nonEmpty)) {
-    return { value: undefined, problems: [`${label} must be a list of non-empty names`] };
+    return {
+      value: undefined,
+      problems: [`${label} must be a list of non-empty names`],
+    };
   }
   return { value: raw.map(item => item.trim()), problems: [] };
 }
@@ -61,26 +69,42 @@ function reasonText(bag: Bag, key: string, label: string): Read<string> {
   const raw = bag[key];
   if (raw === undefined) return { value: undefined, problems: [] };
   if (!nonEmpty(raw)) {
-    return { value: undefined, problems: [`${label} must be a non-empty reason`] };
+    return {
+      value: undefined,
+      problems: [`${label} must be a non-empty reason`],
+    };
   }
   return { value: raw.trim(), problems: [] };
 }
 
-function reasonedList(bag: Bag, key: string, field: string, label: string): Read<ReasonedEntry[]> {
+function reasonedList(
+  bag: Bag,
+  key: string,
+  field: string,
+  label: string
+): Read<ReasonedEntry[]> {
   const raw = bag[key];
   if (raw === undefined) return { value: undefined, problems: [] };
   if (!Array.isArray(raw)) {
-    return { value: undefined, problems: [`${label} must be a list of { ${field}, reason }`] };
+    return {
+      value: undefined,
+      problems: [`${label} must be a list of { ${field}, reason }`],
+    };
   }
   const value: ReasonedEntry[] = [];
   const problems: string[] = [];
   raw.forEach((entry: unknown, index) => {
     const item = (entry ?? {}) as Bag;
     if (!nonEmpty(item[field]) || !nonEmpty(item.reason)) {
-      problems.push(`${label}[${index}] needs a non-empty ${field} and a non-empty reason — an exception without its reason is not accepted`);
+      problems.push(
+        `${label}[${index}] needs a non-empty ${field} and a non-empty reason — an exception without its reason is not accepted`
+      );
       return;
     }
-    value.push({ key: (item[field] as string).trim(), reason: (item.reason as string).trim() });
+    value.push({
+      key: (item[field] as string).trim(),
+      reason: (item.reason as string).trim(),
+    });
   });
   return { value, problems };
 }
@@ -90,13 +114,26 @@ export const NextThresholds = {
     stringList(nextBag(context), 'authGuards', 'thresholds.next.authGuards'),
 
   bodyValidators: (context: LawCheckContext): Read<string[]> =>
-    stringList(nextBag(context), 'bodyValidators', 'thresholds.next.bodyValidators'),
+    stringList(
+      nextBag(context),
+      'bodyValidators',
+      'thresholds.next.bodyValidators'
+    ),
 
   publicRoutes: (context: LawCheckContext): Read<ReasonedEntry[]> =>
-    reasonedList(nextBag(context), 'publicRoutes', 'route', 'thresholds.next.publicRoutes'),
+    reasonedList(
+      nextBag(context),
+      'publicRoutes',
+      'route',
+      'thresholds.next.publicRoutes'
+    ),
 
   serverModules: (context: LawCheckContext): Read<string[]> =>
-    stringList(nextBag(context), 'serverModules', 'thresholds.next.serverModules'),
+    stringList(
+      nextBag(context),
+      'serverModules',
+      'thresholds.next.serverModules'
+    ),
 
   requireServerOnlyMarker: (context: LawCheckContext): Read<boolean> => {
     const raw = nextBag(context).requireServerOnlyMarker;
@@ -104,40 +141,66 @@ export const NextThresholds = {
     if (typeof raw !== 'boolean') {
       return {
         value: true,
-        problems: ['thresholds.next.requireServerOnlyMarker must be true or false'],
+        problems: [
+          'thresholds.next.requireServerOnlyMarker must be true or false',
+        ],
       };
     }
     return { value: raw, problems: [] };
   },
 
   proxyWithoutMatcher: (context: LawCheckContext): Read<string> =>
-    reasonText(nextBag(context), 'proxyWithoutMatcher', 'thresholds.next.proxyWithoutMatcher'),
+    reasonText(
+      nextBag(context),
+      'proxyWithoutMatcher',
+      'thresholds.next.proxyWithoutMatcher'
+    ),
 
   publicEnvBuildSource: (context: LawCheckContext): Read<string> =>
-    reasonText(nextBag(context), 'publicEnvBuildSource', 'thresholds.next.publicEnvBuildSource'),
+    reasonText(
+      nextBag(context),
+      'publicEnvBuildSource',
+      'thresholds.next.publicEnvBuildSource'
+    ),
 
   publicEnvAllowed: (context: LawCheckContext): Read<ReasonedEntry[]> =>
-    reasonedList(nextBag(context), 'publicEnvAllowed', 'name', 'thresholds.next.publicEnvAllowed'),
+    reasonedList(
+      nextBag(context),
+      'publicEnvAllowed',
+      'name',
+      'thresholds.next.publicEnvAllowed'
+    ),
 
   guardExemptions: (context: LawCheckContext): Read<GuardExemption[]> => {
     const label = 'thresholds.next.guardExemptions';
     const raw = nextBag(context).guardExemptions;
     if (raw === undefined) return { value: undefined, problems: [] };
     if (!Array.isArray(raw)) {
-      return { value: undefined, problems: [`${label} must be a list of { file, constant, match }`] };
+      return {
+        value: undefined,
+        problems: [`${label} must be a list of { file, constant, match }`],
+      };
     }
     const value: GuardExemption[] = [];
     const problems: string[] = [];
     raw.forEach((entry: unknown, index) => {
       const item = (entry ?? {}) as Bag;
       const match = item.match as ExemptionMatch;
-      if (!nonEmpty(item.file) || !nonEmpty(item.constant) || !MATCH_MODES.includes(match)) {
+      if (
+        !nonEmpty(item.file) ||
+        !nonEmpty(item.constant) ||
+        !MATCH_MODES.includes(match)
+      ) {
         problems.push(
           `${label}[${index}] needs a file, a constant and a match of ${MATCH_MODES.join(' | ')} — how the guard compares a pattern to a path decides what it covers`
         );
         return;
       }
-      value.push({ file: (item.file as string).trim(), constant: (item.constant as string).trim(), match });
+      value.push({
+        file: (item.file as string).trim(),
+        constant: (item.constant as string).trim(),
+        match,
+      });
     });
     return { value, problems };
   },
@@ -153,6 +216,11 @@ export const NextThresholds = {
  * Whether a call's callee names one of `names`: the callee text equals the
  * name, or ends with `.<name>` (`auth.requireUser` matches `requireUser`).
  */
-export function calleeNamed(calleeText: string, names: readonly string[]): boolean {
-  return names.some(name => calleeText === name || calleeText.endsWith(`.${name}`));
+export function calleeNamed(
+  calleeText: string,
+  names: readonly string[]
+): boolean {
+  return names.some(
+    name => calleeText === name || calleeText.endsWith(`.${name}`)
+  );
 }

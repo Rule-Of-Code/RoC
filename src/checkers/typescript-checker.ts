@@ -58,8 +58,7 @@ export class TypeScriptChecker extends BaseChecker {
         unknown
       > | null;
       const compilerOptions = tsconfig?.compilerOptions as
-        | Record<string, unknown>
-        | undefined;
+        Record<string, unknown> | undefined;
       const strict = compilerOptions?.strict;
 
       if (!strict) {

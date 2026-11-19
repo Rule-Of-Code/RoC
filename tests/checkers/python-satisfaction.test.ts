@@ -13,7 +13,7 @@
  * proves the wrong thing (their first Flask fixture was not a git repo, so the
  * hook law failed for the wrong reason).
  */
-import { execSync } from 'child_process';
+import { execSync } from '../../src/utils/child-process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -98,9 +98,15 @@ describe('a concern satisfied the Python way IS satisfied (QA-6)', () => {
 
   it.each([
     ['health endpoint', (r: string) => PythonSatisfaction.hasHealthEndpoint(r)],
-    ['global error handler', (r: string) => PythonSatisfaction.hasGlobalErrorHandler(r)],
+    [
+      'global error handler',
+      (r: string) => PythonSatisfaction.hasGlobalErrorHandler(r),
+    ],
     ['auth guards', (r: string) => PythonSatisfaction.hasAuthGuards(r)],
-    ['coverage enforcement', (r: string) => PythonSatisfaction.hasCoverageConfigured(r)],
+    [
+      'coverage enforcement',
+      (r: string) => PythonSatisfaction.hasCoverageConfigured(r),
+    ],
     ['API tests', (r: string) => PythonSatisfaction.hasApiTests(r)],
     ['hook framework', (r: string) => PythonSatisfaction.hasHookFramework(r)],
     ['database layer', (r: string) => PythonSatisfaction.hasDatabaseLayer(r)],
@@ -111,9 +117,15 @@ describe('a concern satisfied the Python way IS satisfied (QA-6)', () => {
 
   it.each([
     ['health endpoint', (r: string) => PythonSatisfaction.hasHealthEndpoint(r)],
-    ['global error handler', (r: string) => PythonSatisfaction.hasGlobalErrorHandler(r)],
+    [
+      'global error handler',
+      (r: string) => PythonSatisfaction.hasGlobalErrorHandler(r),
+    ],
     ['auth guards', (r: string) => PythonSatisfaction.hasAuthGuards(r)],
-    ['coverage enforcement', (r: string) => PythonSatisfaction.hasCoverageConfigured(r)],
+    [
+      'coverage enforcement',
+      (r: string) => PythonSatisfaction.hasCoverageConfigured(r),
+    ],
     ['API tests', (r: string) => PythonSatisfaction.hasApiTests(r)],
     ['hook framework', (r: string) => PythonSatisfaction.hasHookFramework(r)],
     ['database layer', (r: string) => PythonSatisfaction.hasDatabaseLayer(r)],
@@ -125,7 +137,9 @@ describe('a concern satisfied the Python way IS satisfied (QA-6)', () => {
   it('sees no JS/TS substrate in a Python project, and sees it in a TS one', () => {
     expect(PythonSatisfaction.hasJsTsSources(bare())).toBe(false);
     expect(
-      PythonSatisfaction.hasJsTsSources(fixture({ 'src/a.ts': 'export const a = 1;' }))
+      PythonSatisfaction.hasJsTsSources(
+        fixture({ 'src/a.ts': 'export const a = 1;' })
+      )
     ).toBe(true);
   });
 
@@ -144,7 +158,10 @@ describe('test framework, the Python way', () => {
   it.each([
     [
       'pytest section in pyproject.toml',
-      { 'pyproject.toml': "[project]\nname='svc'\n[tool.pytest.ini_options]\ntestpaths = ['tests']\n" },
+      {
+        'pyproject.toml':
+          "[project]\nname='svc'\n[tool.pytest.ini_options]\ntestpaths = ['tests']\n",
+      },
     ],
     [
       'a package.json test script that runs pytest',
@@ -155,11 +172,17 @@ describe('test framework, the Python way', () => {
     ],
     [
       'a pytest.ini',
-      { 'pyproject.toml': "[project]\nname='svc'\n", 'pytest.ini': '[pytest]\n' },
+      {
+        'pyproject.toml': "[project]\nname='svc'\n",
+        'pytest.ini': '[pytest]\n',
+      },
     ],
     [
       'a tox.ini',
-      { 'pyproject.toml': "[project]\nname='svc'\n", 'tox.ini': '[testenv]\ncommands = pytest\n' },
+      {
+        'pyproject.toml': "[project]\nname='svc'\n",
+        'tox.ini': '[testenv]\ncommands = pytest\n',
+      },
     ],
     [
       'setup.cfg [tool:pytest]',
@@ -169,7 +192,8 @@ describe('test framework, the Python way', () => {
       'a unittest suite under tests/',
       {
         'pyproject.toml': "[project]\nname='svc'\n",
-        'tests/test_app.py': 'import unittest\n\nclass T(unittest.TestCase):\n    def test_ok(self):\n        assert True\n',
+        'tests/test_app.py':
+          'import unittest\n\nclass T(unittest.TestCase):\n    def test_ok(self):\n        assert True\n',
       },
     ],
   ])('detects %s', (_label, files) => {
@@ -199,7 +223,10 @@ describe('guarded outbound HTTP, the Python way', () => {
   jest.setTimeout(60000);
 
   const withSource = (source: string): string =>
-    fixture({ 'pyproject.toml': "[project]\nname='svc'\n", 'src/client.py': source });
+    fixture({
+      'pyproject.toml': "[project]\nname='svc'\n",
+      'src/client.py': source,
+    });
 
   it('accepts urlopen wrapped in try/except with a log and a re-raise', () => {
     const root = withSource(
@@ -218,10 +245,18 @@ describe('guarded outbound HTTP, the Python way', () => {
   });
 
   it.each([
-    ['requests', 'import requests\n\ndef get(url):\n    try:\n        return requests.get(url, timeout=5).json()\n    except requests.RequestException:\n        raise\n'],
-    ['httpx', 'import httpx\n\nasync def get(url):\n    try:\n        return await httpx.get(url)\n    except httpx.HTTPError:\n        raise\n'],
+    [
+      'requests',
+      'import requests\n\ndef get(url):\n    try:\n        return requests.get(url, timeout=5).json()\n    except requests.RequestException:\n        raise\n',
+    ],
+    [
+      'httpx',
+      'import httpx\n\nasync def get(url):\n    try:\n        return await httpx.get(url)\n    except httpx.HTTPError:\n        raise\n',
+    ],
   ])('accepts a guarded %s call', (_label, source) => {
-    expect(PythonSatisfaction.hasGuardedHttpCalls(withSource(source))).toBe(true);
+    expect(PythonSatisfaction.hasGuardedHttpCalls(withSource(source))).toBe(
+      true
+    );
   });
 
   it('rejects an unguarded urlopen', () => {
@@ -277,7 +312,8 @@ describe('guarded outbound HTTP, the Python way', () => {
   it('does not judge test code that calls the network directly', () => {
     const root = fixture({
       'pyproject.toml': "[project]\nname='svc'\n",
-      'tests/test_live.py': 'import requests\n\ndef test_upstream():\n    assert requests.get("http://x").status_code == 200\n',
+      'tests/test_live.py':
+        'import requests\n\ndef test_upstream():\n    assert requests.get("http://x").status_code == 200\n',
     });
     expect(PythonSatisfaction.hasGuardedHttpCalls(root)).toBe(true);
   });

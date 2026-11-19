@@ -29,11 +29,15 @@ export function reasonedEntries<T extends { reason?: unknown }>(
     const value = entry?.[key];
     const reason = entry?.reason;
     if (typeof value !== 'string' || value.trim() === '') {
-      problems.push(`${where}[${index}]: no ${key} — the entry allows nothing and is ignored`);
+      problems.push(
+        `${where}[${index}]: no ${key} — the entry allows nothing and is ignored`
+      );
       continue;
     }
     if (typeof reason !== 'string' || reason.trim() === '') {
-      problems.push(`${where}[${index}] (${value}): no reason given — an allow list entry must say why, so it is not honoured`);
+      problems.push(
+        `${where}[${index}] (${value}): no reason given — an allow list entry must say why, so it is not honoured`
+      );
       continue;
     }
     allowed.push(value);

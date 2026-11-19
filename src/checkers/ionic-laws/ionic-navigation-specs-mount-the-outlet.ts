@@ -41,13 +41,18 @@ export class IonicNavigationSpecsMountTheOutletLaw extends LawBase {
       context.lawId,
       true
     ).filter(file => {
-      const rel = PathOperations.getRelative(context.projectRoot, file).replace(/\\/g, '/');
+      const rel = PathOperations.getRelative(context.projectRoot, file).replace(
+        /\\/g,
+        '/'
+      );
       return rel.endsWith('.spec.ts') && !E2E_SPEC.test(rel);
     });
     const violations: string[] = [];
     for (const file of specs) {
       const where = PathOperations.getRelative(context.projectRoot, file);
-      violations.push(...this.checkFile(where, FileUtils.readFileContentSync(file) ?? ''));
+      violations.push(
+        ...this.checkFile(where, FileUtils.readFileContentSync(file) ?? '')
+      );
     }
     return this.createResult(
       violations,

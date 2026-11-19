@@ -17,7 +17,8 @@ import { TsClasses } from '../../utils/ts-classes';
 import { LawBase } from '../law-base';
 
 /** A file that assembles an application's providers. */
-const BOOTSTRAP = /\b(?:bootstrapApplication|provideRouter|RouterModule\.forRoot)\s*\(/;
+const BOOTSTRAP =
+  /\b(?:bootstrapApplication|provideRouter|RouterModule\.forRoot)\s*\(/;
 const BOOTSTRAP_NAMES = /(?:^|\/)(?:main|app\.config|app\.module)\.ts$/;
 const PROVIDES_STRATEGY = /\bprovide\s*:\s*RouteReuseStrategy\b/;
 
@@ -32,7 +33,10 @@ export class IonicRouteReuseStrategyProvidedLaw extends LawBase {
       context.projectRoot,
       IonicProject.sourceFiles(context)
         .filter(file => file.endsWith('.ts'))
-        .map(file => ({ file, content: FileUtils.readFileContentSync(file) ?? '' }))
+        .map(file => ({
+          file,
+          content: FileUtils.readFileContentSync(file) ?? '',
+        }))
     );
     return this.createResult(
       violations,
@@ -56,7 +60,10 @@ export class IonicRouteReuseStrategyProvidedLaw extends LawBase {
   ): string[] {
     const apps = new Map<string, Array<{ where: string; code: string }>>();
     for (const { file, content } of files) {
-      const where = PathOperations.getRelative(projectRoot, file).replace(/\\/g, '/');
+      const where = PathOperations.getRelative(projectRoot, file).replace(
+        /\\/g,
+        '/'
+      );
       const code = TsClasses.mask(content, 'commentsAndStrings');
       if (!BOOTSTRAP_NAMES.test(where) && !BOOTSTRAP.test(code)) continue;
       const app = this.appOf(where);
@@ -69,7 +76,9 @@ export class IonicRouteReuseStrategyProvidedLaw extends LawBase {
   private static appOf(where: string): string {
     if (where.startsWith('src/')) return '.';
     const src = where.indexOf('/src/');
-    return src === -1 ? PathOperations.getDirectory(where) : where.slice(0, src);
+    return src === -1
+      ? PathOperations.getDirectory(where)
+      : where.slice(0, src);
   }
 
   private static unprovided(

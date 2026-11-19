@@ -23,16 +23,21 @@ export interface AppIndex {
 
 type Json = Record<string, unknown>;
 
-const PROJECT_JSON = '{apps/*/,apps/*/*/,libs/*/,libs/*/*/,packages/*/,packages/*/*/,projects/*/,}project.json';
+const PROJECT_JSON =
+  '{apps/*/,apps/*/*/,libs/*/,libs/*/*/,packages/*/,packages/*/*/,projects/*/,}project.json';
 const FALLBACKS = ['index.html', 'src/index.html', 'public/index.html'];
 
 function asObject(value: unknown): Json | null {
-  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Json) : null;
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Json)
+    : null;
 }
 
 function readJson(file: string): Json | null {
   try {
-    return asObject(JSON.parse(fs.readFileSync(file, 'utf8').replace(/^﻿/, '')));
+    return asObject(
+      JSON.parse(fs.readFileSync(file, 'utf8').replace(/^﻿/, ''))
+    );
   } catch {
     return null;
   }
@@ -42,9 +47,18 @@ export class AppIndexes {
   /** Every index file the project's app build targets name; may name files that do not exist. */
   static find(projectRoot: string): AppIndex[] {
     const found: AppIndex[] = [];
-    const angularJson = readJson(PathOperations.join(projectRoot, 'angular.json'));
-    for (const project of Object.values(asObject(angularJson?.projects) ?? {})) {
-      const declared = this.fromProject(projectRoot, asObject(project), 'architect', 'angular.json');
+    const angularJson = readJson(
+      PathOperations.join(projectRoot, 'angular.json')
+    );
+    for (const project of Object.values(
+      asObject(angularJson?.projects) ?? {}
+    )) {
+      const declared = this.fromProject(
+        projectRoot,
+        asObject(project),
+        'architect',
+        'angular.json'
+      );
       if (declared) found.push(declared);
     }
     const projectFiles = glob.sync(PROJECT_JSON, {
@@ -53,13 +67,25 @@ export class AppIndexes {
       ignore: ['**/node_modules/**', '**/dist/**'],
     });
     for (const file of projectFiles) {
-      const where = PathOperations.getRelative(projectRoot, file).replace(/\\/g, '/');
+      const where = PathOperations.getRelative(projectRoot, file).replace(
+        /\\/g,
+        '/'
+      );
       const project = readJson(file);
-      const root = PathOperations.getRelative(projectRoot, PathOperations.getDirectory(file));
-      const declared = this.fromProject(projectRoot, { root, ...project }, 'targets', where);
+      const root = PathOperations.getRelative(
+        projectRoot,
+        PathOperations.getDirectory(file)
+      );
+      const declared = this.fromProject(
+        projectRoot,
+        { root, ...project },
+        'targets',
+        where
+      );
       if (declared) found.push(declared);
     }
-    if (found.length > 0 || angularJson || projectFiles.length > 0) return found;
+    if (found.length > 0 || angularJson || projectFiles.length > 0)
+      return found;
     return FALLBACKS.map(name => PathOperations.join(projectRoot, name))
       .filter(file => fs.existsSync(file))
       .slice(0, 1)
@@ -75,7 +101,10 @@ export class AppIndexes {
   ): AppIndex | null {
     const build = asObject(asObject(project?.[targetsKey])?.build);
     const executor = String(build?.executor ?? build?.builder ?? '');
-    if (!/angular|ionic/i.test(executor) || /:(?:server|ng-packagr|package)/i.test(executor)) {
+    if (
+      !/angular|ionic/i.test(executor) ||
+      /:(?:server|ng-packagr|package)/i.test(executor)
+    ) {
       return null;
     }
     const options = asObject(build?.options) ?? {};
@@ -87,7 +116,12 @@ export class AppIndexes {
     }
     const root = typeof project?.root === 'string' ? project.root : '';
     const sourceRoot =
-      typeof project?.sourceRoot === 'string' ? project.sourceRoot : PathOperations.join(root, 'src');
-    return { file: PathOperations.join(projectRoot, sourceRoot, 'index.html'), declaredIn };
+      typeof project?.sourceRoot === 'string'
+        ? project.sourceRoot
+        : PathOperations.join(root, 'src');
+    return {
+      file: PathOperations.join(projectRoot, sourceRoot, 'index.html'),
+      declaredIn,
+    };
   }
 }

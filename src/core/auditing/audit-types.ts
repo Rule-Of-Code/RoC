@@ -2,7 +2,7 @@
  * Audit types and interfaces
  */
 
-import type { RuleOfCodeConfig } from "../../types";
+import type { RuleOfCodeConfig } from '../../types';
 import type { LivenessFloor } from '../../utils/liveness-floor';
 
 /**
@@ -12,7 +12,8 @@ import type { LivenessFloor } from '../../utils/liveness-floor';
  * passed a narrowed subset; `failed` and `refused` say what they say. The exit
  * code does not depend on it: 0 for the three passes, 1 otherwise, as before.
  */
-export type AuditVerdict = 'compliance' | 'compliance-with-waivers' | 'failed' | 'partial' | 'refused';
+export type AuditVerdict =
+  'compliance' | 'compliance-with-waivers' | 'failed' | 'partial' | 'refused';
 
 /** A law `laws.notApplicable` took out of the run, with the reason given. */
 export interface WaivedLaw {
@@ -82,6 +83,14 @@ export interface AuditOptions {
   includeWarnings?: boolean;
   outputFormat?: string;
   failOnWarnings?: boolean;
+  /**
+   * Narrow the run to laws of these categories (a constructor option; no CLI
+   * flag). A value matches a law's TIER — `foundational`, `maintainability`,
+   * `performance` (the `tier` field of `roc laws --json`, not its upper-case
+   * `category`) — or a word of a law id (`deployment`, `git`, `docs`, …).
+   * The run is partial (`narrowedBy: 'categories'`); a value that matches no
+   * law is named in the refusal with the valid values.
+   */
   categories?: string[];
   excludePatterns?: string[];
 }
@@ -104,8 +113,8 @@ export interface AuditScope {
    * allowlist would also have dropped is still listed.
    */
   waivedLaws: WaivedLaw[];
-  /** What narrowed the run, if anything. `laws.notApplicable` waivers do not: they change what applies. */
-  narrowedBy: 'laws.enabled' | 'paretoMode' | undefined;
+  /** What narrowed the run, if anything (first of Pareto, laws.enabled, categories). `laws.notApplicable` waivers do not: they change what applies. */
+  narrowedBy: 'laws.enabled' | 'paretoMode' | 'categories' | undefined;
   /** Narrowed AND fewer laws selected than apply: no compliance verdict is printed. Always false on a refusal (no law ran; see `refused`). */
   partial: boolean;
   /**

@@ -301,7 +301,10 @@ export class PreDeploymentChecklistLaw {
     DeploymentValidationUtilities.createStandardValidation(
       (projectRoot, context) => {
         const buildValidator = new BuildValidationChecker();
-        const result = buildValidator.checkBuildValidation(projectRoot, context);
+        const result = buildValidator.checkBuildValidation(
+          projectRoot,
+          context
+        );
         // A PEP 517 [build-system] (or a Dockerfile) IS a build setup; the
         // checker below only reads package.json scripts.
         return {

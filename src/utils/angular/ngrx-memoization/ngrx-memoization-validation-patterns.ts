@@ -19,12 +19,18 @@ export class NgRxMemoizationValidationPatterns extends AngularConfigurationBase 
   /**
    * Type alias for selector analysis result
    */
-  private static readonly SelectorAnalysis = Object.create(null) as Record<string, unknown>;
+  private static readonly SelectorAnalysis = Object.create(null) as Record<
+    string,
+    unknown
+  >;
 
   /**
    * Type alias for component analysis result
    */
-  private static readonly ComponentAnalysis = Object.create(null) as Record<string, unknown>;
+  private static readonly ComponentAnalysis = Object.create(null) as Record<
+    string,
+    unknown
+  >;
 
   /**
    * Validate all NgRx memoization compliance patterns

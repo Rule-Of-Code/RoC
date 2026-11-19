@@ -84,8 +84,9 @@ export class TestCoverageRequirementsLaw extends TestingLawBase {
     );
 
     // Filter out test files for coverage calculation
+    // The name WITH its extension: `.spec.` / `.d.ts` need it (#369).
     return allTsFiles.filter(file => {
-      const fileName = PathOperations.getBasename(file);
+      const fileName = PathOperations.getFilename(file);
       return (
         !TestingLawBase.isTestFile(fileName) && !fileName.endsWith('.d.ts')
       );
@@ -267,8 +268,9 @@ export class TestCoverageRequirementsLaw extends TestingLawBase {
   }
 
   private static getCriticalFiles(sourceFiles: string[]): string[] {
+    // The name WITH its extension: `.service.` needs the dot after it (#369).
     return sourceFiles.filter(file => {
-      const fileName = PathOperations.getBasename(file);
+      const fileName = PathOperations.getFilename(file);
       return (
         fileName.includes('.service.') ||
         fileName.includes('.guard.') ||

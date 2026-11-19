@@ -22,13 +22,17 @@
 import * as fs from 'fs';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { AppIndexes } from '../../utils/ionic/app-index';
-import { HtmlTemplate, type TemplateElement } from '../../utils/ionic/html-template';
+import {
+  HtmlTemplate,
+  type TemplateElement,
+} from '../../utils/ionic/html-template';
 import { withNotes } from '../../utils/ionic/law-notes';
 import { declaredDependencies } from '../../utils/law-requirements';
 import { PathOperations } from '../../utils/path-operations';
 import { LawBase } from '../law-base';
 
-const PINCH_ZOOM_COST = 'disables pinch-zoom — an accessibility cost; keep it only by decision';
+const PINCH_ZOOM_COST =
+  'disables pinch-zoom — an accessibility cost; keep it only by decision';
 
 export class IonicViewportFitCoverLaw extends LawBase {
   static readonly LAW_NAME = 'Ionic Viewport Fit Cover';
@@ -37,7 +41,9 @@ export class IonicViewportFitCoverLaw extends LawBase {
     const violations: string[] = [];
     const notes: string[] = [];
     // Selected for a Capacitor iOS app without Ionic too (#312): there are no --ion-safe-area-* to name.
-    const ionic = [...declaredDependencies(context.projectRoot)].some(name => name.startsWith('@ionic/'));
+    const ionic = [...declaredDependencies(context.projectRoot)].some(name =>
+      name.startsWith('@ionic/')
+    );
     const indexes = AppIndexes.find(context.projectRoot);
     if (indexes.length === 0) {
       violations.push(
@@ -45,12 +51,17 @@ export class IonicViewportFitCoverLaw extends LawBase {
       );
     }
     for (const index of indexes) {
-      const where = PathOperations.getRelative(context.projectRoot, index.file).replace(/\\/g, '/');
+      const where = PathOperations.getRelative(
+        context.projectRoot,
+        index.file
+      ).replace(/\\/g, '/');
       let text: string;
       try {
         text = fs.readFileSync(index.file, 'utf8');
       } catch {
-        violations.push(`${where}: named by ${index.declaredIn} but could not be read — the viewport meta was NOT read`);
+        violations.push(
+          `${where}: named by ${index.declaredIn} but could not be read — the viewport meta was NOT read`
+        );
         continue;
       }
       const verdict = this.judge(where, text, ionic);
@@ -71,12 +82,19 @@ export class IonicViewportFitCoverLaw extends LawBase {
   }
 
   /** The verdict on one index file's text. */
-  static judge(where: string, text: string, ionic = true): { violations: string[]; notes: string[] } {
-    const inert = ionic ? '--ion-safe-area-* and every safe-area rule are inert' : 'every env(safe-area-inset-*) rule is inert';
+  static judge(
+    where: string,
+    text: string,
+    ionic = true
+  ): { violations: string[]; notes: string[] } {
+    const inert = ionic
+      ? '--ion-safe-area-* and every safe-area rule are inert'
+      : 'every env(safe-area-inset-*) rule is inert';
     const metas = HtmlTemplate.elements(text).filter(
       element =>
         element.tag === 'meta' &&
-        HtmlTemplate.attribute(element, 'name')?.value?.trim().toLowerCase() === 'viewport'
+        HtmlTemplate.attribute(element, 'name')?.value?.trim().toLowerCase() ===
+          'viewport'
     );
     // Browsers and Capacitor's SystemBars both act on the last viewport meta.
     const meta: TemplateElement | undefined = metas[metas.length - 1];
@@ -88,7 +106,9 @@ export class IonicViewportFitCoverLaw extends LawBase {
         notes: [],
       };
     }
-    const content = this.content(HtmlTemplate.attribute(meta, 'content')?.value ?? '');
+    const content = this.content(
+      HtmlTemplate.attribute(meta, 'content')?.value ?? ''
+    );
     const violations =
       content.get('viewport-fit') === 'cover'
         ? []
@@ -96,12 +116,17 @@ export class IonicViewportFitCoverLaw extends LawBase {
             `${where}:${meta.line}: <meta name="viewport"> has no viewport-fit=cover — the WebView letterboxes the page and env(safe-area-inset-*) is 0, so ${inert}`,
           ];
     const notes: string[] = [];
-    if (content.get('user-scalable') === 'no' || content.get('user-scalable') === '0') {
+    if (
+      content.get('user-scalable') === 'no' ||
+      content.get('user-scalable') === '0'
+    ) {
       notes.push(`${where}:${meta.line}: user-scalable=no ${PINCH_ZOOM_COST}`);
     }
     const maximumScale = content.get('maximum-scale');
     if (maximumScale !== undefined && Number(maximumScale) <= 1) {
-      notes.push(`${where}:${meta.line}: maximum-scale=${maximumScale} ${PINCH_ZOOM_COST}`);
+      notes.push(
+        `${where}:${meta.line}: maximum-scale=${maximumScale} ${PINCH_ZOOM_COST}`
+      );
     }
     return { violations, notes };
   }
@@ -110,7 +135,9 @@ export class IonicViewportFitCoverLaw extends LawBase {
   private static content(value: string): Map<string, string> {
     const pairs = new Map<string, string>();
     for (const part of value.split(/[,;]/)) {
-      const [key, val] = part.split('=').map(piece => piece.trim().toLowerCase());
+      const [key, val] = part
+        .split('=')
+        .map(piece => piece.trim().toLowerCase());
       if (key) pairs.set(key, val ?? '');
     }
     return pairs;

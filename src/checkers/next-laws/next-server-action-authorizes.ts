@@ -27,7 +27,12 @@ import { isServerModule } from '../../utils/react/next-module-graph';
 import { NextThresholds } from '../../utils/react/next-thresholds';
 import type { TsxSource } from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';
-import { callsGuard, isGuardWrapper, listed, readProject } from './next-server-support';
+import {
+  callsGuard,
+  isGuardWrapper,
+  listed,
+  readProject,
+} from './next-server-support';
 
 interface Action {
   source: TsxSource;
@@ -47,17 +52,27 @@ export class NextServerActionAuthorizesLaw extends LawBase {
     const { graph, sources, unread } = readProject(context);
     const guards = NextThresholds.authGuards(context);
     const violations = [...unread, ...guards.problems];
-    const actions = sources.flatMap(source => [...this.moduleActions(source), ...this.inlineActions(source)]);
+    const actions = sources.flatMap(source => [
+      ...this.moduleActions(source),
+      ...this.inlineActions(source),
+    ]);
     const where = (action: Action): string =>
       `${graph ? graph.relative(action.source.fileName) : action.source.fileName}:${action.line}`;
-    if (actions.length > 0 && !guards.value?.length && guards.problems.length === 0) {
+    if (
+      actions.length > 0 &&
+      !guards.value?.length &&
+      guards.problems.length === 0
+    ) {
       violations.push(
         `${actions.length} Server Action(s) (${listed(actions.map(a => `${where(a)} ${a.name}`))}) and no ${GUARD_KEY} — the law cannot tell an authorization call from any other. Declare the guard functions your actions call`
       );
     } else if (guards.value?.length) {
       for (const action of actions) {
         const problem = this.problem(action, guards.value);
-        if (problem) violations.push(`${where(action)}: Server Action '${action.name}' ${problem}`);
+        if (problem)
+          violations.push(
+            `${where(action)}: Server Action '${action.name}' ${problem}`
+          );
       }
     }
     return this.createResult(
@@ -77,7 +92,12 @@ export class NextServerActionAuthorizesLaw extends LawBase {
     if (!isServerModule(source)) return [];
     const ts = source.ts;
     return moduleExports(source)
-      .filter(entry => entry.reexportFrom !== null || entry.call !== null || (entry.fn !== null && isAsync(ts, entry.fn)))
+      .filter(
+        entry =>
+          entry.reexportFrom !== null ||
+          entry.call !== null ||
+          (entry.fn !== null && isAsync(ts, entry.fn))
+      )
       .map(entry => ({ source, ...entry }));
   }
 
@@ -86,9 +106,17 @@ export class NextServerActionAuthorizesLaw extends LawBase {
     const ts = source.ts;
     const actions: Action[] = [];
     source.walk(node => {
-      if (!isFunctionLike(ts, node) || !node.body || !ts.isBlock(node.body)) return;
+      if (!isFunctionLike(ts, node) || !node.body || !ts.isBlock(node.body))
+        return;
       if (!this.prologue(source, node.body).includes('use server')) return;
-      actions.push({ source, name: this.nameOf(source, node), line: source.lineOf(node), fn: node, call: null, reexportFrom: null });
+      actions.push({
+        source,
+        name: this.nameOf(source, node),
+        line: source.lineOf(node),
+        fn: node,
+        call: null,
+        reexportFrom: null,
+      });
     });
     return actions;
   }
@@ -97,7 +125,11 @@ export class NextServerActionAuthorizesLaw extends LawBase {
     const ts = source.ts;
     const found: string[] = [];
     for (const statement of body.statements) {
-      if (!ts.isExpressionStatement(statement) || !ts.isStringLiteral(statement.expression)) break;
+      if (
+        !ts.isExpressionStatement(statement) ||
+        !ts.isStringLiteral(statement.expression)
+      )
+        break;
       found.push(statement.expression.text);
     }
     return found;
@@ -107,37 +139,54 @@ export class NextServerActionAuthorizesLaw extends LawBase {
     const ts = source.ts;
     if (fn.name) return fn.name.text;
     const parent = fn.parent;
-    if (ts.isVariableDeclaration(parent) && ts.isIdentifier(parent.name)) return parent.name.text;
-    if (ts.isPropertyAssignment(parent)) return parent.name.getText(source.sourceFile);
+    if (ts.isVariableDeclaration(parent) && ts.isIdentifier(parent.name))
+      return parent.name.text;
+    if (ts.isPropertyAssignment(parent))
+      return parent.name.getText(source.sourceFile);
     return '(inline)';
   }
 
   /** Why the action is not guarded, or null. */
-  private static problem(action: Action, guards: readonly string[]): string | null {
+  private static problem(
+    action: Action,
+    guards: readonly string[]
+  ): string | null {
     const { source } = action;
     if (action.reexportFrom) {
       return `is re-exported from '${action.reexportFrom}' — this file cannot show that it authorizes. Define the action where its guard can be seen`;
     }
     if (action.call) {
       if (isGuardWrapper(source, action.call, guards)) return null;
-      const inner = action.call.arguments.find(arg => isFunctionLike(source.ts, arg));
-      if (inner && isFunctionLike(source.ts, inner)) return this.functionProblem(source, inner, guards);
+      const inner = action.call.arguments.find(arg =>
+        isFunctionLike(source.ts, arg)
+      );
+      if (inner && isFunctionLike(source.ts, inner))
+        return this.functionProblem(source, inner, guards);
       return `is built by ${action.call.expression.getText(source.sourceFile)}(…), which is not a guard in ${GUARD_KEY} — list the builder there if it authorizes, or call a guard inside the action`;
     }
     return action.fn ? this.functionProblem(source, action.fn, guards) : null;
   }
 
-  private static functionProblem(source: TsxSource, fn: FunctionLike, guards: readonly string[]): string | null {
+  private static functionProblem(
+    source: TsxSource,
+    fn: FunctionLike,
+    guards: readonly string[]
+  ): string | null {
     const ts = source.ts;
     const body = fn.body;
     if (!body) return null;
     if (!ts.isBlock(body)) {
-      return callsGuard(source, body, guards, true) ? null : this.unguarded(guards);
+      return callsGuard(source, body, guards, true)
+        ? null
+        : this.unguarded(guards);
     }
     const directives = this.prologue(source, body).length;
     const first = body.statements[directives];
-    if (!first) return `has an empty body and no guard — it is still a public endpoint`;
-    return callsGuard(source, first, guards, true) ? null : this.unguarded(guards);
+    if (!first)
+      return `has an empty body and no guard — it is still a public endpoint`;
+    return callsGuard(source, first, guards, true)
+      ? null
+      : this.unguarded(guards);
   }
 
   private static unguarded(guards: readonly string[]): string {

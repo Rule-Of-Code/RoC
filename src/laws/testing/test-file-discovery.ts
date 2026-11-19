@@ -30,7 +30,8 @@ export class TestFileDiscovery {
     projectRoot: string,
     config: RuleOfCodeConfig,
     customSearchDirs?: string[],
-    isTestName: (fileName: string) => boolean = name => TestFileDiscovery.isTestFile(name)
+    isTestName: (fileName: string) => boolean = name =>
+      TestFileDiscovery.isTestFile(name)
   ): string[] {
     const searchDirs = (
       customSearchDirs ??
@@ -43,14 +44,16 @@ export class TestFileDiscovery {
     // against the path from that root: an `ignores.global` entry like
     // `src/vendor/**` was compared with `vendor/c.spec.ts` and never matched,
     // and an `includes.global` entry like `apps/**` matched nothing at all.
-    const prefixes = searchDirs.map(dir =>
-      `${PathOperations.getRelative(projectRoot, dir)}/`
+    const prefixes = searchDirs.map(
+      dir => `${PathOperations.getRelative(projectRoot, dir)}/`
     );
     const testFiles: string[] = [];
     this.findTestFilesRecursively(projectRoot, testFiles, config, isTestName);
     return testFiles.filter(file => {
       const relative = PathOperations.getRelative(projectRoot, file);
-      return prefixes.some(prefix => prefix === '/' || relative.startsWith(prefix));
+      return prefixes.some(
+        prefix => prefix === '/' || relative.startsWith(prefix)
+      );
     });
   }
 
@@ -90,7 +93,8 @@ export class TestFileDiscovery {
     dir: string,
     testFiles: string[],
     config: RuleOfCodeConfig,
-    isTestName: (fileName: string) => boolean = name => TestFileDiscovery.isTestFile(name)
+    isTestName: (fileName: string) => boolean = name =>
+      TestFileDiscovery.isTestFile(name)
   ): void {
     try {
       // `.test.tsx` / `.spec.jsx` are test names (TEST_FILE_NAME), but a scan

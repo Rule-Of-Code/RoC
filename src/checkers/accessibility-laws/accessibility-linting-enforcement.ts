@@ -25,7 +25,11 @@ import { markJudgedNothing } from '../../utils/judged-nothing';
 import { declaredDependencies } from '../../utils/law-requirements';
 import { PathOperations } from '../../utils/path-operations';
 import { ReactProject } from '../../utils/react/react-project';
-import { loadTypeScript, TsxSource, type TypeScriptModule } from '../../utils/react/tsx-source';
+import {
+  loadTypeScript,
+  TsxSource,
+  type TypeScriptModule,
+} from '../../utils/react/tsx-source';
 import { AccessibilityLawBase } from './accessibility-law-base';
 import { JSX_EXTENSIONS } from './jsx-sources';
 
@@ -37,7 +41,11 @@ interface EslintConfig {
 const JSX_PLUGIN = 'eslint-plugin-jsx-a11y';
 const JSX_RULE_PREFIX = 'jsx-a11y/';
 const NEXT_CONFIG_TOKENS = ['eslint-config-next', 'next/core-web-vitals'];
-const NEXT_JSX_RULES = ['alt-text', 'aria-props', 'role-has-required-aria-props'];
+const NEXT_JSX_RULES = [
+  'alt-text',
+  'aria-props',
+  'role-has-required-aria-props',
+];
 const PRESET_NAMES = ['recommended', 'strict'];
 const PRESET_HOLDERS = ['flatConfigs', 'configs'];
 
@@ -74,7 +82,8 @@ export class AccessibilityLintingEnforcementLaw extends AccessibilityLawBase {
       angularRequired &&
       this.findTemplateFiles(projectRoot, context).length > 0 &&
       declaredDependencies(projectRoot).has('@angular/core');
-    const needsJsx = ReactProject.sourceFiles(context, JSX_EXTENSIONS).length > 0;
+    const needsJsx =
+      ReactProject.sourceFiles(context, JSX_EXTENSIONS).length > 0;
     if (!needsAngular && !needsJsx) {
       // Nothing this law knows how to judge: no Angular template with
       // @angular/core declared, no .tsx/.jsx source. That is "judged nothing",
@@ -85,7 +94,9 @@ export class AccessibilityLintingEnforcementLaw extends AccessibilityLawBase {
             `${this.LAW_NAME}: nothing was judged — it asks for linter rules over Angular templates (with @angular/core declared) or .tsx/.jsx sources, and this project has neither`,
           ],
           this.LAW_NAME,
-          ['Declare the law not applicable (laws.notApplicable) with a reason if your markup is neither'],
+          [
+            'Declare the law not applicable (laws.notApplicable) with a reason if your markup is neither',
+          ],
           context
         )
       );
@@ -110,7 +121,8 @@ export class AccessibilityLintingEnforcementLaw extends AccessibilityLawBase {
     }
     const eslintContent = configs.map(c => c.content).join('\n');
     if (needsAngular) violations.push(...this.angularFindings(eslintContent));
-    if (needsJsx) violations.push(...this.jsxFindings(context, configs, eslintContent));
+    if (needsJsx)
+      violations.push(...this.jsxFindings(context, configs, eslintContent));
 
     return this.createResult(
       violations,
@@ -125,13 +137,17 @@ export class AccessibilityLintingEnforcementLaw extends AccessibilityLawBase {
   }
 
   private static angularFindings(eslintContent: string): string[] {
-    const hasPlugin = this.PLUGIN_TOKENS.some(token => eslintContent.includes(token));
+    const hasPlugin = this.PLUGIN_TOKENS.some(token =>
+      eslintContent.includes(token)
+    );
     if (!hasPlugin) {
       return [
         'ESLint config has no @angular-eslint template a11y plugin — accessibility is unenforced. Add the plugin + a11y rules on error.',
       ];
     }
-    const missing = this.CORE_RULES.filter(rule => !eslintContent.includes(rule));
+    const missing = this.CORE_RULES.filter(
+      rule => !eslintContent.includes(rule)
+    );
     return missing.length > 0
       ? [`@angular-eslint template a11y rules missing: ${missing.join(', ')}.`]
       : [];
@@ -142,7 +158,9 @@ export class AccessibilityLintingEnforcementLaw extends AccessibilityLawBase {
     configs: EslintConfig[],
     eslintContent: string
   ): string[] {
-    const viaNext = NEXT_CONFIG_TOKENS.some(token => eslintContent.includes(token));
+    const viaNext = NEXT_CONFIG_TOKENS.some(token =>
+      eslintContent.includes(token)
+    );
     const pluginLoaded =
       viaNext ||
       eslintContent.includes(JSX_PLUGIN) ||
@@ -172,17 +190,26 @@ export class AccessibilityLintingEnforcementLaw extends AccessibilityLawBase {
     configs: EslintConfig[],
     eslintContent: string
   ): boolean {
-    if (PRESET_NAMES.some(name => eslintContent.includes(`plugin:${JSX_RULE_PREFIX}${name}`))) {
+    if (
+      PRESET_NAMES.some(name =>
+        eslintContent.includes(`plugin:${JSX_RULE_PREFIX}${name}`)
+      )
+    ) {
       return true;
     }
-    const scripts = configs.filter(c => /\.[cm]?[jt]s$/.test(c.file) && c.content.includes(JSX_PLUGIN));
+    const scripts = configs.filter(
+      c => /\.[cm]?[jt]s$/.test(c.file) && c.content.includes(JSX_PLUGIN)
+    );
     if (scripts.length === 0) return false;
     const ts = loadTypeScript(context.projectRoot);
     if (!ts) return false;
     return scripts.some(config => this.scriptUsesPreset(ts, config));
   }
 
-  private static scriptUsesPreset(ts: TypeScriptModule, config: EslintConfig): boolean {
+  private static scriptUsesPreset(
+    ts: TypeScriptModule,
+    config: EslintConfig
+  ): boolean {
     const source = TsxSource.parse(ts, config.file, config.content);
     const bindings = new Set<string>();
     for (const entry of source.imports()) {
@@ -209,13 +236,20 @@ export class AccessibilityLintingEnforcementLaw extends AccessibilityLawBase {
   }
 
   /** `const x = require('eslint-plugin-jsx-a11y')` → `x`. */
-  private static requireBinding(ts: TypeScriptModule, node: TS.Node): string | null {
-    if (!ts.isVariableDeclaration(node) || !ts.isIdentifier(node.name)) return null;
+  private static requireBinding(
+    ts: TypeScriptModule,
+    node: TS.Node
+  ): string | null {
+    if (!ts.isVariableDeclaration(node) || !ts.isIdentifier(node.name))
+      return null;
     const init = node.initializer;
     if (!init || !ts.isCallExpression(init)) return null;
-    if (!ts.isIdentifier(init.expression) || init.expression.text !== 'require') return null;
+    if (!ts.isIdentifier(init.expression) || init.expression.text !== 'require')
+      return null;
     const argument = init.arguments[0];
-    return argument && ts.isStringLiteral(argument) && argument.text === JSX_PLUGIN
+    return argument &&
+      ts.isStringLiteral(argument) &&
+      argument.text === JSX_PLUGIN
       ? node.name.text
       : null;
   }

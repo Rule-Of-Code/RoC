@@ -40,7 +40,9 @@ describe('ruleofcode-package recognition', () => {
 
   describe('dependenciesIncludeRuleOfCode', () => {
     it('finds RoC installed under the unscoped public name', () => {
-      expect(dependenciesIncludeRuleOfCode({ ruleofcode: '^7.17.0' })).toBe(true);
+      expect(dependenciesIncludeRuleOfCode({ ruleofcode: '^7.17.0' })).toBe(
+        true
+      );
     });
 
     it('finds RoC installed under the scoped internal name', () => {

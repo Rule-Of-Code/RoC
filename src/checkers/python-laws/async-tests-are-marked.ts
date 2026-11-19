@@ -105,7 +105,10 @@ export class AsyncTestsAreMarkedLaw extends PythonLawBase {
   }
 
   /** Scan decorator lines directly above for an async marker. */
-  private static hasAsyncMarkerAbove(lines: string[], testLine: number): boolean {
+  private static hasAsyncMarkerAbove(
+    lines: string[],
+    testLine: number
+  ): boolean {
     for (let k = testLine - 1; k >= 0; k--) {
       const prev = (lines[k] ?? '').trim();
       if (prev === '') continue;

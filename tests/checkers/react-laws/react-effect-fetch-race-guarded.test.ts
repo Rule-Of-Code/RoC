@@ -4,7 +4,12 @@
  */
 import { ReactEffectFetchRaceGuardedLaw } from '../../../src/checkers/react-laws/react-effect-fetch-race-guarded';
 import { removeProjects } from '../toolkit-fixture';
-import { describeFailsClosed, describeSelection, REACT_DEPS, run } from './react-law-fixture';
+import {
+  describeFailsClosed,
+  describeSelection,
+  REACT_DEPS,
+  run,
+} from './react-law-fixture';
 
 afterAll(removeProjects);
 
@@ -23,21 +28,29 @@ const check = (body: string) =>
 
 describe('ReactEffectFetchRaceGuardedLaw (#225) — red', () => {
   it('a bare fetch with no guard', () => {
-    const result = check('  useEffect(() => { fetch(`/u/${id}`).then(r => r.json()).then(setUser); }, [id]);');
+    const result = check(
+      '  useEffect(() => { fetch(`/u/${id}`).then(r => r.json()).then(setUser); }, [id]);'
+    );
     expect(result.passed).toBe(false);
     expect(result.violations).toEqual([
-      expect.stringMatching(/^src\/user\.tsx:4: useEffect runs a fetch with neither an aborted signal nor an ignore flag/),
+      expect.stringMatching(
+        /^src\/user\.tsx:4: useEffect runs a fetch with neither an aborted signal nor an ignore flag/
+      ),
     ]);
   });
 
   it('a fetch inside an async helper declared in the setup', () => {
-    const body = '  useEffect(() => { async function load() { const r = await fetch(url); setUser(await r.json()); } load(); }, [id]);';
+    const body =
+      '  useEffect(() => { async function load() { const r = await fetch(url); setUser(await r.json()); } load(); }, [id]);';
     expect(check(body).violations).toHaveLength(1);
   });
 
   it('a signal passed but never aborted in the cleanup', () => {
-    const body = '  useEffect(() => { const c = new AbortController(); fetch(url, { signal: c.signal }).then(setUser); }, [id]);';
-    expect(check(body).violations).toEqual([expect.stringContaining('never calls abort()')]);
+    const body =
+      '  useEffect(() => { const c = new AbortController(); fetch(url, { signal: c.signal }).then(setUser); }, [id]);';
+    expect(check(body).violations).toEqual([
+      expect.stringContaining('never calls abort()'),
+    ]);
   });
 
   it('one of two fetches without the signal', () => {
@@ -49,7 +62,9 @@ describe('ReactEffectFetchRaceGuardedLaw (#225) — red', () => {
       '    return () => c.abort();',
       '  }, [id]);',
     ].join('\n');
-    expect(check(body).violations).toEqual([expect.stringContaining('runs 2 fetches')]);
+    expect(check(body).violations).toEqual([
+      expect.stringContaining('runs 2 fetches'),
+    ]);
   });
 
   it('a flag the cleanup sets but the setup never reads', () => {
@@ -62,7 +77,6 @@ describe('ReactEffectFetchRaceGuardedLaw (#225) — red', () => {
     ].join('\n');
     expect(check(body).violations).toHaveLength(1);
   });
-
 });
 
 describe('ReactEffectFetchRaceGuardedLaw (#225) — green', () => {
@@ -106,7 +120,10 @@ describe('ReactEffectFetchRaceGuardedLaw (#225) — green', () => {
         '  }, [id]);',
       ].join('\n'),
     ],
-    ['an effect without fetch', "  useEffect(() => { document.title = 'x'; }, []);"],
+    [
+      'an effect without fetch',
+      "  useEffect(() => { document.title = 'x'; }, []);",
+    ],
     [
       'a fetch an interval runs later (a poll, judged by React Poll Visibility Gated)',
       "  useEffect(() => { const id = setInterval(() => fetch('/ping'), 5000); return () => clearInterval(id); }, []);",
@@ -115,13 +132,17 @@ describe('ReactEffectFetchRaceGuardedLaw (#225) — green', () => {
       'a fetch a listener runs later',
       "  useEffect(() => { const on = () => 0; window.addEventListener('focus', () => { fetch('/x'); }); return () => 0; }, []);",
     ],
-    ['a fetch only in the cleanup is not a setup fetch', "  useEffect(() => () => { navigator.sendBeacon('/bye'); }, []);"],
+    [
+      'a fetch only in the cleanup is not a setup fetch',
+      "  useEffect(() => () => { navigator.sendBeacon('/bye'); }, []);",
+    ],
   ])('%s', (_name, body) => {
     expect(check(body).violations).toEqual([]);
   });
 
   it('control: the guarded effect with its guard removed IS found', () => {
-    const body = '  useEffect(() => { const c = new AbortController(); fetch(url, { signal: c.signal }); }, [id]);';
+    const body =
+      '  useEffect(() => { const c = new AbortController(); fetch(url, { signal: c.signal }); }, [id]);';
     expect(check(body).violations).toHaveLength(1);
   });
 });

@@ -20,7 +20,11 @@ import {
   unwrap,
   where,
 } from '../../utils/react/react-hooks-ast';
-import type { JsxElementInfo, TsxSource, TypeScriptModule } from '../../utils/react/tsx-source';
+import type {
+  JsxElementInfo,
+  TsxSource,
+  TypeScriptModule,
+} from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';
 
 /** The inline answer for a list that never reorders. */
@@ -34,7 +38,11 @@ export class ReactListKeyStabilityLaw extends LawBase {
     for (const source of sources) {
       for (const element of source.jsxElements()) {
         const index = this.indexKey(source, element);
-        if (!index || hasInlineReason(source, element.line, INDEX_KEY_REASON_MARKER)) continue;
+        if (
+          !index ||
+          hasInlineReason(source, element.line, INDEX_KEY_REASON_MARKER)
+        )
+          continue;
         violations.push(
           `${where(context, source, element.node)}: <${element.tag} key={…${index}…}> uses the .map index as its key — when the list changes, rows inherit each other's state. Key by a stable id from the item`
         );
@@ -53,20 +61,35 @@ export class ReactListKeyStabilityLaw extends LawBase {
   }
 
   /** The index parameter's name when `key` is that parameter, or null. */
-  private static indexKey(source: TsxSource, element: JsxElementInfo): string | null {
+  private static indexKey(
+    source: TsxSource,
+    element: JsxElementInfo
+  ): string | null {
     const ts = source.ts;
     const attribute = element.node.attributes.properties.find(
-      property => ts.isJsxAttribute(property) && property.name.getText() === 'key'
+      property =>
+        ts.isJsxAttribute(property) && property.name.getText() === 'key'
     ) as TS.JsxAttribute | undefined;
     const initializer = attribute?.initializer;
-    if (!initializer || !ts.isJsxExpression(initializer) || !initializer.expression) return null;
+    if (
+      !initializer ||
+      !ts.isJsxExpression(initializer) ||
+      !initializer.expression
+    )
+      return null;
     const index = this.mapIndexParameter(ts, element.node);
     if (!index) return null;
-    return this.isOnlyIndex(ts, unwrap(ts, initializer.expression), index) ? index : null;
+    return this.isOnlyIndex(ts, unwrap(ts, initializer.expression), index)
+      ? index
+      : null;
   }
 
   /** `key={i}`, `` key={`${i}`} ``, `key={String(i)}`, `key={i.toString()}`. */
-  private static isOnlyIndex(ts: TypeScriptModule, value: TS.Expression, index: string): boolean {
+  private static isOnlyIndex(
+    ts: TypeScriptModule,
+    value: TS.Expression,
+    index: string
+  ): boolean {
     const isIndex = (node: TS.Expression): boolean => {
       const inner = unwrap(ts, node);
       return ts.isIdentifier(inner) && inner.text === index;
@@ -77,10 +100,17 @@ export class ReactListKeyStabilityLaw extends LawBase {
     }
     if (ts.isCallExpression(value)) {
       const callee = value.expression;
-      if (ts.isIdentifier(callee) && callee.text === 'String' && value.arguments.length === 1) {
+      if (
+        ts.isIdentifier(callee) &&
+        callee.text === 'String' &&
+        value.arguments.length === 1
+      ) {
         return isIndex(value.arguments[0] as TS.Expression);
       }
-      if (ts.isPropertyAccessExpression(callee) && callee.name.text === 'toString') {
+      if (
+        ts.isPropertyAccessExpression(callee) &&
+        callee.name.text === 'toString'
+      ) {
         return isIndex(callee.expression);
       }
     }
@@ -88,7 +118,10 @@ export class ReactListKeyStabilityLaw extends LawBase {
   }
 
   /** The second parameter of the nearest enclosing `.map((item, index) => …)`. */
-  private static mapIndexParameter(ts: TypeScriptModule, node: TS.Node): string | null {
+  private static mapIndexParameter(
+    ts: TypeScriptModule,
+    node: TS.Node
+  ): string | null {
     for (let current = node.parent; current; current = current.parent) {
       if (!isFunctionNode(ts, current)) continue;
       const fn = current as TS.SignatureDeclaration;

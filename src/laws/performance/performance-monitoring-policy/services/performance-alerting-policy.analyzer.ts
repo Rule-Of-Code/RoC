@@ -25,21 +25,32 @@ export class PerformanceAlertingPolicyAnalyzerService {
 
     for (const configFile of PerformanceAlertingConstants.MONITORING_CONFIG_FILES) {
       const content = this.read(projectRoot, configFile);
-      if (content !== null && PerformanceAlertingConstants.hasAlertConfiguration(content)) {
-        alertSources.push(`${this.serviceName(configFile)} alerts (${configFile})`);
+      if (
+        content !== null &&
+        PerformanceAlertingConstants.hasAlertConfiguration(content)
+      ) {
+        alertSources.push(
+          `${this.serviceName(configFile)} alerts (${configFile})`
+        );
       }
     }
 
     for (const configFile of PerformanceAlertingConstants.LIGHTHOUSE_CI_FILES) {
       const content = this.read(projectRoot, configFile);
-      if (content !== null && PerformanceAlertingConstants.hasLighthouseAssertions(content)) {
+      if (
+        content !== null &&
+        PerformanceAlertingConstants.hasLighthouseAssertions(content)
+      ) {
         alertSources.push(`Lighthouse CI assertions (${configFile})`);
       }
     }
 
     for (const workflow of this.workflowFiles(projectRoot)) {
       const content = this.read(projectRoot, workflow);
-      if (content !== null && PerformanceAlertingConstants.hasGithubAlerts(content)) {
+      if (
+        content !== null &&
+        PerformanceAlertingConstants.hasGithubAlerts(content)
+      ) {
         alertSources.push(`CI workflow alerts (${workflow})`);
       }
     }
@@ -57,7 +68,10 @@ export class PerformanceAlertingPolicyAnalyzerService {
   }
 
   private static workflowFiles(projectRoot: string): string[] {
-    const dir = PathOperations.join(projectRoot, PerformanceAlertingConstants.WORKFLOWS_DIR);
+    const dir = PathOperations.join(
+      projectRoot,
+      PerformanceAlertingConstants.WORKFLOWS_DIR
+    );
     if (!FileUtils.exists(dir)) return [];
     try {
       return fs

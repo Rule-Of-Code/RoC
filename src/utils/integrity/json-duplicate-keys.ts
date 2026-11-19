@@ -51,7 +51,12 @@ class Scanner {
     const top = this.stack[this.stack.length - 1];
     if (ch === '\n') this.line += 1;
     else if (ch === '{' || ch === '[') {
-      this.stack.push({ isObject: ch === '{', keys: new Set(), expectKey: ch === '{', currentKey: '' });
+      this.stack.push({
+        isObject: ch === '{',
+        keys: new Set(),
+        expectKey: ch === '{',
+        currentKey: '',
+      });
     } else if (ch === '}' || ch === ']') this.stack.pop();
     else if (ch === ',' && top?.isObject) top.expectKey = true;
   }

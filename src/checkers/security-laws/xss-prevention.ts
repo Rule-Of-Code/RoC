@@ -34,13 +34,33 @@ interface Sink {
 }
 
 const SINKS: Sink[] = [
-  { name: 'innerHTML/outerHTML assignment', pattern: /\.(?:inner|outer)HTML\s*\+?=(?!=)/g, sanitizable: true },
-  { name: 'insertAdjacentHTML', pattern: /\.insertAdjacentHTML\s*\(/g, sanitizable: true },
-  { name: 'document.write', pattern: /\bdocument\.write(?:ln)?\s*\(/g, sanitizable: true },
-  { name: 'bypassSecurityTrust*', pattern: /\bbypassSecurityTrust(?:Html|Script|Style|Url|ResourceUrl)\s*\(/g, sanitizable: true },
+  {
+    name: 'innerHTML/outerHTML assignment',
+    pattern: /\.(?:inner|outer)HTML\s*\+?=(?!=)/g,
+    sanitizable: true,
+  },
+  {
+    name: 'insertAdjacentHTML',
+    pattern: /\.insertAdjacentHTML\s*\(/g,
+    sanitizable: true,
+  },
+  {
+    name: 'document.write',
+    pattern: /\bdocument\.write(?:ln)?\s*\(/g,
+    sanitizable: true,
+  },
+  {
+    name: 'bypassSecurityTrust*',
+    pattern: /\bbypassSecurityTrust(?:Html|Script|Style|Url|ResourceUrl)\s*\(/g,
+    sanitizable: true,
+  },
   // The Angular BINDING — the `=` is required: a bare `[innerHTML]` with no
   // assignment is a mention (a doc string, prose), never a real binding.
-  { name: '[innerHTML] binding', pattern: /\[innerHTML\]\s*=/g, sanitizable: true },
+  {
+    name: '[innerHTML] binding',
+    pattern: /\[innerHTML\]\s*=/g,
+    sanitizable: true,
+  },
   { name: 'eval', pattern: /(?<![\w$])eval\s*\(/g, sanitizable: false },
 ];
 
@@ -50,7 +70,8 @@ export const DEFAULT_HTML_SANITIZERS = ['DOMPurify.sanitize'];
 /** Angular's DomSanitizer.sanitize(SecurityContext.HTML, value). */
 const ANGULAR_SANITIZE = /\.sanitize\s*\(\s*SecurityContext\.HTML\b/;
 
-const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const escapeRegExp = (text: string): string =>
+  text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /** Comments blanked to spaces, newlines kept — line numbers stay true. */
 function blankComments(content: string): string {
@@ -58,13 +79,19 @@ function blankComments(content: string): string {
   return content
     .replace(/\/\*[\s\S]*?\*\//g, blank)
     .replace(/<!--[\s\S]*?-->/g, blank)
-    .replace(/(^|[^:\\])(\/\/[^\n]*)/g, (_m, lead: string, comment: string) => lead + blank(comment));
+    .replace(
+      /(^|[^:\\])(\/\/[^\n]*)/g,
+      (_m, lead: string, comment: string) => lead + blank(comment)
+    );
 }
 
 /** The configured sanitizers plus the defaults, as callee text. */
 export function htmlSanitizers(context: LawCheckContext): string[] {
   const configured = context.config.thresholds?.security?.htmlSanitizers ?? [];
-  return [...DEFAULT_HTML_SANITIZERS, ...configured.filter(name => typeof name === 'string' && name.trim())];
+  return [
+    ...DEFAULT_HTML_SANITIZERS,
+    ...configured.filter(name => typeof name === 'string' && name.trim()),
+  ];
 }
 
 export class XSSPreventionLaw {
@@ -74,7 +101,8 @@ export class XSSPreventionLaw {
       name => new RegExp(`(?<![\\w$.])${escapeRegExp(name)}\\s*\\(`)
     );
     const sanitizedAt = (statement: string): boolean =>
-      ANGULAR_SANITIZE.test(statement) || sanitizers.some(re => re.test(statement));
+      ANGULAR_SANITIZE.test(statement) ||
+      sanitizers.some(re => re.test(statement));
 
     for (const file of this.getSourceFiles(context)) {
       const code = blankComments(FileUtils.readFile(file) ?? '');
@@ -109,7 +137,11 @@ export class XSSPreventionLaw {
     sink.pattern.lastIndex = 0;
     let match: RegExpExecArray | null;
     while ((match = sink.pattern.exec(code)) !== null) {
-      if (sink.sanitizable && sanitizedAt(this.statementFrom(code, match.index))) continue;
+      if (
+        sink.sanitizable &&
+        sanitizedAt(this.statementFrom(code, match.index))
+      )
+        continue;
       const line = code.slice(0, match.index).split('\n').length;
       found.push(
         sink.sanitizable

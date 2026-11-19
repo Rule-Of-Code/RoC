@@ -52,7 +52,9 @@ export class MemoryManagementLaw {
    * the absence of the substrate is not a violation, it is N/A (score 100, zero
    * violations) — never a permanent red mark that only a waiver can silence.
    */
-  private static createNotApplicableResult(context: LawCheckContext): LawResult {
+  private static createNotApplicableResult(
+    context: LawCheckContext
+  ): LawResult {
     return {
       lawName: LAW_NAME,
       passed: true,
@@ -75,7 +77,8 @@ export class MemoryManagementLaw {
     for (const file of componentFiles) {
       // Native DOM resources are a component/directive concern — by suffix or,
       // for Angular 20's `hero.ts`, by decorator (#336).
-      if (!AngularComponentFiles.isKind(file, ['component', 'directive'])) continue;
+      if (!AngularComponentFiles.isKind(file, ['component', 'directive']))
+        continue;
       const raw = FileUtils.readFileContentSync(file);
       if (!raw) continue;
       const content = raw
@@ -83,12 +86,18 @@ export class MemoryManagementLaw {
         .replace(/(^|[^:])\/\/[^\n]*/g, '$1');
       const relativePath = PathOperations.getRelative(projectRoot, file);
 
-      if (this.SET_INTERVAL.test(content) && !this.CLEAR_INTERVAL.test(content)) {
+      if (
+        this.SET_INTERVAL.test(content) &&
+        !this.CLEAR_INTERVAL.test(content)
+      ) {
         violations.push(
           `${relativePath}: setInterval() without a matching clearInterval() — clear the interval in ngOnDestroy().`
         );
       }
-      if (this.ADD_LISTENER.test(content) && !this.REMOVE_LISTENER.test(content)) {
+      if (
+        this.ADD_LISTENER.test(content) &&
+        !this.REMOVE_LISTENER.test(content)
+      ) {
         violations.push(
           `${relativePath}: addEventListener() without a matching removeEventListener() — remove the listener in ngOnDestroy().`
         );
@@ -105,13 +114,14 @@ export class MemoryManagementLaw {
 
     const suggestions: string[] = [];
 
+    // Test files are already left out by the scanner (includeTests: false
+    // ignores every TEST_FILE_GLOBS pattern, whatever the config). The filter
+    // that stood here tested a name with its extension stripped, so it never
+    // removed anything (#369).
     const componentFiles = CheckerUtils.findAngularFiles(
       context.projectRoot,
       context.config
-    ).filter(file => {
-      const fileName = PathOperations.getBasename(file);
-      return !fileName.endsWith('.spec.ts') && !fileName.endsWith('.test.ts');
-    });
+    );
 
     if (componentFiles.length === 0) {
       return {
@@ -143,7 +153,9 @@ export class MemoryManagementLaw {
       violations,
       suggestions: Array.from(new Set(suggestions)),
       score:
-        violations.length === 0 ? 100 : Math.max(0, 100 - violations.length * 10),
+        violations.length === 0
+          ? 100
+          : Math.max(0, 100 - violations.length * 10),
       config: context.config,
       metrics: {
         totalFiles: componentFiles.length,

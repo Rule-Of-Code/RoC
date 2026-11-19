@@ -493,8 +493,9 @@ describe('utils/angular/angular-service-architecture/angular-service-architectur
 
   describe('getThresholds', () => {
     it('should have max methods threshold defined', () => {
-      const thresholds =
-        AngularServiceArchitectureConfiguration.getThresholds({});
+      const thresholds = AngularServiceArchitectureConfiguration.getThresholds(
+        {}
+      );
 
       expect(thresholds.MAX_METHODS_PER_SERVICE).toBeDefined();
       expect(thresholds.MAX_METHODS_PER_SERVICE).toBeGreaterThan(0);

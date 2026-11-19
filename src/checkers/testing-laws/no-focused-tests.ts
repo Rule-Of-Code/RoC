@@ -25,7 +25,14 @@ import { TestSources } from '../../utils/testing/test-sources';
 import { LawBase } from '../law-base';
 
 /** The globals every runner calls a test or a suite. */
-const TEST_FUNCTIONS = new Set(['it', 'test', 'describe', 'context', 'specify', 'suite']);
+const TEST_FUNCTIONS = new Set([
+  'it',
+  'test',
+  'describe',
+  'context',
+  'specify',
+  'suite',
+]);
 
 /** Jasmine's (and Jest's) focused aliases. */
 const FOCUS_FUNCTIONS = new Set(['fit', 'fdescribe']);
@@ -82,7 +89,10 @@ export class NoFocusedTestsLaw extends LawBase {
           : null;
       if (!callee) return;
       if (this.isFocus(source, node, callee, declared)) {
-        found.push({ line: source.lineOf(node), callee: callee.getText(source.sourceFile) });
+        found.push({
+          line: source.lineOf(node),
+          callee: callee.getText(source.sourceFile),
+        });
       }
     });
     return found;
@@ -119,7 +129,8 @@ export class NoFocusedTestsLaw extends LawBase {
       title !== undefined &&
       ts.isStringLiteralLike(title) &&
       node.arguments.some(
-        argument => ts.isArrowFunction(argument) || ts.isFunctionExpression(argument)
+        argument =>
+          ts.isArrowFunction(argument) || ts.isFunctionExpression(argument)
       )
     );
   }

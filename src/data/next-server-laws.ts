@@ -11,7 +11,10 @@
  * reports what it could not read as a violation. legacyId range: 531–549.
  */
 
-import type { EnhancedConstitutionalLaw, LawRequirement } from '../types/enhanced-law.types';
+import type {
+  EnhancedConstitutionalLaw,
+  LawRequirement,
+} from '../types/enhanced-law.types';
 import { REQUIRES_NEXT } from '../utils/framework-requirements';
 import { generateLawId } from '../utils/id-generator';
 
@@ -28,7 +31,15 @@ const REQUIRES_NEXT_APP_ROUTER: LawRequirement = {
  * `node:http` declares none of them and is not selected.
  */
 const REQUIRES_NODE_HTTP_SERVER: LawRequirement = {
-  anyDependency: ['next', 'express', 'fastify', 'koa', 'hono', '@nestjs/core', '@hapi/hapi'],
+  anyDependency: [
+    'next',
+    'express',
+    'fastify',
+    'koa',
+    'hono',
+    '@nestjs/core',
+    '@hapi/hapi',
+  ],
 };
 
 const PARSER_LIMIT =
@@ -53,7 +64,7 @@ export const NEXT_SERVER_LAWS: EnhancedConstitutionalLaw[] = [
       'Next makes every exported function of a \'use server\' module "reachable via a direct POST request, not just through your application\'s UI", and "a page-level authentication check does not extend to the Server Actions defined within it" (next/dist/docs/01-app/02-guides/data-security.md). The arguments are whatever the caller sends. An action without its own guard looks like any other function, and every test that calls it as the UI does passes.',
     satisfiedBy: {
       react:
-        "Make a guard the first statement of every action — `'use server'; export async function deletePost(id: string) { const user = await requireUser(); … }` — and list it in `thresholds.next.authGuards: [\"requireUser\"]`. A wrapper (`export const deletePost = withAuth(async (id) => …)`) listed there counts too.",
+        'Make a guard the first statement of every action — `\'use server\'; export async function deletePost(id: string) { const user = await requireUser(); … }` — and list it in `thresholds.next.authGuards: ["requireUser"]`. A wrapper (`export const deletePost = withAuth(async (id) => …)`) listed there counts too.',
     },
     detectionLimits: [
       'Presence only: it proves a configured guard is called first, not that the guard checks the right permission for this resource (the IDOR case).',
@@ -63,7 +74,8 @@ export const NEXT_SERVER_LAWS: EnhancedConstitutionalLaw[] = [
       PARSER_LIMIT,
     ],
     emoji: '🛂',
-    description: 'Every Server Action calls a configured authorization guard before its first statement',
+    description:
+      'Every Server Action calls a configured authorization guard before its first statement',
     priority: 'CRITICAL',
     category: 'SECURITY',
     stack: 'frontend',
@@ -99,7 +111,7 @@ export const NEXT_SERVER_LAWS: EnhancedConstitutionalLaw[] = [
       'GET, HEAD and OPTIONS handlers are not judged, including a GET with side effects.',
       'Body validation is recognised by name (thresholds.next.bodyValidators) or any typeof in the handler; its quality is not judged. Reads other than json()/formData() on the first parameter (text(), arrayBuffer(), a body passed to a helper) are not seen.',
       'Pages Router API routes (pages/api/**) are not read.',
-      "A handler re-exported from another module cannot be read and fails unless its route is in thresholds.next.publicRoutes.",
+      'A handler re-exported from another module cannot be read and fails unless its route is in thresholds.next.publicRoutes.',
       ROUTER_LIMIT,
       PARSER_LIMIT,
     ],
@@ -145,7 +157,8 @@ export const NEXT_SERVER_LAWS: EnhancedConstitutionalLaw[] = [
       PARSER_LIMIT,
     ],
     emoji: '🧱',
-    description: 'No server module reaches a client graph, and modules importing one carry server-only',
+    description:
+      'No server module reaches a client graph, and modules importing one carry server-only',
     priority: 'HIGH',
     category: 'SECURITY',
     stack: 'frontend',
@@ -179,11 +192,12 @@ export const NEXT_SERVER_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       GRAPH_LIMIT,
       "Sees process.env.X, process.env['X'] and names destructured from process.env (const { X, Y: y } = process.env, and the same assignment); an env read through a helper that takes the name as an argument, or a copy of process.env destructured later (const env = process.env; const { X } = env), is not seen. Computed access, a rest element and destructuring as such (never inlined, even for a NEXT_PUBLIC_ name) are Next Public Env Is Build Time's rule.",
-      "NODE_ENV and the keys of a literal `env` object in next.config are accepted, because Next inlines those; a next.config `env` that is not a literal is not read and is named in the message.",
+      'NODE_ENV and the keys of a literal `env` object in next.config are accepted, because Next inlines those; a next.config `env` that is not a literal is not read and is named in the message.',
       PARSER_LIMIT,
     ],
     emoji: '🫥',
-    description: 'Code bundled for the browser reads only NEXT_PUBLIC_ environment variables',
+    description:
+      'Code bundled for the browser reads only NEXT_PUBLIC_ environment variables',
     priority: 'HIGH',
     category: 'FRAMEWORK',
     stack: 'frontend',
@@ -260,7 +274,8 @@ export const NEXT_SERVER_LAWS: EnhancedConstitutionalLaw[] = [
       PARSER_LIMIT,
     ],
     emoji: '🧯',
-    description: 'The root App Router directory declares not-found, error and global-error, as Next requires them',
+    description:
+      'The root App Router directory declares not-found, error and global-error, as Next requires them',
     priority: 'MEDIUM',
     category: 'FRAMEWORK',
     stack: 'frontend',
@@ -294,7 +309,7 @@ export const NEXT_SERVER_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Build stages are read from Dockerfiles (a RUN with next build, or a package-manager/turbo/nx build in a Dockerfile that mentions .next) and, when there are none, from CI files (.github/workflows, .gitlab-ci.yml, bitbucket-pipelines.yml, azure-pipelines.yml) that build; a CI file is read as a whole, not per job.',
       'A committed .env or .env.production of the app counts as declared for every build. Whether the value at build time is the right one is not judged.',
-      "Secret-looking names are found by the words SECRET, TOKEN, PASSWORD, PRIVATE and KEY in the name; a secret with an innocent name is not seen.",
+      'Secret-looking names are found by the words SECRET, TOKEN, PASSWORD, PRIVATE and KEY in the name; a secret with an innocent name is not seen.',
       GRAPH_LIMIT,
       PARSER_LIMIT,
     ],
@@ -340,7 +355,8 @@ export const NEXT_SERVER_LAWS: EnhancedConstitutionalLaw[] = [
       PARSER_LIMIT,
     ],
     emoji: '🗺️',
-    description: 'Every pattern in a security guard exemption list matches at least one real route',
+    description:
+      'Every pattern in a security guard exemption list matches at least one real route',
     priority: 'HIGH',
     category: 'SECURITY',
     stack: 'frontend',
@@ -381,7 +397,8 @@ export const NEXT_SERVER_LAWS: EnhancedConstitutionalLaw[] = [
       PARSER_LIMIT,
     ],
     emoji: '📍',
-    description: 'Client IP forwarding headers are read in exactly one declared module',
+    description:
+      'Client IP forwarding headers are read in exactly one declared module',
     priority: 'HIGH',
     category: 'SECURITY',
     stack: 'typescript',

@@ -109,9 +109,9 @@ describe('cli/audit-command', () => {
     ])(
       '--mode=%s decides the law scope (config %s -> %s)',
       (mode, configPareto, expected) => {
-        expect(paretoModeForCliMode(mode as string, configPareto as boolean)).toBe(
-          expected
-        );
+        expect(
+          paretoModeForCliMode(mode as string, configPareto as boolean)
+        ).toBe(expected);
       }
     );
 

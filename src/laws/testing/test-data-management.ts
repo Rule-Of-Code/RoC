@@ -34,7 +34,9 @@ export class TestDataManagementLaw {
       const { projectRoot, config } = context;
       const testFiles = TestFileDiscovery.findTestFiles(projectRoot, config);
       if (testFiles.length === 0) {
-        const nothing = TestFileDiscovery.nothingToJudge('Test Data Management');
+        const nothing = TestFileDiscovery.nothingToJudge(
+          'Test Data Management'
+        );
         return markJudgedNothing(
           LawBase.buildDetailedResult({
             passed: false,
@@ -48,8 +50,7 @@ export class TestDataManagementLaw {
       }
       // Real-data mode: a project may deliberately use real inline data instead of
       // factories/mocks — don't flag that as a violation.
-      const realDataMode =
-        config.thresholds?.testing?.realDataMode === true;
+      const realDataMode = config.thresholds?.testing?.realDataMode === true;
 
       // Get thresholds from config with defaults
       const thresholds = {
@@ -78,7 +79,9 @@ export class TestDataManagementLaw {
       const unreadable = TestFileDiscovery.unreadable(projectRoot, testFiles);
       if (unreadable.length > 0) {
         violations.push(TestFileDiscovery.unreadableViolation(unreadable));
-        suggestions.push('Make the named test files readable (permissions, encoding, broken links)');
+        suggestions.push(
+          'Make the named test files readable (permissions, encoding, broken links)'
+        );
       }
 
       // 1. Check test files for proper data management patterns

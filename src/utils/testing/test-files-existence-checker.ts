@@ -31,7 +31,9 @@ export class TestFilesExistenceChecker {
     // The files this law can actually ask a test of. A barrel, a build config or
     // a bootstrap has no behaviour a spec could assert — counting them makes the
     // ratio below a statement about project layout rather than about testing.
-    const testableSources = sourceFiles.filter(file => this.shouldHaveTest(file));
+    const testableSources = sourceFiles.filter(file =>
+      this.shouldHaveTest(file)
+    );
 
     let missingTestCount = 0;
     const missingTestExamples: string[] = [];

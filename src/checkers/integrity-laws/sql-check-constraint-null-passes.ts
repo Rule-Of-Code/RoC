@@ -18,11 +18,19 @@
 import * as fs from 'fs';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { readCheckExpression } from '../../utils/integrity/sql-check-expression';
-import { type SqlCheck, SqlSchema, type SqlTable } from '../../utils/integrity/sql-schema';
-import { relativePath, trackedFiles } from '../../utils/integrity/tracked-files';
+import {
+  type SqlCheck,
+  SqlSchema,
+  type SqlTable,
+} from '../../utils/integrity/sql-schema';
+import {
+  relativePath,
+  trackedFiles,
+} from '../../utils/integrity/tracked-files';
 import { LawBase } from '../law-base';
 
-const NULL_BRANCH = 'add an explicit IS NULL / IS NOT NULL branch for it, or make the column NOT NULL';
+const NULL_BRANCH =
+  'add an explicit IS NULL / IS NOT NULL branch for it, or make the column NOT NULL';
 
 export class SqlCheckConstraintNullPassesLaw extends LawBase {
   static readonly LAW_NAME = 'SQL Check Constraint NULL Passes';
@@ -42,7 +50,8 @@ export class SqlCheckConstraintNullPassesLaw extends LawBase {
 
   private static findings(root: string): string[] {
     const listed = trackedFiles(root, ['*.sql']);
-    if (!listed.ok) return [`${listed.reason} — the SQL migrations were NOT read`];
+    if (!listed.ok)
+      return [`${listed.reason} — the SQL migrations were NOT read`];
     if (listed.files.length === 0) {
       return [
         'a .sql file is on disk but git tracks none — this law reads the committed migrations, and there are none to read',
@@ -50,7 +59,9 @@ export class SqlCheckConstraintNullPassesLaw extends LawBase {
     }
     const files = listed.files
       .map(file => ({ file, where: relativePath(root, file) }))
-      .sort((a, b) => a.where.localeCompare(b.where, undefined, { numeric: true }));
+      .sort((a, b) =>
+        a.where.localeCompare(b.where, undefined, { numeric: true })
+      );
     const schema = new SqlSchema();
     const findings: string[] = [];
     for (const { file, where } of files) {
@@ -58,13 +69,17 @@ export class SqlCheckConstraintNullPassesLaw extends LawBase {
       try {
         text = fs.readFileSync(file, 'utf8');
       } catch {
-        findings.push(`${where}: could not be read — its CHECK constraints were NOT inspected`);
+        findings.push(
+          `${where}: could not be read — its CHECK constraints were NOT inspected`
+        );
         continue;
       }
       schema.apply(where, text);
     }
     for (const unread of schema.unread) {
-      findings.push(`${unread.file}:${unread.line}: cannot read — ${unread.reason}; a CHECK nobody judged is not a pass`);
+      findings.push(
+        `${unread.file}:${unread.line}: cannot read — ${unread.reason}; a CHECK nobody judged is not a pass`
+      );
     }
     for (const check of schema.checks) {
       findings.push(...this.judge(check, schema.tables.get(check.table)));

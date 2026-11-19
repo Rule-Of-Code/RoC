@@ -9,6 +9,7 @@ import type {
   LawResult,
   RawConstitutionalLaw,
 } from '../types/law.types';
+import { execSync } from '../utils/child-process';
 import { ProjectTypeDetectorValidation } from '../utils/config/project-type-detector/project-type-detector-validation';
 import { FileSystemOperations } from '../utils/file-system-operations';
 import { FileUtils } from '../utils/file-utils';
@@ -155,7 +156,6 @@ export abstract class BaseChecker {
     cwd: string
   ): { stdout: string; stderr: string; success: boolean } {
     try {
-      const { execSync } = require('child_process');
       const output = execSync(command, {
         cwd,
         encoding: 'utf8',

@@ -58,7 +58,12 @@ function isIdentChar(ch: string | undefined): boolean {
 }
 
 /** Read the literal opening at `i`; returns its end index and decoded value. */
-function readString(source: string, i: number, quote: string, raw: boolean): { end: number; value: string } {
+function readString(
+  source: string,
+  i: number,
+  quote: string,
+  raw: boolean
+): { end: number; value: string } {
   const triple = quote.length === 3;
   let j = i;
   let value = '';
@@ -90,11 +95,18 @@ export function lexPython(content: string): PyLexed {
       i = nl < 0 ? source.length : nl;
       continue;
     }
-    const m = isIdentChar(source[i - 1]) ? null : STRING_START.exec(source.slice(i, i + 5));
+    const m = isIdentChar(source[i - 1])
+      ? null
+      : STRING_START.exec(source.slice(i, i + 5));
     if (m) {
       const prefix = (m[1] ?? '').toLowerCase();
       const quote = m[2] as string;
-      const { end, value } = readString(source, i + m[0].length, quote, prefix.includes('r'));
+      const { end, value } = readString(
+        source,
+        i + m[0].length,
+        quote,
+        prefix.includes('r')
+      );
       literals.push({ value, formatted: prefix.includes('f') });
       const newlines = source.slice(i, end).split('\n').length - 1;
       code += `«${literals.length - 1}»` + '\n'.repeat(newlines);
@@ -135,14 +147,20 @@ function logicalLines(code: string): LogicalLine[] {
     const piece = continued ? raw.replace(/\\\s*$/, '') : raw;
     if (current === null) {
       if (piece.trim() === '' && !continued) return;
-      current = { line: index + 1, endLine: index + 1, indent: indentOf(piece), text: piece.trim() };
+      current = {
+        line: index + 1,
+        endLine: index + 1,
+        indent: indentOf(piece),
+        text: piece.trim(),
+      };
     } else {
       current.text += ` ${piece.trim()}`;
       current.endLine = index + 1;
     }
     for (const ch of piece) {
       if (ch === '(' || ch === '[' || ch === '{') depth++;
-      else if (ch === ')' || ch === ']' || ch === '}') depth = Math.max(0, depth - 1);
+      else if (ch === ')' || ch === ']' || ch === '}')
+        depth = Math.max(0, depth - 1);
     }
     if (depth === 0 && !continued) {
       if (current.text.trim() !== '') out.push(current);
@@ -153,7 +171,8 @@ function logicalLines(code: string): LogicalLine[] {
   return out;
 }
 
-const COMPOUND = /^(async\s+def|def|class|if|elif|else|for|async\s+for|while|with|async\s+with|try|except\*?|finally|match|case)\b/;
+const COMPOUND =
+  /^(async\s+def|def|class|if|elif|else|for|async\s+for|while|with|async\s+with|try|except\*?|finally|match|case)\b/;
 
 /** Index of the colon that ends a compound header, or -1. Lambda colons are skipped. */
 function headerColon(text: string): number {
@@ -161,7 +180,11 @@ function headerColon(text: string): number {
   let pendingLambdas = 0;
   for (let i = 0; i < text.length; i++) {
     if (depths[i] !== 0) continue;
-    if (text.startsWith('lambda', i) && !isIdentChar(text[i - 1]) && !isIdentChar(text[i + 6])) {
+    if (
+      text.startsWith('lambda', i) &&
+      !isIdentChar(text[i - 1]) &&
+      !isIdentChar(text[i + 6])
+    ) {
       pendingLambdas++;
     } else if (text[i] === ':' && text[i + 1] !== '=') {
       if (pendingLambdas === 0) return i;
@@ -193,37 +216,68 @@ function splitStatements(text: string): string[] {
 
 /** One statement text → a node (compound header split from an inline body). */
 function toNode(text: string, at: LogicalLine, indent: number): PyNode {
-  const base = { line: at.line, endLine: at.endLine, indent, children: [] as PyNode[] };
-  if (text.startsWith('@')) return { ...base, text, keyword: '@', header: text.slice(1) };
+  const base = {
+    line: at.line,
+    endLine: at.endLine,
+    indent,
+    children: [] as PyNode[],
+  };
+  if (text.startsWith('@'))
+    return { ...base, text, keyword: '@', header: text.slice(1) };
   const m = COMPOUND.exec(text);
   const keyword = m ? (m[1] as string).replace(/\s+/g, ' ') : null;
   const rest = m ? text.slice(m[0].length).trimStart() : '';
-  if (!keyword || softKeywordMisread(keyword, rest)) return { ...base, text, keyword: null, header: '' };
+  if (!keyword || softKeywordMisread(keyword, rest))
+    return { ...base, text, keyword: null, header: '' };
   const colon = headerColon(text);
   if (colon < 0) return { ...base, text, keyword: null, header: '' };
   const header = text.slice(m?.[0].length ?? 0, colon).trim();
   const inline = text.slice(colon + 1).trim();
-  const node: PyNode = { ...base, text: text.slice(0, colon).trim(), keyword, header };
-  if (inline) node.children = splitStatements(inline).map(part => toNode(part, at, indent + 1));
+  const node: PyNode = {
+    ...base,
+    text: text.slice(0, colon).trim(),
+    keyword,
+    header,
+  };
+  if (inline)
+    node.children = splitStatements(inline).map(part =>
+      toNode(part, at, indent + 1)
+    );
   return node;
 }
 
 /** The block tree of a lexed module. */
 export function pythonTree(code: string): PyNode[] {
   const root: PyNode[] = [];
-  const stack: Array<{ indent: number; children: PyNode[]; opener: PyNode | null }> = [
-    { indent: -1, children: root, opener: null },
-  ];
+  const stack: Array<{
+    indent: number;
+    children: PyNode[];
+    opener: PyNode | null;
+  }> = [{ indent: -1, children: root, opener: null }];
   for (const logical of logicalLines(code)) {
-    while (stack.length > 1 && logical.indent <= (stack[stack.length - 1] as { indent: number }).indent) {
+    while (
+      stack.length > 1 &&
+      logical.indent <= (stack[stack.length - 1] as { indent: number }).indent
+    ) {
       stack.pop();
     }
     const parent = stack[stack.length - 1] as { children: PyNode[] };
-    const nodes = splitStatements(logical.text).map(part => toNode(part, logical, logical.indent));
+    const nodes = splitStatements(logical.text).map(part =>
+      toNode(part, logical, logical.indent)
+    );
     parent.children.push(...nodes);
     const last = nodes[nodes.length - 1];
-    if (last && last.keyword && last.keyword !== '@' && last.children.length === 0) {
-      stack.push({ indent: logical.indent, children: last.children, opener: last });
+    if (
+      last &&
+      last.keyword &&
+      last.keyword !== '@' &&
+      last.children.length === 0
+    ) {
+      stack.push({
+        indent: logical.indent,
+        children: last.children,
+        opener: last,
+      });
     }
   }
   closeEndLines(root);
@@ -234,7 +288,8 @@ export function pythonTree(code: string): PyNode[] {
 function closeEndLines(nodes: PyNode[]): number {
   let end = 0;
   for (const node of nodes) {
-    if (node.children.length > 0) node.endLine = Math.max(node.endLine, closeEndLines(node.children));
+    if (node.children.length > 0)
+      node.endLine = Math.max(node.endLine, closeEndLines(node.children));
     end = Math.max(end, node.endLine);
   }
   return end;

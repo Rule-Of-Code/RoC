@@ -3,7 +3,7 @@
  * Prevents merge conflicts through proper workflow and tooling
  */
 
-import { execFileSync, execSync } from 'child_process';
+import { execFileSync, execSync } from '../../utils/child-process';
 import type { RuleOfCodeConfig } from '../../config/types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils';

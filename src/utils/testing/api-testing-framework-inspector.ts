@@ -121,7 +121,9 @@ export class APITestingFrameworkInspector extends FileScannerBase {
       directory,
       name => patterns.includes(name),
       results,
-      nextDir => { this.searchConfigFilesRecursively(nextDir, patterns, results); }
+      nextDir => {
+        this.searchConfigFilesRecursively(nextDir, patterns, results);
+      }
     );
   }
 }

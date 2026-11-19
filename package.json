@@ -1,6 +1,6 @@
 {
   "name": "ruleofcode",
-  "version": "7.27.0",
+  "version": "7.28.0",
   "description": "Constitutional-compliance CLI — audit a codebase against a catalog of laws and get one honest pass-or-fail verdict, with git hooks. Supports TypeScript, Angular and Python.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -12,6 +12,7 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "lint": "eslint .",
+    "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\" \"scripts/**/*.js\"",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch --passWithNoTests",
     "test:coverage": "jest --coverage --passWithNoTests",
@@ -34,7 +35,7 @@
     "update-deps": "npm update && npm outdated",
     "constitutional-check": "node dist/cli.js audit",
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
-    "prepare": "npm run build",
+    "prepare": "husky && npm run build",
     "prepack": "npm run clean && npm run build",
     "recommend": "node dist/cli.js recommend",
     "ruleofcode": "node dist/cli.js",
@@ -106,6 +107,7 @@
   },
   "lint-staged": {
     "*.{ts,js}": [
+      "prettier --check",
       "npx ruleofcode audit --mode=pre-commit --staged"
     ]
   }

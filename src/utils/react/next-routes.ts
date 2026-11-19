@@ -17,7 +17,9 @@ import { REACT_TEST_FILE, type NextApp } from './react-project';
 /** Next's default `pageExtensions`. */
 export const PAGE_EXTENSIONS = ['tsx', 'ts', 'jsx', 'js'];
 
-const SPECIAL_FILE = new RegExp(`^([\\w-]+)\\.(?:${PAGE_EXTENSIONS.join('|')})$`);
+const SPECIAL_FILE = new RegExp(
+  `^([\\w-]+)\\.(?:${PAGE_EXTENSIONS.join('|')})$`
+);
 
 export interface RouterLayout {
   app: NextApp;
@@ -29,7 +31,8 @@ export interface RouterLayout {
   conventionDir: string | null;
 }
 
-export type SegmentKind = 'catchAll' | 'dynamic' | 'optionalCatchAll' | 'static';
+export type SegmentKind =
+  'catchAll' | 'dynamic' | 'optionalCatchAll' | 'static';
 
 export interface RouteSegment {
   kind: SegmentKind;
@@ -58,7 +61,12 @@ export function routerLayout(app: NextApp): RouterLayout {
   const appDir = pick('app');
   const pagesDir = pick('pages');
   const base = pagesDir ?? appDir;
-  return { app, appDir, pagesDir, conventionDir: base ? PathOperations.getDirectory(base) : null };
+  return {
+    app,
+    appDir,
+    pagesDir,
+    conventionDir: base ? PathOperations.getDirectory(base) : null,
+  };
 }
 
 /** The special file `<name>.<page ext>` directly in `dir`, if present. */
@@ -77,7 +85,8 @@ export function specialFileName(file: string): string | null {
 }
 
 export function segmentOf(text: string): RouteSegment {
-  if (/^\[\[\.\.\.[^\]]+\]\]$/.test(text)) return { kind: 'optionalCatchAll', text };
+  if (/^\[\[\.\.\.[^\]]+\]\]$/.test(text))
+    return { kind: 'optionalCatchAll', text };
   if (/^\[\.\.\.[^\]]+\]$/.test(text)) return { kind: 'catchAll', text };
   if (/^\[[^\]]+\]$/.test(text)) return { kind: 'dynamic', text };
   return { kind: 'static', text };
@@ -88,14 +97,21 @@ export function nextRoutes(layouts: readonly RouterLayout[]): NextRoute[] {
   const routes: NextRoute[] = [];
   for (const layout of layouts) {
     if (layout.appDir) collectAppRoutes(layout, layout.appDir, routes);
-    if (layout.pagesDir) collectPagesRoutes(layout, layout.pagesDir, [], routes);
+    if (layout.pagesDir)
+      collectPagesRoutes(layout, layout.pagesDir, [], routes);
   }
   return routes;
 }
 
 /** The route path of an App Router file, or null when a private folder hides it. */
-export function appRouteSegments(appDir: string, file: string): RouteSegment[] | null {
-  const dirs = PathOperations.getRelative(appDir, PathOperations.getDirectory(file))
+export function appRouteSegments(
+  appDir: string,
+  file: string
+): RouteSegment[] | null {
+  const dirs = PathOperations.getRelative(
+    appDir,
+    PathOperations.getDirectory(file)
+  )
     .split('/')
     .filter(part => part && part !== '.');
   const segments: RouteSegment[] = [];
@@ -111,7 +127,11 @@ export function routePath(segments: readonly RouteSegment[]): string {
   return `/${segments.map(segment => segment.text).join('/')}`;
 }
 
-function collectAppRoutes(layout: RouterLayout, dir: string, routes: NextRoute[]): void {
+function collectAppRoutes(
+  layout: RouterLayout,
+  dir: string,
+  routes: NextRoute[]
+): void {
   for (const entry of readDir(dir)) {
     const abs = PathOperations.join(dir, entry.name);
     if (entry.isDirectory()) {
@@ -123,7 +143,13 @@ function collectAppRoutes(layout: RouterLayout, dir: string, routes: NextRoute[]
     if (name !== 'page' && name !== 'route') continue;
     const segments = appRouteSegments(layout.appDir ?? dir, abs);
     if (!segments) continue;
-    routes.push({ app: layout.app, file: abs, kind: name, path: routePath(segments), segments });
+    routes.push({
+      app: layout.app,
+      file: abs,
+      kind: name,
+      path: routePath(segments),
+      segments,
+    });
   }
 }
 
@@ -141,11 +167,23 @@ function collectPagesRoutes(
       continue;
     }
     const name = specialFileName(entry.name);
-    if (!name || REACT_TEST_FILE.test(entry.name) || entry.name.endsWith('.d.ts')) continue;
-    if (trail.length === 0 && ['_app', '_document', '_error'].includes(name)) continue;
+    if (
+      !name ||
+      REACT_TEST_FILE.test(entry.name) ||
+      entry.name.endsWith('.d.ts')
+    )
+      continue;
+    if (trail.length === 0 && ['_app', '_document', '_error'].includes(name))
+      continue;
     const parts = name === 'index' ? trail : [...trail, name];
     const segments = parts.map(segmentOf);
-    routes.push({ app: layout.app, file: abs, kind: 'pages', path: routePath(segments), segments });
+    routes.push({
+      app: layout.app,
+      file: abs,
+      kind: 'pages',
+      path: routePath(segments),
+      segments,
+    });
   }
 }
 

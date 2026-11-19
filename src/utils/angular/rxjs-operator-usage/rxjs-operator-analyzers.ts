@@ -185,7 +185,11 @@ export class FlatteningOperatorAnalyzer extends BaseOperatorAnalyzer {
 
     // map() that returns an Observable (service/HTTP call) — should be a
     // flattening operator. Conservative regex (async-looking method only).
-    if (RxJSOperatorUsageConfiguration.MAP_RETURNS_OBSERVABLE_PATTERN.test(content)) {
+    if (
+      RxJSOperatorUsageConfiguration.MAP_RETURNS_OBSERVABLE_PATTERN.test(
+        content
+      )
+    ) {
       violations.push(
         RxJSOperatorUsageConfiguration.buildMessage(
           messages.MAP_RETURNS_OBSERVABLE,

@@ -57,15 +57,16 @@ export class NoMethodCallsInTemplatesLaw extends AngularLawBase {
       const html = FileUtils.readFile(file).replace(/<!--[\s\S]*?-->/g, ' ');
       const called = this.templateCallees(html);
       const flagged = [...called].filter(
-        name =>
-          methods.has(name) && !reactive.has(name) && !allowlist.has(name)
+        name => methods.has(name) && !reactive.has(name) && !allowlist.has(name)
       );
       if (flagged.length > 0) {
         violations.push(
           `${PathOperations.getRelative(projectRoot, file)}: method call(s) in template — ${flagged
             .slice(0, 5)
             .map(n => `${n}()`)
-            .join(', ')}. Move to computed(), a pure pipe, or precompute on the model (re-runs every CD cycle).`
+            .join(
+              ', '
+            )}. Move to computed(), a pure pipe, or precompute on the model (re-runs every CD cycle).`
         );
       }
     }
@@ -116,7 +117,8 @@ export class NoMethodCallsInTemplatesLaw extends AngularLawBase {
     const callees = new Set<string>();
     const exprs: string[] = [];
     // {{ interpolation }}
-    for (const m of html.matchAll(/\{\{([\s\S]*?)\}\}/g)) exprs.push(m[1] ?? '');
+    for (const m of html.matchAll(/\{\{([\s\S]*?)\}\}/g))
+      exprs.push(m[1] ?? '');
     // [prop]="..." and [attr.x]="..." (NOT (event)="...")
     for (const m of html.matchAll(/\[[^\]]+\]\s*=\s*"([^"]*)"/g)) {
       exprs.push(m[1] ?? '');

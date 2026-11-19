@@ -7,7 +7,7 @@
  * project root reported "no hooks" and "unable to read Git configuration" for
  * a worktree whose hooks had just blocked a push.
  */
-import { execSync } from 'child_process';
+import { execSync } from '../../src/utils/child-process';
 import { GitHooksStandardsLaw } from '../../src/checkers/version-control-laws/git-hooks-standards';
 import { VersionControlLawBase } from '../../src/checkers/version-control-laws/version-control-law-base';
 import type { LawCheckContext } from '../../src/types/law.types';
@@ -91,9 +91,9 @@ describe('utils/git/git-layout — linked worktrees', () => {
     FileUtils.createDirectory(custom);
     git('config core.hooksPath .husky', worktree);
 
-    expect(PathOperations.normalize(resolveGitHooksDir(worktree) as string)).toBe(
-      PathOperations.normalize(custom)
-    );
+    expect(
+      PathOperations.normalize(resolveGitHooksDir(worktree) as string)
+    ).toBe(PathOperations.normalize(custom));
   });
 
   it('reads the git config from inside a worktree', () => {
@@ -124,6 +124,8 @@ describe('utils/git/git-layout — linked worktrees', () => {
 
     const result = GitHooksStandardsLaw.check(context);
 
-    expect(result.violations ?? []).not.toContain('Git hooks directory missing');
+    expect(result.violations ?? []).not.toContain(
+      'Git hooks directory missing'
+    );
   });
 });

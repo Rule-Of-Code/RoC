@@ -13,7 +13,11 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { importedNames } from '../../utils/react/next-app-files';
 import { ReactProject } from '../../utils/react/react-project';
-import { jsxAttribute, type JsxElementInfo, type TsxSource } from '../../utils/react/tsx-source';
+import {
+  jsxAttribute,
+  type JsxElementInfo,
+  type TsxSource,
+} from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';
 
 const NEXT_IMAGE_MODULES = ['next/image', 'next/legacy/image'];
@@ -27,7 +31,8 @@ export class NextImageHasDimensionsLaw extends LawBase {
     const files = ReactProject.sourceFiles(context, ['.tsx', '.jsx', '.js']);
     const { sources, unread } = ReactProject.parse(context, files);
     const violations = [...unread];
-    for (const source of sources) violations.push(...this.checkSource(context, source));
+    for (const source of sources)
+      violations.push(...this.checkSource(context, source));
     return this.createResult(
       violations,
       this.LAW_NAME,
@@ -48,7 +53,9 @@ export class NextImageHasDimensionsLaw extends LawBase {
     for (const element of source.jsxElements()) {
       const isImg = element.tag === 'img';
       if (!isImg && !imageTags.has(element.tag)) continue;
-      const problem = isImg ? this.imgProblem(element) : this.imageProblem(element, staticImages);
+      const problem = isImg
+        ? this.imgProblem(element)
+        : this.imageProblem(element, staticImages);
       if (problem) violations.push(`${where}:${element.line}: ${problem}`);
     }
     return violations;
@@ -58,7 +65,8 @@ export class NextImageHasDimensionsLaw extends LawBase {
   private static staticImageNames(source: TsxSource): Set<string> {
     const names = new Set<string>();
     for (const info of source.imports()) {
-      if (info.defaultName && STATIC_IMAGE.test(info.module)) names.add(info.defaultName);
+      if (info.defaultName && STATIC_IMAGE.test(info.module))
+        names.add(info.defaultName);
     }
     return names;
   }
@@ -79,11 +87,15 @@ export class NextImageHasDimensionsLaw extends LawBase {
     return `<img> without ${missing.join(' and ')}${this.spreadNote(element)} — the browser cannot reserve its box, so the layout shifts when it loads`;
   }
 
-  private static imageProblem(element: JsxElementInfo, staticImages: Set<string>): string | null {
+  private static imageProblem(
+    element: JsxElementInfo,
+    staticImages: Set<string>
+  ): string | null {
     const missing = this.missing(element);
     if (missing.length === 0) return null;
     const fill = jsxAttribute(element, 'fill');
-    if (fill && !(fill.kind === 'expression' && fill.value === 'false')) return null;
+    if (fill && !(fill.kind === 'expression' && fill.value === 'false'))
+      return null;
     // next/legacy/image spells fill as layout="fill".
     if (jsxAttribute(element, 'layout')?.value === 'fill') return null;
     const src = jsxAttribute(element, 'src');

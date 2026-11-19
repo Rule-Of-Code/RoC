@@ -178,7 +178,9 @@ export class CoverageThresholdReader {
     const references = new Set(
       [...region.matchAll(/:\s*([A-Za-z_$][\w$]*)\s*[,}\n]/g)]
         .map(match => match[1])
-        .filter(name => name !== undefined && !/^(?:true|false|null)$/.test(name))
+        .filter(
+          name => name !== undefined && !/^(?:true|false|null)$/.test(name)
+        )
     );
     if (references.size === 0) return region;
 

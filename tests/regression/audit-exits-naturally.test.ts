@@ -12,13 +12,12 @@
  * The CLI rows spawn the built dist/cli.js, the way a consumer runs it (run
  * `npm run build` first). A preload marks every process.exit() call on fd 2.
  */
-import { spawn } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
 import { EXIT_BACKUP_MS, exitWhenDone } from '../../src/cli/audit-command';
-import { childEnvironment, spawnSync } from '../../src/utils/child-process';
+import { spawn, spawnSync } from '../../src/utils/child-process';
 
 const CLI = path.resolve(__dirname, '..', '..', 'dist', 'cli.js');
 const MARK = 'ROC_TEST_PROCESS_EXIT_CALLED';
@@ -115,11 +114,10 @@ describe('#385 the audit CLI exits on its own', () => {
   it('stdout closed by the reader (EPIPE): the process still ends', async () => {
     const child = spawn(process.execPath, [CLI, 'audit', '--json'], {
       cwd: dir,
-      env: childEnvironment(),
       stdio: ['ignore', 'pipe', 'pipe'],
     });
-    child.stdout.destroy();
-    child.stderr.resume();
+    child.stdout?.destroy();
+    child.stderr?.resume();
     const ended = await new Promise<boolean>(resolve => {
       const limit = setTimeout(() => resolve(false), 120000);
       child.on('exit', () => {

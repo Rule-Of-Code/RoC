@@ -1,0 +1,11 @@
+{
+  "project": { "type": "typescript" },
+  "laws": {
+    "enabled": {
+      "Code Complexity Control": true,
+      "Dead Code Elimination": true,
+      "Magic Number Prevention": true,
+      "No Explicit Any / Non-Null Assertion": true
+    }
+  }
+}

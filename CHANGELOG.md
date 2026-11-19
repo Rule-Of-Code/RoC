@@ -40,6 +40,22 @@ left it off, or waives it, sees no change. The two suggestions it printed
 without a finding (a global error handler, error boundaries) are gone with the
 checks. The Python HTTP-guard helper that only this law used is removed.
 
+**Known limit, not "there are none".** Of the 51 findings reviewed across the
+five checks, 6 were true, all from the two checks that had any (2 of 12 and 4
+of 12). All 6 have one shape: a component subscribes to a service method that
+returns an HTTP observable, with no error handling. The two public Angular
+apps above have that shape in at least 7 places (a rough count, not checked one
+by one). A narrow check for the same request subscribed in the same expression
+(`http.get(…).subscribe(…)` with no error handler) was defined before it was
+measured and found 0 times in the six projects, so it could not be verified
+either. From 7.29.0 the law does not see that shape at all. Finding it needs
+following the observable from the service into the component across files,
+which would be a new detector with its own measurement.
+
+The labels were reviewed independently by QA: 0 disagreements in the 24
+findings of the two checks with true findings. The narrow check was also 0 by
+QA's own detector.
+
 ## [7.28.1] - 2026-11-19
 
 A patch: no law added or removed (265), no change to the JSON contract. Closes

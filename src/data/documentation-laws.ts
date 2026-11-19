@@ -321,9 +321,8 @@ export const DOCUMENTATION_LAWS: EnhancedConstitutionalLaw[] = [
         'Nothing satisfies it in this version: it has no verified check (#390). Waive it in laws.notApplicable with the reason, or leave it off.',
     },
     detectionLimits: [
-      'No verified detection path in this version (7.29.0, #390): turned on, it reports "this law judged nothing" and fails with score 0, whatever the project holds. It never passes.',
-      'Its five checks were removed after a random sample of each was measured on real projects: critical areas missing try/catch 2 of 12 true, error logging 0 of 12, user-friendly messages 0 of 3 (all there were), HTTP error handling 0 of 12, Observable error handling 4 of 12. A check needs at least 80% on at least 10 findings to stay.',
-      'The law stays in the registry and opt-in (off by default since 7.28.0), so a key or a waiver naming it is still valid.',
+      'Error Handling Standards has no verified detection path in this version — this law judged nothing. Its five checks were measured on real projects at 0–33% precision and removed (#390); waive it or leave it off until a check is verified.',
+      'The five checks, by a random sample of each on real projects: critical areas missing try/catch 2 of 12 true, error logging 0 of 12, user-friendly messages 0 of 3 (all there were), HTTP error handling 0 of 12, Observable error handling 4 of 12. A check needs at least 80% on at least 10 findings to stay.',
     ],
     emoji: '🚨',
     description:

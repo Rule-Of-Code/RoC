@@ -5,6 +5,41 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### ⚠️ BREAKING — Error Handling Standards has no verified check; turned on, it judges nothing (#390)
+
+Once #369 (7.28.0) let Error Handling Standards see source files, its five
+checks could be measured. Each was a whole-file pattern match. A random sample
+of each (seed recorded) was labelled on six real projects, three private and
+three public (angular-realworld-example-app, node-express-realworld-example-app,
+ionic-conference-app). The labelling criteria were written before the samples
+were read. A check stays only at ≥ 80% true on ≥ 10 findings:
+
+| Check | Findings | Sampled | True | Precision | What the false ones were |
+|---|---|---|---|---|---|
+| critical areas missing try/catch | 127 | 12 | 2 | 17% | an await that returns to its caller (the error propagates on purpose); a subscribe with an error handler, flagged because the file has no `try {` |
+| error logging | 337 | 12 | 0 | 0% | the error turned into UI state, or rethrown; fixtures that only throw |
+| user-friendly messages | 3 | 3 | 0 | 0% | a status code in a comment; a value of a union type |
+| HTTP error handling | 107 | 12 | 0 | 0% | a repository that returns its promise or observable to the caller |
+| Observable error handling | 23 | 12 | 4 | 33% | router, service-worker and auth-state streams, which do not error; services with no subscribe |
+
+All five are removed. The law stays in the registry (265 laws), so a key or a
+waiver that names it is still valid. It stays opt-in, as it has been since
+7.28.0. Turned on (`laws.severity` or `laws.enabled`), it does not pass a
+project it did not judge (#369). It reports:
+
+```
+Error Handling Standards has no verified detection path in this version — this law judged nothing. Its five checks were measured on real projects at 0–33% precision and removed (#390); waive it or leave it off until a check is verified.
+```
+
+That is a failure with score 0, at the severity the config gives it.
+**Breaking** for a config that turned it on: findings it used to report
+(nearly all of them false) are replaced by this single failure. A config that
+left it off, or waives it, sees no change. The two suggestions it printed
+without a finding (a global error handler, error boundaries) are gone with the
+checks. The Python HTTP-guard helper that only this law used is removed.
+
 ## [7.28.1] - 2026-11-19
 
 A patch: no law added or removed (265), no change to the JSON contract. Closes

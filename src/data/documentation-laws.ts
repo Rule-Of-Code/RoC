@@ -313,18 +313,17 @@ export const DOCUMENTATION_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '13.1',
     title: 'Error Handling Standards',
     rationale:
-      'Unguarded parsing, storage, fetch and subscribe calls are where an app crashes in production with no log to explain it. This documentation-side law scans sources for missing try/catch, logging and safe HTTP handling.',
+      'Unguarded parsing, storage, fetch and subscribe calls are where an app crashes in production with no log to explain it. No check for it has been verified yet: the five this law had were measured on real projects and removed (#390), so turned on it judges nothing and says so rather than pass a project it did not look at.',
     satisfiedBy: {
       typescript:
-        'Wrap risky operations (JSON.parse, localStorage, fetch, subscribe, await) in try/catch, log errors, and add catchError to Observables.',
+        'Nothing satisfies it in this version: it has no verified check (#390). Waive it in laws.notApplicable with the reason, or leave it off.',
       python:
-        'Every outbound HTTP call (urlopen, requests, httpx, aiohttp) must sit inside a try/except — that guard is the one check with a real Python path.',
+        'Nothing satisfies it in this version: it has no verified check (#390). Waive it in laws.notApplicable with the reason, or leave it off.',
     },
     detectionLimits: [
-      'Off by default since 7.28.0 (opt-in): once it could see source files (#369), all five paths were measured on real code and 0 of 42 sampled findings were true — try/catch around propagating awaits and non-erroring subscriptions, error handling without a log call, values read as user messages, every HttpClient import. Turn it on with laws.severity (e.g. "warning"); see #390.',
-      'The try/catch, logging, message and Observable checks scan only .ts files, so on a pure Python repo they pass vacuously and the law reduces to the HTTP-guard check.',
-      'Detection is file-level, not per-function — a file that handles errors with .catch() but has no `try {` anywhere is still flagged as missing try/catch.',
-      'The user-friendly-message check matches patterns like status: 200 or throw new Error(CODE) inside strings and config literals, producing false positives.',
+      'No verified detection path in this version (7.29.0, #390): turned on, it reports "this law judged nothing" and fails with score 0, whatever the project holds. It never passes.',
+      'Its five checks were removed after a random sample of each was measured on real projects: critical areas missing try/catch 2 of 12 true, error logging 0 of 12, user-friendly messages 0 of 3 (all there were), HTTP error handling 0 of 12, Observable error handling 4 of 12. A check needs at least 80% on at least 10 findings to stay.',
+      'The law stays in the registry and opt-in (off by default since 7.28.0), so a key or a waiver naming it is still valid.',
     ],
     emoji: '🚨',
     description:
@@ -332,14 +331,14 @@ export const DOCUMENTATION_LAWS: EnhancedConstitutionalLaw[] = [
     priority: 'HIGH',
     category: 'DOCUMENTATION',
     automation: 'CONFIGURABLE',
-    // Opt-in: its findings were 0 of 42 true on real code (#390).
+    // Opt-in, and with no verified check it judges nothing (#390).
     defaultEnabled: false,
     defaultSeverity: 'error',
     checkFunction: 'checkErrorHandlingStandards',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Section 13.1: Error handling standards not met',
     remediation:
-      'Implement try-catch blocks, proper error logging, user-friendly error messages',
+      'No check is verified yet (#390): waive it in laws.notApplicable with the reason, or leave it off.',
   },
 
   {

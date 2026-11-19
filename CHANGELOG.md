@@ -11,9 +11,10 @@ The rest of the same incident and what the 7.27.0 wave found on the way: git
 safety (an inherited `GIT_DIR`, hooks that never ran), the engine's narrowing and
 floor, a Pareto core that was a hardcoded list, and nine more laws. Closes #362,
 #363, #364, #365, #366, #367, #369, #370, #371, #372, #373, #374, #375, #376,
-#377, #379, #380, #381, #382, #383, #384, #387, #388; #361 (the umbrella) closes
+#377, #379, #380, #381, #382, #383, #384, #387, #388, #391; #361 (the umbrella) closes
 with them. #385 (two audit stalls under load, not reproduced in 283 later runs)
-stays open as observed.
+stays open as observed; #390 (Error Handling Standards, opt-in for now) stays open
+until its detection paths are fixed.
 
 ### ⚠️ BREAKING — git: child processes no longer inherit `GIT_DIR` (#372)
 
@@ -91,14 +92,32 @@ fixture narrowed to one category: 29 of 29 COMPLIANCE → 29 of 78 PARTIAL.
 ### ⚠️ BREAKING — seven checks tested a file name without its extension (#369)
 
 `getBasename` returns the name without its extension; ten places tested it for
-one. Error Handling Standards and TODO Management Standards now read the code
-they were meant to read (measured on two real projects: TODO Management PASS →
-FAIL with 13 and 202 unreferenced TODOs; Error Handling 1 → 5 violations on a
-project that already failed it). Bundle Size Optimization now sees `loadChildren`
-(a false "Heavy dependencies … without lazy loading" is gone). NgRx RxJS
-Operators Selection Mandate sees `*.effects.ts`. `*.old.*` templates are skipped.
-Three sites are unreachable from any registered law (fixed in place and documented
-as dead code), and one filter was redundant (removed). A guard test forbids an extension check on a `getBasename` result.
+one. Bundle Size Optimization now sees `loadChildren` (a false "Heavy
+dependencies … without lazy loading" is gone). NgRx RxJS Operators Selection
+Mandate sees `*.effects.ts`. `*.old.*` templates are skipped. Three sites are
+unreachable from any registered law (fixed in place and documented as dead
+code), and one filter was redundant (removed). A guard test forbids an extension
+check on a `getBasename` result.
+
+Two laws that had read nothing were measured on real code once they could see it:
+
+- **TODO Management Standards** now reads code, and a TODO is an upper-case tag at
+  the start of a comment's text, in the file's own comment syntax: `TODO:`,
+  `TODO(x):`, `TODO (Sprint 10):`, `FIXME:`, `HACK:`, `XXX:`. A marker in the middle
+  of a sentence, in inline code, or a bare `TODO` without a colon is not read;
+  NOTE is not a marker. The first version of this fix matched "note" anywhere —
+  CSS classes like `.cov-note`, `note: true`, prose — and every finding it gave on
+  the projects we measured was false: 13 → 0 and 202 → 0 on two real projects,
+  66 → 1 on a third (the one left is a real `TODO(tokens):`). On RoC's own code the
+  rule went from 3 correct of 10 to 3 of 3 before this release.
+- **Error Handling Standards is off by default.** Its five detection paths were
+  measured at 0 of 42 correct on real code. In 7.27.0 and earlier it reported
+  findings that were not real. It is opt-in now (`defaultEnabled: false`): not
+  selected and not counted unless `laws.severity` names it, and the detector is
+  unchanged until #390 lands. Re-enable it with `laws.severity` if you want it
+  anyway. Every project that does not name it runs one law fewer: the canary profiles
+  go python 98 → 97, angular 121 → 120, angular + NgRx 132 → 131, ionic 151 →
+  150, react 135 → 134, node 78 → 77.
 
 ### ⚠️ BREAKING — smaller ones
 
@@ -120,8 +139,10 @@ as dead code), and one filter was redundant (removed). A guard test forbids an e
 ### Added — nine laws, all `warning` by default
 
 Each is selected only where its subject is in the files git publishes, judges
-exactly those files, reports `file:line`, and passes with a counter only when it
-read at least one file of its subject.
+exactly those files and reports `file:line`. A law that read files and found
+nothing to judge passes with its counters (message and `metrics`) and says what
+it does not see; "nothing was judged" is reported only when it could read no file
+or its parser did not load, and never as a violation.
 
 | Law | Article | Issue |
 |---|---|---|
@@ -144,23 +165,24 @@ not seen (RoC reads one repository).
 
 | Simulated consumer | 7.27.0 | 7.28.0 |
 |---|---|---|
-| canary: python | 98 | 98 |
-| canary: angular | 121 | 121 |
-| canary: angular + NgRx | 132 | 132 |
-| canary: ionic | 151 | 151 |
-| canary: react | 135 | 135 |
-| canary: node | 78 | 78 |
-| a FastAPI service with a document database (real project, own config) | 94 | 97 |
+| canary: python | 98 | 97 |
+| canary: angular | 121 | 120 |
+| canary: angular + NgRx | 132 | 131 |
+| canary: ionic | 151 | 150 |
+| canary: react | 135 | 134 |
+| canary: node | 78 | 77 |
+| a FastAPI service with a document database (real project, own config) | 94 | 96 |
 | an Ionic/Angular Nx app (real project, own config) | 153 | 156 |
-| a static web front end (real project, own config) | 66 | 66 |
+| a static web front end (real project, own config) | 66 | 65 |
 
 The canary counts are `laws=` from `node scripts/release-canary.js --tarball`, run
 against the published 7.27.0 tarball and against this release's tarball: the nine
-new laws are all gated, and none of the canary fixtures holds their subject. On
+new laws are all gated and none of the canary fixtures holds their subject, so the
+one law fewer is Error Handling Standards going opt-in (#390). On
 the three real projects (full audits, own config, read-only) the new findings are
 the hook laws (#380: none of the three checkouts has its committed hooks
-activated), TODO Management Standards (#369) on two of them, and Test Rig Keeps
-Route Guards with three findings on the Ionic app.
+activated) and Test Rig Keeps Route Guards with three findings on the Ionic app.
+TODO Management Standards gives 0 findings on all three (see #369 above).
 
 ### Internal
 
@@ -171,6 +193,16 @@ Route Guards with three findings on the Ionic app.
   listed in `.git-blame-ignore-revs`; the hook and CI only check formatting (#382).
 - lint-staged runs without its backup stash: the stash list is shared by every
   worktree, so one hook could restore another worktree's backup.
+
+### Fixed — the audit cache follows the code (#391)
+
+The audit cache (`performance.cache: true`) was keyed by the project's files, the
+config, the mode and RoC's version string. Two builds of one version — release
+candidates, a local build, `npm link`, an install from git — shared entries, so
+the second could return the first one's verdict. Entries now also carry a hash of
+the running package's code (computed once per process, about 0.1 s, only when the
+cache is on); an entry from different code, or from before this release, is not
+used. Nothing is written into the package, so `npm pack` stays reproducible.
 
 ## [7.27.0] - 2026-11-18
 

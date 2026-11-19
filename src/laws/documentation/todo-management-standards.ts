@@ -275,10 +275,14 @@ export class TodoManagementStandardsLaw {
   }
 
   /**
-   * The first task marker in a comment's text: the upper-case word, then what
-   * it says. A marker opens the comment (after `*` or whitespace) or tags it
-   * (`TODO:`, `TODO(GH-1):`); a comment that only names the word — `never a
-   * "TODO" look` — is prose about a marker, not one.
+   * The task marker of a comment line: the upper-case word in TAG form at
+   * the start of the comment's text — `TODO:`, `TODO(x):`, `TODO (Sprint
+   * 10):`, `FIXME:`, `HACK:`, `XXX:` — then what it says. Opening the line
+   * with the bare word was too wide: a law's title (`TODO Management
+   * Standards Law`), a continuation line (`TODO; scanning raw source…`) and
+   * prose (`TODO marker that only appears…`) start that way. A marker in
+   * inline code or mid-sentence is not at the start, so it is not one.
+   * `// TODO fix this` without a colon is not read (see detectionLimits).
    */
   private static findTODOInLine(
     comment: string
@@ -291,14 +295,13 @@ export class TodoManagementStandardsLaw {
     ];
 
     for (const { word, type } of markers) {
-      const opening = new RegExp(String.raw`^[\s*]*${word}\b[\s:]*(.*)`);
-      const tagging = new RegExp(
-        String.raw`(?<!["'\x60\w])${word}\b(?=\s*[:(])[\s:]*(.*)`
+      const tag = new RegExp(
+        String.raw`^[\s*]*${word}\s*((?:\([^)]*\)\s*)?:.*)$`
       );
-      const match = opening.exec(comment) ?? tagging.exec(comment);
+      const match = tag.exec(comment);
       if (match) {
         return {
-          content: (match[1] ?? '').trim(),
+          content: (match[1] ?? '').replace(/^:\s*/, '').trim(),
           type,
         };
       }

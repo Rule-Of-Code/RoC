@@ -127,7 +127,7 @@ describe('#369 rows reachable from a registered law: red on 7.27.0, green now', 
   it('row 2 — TODO Management Standards reads the code files (an unreferenced TODO is reported)', async () => {
     const bad = await run('TODO Management Standards', {
       ...TS,
-      'src/a.ts': '// TODO fix this later\nexport const a = 1;\n',
+      'src/a.ts': '// TODO: fix this later\nexport const a = 1;\n',
     });
     expect(bad.result.passed).toBe(false);
     expect(violations(bad.result).join('\n')).toMatch(/TODO/);

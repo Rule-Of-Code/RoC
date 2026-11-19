@@ -6,6 +6,10 @@
 [![Fail Closed](https://img.shields.io/badge/Gate-fail--closed-blue.svg)](#-severity-semantics-and-fail-closed-guarantees)
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-Strict%20Mode-blue.svg)](https://www.typescriptlang.org/)
 
+![ruleofcode 7.28.0: a four-law allowlist is reported as PARTIAL SCAN — 4 of 75 applicable laws ran, no compliance verdict; the full run checks 77 laws and fails.](docs/demo/demo.gif)
+
+Real output of ruleofcode 7.28.0 from npm — reproduce with [docs/demo](docs/demo/README.md).
+
 **RoC is a constitutional-compliance CLI**: it audits a codebase against a catalog of
 laws, installs git hooks, and returns a single honest answer — pass or fail. RoC is a
 forcing function for the quality of the projects that consume it, so its founding

@@ -2806,3 +2806,7 @@ does what it claims is the exact failure this tool exists to catch.)
 ---
 
 _Changelog entries prior to v7.11.0 predate the public release and are not included here._
+
+Earlier history kept for verification: [7.8.1 → 7.9.1, the hook modes that narrowed
+the law set](docs/history/7.8.1-7.9.1-hooks-narrowed.md) (122 → 27 laws), copied unchanged
+from the private repository.

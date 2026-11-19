@@ -7,8 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [7.29.0] - 2026-11-19
 
-No law added or removed (265). The JSON contract keeps its shape. Closes #390
-and #399.
+No law added or removed (265). The JSON contract keeps its shape. Closes #385,
+#390 and #399.
+
+### Fixed — a finished audit no longer stalls on exit (#385)
+
+A finished `ruleofcode audit` sometimes stalled at 0 CPU, with its stdout and
+stderr pipes still open, inside `process.exit()`, which it called right after
+the last write. QA measured both ways of ending in an interleaved A/B on
+7.28.1, on the same fixture, without instrumentation:
+
+| How the audit ends | Stalls |
+|---|---|
+| `process.exit(exitCode)` after the last write (≤ 7.28.1) | 9 of 60 |
+| `process.exitCode = exitCode`, the process ends on its own | 0 of 60 |
+
+The difference is p ≈ 0.003. The audit now sets `process.exitCode` and
+returns. The exit code is unchanged.
+
+A process that ends on its own waits for every open handle, so a handle left
+open anywhere would keep it alive forever. A backup timer covers that. It is
+unref'd, so it never keeps the process alive itself. After 10 s
+(`EXIT_BACKUP_MS`) it exits with the same code, and it waits again while
+stdout/stderr still hold unwritten data, so a slow reader is never cut short.
+In that case the exit comes 10 s late; it does not hang. QA measures the time
+to exit in the acceptance runs.
+
+**What is not shown:**
+- Why `process.exit()` stalls on Windows with the pipes still open.
+- That the stall is gone. 0 of 60 rules out only a stall rate above roughly
+  5%. The acceptance is 600 audits on the candidate, at least 300 of them with
+  a large output, interleaved, plus a closed stdout.
+
+The other `process.exit` calls in `src/cli` (`laws` with a non-zero code,
+`recommend`, `reinstall-hooks`, the help and parse-error paths) are not the
+same case (a large output to a pipe followed at once by `process.exit`) and are
+unchanged.
 
 ### Fixed — a waiver of an opt-in law that the allowlist turns on is reported (#399)
 

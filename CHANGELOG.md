@@ -5,7 +5,29 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [7.29.0] - 2026-11-19
+
+No law added or removed (265). The JSON contract keeps its shape. Closes #390
+and #399.
+
+### Fixed — a waiver of an opt-in law that the allowlist turns on is reported (#399)
+
+A `laws.notApplicable` waiver of an opt-in law that only `laws.enabled` turns
+on removed the law from the run and turned a failing run into an exit-0
+partial one. Nothing reported it: the law was not in `scope.waivedLaws`, and
+the console printed no waiver block. `scope.waivedLaws` was computed against
+the open selection (no allowlist), and such a law is not in it. A waiver that
+removes a law from **this run's** selection is now listed too, once per law,
+so the console block, the PARTIAL line ("…; 1 waived") and the JSON agree.
+`applicableBeforeWaivers` is `applicableLaws + waivedLaws.length`, so
+M₀ = M + W still holds. `applicableLaws` and the liveness floor are unchanged.
+
+| Config | 7.28.1 | 7.29.0 |
+|---|---|---|
+| allowlist names an opt-in law, no waiver | failed, exit 1, `waivedLaws: []` | unchanged |
+| the same + a waiver of that law | partial, exit 0, `waivedLaws: []`, no line | partial, exit 0, the law in `waivedLaws` with its reason, the waiver block printed |
+| opt-in law turned on by `laws.severity` + waiver | listed once | unchanged |
+| an ordinary law in the allowlist + waiver | listed once | unchanged |
 
 ### ⚠️ BREAKING — Error Handling Standards has no verified check; turned on, it judges nothing (#390)
 

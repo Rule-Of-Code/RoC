@@ -77,6 +77,25 @@ where Capacitor is`
       );
     });
 
+    /**
+     * #394: "19 run only where @angular/core is declared" stayed at 19 while
+     * the registry grew to 21. Counted by the sentence's own rule: a law runs
+     * only where X is declared when its `requires.anyDependency` is exactly
+     * [X] (other conditions may narrow it further; none widens it).
+     */
+    it('states how many laws are gated on @angular/core, @ngrx/store and rxjs', () => {
+      const onlyWhere = (name: string): number =>
+        ModularLawsRegistry.getAll().filter(law => {
+          const deps = law.requires?.anyDependency ?? [];
+          return deps.length === 1 && deps[0] === name;
+        }).length;
+
+      expect(readme()).toContain(
+        `**${onlyWhere('@angular/core')}** run only where \`@angular/core\`
+is declared, **${onlyWhere('@ngrx/store')}** only where \`@ngrx/store\` is, and **${onlyWhere('rxjs')}** only where \`rxjs\` is.`
+      );
+    });
+
     /** The rows must account for every law, or one scope is missing. */
     it('the rows sum to the total', () => {
       const scopes = [undefined, 'frontend', 'python', 'typescript'];
@@ -137,6 +156,32 @@ where Capacitor is`
           ? '1 `frontend` law without a `requires` that carries only `satisfiedBy.angular`'
           : `The ${angularOnly} \`frontend\` laws without a \`requires\` carry only \`satisfiedBy.angular\`.`
       );
+    });
+  });
+
+  /**
+   * #394: numbers no test can derive are not written. The tests badge said
+   * "14,300+ passing" (16,763 on 7.28.0) and the canary block showed three
+   * profiles' law counts from an older release (six profiles now).
+   */
+  describe('no hand-written figure the suite cannot check', () => {
+    it('the tests badge is the CI status, not a count', () => {
+      expect(readme()).not.toMatch(/img\.shields\.io\/badge\/Tests-/);
+      expect(readme()).toContain(
+        'https://github.com/Rule-Of-Code/RoC/actions/workflows/ci.yml/badge.svg'
+      );
+    });
+
+    it('the canary block names every canary profile and no law count', () => {
+      const { STACKS } = require('../../scripts/release-canary') as {
+        STACKS: Record<string, unknown>;
+      };
+      const section = readme().split('## 🐤 Canary')[1]?.split('\n## ')[0];
+
+      expect(section).toBeDefined();
+      expect(section).not.toMatch(/laws=\d/);
+      for (const profile of Object.keys(STACKS))
+        expect(section).toMatch(new RegExp(`^${profile}\\s+\\|`, 'm'));
     });
   });
 });

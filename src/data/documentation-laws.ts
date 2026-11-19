@@ -171,7 +171,8 @@ export const DOCUMENTATION_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Only the format and missing-reference checks can fail it; the outdated, uncategorised and migration-candidate findings are advisory and affect neither the verdict nor the score.',
-      'The isCodeFile helper lists .py/.java/.go, but the file discovery never requests those extensions, so that breadth is dead code.',
+      "A marker counts only in tag form at the start of a comment line — TODO:, TODO(x):, TODO (Sprint 10):, FIXME:, HACK:, XXX: — in a comment of the file's language (//, #, /* */, <!-- -->). A bare `// TODO fix this` without a colon, a marker mid-sentence or in inline code, and NOTE are not read: recall is traded for precision, and the law is a warning.",
+      'File discovery reads .ts/.tsx/.js/.jsx/.html/.css/.scss/.md and .py; the other extensions isCodeFile lists (.java, .go, …) are never requested.',
       'It overlaps TODO Management Constitutional Requirements and will double-report the same markers under a different format rule.',
     ],
     emoji: '📋',

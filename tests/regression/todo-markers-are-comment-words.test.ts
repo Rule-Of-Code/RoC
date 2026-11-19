@@ -99,6 +99,47 @@ describe('TODO Management Standards — not a marker (0)', () => {
       'src/card.css',
       '/* the rare exception — never a "TODO" look */\n.card { margin: 0; }\n',
     ],
+    // The false findings of the self-audit (7.28.0 rc1), verbatim.
+    [
+      "a law's title in its JSDoc",
+      'src/laws/a.ts',
+      '/**\n * TODO Management Standards Law\n */\nexport const a = 1;\n',
+    ],
+    [
+      'another law title',
+      'src/laws/b.ts',
+      '/**\n * TODO Management Constitutional Requirements Law\n */\nexport const b = 1;\n',
+    ],
+    [
+      'a line that describes the format',
+      'src/laws/c.ts',
+      '/**\n * - Proper TODO format with sprint reference: TODO (Sprint X): Description\n */\nexport const c = 1;\n',
+    ],
+    [
+      'the continuation of a sentence',
+      'src/laws/d.ts',
+      '// a marker inside a string literal is not a\n// TODO; scanning raw source counted it.\nexport const d = 1;\n',
+    ],
+    [
+      'prose in a block comment',
+      'src/laws/e.ts',
+      '/**\n * TODO marker that only appears inside a string is not counted.\n */\nexport const e = 1;\n',
+    ],
+    [
+      'an example in inline code',
+      'src/laws/f.ts',
+      '/**\n * are not code, so a `// TODO: remove test.only` is never a finding.\n */\nexport const f = 1;\n',
+    ],
+    [
+      'a bare marker without a colon (not read, see detectionLimits)',
+      'src/laws/g.ts',
+      '// TODO fix this\nexport const g = 1;\n',
+    ],
+    [
+      'a tag mid-sentence',
+      'src/laws/h.ts',
+      '// kept for now; TODO(tokens): move to the generated file\nexport const h = 1;\n',
+    ],
   ])('%s → 0', async (_name, file, content) => {
     const result = await lawOn({ [file]: content });
     expect(todoCount(result)).toBe(0);
@@ -109,11 +150,11 @@ describe('TODO Management Standards — not a marker (0)', () => {
 describe('TODO Management Standards — a marker in a comment (1 each)', () => {
   it.each([
     ['// TODO in TypeScript', 'src/a.ts', '// TODO: x\nexport const a = 1;\n'],
-    ['# FIXME in Python', 'app/b.py', '# FIXME y\nx = 1\n'],
+    ['# FIXME: in Python', 'app/b.py', '# FIXME: y\nx = 1\n'],
     [
-      '<!-- TODO --> in HTML',
+      '<!-- TODO: --> in HTML',
       'src/c.html',
-      '<main>\n  <!-- TODO z -->\n</main>\n',
+      '<main>\n  <!-- TODO: z -->\n</main>\n',
     ],
     [
       'TODO on a line of a block comment',
@@ -121,9 +162,9 @@ describe('TODO Management Standards — a marker in a comment (1 each)', () => {
       '/**\n * Loader.\n * TODO: cache the result\n */\nexport const d = 1;\n',
     ],
     [
-      'HACK after code',
+      'HACK: after code',
       'src/e.ts',
-      'export const e = 1; // HACK until the API returns ids\n',
+      'export const e = 1; // HACK: until the API returns ids\n',
     ],
     [
       'TODO in a CSS comment',
@@ -131,14 +172,31 @@ describe('TODO Management Standards — a marker in a comment (1 each)', () => {
       '/* TODO: drop after the redesign */\n.f { color: red; }\n',
     ],
     [
-      'a tag inside the comment',
-      'src/g.ts',
-      '// kept for now; TODO(tokens): move to the generated file\nexport const g = 1;\n',
+      'a tagged TODO(x): as on the site',
+      'src/styles.css',
+      '/* TODO(tokens): move to generated output once the build reads it. */\n.s { color: red; }\n',
     ],
   ])('%s → 1', async (_name, file, content) => {
     const result = await lawOn({ [file]: content });
     expect(todoCount(result)).toBe(1);
     expect(result.passed).toBe(false);
+  });
+
+  it('the true findings of the self-audit, verbatim: TODO (Sprint 10): → 3', async () => {
+    const result = await lawOn({
+      'src/a.ts':
+        '// TODO (Sprint 10): memoize the feature selector\nexport const a = 1;\n',
+      'src/b.ts':
+        '// TODO (Sprint 10): split the entity selectors\nexport const b = 1;\n',
+      'src/c.ts':
+        '// TODO (Sprint 10): read the hooks from the decorator\nexport const c = 1;\n',
+    });
+    // Formatted with a sprint reference, so none is improper; all three are counted.
+    expect(result.message).not.toContain('No TODOs');
+    const references = (result.violations ?? []).find(v =>
+      String(v).includes('without JIRA/GitHub references')
+    );
+    expect(references).toBe('3 TODOs without JIRA/GitHub references');
   });
 
   it('a referenced, formatted TODO is counted and passes', async () => {

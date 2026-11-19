@@ -98,30 +98,23 @@ const violations = (result: LawResult): string[] =>
   (result.violations ?? []).map(String);
 
 describe('#369 rows reachable from a registered law: red on 7.27.0, green now', () => {
-  it('row 1 — Error Handling Standards sees the source files (a JSON.parse with no try is reported)', async () => {
-    // Opt-in since #390: turned on the way a project does, by laws.severity.
+  // Row 1's site is gone: Error Handling Standards no longer scans source files
+  // (7.29.0, #390 — its five checks were measured and removed). What #369 was
+  // about still holds for it: it does not pass a project it did not judge.
+  it('row 1 — Error Handling Standards has no file scan left, and judges nothing rather than pass', async () => {
     const ON = {
       ...TS,
       'ruleofcode.config.json': JSON.stringify({
         laws: { severity: { 'Error Handling Standards': 'warning' } },
       }),
     };
-    const bad = await run('Error Handling Standards', {
+    const { result } = await run('Error Handling Standards', {
       ...ON,
       'src/store.ts':
         'export const load = (raw: string): unknown => JSON.parse(raw);\n',
     });
-    expect(violations(bad.result)).toContain(
-      '1 critical areas missing try-catch blocks'
-    );
-    const good = await run('Error Handling Standards', {
-      ...ON,
-      'src/store.ts':
-        'export const load = (raw: string): unknown => {\n  try {\n    return JSON.parse(raw);\n  } catch (error) {\n    return null;\n  }\n};\n',
-    });
-    expect(violations(good.result)).not.toContain(
-      '1 critical areas missing try-catch blocks'
-    );
+    expect(result.passed).toBe(false);
+    expect(violations(result).join('\n')).toMatch(/this law judged nothing/);
   }, 60000);
 
   it('row 2 — TODO Management Standards reads the code files (an unreferenced TODO is reported)', async () => {

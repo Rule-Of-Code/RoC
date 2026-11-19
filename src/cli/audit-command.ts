@@ -292,6 +292,42 @@ async function runAuditAction(
 }
 
 /**
+ * How long a finished audit may wait for the event loop to empty before the
+ * backup exit (#385). A normal exit takes milliseconds; this is only for a
+ * handle that something left open.
+ */
+export const EXIT_BACKUP_MS = 10_000;
+
+/**
+ * End the process with `exitCode` by letting it exit on its own (#385).
+ *
+ * `process.exit()` right after the last write stalled a fraction of audits at
+ * 0 CPU, inside the exit, with stdout/stderr pipes still open; setting
+ * `process.exitCode` and returning did not (QA's interleaved A/B on 7.28.1:
+ * 9 of 60 against 0 of 60). A natural exit waits for every handle, so a handle
+ * left open anywhere would keep the process alive forever: the backup timer,
+ * unref'd so it never keeps the loop alive itself, then exits with the same
+ * code. It waits while stdout/stderr still hold unwritten data, so a slow
+ * reader is never cut short.
+ */
+export function exitWhenDone(
+  exitCode: number,
+  backupMs: number = EXIT_BACKUP_MS,
+  pendingBytes: () => number = () =>
+    process.stdout.writableLength + process.stderr.writableLength
+): void {
+  process.exitCode = exitCode;
+  const backup = (): void => {
+    if (pendingBytes() > 0) {
+      setTimeout(backup, backupMs).unref();
+      return;
+    }
+    process.exit(exitCode);
+  };
+  setTimeout(backup, backupMs).unref();
+}
+
+/**
  * Audit action handler with optional skipExit for testing
  */
 export async function auditActionHandler(
@@ -300,7 +336,7 @@ export async function auditActionHandler(
 ): Promise<number> {
   const { exitCode } = await executeAuditAction(options);
   if (!skipExit) {
-    process.exit(exitCode);
+    exitWhenDone(exitCode);
   }
   return exitCode;
 }

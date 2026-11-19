@@ -14,6 +14,7 @@ import {
   childEnvironment,
   execFileSync,
   isRepositoryLocalGitVariable,
+  spawn,
   spawnSync,
 } from '../../src/utils/child-process';
 
@@ -120,6 +121,33 @@ describe('childEnvironment', () => {
       }
     );
     const names = JSON.parse(run.stdout) as string[];
+    expect(names).toContain('GIT_AUTHOR_NAME');
+    expect(names).not.toContain('GIT_DIR');
+    expect(names).not.toContain('GIT_INDEX_FILE');
+  });
+
+  it('the asynchronous door (spawn) passes the same environment', async () => {
+    const child = spawn(
+      process.execPath,
+      [
+        '-e',
+        'console.log(JSON.stringify(Object.keys(process.env).filter(k => /^git_/i.test(k)).sort()))',
+      ],
+      {
+        cwd: os.tmpdir(),
+        stdio: ['ignore', 'pipe', 'ignore'],
+        env: {
+          ...process.env,
+          GIT_DIR: '/elsewhere/.git',
+          GIT_INDEX_FILE: '/elsewhere/index',
+          GIT_AUTHOR_NAME: 'kept',
+        },
+      }
+    );
+    let out = '';
+    child.stdout?.on('data', (chunk: Buffer) => (out += chunk.toString()));
+    await new Promise<void>(resolve => child.on('close', () => resolve()));
+    const names = JSON.parse(out) as string[];
     expect(names).toContain('GIT_AUTHOR_NAME');
     expect(names).not.toContain('GIT_DIR');
     expect(names).not.toContain('GIT_INDEX_FILE');

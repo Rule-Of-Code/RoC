@@ -16,6 +16,7 @@ import { GitHookComplianceLaw } from '../../src/checkers/git-laws/git-hook-compl
 import { GitHooksStandardsLaw } from '../../src/checkers/version-control-laws/git-hooks-standards';
 import type { LawResult } from '../../src/types/law.types';
 import { FileUtils } from '../../src/utils';
+import { CI_SIGNALS } from '../../src/utils/ci-environment';
 import { execFileSync } from '../../src/utils/child-process';
 import { resolveGitHooksDir } from '../../src/utils/git/git-layout';
 import { resolveGitHookStatus } from '../../src/utils/git-hook-status';
@@ -91,11 +92,14 @@ const notInstalled = (result: LawResult): string | undefined =>
     v.includes('not installed in this checkout')
   );
 
+/** Every variable that marks a CI checkout: cleared, so a case is a developer checkout unless it sets one. */
+const CI_VARIABLES = [...CI_SIGNALS.map(s => s.variable), 'HUSKY'];
+
 describe('#380 a committed hook is active only when git runs it', () => {
-  const saved = { CI: process.env.CI, HUSKY: process.env.HUSKY };
+  const saved = Object.fromEntries(CI_VARIABLES.map(k => [k, process.env[k]]));
   beforeEach(() => {
-    delete process.env.CI; // GitHub Actions sets it; these cases are a developer checkout
-    delete process.env.HUSKY;
+    // The CI this suite runs in sets some of them (GitHub Actions: CI, GITHUB_ACTIONS).
+    for (const k of CI_VARIABLES) delete process.env[k];
   });
   afterAll(() => {
     for (const [k, v] of Object.entries(saved)) {
@@ -170,9 +174,19 @@ describe('#380 a committed hook is active only when git runs it', () => {
     );
   });
 
+  // Jenkins, Azure Pipelines, TeamCity and AWS CodeBuild set no `CI`: before
+  // 7.28.1 those rows failed both laws (RED), now they are CI checkouts.
   it.each([
     ['CI=true', { CI: 'true' }],
     ['HUSKY=0', { HUSKY: '0' }],
+    [
+      'Jenkins, JENKINS_URL',
+      { JENKINS_URL: 'https://ci.example.com/jenkins/' },
+    ],
+    ['Jenkins, BUILD_TAG', { BUILD_TAG: 'jenkins-app-153' }],
+    ['Azure Pipelines, TF_BUILD', { TF_BUILD: 'True' }],
+    ['TeamCity, TEAMCITY_VERSION', { TEAMCITY_VERSION: '2025.07' }],
+    ['AWS CodeBuild, CODEBUILD_BUILD_ID', { CODEBUILD_BUILD_ID: 'demo:1' }],
   ])(
     'a CI checkout (%s): committed but not installed is not a failure, and the verdict says what it checked',
     (_label, env) => {

@@ -5,6 +5,81 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.28.1] - 2026-11-19
+
+A patch: no law added or removed (265), no change to the JSON contract. Closes
+#392 and #394.
+
+### Fixed — a waiver of an opt-in law that is not enabled is named (#392)
+
+A `laws.notApplicable` entry for an opt-in law that the config does not turn on
+waives nothing, because the law does not run anyway. It was correctly left out
+of `scope.waivedLaws`, but nothing said so: a config with 15 entries reported 14
+waived, and the 15th was not named. It now gets the same line as a waiver of a
+stack- or requirement-gated law:
+
+```
+ℹ️  laws.notApplicable: '<law>' is opt-in and not enabled in this config (it runs only when laws.severity gives it a severity or laws.enabled names it) — the waiver is redundant here.
+```
+
+`scope.waivedLaws`, the verdict, the exit code and Config Integrity Guard are
+unchanged: the line is information, like the other "redundant here" lines.
+Measured on a consumer's config with 15 entries, one of them the now-opt-in
+Error Handling Standards:
+
+| | 7.28.0 | 7.28.1 |
+|---|---|---|
+| Total Laws Checked | 115 | 115 |
+| `scope.waivedLaws` | 14 | 14 |
+| the 15th entry | not mentioned | named, "redundant here" |
+| verdict / exit | failed / 1 | failed / 1 |
+
+### Fixed — the hook laws recognise CI systems that do not set `CI`
+
+Since 7.28.0 (#380), a committed `.husky/` hook counts only when git runs it.
+In a CI checkout, where hooks are not installed by design, the two hook laws
+judge the committed configuration instead. A CI checkout was recognised only
+by `CI` (or `HUSKY=0`), so Jenkins, Azure Pipelines, TeamCity and AWS
+CodeBuild, which document no `CI` variable, failed Git Hooks Standards and Git
+Hook Compliance in every build. A registry of CI signals now also reads each
+platform's own documented variable: `GITHUB_ACTIONS`, `GITLAB_CI`,
+`BITBUCKET_BUILD_NUMBER`, `CIRCLECI`, `TRAVIS`, `BUILDKITE`, `JENKINS_URL` or
+`BUILD_TAG=jenkins-…`, `TF_BUILD`, `TEAMCITY_VERSION` and `CODEBUILD_BUILD_ID`.
+The documentation for each one is linked in `tests/utils/ci-environment.test.ts`.
+Measured on a clean clone with `.husky/` committed and no hooks installed:
+
+| Environment | 7.28.0 hook laws | 7.28.1 hook laws | failed laws, 7.28.0 → 7.28.1 |
+|---|---|---|---|
+| no CI variable (a developer's clone) | FAIL, FAIL | FAIL, FAIL | 51 → 51 |
+| `CI=true` (GitHub Actions, GitLab, …) | PASS, PASS | PASS, PASS | 49 → 49 |
+| `JENKINS_URL` / `BUILD_TAG=jenkins-…` | FAIL, FAIL | PASS, PASS | 51 → 49 |
+| `TF_BUILD=True` (Azure Pipelines) | FAIL, FAIL | PASS, PASS | 51 → 49 |
+
+Total Laws Checked: 78 → 78 in every row.
+
+### Changed — public text
+
+- README (#394): the tests badge is the CI status instead of a hand-written
+  count. "Only where `@angular/core` is declared" now gives 21 (it said 19),
+  and a test checks it against the registry. The canary block shows the real
+  line format for all six profiles (python, angular, ngrx, ionic, react, node),
+  without counts that change with every release; a test fails if a profile is
+  missing or a count comes back.
+- npm description and keywords name the six stacks: Angular, React, Next.js,
+  Ionic/Capacitor, Node/TypeScript and Python (#397).
+- README opens with a recorded run of 7.28.0 from npm. The files to reproduce
+  and check it are in `docs/demo/` (#396), and the 7.8.1 → 7.9.1 history is in
+  `docs/history/` (#395). Neither is in the npm package.
+
+### Internal
+
+- Independent Awaits: tests pin two awaits in one expression in Python and
+  TypeScript. `(await a(x)) op (await b(y))` is a finding; `await f(await g())`
+  is not; a marker with a reason on the line keeps it; a marker without one does
+  not. The law itself is unchanged.
+- The repository's own hooks no longer print a hand-written version (they said
+  v7.22.0). A test fails if one comes back.
+
 ## [7.28.0] - 2026-11-19
 
 The rest of the same incident and what the 7.27.0 wave found on the way: git

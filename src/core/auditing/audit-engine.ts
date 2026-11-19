@@ -46,6 +46,10 @@ interface KnownLaw {
   stack?: string;
   requires?: LawRequirement;
   staticSiteHtml?: boolean;
+  name?: string;
+  id?: string;
+  legacyId?: number | string;
+  defaultEnabled?: boolean;
 }
 
 export class RuleOfCodeAuditor {
@@ -700,6 +704,10 @@ export class RuleOfCodeAuditor {
           stack: law.stack,
           requires: law.requires,
           staticSiteHtml: law.staticSiteHtml,
+          name: law.name,
+          id: law.id,
+          legacyId: law.legacyId,
+          defaultEnabled: law.defaultEnabled,
         });
       }
     }
@@ -861,8 +869,32 @@ export class RuleOfCodeAuditor {
         console.warn(
           `ℹ️  laws.notApplicable: '${key}' is already requirement-gated off this project (it needs ${describeRequirement(law.requires ?? {})}) — the waiver is redundant here.`
         );
+      } else if (law && this.optInNotEnabled(law)) {
+        console.warn(
+          `ℹ️  laws.notApplicable: '${key}' is opt-in and not enabled in this config (it runs only when laws.severity gives it a severity or laws.enabled names it) — the waiver is redundant here.`
+        );
       }
     }
+  }
+
+  /**
+   * An opt-in law (`defaultEnabled: false`) that this config does not turn on:
+   * the selector would not run it, so a waiver of it waives nothing. Asked the
+   * way the selector asks: `laws.enabled` when present, else `laws.severity`.
+   */
+  private optInNotEnabled(law: KnownLaw): boolean {
+    if (law.defaultEnabled !== false) return false;
+    const laws = this.config.laws as Record<string, unknown>;
+    const enabled = laws.enabled as Record<string, unknown> | undefined;
+    if (enabled !== undefined) {
+      return !ModularLawsRegistry.lawIdentityKeys(law).some(
+        key => enabled[key] === true
+      );
+    }
+    return !LawIdentity.runsWithoutAllowlist(
+      law,
+      laws.severity as Record<string, unknown> | undefined
+    );
   }
 
   private async executeSingleLaw(law: any): Promise<unknown> {

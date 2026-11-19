@@ -163,7 +163,7 @@ export const SACRED_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '1.7',
     title: 'Professional Excellence Mandate',
     rationale:
-      'Professional code is boring in the right places: the linter, formatter and type checker are present, and everyone\'s editor agrees. The absence of that baseline is not a style preference — it is the difference between a codebase and a pile of files.',
+      "Professional code is boring in the right places: the linter, formatter and type checker are present, and everyone's editor agrees. The absence of that baseline is not a style preference — it is the difference between a codebase and a pile of files.",
     satisfiedBy: {
       typescript:
         'Depend on eslint, prettier and typescript, and keep their config files at the repo root.',
@@ -198,7 +198,7 @@ export const SACRED_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '1.8',
     title: 'Automation First Principle',
     rationale:
-      'Anything a human has to remember to run is a thing that will be skipped on the day it matters most. Tests, lint and build belong in CI and in scripts, not in a teammate\'s habits — automation is the only reviewer that never has a deadline.',
+      "Anything a human has to remember to run is a thing that will be skipped on the day it matters most. Tests, lint and build belong in CI and in scripts, not in a teammate's habits — automation is the only reviewer that never has a deadline.",
     satisfiedBy: {
       typescript:
         'A CI config (.github/workflows, GitLab, Bitbucket…) plus test / lint / build npm scripts and a test-framework dependency.',

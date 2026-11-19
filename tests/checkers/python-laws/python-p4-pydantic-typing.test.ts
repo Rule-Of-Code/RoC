@@ -60,14 +60,16 @@ describe('NoMutableDefaultArgumentsLaw', () => {
   it('flags mutable defaults, including across multi-line signatures', () => {
     const dir = fixture({
       'pyproject.toml': PY,
-      'src/app/u.py': 'def f(items=[]):\n    return items\n\ndef g(\n    cfg={},\n):\n    return cfg\n',
+      'src/app/u.py':
+        'def f(items=[]):\n    return items\n\ndef g(\n    cfg={},\n):\n    return cfg\n',
     });
     expect(NoMutableDefaultArgumentsLaw.check(ctx(dir)).passed).toBe(false);
   });
   it('passes None defaults and immutable defaults', () => {
     const dir = fixture({
       'pyproject.toml': PY,
-      'src/app/u.py': 'def f(items=None):\n    items = items or []\n    return items\n\ndef h(x: int = 5, s: str = ""):\n    return x\n',
+      'src/app/u.py':
+        'def f(items=None):\n    items = items or []\n    return items\n\ndef h(x: int = 5, s: str = ""):\n    return x\n',
     });
     expect(NoMutableDefaultArgumentsLaw.check(ctx(dir)).passed).toBe(true);
   });
@@ -77,14 +79,16 @@ describe('NoBareExceptLaw', () => {
   it('flags bare except and except BaseException', () => {
     const dir = fixture({
       'pyproject.toml': PY,
-      'src/app/e.py': 'try:\n    x()\nexcept:\n    pass\n\ntry:\n    y()\nexcept BaseException:\n    pass\n',
+      'src/app/e.py':
+        'try:\n    x()\nexcept:\n    pass\n\ntry:\n    y()\nexcept BaseException:\n    pass\n',
     });
     expect(NoBareExceptLaw.check(ctx(dir)).passed).toBe(false);
   });
   it('passes specific exceptions and except Exception', () => {
     const dir = fixture({
       'pyproject.toml': PY,
-      'src/app/e.py': 'try:\n    x()\nexcept ValueError:\n    pass\nexcept Exception as e:\n    raise\n',
+      'src/app/e.py':
+        'try:\n    x()\nexcept ValueError:\n    pass\nexcept Exception as e:\n    raise\n',
     });
     expect(NoBareExceptLaw.check(ctx(dir)).passed).toBe(true);
   });

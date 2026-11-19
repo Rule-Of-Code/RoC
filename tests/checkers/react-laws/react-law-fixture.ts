@@ -25,7 +25,11 @@ export function reactProject(
 type Law = { check(context: LawCheckContext): LawResult };
 
 /** Run `law` over a React project made of `files`. */
-export function run(law: Law, files: Record<string, string>, deps = REACT_DEPS): LawResult {
+export function run(
+  law: Law,
+  files: Record<string, string>,
+  deps = REACT_DEPS
+): LawResult {
   return law.check(ctx(reactProject(files, deps)));
 }
 
@@ -36,11 +40,16 @@ export function cardFor(checkFunction: string): EnhancedConstitutionalLaw {
 }
 
 /** Selected where the subject is declared, not selected where it is not. */
-export function describeSelection(checkFunction: string, subject: Record<string, string>): void {
+export function describeSelection(
+  checkFunction: string,
+  subject: Record<string, string>
+): void {
   describe(`${checkFunction} selection (requires)`, () => {
     const card = cardFor(checkFunction);
     it('is selected where the project declares its subject', () => {
-      expect(lawRequirementsMet(card.requires, reactProject({}, subject))).toBe(true);
+      expect(lawRequirementsMet(card.requires, reactProject({}, subject))).toBe(
+        true
+      );
     });
     it('is selected where only an app of the workspace declares it', () => {
       const root = project({
@@ -50,22 +59,41 @@ export function describeSelection(checkFunction: string, subject: Record<string,
       expect(lawRequirementsMet(card.requires, root)).toBe(true);
     });
     it('is not selected in a project without it (Angular, plain Node)', () => {
-      expect(lawRequirementsMet(card.requires, project({ 'package.json': manifest({ '@angular/core': '20.0.0' }) }))).toBe(false);
-      expect(lawRequirementsMet(card.requires, project({ 'package.json': manifest({ express: '5.0.0' }) }))).toBe(false);
+      expect(
+        lawRequirementsMet(
+          card.requires,
+          project({ 'package.json': manifest({ '@angular/core': '20.0.0' }) })
+        )
+      ).toBe(false);
+      expect(
+        lawRequirementsMet(
+          card.requires,
+          project({ 'package.json': manifest({ express: '5.0.0' }) })
+        )
+      ).toBe(false);
     });
   });
 }
 
 /** Files not read, and an empty scan, are violations — never a pass. */
-export function describeFailsClosed(name: string, law: Law, deps = REACT_DEPS): void {
+export function describeFailsClosed(
+  name: string,
+  law: Law,
+  deps = REACT_DEPS
+): void {
   describe(`${name} fails closed`, () => {
     afterEach(() => jest.restoreAllMocks());
 
     it('reports files it could not read', () => {
-      jest
-        .spyOn(ReactProject, 'parse')
-        .mockReturnValue({ sources: [], unread: ['src/a.tsx: could not be read'] });
-      const result = run(law, { 'src/a.tsx': 'export const A = () => null;' }, deps);
+      jest.spyOn(ReactProject, 'parse').mockReturnValue({
+        sources: [],
+        unread: ['src/a.tsx: could not be read'],
+      });
+      const result = run(
+        law,
+        { 'src/a.tsx': 'export const A = () => null;' },
+        deps
+      );
       expect(result.passed).toBe(false);
       expect(result.violations).toEqual([
         expect.stringContaining('src/a.tsx: could not be read — '),

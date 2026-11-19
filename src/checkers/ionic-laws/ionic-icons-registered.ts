@@ -16,7 +16,10 @@
 
 import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { AngularComponents, type AngularComponent } from '../../utils/ionic/angular-components';
+import {
+  AngularComponents,
+  type AngularComponent,
+} from '../../utils/ionic/angular-components';
 import { HtmlTemplate } from '../../utils/ionic/html-template';
 import { withNotes } from '../../utils/ionic/law-notes';
 import type { TsxSource } from '../../utils/react/tsx-source';
@@ -49,14 +52,18 @@ export class IonicIconsRegisteredLaw extends LawBase {
     const violations = [...scan.unread];
     const notes: string[] = [];
     const standalone = scan.sources.some(source =>
-      source.imports().some(info => info.module === STANDALONE_ENTRY && !info.typeOnly)
+      source
+        .imports()
+        .some(info => info.module === STANDALONE_ENTRY && !info.typeOnly)
     );
     if (standalone) {
       const judged = this.judgeProject(context, scan.sources, scan.components);
       violations.push(...judged.violations);
       notes.push(...judged.notes);
     } else {
-      notes.push(`no value import from '${STANDALONE_ENTRY}' — the module build resolves icon names through its asset path, which this law does not judge`);
+      notes.push(
+        `no value import from '${STANDALONE_ENTRY}' — the module build resolves icon names through its asset path, which this law does not judge`
+      );
     }
     const result = this.createResult(
       violations,
@@ -86,12 +93,19 @@ export class IonicIconsRegisteredLaw extends LawBase {
       notes.push(...found.notes);
     }
     if (used.size === 0) {
-      const templates = components.filter(component => component.template).length;
-      notes.push(`no literal <ion-icon> name in the ${templates} component template(s) read — nothing to judge`);
+      const templates = components.filter(
+        component => component.template
+      ).length;
+      notes.push(
+        `no literal <ion-icon> name in the ${templates} component template(s) read — nothing to judge`
+      );
     }
     if (registry.everything) return { violations, notes };
     for (const [key, site] of registry.sites) {
-      if (!used.has(key)) notes.push(`${site}: '${key}' is registered but no template names it — dead weight in the chunk that registers it`);
+      if (!used.has(key))
+        notes.push(
+          `${site}: '${key}' is registered but no template names it — dead weight in the chunk that registers it`
+        );
     }
     return { violations, notes };
   }
@@ -105,14 +119,17 @@ export class IonicIconsRegisteredLaw extends LawBase {
     const violations: string[] = [];
     const notes: string[] = [];
     if (!component.template) return { violations, notes };
-    const where = (line: number): string => `${AngularComponents.relative(context, component.template?.file ?? '')}:${line}`;
+    const where = (line: number): string =>
+      `${AngularComponents.relative(context, component.template?.file ?? '')}:${line}`;
     for (const element of component.elements) {
       if (element.tag !== 'ion-icon') continue;
       for (const attribute of element.attributes) {
         const name = this.literalName(attribute.name, attribute.value);
         if (name === undefined) continue;
         if (name === null) {
-          notes.push(`${where(element.line)}: <ion-icon ${attribute.name}="${attribute.value ?? ''}"> is computed — not judged`);
+          notes.push(
+            `${where(element.line)}: <ion-icon ${attribute.name}="${attribute.value ?? ''}"> is computed — not judged`
+          );
           continue;
         }
         const key = name.toLowerCase();
@@ -130,7 +147,10 @@ export class IonicIconsRegisteredLaw extends LawBase {
    * The literal icon name an attribute gives: a string; null when it is
    * computed (not judged); undefined when the attribute does not name an icon.
    */
-  private static literalName(attribute: string, value: string | null): string | null | undefined {
+  private static literalName(
+    attribute: string,
+    value: string | null
+  ): string | null | undefined {
     const bare = attribute.replace(/^\[(?:attr\.)?/, '').replace(/\]$/, '');
     if (!NAME_ATTRIBUTES.includes(bare) || value === null) return undefined;
     const bound = attribute.startsWith('[');
@@ -152,17 +172,31 @@ export class IonicIconsRegisteredLaw extends LawBase {
 
   /** Every key `addIcons` is called with, in ionicons' lookup form. */
   static registry(context: LawCheckContext, sources: TsxSource[]): Registry {
-    const registry: Registry = { keys: new Set(), sites: new Map(), everything: false, unread: [] };
+    const registry: Registry = {
+      keys: new Set(),
+      sites: new Map(),
+      everything: false,
+      unread: [],
+    };
     for (const source of sources) {
       const ts = source.ts;
       const imports = source.imports();
       const addIcons = new Set(
-        imports.filter(i => i.module === ICON_PACKAGE).flatMap(i => i.named.filter(n => n.imported === 'addIcons').map(n => n.local))
+        imports
+          .filter(i => i.module === ICON_PACKAGE)
+          .flatMap(i =>
+            i.named.filter(n => n.imported === 'addIcons').map(n => n.local)
+          )
       );
       if (addIcons.size === 0) continue;
-      const allIcons = new Set(imports.filter(i => i.module === ICON_SET && i.namespaceName).map(i => i.namespaceName ?? ''));
+      const allIcons = new Set(
+        imports
+          .filter(i => i.module === ICON_SET && i.namespaceName)
+          .map(i => i.namespaceName ?? '')
+      );
       source.walk(node => {
-        if (!ts.isCallExpression(node) || !ts.isIdentifier(node.expression)) return;
+        if (!ts.isCallExpression(node) || !ts.isIdentifier(node.expression))
+          return;
         if (!addIcons.has(node.expression.text)) return;
         const where = `${AngularComponents.relative(context, source.fileName)}:${source.lineOf(node)}`;
         this.register(ts, node.arguments[0], allIcons, where, registry);
@@ -183,18 +217,29 @@ export class IonicIconsRegisteredLaw extends LawBase {
       return;
     }
     if (!arg || !ts.isObjectLiteralExpression(arg)) {
-      registry.unread.push(`${where}: addIcons is called with something other than an object literal — what it registers was NOT read`);
+      registry.unread.push(
+        `${where}: addIcons is called with something other than an object literal — what it registers was NOT read`
+      );
       return;
     }
     for (const property of arg.properties) {
-      if (ts.isSpreadAssignment(property) && ts.isIdentifier(property.expression) && allIcons.has(property.expression.text)) {
+      if (
+        ts.isSpreadAssignment(property) &&
+        ts.isIdentifier(property.expression) &&
+        allIcons.has(property.expression.text)
+      ) {
         registry.everything = true;
         continue;
       }
       const name = property.name;
-      const key = name && (ts.isIdentifier(name) || ts.isStringLiteral(name)) ? name.text : null;
+      const key =
+        name && (ts.isIdentifier(name) || ts.isStringLiteral(name))
+          ? name.text
+          : null;
       if (key === null) {
-        registry.unread.push(`${where}: an addIcons entry whose key is computed or spread — what it registers was NOT read`);
+        registry.unread.push(
+          `${where}: an addIcons entry whose key is computed or spread — what it registers was NOT read`
+        );
         continue;
       }
       const kebab = ioniconsKebab(key);

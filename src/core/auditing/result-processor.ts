@@ -5,7 +5,12 @@
 import chalk from 'chalk';
 import type { RuleOfCodeConfig } from '../../types';
 import { normalizeJudgedNothing } from '../../utils/judged-nothing';
-import type { AuditRefusal, AuditResult, AuditStats, AuditVerdict } from './audit-types';
+import type {
+  AuditRefusal,
+  AuditResult,
+  AuditStats,
+  AuditVerdict,
+} from './audit-types';
 
 export class AuditResultProcessor {
   /**
@@ -30,11 +35,15 @@ export class AuditResultProcessor {
    * clean pass. A result that carries no `verdict` (cached by a build that
    * predates the field) gets the same answer here.
    */
-  static verdictOf(result: Pick<AuditResult, 'passed' | 'refused' | 'scope'>): AuditVerdict {
+  static verdictOf(
+    result: Pick<AuditResult, 'passed' | 'refused' | 'scope'>
+  ): AuditVerdict {
     if (result.refused) return 'refused';
     if (!result.passed) return 'failed';
     if (result.scope?.partial) return 'partial';
-    return (result.scope?.waivedLaws?.length ?? 0) > 0 ? 'compliance-with-waivers' : 'compliance';
+    return (result.scope?.waivedLaws?.length ?? 0) > 0
+      ? 'compliance-with-waivers'
+      : 'compliance';
   }
 
   /**
@@ -333,8 +342,12 @@ export class AuditResultProcessor {
     <p>Score: ${stats.score}%</p>
     <p>Passed: ${stats.passedLaws}/${stats.totalLaws}</p>
     <p>Duration: ${stats.duration}ms</p>
-  </div>${result.refused ? `
-  <p class="failed">${this.describeRefusal(result.refused)}</p>` : ''}
+  </div>${
+    result.refused
+      ? `
+  <p class="failed">${this.describeRefusal(result.refused)}</p>`
+      : ''
+  }
   <h2>Results</h2>
   ${results
     .map(([id, resUnknown]) => {

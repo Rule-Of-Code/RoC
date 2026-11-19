@@ -188,8 +188,7 @@ export class PRWorkflowStandardsLaw extends GitLawBase {
 
     // Check for status checks tools
     const devDeps = packageJson.devDependencies as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     if (!devDeps) return { violations, suggestions };
     const statusCheckTools = [
       'husky',

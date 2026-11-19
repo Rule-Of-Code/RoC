@@ -31,15 +31,20 @@ import { SecurityLawBase } from './security-law-base';
 
 const LAW_TITLE = 'Content Security Policy';
 const CSP_HEADER = /Content-Security-Policy(?!-Report-Only)/i;
-const CSP_META = /<meta\b[^>]*http-equiv\s*=\s*["']?Content-Security-Policy["'\s>]/i;
+const CSP_META =
+  /<meta\b[^>]*http-equiv\s*=\s*["']?Content-Security-Policy["'\s>]/i;
 const HOSTING_FILES = ['firebase.json', 'vercel.json', 'netlify.toml'];
-const NEXT_CONFIGS = ['js', 'mjs', 'cjs', 'ts', 'mts'].map(ext => `next.config.${ext}`);
+const NEXT_CONFIGS = ['js', 'mjs', 'cjs', 'ts', 'mts'].map(
+  ext => `next.config.${ext}`
+);
 const NEXT_REQUEST_HOOKS = ['proxy', 'middleware'].flatMap(name =>
   ['', 'src/'].flatMap(dir => ['ts', 'js'].map(ext => `${dir}${name}.${ext}`))
 );
 /** Generated reports that ship an index.html but are not the app. */
-const REPORT_DIRS = /(?:^|\/)(?:coverage|playwright-report|test-results|storybook-static|html-report)\//;
-const SITE_WIDE = 'no site-wide declaration either (firebase.json, vercel.json, netlify.toml headers, or thresholds.security.cspFiles)';
+const REPORT_DIRS =
+  /(?:^|\/)(?:coverage|playwright-report|test-results|storybook-static|html-report)\//;
+const SITE_WIDE =
+  'no site-wide declaration either (firebase.json, vercel.json, netlify.toml headers, or thresholds.security.cspFiles)';
 
 /** Comments blanked: a header named in a comment declares nothing. */
 const stripComments = (text: string): string =>
@@ -52,20 +57,29 @@ const stripComments = (text: string): string =>
 export class ContentSecurityPolicyLaw {
   static check(context: LawCheckContext): LawResult {
     const { projectRoot } = context;
-    const rel = (file: string): string => PathOperations.getRelative(projectRoot, file);
+    const rel = (file: string): string =>
+      PathOperations.getRelative(projectRoot, file);
     const declares = (file: string, pattern: RegExp): boolean =>
-      FileUtils.exists(file) && pattern.test(stripComments(FileUtils.readFile(file) ?? ''));
+      FileUtils.exists(file) &&
+      pattern.test(stripComments(FileUtils.readFile(file) ?? ''));
 
     const violations: string[] = [];
-    const siteWide = HOSTING_FILES.flatMap(name => NxWorkspace.resolveSourceFiles(projectRoot, name))
+    const siteWide = HOSTING_FILES.flatMap(name =>
+      NxWorkspace.resolveSourceFiles(projectRoot, name)
+    )
       .filter(file => declares(file, CSP_HEADER))
       .map(rel);
-    for (const configured of context.config.thresholds?.security?.cspFiles ?? []) {
+    for (const configured of context.config.thresholds?.security?.cspFiles ??
+      []) {
       const file = PathOperations.join(projectRoot, configured);
       if (!FileUtils.exists(file)) {
-        violations.push(`thresholds.security.cspFiles: ${configured} does not exist — the CSP it is said to declare cannot be read`);
+        violations.push(
+          `thresholds.security.cspFiles: ${configured} does not exist — the CSP it is said to declare cannot be read`
+        );
       } else if (!declares(file, CSP_HEADER)) {
-        violations.push(`thresholds.security.cspFiles: ${configured} does not set a Content-Security-Policy header`);
+        violations.push(
+          `thresholds.security.cspFiles: ${configured} does not set a Content-Security-Policy header`
+        );
       } else {
         siteWide.push(configured);
       }
@@ -74,14 +88,19 @@ export class ContentSecurityPolicyLaw {
 
     const nextApps = ReactProject.nextApps(projectRoot);
     for (const app of nextApps) {
-      const where = [...NEXT_CONFIGS, ...NEXT_REQUEST_HOOKS].map(name => PathOperations.join(app.root, name));
+      const where = [...NEXT_CONFIGS, ...NEXT_REQUEST_HOOKS].map(name =>
+        PathOperations.join(app.root, name)
+      );
       if (covered || where.some(file => declares(file, CSP_HEADER))) continue;
       violations.push(
         `${rel(app.root) || '.'}: this Next app declares no Content-Security-Policy — none in next.config.* headers(), proxy.* or middleware.*, and ${SITE_WIDE}`
       );
     }
 
-    const entries = this.entryDocuments(context, nextApps.map(app => app.root));
+    const entries = this.entryDocuments(
+      context,
+      nextApps.map(app => app.root)
+    );
     for (const entry of entries) {
       if (covered || declares(entry, CSP_META)) continue;
       violations.push(
@@ -89,7 +108,8 @@ export class ContentSecurityPolicyLaw {
       );
     }
 
-    const judgedNothing = !covered && nextApps.length === 0 && entries.length === 0;
+    const judgedNothing =
+      !covered && nextApps.length === 0 && entries.length === 0;
     if (judgedNothing) {
       violations.push(
         `found no entry document (index.html), no Next app and ${SITE_WIDE} — this law judged nothing. Declare the CSP where it is served and, if the law cannot see that place, name it in thresholds.security.cspFiles`
@@ -113,13 +133,24 @@ export class ContentSecurityPolicyLaw {
   }
 
   /** index.html files the scan reaches, outside Next apps and generated reports. */
-  private static entryDocuments(context: LawCheckContext, nextRoots: string[]): string[] {
+  private static entryDocuments(
+    context: LawCheckContext,
+    nextRoots: string[]
+  ): string[] {
     const { projectRoot, config, lawId } = context;
-    return CheckerUtils.findFilesByExtension(projectRoot, ['.html'], config, lawId).filter(file => {
+    return CheckerUtils.findFilesByExtension(
+      projectRoot,
+      ['.html'],
+      config,
+      lawId
+    ).filter(file => {
       const norm = file.replace(/\\/g, '/');
       if (!/(?:^|\/)index\.html$/.test(norm)) return false;
-      if (REPORT_DIRS.test(PathOperations.getRelative(projectRoot, file))) return false;
-      return !nextRoots.some(root => norm.startsWith(root.replace(/\\/g, '/') + '/'));
+      if (REPORT_DIRS.test(PathOperations.getRelative(projectRoot, file)))
+        return false;
+      return !nextRoots.some(root =>
+        norm.startsWith(root.replace(/\\/g, '/') + '/')
+      );
     });
   }
 }

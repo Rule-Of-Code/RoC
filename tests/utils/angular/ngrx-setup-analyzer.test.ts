@@ -120,7 +120,10 @@ describe('utils/angular/ngrx-setup/ngrx-setup-analyzer', () => {
 
         NgRxSetupAnalyzer.checkNgRxSetup('/custom/project', customConfig);
 
-        expect(executeSpy).toHaveBeenCalledWith('/custom/project', customConfig);
+        expect(executeSpy).toHaveBeenCalledWith(
+          '/custom/project',
+          customConfig
+        );
       });
 
       it('should return both violations and suggestions together', () => {

@@ -25,7 +25,9 @@ export class NoSubscribeInEffectLaw extends AngularLawBase {
       context.config,
       undefined,
       false
-    ).filter(f => AngularComponentFiles.isKind(f, ['component', 'directive', 'service']));
+    ).filter(f =>
+      AngularComponentFiles.isKind(f, ['component', 'directive', 'service'])
+    );
 
     for (const file of files) {
       const content = FileUtils.readFileContentSync(file);

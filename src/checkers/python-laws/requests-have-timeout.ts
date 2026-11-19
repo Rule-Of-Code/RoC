@@ -69,7 +69,9 @@ export class RequestsHaveTimeoutLaw extends PythonLawBase {
       const hasRealTimeout = /\btimeout\s*=/.test(args) && !isNone;
       if (hasRealTimeout) continue;
       const call = m[1] ? `requests.${m[1]}` : 'urlopen';
-      const why = isNone ? 'has timeout=None, which never times out' : 'has no timeout=';
+      const why = isNone
+        ? 'has timeout=None, which never times out'
+        : 'has no timeout=';
       violations.push(
         `${rel}:${this.lineOf(content, m.index)}: ${call}() ${why} — it can hang forever and exhaust the worker pool; pass an explicit timeout`
       );

@@ -12,22 +12,34 @@ afterAll(removeProjects);
 
 const NEXT = { 'package.json': manifest({ next: '16.4.6', react: '19.3.0' }) };
 const NAV = "import { redirect } from 'next/navigation';\n";
-const SERVER = "import { NextResponse, type NextRequest } from 'next/server';\n";
-const check = (file: string, code: string, overrides: Record<string, unknown> = {}) =>
-  NextOpenRedirectGuardedLaw.check(ctx(project({ ...NEXT, [file]: code }), overrides));
-const violations = (result: { violations?: string[] }): string[] => result.violations ?? [];
+const SERVER =
+  "import { NextResponse, type NextRequest } from 'next/server';\n";
+const check = (
+  file: string,
+  code: string,
+  overrides: Record<string, unknown> = {}
+) =>
+  NextOpenRedirectGuardedLaw.check(
+    ctx(project({ ...NEXT, [file]: code }), overrides)
+  );
+const violations = (result: { violations?: string[] }): string[] =>
+  result.violations ?? [];
 
 describe('NextOpenRedirectGuarded (#249): red', () => {
   it('a page redirecting to a searchParams value, through a destructured local', () => {
     const code = `${NAV}export default async function Page({ searchParams }) {\n  const { next } = await searchParams;\n  redirect(next);\n}`;
     expect(violations(check('src/app/login/page.tsx', code))).toEqual([
-      expect.stringMatching(/^src\/app\/login\/page\.tsx:4: redirect\(next\) sends the visitor to a target taken from the request/),
+      expect.stringMatching(
+        /^src\/app\/login\/page\.tsx:4: redirect\(next\) sends the visitor to a target taken from the request/
+      ),
     ]);
   });
 
   it('a route handler: NextResponse.redirect(new URL(param, request.url))', () => {
     const code = `${SERVER}export function GET(request: NextRequest) {\n  const to = request.nextUrl.searchParams.get('to') ?? '/';\n  return NextResponse.redirect(new URL(to, request.url));\n}`;
-    expect(violations(check('src/app/go/route.ts', code))).toEqual([expect.stringMatching(/route\.ts:4: NextResponse\.redirect/)]);
+    expect(violations(check('src/app/go/route.ts', code))).toEqual([
+      expect.stringMatching(/route\.ts:4: NextResponse\.redirect/),
+    ]);
   });
 
   it('a Server Action redirecting to a FormData field', () => {
@@ -53,7 +65,10 @@ describe('NextOpenRedirectGuarded (#249): red', () => {
 
 describe('NextOpenRedirectGuarded (#249): green', () => {
   it.each([
-    ['a literal target', `${NAV}export default function P() { redirect('/dashboard'); }`],
+    [
+      'a literal target',
+      `${NAV}export default function P() { redirect('/dashboard'); }`,
+    ],
     [
       'a fixed same-site path carrying the param',
       `${NAV}export default function P({ searchParams }) { redirect(\`/login?next=\${encodeURIComponent(searchParams.next)}\`); }`,
@@ -96,21 +111,43 @@ describe('NextOpenRedirectGuarded (#249): cannot read, and selection', () => {
   it('fails when the parser cannot be loaded', () => {
     const spy = jest.spyOn(tsxSource, 'loadTypeScript').mockReturnValue(null);
     try {
-      const result = check('src/app/p/page.tsx', `${NAV}export default function P() { redirect('/x'); }`);
+      const result = check(
+        'src/app/p/page.tsx',
+        `${NAV}export default function P() { redirect('/x'); }`
+      );
       expect(result.passed).toBe(false);
-      expect(violations(result)).toEqual([expect.stringMatching(/could not load the 'typescript' package/)]);
+      expect(violations(result)).toEqual([
+        expect.stringMatching(/could not load the 'typescript' package/),
+      ]);
     } finally {
       spy.mockRestore();
     }
   });
 
   it('is selected where next is declared, not on plain React, Angular or Python', () => {
-    const card = REACT_SECURITY_LAWS.find(law => law.checkFunction === 'NextOpenRedirectGuardedLaw.check');
+    const card = REACT_SECURITY_LAWS.find(
+      law => law.checkFunction === 'NextOpenRedirectGuardedLaw.check'
+    );
     expect(card?.requires).toEqual({ anyDependency: ['next'] });
     expect(card?.defaultSeverity).toBe('warning');
     expect(lawRequirementsMet(card?.requires, project(NEXT))).toBe(true);
-    expect(lawRequirementsMet(card?.requires, project({ 'package.json': manifest({ react: '19.3.0' }) }))).toBe(false);
-    expect(lawRequirementsMet(card?.requires, project({ 'package.json': manifest({ '@angular/core': '20.0.0' }) }))).toBe(false);
-    expect(lawRequirementsMet(card?.requires, project({ 'pyproject.toml': "[project]\nname = 'x'\n" }))).toBe(false);
+    expect(
+      lawRequirementsMet(
+        card?.requires,
+        project({ 'package.json': manifest({ react: '19.3.0' }) })
+      )
+    ).toBe(false);
+    expect(
+      lawRequirementsMet(
+        card?.requires,
+        project({ 'package.json': manifest({ '@angular/core': '20.0.0' }) })
+      )
+    ).toBe(false);
+    expect(
+      lawRequirementsMet(
+        card?.requires,
+        project({ 'pyproject.toml': "[project]\nname = 'x'\n" })
+      )
+    ).toBe(false);
   });
 });

@@ -53,7 +53,8 @@ export class ExplicitButtonTypeLaw extends AccessibilityLawBase {
     const violations = [...jsx.unread];
     for (const file of jsx.files) {
       const untyped = file.elements.filter(
-        el => JsxSources.isIntrinsic(el, 'button') && !JsxSources.has(el, 'type')
+        el =>
+          JsxSources.isIntrinsic(el, 'button') && !JsxSources.has(el, 'type')
       );
       const missing = untyped.filter(el => !el.hasSpread).map(el => el.line);
       const spread = untyped.filter(el => el.hasSpread).map(el => el.line);

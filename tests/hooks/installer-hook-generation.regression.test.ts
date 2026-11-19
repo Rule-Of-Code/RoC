@@ -35,7 +35,10 @@ function read(huskyDir: string, hook: string): string {
 
 const shAvailable = ((): boolean => {
   try {
-    execFileSync('sh', ['-c', 'exit 0'], { cwd: os.tmpdir(), stdio: ['pipe', 'pipe', 'pipe'] });
+    execFileSync('sh', ['-c', 'exit 0'], {
+      cwd: os.tmpdir(),
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
     return true;
   } catch {
     return false;
@@ -170,7 +173,10 @@ describe('Hook generation — commit-msg POSIX validity (FE Git-Bash crash)', ()
           'else return 0; fi; }; roc_py definitely_not_a_real_tool_xyz check .';
         const status = (() => {
           try {
-            execFileSync('sh', ['-c', probe], { cwd: os.tmpdir(), stdio: ['pipe', 'pipe', 'pipe'] });
+            execFileSync('sh', ['-c', probe], {
+              cwd: os.tmpdir(),
+              stdio: ['pipe', 'pipe', 'pipe'],
+            });
             return 0;
           } catch (e) {
             return (e as { status?: number }).status ?? 1;
@@ -201,13 +207,15 @@ describe('Hook generation — commit-msg POSIX validity (FE Git-Bash crash)', ()
       // Well-formed body → pass.
       expect(run('feat: x\n\nA short, well-formed body line.\n')).toBe(0);
       // Body not separated by a blank line → fail.
-      expect(run('fix: y\nBody on the line right after the subject.\n')).toBe(1);
+      expect(run('fix: y\nBody on the line right after the subject.\n')).toBe(
+        1
+      );
       // Over-long wrappable body line → fail.
       expect(run(`docs: z\n\n${'word '.repeat(20)}\n`)).toBe(1);
       // Long URL is exempt → pass.
-      expect(run(`chore: u\n\nSee https://example.com/${'x'.repeat(90)}\n`)).toBe(
-        0
-      );
+      expect(
+        run(`chore: u\n\nSee https://example.com/${'x'.repeat(90)}\n`)
+      ).toBe(0);
       // Merge commit body is exempt → pass.
       expect(run("Merge branch 'main'\nno blank line but exempt")).toBe(0);
     }

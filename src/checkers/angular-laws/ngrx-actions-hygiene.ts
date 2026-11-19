@@ -119,10 +119,7 @@ export class NgrxActionsHygieneLaw extends AngularLawBase {
     violations: string[]
   ): void {
     // Check for action constants export
-    if (
-      !content.includes('export const') &&
-      content.includes('createAction')
-    ) {
+    if (!content.includes('export const') && content.includes('createAction')) {
       violations.push(`Actions in ${fileName} should be exported as constants`);
     }
   }

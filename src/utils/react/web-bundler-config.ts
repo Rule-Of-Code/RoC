@@ -30,12 +30,20 @@
 
 import { FileUtils } from '../file-utils';
 import { PathOperations } from '../path-operations';
-import { WorkspaceManifests, type WorkspaceManifest } from '../workspace-manifests';
+import {
+  WorkspaceManifests,
+  type WorkspaceManifest,
+} from '../workspace-manifests';
 import { JsConfigSource } from './js-config-source';
 import type { TsxSource } from './tsx-source';
 
 /** The config filenames Next 16 loads (`next/dist/shared/lib/constants.js`). */
-export const NEXT_CONFIG_FILES = ['next.config.js', 'next.config.mjs', 'next.config.ts', 'next.config.mts'];
+export const NEXT_CONFIG_FILES = [
+  'next.config.js',
+  'next.config.mjs',
+  'next.config.ts',
+  'next.config.mts',
+];
 
 /** The config filenames Vite 8 loads (`DEFAULT_CONFIG_FILES`). */
 export const VITE_CONFIG_FILES = [
@@ -118,7 +126,11 @@ function readText(file: string): string {
   }
 }
 
-function emptyApp(kind: BundlerApp['kind'], root: string, configFile: string | null): BundlerApp {
+function emptyApp(
+  kind: BundlerApp['kind'],
+  root: string,
+  configFile: string | null
+): BundlerApp {
   return {
     kind,
     root,
@@ -141,13 +153,25 @@ export class WebBundlerConfig {
     const report: BundlerReport = { apps: [], unread: [] };
     const nxJson = readText(PathOperations.join(projectRoot, 'nx.json'));
     for (const manifest of WorkspaceManifests.all(projectRoot)) {
-      const projectJson = readText(PathOperations.join(manifest.dir, 'project.json'));
+      const projectJson = readText(
+        PathOperations.join(manifest.dir, 'project.json')
+      );
       if ('next' in manifest.dependencies) {
-        report.apps.push(this.nextApp(projectRoot, manifest, projectJson + nxJson, report));
+        report.apps.push(
+          this.nextApp(projectRoot, manifest, projectJson + nxJson, report)
+        );
       } else if ('vite' in manifest.dependencies) {
         const configFile = firstExisting(manifest.dir, VITE_CONFIG_FILES);
         if (configFile) {
-          report.apps.push(this.viteApp(projectRoot, manifest, configFile, projectJson + nxJson, report));
+          report.apps.push(
+            this.viteApp(
+              projectRoot,
+              manifest,
+              configFile,
+              projectJson + nxJson,
+              report
+            )
+          );
         }
       }
     }
@@ -166,7 +190,10 @@ export class WebBundlerConfig {
    * `minimize` and `usedExports`. It does not count when it says
    * `mode: 'development'` or `minimize: false`. Returns the file, or null.
    */
-  static webpackProduction(projectRoot: string, unread: string[]): string | null {
+  static webpackProduction(
+    projectRoot: string,
+    unread: string[]
+  ): string | null {
     for (const name of WEBPACK_CONFIG_FILES) {
       const file = PathOperations.join(projectRoot, name);
       if (!FileUtils.exists(file)) continue;
@@ -179,7 +206,8 @@ export class WebBundlerConfig {
       const development = JsConfigSource.valuesOf(source, 'mode').some(
         node => JsConfigSource.stringOf(source, node) === 'development'
       );
-      if (!development && !JsConfigSource.hasBoolean(source, 'minimize', false)) return name;
+      if (!development && !JsConfigSource.hasBoolean(source, 'minimize', false))
+        return name;
     }
     return null;
   }
@@ -199,8 +227,9 @@ export class WebBundlerConfig {
     const configFile = firstExisting(manifest.dir, NEXT_CONFIG_FILES);
     const app = emptyApp('next', manifest.dir, configFile);
     app.builds =
-      Object.values(manifest.scripts).some(command => NEXT_BUILD.test(command)) ||
-      NX_NEXT_BUILD.test(nxText);
+      Object.values(manifest.scripts).some(command =>
+        NEXT_BUILD.test(command)
+      ) || NX_NEXT_BUILD.test(nxText);
     app.hasRouter = ['app', 'src/app', 'pages', 'src/pages'].some(dir =>
       FileUtils.isDirectory(PathOperations.join(manifest.dir, dir))
     );
@@ -217,7 +246,10 @@ export class WebBundlerConfig {
 
   private static applyNextConfig(source: TsxSource, app: BundlerApp): void {
     const ts = source.ts;
-    const turbopackMinifyOff = JsConfigSource.valuesOf(source, 'turbopackMinify').some(
+    const turbopackMinifyOff = JsConfigSource.valuesOf(
+      source,
+      'turbopackMinify'
+    ).some(
       node =>
         JsConfigSource.isBoolean(source, node, false) ||
         (ts.isObjectLiteralExpression(node) &&
@@ -229,22 +261,35 @@ export class WebBundlerConfig {
           ))
     );
     if (turbopackMinifyOff) app.minifyOff = 'experimental.turbopackMinify';
-    else if (JsConfigSource.hasBoolean(source, 'minimize', false)) app.minifyOff = 'optimization.minimize = false';
-    if (JsConfigSource.hasBoolean(source, 'usedExports', false)) app.treeShakingOff = 'optimization.usedExports = false';
+    else if (JsConfigSource.hasBoolean(source, 'minimize', false))
+      app.minifyOff = 'optimization.minimize = false';
+    if (JsConfigSource.hasBoolean(source, 'usedExports', false))
+      app.treeShakingOff = 'optimization.usedExports = false';
     app.staticExport = JsConfigSource.valuesOf(source, 'output').some(
       node => JsConfigSource.stringOf(source, node) === 'export'
     );
-    app.imagesUnoptimized = JsConfigSource.hasBoolean(source, 'unoptimized', true);
+    app.imagesUnoptimized = JsConfigSource.hasBoolean(
+      source,
+      'unoptimized',
+      true
+    );
     app.optimizeCss = JsConfigSource.valuesOf(source, 'optimizeCss').some(
-      node => JsConfigSource.isBoolean(source, node, true) || ts.isObjectLiteralExpression(node)
+      node =>
+        JsConfigSource.isBoolean(source, node, true) ||
+        ts.isObjectLiteralExpression(node)
     );
     app.cacheControlHeaders =
       JsConfigSource.declares(source, 'headers') &&
       JsConfigSource.valuesOf(source, 'key').some(
-        node => JsConfigSource.stringOf(source, node)?.toLowerCase() === 'cache-control'
+        node =>
+          JsConfigSource.stringOf(source, node)?.toLowerCase() ===
+          'cache-control'
       );
     app.bundleAnalyzer =
-      JsConfigSource.callsOf(source, JsConfigSource.importedNames(source, '@next/bundle-analyzer')).length > 0;
+      JsConfigSource.callsOf(
+        source,
+        JsConfigSource.importedNames(source, '@next/bundle-analyzer')
+      ).length > 0;
   }
 
   private static viteApp(
@@ -256,8 +301,9 @@ export class WebBundlerConfig {
   ): BundlerApp {
     const app = emptyApp('vite', manifest.dir, configFile);
     app.builds =
-      Object.values(manifest.scripts).some(command => VITE_BUILD.test(command)) ||
-      NX_VITE_BUILD.test(nxText);
+      Object.values(manifest.scripts).some(command =>
+        VITE_BUILD.test(command)
+      ) || NX_VITE_BUILD.test(nxText);
     const read = JsConfigSource.read(projectRoot, configFile);
     if (!read.source) {
       report.unread.push(read.unread);
@@ -266,14 +312,18 @@ export class WebBundlerConfig {
     }
     const source = read.source;
     const ts = source.ts;
-    if (JsConfigSource.hasBoolean(source, 'minify', false)) app.minifyOff = 'build.minify = false';
-    if (JsConfigSource.hasBoolean(source, 'treeshake', false)) app.treeShakingOff = 'treeshake = false';
+    if (JsConfigSource.hasBoolean(source, 'minify', false))
+      app.minifyOff = 'build.minify = false';
+    if (JsConfigSource.hasBoolean(source, 'treeshake', false))
+      app.treeShakingOff = 'treeshake = false';
     app.manualChunks =
       JsConfigSource.valuesOf(source, 'manualChunks').some(
         node => !JsConfigSource.isBoolean(source, node, false)
       ) ||
       ['advancedChunks', 'codeSplitting'].some(name =>
-        JsConfigSource.valuesOf(source, name).some(node => ts.isObjectLiteralExpression(node))
+        JsConfigSource.valuesOf(source, name).some(node =>
+          ts.isObjectLiteralExpression(node)
+        )
       );
     return app;
   }

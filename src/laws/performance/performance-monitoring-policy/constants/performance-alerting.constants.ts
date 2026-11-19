@@ -6,7 +6,10 @@
 export class PerformanceAlertingConstants {
   static readonly WORKFLOWS_DIR = '.github/workflows';
 
-  static readonly MONITORING_CONFIG_FILES: string[] = ['newrelic.js', 'datadog.json'];
+  static readonly MONITORING_CONFIG_FILES: string[] = [
+    'newrelic.js',
+    'datadog.json',
+  ];
 
   /** Lighthouse CI's config names; with `assert` in it, a regression fails CI. */
   static readonly LIGHTHOUSE_CI_FILES: string[] = [

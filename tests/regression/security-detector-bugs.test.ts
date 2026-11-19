@@ -16,7 +16,9 @@ import { FileUtils } from '../../src/utils';
  */
 describe('SECURITY detector bugs', () => {
   let root: string;
-  const angularConfig = (): ReturnType<typeof FileUtils.getMinimalDefaultConfig> => {
+  const angularConfig = (): ReturnType<
+    typeof FileUtils.getMinimalDefaultConfig
+  > => {
     const c = FileUtils.getMinimalDefaultConfig();
     c.project.type = 'angular';
     return c;
@@ -42,7 +44,8 @@ describe('SECURITY detector bugs', () => {
 
   describe('2. hasCustomCrypto flags home-rolled crypto, not any "encrypt" mention', () => {
     const custom = (src: string): boolean =>
-      CryptographicLibrariesConfiguration.analyzeCryptoPatterns(src).hasCustomCrypto;
+      CryptographicLibrariesConfiguration.analyzeCryptoPatterns(src)
+        .hasCustomCrypto;
 
     it('does NOT flag a call to a vetted library (tweetnacl)', () => {
       expect(
@@ -54,7 +57,9 @@ describe('SECURITY detector bugs', () => {
 
     it('does NOT flag WebCrypto (crypto.subtle)', () => {
       expect(
-        custom('async function decrypt(b){ return crypto.subtle.decrypt(a, k, b); }')
+        custom(
+          'async function decrypt(b){ return crypto.subtle.decrypt(a, k, b); }'
+        )
       ).toBe(false);
     });
 
@@ -84,13 +89,24 @@ describe('SECURITY detector bugs', () => {
   describe('4. XSS sanitizer is required only where HTML is rendered', () => {
     it('does not demand a sanitizer from a component with no HTML sink', () => {
       write('src/foo.component.ts', 'export class Foo { title = "hi"; }');
-      const result = XSSPreventionLaw.check({ projectRoot: root, config: angularConfig() });
-      expect((result.violations ?? []).some(v => /saniti/i.test(v))).toBe(false);
+      const result = XSSPreventionLaw.check({
+        projectRoot: root,
+        config: angularConfig(),
+      });
+      expect((result.violations ?? []).some(v => /saniti/i.test(v))).toBe(
+        false
+      );
     });
 
     it('DOES demand a sanitizer when innerHTML is used without one', () => {
-      write('src/foo.component.ts', 'export class Foo { r(el, html){ el.innerHTML = html; } }');
-      const result = XSSPreventionLaw.check({ projectRoot: root, config: angularConfig() });
+      write(
+        'src/foo.component.ts',
+        'export class Foo { r(el, html){ el.innerHTML = html; } }'
+      );
+      const result = XSSPreventionLaw.check({
+        projectRoot: root,
+        config: angularConfig(),
+      });
       expect(
         (result.violations ?? []).some(v => /saniti|HTML is rendered/i.test(v))
       ).toBe(true);
@@ -99,20 +115,36 @@ describe('SECURITY detector bugs', () => {
 
   describe('5. rate limiting is required only of a backend surface', () => {
     it('does not fault a pure Angular SPA for missing rate limiting', async () => {
-      write('package.json', JSON.stringify({ name: 'a', dependencies: { '@angular/core': '^17' } }));
+      write(
+        'package.json',
+        JSON.stringify({ name: 'a', dependencies: { '@angular/core': '^17' } })
+      );
       write('angular.json', '{}');
       write('src/foo.component.ts', 'export class Foo {}');
-      const result = await ApiSecurityStandardsLaw.check({ projectRoot: root, config: angularConfig() });
-      expect((result.violations ?? []).some(v => /rate limiting/i.test(v))).toBe(false);
+      const result = await ApiSecurityStandardsLaw.check({
+        projectRoot: root,
+        config: angularConfig(),
+      });
+      expect(
+        (result.violations ?? []).some(v => /rate limiting/i.test(v))
+      ).toBe(false);
     });
 
     it('DOES fault an Express backend with no rate limiting', async () => {
       const c = FileUtils.getMinimalDefaultConfig();
       c.project.type = 'node';
       write('package.json', JSON.stringify({ name: 'api', version: '1.0.0' }));
-      write('src/server.ts', 'import express from "express";\nconst app = express();\napp.get("/x",(r,s)=>s.send("hi"));');
-      const result = await ApiSecurityStandardsLaw.check({ projectRoot: root, config: c });
-      expect((result.violations ?? []).some(v => /rate limiting/i.test(v))).toBe(true);
+      write(
+        'src/server.ts',
+        'import express from "express";\nconst app = express();\napp.get("/x",(r,s)=>s.send("hi"));'
+      );
+      const result = await ApiSecurityStandardsLaw.check({
+        projectRoot: root,
+        config: c,
+      });
+      expect(
+        (result.violations ?? []).some(v => /rate limiting/i.test(v))
+      ).toBe(true);
     });
   });
 });

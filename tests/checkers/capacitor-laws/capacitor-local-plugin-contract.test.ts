@@ -45,16 +45,22 @@ const activity = (body: string) =>
     '    }',
     '}',
   ].join('\n');
-const REGISTERED = activity('        registerPlugin(AppSettingsPlugin.class);\n        super.onCreate(savedInstanceState);');
+const REGISTERED = activity(
+  '        registerPlugin(AppSettingsPlugin.class);\n        super.onCreate(savedInstanceState);'
+);
 
-const shell = (overrides: Record<string, string> = {}): Record<string, string> => ({
+const shell = (
+  overrides: Record<string, string> = {}
+): Record<string, string> => ({
   [WEB]: web(),
   [`${JAVA_DIR}/AppSettingsPlugin.java`]: plugin(),
   [`${JAVA_DIR}/MainActivity.java`]: REGISTERED,
   ...overrides,
 });
 const run = (files: Record<string, string>) =>
-  CapacitorLocalPluginContractLaw.check(ctx(capacitorProject(files), IGNORING_SHELLS));
+  CapacitorLocalPluginContractLaw.check(
+    ctx(capacitorProject(files), IGNORING_SHELLS)
+  );
 
 describe('CapacitorLocalPluginContractLaw (#256)', () => {
   it('green: the three names agree (android/ excluded from the scan, read by fixed path)', () => {
@@ -64,41 +70,76 @@ describe('CapacitorLocalPluginContractLaw (#256)', () => {
   });
 
   it('red (mutant 1): the MainActivity registration removed', () => {
-    const result = run(shell({ [`${JAVA_DIR}/MainActivity.java`]: activity('        super.onCreate(savedInstanceState);') }));
+    const result = run(
+      shell({
+        [`${JAVA_DIR}/MainActivity.java`]: activity(
+          '        super.onCreate(savedInstanceState);'
+        ),
+      })
+    );
     expect(result.violations).toEqual([
-      expect.stringMatching(/src\/app\/app-settings-plugin\.ts:4: 'AppSettings' — AppSettingsPlugin is annotated @CapacitorPlugin but the BridgeActivity never calls registerPlugin\(AppSettingsPlugin\.class\)/),
+      expect.stringMatching(
+        /src\/app\/app-settings-plugin\.ts:4: 'AppSettings' — AppSettingsPlugin is annotated @CapacitorPlugin but the BridgeActivity never calls registerPlugin\(AppSettingsPlugin\.class\)/
+      ),
     ]);
   });
 
   it('red: a commented-out registration is not a registration', () => {
-    const commented = activity('        // registerPlugin(AppSettingsPlugin.class);\n        super.onCreate(savedInstanceState);');
-    expect(run(shell({ [`${JAVA_DIR}/MainActivity.java`]: commented })).passed).toBe(false);
+    const commented = activity(
+      '        // registerPlugin(AppSettingsPlugin.class);\n        super.onCreate(savedInstanceState);'
+    );
+    expect(
+      run(shell({ [`${JAVA_DIR}/MainActivity.java`]: commented })).passed
+    ).toBe(false);
   });
 
   it('red (mutant 2): @CapacitorPlugin(name = "AppSetting")', () => {
-    const result = run(shell({ [`${JAVA_DIR}/AppSettingsPlugin.java`]: plugin('AppSetting') }));
+    const result = run(
+      shell({ [`${JAVA_DIR}/AppSettingsPlugin.java`]: plugin('AppSetting') })
+    );
     expect(result.violations).toEqual([
-      expect.stringMatching(/registerPlugin\('AppSettings'\) — no class under android\/app\/src\/main\/java\|kotlin has @CapacitorPlugin\(name = "AppSettings"\).*isPluginAvailable\('AppSettings'\) is false/),
+      expect.stringMatching(
+        /registerPlugin\('AppSettings'\) — no class under android\/app\/src\/main\/java\|kotlin has @CapacitorPlugin\(name = "AppSettings"\).*isPluginAvailable\('AppSettings'\) is false/
+      ),
     ]);
   });
 
   it('red (mutant 3): the Java method renamed', () => {
-    const result = run(shell({ [`${JAVA_DIR}/AppSettingsPlugin.java`]: plugin('AppSettings', 'openSettings') }));
+    const result = run(
+      shell({
+        [`${JAVA_DIR}/AppSettingsPlugin.java`]: plugin(
+          'AppSettings',
+          'openSettings'
+        ),
+      })
+    );
     expect(result.violations).toEqual([
-      expect.stringMatching(/'AppSettings' on Android — open\(\) declared in the TypeScript interface but not exposed as @PluginMethod in AppSettingsPlugin/),
+      expect.stringMatching(
+        /'AppSettings' on Android — open\(\) declared in the TypeScript interface but not exposed as @PluginMethod in AppSettingsPlugin/
+      ),
     ]);
-    expect(result.suggestions?.[0]).toMatch(/@PluginMethod openSettings in AppSettingsPlugin has no counterpart in the TypeScript interface/);
+    expect(result.suggestions?.[0]).toMatch(
+      /@PluginMethod openSettings in AppSettingsPlugin has no counterpart in the TypeScript interface/
+    );
   });
 
   it('red: registered after super.onCreate — the bridge is already built', () => {
-    const late = activity('        super.onCreate(savedInstanceState);\n        registerPlugin(AppSettingsPlugin.class);');
+    const late = activity(
+      '        super.onCreate(savedInstanceState);\n        registerPlugin(AppSettingsPlugin.class);'
+    );
     const result = run(shell({ [`${JAVA_DIR}/MainActivity.java`]: late }));
-    expect(result.violations).toEqual([expect.stringContaining('comes after super.onCreate(…) in the BridgeActivity')]);
+    expect(result.violations).toEqual([
+      expect.stringContaining(
+        'comes after super.onCreate(…) in the BridgeActivity'
+      ),
+    ]);
   });
 
   it('red: no BridgeActivity subclass to register it in', () => {
     const { [`${JAVA_DIR}/MainActivity.java`]: _activity, ...rest } = shell();
-    expect(run(rest).violations).toEqual([expect.stringContaining('no BridgeActivity subclass found')]);
+    expect(run(rest).violations).toEqual([
+      expect.stringContaining('no BridgeActivity subclass found'),
+    ]);
   });
 
   it('green: Kotlin plugin and registerPlugins(listOf(X::class.java)), name defaulting to the class name', () => {
@@ -113,63 +154,110 @@ describe('CapacitorLocalPluginContractLaw (#256)', () => {
   });
 
   it('green: name imported from another module, type an intersection with an addListener literal', () => {
-    const result = run(shell({
-      'src/app/names.ts': "export const APP_SETTINGS = 'AppSettings';\nexport interface AppSettingsPlugin { open(): Promise<void>; }",
-      [WEB]: [
-        "import { registerPlugin } from '@capacitor/core';",
-        "import { APP_SETTINGS, AppSettingsPlugin } from './names';",
-        'type Bridge = AppSettingsPlugin & { addListener(event: "x", f: () => void): Promise<{ remove(): void }> };',
-        'export const bridge = () => registerPlugin<Bridge>(APP_SETTINGS);',
-      ].join('\n'),
-    }));
+    const result = run(
+      shell({
+        'src/app/names.ts':
+          "export const APP_SETTINGS = 'AppSettings';\nexport interface AppSettingsPlugin { open(): Promise<void>; }",
+        [WEB]: [
+          "import { registerPlugin } from '@capacitor/core';",
+          "import { APP_SETTINGS, AppSettingsPlugin } from './names';",
+          'type Bridge = AppSettingsPlugin & { addListener(event: "x", f: () => void): Promise<{ remove(): void }> };',
+          'export const bridge = () => registerPlugin<Bridge>(APP_SETTINGS);',
+        ].join('\n'),
+      })
+    );
     expect(result.violations).toEqual([]);
     expect(result.suggestions).toEqual([]);
   });
 
   it('green: an npm plugin package declares the name — not a local plugin', () => {
-    const root = capacitorProject({ [WEB]: web().replace(/AppSettings/g, 'Camera'), [`${JAVA_DIR}/MainActivity.java`]: REGISTERED }, undefined, {
-      '@capacitor/camera': '8.0.0',
-    });
+    const root = capacitorProject(
+      {
+        [WEB]: web().replace(/AppSettings/g, 'Camera'),
+        [`${JAVA_DIR}/MainActivity.java`]: REGISTERED,
+      },
+      undefined,
+      {
+        '@capacitor/camera': '8.0.0',
+      }
+    );
     writeFiles(root, {
-      'node_modules/@capacitor/camera/package.json': JSON.stringify({ name: '@capacitor/camera', capacitor: { android: { src: 'android' } } }),
-      'node_modules/@capacitor/camera/android/src/main/java/CameraPlugin.java': '@CapacitorPlugin(name = "Camera")\npublic class CameraPlugin extends Plugin {}',
+      'node_modules/@capacitor/camera/package.json': JSON.stringify({
+        name: '@capacitor/camera',
+        capacitor: { android: { src: 'android' } },
+      }),
+      'node_modules/@capacitor/camera/android/src/main/java/CameraPlugin.java':
+        '@CapacitorPlugin(name = "Camera")\npublic class CameraPlugin extends Plugin {}',
     });
-    expect(CapacitorLocalPluginContractLaw.check(ctx(root, IGNORING_SHELLS)).violations).toEqual([]);
+    expect(
+      CapacitorLocalPluginContractLaw.check(ctx(root, IGNORING_SHELLS))
+        .violations
+    ).toEqual([]);
   });
 
   it('red: a name built at runtime is reported as not judged', () => {
-    const result = run(shell({ [WEB]: "import { registerPlugin } from '@capacitor/core';\nexport const p = registerPlugin(prefix + 'Settings');" }));
-    expect(result.violations).toEqual([expect.stringContaining('the local plugin contract was not judged')]);
+    const result = run(
+      shell({
+        [WEB]:
+          "import { registerPlugin } from '@capacitor/core';\nexport const p = registerPlugin(prefix + 'Settings');",
+      })
+    );
+    expect(result.violations).toEqual([
+      expect.stringContaining('the local plugin contract was not judged'),
+    ]);
   });
 
   it('iOS (PARTIAL): a Swift CAPBridgedPlugin with the jsName has its pluginMethods compared', () => {
     const swift = (method: string) =>
       `@objc(AppSettingsPlugin)\npublic class AppSettingsPlugin: CAPPlugin, CAPBridgedPlugin {\n  public let identifier = "AppSettingsPlugin"\n  public let jsName = "AppSettings"\n  public let pluginMethods: [CAPPluginMethod] = [CAPPluginMethod(name: "${method}", returnType: CAPPluginReturnPromise)]\n}`;
-    expect(run(shell({ 'ios/App/App/AppSettingsPlugin.swift': swift('open') })).violations).toEqual([]);
-    expect(run(shell({ 'ios/App/App/AppSettingsPlugin.swift': swift('show') })).violations).toEqual([
-      expect.stringMatching(/'AppSettings' on iOS — open\(\) declared in the TypeScript interface but not exposed as pluginMethods/),
+    expect(
+      run(shell({ 'ios/App/App/AppSettingsPlugin.swift': swift('open') }))
+        .violations
+    ).toEqual([]);
+    expect(
+      run(shell({ 'ios/App/App/AppSettingsPlugin.swift': swift('show') }))
+        .violations
+    ).toEqual([
+      expect.stringMatching(
+        /'AppSettings' on iOS — open\(\) declared in the TypeScript interface but not exposed as pluginMethods/
+      ),
     ]);
   });
 
   it('red: no android/ shell and no Swift class — judged on no platform, so it does not pass', () => {
-    expect(run({ [WEB]: web() }).violations).toEqual([expect.stringContaining('could not be judged on any platform')]);
+    expect(run({ [WEB]: web() }).violations).toEqual([
+      expect.stringContaining('could not be judged on any platform'),
+    ]);
   });
 
   it('green: no registerPlugin() anywhere — no local plugin to compare', () => {
-    expect(run({ 'src/app/main.ts': 'export const x = 1;' }).violations).toEqual([]);
+    expect(
+      run({ 'src/app/main.ts': 'export const x = 1;' }).violations
+    ).toEqual([]);
   });
 
   it('the native sources are audit-cache inputs (they sit outside the scan)', () => {
     const root = capacitorProject(shell());
-    const inputs = CapacitorProjects.fixedPathInputs(root).map(file => file.replace(/\\/g, '/'));
-    expect(inputs).toEqual(expect.arrayContaining([expect.stringMatching(/MainActivity\.java$/), expect.stringMatching(/AppSettingsPlugin\.java$/)]));
+    const inputs = CapacitorProjects.fixedPathInputs(root).map(file =>
+      file.replace(/\\/g, '/')
+    );
+    expect(inputs).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/MainActivity\.java$/),
+        expect.stringMatching(/AppSettingsPlugin\.java$/),
+      ])
+    );
   });
 
   it('cannot read: no TypeScript to parse with — fails, never passes', () => {
     const root = capacitorProject(shell());
-    const result = withoutTypeScript(() => CapacitorLocalPluginContractLaw.check(ctx(root, IGNORING_SHELLS)));
+    const result = withoutTypeScript(() =>
+      CapacitorLocalPluginContractLaw.check(ctx(root, IGNORING_SHELLS))
+    );
     expect(result.passed).toBe(false);
-    expect(result.violations?.[0]).toMatch(/could not load the 'typescript' package/);
+    expect(result.violations?.[0]).toMatch(
+      /could not load the 'typescript' package/
+    );
   });
 
   describe('selection (requires)', () => {

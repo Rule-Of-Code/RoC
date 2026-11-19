@@ -17,14 +17,31 @@
 
 import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { isFunctionLike, moduleExports, type FunctionLike, type ModuleExport } from '../../utils/react/module-exports';
+import {
+  isFunctionLike,
+  moduleExports,
+  type FunctionLike,
+  type ModuleExport,
+} from '../../utils/react/module-exports';
 import { NextModuleGraph } from '../../utils/react/next-module-graph';
-import { nextRoutes, routerLayout, type NextRoute } from '../../utils/react/next-routes';
-import { NextThresholds, type ReasonedEntry } from '../../utils/react/next-thresholds';
+import {
+  nextRoutes,
+  routerLayout,
+  type NextRoute,
+} from '../../utils/react/next-routes';
+import {
+  NextThresholds,
+  type ReasonedEntry,
+} from '../../utils/react/next-thresholds';
 import { ReactProject } from '../../utils/react/react-project';
 import type { TsxSource } from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';
-import { callsGuard, isGuardCall, isGuardWrapper, listed } from './next-server-support';
+import {
+  callsGuard,
+  isGuardCall,
+  isGuardWrapper,
+  listed,
+} from './next-server-support';
 
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const BODY_READS = new Set(['json', 'formData']);
@@ -51,47 +68,69 @@ export class NextRouteHandlerGuardedLaw extends LawBase {
     const guards = NextThresholds.authGuards(context);
     const validators = NextThresholds.bodyValidators(context);
     const publicRoutes = NextThresholds.publicRoutes(context);
-    const violations = [...guards.problems, ...validators.problems, ...publicRoutes.problems];
+    const violations = [
+      ...guards.problems,
+      ...validators.problems,
+      ...publicRoutes.problems,
+    ];
     const config: Config = {
       guards: guards.value,
       validators: validators.value ?? [],
       publicRoutes: publicRoutes.value ?? [],
     };
-    const routes = nextRoutes(ReactProject.nextApps(context.projectRoot).map(routerLayout)).filter(
-      route => route.kind === 'route'
-    );
+    const routes = nextRoutes(
+      ReactProject.nextApps(context.projectRoot).map(routerLayout)
+    ).filter(route => route.kind === 'route');
     const graph = NextModuleGraph.create(context);
     if (typeof graph === 'string') {
-      if (routes.length > 0) violations.push(`${routes.length} route file(s): ${graph}`);
+      if (routes.length > 0)
+        violations.push(`${routes.length} route file(s): ${graph}`);
       return this.result(violations, context);
     }
     const handlers = this.handlers(graph, routes);
     violations.push(...graph.unread);
-    const where = (h: Handler): string => `${graph.relative(h.route.file)}:${h.entry.line}`;
-    const isPublic = (h: Handler): boolean => config.publicRoutes.some(p => p.key === h.route.path);
+    const where = (h: Handler): string =>
+      `${graph.relative(h.route.file)}:${h.entry.line}`;
+    const isPublic = (h: Handler): boolean =>
+      config.publicRoutes.some(p => p.key === h.route.path);
     const guarded = handlers.filter(h => !isPublic(h));
-    if (guarded.length > 0 && !config.guards?.length && guards.problems.length === 0) {
+    if (
+      guarded.length > 0 &&
+      !config.guards?.length &&
+      guards.problems.length === 0
+    ) {
       violations.push(
         `${guarded.length} mutating route handler(s) (${listed(guarded.map(h => `${h.entry.name} ${h.route.path}`))}) and no ${GUARD_KEY} — the law cannot tell a guard from any other call. Declare the guards (or list deliberately public routes in ${PUBLIC_KEY})`
       );
     } else if (config.guards?.length) {
       for (const handler of guarded) {
         const problem = this.guardProblem(handler, config.guards);
-        if (problem) violations.push(`${where(handler)}: ${handler.entry.name} ${handler.route.path} ${problem}`);
+        if (problem)
+          violations.push(
+            `${where(handler)}: ${handler.entry.name} ${handler.route.path} ${problem}`
+          );
       }
     }
     for (const handler of handlers) {
       const problem = this.bodyProblem(handler, config.validators);
-      if (problem) violations.push(`${where(handler)}: ${handler.entry.name} ${handler.route.path} ${problem}`);
+      if (problem)
+        violations.push(
+          `${where(handler)}: ${handler.entry.name} ${handler.route.path} ${problem}`
+        );
     }
     const handled = new Set(routes.map(route => route.path));
     for (const entry of config.publicRoutes.filter(p => !handled.has(p.key))) {
-      violations.push(`${PUBLIC_KEY}: '${entry.key}' is no route handler's path — a stale exemption is the next route's silent hole. Remove it or correct the path`);
+      violations.push(
+        `${PUBLIC_KEY}: '${entry.key}' is no route handler's path — a stale exemption is the next route's silent hole. Remove it or correct the path`
+      );
     }
     return this.result(violations, context);
   }
 
-  private static result(violations: string[], context: LawCheckContext): LawResult {
+  private static result(
+    violations: string[],
+    context: LawCheckContext
+  ): LawResult {
     return this.createResult(
       violations,
       this.LAW_NAME,
@@ -105,13 +144,17 @@ export class NextRouteHandlerGuardedLaw extends LawBase {
     );
   }
 
-  private static handlers(graph: NextModuleGraph, routes: readonly NextRoute[]): Handler[] {
+  private static handlers(
+    graph: NextModuleGraph,
+    routes: readonly NextRoute[]
+  ): Handler[] {
     const handlers: Handler[] = [];
     for (const route of routes) {
       const source = graph.source(route.file);
       if (!source) continue;
       for (const entry of moduleExports(source)) {
-        if (MUTATING.has(entry.name) || entry.reexportFrom === '*') handlers.push({ route, source, entry });
+        if (MUTATING.has(entry.name) || entry.reexportFrom === '*')
+          handlers.push({ route, source, entry });
       }
     }
     return handlers;
@@ -121,11 +164,16 @@ export class NextRouteHandlerGuardedLaw extends LawBase {
   private static handlerFunction(handler: Handler): FunctionLike | null {
     const { entry, source } = handler;
     if (entry.fn) return entry.fn;
-    const inner = entry.call?.arguments.find(arg => isFunctionLike(source.ts, arg));
+    const inner = entry.call?.arguments.find(arg =>
+      isFunctionLike(source.ts, arg)
+    );
     return inner && isFunctionLike(source.ts, inner) ? inner : null;
   }
 
-  private static guardProblem(handler: Handler, guards: readonly string[]): string | null {
+  private static guardProblem(
+    handler: Handler,
+    guards: readonly string[]
+  ): string | null {
     const { entry, source } = handler;
     if (entry.reexportFrom) {
       return `is re-exported from '${entry.reexportFrom}' — its guard cannot be read here. Define the handler in the route file, or list the route in ${PUBLIC_KEY}`;
@@ -136,7 +184,10 @@ export class NextRouteHandlerGuardedLaw extends LawBase {
     return `calls no guard (${guards.join(', ')}) — a mutating endpoint anyone can reach. Call one, or list the route in ${PUBLIC_KEY} with the reason`;
   }
 
-  private static bodyProblem(handler: Handler, validators: readonly string[]): string | null {
+  private static bodyProblem(
+    handler: Handler,
+    validators: readonly string[]
+  ): string | null {
     const fn = this.handlerFunction(handler);
     const { source } = handler;
     const ts = source.ts;
@@ -149,7 +200,8 @@ export class NextRouteHandlerGuardedLaw extends LawBase {
       if (ts.isTypeOfExpression(node)) validated = true;
       if (ts.isCallExpression(node)) {
         if (this.readsBody(ts, node, requestName)) reads = true;
-        if (validators.length > 0 && isGuardCall(source, node, validators)) validated = true;
+        if (validators.length > 0 && isGuardCall(source, node, validators))
+          validated = true;
       }
       ts.forEachChild(node, visit);
     };
@@ -161,11 +213,23 @@ export class NextRouteHandlerGuardedLaw extends LawBase {
   }
 
   /** `request.json()`, `request.formData()`, also through `request.clone()`. */
-  private static readsBody(ts: typeof TS, call: TS.CallExpression, requestName: string): boolean {
+  private static readsBody(
+    ts: typeof TS,
+    call: TS.CallExpression,
+    requestName: string
+  ): boolean {
     const callee = call.expression;
-    if (!ts.isPropertyAccessExpression(callee) || !BODY_READS.has(callee.name.text)) return false;
+    if (
+      !ts.isPropertyAccessExpression(callee) ||
+      !BODY_READS.has(callee.name.text)
+    )
+      return false;
     let receiver: TS.Expression = callee.expression;
-    if (ts.isCallExpression(receiver) && ts.isPropertyAccessExpression(receiver.expression) && receiver.expression.name.text === 'clone') {
+    if (
+      ts.isCallExpression(receiver) &&
+      ts.isPropertyAccessExpression(receiver.expression) &&
+      receiver.expression.name.text === 'clone'
+    ) {
       receiver = receiver.expression.expression;
     }
     return ts.isIdentifier(receiver) && receiver.text === requestName;

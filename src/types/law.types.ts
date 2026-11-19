@@ -11,11 +11,7 @@ export interface ConstitutionalLaw {
   name: string;
   description: string;
   category:
-    | 'foundational'
-    | 'maintainability'
-    | 'performance'
-    | 'quality'
-    | 'security';
+    'foundational' | 'maintainability' | 'performance' | 'quality' | 'security';
   severity: 'error' | 'info' | 'warning';
   impact: 'high' | 'low' | 'medium';
   paretoCore: boolean; // Is this part of the 20% that catches 80% of issues?

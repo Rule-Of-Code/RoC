@@ -57,7 +57,6 @@ describe('CdnCachingStrategyLaw', () => {
           parallel: true,
           maxConcurrent: 4,
           cache: true,
-
         },
       },
     };
@@ -148,9 +147,9 @@ describe('CdnCachingStrategyLaw', () => {
     it('should detect missing CDN configuration', async () => {
       const result = await CdnCachingStrategyLaw.check(mockContext);
 
-      expect(result.violations?.some(v => v.toLowerCase().includes('cdn'))).toBe(
-        true
-      );
+      expect(
+        result.violations?.some(v => v.toLowerCase().includes('cdn'))
+      ).toBe(true);
     });
 
     it('should detect missing asset optimization', async () => {

@@ -67,9 +67,7 @@ export class HttpsEnforcementAnalyzer {
       const content = FileUtils.readFile(nginxPath, { encoding: 'utf8' });
 
       if (!HttpsEnforcementConstants.hasHttpsConfiguration(content)) {
-        violations.push(
-          'Missing SSL certificate configuration in nginx.conf'
-        );
+        violations.push('Missing SSL certificate configuration in nginx.conf');
       }
     } catch (_error) {
       // Continue

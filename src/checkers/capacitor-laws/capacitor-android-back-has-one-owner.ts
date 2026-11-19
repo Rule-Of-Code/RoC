@@ -24,7 +24,11 @@ import {
   resolvedProjects,
   withNotes,
 } from '../../utils/capacitor/capacitor-law-support';
-import { bridgeSources, listenerCalls, objectProperty } from '../../utils/capacitor/capacitor-sources';
+import {
+  bridgeSources,
+  listenerCalls,
+  objectProperty,
+} from '../../utils/capacitor/capacitor-sources';
 import { declaredDependencies } from '../../utils/law-requirements';
 import { ReactProject } from '../../utils/react/react-project';
 import type { TsxSource } from '../../utils/react/tsx-source';
@@ -63,7 +67,8 @@ export class CapacitorAndroidBackHasOneOwnerLaw extends LawBase {
   static check(context: LawCheckContext): LawResult {
     const { sources, unread } = bridgeSources(context);
     const violations = unread.map(
-      reason => `${reason} — a backButton listener in these files would not be counted, so this law does not pass on them`
+      reason =>
+        `${reason} — a backButton listener in these files would not be counted, so this law does not pass on them`
     );
     const listeners: BackListener[] = sources.flatMap(source =>
       listenerCalls(source)
@@ -115,14 +120,20 @@ export class CapacitorAndroidBackHasOneOwnerLaw extends LawBase {
     const ownedNatively =
       unresolved.length === 0 &&
       resolved.length > 0 &&
-      resolved.every(({ config }) => configValue(config, 'plugins.App.disableBackButtonHandler') === true);
+      resolved.every(
+        ({ config }) =>
+          configValue(config, 'plugins.App.disableBackButtonHandler') === true
+      );
     if (ownedNatively) return [];
     const noPlugin = declaredDependencies(context.projectRoot).has(APP_PLUGIN)
       ? ''
       : ` (${APP_PLUGIN} is not even a dependency, so nothing can register it)`;
     return [
       `no App.addListener('backButton') in any source file${noPlugin} — without one, @capacitor/app goes back in the WebView history and never fires the 'backbutton' event Ionic's back-button chain starts from, so an open modal, sheet or menu stays while the page under it goes back`,
-      ...unresolved.map(reason => `${reason} (plugins.App.disableBackButtonHandler could not be read)`),
+      ...unresolved.map(
+        reason =>
+          `${reason} (plugins.App.disableBackButtonHandler could not be read)`
+      ),
     ];
   }
 
@@ -133,16 +144,24 @@ export class CapacitorAndroidBackHasOneOwnerLaw extends LawBase {
     for (const source of sources) {
       const ts = source.ts;
       source.walk(node => {
-        if (!ts.isCallExpression(node) || !this.isIonicConfigCall(source, node)) return;
+        if (!ts.isCallExpression(node) || !this.isIonicConfigCall(source, node))
+          return;
         configs++;
-        const value = objectProperty(source, node.arguments[0], 'hardwareBackButton');
+        const value = objectProperty(
+          source,
+          node.arguments[0],
+          'hardwareBackButton'
+        );
         if (value?.kind === ts.SyntaxKind.FalseKeyword) off++;
       });
     }
     return { configs, off: configs > 0 && off === configs };
   }
 
-  private static isIonicConfigCall(source: TsxSource, node: TS.CallExpression): boolean {
+  private static isIonicConfigCall(
+    source: TsxSource,
+    node: TS.CallExpression
+  ): boolean {
     const ts = source.ts;
     const callee = node.expression;
     if (ts.isIdentifier(callee)) return callee.text === 'provideIonicAngular';
@@ -158,7 +177,11 @@ export class CapacitorAndroidBackHasOneOwnerLaw extends LawBase {
   private static navigates({ call, source }: BackListener): boolean {
     const ts = source.ts;
     const handler = call.arguments[1];
-    if (!handler || !(ts.isArrowFunction(handler) || ts.isFunctionExpression(handler))) return false;
+    if (
+      !handler ||
+      !(ts.isArrowFunction(handler) || ts.isFunctionExpression(handler))
+    )
+      return false;
     let found = false;
     const visit = (node: TS.Node): void => {
       if (

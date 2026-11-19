@@ -102,7 +102,7 @@ describe('PerformanceStandardsLaw', () => {
       const result = await PerformanceStandardsLaw.check(mockContext);
 
       // Should have predefined suggestions
-      expect((result.suggestions?.length ?? 0)).toBeGreaterThan(0);
+      expect(result.suggestions?.length ?? 0).toBeGreaterThan(0);
     });
   });
 
@@ -119,7 +119,7 @@ describe('PerformanceStandardsLaw', () => {
 
     it('should have violations for empty project', async () => {
       const result = await PerformanceStandardsLaw.check(mockContext);
-      expect((result.violations?.length ?? 0)).toBeGreaterThan(0);
+      expect(result.violations?.length ?? 0).toBeGreaterThan(0);
     });
 
     it('should include violations in details', async () => {
@@ -700,7 +700,9 @@ export class ImageComponent { }
       const result = await PerformanceStandardsLaw.check(mockContext);
 
       // Lighthouse deduction is 25
-      if (result.violations?.some(v => v.toLowerCase().includes('lighthouse'))) {
+      if (
+        result.violations?.some(v => v.toLowerCase().includes('lighthouse'))
+      ) {
         expect(result.score).toBeLessThanOrEqual(75);
       }
     });
@@ -790,7 +792,7 @@ export class ImageComponent { }
       const result = await PerformanceStandardsLaw.check(mockContext);
 
       // Should have multiple types of violations
-      expect((result.violations?.length ?? 0)).toBeGreaterThan(0);
+      expect(result.violations?.length ?? 0).toBeGreaterThan(0);
     });
 
     it('should calculate scoreImpact correctly', async () => {

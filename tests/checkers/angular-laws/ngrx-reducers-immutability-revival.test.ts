@@ -35,12 +35,22 @@ const ctx = (root: string): LawCheckContext =>
     projectRoot: root,
     config: {
       project: { name: 't', root, componentPrefix: 'app', type: 'angular' },
-      ignores: { global: ['**/node_modules/**'], tests: [], build: [], design: [] },
+      ignores: {
+        global: ['**/node_modules/**'],
+        tests: [],
+        build: [],
+        design: [],
+      },
       laws: { paretoMode: false, severity: {} },
       hooks: { preCommit: false, prePush: false, commitMsg: false },
       includes: { global: ['**/*.ts'] },
       excludes: {},
-      reporting: { format: 'console', verbose: false, onlyFailures: false, scoring: false },
+      reporting: {
+        format: 'console',
+        verbose: false,
+        onlyFailures: false,
+        scoring: false,
+      },
       performance: { parallel: false, maxConcurrent: 3, cache: false },
       thresholds: {},
     },
@@ -49,7 +59,9 @@ const ctx = (root: string): LawCheckContext =>
 describe('NgRxReducersImmutabilityProtectionLaw (revival)', () => {
   it('detects direct state mutation in a *.reducer.ts file', () => {
     const dir = fixture({
-      'package.json': JSON.stringify({ dependencies: { '@ngrx/store': '18.0.0' } }),
+      'package.json': JSON.stringify({
+        dependencies: { '@ngrx/store': '18.0.0' },
+      }),
       'src/app/store/app.reducer.ts': `import { createReducer, on } from '@ngrx/store';
 export const reducer = createReducer({ items: [] as any[] },
   on({} as any, (state: any, a: any) => { state.items.push(a.x); state.count = 5; return state; }));
@@ -62,7 +74,9 @@ export const reducer = createReducer({ items: [] as any[] },
 
   it('passes an immutable (spread-based) reducer', () => {
     const dir = fixture({
-      'package.json': JSON.stringify({ dependencies: { '@ngrx/store': '18.0.0' } }),
+      'package.json': JSON.stringify({
+        dependencies: { '@ngrx/store': '18.0.0' },
+      }),
       'src/app/store/clean.reducer.ts': `import { createReducer, on } from '@ngrx/store';
 export const reducer = createReducer({ items: [] as any[] },
   on({} as any, (state: any, a: any) => ({ ...state, items: [...state.items, a.x] })));

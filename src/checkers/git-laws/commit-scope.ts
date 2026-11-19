@@ -51,10 +51,7 @@ function commitsBehindUpstream(
   );
   if (!upstream) return null;
 
-  const count = git(
-    `git rev-list --count "${ref}..${upstream}"`,
-    projectRoot
-  );
+  const count = git(`git rev-list --count "${ref}..${upstream}"`, projectRoot);
   const behind = Number(count);
   if (!Number.isFinite(behind)) return null;
 

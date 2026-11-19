@@ -37,9 +37,7 @@ async function getProjectType(
   projectRoot: string,
   initialType?: string,
   promptFn: PromptFn = inquirer.prompt.bind(inquirer)
-): Promise<
-  ProjectType
-> {
+): Promise<ProjectType> {
   if (isInitProjectType(initialType)) return initialType;
 
   const detected = detectProjectType(projectRoot);
@@ -59,9 +57,15 @@ async function getProjectType(
         { name: '⚛️  React Application', value: 'react' },
         { name: '💚 Vue.js Application', value: 'vue' },
         { name: '🟢 Node.js/Express Server', value: 'node' },
-        { name: '🐍 Python (FastAPI + Clean Architecture/CQRS)', value: 'python' },
+        {
+          name: '🐍 Python (FastAPI + Clean Architecture/CQRS)',
+          value: 'python',
+        },
         { name: '📚 TypeScript Library', value: 'library' },
-        { name: '🟦 TypeScript Project (no UI framework)', value: 'typescript' },
+        {
+          name: '🟦 TypeScript Project (no UI framework)',
+          value: 'typescript',
+        },
         { name: '🔧 Generic TypeScript Project', value: 'generic' },
       ],
       default: detected,

@@ -48,7 +48,10 @@ export class CleanArchitectureDependencyDirectionLaw extends PythonLawBase {
       if (!raw) continue;
       const rel = PathOperations.getRelative(projectRoot, file);
 
-      const importLayer = this.findForbiddenImport(this.stripPython(raw), forbidden);
+      const importLayer = this.findForbiddenImport(
+        this.stripPython(raw),
+        forbidden
+      );
       if (importLayer) {
         violations.push(
           `${rel}: ${fileLayer} layer imports the ${importLayer} layer — dependencies must point inward (${fileLayer} must not depend on ${importLayer})`
@@ -69,7 +72,10 @@ export class CleanArchitectureDependencyDirectionLaw extends PythonLawBase {
   }
 
   /** First outward (forbidden) layer the file imports, if any. */
-  private static findForbiddenImport(content: string, forbidden: Layer[]): Layer | null {
+  private static findForbiddenImport(
+    content: string,
+    forbidden: Layer[]
+  ): Layer | null {
     for (const line of content.split('\n')) {
       if (!/^\s*(?:from|import)\s/.test(line)) continue;
       const importLayer = this.layerOfImport(line);

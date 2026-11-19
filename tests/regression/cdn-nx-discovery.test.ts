@@ -104,9 +104,9 @@ describe('performance discovery across workspace layouts and hosts', () => {
       nxWorkspace({ optimization: true });
       write('apps/web/ngsw-config.json', '{"index":"/index.html"}');
 
-      expect(
-        BrowserCachingAnalyzerService.analyze(root).strategies
-      ).toContain('Service Worker detected');
+      expect(BrowserCachingAnalyzerService.analyze(root).strategies).toContain(
+        'Service Worker detected'
+      );
     });
 
     it('finds a .webmanifest, the extension the Angular generator scaffolds', () => {
@@ -160,7 +160,10 @@ describe('performance discovery across workspace layouts and hosts', () => {
 
     it('reads nginx.conf as before', () => {
       nxWorkspace({ optimization: true });
-      write('nginx.conf', 'location / { add_header Cache-Control "max-age=60"; }');
+      write(
+        'nginx.conf',
+        'location / { add_header Cache-Control "max-age=60"; }'
+      );
 
       expect(BrowserCachingAnalyzerService.analyze(root).strategies).toContain(
         'HTTP caching headers configured'

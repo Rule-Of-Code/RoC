@@ -89,7 +89,11 @@ export class GitHookComplianceLaw extends GitLawBase {
     // Say which fact the verdict rests on: the hooks git runs here, or (in a
     // CI checkout) only the committed configuration.
     const basis = hookVerdictBasis(statuses);
-    result.metrics = { ...result.metrics, hooks: statuses, checked: basis.checked };
+    result.metrics = {
+      ...result.metrics,
+      hooks: statuses,
+      checked: basis.checked,
+    };
     if (basis.note) result.message = `${result.message} (${basis.note})`;
     return result;
   }

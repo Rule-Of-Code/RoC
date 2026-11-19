@@ -8,7 +8,8 @@ import { ctx, project, removeProjects } from '../toolkit-fixture';
 
 afterAll(removeProjects);
 
-const run = (files: Record<string, string>) => TestServerLoopbackAddressMatchLaw.check(ctx(project(files)));
+const run = (files: Record<string, string>) =>
+  TestServerLoopbackAddressMatchLaw.check(ctx(project(files)));
 
 const MOCK_SERVER = `const http = require('http');
 const PORT = process.env.MOCK_PORT || 4010;
@@ -38,7 +39,10 @@ describe('TestServerLoopbackAddressMatchLaw (#360)', () => {
   it('green: the client uses the same literal the server binds', () => {
     const result = run({
       'perf/mock-api.js': MOCK_SERVER,
-      'src/environments/environment.e2e.ts': TEST_ENV.replace('localhost', '127.0.0.1'),
+      'src/environments/environment.e2e.ts': TEST_ENV.replace(
+        'localhost',
+        '127.0.0.1'
+      ),
     });
     expect(result.violations).toEqual([]);
     expect(result.passed).toBe(true);
@@ -101,39 +105,63 @@ describe('TestServerLoopbackAddressMatchLaw (#360)', () => {
       ),
     });
     expect(result.violations).toEqual([
-      expect.stringMatching(/^bench\/serve_static\.py:2: .*port 5500.* package\.json:5 \(http:\/\/localhost:5500\)/),
+      expect.stringMatching(
+        /^bench\/serve_static\.py:2: .*port 5500.* package\.json:5 \(http:\/\/localhost:5500\)/
+      ),
     ]);
   });
 
   it('port 0 is an OS-assigned port: the client gets the address at runtime, not from a fixed localhost URL', () => {
     const result = run({
-      'tools/check/registry.spec.mjs': "server.listen(0, '127.0.0.1', () => resolve(`http://127.0.0.1:${server.address().port}/`));\n",
+      'tools/check/registry.spec.mjs':
+        "server.listen(0, '127.0.0.1', () => resolve(`http://127.0.0.1:${server.address().port}/`));\n",
       'e2e/playwright.config.ts': "const BASE_URL = 'http://localhost:4300';\n",
     });
     expect(result.violations).toEqual([]);
   });
 
   it('a templated client port resolves through its assignment in the same file', () => {
-    const client = "const PORT = Number(process.env['E2E_PORT'] ?? 4010);\nconst BASE_URL = `http://localhost:${PORT}`;\n";
-    expect(run({ 'perf/mock-api.js': MOCK_SERVER, 'e2e/playwright.config.ts': client }).violations).toEqual([
-      expect.stringMatching(/^perf\/mock-api\.js:4: .*port 4010.*e2e\/playwright\.config\.ts:2 \(http:\/\/localhost:\$\{PORT\}\)/),
+    const client =
+      "const PORT = Number(process.env['E2E_PORT'] ?? 4010);\nconst BASE_URL = `http://localhost:${PORT}`;\n";
+    expect(
+      run({
+        'perf/mock-api.js': MOCK_SERVER,
+        'e2e/playwright.config.ts': client,
+      }).violations
+    ).toEqual([
+      expect.stringMatching(
+        /^perf\/mock-api\.js:4: .*port 4010.*e2e\/playwright\.config\.ts:2 \(http:\/\/localhost:\$\{PORT\}\)/
+      ),
     ]);
     const other = client.replace('4010', '4300');
-    expect(run({ 'perf/mock-api.js': MOCK_SERVER, 'e2e/playwright.config.ts': other }).violations).toEqual([]);
+    expect(
+      run({
+        'perf/mock-api.js': MOCK_SERVER,
+        'e2e/playwright.config.ts': other,
+      }).violations
+    ).toEqual([]);
   });
 
   it('a pass says how many test/perf files it read, and never "compliance verified" over none', () => {
     const none = run({ 'src/app.ts': 'export const x = 1;\n' });
     expect(none.passed).toBe(true);
     expect(none.judgedNothing).toBeUndefined();
-    expect(none.message).toBe('Test Server Loopback Address Match: 0 test/perf files — nothing to compare');
-    const noBind = run({ 'tests/api.test.ts': "fetch('http://localhost:4010');\n", 'e2e/run.e2e.ts': '' });
+    expect(none.message).toBe(
+      'Test Server Loopback Address Match: 0 test/perf files — nothing to compare'
+    );
+    const noBind = run({
+      'tests/api.test.ts': "fetch('http://localhost:4010');\n",
+      'e2e/run.e2e.ts': '',
+    });
     expect(noBind.message).toBe(
       'Test Server Loopback Address Match: 2 test/perf files read, none binds a server to 127.0.0.1 only — nothing to compare'
     );
     const matched = run({
       'perf/mock-api.js': MOCK_SERVER,
-      'src/environments/environment.e2e.ts': TEST_ENV.replace('localhost', '127.0.0.1'),
+      'src/environments/environment.e2e.ts': TEST_ENV.replace(
+        'localhost',
+        '127.0.0.1'
+      ),
     });
     expect(matched.message).toBe(
       'Test Server Loopback Address Match: 2 test/perf files read, no server bound to 127.0.0.1 only is called through localhost'
@@ -142,7 +170,8 @@ describe('TestServerLoopbackAddressMatchLaw (#360)', () => {
 
   it('a database host in a test config is not a server bind', () => {
     const result = run({
-      'tests/conftest.py': 'engine = connect(host="127.0.0.1", port=5432)\nBASE = "http://localhost:5432"\n',
+      'tests/conftest.py':
+        'engine = connect(host="127.0.0.1", port=5432)\nBASE = "http://localhost:5432"\n',
     });
     expect(result.violations).toEqual([]);
   });

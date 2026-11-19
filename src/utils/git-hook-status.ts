@@ -103,7 +103,10 @@ export function hookInstallation(
  */
 function missingUserScript(hooksDir: string, hook: string): string | null {
   if (!FileUtils.exists(PathOperations.join(hooksDir, 'h'))) return null;
-  const userScript = PathOperations.join(PathOperations.getParent(hooksDir), hook);
+  const userScript = PathOperations.join(
+    PathOperations.getParent(hooksDir),
+    hook
+  );
   return FileUtils.exists(userScript) ? null : userScript;
 }
 

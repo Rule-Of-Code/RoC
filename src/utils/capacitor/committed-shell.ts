@@ -59,7 +59,9 @@ export class CommittedShell {
   read(file: string): CommittedRead {
     if (!this.tracked) {
       try {
-        return fs.existsSync(file) ? { state: 'read', text: fs.readFileSync(file, 'utf8') } : { state: 'absent' };
+        return fs.existsSync(file)
+          ? { state: 'read', text: fs.readFileSync(file, 'utf8') }
+          : { state: 'absent' };
       } catch {
         return { state: 'unreadable' };
       }
@@ -70,7 +72,10 @@ export class CommittedShell {
       return text === null ? { state: 'unreadable' } : { state: 'read', text };
     }
     if (!fs.existsSync(file)) return { state: 'absent' };
-    return { state: 'untracked', ignored: gitExposure(this.projectRoot, [rel])?.get(rel) === 'ignored' };
+    return {
+      state: 'untracked',
+      ignored: gitExposure(this.projectRoot, [rel])?.get(rel) === 'ignored',
+    };
   }
 
   /** The text when the file is read, else null. */
@@ -116,7 +121,10 @@ export class CommittedShell {
     if (!this.tracked) return filesUnder(dir, extensions);
     const prefix = `${CommittedShell.rel(this.projectRoot, dir)}/`;
     return [...this.tracked]
-      .filter(file => file.startsWith(prefix) && extensions.some(ext => file.endsWith(ext)))
+      .filter(
+        file =>
+          file.startsWith(prefix) && extensions.some(ext => file.endsWith(ext))
+      )
       .sort()
       .map(file => PathOperations.join(this.projectRoot, file));
   }
@@ -128,14 +136,17 @@ export class CommittedShell {
    */
   private static rel(projectRoot: string, file: string): string {
     const direct = PathOperations.getRelative(projectRoot, file);
-    if (!direct.startsWith('..') && !PathOperations.isAbsolute(direct)) return direct;
+    if (!direct.startsWith('..') && !PathOperations.isAbsolute(direct))
+      return direct;
     const real = (p: string): string => {
       try {
         return fs.realpathSync.native(p);
       } catch {
         // A file that does not exist: resolve its nearest existing parent.
         const parent = PathOperations.getDirectory(p);
-        return parent === PathOperations.normalize(p) ? p : PathOperations.join(real(parent), p.slice(parent.length + 1));
+        return parent === PathOperations.normalize(p)
+          ? p
+          : PathOperations.join(real(parent), p.slice(parent.length + 1));
       }
     };
     return PathOperations.getRelative(real(projectRoot), real(file));
@@ -143,7 +154,9 @@ export class CommittedShell {
 }
 
 /** Why a file the law needs was not read, in words for a finding. */
-export function notReadReason(read: Exclude<CommittedRead, { state: 'read' }>): string {
+export function notReadReason(
+  read: Exclude<CommittedRead, { state: 'read' }>
+): string {
   switch (read.state) {
     case 'absent':
       return 'does not exist';

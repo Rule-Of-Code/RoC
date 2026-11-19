@@ -275,9 +275,9 @@ describe('PathOperations', () => {
         PathOperations.hasExtension('/a/app.component.ts', ['.reducer.ts'])
       ).toBe(false);
       // a compound pattern must not match a plain .ts file
-      expect(
-        PathOperations.hasExtension('/a/plain.ts', ['.reducer.ts'])
-      ).toBe(false);
+      expect(PathOperations.hasExtension('/a/plain.ts', ['.reducer.ts'])).toBe(
+        false
+      );
     });
   });
 

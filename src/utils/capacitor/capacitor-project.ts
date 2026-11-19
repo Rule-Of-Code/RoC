@@ -73,7 +73,10 @@ const GOOGLE_SERVICES_JSON = 'google-services.json';
 const CLI_TIMEOUT_MS = 60_000;
 
 export class CapacitorProjects {
-  private static readonly resolutions = new Map<string, CapacitorConfigResolution>();
+  private static readonly resolutions = new Map<
+    string,
+    CapacitorConfigResolution
+  >();
 
   /** Every directory, at the root or in a workspace project, that holds a Capacitor config. */
   static find(projectRoot: string): CapacitorProject[] {
@@ -114,7 +117,9 @@ export class CapacitorProjects {
     workspaceRoot: string = project.root
   ): CapacitorNativePaths {
     const resolution = this.resolve(project, workspaceRoot);
-    return resolution.ok ? resolution.native : this.defaultNativePaths(project.root);
+    return resolution.ok
+      ? resolution.native
+      : this.defaultNativePaths(project.root);
   }
 
   static defaultNativePaths(root: string): CapacitorNativePaths {
@@ -123,13 +128,31 @@ export class CapacitorProjects {
     const iosTargetDir = PathOperations.join(iosDir, 'App', 'App');
     return {
       androidDir,
-      androidManifest: PathOperations.join(androidDir, 'app', 'src', 'main', ANDROID_MANIFEST),
-      androidAppBuildGradle: PathOperations.join(androidDir, 'app', BUILD_GRADLE),
-      capacitorSettingsGradle: PathOperations.join(androidDir, 'capacitor.settings.gradle'),
+      androidManifest: PathOperations.join(
+        androidDir,
+        'app',
+        'src',
+        'main',
+        ANDROID_MANIFEST
+      ),
+      androidAppBuildGradle: PathOperations.join(
+        androidDir,
+        'app',
+        BUILD_GRADLE
+      ),
+      capacitorSettingsGradle: PathOperations.join(
+        androidDir,
+        'capacitor.settings.gradle'
+      ),
       iosDir,
       iosTargetDir,
       infoPlist: PathOperations.join(iosTargetDir, 'Info.plist'),
-      xcodeProjectFile: PathOperations.join(iosDir, 'App', 'App.xcodeproj', 'project.pbxproj'),
+      xcodeProjectFile: PathOperations.join(
+        iosDir,
+        'App',
+        'App.xcodeproj',
+        'project.pbxproj'
+      ),
     };
   }
 
@@ -159,30 +182,41 @@ export class CapacitorProjects {
     // untracking a file changes their verdict without touching the disk copy.
     const gitDir = projects.length > 0 ? resolveGitDir(projectRoot) : null;
     const index = gitDir ? [PathOperations.join(gitDir, 'index')] : [];
-    return [...index, ...projects.flatMap(project => {
-      const native = this.nativePaths(project, projectRoot);
-      return [
-        project.configFile,
-        native.androidManifest,
-        native.androidAppBuildGradle,
-        native.capacitorSettingsGradle,
-        PathOperations.join(native.androidDir, '.gitignore'),
-        native.infoPlist,
-        native.xcodeProjectFile,
-        PathOperations.join(native.iosDir, '.gitignore'),
-        PathOperations.join(native.iosDir, 'App', 'Podfile'),
-        PathOperations.join(native.iosDir, 'App', 'CapApp-SPM', 'Package.swift'),
-        PathOperations.join(native.iosTargetDir, 'PrivacyInfo.xcprivacy'),
-        `${native.androidAppBuildGradle}.kts`,
-        PathOperations.join(native.androidDir, BUILD_GRADLE),
-        PathOperations.join(native.androidDir, 'gradle.properties'),
-        PathOperations.join(native.androidDir, 'keystore.properties'),
-        PathOperations.join(PathOperations.getDirectory(native.androidAppBuildGradle), GOOGLE_SERVICES_JSON),
-        ...this.entitlementFiles(native),
-        ...this.sourceSetInputs(native),
-        ...this.nativeSourceFiles(native),
-      ];
-    })];
+    return [
+      ...index,
+      ...projects.flatMap(project => {
+        const native = this.nativePaths(project, projectRoot);
+        return [
+          project.configFile,
+          native.androidManifest,
+          native.androidAppBuildGradle,
+          native.capacitorSettingsGradle,
+          PathOperations.join(native.androidDir, '.gitignore'),
+          native.infoPlist,
+          native.xcodeProjectFile,
+          PathOperations.join(native.iosDir, '.gitignore'),
+          PathOperations.join(native.iosDir, 'App', 'Podfile'),
+          PathOperations.join(
+            native.iosDir,
+            'App',
+            'CapApp-SPM',
+            'Package.swift'
+          ),
+          PathOperations.join(native.iosTargetDir, 'PrivacyInfo.xcprivacy'),
+          `${native.androidAppBuildGradle}.kts`,
+          PathOperations.join(native.androidDir, BUILD_GRADLE),
+          PathOperations.join(native.androidDir, 'gradle.properties'),
+          PathOperations.join(native.androidDir, 'keystore.properties'),
+          PathOperations.join(
+            PathOperations.getDirectory(native.androidAppBuildGradle),
+            GOOGLE_SERVICES_JSON
+          ),
+          ...this.entitlementFiles(native),
+          ...this.sourceSetInputs(native),
+          ...this.nativeSourceFiles(native),
+        ];
+      }),
+    ];
   }
 
   /**
@@ -190,7 +224,9 @@ export class CapacitorProjects {
    * files: the native-shell laws read every source set, not only main.
    */
   private static sourceSetInputs(native: CapacitorNativePaths): string[] {
-    const src = PathOperations.getDirectory(PathOperations.getDirectory(native.androidManifest));
+    const src = PathOperations.getDirectory(
+      PathOperations.getDirectory(native.androidManifest)
+    );
     const list = (dir: string): fs.Dirent[] => {
       try {
         return fs.readdirSync(dir, { withFileTypes: true });
@@ -205,7 +241,13 @@ export class CapacitorProjects {
         const res = PathOperations.join(set, 'res');
         // res/xml (network security config, backup rules) and res/values* (a `@bool/…` manifest value).
         const resourceDirs = list(res)
-          .filter(dir => dir.isDirectory() && (dir.name === 'xml' || dir.name === 'values' || dir.name.startsWith('values-')))
+          .filter(
+            dir =>
+              dir.isDirectory() &&
+              (dir.name === 'xml' ||
+                dir.name === 'values' ||
+                dir.name.startsWith('values-'))
+          )
           .map(dir => PathOperations.join(res, dir.name));
         return [
           PathOperations.join(set, ANDROID_MANIFEST),
@@ -288,21 +330,34 @@ export class CapacitorProjects {
         windowsHide: true,
       });
     } catch (error) {
-      const stderr = String((error as { stderr?: unknown }).stderr ?? '').trim();
-      const firstLine = stderr.split('\n').find(line => line.trim()) ?? String(error);
-      return { ok: false, reason: `\`cap config --json\` failed: ${firstLine.trim()}` };
+      const stderr = String(
+        (error as { stderr?: unknown }).stderr ?? ''
+      ).trim();
+      const firstLine =
+        stderr.split('\n').find(line => line.trim()) ?? String(error);
+      return {
+        ok: false,
+        reason: `\`cap config --json\` failed: ${firstLine.trim()}`,
+      };
     }
 
     return this.parse(stdout, project.root);
   }
 
-  private static parse(stdout: string, root: string): CapacitorConfigResolution {
+  private static parse(
+    stdout: string,
+    root: string
+  ): CapacitorConfigResolution {
     const line = stdout
       .split('\n')
       .map(text => text.trim())
       .reverse()
       .find(text => text.startsWith('{'));
-    let printed: { app?: { extConfig?: unknown }; android?: unknown; ios?: unknown };
+    let printed: {
+      app?: { extConfig?: unknown };
+      android?: unknown;
+      ios?: unknown;
+    };
     try {
       printed = JSON.parse(line ?? '');
     } catch {
@@ -310,7 +365,10 @@ export class CapacitorProjects {
     }
     const config = printed.app?.extConfig;
     if (!config || typeof config !== 'object') {
-      return { ok: false, reason: '`cap config --json` printed no app.extConfig' };
+      return {
+        ok: false,
+        reason: '`cap config --json` printed no app.extConfig',
+      };
     }
     return {
       ok: true,
@@ -329,7 +387,10 @@ export class CapacitorProjects {
     ios: ResolvedPlatform | undefined
   ): CapacitorNativePaths {
     const fallback = this.defaultNativePaths(root);
-    const dir = (platform: ResolvedPlatform | undefined, field: string): string | undefined => {
+    const dir = (
+      platform: ResolvedPlatform | undefined,
+      field: string
+    ): string | undefined => {
       const value = platform?.[field];
       return typeof value === 'string' && value.length > 0 ? value : undefined;
     };
@@ -337,7 +398,8 @@ export class CapacitorProjects {
     const androidApp = dir(android, 'appDirAbs');
     const androidMain = dir(android, 'srcMainDirAbs');
     const iosDir = dir(ios, 'platformDirAbs') ?? fallback.iosDir;
-    const iosTargetDir = dir(ios, 'nativeTargetDirAbs') ?? fallback.iosTargetDir;
+    const iosTargetDir =
+      dir(ios, 'nativeTargetDirAbs') ?? fallback.iosTargetDir;
     const xcodeProj = dir(ios, 'nativeXcodeProjDirAbs');
     return {
       androidDir,
@@ -347,7 +409,10 @@ export class CapacitorProjects {
       androidAppBuildGradle: androidApp
         ? PathOperations.join(androidApp, BUILD_GRADLE)
         : fallback.androidAppBuildGradle,
-      capacitorSettingsGradle: PathOperations.join(androidDir, 'capacitor.settings.gradle'),
+      capacitorSettingsGradle: PathOperations.join(
+        androidDir,
+        'capacitor.settings.gradle'
+      ),
       iosDir,
       iosTargetDir,
       infoPlist: PathOperations.join(iosTargetDir, 'Info.plist'),
@@ -376,7 +441,10 @@ export class CapacitorProjects {
     const bin =
       typeof manifest?.bin === 'string' ? manifest.bin : manifest?.bin?.cap;
     if (!bin) return null;
-    const entry = PathOperations.join(PathOperations.getDirectory(manifestPath), bin);
+    const entry = PathOperations.join(
+      PathOperations.getDirectory(manifestPath),
+      bin
+    );
     return fs.existsSync(entry) ? entry : null;
   }
 }

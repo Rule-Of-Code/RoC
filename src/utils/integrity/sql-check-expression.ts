@@ -29,16 +29,81 @@ export interface ExpressionReading {
   unknown: string[];
 }
 
-const NULL_AWARE_FUNCTIONS = new Set(['coalesce', 'ifnull', 'nvl', 'num_nulls', 'num_nonnulls']);
-const KEYWORDS = new Set([
-  'and', 'or', 'not', 'is', 'null', 'true', 'false', 'in', 'between', 'symmetric', 'asymmetric',
-  'like', 'ilike', 'similar', 'to', 'escape', 'case', 'when', 'then', 'else', 'end', 'any', 'all',
-  'some', 'distinct', 'from', 'array', 'as', 'collate', 'isnull', 'notnull', 'unknown', 'overlaps',
-  'current_date', 'current_time', 'current_timestamp', 'localtime', 'localtimestamp',
-  'current_user', 'session_user', 'user', 'with', 'without', 'time', 'zone', 'varying',
-  'precision', 'regexp', 'rlike', 'glob', 'match', 'at',
+const NULL_AWARE_FUNCTIONS = new Set([
+  'coalesce',
+  'ifnull',
+  'nvl',
+  'num_nulls',
+  'num_nonnulls',
 ]);
-const EXPRESSION_OPERATORS = new Set(['+', '-', '*', '/', '%', '||', '::', '^', '&', '|', '#', '~']);
+const KEYWORDS = new Set([
+  'and',
+  'or',
+  'not',
+  'is',
+  'null',
+  'true',
+  'false',
+  'in',
+  'between',
+  'symmetric',
+  'asymmetric',
+  'like',
+  'ilike',
+  'similar',
+  'to',
+  'escape',
+  'case',
+  'when',
+  'then',
+  'else',
+  'end',
+  'any',
+  'all',
+  'some',
+  'distinct',
+  'from',
+  'array',
+  'as',
+  'collate',
+  'isnull',
+  'notnull',
+  'unknown',
+  'overlaps',
+  'current_date',
+  'current_time',
+  'current_timestamp',
+  'localtime',
+  'localtimestamp',
+  'current_user',
+  'session_user',
+  'user',
+  'with',
+  'without',
+  'time',
+  'zone',
+  'varying',
+  'precision',
+  'regexp',
+  'rlike',
+  'glob',
+  'match',
+  'at',
+]);
+const EXPRESSION_OPERATORS = new Set([
+  '+',
+  '-',
+  '*',
+  '/',
+  '%',
+  '||',
+  '::',
+  '^',
+  '&',
+  '|',
+  '#',
+  '~',
+]);
 
 const word = (token: SqlToken | undefined): string =>
   token?.kind === 'ident' && !token.quoted ? token.value : '';
@@ -69,13 +134,19 @@ class Reader {
   private functionBefore(i: number): string {
     const previous = this.tokens[i - 1];
     if (previous?.kind !== 'ident' || previous.quoted) return '';
-    return KEYWORDS.has(previous.value) && previous.value !== 'any' ? '' : previous.value;
+    return KEYWORDS.has(previous.value) && previous.value !== 'any'
+      ? ''
+      : previous.value;
   }
 
   /** Classify the identifier (or qualified reference) at `i`; returns its last index. */
   private identifier(i: number): number {
     let end = i;
-    while (isPunct(this.tokens[end + 1], '.') && this.tokens[end + 2]?.kind === 'ident') end += 2;
+    while (
+      isPunct(this.tokens[end + 1], '.') &&
+      this.tokens[end + 2]?.kind === 'ident'
+    )
+      end += 2;
     const token = this.tokens[end];
     const name = token?.value ?? '';
     const next = this.tokens[end + 1];
@@ -98,7 +169,11 @@ class Reader {
   }
 
   private use(name: string, start: number, end: number): void {
-    const use = this.columns.get(name) ?? { direct: false, indirect: false, nullAware: false };
+    const use = this.columns.get(name) ?? {
+      direct: false,
+      indirect: false,
+      nullAware: false,
+    };
     this.columns.set(name, use);
     if (this.isNullAware(start, end)) {
       use.nullAware = true;

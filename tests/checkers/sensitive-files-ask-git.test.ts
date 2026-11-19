@@ -27,9 +27,20 @@ import { ctx, manifest, project, removeProjects } from './toolkit-fixture';
 
 afterAll(removeProjects);
 
-const IGNORE = ['.env', '.env.*', '!.env.example', '*.log', '.DS_Store', 'node_modules', 'dist'].join('\n');
+const IGNORE = [
+  '.env',
+  '.env.*',
+  '!.env.example',
+  '*.log',
+  '.DS_Store',
+  'node_modules',
+  'dist',
+].join('\n');
 // Quoted on purpose: Environment Variables Policy matches only quoted secrets.
-const SECRET_ENV = ['API_KEY="dev-local-3f9a1c0042"', 'DATABASE_URL=postgres://u:p@localhost:5432/app'].join('\n');
+const SECRET_ENV = [
+  'API_KEY="dev-local-3f9a1c0042"',
+  'DATABASE_URL=postgres://u:p@localhost:5432/app',
+].join('\n');
 
 const git = (root: string, ...args: string[]) =>
   execFileSync('git', args, { cwd: root, stdio: 'ignore', windowsHide: true });
@@ -60,16 +71,34 @@ interface Findings {
 
 /** Every finding the four judges make about the sensitive files. */
 function findings(root: string): Findings {
-  const about = (vs: string[] | undefined, re: RegExp) => (vs ?? []).filter(v => re.test(v));
+  const about = (vs: string[] | undefined, re: RegExp) =>
+    (vs ?? []).filter(v => re.test(v));
   return {
-    gitignore: about(GitIgnoreStandardsLaw.check(ctx(root)).violations, /sensitive file/i),
-    envSecurity: about(EnvironmentSecurityEnforcementLaw.check(ctx(root)).violations, /^\.env/),
-    envVariables: about(EnvironmentVariablesLaw.check(ctx(root)).violations, /secret found/i),
-    envParity: about(DeploymentEnvironmentAnalyzer.analyzeEnvFiles(root).violations, /in git/i),
+    gitignore: about(
+      GitIgnoreStandardsLaw.check(ctx(root)).violations,
+      /sensitive file/i
+    ),
+    envSecurity: about(
+      EnvironmentSecurityEnforcementLaw.check(ctx(root)).violations,
+      /^\.env/
+    ),
+    envVariables: about(
+      EnvironmentVariablesLaw.check(ctx(root)).violations,
+      /secret found/i
+    ),
+    envParity: about(
+      DeploymentEnvironmentAnalyzer.analyzeEnvFiles(root).violations,
+      /in git/i
+    ),
   };
 }
 
-const NONE = { gitignore: [], envSecurity: [], envVariables: [], envParity: [] };
+const NONE = {
+  gitignore: [],
+  envSecurity: [],
+  envVariables: [],
+  envParity: [],
+};
 
 describe('sensitive files: the git index decides, not the disk (#142)', () => {
   it('A: no .env — nothing to report', () => {
@@ -140,7 +169,11 @@ describe('sensitive files: the git index decides, not the disk (#142)', () => {
   });
 
   it('outside a git repository the disk is all there is — a present .env is still reported', () => {
-    const root = project({ 'package.json': manifest({}), '.gitignore': IGNORE, '.env': SECRET_ENV });
+    const root = project({
+      'package.json': manifest({}),
+      '.gitignore': IGNORE,
+      '.env': SECRET_ENV,
+    });
     expect(gitExposure(root, ['.env'])).toBeNull();
 
     const f = findings(root);
@@ -158,7 +191,11 @@ describe('gitExposure', () => {
     write(root, 'kept.txt', 'x');
     git(root, 'add', 'kept.txt'); // tracked
 
-    expect(Object.fromEntries(gitExposure(root, ['.env', 'notes.txt', 'kept.txt', 'gone.txt']) ?? [])).toEqual({
+    expect(
+      Object.fromEntries(
+        gitExposure(root, ['.env', 'notes.txt', 'kept.txt', 'gone.txt']) ?? []
+      )
+    ).toEqual({
       '.env': 'ignored',
       'notes.txt': 'unignored',
       'kept.txt': 'tracked',

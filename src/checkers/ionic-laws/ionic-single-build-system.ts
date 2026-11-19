@@ -46,15 +46,21 @@ export class IonicSingleBuildSystemLaw extends LawBase {
     const standalone: ImportSite[] = [];
     const modules: ImportSite[] = [];
     for (const source of scan.sources) {
-      const where = (line: number): string => `${AngularComponents.relative(context, source.fileName)}:${line}`;
+      const where = (line: number): string =>
+        `${AngularComponents.relative(context, source.fileName)}:${line}`;
       for (const site of this.valueImports(source)) {
-        if (site.module === STANDALONE_ENTRY) standalone.push({ where: where(site.line), names: site.names });
-        if (site.module === MODULE_ENTRY) modules.push({ where: where(site.line), names: site.names });
+        if (site.module === STANDALONE_ENTRY)
+          standalone.push({ where: where(site.line), names: site.names });
+        if (site.module === MODULE_ENTRY)
+          modules.push({ where: where(site.line), names: site.names });
       }
     }
     const notes: string[] = [];
     if (standalone.length > 0 && modules.length > 0) {
-      const shared = this.sharedSymbols(context.projectRoot, scan.sources[0]?.ts ?? null);
+      const shared = this.sharedSymbols(
+        context.projectRoot,
+        scan.sources[0]?.ts ?? null
+      );
       if (shared === null) {
         violations.push(
           `both entries are imported (${standalone.length} from '${STANDALONE_ENTRY}', ${modules.length} from '${MODULE_ENTRY}') and the installed @ionic/angular could not be read to tell the shared classes apart — NOT judged`
@@ -78,7 +84,9 @@ export class IonicSingleBuildSystemLaw extends LawBase {
   }
 
   /** Value imports and value re-exports in one file, with the names they bring. */
-  static valueImports(source: TsxSource): Array<{ module: string; line: number; names: string[] }> {
+  static valueImports(
+    source: TsxSource
+  ): Array<{ module: string; line: number; names: string[] }> {
     const ts = source.ts;
     const sites: Array<{ module: string; line: number; names: string[] }> = [];
     for (const statement of source.sourceFile.statements) {
@@ -88,7 +96,11 @@ export class IonicSingleBuildSystemLaw extends LawBase {
           ? this.exportNames(ts, statement)
           : null;
       if (read && read.names.length > 0) {
-        sites.push({ module: read.module, line: source.lineOf(statement), names: read.names });
+        sites.push({
+          module: read.module,
+          line: source.lineOf(statement),
+          names: read.names,
+        });
       }
     }
     return sites;
@@ -105,7 +117,9 @@ export class IonicSingleBuildSystemLaw extends LawBase {
     // A namespace, default or side-effect import loads the whole entry.
     const names =
       bindings && ts.isNamedImports(bindings)
-        ? bindings.elements.filter(e => !e.isTypeOnly).map(e => (e.propertyName ?? e.name).text)
+        ? bindings.elements
+            .filter(e => !e.isTypeOnly)
+            .map(e => (e.propertyName ?? e.name).text)
         : [WHOLE_ENTRY];
     return { module: statement.moduleSpecifier.text, names };
   }
@@ -115,11 +129,14 @@ export class IonicSingleBuildSystemLaw extends LawBase {
     statement: TS.ExportDeclaration
   ): { module: string; names: string[] } | null {
     const specifier = statement.moduleSpecifier;
-    if (!specifier || !ts.isStringLiteral(specifier) || statement.isTypeOnly) return null;
+    if (!specifier || !ts.isStringLiteral(specifier) || statement.isTypeOnly)
+      return null;
     const clause = statement.exportClause;
     const names =
       clause && ts.isNamedExports(clause)
-        ? clause.elements.filter(e => !e.isTypeOnly).map(e => (e.propertyName ?? e.name).text)
+        ? clause.elements
+            .filter(e => !e.isTypeOnly)
+            .map(e => (e.propertyName ?? e.name).text)
         : [WHOLE_ENTRY];
     return { module: specifier.text, names };
   }
@@ -129,7 +146,10 @@ export class IonicSingleBuildSystemLaw extends LawBase {
    * `@ionic/angular/common` — the classes both builds share — or null when
    * the package or its entry cannot be read.
    */
-  static sharedSymbols(projectRoot: string, ts: TypeScriptModule | null): Set<string> | null {
+  static sharedSymbols(
+    projectRoot: string,
+    ts: TypeScriptModule | null
+  ): Set<string> | null {
     if (!ts) return null;
     try {
       const manifestFile = this.installedManifest(projectRoot);
@@ -140,12 +160,20 @@ export class IonicSingleBuildSystemLaw extends LawBase {
       };
       const entry = manifest.exports?.['.']?.default ?? manifest.module;
       if (!entry) return null;
-      const file = PathOperations.join(PathOperations.getDirectory(manifestFile), entry);
+      const file = PathOperations.join(
+        PathOperations.getDirectory(manifestFile),
+        entry
+      );
       const source = TsxSource.parse(ts, file, fs.readFileSync(file, 'utf8'));
       const shared = new Set<string>();
       for (const statement of source.sourceFile.statements) {
-        if (!ts.isExportDeclaration(statement) || !statement.moduleSpecifier) continue;
-        if (!ts.isStringLiteral(statement.moduleSpecifier) || statement.moduleSpecifier.text !== COMMON_ENTRY) continue;
+        if (!ts.isExportDeclaration(statement) || !statement.moduleSpecifier)
+          continue;
+        if (
+          !ts.isStringLiteral(statement.moduleSpecifier) ||
+          statement.moduleSpecifier.text !== COMMON_ENTRY
+        )
+          continue;
         const clause = statement.exportClause;
         if (!clause || !ts.isNamedExports(clause)) continue;
         for (const element of clause.elements) shared.add(element.name.text);
@@ -164,7 +192,12 @@ export class IonicSingleBuildSystemLaw extends LawBase {
   private static installedManifest(projectRoot: string): string | null {
     let dir = PathOperations.resolve(projectRoot);
     for (;;) {
-      const candidate = PathOperations.join(dir, 'node_modules', MODULE_ENTRY, 'package.json');
+      const candidate = PathOperations.join(
+        dir,
+        'node_modules',
+        MODULE_ENTRY,
+        'package.json'
+      );
       if (fs.existsSync(candidate)) return candidate;
       const parent = PathOperations.getDirectory(dir);
       if (parent === dir) return null;
@@ -172,22 +205,35 @@ export class IonicSingleBuildSystemLaw extends LawBase {
     }
   }
 
-  private static mixed(standalone: ImportSite[], modules: ImportSite[], shared: Set<string>): string[] {
+  private static mixed(
+    standalone: ImportSite[],
+    modules: ImportSite[],
+    shared: Set<string>
+  ): string[] {
     const first = standalone[0]?.where ?? '';
-    const others = standalone.length > 1 ? ` and ${standalone.length - 1} more` : '';
+    const others =
+      standalone.length > 1 ? ` and ${standalone.length - 1} more` : '';
     return modules.flatMap(site => {
       const own = site.names.filter(name => !shared.has(name));
       if (own.length === 0) return [];
-      const what = own.includes(WHOLE_ENTRY) ? `the whole '${MODULE_ENTRY}' entry` : own.join(', ');
+      const what = own.includes(WHOLE_ENTRY)
+        ? `the whole '${MODULE_ENTRY}' entry`
+        : own.join(', ');
       return [
         `${site.where}: imports ${what} from '${MODULE_ENTRY}' while ${first}${others} import from '${STANDALONE_ENTRY}' — a different class (a different DI token) in each build, and the module build's lazy loader; the docs say the two cannot be used at the same time`,
       ];
     });
   }
 
-  private static sharedNotes(modules: ImportSite[], shared: Set<string>): string[] {
+  private static sharedNotes(
+    modules: ImportSite[],
+    shared: Set<string>
+  ): string[] {
     return modules
-      .filter(site => site.names.length > 0 && site.names.every(name => shared.has(name)))
+      .filter(
+        site =>
+          site.names.length > 0 && site.names.every(name => shared.has(name))
+      )
       .map(
         site =>
           `${site.where}: ${site.names.join(', ')} from '${MODULE_ENTRY}' in a standalone app — the same class through ${COMMON_ENTRY}, harmless today; import it from '${STANDALONE_ENTRY}' so the next auto-import does not look normal`

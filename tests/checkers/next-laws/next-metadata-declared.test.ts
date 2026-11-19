@@ -9,7 +9,8 @@ import { NEXT_MANIFEST, nextApp, nextCtx, PAGE } from './next-fixture';
 
 afterAll(removeProjects);
 
-const UNTITLED_LAYOUT = 'export default function L({ children }) { return <html lang="en"><body>{children}</body></html>; }';
+const UNTITLED_LAYOUT =
+  'export default function L({ children }) { return <html lang="en"><body>{children}</body></html>; }';
 
 describe('NextMetadataDeclaredLaw — App Router (#226)', () => {
   it('green: the root layout title covers a nested page (control: the page is found)', () => {
@@ -20,11 +21,16 @@ describe('NextMetadataDeclaredLaw — App Router (#226)', () => {
 
   it('red: no metadata in the page or any layout', () => {
     const result = Law.check(
-      nextCtx({ 'src/app/layout.tsx': UNTITLED_LAYOUT, 'src/app/(shop)/cart/page.tsx': PAGE })
+      nextCtx({
+        'src/app/layout.tsx': UNTITLED_LAYOUT,
+        'src/app/(shop)/cart/page.tsx': PAGE,
+      })
     );
     expect(result.passed).toBe(false);
     expect(result.violations).toEqual([
-      expect.stringMatching(/^src\/app\/\(shop\)\/cart\/page\.tsx \(\/cart\): no `metadata` or `generateMetadata`/),
+      expect.stringMatching(
+        /^src\/app\/\(shop\)\/cart\/page\.tsx \(\/cart\): no `metadata` or `generateMetadata`/
+      ),
     ]);
   });
 
@@ -35,17 +41,38 @@ describe('NextMetadataDeclaredLaw — App Router (#226)', () => {
         'src/app/page.tsx': `export const metadata = { description: 'x' };\n${PAGE}`,
       })
     );
-    expect(result.violations).toEqual([expect.stringContaining('metadata is declared, but neither the page nor any layout above it gives a title')]);
+    expect(result.violations).toEqual([
+      expect.stringContaining(
+        'metadata is declared, but neither the page nor any layout above it gives a title'
+      ),
+    ]);
   });
 
   it.each([
-    ['metadata with a title', "export const metadata: Metadata = { title: 'Cart' };"],
-    ['generateMetadata', 'export async function generateMetadata() { return { title: "x" }; }'],
-    ['metadata satisfies', "export const metadata = { title: 'x' } satisfies Metadata;"],
-    ['metadata from a variable', 'const m = build();\nexport const metadata = m;'],
+    [
+      'metadata with a title',
+      "export const metadata: Metadata = { title: 'Cart' };",
+    ],
+    [
+      'generateMetadata',
+      'export async function generateMetadata() { return { title: "x" }; }',
+    ],
+    [
+      'metadata satisfies',
+      "export const metadata = { title: 'x' } satisfies Metadata;",
+    ],
+    [
+      'metadata from a variable',
+      'const m = build();\nexport const metadata = m;',
+    ],
     ['re-exported metadata', "export { metadata } from './meta';"],
   ])('green: page with %s', (_name, line) => {
-    const result = Law.check(nextCtx({ 'src/app/layout.tsx': UNTITLED_LAYOUT, 'src/app/cart/page.tsx': `${line}\n${PAGE}` }));
+    const result = Law.check(
+      nextCtx({
+        'src/app/layout.tsx': UNTITLED_LAYOUT,
+        'src/app/cart/page.tsx': `${line}\n${PAGE}`,
+      })
+    );
     expect(result.violations).toEqual([]);
   });
 
@@ -53,7 +80,8 @@ describe('NextMetadataDeclaredLaw — App Router (#226)', () => {
     const result = Law.check(
       nextCtx({
         'src/app/layout.tsx': UNTITLED_LAYOUT,
-        'src/app/admin/layout.tsx': "export const metadata = { title: 'Admin' };\nexport default function A({ children }) { return children; }",
+        'src/app/admin/layout.tsx':
+          "export const metadata = { title: 'Admin' };\nexport default function A({ children }) { return children; }",
         'src/app/admin/users/page.tsx': PAGE,
       })
     );
@@ -66,8 +94,13 @@ describe('NextMetadataDeclaredLaw — App Router (#226)', () => {
       'src/app/_drafts/page.tsx': PAGE,
       'src/app/internal/health/page.tsx': PAGE,
     };
-    expect(Law.check(nextCtx(files)).violations).toEqual([expect.stringContaining('(/internal/health)')]);
-    expect(Law.check(nextCtx(files, { metadataExemptRoutes: ['/internal/**'] })).violations).toEqual([]);
+    expect(Law.check(nextCtx(files)).violations).toEqual([
+      expect.stringContaining('(/internal/health)'),
+    ]);
+    expect(
+      Law.check(nextCtx(files, { metadataExemptRoutes: ['/internal/**'] }))
+        .violations
+    ).toEqual([]);
   });
 
   it('an app directory with no page passes and says there is nothing to title', () => {
@@ -77,28 +110,47 @@ describe('NextMetadataDeclaredLaw — App Router (#226)', () => {
   });
 
   it('fails closed when next is declared but there is no router directory', () => {
-    const bare = Law.check(ctx(project({ 'package.json': NEXT_MANIFEST, 'lib/x.ts': 'export const x = 1;' })));
+    const bare = Law.check(
+      ctx(
+        project({
+          'package.json': NEXT_MANIFEST,
+          'lib/x.ts': 'export const x = 1;',
+        })
+      )
+    );
     expect(bare.passed).toBe(false);
-    expect(bare.violations).toEqual([expect.stringContaining('no app/, src/app/, pages/ or src/pages/ directory')]);
+    expect(bare.violations).toEqual([
+      expect.stringContaining(
+        'no app/, src/app/, pages/ or src/pages/ directory'
+      ),
+    ]);
   });
 });
 
 describe('NextMetadataDeclaredLaw — Pages Router (#226)', () => {
-  const HEAD_PAGE = "import Head from 'next/head';\nexport default function P() { return <><Head><title>About</title></Head><main /></>; }";
+  const HEAD_PAGE =
+    "import Head from 'next/head';\nexport default function P() { return <><Head><title>About</title></Head><main /></>; }";
 
   it('red: a page with no next/head title', () => {
     const result = Law.check(nextCtx({ 'pages/about.tsx': PAGE }));
-    expect(result.violations).toEqual([expect.stringContaining('pages/about.tsx (/about): no <title> inside next/head')]);
+    expect(result.violations).toEqual([
+      expect.stringContaining(
+        'pages/about.tsx (/about): no <title> inside next/head'
+      ),
+    ]);
   });
 
   it('green: the page renders <Head><title>', () => {
-    expect(Law.check(nextCtx({ 'pages/about.tsx': HEAD_PAGE })).violations).toEqual([]);
+    expect(
+      Law.check(nextCtx({ 'pages/about.tsx': HEAD_PAGE })).violations
+    ).toEqual([]);
   });
 
   it('green: _app renders the title; api routes and _document are not pages', () => {
     const result = Law.check(
       nextCtx({
-        'pages/_app.tsx': "import Head from 'next/head';\nexport default function App({ Component }) { return <><Head><title>Site</title></Head><Component /></>; }",
+        'pages/_app.tsx':
+          "import Head from 'next/head';\nexport default function App({ Component }) { return <><Head><title>Site</title></Head><Component /></>; }",
         'pages/index.tsx': PAGE,
         'pages/api/hello.ts': 'export default function handler() {}',
       })
@@ -107,7 +159,14 @@ describe('NextMetadataDeclaredLaw — Pages Router (#226)', () => {
   });
 
   it('a <title> outside next/head does not count', () => {
-    const result = Law.check(nextCtx({ 'pages/index.tsx': 'export default function P() { return <title>x</title>; }' }));
-    expect(result.violations).toEqual([expect.stringContaining('pages/index.tsx (/)')]);
+    const result = Law.check(
+      nextCtx({
+        'pages/index.tsx':
+          'export default function P() { return <title>x</title>; }',
+      })
+    );
+    expect(result.violations).toEqual([
+      expect.stringContaining('pages/index.tsx (/)'),
+    ]);
   });
 });

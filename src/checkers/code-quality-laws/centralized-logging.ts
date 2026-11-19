@@ -16,8 +16,10 @@ import { PythonLawBase } from '../python-laws/python-law-base';
 import { CodeQualityLawBase } from './code-quality-law-base';
 
 export class CentralizedLoggingLaw extends CodeQualityLawBase {
-  private static readonly CONSOLE = /\bconsole\s*\.\s*(log|debug|info|warn|error|trace)\s*\(/g;
-  private static readonly ALLOWED = /(?:^|[\\/])(?:logger\.service\.ts|main\.ts)$/;
+  private static readonly CONSOLE =
+    /\bconsole\s*\.\s*(log|debug|info|warn|error|trace)\s*\(/g;
+  private static readonly ALLOWED =
+    /(?:^|[\\/])(?:logger\.service\.ts|main\.ts)$/;
   // Python branch (arch proposal №12): print() in source is the console.* of
   // the backend. CLI entrypoints and tooling are the legitimate homes.
   private static readonly PY_PRINT = /\bprint\s*\(/g;

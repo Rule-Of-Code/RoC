@@ -48,7 +48,7 @@ describe('CoreWebVitalsComplianceLaw', () => {
         performance: {
           parallel: true,
           maxConcurrent: 4,
-          cache: true,
+          cache: true,
         },
       },
     };

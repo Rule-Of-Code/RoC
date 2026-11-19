@@ -35,7 +35,10 @@ export interface ResolvedProject {
 }
 
 /** The value at a dotted path of the resolved config, or undefined. */
-export function configValue(config: Record<string, unknown>, path: string): unknown {
+export function configValue(
+  config: Record<string, unknown>,
+  path: string
+): unknown {
   let value: unknown = config;
   for (const key of path.split('.')) {
     if (!value || typeof value !== 'object') return undefined;
@@ -46,7 +49,10 @@ export function configValue(config: Record<string, unknown>, path: string): unkn
 
 /** A project file's path relative to the workspace root, forward slashes. */
 export function relative(context: LawCheckContext, file: string): string {
-  return PathOperations.getRelative(context.projectRoot, file).replace(/\\/g, '/');
+  return PathOperations.getRelative(context.projectRoot, file).replace(
+    /\\/g,
+    '/'
+  );
 }
 
 /**
@@ -109,9 +115,13 @@ export function projectsWithPlatform(
     project,
     native: CapacitorProjects.nativePaths(project, context.projectRoot),
   }));
-  const projects = all.filter(({ native }) => FileUtils.isDirectory(shellOf(native)));
+  const projects = all.filter(({ native }) =>
+    FileUtils.isDirectory(shellOf(native))
+  );
   if (projects.length > 0 || all.length === 0) return { projects, notRead: [] };
-  const looked = all.map(({ native }) => relative(context, shellOf(native))).join(', ');
+  const looked = all
+    .map(({ native }) => relative(context, shellOf(native)))
+    .join(', ');
   return {
     projects,
     notRead: [
@@ -126,7 +136,10 @@ export function projectsWithPlatform(
  * suggestions and in the details, and the message says how many there are,
  * so a passing law still tells the reader what it noticed.
  */
-export function withNotes(result: LawResult, notes: readonly string[]): LawResult {
+export function withNotes(
+  result: LawResult,
+  notes: readonly string[]
+): LawResult {
   if (notes.length === 0) return result;
   return {
     ...result,

@@ -63,7 +63,10 @@ describe('seeded randomness tells reproducible from unpredictable', () => {
     });
 
     it.each([
-      ['ids.py', 'import uuid\n\n\ndef new_id():\n    return uuid.uuid4().hex\n'],
+      [
+        'ids.py',
+        'import uuid\n\n\ndef new_id():\n    return uuid.uuid4().hex\n',
+      ],
       [
         'invites.py',
         'import secrets\n\n\ndef code():\n    return secrets.token_urlsafe(16)\n',
@@ -86,7 +89,10 @@ describe('seeded randomness tells reproducible from unpredictable', () => {
     });
 
     it('names the boundary knob as the sanctioned answer', () => {
-      write('src/app/domain/ids.py', 'import uuid\n\n\ndef i():\n    return uuid.uuid4()\n');
+      write(
+        'src/app/domain/ids.py',
+        'import uuid\n\n\ndef i():\n    return uuid.uuid4()\n'
+      );
 
       const [finding = ''] = findings();
 
@@ -96,14 +102,20 @@ describe('seeded randomness tells reproducible from unpredictable', () => {
 
   describe('a declared boundary is a correct answer, not a silenced law', () => {
     it('accepts the module that owns identifier minting', () => {
-      write('src/app/domain/ids.py', 'import uuid\n\n\ndef i():\n    return uuid.uuid4()\n');
+      write(
+        'src/app/domain/ids.py',
+        'import uuid\n\n\ndef i():\n    return uuid.uuid4()\n'
+      );
 
       expect(findings(['src/app/domain/ids.py'])).toEqual([]);
     });
 
     // The red control: declaring the id factory does not exempt the rest.
     it('still reports ambient randomness elsewhere', () => {
-      write('src/app/domain/ids.py', 'import uuid\n\n\ndef i():\n    return uuid.uuid4()\n');
+      write(
+        'src/app/domain/ids.py',
+        'import uuid\n\n\ndef i():\n    return uuid.uuid4()\n'
+      );
       write(
         'src/app/domain/sim.py',
         'import random\n\n\ndef pick(x):\n    return random.choice(x)\n'

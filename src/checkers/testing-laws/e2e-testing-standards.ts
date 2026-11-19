@@ -83,7 +83,10 @@ export class E2ETestingStandardsLaw extends TestingLawBase {
     if (fs.existsSync(path.join(projectRoot, 'src', 'main.tsx'))) return true;
     const pkg = this.readPackageJson(projectRoot);
     if (!pkg) return false;
-    const deps = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) };
+    const deps = {
+      ...(pkg.dependencies ?? {}),
+      ...(pkg.devDependencies ?? {}),
+    };
     return [
       '@angular/platform-browser',
       '@angular/core',
@@ -97,13 +100,17 @@ export class E2ETestingStandardsLaw extends TestingLawBase {
   private static hasE2EDependency(projectRoot: string): boolean {
     const pkg = this.readPackageJson(projectRoot);
     if (!pkg) return false;
-    const deps = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) };
+    const deps = {
+      ...(pkg.dependencies ?? {}),
+      ...(pkg.devDependencies ?? {}),
+    };
     return this.E2E_DEPS.some(d => d in deps);
   }
 
-  private static readPackageJson(
-    projectRoot: string
-  ): { dependencies?: Record<string, string>; devDependencies?: Record<string, string> } | null {
+  private static readPackageJson(projectRoot: string): {
+    dependencies?: Record<string, string>;
+    devDependencies?: Record<string, string>;
+  } | null {
     const p = path.join(projectRoot, 'package.json');
     if (!fs.existsSync(p)) return null;
     try {

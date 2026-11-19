@@ -164,8 +164,9 @@ export class FeatureBranchProtectionLaw extends GitLawBase {
     // a repository on any other provider — or with its config at a declared
     // path — was told to configure something it already had.
     const pipelineText = ciConfigContent(projectRoot, config);
-    const hasBranchValidation =
-      /branches:|pull_request|feature|branch/i.test(pipelineText);
+    const hasBranchValidation = /branches:|pull_request|feature|branch/i.test(
+      pipelineText
+    );
 
     if (!hasBranchValidation) {
       suggestions.push('Configure CI/CD to run on feature branch pushes');

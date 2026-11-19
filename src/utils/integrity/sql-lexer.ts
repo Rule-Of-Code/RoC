@@ -43,7 +43,9 @@ export function maskSql(text: string): string {
       continue;
     }
     const span = text.slice(i, end);
-    out += span.startsWith("'") ? `'${span.slice(1, -1).replace(/[^\n]/g, '_')}'` : blank(span);
+    out += span.startsWith("'")
+      ? `'${span.slice(1, -1).replace(/[^\n]/g, '_')}'`
+      : blank(span);
     i = end;
   }
   return out;
@@ -105,13 +107,25 @@ export function tokenizeSql(masked: string): SqlToken[] {
 
 function toToken(match: RegExpExecArray, pos: number): SqlToken | null {
   const [, dq, bq, str, num, word, punct, other] = match;
-  if (dq !== undefined) return { kind: 'ident', value: dq.replace(/""/g, '"').toLowerCase(), pos, quoted: true };
-  if (bq !== undefined) return { kind: 'ident', value: bq.toLowerCase(), pos, quoted: true };
-  if (str !== undefined) return { kind: 'string', value: str, pos, quoted: false };
-  if (num !== undefined) return { kind: 'number', value: num, pos, quoted: false };
-  if (word !== undefined) return { kind: 'ident', value: word.toLowerCase(), pos, quoted: false };
-  if (punct !== undefined) return { kind: 'punct', value: punct, pos, quoted: false };
-  if (other !== undefined) return { kind: 'op', value: other, pos, quoted: false };
+  if (dq !== undefined)
+    return {
+      kind: 'ident',
+      value: dq.replace(/""/g, '"').toLowerCase(),
+      pos,
+      quoted: true,
+    };
+  if (bq !== undefined)
+    return { kind: 'ident', value: bq.toLowerCase(), pos, quoted: true };
+  if (str !== undefined)
+    return { kind: 'string', value: str, pos, quoted: false };
+  if (num !== undefined)
+    return { kind: 'number', value: num, pos, quoted: false };
+  if (word !== undefined)
+    return { kind: 'ident', value: word.toLowerCase(), pos, quoted: false };
+  if (punct !== undefined)
+    return { kind: 'punct', value: punct, pos, quoted: false };
+  if (other !== undefined)
+    return { kind: 'op', value: other, pos, quoted: false };
   return null; // whitespace
 }
 
@@ -122,7 +136,8 @@ export function splitStatements(tokens: SqlToken[]): SqlToken[][] {
   let depth = 0;
   for (const token of tokens) {
     if (token.value === '(' && token.kind === 'punct') depth += 1;
-    if (token.value === ')' && token.kind === 'punct') depth = Math.max(0, depth - 1);
+    if (token.value === ')' && token.kind === 'punct')
+      depth = Math.max(0, depth - 1);
     if (token.kind === 'punct' && token.value === ';' && depth === 0) {
       if (current.length) statements.push(current);
       current = [];

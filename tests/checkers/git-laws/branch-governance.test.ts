@@ -542,9 +542,7 @@ describe('checkers/git-laws/branch-governance', () => {
       // The CI-reported name is judged like any other branch: this one breaks
       // the naming convention, so the law must say so rather than stay silent.
       expect(
-        (result.violations ?? []).some(v =>
-          /not-a-valid-prefix/.test(v)
-        )
+        (result.violations ?? []).some(v => /not-a-valid-prefix/.test(v))
       ).toBe(true);
     });
 

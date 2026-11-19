@@ -203,7 +203,9 @@ export function filterLaws(
  * both travel, each under its own name, neither pretending to be the other.
  */
 function authoredByTitle<T>(
-  pick: (law: (typeof ALL_ENHANCED_CONSTITUTIONAL_LAWS)[number]) => T | undefined
+  pick: (
+    law: (typeof ALL_ENHANCED_CONSTITUTIONAL_LAWS)[number]
+  ) => T | undefined
 ): Map<string, T> {
   const byName = new Map<string, T>();
   for (const law of ALL_ENHANCED_CONSTITUTIONAL_LAWS) {
@@ -367,7 +369,7 @@ export function warnEmptyCategory(
 
   console.log(
     chalk.gray(
-      '   This does NOT mean no such law exists — a law\'s concern may be filed\n' +
+      "   This does NOT mean no such law exists — a law's concern may be filed\n" +
         '   under another category. Do not read this as absence of coverage.'
     )
   );

@@ -41,7 +41,9 @@ afterAll(() => {
 
 it('discovers NgRx effects files (no longer "No effects files found")', async () => {
   const dir = fixture({
-    'package.json': JSON.stringify({ dependencies: { '@ngrx/effects': '18.0.0' } }),
+    'package.json': JSON.stringify({
+      dependencies: { '@ngrx/effects': '18.0.0' },
+    }),
     'angular.json': '{}',
     'src/app/store/data.effects.ts': `import { Injectable } from '@angular/core';
 import { createEffect, Actions, ofType } from '@ngrx/effects';

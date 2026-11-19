@@ -21,7 +21,9 @@ export class OnPushChangeDetectionLaw {
 
     if (componentFiles.length === 0) {
       violations.push('No Angular components found');
-      suggestions.push('Ensure Angular components (@Component) exist in the app');
+      suggestions.push(
+        'Ensure Angular components (@Component) exist in the app'
+      );
       return AngularLawBase.createResult(
         violations,
         'OnPush Change Detection',

@@ -102,6 +102,16 @@ again. `HUSKY=0` skips the install (husky's own switch); that is for CI, never f
 working checkout. Installing the published package never runs `prepare`, so consumers
 are unaffected.
 
+### Formatting
+
+Code (`src`, `tests`, `scripts`) is formatted with prettier (`.prettierrc.json`).
+The hook and CI only **check** it (`prettier --check`, `npm run format:check`); they
+never rewrite a file inside a commit about something else. Run
+`npx prettier --write <files>` on what you changed before committing. Markdown and the
+golden fixtures are not formatted. The one reformat commit is listed in
+`.git-blame-ignore-revs`; `git config blame.ignoreRevsFile .git-blame-ignore-revs`
+makes `git blame` skip it.
+
 ## Where things live
 
 | what | where |

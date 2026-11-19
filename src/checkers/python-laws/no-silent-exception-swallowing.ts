@@ -19,7 +19,11 @@ export class NoSilentExceptionSwallowingLaw extends PythonLawBase {
   private static readonly HANDLES = /\b(log|logger|logging|warn|raise)\b/i;
 
   /** True when the except body (more-indented lines) only silences. */
-  private static bodySilences(lines: string[], headerIdx: number, indent: string): boolean {
+  private static bodySilences(
+    lines: string[],
+    headerIdx: number,
+    indent: string
+  ): boolean {
     const body: string[] = [];
     for (let j = headerIdx + 1; j < lines.length; j++) {
       const line = lines[j] ?? '';

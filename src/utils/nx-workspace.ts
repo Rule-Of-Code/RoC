@@ -22,7 +22,8 @@ export class NxWorkspace {
   static readonly PROJECT_DIRS =
     '{,apps/*/,apps/*/*/,libs/*/,libs/*/*/,packages/*/,packages/*/*/,projects/*/}';
 
-  private static readonly IGNORE = [
+  /** Installed, built and cache trees: never a workspace project's own files. */
+  static readonly IGNORE: string[] = [
     '**/node_modules/**',
     '**/dist/**',
     '**/.angular/**',
@@ -112,7 +113,9 @@ export class NxWorkspace {
     const documents: unknown[] = [];
     for (const p of this.buildConfigPaths(projectRoot)) {
       try {
-        documents.push(JSON.parse(fs.readFileSync(p, 'utf8').replace(/^﻿/, '')));
+        documents.push(
+          JSON.parse(fs.readFileSync(p, 'utf8').replace(/^﻿/, ''))
+        );
       } catch {
         // Unparseable or unreadable: not evidence either way.
       }

@@ -44,7 +44,8 @@ export const DEFAULT_TEST_ONLY_PATHS = [
 export const TEST_ONLY_PATHS_KEY = 'thresholds.testing.testOnlyPaths';
 
 /** Files Next runs on its own, beside the router directories. */
-const ROOT_ENTRY = /^(?:src\/)?(?:middleware|proxy|instrumentation)\.[cm]?[jt]sx?$/;
+const ROOT_ENTRY =
+  /^(?:src\/)?(?:middleware|proxy|instrumentation)\.[cm]?[jt]sx?$/;
 
 interface Reach {
   /** Entry → … → test-only file, absolute paths. */
@@ -59,7 +60,8 @@ export class NoTestOnlyLeakageLaw extends LawBase {
     const patterns = this.patterns(context, violations);
     const apps = ReactProject.nextApps(context.projectRoot);
     const ts = loadTypeScript(context.projectRoot);
-    if (apps.length > 0 && !ts) violations.push(parserUnavailable(context.projectRoot));
+    if (apps.length > 0 && !ts)
+      violations.push(parserUnavailable(context.projectRoot));
     // Tests included in the scan, then test FILES dropped: a route under
     // app/api/test/ is a route, and the default test ignores (`**/test/**`)
     // would hide exactly the routes this law is about.
@@ -67,7 +69,15 @@ export class NoTestOnlyLeakageLaw extends LawBase {
       .filter(file => !TestSources.isTestFile(file))
       .map(file => PathOperations.resolve(file));
     for (const app of ts ? apps : []) {
-      violations.push(...this.checkApp(context, ts as TypeScriptModule, app, sourceFiles, patterns));
+      violations.push(
+        ...this.checkApp(
+          context,
+          ts as TypeScriptModule,
+          app,
+          sourceFiles,
+          patterns
+        )
+      );
     }
     return this.createResult(
       violations,
@@ -82,10 +92,17 @@ export class NoTestOnlyLeakageLaw extends LawBase {
   }
 
   /** Defaults plus the configured globs; a malformed setting is reported, not ignored. */
-  private static patterns(context: LawCheckContext, violations: string[]): string[] {
-    const configured: unknown = context.config.thresholds?.testing?.testOnlyPaths;
+  private static patterns(
+    context: LawCheckContext,
+    violations: string[]
+  ): string[] {
+    const configured: unknown =
+      context.config.thresholds?.testing?.testOnlyPaths;
     if (configured === undefined) return DEFAULT_TEST_ONLY_PATHS;
-    if (Array.isArray(configured) && configured.every(entry => typeof entry === 'string')) {
+    if (
+      Array.isArray(configured) &&
+      configured.every(entry => typeof entry === 'string')
+    ) {
       return [...DEFAULT_TEST_ONLY_PATHS, ...configured];
     }
     violations.push(
@@ -104,7 +121,9 @@ export class NoTestOnlyLeakageLaw extends LawBase {
     const where = ReactProject.relative(context, app.root) || '.';
     const routerDirs = [...app.appDirs, ...app.pagesDirs];
     if (routerDirs.length === 0) {
-      return [`${where}: declares next but has no app/ or pages/ directory (or src/app, src/pages) — no route was read`];
+      return [
+        `${where}: declares next but has no app/ or pages/ directory (or src/app, src/pages) — no route was read`,
+      ];
     }
     const appRoot = PathOperations.resolve(app.root);
     const entries = sourceFiles.filter(
@@ -114,12 +133,21 @@ export class NoTestOnlyLeakageLaw extends LawBase {
     );
     const testOnly = (file: string): boolean => {
       const relative = PathOperations.getRelative(context.projectRoot, file);
-      return patterns.some(pattern => minimatch(relative, pattern, { dot: true }));
+      return patterns.some(pattern =>
+        minimatch(relative, pattern, { dot: true })
+      );
     };
-    const graph = new ImportGraph(ts, app.root, PathOperations.resolve(context.projectRoot));
+    const graph = new ImportGraph(
+      ts,
+      app.root,
+      PathOperations.resolve(context.projectRoot)
+    );
     const { reached, unread } = this.walk(ts, graph, entries, testOnly);
     return [
-      ...unread.map(file => `${ReactProject.relative(context, file)}: could not be read — the routes importing it were not followed through it`),
+      ...unread.map(
+        file =>
+          `${ReactProject.relative(context, file)}: could not be read — the routes importing it were not followed through it`
+      ),
       ...reached.map(reach => this.describe(context, reach)),
     ];
   }
@@ -131,7 +159,9 @@ export class NoTestOnlyLeakageLaw extends LawBase {
     entries: string[],
     testOnly: (file: string) => boolean
   ): { reached: Reach[]; unread: string[] } {
-    const parent = new Map<string, string | null>(entries.map(entry => [entry, null]));
+    const parent = new Map<string, string | null>(
+      entries.map(entry => [entry, null])
+    );
     const queue = [...entries];
     const reached: Reach[] = [];
     const unread: string[] = [];
@@ -143,7 +173,8 @@ export class NoTestOnlyLeakageLaw extends LawBase {
         continue;
       }
       if (testOnly(file)) {
-        if (!selfGated(source)) reached.push({ chain: this.chain(parent, file) });
+        if (!selfGated(source))
+          reached.push({ chain: this.chain(parent, file) });
         continue;
       }
       for (const edge of graph.edges(source)) {
@@ -163,7 +194,10 @@ export class NoTestOnlyLeakageLaw extends LawBase {
     }
   }
 
-  private static chain(parent: Map<string, string | null>, file: string): string[] {
+  private static chain(
+    parent: Map<string, string | null>,
+    file: string
+  ): string[] {
     const chain = [file];
     let current = parent.get(file) ?? null;
     while (current) {

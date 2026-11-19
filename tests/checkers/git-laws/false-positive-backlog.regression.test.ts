@@ -94,7 +94,9 @@ describe('Commit Message Standards — merge/squash grandfathering (#1)', () => 
     commit(dir, 'f.txt', 'b', longAuthored);
 
     const result = CommitMessageStandardsLaw.check(ctx(dir));
-    expect((result.violations ?? []).join(' || ').toLowerCase()).toContain('too long');
+    expect((result.violations ?? []).join(' || ').toLowerCase()).toContain(
+      'too long'
+    );
   });
 });
 
@@ -116,7 +118,9 @@ describe('Merge Conflict Prevention — marker detection (#2)', () => {
 
     const result = MergeConflictPreventionLaw.check(ctx(dir));
     expect(
-      (result.violations ?? []).some(v => v.toLowerCase().includes('conflict marker'))
+      (result.violations ?? []).some(v =>
+        v.toLowerCase().includes('conflict marker')
+      )
     ).toBe(false);
   });
 
@@ -131,7 +135,9 @@ describe('Merge Conflict Prevention — marker detection (#2)', () => {
 
     const result = MergeConflictPreventionLaw.check(ctx(dir));
     expect(
-      (result.violations ?? []).some(v => v.toLowerCase().includes('conflict marker'))
+      (result.violations ?? []).some(v =>
+        v.toLowerCase().includes('conflict marker')
+      )
     ).toBe(true);
   });
 });

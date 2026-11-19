@@ -67,15 +67,20 @@ export class ReactPollVisibilityGatedLaw extends LawBase {
     const ts = source.ts;
     const found: TS.CallExpression[] = [];
     source.walk(node => {
-      if (!ts.isCallExpression(node) || !isGlobalCall(ts, node, 'setInterval')) return;
+      if (!ts.isCallExpression(node) || !isGlobalCall(ts, node, 'setInterval'))
+        return;
       const callback = node.arguments[0];
-      if (callback && this.reachesFetch(source, unwrap(ts, callback))) found.push(node);
+      if (callback && this.reachesFetch(source, unwrap(ts, callback)))
+        found.push(node);
     });
     return found;
   }
 
   /** The callback fetches itself, or calls (or is) a function of this file that does. */
-  private static reachesFetch(source: TsxSource, callback: TS.Expression): boolean {
+  private static reachesFetch(
+    source: TsxSource,
+    callback: TS.Expression
+  ): boolean {
     const ts = source.ts;
     const named = (name: string): TS.FunctionLikeDeclaration | null =>
       localFunction(ts, source.sourceFile, name);
@@ -83,11 +88,17 @@ export class ReactPollVisibilityGatedLaw extends LawBase {
       const fn = named(callback.text);
       return fn ? this.fetchesDirectly(ts, fn) : false;
     }
-    if (!ts.isArrowFunction(callback) && !ts.isFunctionExpression(callback)) return false;
+    if (!ts.isArrowFunction(callback) && !ts.isFunctionExpression(callback))
+      return false;
     if (this.fetchesDirectly(ts, callback)) return true;
     let reaches = false;
     walkWithin(ts, callback, node => {
-      if (reaches || !ts.isCallExpression(node) || !ts.isIdentifier(node.expression)) return;
+      if (
+        reaches ||
+        !ts.isCallExpression(node) ||
+        !ts.isIdentifier(node.expression)
+      )
+        return;
       const fn = named(node.expression.text);
       if (fn && fn !== callback) reaches = this.fetchesDirectly(ts, fn);
     });
@@ -107,10 +118,17 @@ export class ReactPollVisibilityGatedLaw extends LawBase {
     const ts = source.ts;
     let handles = false;
     source.walk(node => {
-      if (ts.isStringLiteralLike(node) && node.text === VISIBILITY_EVENT) handles = true;
-      if (ts.isPropertyAccessExpression(node) && VISIBILITY_PROPERTIES.has(node.name.text)) {
+      if (ts.isStringLiteralLike(node) && node.text === VISIBILITY_EVENT)
+        handles = true;
+      if (
+        ts.isPropertyAccessExpression(node) &&
+        VISIBILITY_PROPERTIES.has(node.name.text)
+      ) {
         const receiver = unwrap(ts, node.expression);
-        if (node.name.text === 'visibilityState' || (ts.isIdentifier(receiver) && receiver.text === 'document')) {
+        if (
+          node.name.text === 'visibilityState' ||
+          (ts.isIdentifier(receiver) && receiver.text === 'document')
+        ) {
           handles = true;
         }
       }

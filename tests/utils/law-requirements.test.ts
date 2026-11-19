@@ -25,19 +25,25 @@ describe('lawRequirementsMet', () => {
   });
 
   it('a dependency in the root manifest meets anyDependency', () => {
-    const root = project({ 'package.json': manifest({ '@ionic/angular': '8.8.17' }) });
+    const root = project({
+      'package.json': manifest({ '@ionic/angular': '8.8.17' }),
+    });
     expect(lawRequirementsMet(IONIC, root)).toBe(true);
   });
 
   it('a devDependency counts as declared', () => {
     const root = project({
-      'package.json': JSON.stringify({ devDependencies: { '@ionic/react': '8.0.0' } }),
+      'package.json': JSON.stringify({
+        devDependencies: { '@ionic/react': '8.0.0' },
+      }),
     });
     expect(lawRequirementsMet(IONIC, root)).toBe(true);
   });
 
   it('a project without the dependency does not meet it', () => {
-    const root = project({ 'package.json': manifest({ '@angular/core': '20.0.0' }) });
+    const root = project({
+      'package.json': manifest({ '@angular/core': '20.0.0' }),
+    });
     expect(lawRequirementsMet(IONIC, root)).toBe(false);
   });
 
@@ -60,7 +66,9 @@ describe('lawRequirementsMet', () => {
   });
 
   it('anyFile and anyDependency must BOTH hold', () => {
-    const depOnly = project({ 'package.json': manifest({ '@capacitor/core': '8.5.1' }) });
+    const depOnly = project({
+      'package.json': manifest({ '@capacitor/core': '8.5.1' }),
+    });
     const fileOnly = project({
       'package.json': manifest({}),
       'capacitor.config.json': '{}',
@@ -108,7 +116,10 @@ describe('allDependencies', () => {
 
   it('still requires anyDependency alongside it', () => {
     const noIonic = project({
-      'package.json': manifest({ '@capacitor/core': '8', '@capacitor/android': '8' }),
+      'package.json': manifest({
+        '@capacitor/core': '8',
+        '@capacitor/android': '8',
+      }),
     });
     expect(lawRequirementsMet(IONIC_ANDROID, noIonic)).toBe(false);
   });
@@ -129,9 +140,11 @@ describe('allDependencies', () => {
   });
 
   it('is named in words', () => {
-    expect(describeRequirement({ allDependencies: ['@capacitor/core', '@capacitor/android'] })).toBe(
-      'dependencies on @capacitor/core and @capacitor/android'
-    );
+    expect(
+      describeRequirement({
+        allDependencies: ['@capacitor/core', '@capacitor/android'],
+      })
+    ).toBe('dependencies on @capacitor/core and @capacitor/android');
   });
 });
 
@@ -140,7 +153,9 @@ describe('declaredDependencies', () => {
     const root = project({
       'package.json': manifest({ a: '1' }),
       'apps/web/package.json': manifest({ b: '1' }),
-      'libs/ui/core/package.json': JSON.stringify({ devDependencies: { c: '1' } }),
+      'libs/ui/core/package.json': JSON.stringify({
+        devDependencies: { c: '1' },
+      }),
     });
     expect([...declaredDependencies(root)].sort()).toEqual(['a', 'b', 'c']);
   });
@@ -156,21 +171,41 @@ describe('declaredDependencies', () => {
 
 describe('lawRequirementsMet: anyOf', () => {
   const EITHER = {
-    anyOf: [{ anyPythonDependency: ['some-sdk'] }, { anyDependency: ['@scope/some-sdk'] }],
+    anyOf: [
+      { anyPythonDependency: ['some-sdk'] },
+      { anyDependency: ['@scope/some-sdk'] },
+    ],
   };
 
   it('is met by either alternative alone', () => {
-    expect(lawRequirementsMet(EITHER, project({ 'requirements.txt': 'some-sdk==1.0\n' }))).toBe(true);
-    expect(lawRequirementsMet(EITHER, project({ 'package.json': manifest({ '@scope/some-sdk': '1' }) }))).toBe(true);
+    expect(
+      lawRequirementsMet(
+        EITHER,
+        project({ 'requirements.txt': 'some-sdk==1.0\n' })
+      )
+    ).toBe(true);
+    expect(
+      lawRequirementsMet(
+        EITHER,
+        project({ 'package.json': manifest({ '@scope/some-sdk': '1' }) })
+      )
+    ).toBe(true);
   });
 
   it('is not met when no alternative holds', () => {
-    expect(lawRequirementsMet(EITHER, project({ 'package.json': manifest({ other: '1' }) }))).toBe(false);
+    expect(
+      lawRequirementsMet(
+        EITHER,
+        project({ 'package.json': manifest({ other: '1' }) })
+      )
+    ).toBe(false);
   });
 
   it('is ANDed with the other conditions', () => {
     const root = project({ 'requirements.txt': 'some-sdk\n' });
-    expect(lawRequirementsMet({ ...EITHER, anyFile: ['absent.cfg'] }, root)).toBe(false);
+    expect(
+      lawRequirementsMet({ ...EITHER, anyFile: ['absent.cfg'] }, root)
+    ).toBe(false);
   });
 
   it('is named in words', () => {
@@ -189,16 +224,45 @@ describe('describeRequirement', () => {
 });
 
 describe('lawRequirementsMet: anyFileContaining', () => {
-  const DEPLOYS = { anyFileContaining: [{ files: ['**/*.sh', '.github/workflows/*.yml'], pattern: String.raw`gcloud\s+run\s+deploy\b` }] };
+  const DEPLOYS = {
+    anyFileContaining: [
+      {
+        files: ['**/*.sh', '.github/workflows/*.yml'],
+        pattern: String.raw`gcloud\s+run\s+deploy\b`,
+      },
+    ],
+  };
 
   it('is met when a file matched by a glob contains the pattern', () => {
-    expect(lawRequirementsMet(DEPLOYS, project({ 'scripts/deploy.sh': 'gcloud run deploy api\n' }))).toBe(true);
-    expect(lawRequirementsMet(DEPLOYS, project({ '.github/workflows/release.yml': 'run: gcloud  run deploy api\n' }))).toBe(true);
+    expect(
+      lawRequirementsMet(
+        DEPLOYS,
+        project({ 'scripts/deploy.sh': 'gcloud run deploy api\n' })
+      )
+    ).toBe(true);
+    expect(
+      lawRequirementsMet(
+        DEPLOYS,
+        project({
+          '.github/workflows/release.yml': 'run: gcloud  run deploy api\n',
+        })
+      )
+    ).toBe(true);
   });
 
   it('is not met when the matching files lack the pattern, or the pattern sits in a file no glob names', () => {
-    expect(lawRequirementsMet(DEPLOYS, project({ 'scripts/build.sh': 'npm run build\n' }))).toBe(false);
-    expect(lawRequirementsMet(DEPLOYS, project({ 'docs/deploy.md': 'gcloud run deploy api\n' }))).toBe(false);
+    expect(
+      lawRequirementsMet(
+        DEPLOYS,
+        project({ 'scripts/build.sh': 'npm run build\n' })
+      )
+    ).toBe(false);
+    expect(
+      lawRequirementsMet(
+        DEPLOYS,
+        project({ 'docs/deploy.md': 'gcloud run deploy api\n' })
+      )
+    ).toBe(false);
   });
 
   it('does not read installed, built or virtualenv trees', () => {
@@ -211,19 +275,42 @@ describe('lawRequirementsMet: anyFileContaining', () => {
   });
 
   it('finds the file in a workspace project directory (monorepo)', () => {
-    const NAMED = { anyFileContaining: [{ files: ['cloudbuild.yaml'], pattern: 'run' }] };
-    expect(lawRequirementsMet(NAMED, project({ 'apps/api/cloudbuild.yaml': "args: ['run', 'deploy']\n" }))).toBe(true);
-    expect(lawRequirementsMet(NAMED, project({ 'apps/api/other.yaml': "args: ['run']\n" }))).toBe(false);
+    const NAMED = {
+      anyFileContaining: [{ files: ['cloudbuild.yaml'], pattern: 'run' }],
+    };
+    expect(
+      lawRequirementsMet(
+        NAMED,
+        project({ 'apps/api/cloudbuild.yaml': "args: ['run', 'deploy']\n" })
+      )
+    ).toBe(true);
+    expect(
+      lawRequirementsMet(
+        NAMED,
+        project({ 'apps/api/other.yaml': "args: ['run']\n" })
+      )
+    ).toBe(false);
   });
 
   it('any one entry is enough, and it is ANDed with the other conditions', () => {
-    const TWO = { anyFileContaining: [{ files: ['host.json'], pattern: '"version"' }, ...DEPLOYS.anyFileContaining] };
-    expect(lawRequirementsMet(TWO, project({ 'host.json': '{ "version": "2.0" }' }))).toBe(true);
+    const TWO = {
+      anyFileContaining: [
+        { files: ['host.json'], pattern: '"version"' },
+        ...DEPLOYS.anyFileContaining,
+      ],
+    };
+    expect(
+      lawRequirementsMet(TWO, project({ 'host.json': '{ "version": "2.0" }' }))
+    ).toBe(true);
     const root = project({ 'scripts/deploy.sh': 'gcloud run deploy api\n' });
-    expect(lawRequirementsMet({ ...DEPLOYS, anyDependency: ['absent'] }, root)).toBe(false);
+    expect(
+      lawRequirementsMet({ ...DEPLOYS, anyDependency: ['absent'] }, root)
+    ).toBe(false);
   });
 
   it('is named in words', () => {
-    expect(describeRequirement(DEPLOYS)).toBe(String.raw`a file (**/*.sh or .github/workflows/*.yml) containing /gcloud\s+run\s+deploy\b/`);
+    expect(describeRequirement(DEPLOYS)).toBe(
+      String.raw`a file (**/*.sh or .github/workflows/*.yml) containing /gcloud\s+run\s+deploy\b/`
+    );
   });
 });

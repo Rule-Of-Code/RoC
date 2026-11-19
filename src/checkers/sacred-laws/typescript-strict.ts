@@ -82,14 +82,22 @@ export class TypeScriptStrictLaw {
    * chain merged); null when typescript cannot be loaded or the file does not
    * parse — the caller then reads the options as written.
    */
-  private static resolvedFlags(projectRoot: string): Record<string, unknown> | null {
+  private static resolvedFlags(
+    projectRoot: string
+  ): Record<string, unknown> | null {
     const ts = loadTypeScript(projectRoot);
     if (!ts) return null;
     const file = PathOperations.join(projectRoot, 'tsconfig.json');
     const read = ts.readConfigFile(file, ts.sys.readFile);
     if (read.error) return null;
     const host = { ...ts.sys, readDirectory: (): string[] => [] };
-    const parsed = ts.parseJsonConfigFileContent(read.config, host, projectRoot, undefined, file);
+    const parsed = ts.parseJsonConfigFileContent(
+      read.config,
+      host,
+      projectRoot,
+      undefined,
+      file
+    );
     return parsed.options as Record<string, unknown>;
   }
 
@@ -114,7 +122,9 @@ export class TypeScriptStrictLaw {
     // switches one back off.
     for (const [check, required] of Object.entries(this.STRICT_CHECKS)) {
       const impliedByStrict =
-        this.IMPLIED_BY_STRICT.has(check) && flags.strict === true && flags[check] !== false;
+        this.IMPLIED_BY_STRICT.has(check) &&
+        flags.strict === true &&
+        flags[check] !== false;
       if (flags[check] !== required && !impliedByStrict) {
         violations.push(`TypeScript ${check} must be ${required}`);
       }

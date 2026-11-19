@@ -248,7 +248,9 @@ describe('RuleOfCodeAuditor', () => {
         severity?: 'error' | 'info' | 'warning';
       }) => 'error' | 'info' | 'warning';
       config: { laws: Record<string, unknown> };
-      executeSingleLaw: (law: unknown) => Promise<{ severity?: string; passed?: boolean }>;
+      executeSingleLaw: (
+        law: unknown
+      ) => Promise<{ severity?: string; passed?: boolean }>;
       isWarningResult: (r: { passed?: boolean; severity?: string }) => boolean;
       options: { failOnWarnings?: boolean };
     };
@@ -371,13 +373,13 @@ describe('RuleOfCodeAuditor', () => {
       const auditor = new RuleOfCodeAuditor(
         {},
         REAL_PROJECT_ROOT
-      ) as unknown as (Resolver & {
+      ) as unknown as Resolver & {
         resolveLawSeverity: (law: {
           name?: string;
           legacyId?: number;
           severity?: string;
         }) => string;
-      });
+      };
       auditor.config.laws.severity = { '225': 'error' };
       expect(
         auditor.resolveLawSeverity({
@@ -507,7 +509,9 @@ describe('RuleOfCodeAuditor', () => {
     };
 
     it('drops an Ionic law in an Angular project without Ionic', () => {
-      expect(selectedIn({ '@angular/core': '20.0.0' })).not.toContain(IONIC_LAW);
+      expect(selectedIn({ '@angular/core': '20.0.0' })).not.toContain(
+        IONIC_LAW
+      );
     });
 
     const CAPACITOR_LAW = 'Capacitor Logging Never Production';
@@ -530,15 +534,22 @@ describe('RuleOfCodeAuditor', () => {
     });
 
     it('a Capacitor law needs BOTH the dependency and a capacitor.config.*', () => {
-      expect(selectedWith({ 'package.json': CAP_DEPS })).not.toContain(CAPACITOR_LAW);
+      expect(selectedWith({ 'package.json': CAP_DEPS })).not.toContain(
+        CAPACITOR_LAW
+      );
       expect(
         selectedWith({
-          'package.json': JSON.stringify({ dependencies: { '@angular/core': '20.0.0' } }),
+          'package.json': JSON.stringify({
+            dependencies: { '@angular/core': '20.0.0' },
+          }),
           'capacitor.config.json': '{}',
         })
       ).not.toContain(CAPACITOR_LAW);
       expect(
-        selectedWith({ 'package.json': CAP_DEPS, 'capacitor.config.json': '{}' })
+        selectedWith({
+          'package.json': CAP_DEPS,
+          'capacitor.config.json': '{}',
+        })
       ).toContain(CAPACITOR_LAW);
     });
 
@@ -605,7 +616,9 @@ describe('RuleOfCodeAuditor', () => {
           JSON.stringify({ dependencies: { '@angular/core': '20.0.0' } })
         );
         const auditor = new RuleOfCodeAuditor({}, dir) as unknown as Validator;
-        auditor.config.laws.severity = { 'ionic-view-lifecycle-interfaces': 'error' };
+        auditor.config.laws.severity = {
+          'ionic-view-lifecycle-interfaces': 'error',
+        };
         auditor.validateSeverityOverrides();
         expect(warnSpy).toHaveBeenCalledWith(
           expect.stringContaining('requirement-gated')

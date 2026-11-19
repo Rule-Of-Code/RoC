@@ -41,7 +41,9 @@ export class VendorChunkAnalyzerService {
       // Turbopack chunks on its own. There is no vendor-chunk setting to
       // require of a Next app, so this check does not apply to one.
       if (app.kind === 'next' && app.builds) {
-        optimizations.push(`${label}: not applicable — Next.js owns client chunking`);
+        optimizations.push(
+          `${label}: not applicable — Next.js owns client chunking`
+        );
       }
       // Vite splits vendor code only when chunk groups are configured.
       if (app.kind === 'vite' && app.builds && app.manualChunks) {

@@ -31,10 +31,13 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'Poll Via Sanctioned Source',
     rationale:
       'Ad-hoc interval() polling that ignores whether the tab is even visible burns battery and hammers the API in the background. This law asks that polling go through a sanctioned source that respects page visibility.',
-    satisfiedBy: { angular: 'Poll through the sanctioned source (a PageVisibilityService / poll-signal) rather than a raw interval/timer piped straight into an HTTP call; allowlist it via pollSourceAllowlist.' },
+    satisfiedBy: {
+      angular:
+        'Poll through the sanctioned source (a PageVisibilityService / poll-signal) rather than a raw interval/timer piped straight into an HTTP call; allowlist it via pollSourceAllowlist.',
+    },
     detectionLimits: [
       'Scans only feature/data-access layer files; a poll in core/ or shared/ is invisible, and assigning the source to a variable first (const t = interval(); t.pipe(...)) evades detection.',
-      'The HTTP heuristic is broad — `.get(` matches any object\'s .get() and `http.` any var named http; exemption is by basename (page-visibility/poll-signal/poll-ticks) or a path-substring allowlist.',
+      "The HTTP heuristic is broad — `.get(` matches any object's .get() and `http.` any var named http; exemption is by basename (page-visibility/poll-signal/poll-ticks) or a path-substring allowlist.",
       'No comment/string stripping; setInterval is not covered.',
     ],
     emoji: '📡',
@@ -65,12 +68,15 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '4.11',
     title: 'Root Service No Timer',
     rationale:
-      'A timer in a providedIn:\'root\' singleton runs for the entire app lifetime with nothing to tear it down — a permanent background task and a permanent leak. This law keeps timers out of root services, or behind a sanctioned one.',
-    satisfiedBy: { angular: 'Do not start interval/timer/setInterval in a providedIn:\'root\' service; own polling in a sanctioned service (page-visibility / poll-signal) or allowlist the class via rootTimerAllowlist.' },
+      "A timer in a providedIn:'root' singleton runs for the entire app lifetime with nothing to tear it down — a permanent background task and a permanent leak. This law keeps timers out of root services, or behind a sanctioned one.",
+    satisfiedBy: {
+      angular:
+        "Do not start interval/timer/setInterval in a providedIn:'root' service; own polling in a sanctioned service (page-visibility / poll-signal) or allowlist the class via rootTimerAllowlist.",
+    },
     detectionLimits: [
       'Matches a real timer — RxJS interval(/timer( as a bare call, or setInterval( — in the class body with comments and strings stripped; a method named timer()/interval() (a dotted call like this.timer()) is not mistaken for one.',
       'A sanctioned root service is exempt only if its file path contains page-visibility/poll-signal/poll-ticks or its class name is in rootTimerAllowlist.',
-      'The providedIn:\'root\' match breaks on nested braces (e.g. an inline useFactory); setTimeout is not covered.',
+      "The providedIn:'root' match breaks on nested braces (e.g. an inline useFactory); setTimeout is not covered.",
     ],
     emoji: '⏲️',
     description:
@@ -100,9 +106,10 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '4.12',
     title: 'Stores In Data Access',
     rationale:
-      'A store defined in the UI or util layer couples state to the wrong place and is where a feature\'s data logic quietly escapes its boundary. This law asks that stores live in the data-access layer.',
+      "A store defined in the UI or util layer couples state to the wrong place and is where a feature's data logic quietly escapes its boundary. This law asks that stores live in the data-access layer.",
     satisfiedBy: {
-      angular: 'Define signalStore/createFeature/createReducer stores (and *.store.ts) in the data-access layer, not in feature/ui/util.',
+      angular:
+        'Define signalStore/createFeature/createReducer stores (and *.store.ts) in the data-access layer, not in feature/ui/util.',
       react:
         'Keep shared stores (Redux Toolkit createSlice, zustand create) in the data layer; feature components consume them. Declare where your layers live in thresholds.frontend.featureLayers / dataAccessLayers.',
     },
@@ -148,7 +155,8 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Checks that a test FILE exists next to the source (same base name, .spec/.test infix, any TS/JS extension), not its content — an empty one satisfies it; a test under __tests__/ or elsewhere is not credited.',
       '"Money-adjacent" is a filename substring or the literal X-Control-Pass string (a comment mentioning it triggers it); LOC is a raw line count including blanks and comments.',
-      'Candidates are *.component.ts, *.service.ts, .tsx and .jsx files in the feature or data-access layer only — a money service elsewhere is not checked. ' + LAYER_IS_CONFIGURABLE,
+      'Candidates are *.component.ts, *.service.ts, .tsx and .jsx files in the feature or data-access layer only — a money service elsewhere is not checked. ' +
+        LAYER_IS_CONFIGURABLE,
     ],
     emoji: '🧪',
     description:
@@ -181,7 +189,8 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
     satisfiedBy: {
       angular:
         'Animate transform and opacity, not layout properties; never transition width/height/top/left/margin/padding.',
-      react: 'Animate transform and opacity, not layout properties, in your .css/.scss (CSS Modules included).',
+      react:
+        'Animate transform and opacity, not layout properties, in your .css/.scss (CSS Modules included).',
     },
     detectionLimits: [
       'Regex over .scss/.css text, no AST — `transition: all` is NOT flagged (it animates layout props but names no layout keyword), and a transition inside a CSS comment is a false positive.',
@@ -219,7 +228,8 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
     satisfiedBy: {
       angular:
         'Branch on injected configuration / environment, never on location.hostname. Reading the hostname is fine; comparing it to decide behaviour is not.',
-      react: 'Branch on injected configuration (an env value read at build time), not on location.hostname.',
+      react:
+        'Branch on injected configuration (an env value read at build time), not on location.hostname.',
     },
     detectionLimits: [
       'Literal-token, single-line match on .ts/.tsx/.js/.jsx/.mjs — aliasing defeats it: `const h = location.hostname; if (h === "demo")` is not flagged.',
@@ -255,7 +265,8 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
     rationale:
       'A raw API envelope whose "array" field arrives as null, or as a single object, turns `data.items.map(...)` into a runtime crash on the one payload you did not see in dev. Coercing to an array at the boundary makes the shape safe before the code trusts it.',
     satisfiedBy: {
-      angular: 'In data-access, coerce raw fields before iterating: (Array.isArray(x) ? x : []).map(...); do not .map/.filter/.reduce a Raw* field directly.',
+      angular:
+        'In data-access, coerce raw fields before iterating: (Array.isArray(x) ? x : []).map(...); do not .map/.filter/.reduce a Raw* field directly.',
       react:
         'Coerce untrusted arrays at the boundary — (Array.isArray(x) ? x : []) — or parse with a schema. The law judges parameters typed Raw* in the data-access layer.',
     },
@@ -293,7 +304,8 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
     rationale:
       'http.get<RawDto>(url) that flows straight into the app hands the unvalidated wire shape to code that trusts it — the boundary that should have parsed and narrowed just relabelled `any`. Typing the call to the DOMAIN type forces a real transform.',
     satisfiedBy: {
-      angular: 'Type the HTTP call to a validated domain type, not the Raw envelope; map/parse Raw* into the domain model at the boundary.',
+      angular:
+        'Type the HTTP call to a validated domain type, not the Raw envelope; map/parse Raw* into the domain model at the boundary.',
       react:
         'Parse response bodies; do not cast res.json() to a domain type. Read it as unknown and parse it (a schema, or a mapper over a Raw* type).',
     },
@@ -329,8 +341,11 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '4.18',
     title: 'Timer Cleanup',
     rationale:
-      'A setInterval with no clearInterval keeps running after the component is gone — a callback firing into nothing, holding its closure alive. The timer\'s life must be tied to the component\'s, or it leaks.',
-    satisfiedBy: { angular: 'Pair every setInterval / requestAnimationFrame with clearInterval / cancelAnimationFrame (or DestroyRef / takeUntilDestroyed) in the same component or service.' },
+      "A setInterval with no clearInterval keeps running after the component is gone — a callback firing into nothing, holding its closure alive. The timer's life must be tied to the component's, or it leaks.",
+    satisfiedBy: {
+      angular:
+        'Pair every setInterval / requestAnimationFrame with clearInterval / cancelAnimationFrame (or DestroyRef / takeUntilDestroyed) in the same component or service.',
+    },
     detectionLimits: [
       'Whole-file token presence: ANY clearInterval/DestroyRef anywhere in the file (even a comment/string, or an unrelated timer) suppresses the violation — a false negative.',
       'Reads raw .ts (no stripping), so a setInterval( in a comment/string with no cleanup is a false positive; setTimeout is not checked.',
@@ -365,7 +380,10 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'No Risk Literals',
     rationale:
       'A bare 450 next to the word equityFloor is a business rule hidden in a literal — the reader cannot tell a deliberate risk limit from a typo, and the next editor changes it blind. Named constants carry the intent, and dollar amounts in a template almost always belong in config.',
-    satisfiedBy: { angular: 'Name risk/limit/floor/equity/leverage values as constants from config, not inline literals; keep hardcoded $amounts out of templates.' },
+    satisfiedBy: {
+      angular:
+        'Name risk/limit/floor/equity/leverage values as constants from config, not inline literals; keep hardcoded $amounts out of templates.',
+    },
     detectionLimits: [
       'Opt-in (defaultEnabled: false): its vocabulary — floor, risk, limit, equity, stake, pnl, leverage, target — is the vocabulary of a trading domain, not of a framework, so it is enabled by the projects whose domain it is rather than run on every UI. Turn it on with a severity in laws.severity (e.g. "No Risk Literals": "error") or by listing it in laws.enabled.',
       'The .ts branch strips comments and string contents, but the token match is a case-insensitive SUBSTRING of the identifier, so delimiter/unlimited/rateLimit/floorplan all fire (a known high false-positive class). .tsx/.jsx are not scanned.',

@@ -19,8 +19,15 @@
 
 import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { relative, withNotes } from '../../utils/capacitor/capacitor-law-support';
-import { bridgeSources, methodCalls, objectProperty } from '../../utils/capacitor/capacitor-sources';
+import {
+  relative,
+  withNotes,
+} from '../../utils/capacitor/capacitor-law-support';
+import {
+  bridgeSources,
+  methodCalls,
+  objectProperty,
+} from '../../utils/capacitor/capacitor-sources';
 import type { TsxSource } from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';
 
@@ -53,12 +60,18 @@ export class CapacitorServiceWorkerNativeDecisionLaw extends LawBase {
   static check(context: LawCheckContext): LawResult {
     const { sources, unread } = bridgeSources(context);
     const violations = unread.map(
-      reason => `${reason} — a service-worker registration or SwUpdate handler in these files would not be read, so this law does not pass on them`
+      reason =>
+        `${reason} — a service-worker registration or SwUpdate handler in these files would not be read, so this law does not pass on them`
     );
-    const flags = new Set(context.config.thresholds?.capacitor?.nativeFlag ?? []);
-    const registrations = sources.flatMap(source => this.registrations(context, source));
+    const flags = new Set(
+      context.config.thresholds?.capacitor?.nativeFlag ?? []
+    );
+    const registrations = sources.flatMap(source =>
+      this.registrations(context, source)
+    );
     const handling = this.updateHandling(sources);
-    const handled = handling.versionReady && handling.reload && handling.unrecoverable;
+    const handled =
+      handling.versionReady && handling.reload && handling.unrecoverable;
     const notes: string[] = [];
     for (const registration of registrations) {
       if (this.offOnNative(registration, flags)) continue;
@@ -71,12 +84,21 @@ export class CapacitorServiceWorkerNativeDecisionLaw extends LawBase {
       violations.push(this.warning(registration, handling));
     }
     return withNotes(
-      this.createResult(violations, this.LAW_NAME, 'PERFORMANCE', [BOTH_WAYS_OUT], context),
+      this.createResult(
+        violations,
+        this.LAW_NAME,
+        'PERFORMANCE',
+        [BOTH_WAYS_OUT],
+        context
+      ),
       notes
     );
   }
 
-  private static warning(registration: Registration, handling: UpdateHandling): string {
+  private static warning(
+    registration: Registration,
+    handling: UpdateHandling
+  ): string {
     const missing = [
       handling.versionReady ? null : 'versionUpdates VERSION_READY',
       handling.reload ? null : 'a location.reload()',
@@ -91,21 +113,31 @@ export class CapacitorServiceWorkerNativeDecisionLaw extends LawBase {
   }
 
   /** provideServiceWorker(…) and ServiceWorkerModule.register(…) calls, as imported here. */
-  static registrations(context: LawCheckContext, source: TsxSource): Registration[] {
+  static registrations(
+    context: LawCheckContext,
+    source: TsxSource
+  ): Registration[] {
     const ts = source.ts;
     const imported = new Map<string, string>();
     for (const info of source.imports()) {
       if (info.module !== SW_MODULE) continue;
-      for (const { imported: name, local } of info.named) imported.set(local, name);
+      for (const { imported: name, local } of info.named)
+        imported.set(local, name);
     }
     if (imported.size === 0) return [];
     const found: Registration[] = [];
     source.walk(node => {
-      if (!ts.isCallExpression(node) || !this.isRegistration(source, node, imported)) return;
+      if (
+        !ts.isCallExpression(node) ||
+        !this.isRegistration(source, node, imported)
+      )
+        return;
       const options = this.options(source, node.arguments[1]);
       found.push({
         where: `${relative(context, source.fileName)}:${source.lineOf(node)}`,
-        enabled: options ? objectProperty(source, options, 'enabled') : undefined,
+        enabled: options
+          ? objectProperty(source, options, 'enabled')
+          : undefined,
         unreadable: node.arguments[1] !== undefined && !options,
         source,
       });
@@ -113,10 +145,15 @@ export class CapacitorServiceWorkerNativeDecisionLaw extends LawBase {
     return found;
   }
 
-  private static isRegistration(source: TsxSource, node: TS.CallExpression, imported: Map<string, string>): boolean {
+  private static isRegistration(
+    source: TsxSource,
+    node: TS.CallExpression,
+    imported: Map<string, string>
+  ): boolean {
     const ts = source.ts;
     const callee = node.expression;
-    if (ts.isIdentifier(callee)) return imported.get(callee.text) === 'provideServiceWorker';
+    if (ts.isIdentifier(callee))
+      return imported.get(callee.text) === 'provideServiceWorker';
     return (
       ts.isPropertyAccessExpression(callee) &&
       callee.name.text === 'register' &&
@@ -126,7 +163,10 @@ export class CapacitorServiceWorkerNativeDecisionLaw extends LawBase {
   }
 
   /** The options object: a literal, or a same-file const initialised with one. */
-  private static options(source: TsxSource, argument: TS.Expression | undefined): TS.ObjectLiteralExpression | null {
+  private static options(
+    source: TsxSource,
+    argument: TS.Expression | undefined
+  ): TS.ObjectLiteralExpression | null {
     const ts = source.ts;
     if (!argument) return null;
     if (ts.isObjectLiteralExpression(argument)) return argument;
@@ -148,17 +188,27 @@ export class CapacitorServiceWorkerNativeDecisionLaw extends LawBase {
   }
 
   /** `enabled: false`, or an expression that consults the native platform or a declared flag. */
-  static offOnNative(registration: Registration, flags: ReadonlySet<string>): boolean {
+  static offOnNative(
+    registration: Registration,
+    flags: ReadonlySet<string>
+  ): boolean {
     const { enabled, source } = registration;
     if (!enabled) return false;
     const ts = source.ts;
     if (enabled.kind === ts.SyntaxKind.FalseKeyword) return true;
     let consults = false;
     const visit = (node: TS.Node): void => {
-      if (ts.isPropertyAccessExpression(node) && PLATFORM_CALLS.has(node.name.text) && node.expression.getText(source.sourceFile) === 'Capacitor') {
+      if (
+        ts.isPropertyAccessExpression(node) &&
+        PLATFORM_CALLS.has(node.name.text) &&
+        node.expression.getText(source.sourceFile) === 'Capacitor'
+      ) {
         consults = true;
       }
-      if ((ts.isIdentifier(node) && flags.has(node.text)) || (ts.isPropertyAccessExpression(node) && flags.has(node.name.text))) {
+      if (
+        (ts.isIdentifier(node) && flags.has(node.text)) ||
+        (ts.isPropertyAccessExpression(node) && flags.has(node.name.text))
+      ) {
         consults = true;
       }
       if (!consults) ts.forEachChild(node, visit);
@@ -169,7 +219,11 @@ export class CapacitorServiceWorkerNativeDecisionLaw extends LawBase {
 
   /** VERSION_READY next to versionUpdates in one file, a location reload, and unrecoverable — anywhere. */
   static updateHandling(sources: readonly TsxSource[]): UpdateHandling {
-    const handling: UpdateHandling = { versionReady: false, reload: false, unrecoverable: false };
+    const handling: UpdateHandling = {
+      versionReady: false,
+      reload: false,
+      unrecoverable: false,
+    };
     for (const source of sources) {
       const ts = source.ts;
       let versionUpdates = false;
@@ -179,18 +233,28 @@ export class CapacitorServiceWorkerNativeDecisionLaw extends LawBase {
           if (node.name.text === 'versionUpdates') versionUpdates = true;
           if (node.name.text === 'unrecoverable') handling.unrecoverable = true;
         }
-        if (ts.isStringLiteralLike(node) && node.text === VERSION_READY) ready = true;
+        if (ts.isStringLiteralLike(node) && node.text === VERSION_READY)
+          ready = true;
       });
       if (versionUpdates && ready) handling.versionReady = true;
-      if (methodCalls(source, source.sourceFile, 'reload').some(call => this.isLocationReload(source, call))) {
+      if (
+        methodCalls(source, source.sourceFile, 'reload').some(call =>
+          this.isLocationReload(source, call)
+        )
+      ) {
         handling.reload = true;
       }
     }
     return handling;
   }
 
-  private static isLocationReload(source: TsxSource, call: TS.CallExpression): boolean {
+  private static isLocationReload(
+    source: TsxSource,
+    call: TS.CallExpression
+  ): boolean {
     const callee = call.expression as TS.PropertyAccessExpression;
-    return /(?:^|\.)location$/.test(callee.expression.getText(source.sourceFile));
+    return /(?:^|\.)location$/.test(
+      callee.expression.getText(source.sourceFile)
+    );
   }
 }

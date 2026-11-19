@@ -10,7 +10,13 @@ import * as path from 'path';
 import { executeReinstallHooksAction } from '../../src/cli/reinstall-hooks-command';
 import { execFileSync } from '../../src/utils/child-process';
 
-const HUSKY_PACKAGE = path.resolve(__dirname, '..', '..', 'node_modules', 'husky');
+const HUSKY_PACKAGE = path.resolve(
+  __dirname,
+  '..',
+  '..',
+  'node_modules',
+  'husky'
+);
 
 describe('reinstall-hooks checks that git runs the hooks', () => {
   let dir: string;
@@ -22,7 +28,10 @@ describe('reinstall-hooks checks that git runs the hooks', () => {
   beforeEach(() => {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-reinstall-'));
     execFileSync('git', ['init', '-q'], { cwd: dir, stdio: 'ignore' });
-    fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: 'r', version: '1.0.0' }));
+    fs.writeFileSync(
+      path.join(dir, 'package.json'),
+      JSON.stringify({ name: 'r', version: '1.0.0' })
+    );
     log = jest.spyOn(console, 'log').mockImplementation();
     error = jest.spyOn(console, 'error').mockImplementation();
     process.exitCode = undefined;
@@ -39,16 +48,24 @@ describe('reinstall-hooks checks that git runs the hooks', () => {
     await executeReinstallHooksAction({ force: true }, dir);
 
     expect(printed()).not.toContain('reinstalled successfully');
-    expect(printed()).toMatch(/git does NOT run them here: .*core\.hooksPath is unset/);
+    expect(printed()).toMatch(
+      /git does NOT run them here: .*core\.hooksPath is unset/
+    );
     expect(process.exitCode).toBe(1);
   });
 
   it('succeeds once husky has pointed core.hooksPath at its directory', async () => {
-    fs.cpSync(HUSKY_PACKAGE, path.join(dir, 'node_modules', 'husky'), { recursive: true });
-    execFileSync(process.execPath, [path.join(dir, 'node_modules', 'husky', 'bin.js')], {
-      cwd: dir,
-      stdio: 'ignore',
+    fs.cpSync(HUSKY_PACKAGE, path.join(dir, 'node_modules', 'husky'), {
+      recursive: true,
     });
+    execFileSync(
+      process.execPath,
+      [path.join(dir, 'node_modules', 'husky', 'bin.js')],
+      {
+        cwd: dir,
+        stdio: 'ignore',
+      }
+    );
 
     await executeReinstallHooksAction({ force: true }, dir);
 

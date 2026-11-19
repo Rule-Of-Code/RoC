@@ -110,7 +110,10 @@ describe('CI discovery, service detection and footer boundaries', () => {
 
       const gates = (
         AutomatedCodeQualityGatesLaw as unknown as {
-          analyzeBuildGates: (r: string, c?: unknown) => { hasBuildGates: boolean };
+          analyzeBuildGates: (
+            r: string,
+            c?: unknown
+          ) => { hasBuildGates: boolean };
         }
       ).analyzeBuildGates(root, declaringCi('infra/ci/*.yaml'));
 
@@ -267,7 +270,10 @@ describe('CI discovery, service detection and footer boundaries', () => {
     });
 
     it('reads a footer in a document with a single rule', async () => {
-      write('NOTES.md', ['# Notes', '', '---', '', ...footerLines, ''].join('\n'));
+      write(
+        'NOTES.md',
+        ['# Notes', '', '---', '', ...footerLines, ''].join('\n')
+      );
 
       const result = await MdFooterTemplateLaw.check({
         projectRoot: root,

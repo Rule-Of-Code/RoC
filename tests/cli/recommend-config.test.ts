@@ -15,20 +15,23 @@ import { ModularLawsRegistry } from '../../src/registry/modular-laws-registry';
 import { lawIdentityKeys } from '../../src/utils/law-identity';
 
 /* eslint-disable @typescript-eslint/no-require-imports */
-const {
-  generateRecommendedConfig,
-  detectStack,
-  APPLICABLE_LAWS,
-  OUTPUT_FILE,
-} = require('../../scripts/recommend-config') as {
-  generateRecommendedConfig: (
-    root: string,
-    options?: { now?: string }
-  ) => { written: boolean; fileName?: string; stack?: string; applicableLaws?: number };
-  detectStack: (root: string) => { stack: string; projectType: string } | null;
-  APPLICABLE_LAWS: Record<string, number>;
-  OUTPUT_FILE: string;
-};
+const { generateRecommendedConfig, detectStack, APPLICABLE_LAWS, OUTPUT_FILE } =
+  require('../../scripts/recommend-config') as {
+    generateRecommendedConfig: (
+      root: string,
+      options?: { now?: string }
+    ) => {
+      written: boolean;
+      fileName?: string;
+      stack?: string;
+      applicableLaws?: number;
+    };
+    detectStack: (
+      root: string
+    ) => { stack: string; projectType: string } | null;
+    APPLICABLE_LAWS: Record<string, number>;
+    OUTPUT_FILE: string;
+  };
 
 const dirs: string[] = [];
 function fixture(files: Record<string, string>): string {
@@ -106,14 +109,20 @@ describe('generation', () => {
     const dir = fixture({ ...PY, 'ruleofcode.config.json': '{"mine":true}' });
     generateRecommendedConfig(dir);
     expect(
-      JSON.parse(fs.readFileSync(path.join(dir, 'ruleofcode.config.json'), 'utf8'))
+      JSON.parse(
+        fs.readFileSync(path.join(dir, 'ruleofcode.config.json'), 'utf8')
+      )
     ).toEqual({ mine: true });
   });
 
   it('is idempotent — an unchanged version rewrites nothing', () => {
     const dir = fixture(PY);
-    expect(generateRecommendedConfig(dir, { now: '2026-01-01' }).written).toBe(true);
-    expect(generateRecommendedConfig(dir, { now: '2026-01-01' }).written).toBe(false);
+    expect(generateRecommendedConfig(dir, { now: '2026-01-01' }).written).toBe(
+      true
+    );
+    expect(generateRecommendedConfig(dir, { now: '2026-01-01' }).written).toBe(
+      false
+    );
   });
 });
 
@@ -123,21 +132,21 @@ describe('templates are honest about the registry', () => {
     for (const key of lawIdentityKeys(law)) knownKeys.add(key);
   }
 
-  it.each([['python', PY], ['frontend', NG]])(
-    'every %s severity key resolves to a real law',
-    (_stack, files) => {
-      const dir = fixture(files);
-      generateRecommendedConfig(dir);
-      const config = JSON.parse(
-        fs.readFileSync(path.join(dir, OUTPUT_FILE), 'utf8')
-      );
+  it.each([
+    ['python', PY],
+    ['frontend', NG],
+  ])('every %s severity key resolves to a real law', (_stack, files) => {
+    const dir = fixture(files);
+    generateRecommendedConfig(dir);
+    const config = JSON.parse(
+      fs.readFileSync(path.join(dir, OUTPUT_FILE), 'utf8')
+    );
 
-      const unknown = Object.keys(config.laws.severity).filter(
-        k => !knownKeys.has(k)
-      );
-      expect(unknown).toEqual([]);
-    }
-  );
+    const unknown = Object.keys(config.laws.severity).filter(
+      k => !knownKeys.has(k)
+    );
+    expect(unknown).toEqual([]);
+  });
 
   it.each([
     ['python', 'python'],

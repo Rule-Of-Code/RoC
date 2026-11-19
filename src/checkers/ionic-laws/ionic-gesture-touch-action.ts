@@ -19,9 +19,19 @@
 
 import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { AngularComponents, type AngularComponent } from '../../utils/ionic/angular-components';
-import { CssRules, projectStyleSheets, type CssRule } from '../../utils/ionic/css-rules';
-import { HtmlTemplate, type TemplateElement } from '../../utils/ionic/html-template';
+import {
+  AngularComponents,
+  type AngularComponent,
+} from '../../utils/ionic/angular-components';
+import {
+  CssRules,
+  projectStyleSheets,
+  type CssRule,
+} from '../../utils/ionic/css-rules';
+import {
+  HtmlTemplate,
+  type TemplateElement,
+} from '../../utils/ionic/html-template';
 import { LawBase } from '../law-base';
 
 const DOWN = 'pointerdown';
@@ -43,7 +53,10 @@ export class IonicGestureTouchActionLaw extends LawBase {
 
   static check(context: LawCheckContext): LawResult {
     const scan = AngularComponents.scan(context);
-    const styles = projectStyleSheets(context, scan.components.flatMap(c => c.styles));
+    const styles = projectStyleSheets(
+      context,
+      scan.components.flatMap(c => c.styles)
+    );
     const violations = [...scan.unread, ...styles.unread];
     const allRules = styles.sheets.flatMap(sheet => sheet.rules);
     const under = AngularComponents.underContent(scan.components);
@@ -72,16 +85,28 @@ export class IonicGestureTouchActionLaw extends LawBase {
 
   /** Every pointer event the component binds, from its template, host metadata and class code. */
   static bindings(component: AngularComponent): Bindings {
-    const found: Bindings = { events: new Set(), line: component.line, file: component.file, elements: [] };
+    const found: Bindings = {
+      events: new Set(),
+      line: component.line,
+      file: component.file,
+      elements: [],
+    };
     let downLine: { line: number; file: string } | null = null;
     for (const element of component.elements) {
       const events = element.attributes
-        .map(attribute => /^\((?:[\w-]+:)?(pointer\w+)\)$/.exec(attribute.name)?.[1] ?? '')
+        .map(
+          attribute =>
+            /^\((?:[\w-]+:)?(pointer\w+)\)$/.exec(attribute.name)?.[1] ?? ''
+        )
         .filter(Boolean);
       if (events.length === 0) continue;
       found.elements.push(element);
       events.forEach(event => found.events.add(event));
-      if (!downLine && events.includes(DOWN)) downLine = { line: element.line, file: component.template?.file ?? component.file };
+      if (!downLine && events.includes(DOWN))
+        downLine = {
+          line: element.line,
+          file: component.template?.file ?? component.file,
+        };
     }
     for (const key of component.hostKeys) {
       const event = /^\((?:[\w-]+:)?(pointer\w+)\)$/.exec(key)?.[1];
@@ -108,7 +133,8 @@ export class IonicGestureTouchActionLaw extends LawBase {
       const event = this.codeEvent(ts, node);
       if (event) {
         events.add(event);
-        if (event === DOWN && !down) down = { line: source.lineOf(node), file: component.file };
+        if (event === DOWN && !down)
+          down = { line: source.lineOf(node), file: component.file };
       }
       ts.forEachChild(node, visit);
     };
@@ -130,31 +156,55 @@ export class IonicGestureTouchActionLaw extends LawBase {
       return arg && ts.isStringLiteralLike(arg) ? arg.text : '';
     };
     let event = '';
-    if (name === 'HostListener' || name === 'addEventListener') event = literal(0);
+    if (name === 'HostListener' || name === 'addEventListener')
+      event = literal(0);
     else if (TARGET_FIRST_CALLS.has(name)) event = literal(1);
     const bare = event.replace(/^[\w-]+:/, '');
     return /^pointer\w+$/.test(bare) ? bare : null;
   }
 
   /** A touch-action other than auto on the element, its host, or ion-content's scroll part. */
-  private static touchActionSet(component: AngularComponent, bindings: Bindings, allRules: CssRule[]): boolean {
-    const own = component.styles.flatMap(style => CssRules.parse(style.text, style.file, style.firstLine));
-    const elementClasses = bindings.elements.flatMap(element => HtmlTemplate.classes(element));
+  private static touchActionSet(
+    component: AngularComponent,
+    bindings: Bindings,
+    allRules: CssRule[]
+  ): boolean {
+    const own = component.styles.flatMap(style =>
+      CssRules.parse(style.text, style.file, style.firstLine)
+    );
+    const elementClasses = bindings.elements.flatMap(element =>
+      HtmlTemplate.classes(element)
+    );
     const elementTags = bindings.elements.map(element => element.tag);
     const ownMatch = (selector: string): boolean =>
-      /:host\b|::part\(\s*scroll\s*\)/.test(selector) || this.names(selector, elementClasses, elementTags);
+      /:host\b|::part\(\s*scroll\s*\)/.test(selector) ||
+      this.names(selector, elementClasses, elementTags);
     const globalMatch = (selector: string): boolean =>
       /::part\(\s*scroll\s*\)/.test(selector) ||
-      this.names(selector, elementClasses, [...component.selectors, ...elementTags]);
-    return own.some(rule => this.setsTouchAction(rule) && ownMatch(rule.selector)) ||
-      allRules.some(rule => this.setsTouchAction(rule) && globalMatch(rule.selector));
+      this.names(selector, elementClasses, [
+        ...component.selectors,
+        ...elementTags,
+      ]);
+    return (
+      own.some(rule => this.setsTouchAction(rule) && ownMatch(rule.selector)) ||
+      allRules.some(
+        rule => this.setsTouchAction(rule) && globalMatch(rule.selector)
+      )
+    );
   }
 
-  private static names(selector: string, classes: string[], tags: string[]): boolean {
-    if (CssRules.allClasses(selector).some(name => classes.includes(name))) return true;
+  private static names(
+    selector: string,
+    classes: string[],
+    tags: string[]
+  ): boolean {
+    if (CssRules.allClasses(selector).some(name => classes.includes(name)))
+      return true;
     return tags.some(tag => {
       const escaped = tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      return new RegExp(`(?:^|[\\s>+~,(])${escaped}(?![\\w-])`, 'i').test(selector);
+      return new RegExp(`(?:^|[\\s>+~,(])${escaped}(?![\\w-])`, 'i').test(
+        selector
+      );
     });
   }
 

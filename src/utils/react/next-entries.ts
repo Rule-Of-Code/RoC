@@ -8,8 +8,17 @@
 
 import * as fs from 'fs';
 import { PathOperations } from '../path-operations';
-import { isClientModule, isServerModule, NextModuleGraph } from './next-module-graph';
-import { nextRoutes, routerLayout, specialFile, specialFileName } from './next-routes';
+import {
+  isClientModule,
+  isServerModule,
+  NextModuleGraph,
+} from './next-module-graph';
+import {
+  nextRoutes,
+  routerLayout,
+  specialFile,
+  specialFileName,
+} from './next-routes';
 import { ReactProject, type NextApp } from './react-project';
 
 /** The App Router file conventions Next loads by name. */
@@ -38,15 +47,27 @@ export const APP_ENTRY_FILES = new Set([
 /** The files beside the router that Next loads on the server. */
 export const CONVENTION_FILES = ['proxy', 'middleware', 'instrumentation'];
 
-export function nextServerEntries(graph: NextModuleGraph, apps: readonly NextApp[]): string[] {
+export function nextServerEntries(
+  graph: NextModuleGraph,
+  apps: readonly NextApp[]
+): string[] {
   const files: string[] = [];
   for (const app of apps) {
     const layout = routerLayout(app);
     if (layout.appDir) collectAppEntries(layout.appDir, files);
     const dir = layout.conventionDir;
-    if (dir) files.push(...CONVENTION_FILES.map(name => specialFile(dir, name)).filter((f): f is string => f !== null));
+    if (dir)
+      files.push(
+        ...CONVENTION_FILES.map(name => specialFile(dir, name)).filter(
+          (f): f is string => f !== null
+        )
+      );
   }
-  files.push(...nextRoutes(apps.map(routerLayout)).filter(r => r.kind === 'pages').map(r => r.file));
+  files.push(
+    ...nextRoutes(apps.map(routerLayout))
+      .filter(r => r.kind === 'pages')
+      .map(r => r.file)
+  );
   files.push(
     ...graph
       .sourcesOf(ReactProject.sourceFiles(graph.context))
@@ -56,7 +77,8 @@ export function nextServerEntries(graph: NextModuleGraph, apps: readonly NextApp
   const entries = new Set<string>();
   for (const file of files) {
     const source = graph.source(file);
-    if (source && !isClientModule(source)) entries.add(NextModuleGraph.canonical(file));
+    if (source && !isClientModule(source))
+      entries.add(NextModuleGraph.canonical(file));
   }
   return [...entries];
 }
@@ -71,7 +93,8 @@ function collectAppEntries(dir: string, files: string[]): void {
   for (const entry of entries) {
     const abs = PathOperations.join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (entry.name !== 'node_modules' && !entry.name.startsWith('_')) collectAppEntries(abs, files);
+      if (entry.name !== 'node_modules' && !entry.name.startsWith('_'))
+        collectAppEntries(abs, files);
       continue;
     }
     const name = specialFileName(entry.name);

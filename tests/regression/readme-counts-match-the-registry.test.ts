@@ -66,7 +66,9 @@ describe('the README counts match the registry', () => {
     it('states how many frontend laws are gated on Ionic and on Capacitor', () => {
       const gatedOn = (prefix: string): number =>
         ModularLawsRegistry.getAll().filter(law =>
-          (law.requires?.anyDependency ?? []).some(name => name.startsWith(prefix))
+          (law.requires?.anyDependency ?? []).some(name =>
+            name.startsWith(prefix)
+          )
         ).length;
 
       expect(readme()).toContain(
@@ -91,10 +93,14 @@ where Capacitor is`
    */
   describe('the satisfiedBy spread table', () => {
     const laws = ALL_ENHANCED_CONSTITUTIONAL_LAWS;
-    const keys = [...new Set(laws.flatMap(law => Object.keys(law.satisfiedBy ?? {})))];
+    const keys = [
+      ...new Set(laws.flatMap(law => Object.keys(law.satisfiedBy ?? {}))),
+    ];
 
     it.each(keys)('the `%s` row states the measured count and spread', key => {
-      const carrying = laws.filter(law => law.satisfiedBy?.[key as 'angular'] !== undefined);
+      const carrying = laws.filter(
+        law => law.satisfiedBy?.[key as 'angular'] !== undefined
+      );
       const spread = new Map<string, number>();
       for (const law of carrying) {
         const stack = law.stack ?? 'universal';
@@ -107,7 +113,10 @@ where Capacitor is`
       expect(row).toBeDefined();
       expect(row).toContain(`| ${carrying.length} |`);
       for (const [stack, count] of spread) {
-        const label = stack === 'universal' ? `${count} universal` : `${count} \`${stack}\``;
+        const label =
+          stack === 'universal'
+            ? `${count} universal`
+            : `${count} \`${stack}\``;
         expect(row).toContain(label);
       }
     });

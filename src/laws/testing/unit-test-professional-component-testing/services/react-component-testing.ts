@@ -38,7 +38,10 @@ export interface ReactComponentTesting {
 
 export class ReactComponentTestingAnalyzer {
   static analyze(context: LawCheckContext): ReactComponentTesting {
-    const components = ReactProject.sourceFiles(context, ['.tsx', '.jsx']).filter(file => {
+    const components = ReactProject.sourceFiles(context, [
+      '.tsx',
+      '.jsx',
+    ]).filter(file => {
       const rel = PathOperations.getRelative(context.projectRoot, file);
       return !NEXT_ROUTE_FILE.test(rel) && !STORY.test(rel);
     });
@@ -49,7 +52,9 @@ export class ReactComponentTestingAnalyzer {
       if (test) testFiles.push(test);
       else missingTestFiles.push(component);
     }
-    const lowQualityTests = testFiles.filter(file => !this.isQualityTest(FileUtils.readFile(file) ?? ''));
+    const lowQualityTests = testFiles.filter(
+      file => !this.isQualityTest(FileUtils.readFile(file) ?? '')
+    );
     return { components, testFiles, missingTestFiles, lowQualityTests };
   }
 
@@ -66,6 +71,10 @@ export class ReactComponentTestingAnalyzer {
 
   static isQualityTest(content: string): boolean {
     const tests = (content.match(TEST_CALL) ?? []).length;
-    return tests >= MINIMUM_TESTS && /\bexpect\s*\(/.test(content) && ROLE_QUERY.test(content);
+    return (
+      tests >= MINIMUM_TESTS &&
+      /\bexpect\s*\(/.test(content) &&
+      ROLE_QUERY.test(content)
+    );
   }
 }

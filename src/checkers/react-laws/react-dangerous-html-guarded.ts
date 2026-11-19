@@ -26,7 +26,13 @@ import type { TsxSource } from '../../utils/react/tsx-source';
 import { ReactProject } from '../../utils/react/react-project';
 import { htmlSanitizers } from '../security-laws/xss-prevention';
 import { LawBase } from '../law-base';
-import { calleeText, literalText, nameList, parseFilesMentioning, unwrap } from './react-security-support';
+import {
+  calleeText,
+  literalText,
+  nameList,
+  parseFilesMentioning,
+  unwrap,
+} from './react-security-support';
 
 const SINK = 'dangerouslySetInnerHTML';
 
@@ -68,15 +74,24 @@ export class ReactDangerousHtmlGuardedLaw extends LawBase {
     );
   }
 
-  private static policy(context: LawCheckContext): { policy: Policy; configErrors: string[] } {
+  private static policy(context: LawCheckContext): {
+    policy: Policy;
+    configErrors: string[];
+  } {
     const react = context.config.thresholds?.react;
     const configErrors: string[] = [];
     const trusted = new Set<string>();
-    for (const entry of Array.isArray(react?.trustedHtmlFunctions) ? react.trustedHtmlFunctions : []) {
+    for (const entry of Array.isArray(react?.trustedHtmlFunctions)
+      ? react.trustedHtmlFunctions
+      : []) {
       const name = typeof entry?.name === 'string' ? entry.name.trim() : '';
       if (!name) continue;
-      if (typeof entry.reason === 'string' && entry.reason.trim()) trusted.add(name);
-      else configErrors.push(`thresholds.react.trustedHtmlFunctions: '${name}' has no reason — an allow-listed HTML function must say why its output is safe; it is not honoured`);
+      if (typeof entry.reason === 'string' && entry.reason.trim())
+        trusted.add(name);
+      else
+        configErrors.push(
+          `thresholds.react.trustedHtmlFunctions: '${name}' has no reason — an allow-listed HTML function must say why its output is safe; it is not honoured`
+        );
     }
     return {
       policy: {
@@ -93,12 +108,17 @@ export class ReactDangerousHtmlGuardedLaw extends LawBase {
     const ts = source.ts;
     const sinks: Sink[] = [];
     source.walk(node => {
-      if (ts.isJsxAttribute(node) && node.name.getText(source.sourceFile) === SINK) {
+      if (
+        ts.isJsxAttribute(node) &&
+        node.name.getText(source.sourceFile) === SINK
+      ) {
         const init = node.initializer;
-        const value = init && ts.isJsxExpression(init) ? init.expression : undefined;
+        const value =
+          init && ts.isJsxExpression(init) ? init.expression : undefined;
         sinks.push({ line: source.lineOf(node), value });
       } else if (
-        (ts.isPropertyAssignment(node) || ts.isShorthandPropertyAssignment(node)) &&
+        (ts.isPropertyAssignment(node) ||
+          ts.isShorthandPropertyAssignment(node)) &&
         node.name.getText(source.sourceFile).replace(/['"]/g, '') === SINK
       ) {
         sinks.push({
@@ -111,17 +131,29 @@ export class ReactDangerousHtmlGuardedLaw extends LawBase {
   }
 
   /** Why this sink is unguarded, or null when its __html is accepted. */
-  private static judge(source: TsxSource, value: TS.Expression | undefined, policy: Policy): string | null {
+  private static judge(
+    source: TsxSource,
+    value: TS.Expression | undefined,
+    policy: Policy
+  ): string | null {
     const ts = source.ts;
     const object = value ? unwrap(ts, value) : undefined;
     if (!object || !ts.isObjectLiteralExpression(object)) {
       return `${SINK} is given ${value ? `\`${this.text(source, value)}\`` : 'no value'}, not an object literal — the __html it sets cannot be read here; write ${SINK}={{ __html: … }} at the sink`;
     }
-    const property = object.properties.find(p => p.name?.getText(source.sourceFile).replace(/['"]/g, '') === '__html');
-    if (!property || (!ts.isPropertyAssignment(property) && !ts.isShorthandPropertyAssignment(property))) {
+    const property = object.properties.find(
+      p => p.name?.getText(source.sourceFile).replace(/['"]/g, '') === '__html'
+    );
+    if (
+      !property ||
+      (!ts.isPropertyAssignment(property) &&
+        !ts.isShorthandPropertyAssignment(property))
+    ) {
       return `${SINK} has no readable __html property (a spread or a computed key) — write __html: … at the sink`;
     }
-    const html = ts.isPropertyAssignment(property) ? property.initializer : property.name;
+    const html = ts.isPropertyAssignment(property)
+      ? property.initializer
+      : property.name;
     if (this.accepted(source, html, policy)) return null;
     if (this.isBareJsonStringify(source, html)) {
       return `__html is JSON.stringify(...), which does not escape '<' — a '</script>' in the data ends the tag. Append .replace(/</g, '\\\\u003c'), or use a serializer named in thresholds.react.jsonSerializers`;
@@ -129,15 +161,28 @@ export class ReactDangerousHtmlGuardedLaw extends LawBase {
     return `__html is \`${this.text(source, html)}\` — not a literal, a sanitizer call (DOMPurify.sanitize or thresholds.security.htmlSanitizers), a function allow-listed with a reason (thresholds.react.trustedHtmlFunctions) or JSON with '<' escaped`;
   }
 
-  private static accepted(source: TsxSource, expression: TS.Expression, policy: Policy): boolean {
+  private static accepted(
+    source: TsxSource,
+    expression: TS.Expression,
+    policy: Policy
+  ): boolean {
     const ts = source.ts;
     const e = unwrap(ts, expression);
     if (literalText(ts, e) !== null) return true;
     if (ts.isConditionalExpression(e)) {
-      return this.accepted(source, e.whenTrue, policy) && this.accepted(source, e.whenFalse, policy);
+      return (
+        this.accepted(source, e.whenTrue, policy) &&
+        this.accepted(source, e.whenFalse, policy)
+      );
     }
-    if (ts.isBinaryExpression(e) && e.operatorToken.kind === ts.SyntaxKind.PlusToken) {
-      return this.accepted(source, e.left, policy) && this.accepted(source, e.right, policy);
+    if (
+      ts.isBinaryExpression(e) &&
+      e.operatorToken.kind === ts.SyntaxKind.PlusToken
+    ) {
+      return (
+        this.accepted(source, e.left, policy) &&
+        this.accepted(source, e.right, policy)
+      );
     }
     if (!ts.isCallExpression(e)) return false;
     const callee = calleeText(e, source.sourceFile);
@@ -150,10 +195,17 @@ export class ReactDangerousHtmlGuardedLaw extends LawBase {
   }
 
   /** `JSON.stringify(x).replace(/</g, '\\u003c')`. */
-  private static isEscapedJson(source: TsxSource, call: TS.CallExpression): boolean {
+  private static isEscapedJson(
+    source: TsxSource,
+    call: TS.CallExpression
+  ): boolean {
     const ts = source.ts;
     const callee = call.expression;
-    if (!ts.isPropertyAccessExpression(callee) || callee.name.text !== 'replace') return false;
+    if (
+      !ts.isPropertyAccessExpression(callee) ||
+      callee.name.text !== 'replace'
+    )
+      return false;
     const [pattern, replacement] = call.arguments;
     return (
       this.isBareJsonStringify(source, callee.expression) &&
@@ -165,9 +217,15 @@ export class ReactDangerousHtmlGuardedLaw extends LawBase {
     );
   }
 
-  private static isBareJsonStringify(source: TsxSource, expression: TS.Expression): boolean {
+  private static isBareJsonStringify(
+    source: TsxSource,
+    expression: TS.Expression
+  ): boolean {
     const e = unwrap(source.ts, expression);
-    return source.ts.isCallExpression(e) && calleeText(e, source.sourceFile) === 'JSON.stringify';
+    return (
+      source.ts.isCallExpression(e) &&
+      calleeText(e, source.sourceFile) === 'JSON.stringify'
+    );
   }
 
   private static text(source: TsxSource, node: TS.Node): string {

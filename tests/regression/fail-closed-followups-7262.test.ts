@@ -16,7 +16,12 @@ import { CommitSizeControlLaw } from '../../src/checkers/git-laws/commit-size-co
 import { ReactDangerousHtmlGuardedLaw } from '../../src/checkers/react-laws/react-dangerous-html-guarded';
 import { PerformanceAlertingPolicyAnalyzerService as Alerts } from '../../src/laws/performance/performance-monitoring-policy/services/performance-alerting-policy.analyzer';
 import { PerformanceAlertsAnalyzerService } from '../../src/laws/performance/performance-monitoring/services/performance-alerts.analyzer';
-import { ctx, manifest, project, removeProjects } from '../checkers/toolkit-fixture';
+import {
+  ctx,
+  manifest,
+  project,
+  removeProjects,
+} from '../checkers/toolkit-fixture';
 
 afterAll(removeProjects);
 
@@ -24,10 +29,21 @@ function gitRepoWithOneBigCommit(): string {
   const files: Record<string, string> = {
     'package.json': manifest({ typescript: '5.6.3' }),
   };
-  for (let i = 1; i <= 40; i++) files[`src/f${i}.ts`] = `export const v${i} = ${i};\n`;
+  for (let i = 1; i <= 40; i++)
+    files[`src/f${i}.ts`] = `export const v${i} = ${i};\n`;
   const root = project(files);
   const git = (...args: string[]) =>
-    execFileSync('git', args, { cwd: root, stdio: 'ignore', env: { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@example.com', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@example.com' } });
+    execFileSync('git', args, {
+      cwd: root,
+      stdio: 'ignore',
+      env: {
+        ...process.env,
+        GIT_AUTHOR_NAME: 't',
+        GIT_AUTHOR_EMAIL: 't@example.com',
+        GIT_COMMITTER_NAME: 't',
+        GIT_COMMITTER_EMAIL: 't@example.com',
+      },
+    });
   git('init', '-q');
   git('checkout', '-q', '-b', 'feature/x');
   git('add', '-A');
@@ -38,11 +54,17 @@ function gitRepoWithOneBigCommit(): string {
 describe('#295 Commit Size Control fails closed when history cannot be read', () => {
   it('a baseline missing from the checkout is a violation, not a pass', () => {
     const root = gitRepoWithOneBigCommit();
-    const context = ctx(root, { thresholds: { git: { commitSize: { baseline: 'origin/nope' } } } });
+    const context = ctx(root, {
+      thresholds: { git: { commitSize: { baseline: 'origin/nope' } } },
+    });
     const result = CommitSizeControlLaw.check(context);
     expect(result.passed).toBe(false);
     expect(result.violations).toEqual(
-      expect.arrayContaining([expect.stringMatching(/^Unable to read git history.*is the baseline 'origin\/nope' in this checkout\?/)])
+      expect.arrayContaining([
+        expect.stringMatching(
+          /^Unable to read git history.*is the baseline 'origin\/nope' in this checkout\?/
+        ),
+      ])
     );
   });
 
@@ -50,7 +72,11 @@ describe('#295 Commit Size Control fails closed when history cannot be read', ()
     const root = gitRepoWithOneBigCommit();
     const result = CommitSizeControlLaw.check(ctx(root));
     expect(result.violations).toEqual(
-      expect.arrayContaining([expect.stringContaining('1 of the last 1 authored commits exceed the size limit')])
+      expect.arrayContaining([
+        expect.stringContaining(
+          '1 of the last 1 authored commits exceed the size limit'
+        ),
+      ])
     );
   });
 });
@@ -71,7 +97,9 @@ describe('#297 a .tsx TypeScript cannot parse is unread, not passed', () => {
     });
     const result = ReactDangerousHtmlGuardedLaw.check(ctx(root));
     expect(result.passed).toBe(false);
-    expect((result.violations ?? []).join('\n')).toMatch(/src\/Sink\.tsx: could not be parsed \(line \d+: Unterminated template literal\.\) — its code was NOT read/);
+    expect((result.violations ?? []).join('\n')).toMatch(
+      /src\/Sink\.tsx: could not be parsed \(line \d+: Unterminated template literal\.\) — its code was NOT read/
+    );
   });
 });
 
@@ -87,19 +115,48 @@ describe('#311 performance alerts: Lighthouse CI assertions and CI workflows cou
   ].join('\n');
 
   it.each([
-    ['.lighthouserc.json with assertions', { '.lighthouserc.json': '{"ci":{"assert":{"assertions":{"categories:performance":["error",{"minScore":0.9}]}}}}' }, 'Lighthouse CI assertions (.lighthouserc.json)'],
-    ['.lighthouserc.js with assertions', { '.lighthouserc.js': 'module.exports = { ci: { assert: { preset: "lighthouse:recommended" } } };' }, 'Lighthouse CI assertions (.lighthouserc.js)'],
-    ['a workflow that checks performance and notifies', { '.github/workflows/ci.yml': WORKFLOW }, 'CI workflow alerts (.github/workflows/ci.yml)'],
-    ['newrelic.js with alerts', { 'newrelic.js': 'exports.config = { alert_policy: "p" };' }, 'Newrelic alerts (newrelic.js)'],
+    [
+      '.lighthouserc.json with assertions',
+      {
+        '.lighthouserc.json':
+          '{"ci":{"assert":{"assertions":{"categories:performance":["error",{"minScore":0.9}]}}}}',
+      },
+      'Lighthouse CI assertions (.lighthouserc.json)',
+    ],
+    [
+      '.lighthouserc.js with assertions',
+      {
+        '.lighthouserc.js':
+          'module.exports = { ci: { assert: { preset: "lighthouse:recommended" } } };',
+      },
+      'Lighthouse CI assertions (.lighthouserc.js)',
+    ],
+    [
+      'a workflow that checks performance and notifies',
+      { '.github/workflows/ci.yml': WORKFLOW },
+      'CI workflow alerts (.github/workflows/ci.yml)',
+    ],
+    [
+      'newrelic.js with alerts',
+      { 'newrelic.js': 'exports.config = { alert_policy: "p" };' },
+      'Newrelic alerts (newrelic.js)',
+    ],
   ])('%s', (_label, files, source) => {
     const root = project(files as Record<string, string>);
-    expect(Alerts.checkPerformanceAlerting(root).alertSources).toEqual([source]);
+    expect(Alerts.checkPerformanceAlerting(root).alertSources).toEqual([
+      source,
+    ]);
     // The sibling law agrees.
-    expect(PerformanceAlertsAnalyzerService.checkPerformanceAlerts(root).configured).toBe(true);
+    expect(
+      PerformanceAlertsAnalyzerService.checkPerformanceAlerts(root).configured
+    ).toBe(true);
   });
 
   it('control: a workflow that runs lighthouse but notifies nobody is no alert', () => {
-    const root = project({ '.github/workflows/ci.yml': 'jobs:\n  perf:\n    steps:\n      - run: npx lhci autorun # lighthouse\n' });
+    const root = project({
+      '.github/workflows/ci.yml':
+        'jobs:\n  perf:\n    steps:\n      - run: npx lhci autorun # lighthouse\n',
+    });
     expect(Alerts.checkPerformanceAlerting(root).hasAlerts).toBe(false);
   });
 });

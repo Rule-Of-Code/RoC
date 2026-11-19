@@ -11,7 +11,10 @@
 
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
-import { REQUIRES_IONIC, REQUIRES_IONIC_ANGULAR } from '../utils/ionic/ionic-project';
+import {
+  REQUIRES_IONIC,
+  REQUIRES_IONIC_ANGULAR,
+} from '../utils/ionic/ionic-project';
 
 /** The routing laws read @ionic/angular's outlet; the other bindings route differently. */
 const ANGULAR_ROUTER_ONLY =
@@ -167,7 +170,8 @@ export const IONIC_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'IonicNoSkipLocationChangeLaw.check',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article IV.4.43: skipLocationChange under ion-router-outlet',
-    remediation: 'Navigate with { replaceUrl: true } instead of skipLocationChange',
+    remediation:
+      'Navigate with { replaceUrl: true } instead of skipLocationChange',
   },
 
   {
@@ -242,7 +246,8 @@ export const IONIC_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'IonicSessionExitUsesNavigateRootLaw.check',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article IV.4.45: Session ended with a forward navigation',
-    remediation: 'End the session with NavController.navigateRoot(<final address>)',
+    remediation:
+      'End the session with NavController.navigateRoot(<final address>)',
   },
 
   {
@@ -317,7 +322,8 @@ export const IONIC_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'IonicNavigationSpecsMountTheOutletLaw.check',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article IV.4.47: Navigation spec asserts the URL without the outlet',
-    remediation: 'Mount <ion-router-outlet> in the spec and assert the visible page',
+    remediation:
+      'Mount <ion-router-outlet> in the spec and assert the visible page',
   },
 
   {

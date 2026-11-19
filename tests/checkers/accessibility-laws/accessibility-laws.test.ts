@@ -57,7 +57,9 @@ const V = (r: { violations?: string[] }): string =>
 
 describe('ExplicitButtonTypeLaw', () => {
   it('flags a <button> without an explicit type', () => {
-    const dir = fixture({ 'a.component.html': '<button (click)="x()">Go</button>\n' });
+    const dir = fixture({
+      'a.component.html': '<button (click)="x()">Go</button>\n',
+    });
     expect(ExplicitButtonTypeLaw.check(ctx(dir)).passed).toBe(false);
   });
   it('passes typed buttons and a custom button component', () => {
@@ -88,7 +90,8 @@ describe('FormControlLabelingLaw', () => {
 describe('ModalDialogAccessibilityLaw', () => {
   it('flags a modal overlay without role/aria-modal/focus-trap', () => {
     const dir = fixture({
-      'x-modal.component.html': '<div class="fixed inset-0"><h2>Hi</h2></div>\n',
+      'x-modal.component.html':
+        '<div class="fixed inset-0"><h2>Hi</h2></div>\n',
     });
     expect(ModalDialogAccessibilityLaw.check(ctx(dir)).passed).toBe(false);
   });
@@ -112,7 +115,9 @@ describe('ModalDialogAccessibilityLaw', () => {
     expect(ModalDialogAccessibilityLaw.check(named).passed).toBe(true);
   });
   it('ignores non-modal templates', () => {
-    const dir = fixture({ 'plain.component.html': '<div class="p-4">x</div>\n' });
+    const dir = fixture({
+      'plain.component.html': '<div class="p-4">x</div>\n',
+    });
     expect(ModalDialogAccessibilityLaw.check(ctx(dir)).passed).toBe(true);
   });
 });
@@ -145,24 +150,35 @@ describe('DisclosureControlAriaStateLaw', () => {
 describe('AccessibilityLintingEnforcementLaw', () => {
   it('flags templates project whose ESLint lacks the a11y plugin', () => {
     const dir = fixture({
-      'package.json': JSON.stringify({ dependencies: { '@angular/core': '^20.0.0' } }),
+      'package.json': JSON.stringify({
+        dependencies: { '@angular/core': '^20.0.0' },
+      }),
       'a.component.html': '<div>t</div>\n',
       'eslint.config.mjs': 'export default [{ rules: {} }];\n',
     });
-    expect(AccessibilityLintingEnforcementLaw.check(ctx(dir)).passed).toBe(false);
+    expect(AccessibilityLintingEnforcementLaw.check(ctx(dir)).passed).toBe(
+      false
+    );
   });
   it('passes when the a11y plugin + core rules are configured', () => {
     const dir = fixture({
-      'package.json': JSON.stringify({ dependencies: { '@angular/core': '^20.0.0' } }),
+      'package.json': JSON.stringify({
+        dependencies: { '@angular/core': '^20.0.0' },
+      }),
       'a.component.html': '<div>t</div>\n',
       'eslint.config.mjs':
         "import t from '@angular-eslint/eslint-plugin-template';\nexport default [{ rules: { 'click-events-have-key-events':'error','label-has-associated-control':'error','valid-aria':'error','alt-text':'error','role-has-required-aria':'error' } }];\n",
     });
-    expect(AccessibilityLintingEnforcementLaw.check(ctx(dir)).passed).toBe(true);
+    expect(AccessibilityLintingEnforcementLaw.check(ctx(dir)).passed).toBe(
+      true
+    );
   });
   it('says it judged nothing when the project has no templates (#327)', () => {
     // Was "is N/A (passes)": a green check over nothing judged.
     const dir = fixture({ 'x.ts': 'const a = 1;\n' });
-    expect(AccessibilityLintingEnforcementLaw.check(ctx(dir))).toMatchObject({ passed: false, judgedNothing: true });
+    expect(AccessibilityLintingEnforcementLaw.check(ctx(dir))).toMatchObject({
+      passed: false,
+      judgedNothing: true,
+    });
   });
 });

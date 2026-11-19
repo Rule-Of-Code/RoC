@@ -6,18 +6,32 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { lawRequirementsMet, readFilesContaining } from '../../src/utils/law-requirements';
+import {
+  lawRequirementsMet,
+  readFilesContaining,
+} from '../../src/utils/law-requirements';
 import { project, removeProjects } from '../checkers/toolkit-fixture';
 import { repo } from './git-fixture';
 
 afterAll(removeProjects);
 
-const DEPLOYS = { anyFileContaining: [{ files: ['**/*.{json,sh}'], pattern: String.raw`gcloud\s+run\s+deploy\b` }] };
+const DEPLOYS = {
+  anyFileContaining: [
+    { files: ['**/*.{json,sh}'], pattern: String.raw`gcloud\s+run\s+deploy\b` },
+  ],
+};
 const TEXT = '{"text":"gcloud run deploy my-svc"}';
 
 describe('anyFileContaining reads the files git publishes', () => {
   it('a git-ignored file with the text does not select', () => {
-    const root = repo({ '.gitignore': 'data/\n', 'data/law.json': TEXT, 'index.ts': 'export {};\n' }, ['.gitignore', 'index.ts']);
+    const root = repo(
+      {
+        '.gitignore': 'data/\n',
+        'data/law.json': TEXT,
+        'index.ts': 'export {};\n',
+      },
+      ['.gitignore', 'index.ts']
+    );
     expect(lawRequirementsMet(DEPLOYS, root)).toBe(false);
   });
 
@@ -32,28 +46,48 @@ describe('anyFileContaining reads the files git publishes', () => {
   });
 
   it('a tracked file is read from the index, not from a draft on disk', () => {
-    const staged = repo({ 'scripts/deploy.sh': 'gcloud run deploy api\n' }, ['scripts/deploy.sh']);
+    const staged = repo({ 'scripts/deploy.sh': 'gcloud run deploy api\n' }, [
+      'scripts/deploy.sh',
+    ]);
     fs.writeFileSync(path.join(staged, 'scripts/deploy.sh'), 'echo nothing\n');
     expect(lawRequirementsMet(DEPLOYS, staged)).toBe(true);
-    const draft = repo({ 'scripts/deploy.sh': 'echo nothing\n' }, ['scripts/deploy.sh']);
-    fs.writeFileSync(path.join(draft, 'scripts/deploy.sh'), 'gcloud run deploy api\n');
+    const draft = repo({ 'scripts/deploy.sh': 'echo nothing\n' }, [
+      'scripts/deploy.sh',
+    ]);
+    fs.writeFileSync(
+      path.join(draft, 'scripts/deploy.sh'),
+      'gcloud run deploy api\n'
+    );
     expect(lawRequirementsMet(DEPLOYS, draft)).toBe(false);
   });
 
   it('readFilesContaining returns the same set, with the content it matched', () => {
     const root = repo(
-      { '.gitignore': 'out/\n', 'out/x.sh': 'gcloud run deploy x\n', 'a.sh': 'gcloud run deploy a\n', 'b.sh': 'echo b\n' },
+      {
+        '.gitignore': 'out/\n',
+        'out/x.sh': 'gcloud run deploy x\n',
+        'a.sh': 'gcloud run deploy a\n',
+        'b.sh': 'echo b\n',
+      },
       ['.gitignore', 'a.sh']
     );
-    expect(readFilesContaining(root, DEPLOYS.anyFileContaining[0]!).map(file => [file.rel, file.content])).toEqual([
-      ['a.sh', 'gcloud run deploy a\n'],
-    ]);
+    expect(
+      readFilesContaining(root, DEPLOYS.anyFileContaining[0]!).map(file => [
+        file.rel,
+        file.content,
+      ])
+    ).toEqual([['a.sh', 'gcloud run deploy a\n']]);
   });
 
   it('an entry exclude leaves those files out of both', () => {
     const root = repo({ 'tests/fixtures/deploy.sh': 'gcloud run deploy x\n' });
-    const entry = { ...DEPLOYS.anyFileContaining[0]!, exclude: ['**/tests/**'] };
-    expect(lawRequirementsMet({ anyFileContaining: [entry] }, root)).toBe(false);
+    const entry = {
+      ...DEPLOYS.anyFileContaining[0]!,
+      exclude: ['**/tests/**'],
+    };
+    expect(lawRequirementsMet({ anyFileContaining: [entry] }, root)).toBe(
+      false
+    );
     expect(readFilesContaining(root, entry)).toEqual([]);
   });
 

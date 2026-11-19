@@ -25,11 +25,19 @@ import { PathOperations } from '../../utils/path-operations';
 import { LawBase } from '../law-base';
 
 /** Signing keys (Android keystores, iOS certificates and profiles, APNs keys). */
-export const KEY_MATERIAL_EXTENSIONS: readonly string[] = ['jks', 'keystore', 'p12', 'mobileprovision', 'p8'];
+export const KEY_MATERIAL_EXTENSIONS: readonly string[] = [
+  'jks',
+  'keystore',
+  'p12',
+  'mobileprovision',
+  'p8',
+];
 
-const PASSWORD_ASSIGNMENT = /\b(storePassword|keyPassword)\b\s*(?:=\s*|\(\s*|[ \t]+)(["'])([^"'\n]*)\2/g;
+const PASSWORD_ASSIGNMENT =
+  /\b(storePassword|keyPassword)\b\s*(?:=\s*|\(\s*|[ \t]+)(["'])([^"'\n]*)\2/g;
 const PASSWORD_KEY = /(store|key)[._]?pass(word)?/i;
-const DEBUG_SIGNING = /signingConfigs\s*(?:\.\s*debug\b|\.\s*getByName\s*\(\s*["']debug["']\s*\)|\[\s*["']debug["']\s*\])/;
+const DEBUG_SIGNING =
+  /signingConfigs\s*(?:\.\s*debug\b|\.\s*getByName\s*\(\s*["']debug["']\s*\)|\[\s*["']debug["']\s*\])/;
 const NEVER_COMMIT = 'keep it in a secret manager or CI secret';
 
 interface Listed {
@@ -43,17 +51,34 @@ export class CapacitorSigningSecretsOutsideRepoLaw extends LawBase {
   static check(context: LawCheckContext): LawResult {
     const { projectRoot } = context;
     const androidDirs = CapacitorProjects.find(projectRoot).map(project =>
-      relative(context, CapacitorProjects.nativePaths(project, projectRoot).androidDir)
+      relative(
+        context,
+        CapacitorProjects.nativePaths(project, projectRoot).androidDir
+      )
     );
     const listed = this.gitList(projectRoot, [
       ...KEY_MATERIAL_EXTENSIONS.map(ext => `:(glob)**/*.${ext}`),
-      ...androidDirs.flatMap(dir => ['gradle', 'gradle.kts', 'properties'].map(ext => `:(glob)${dir}/**/*.${ext}`)),
+      ...androidDirs.flatMap(dir =>
+        ['gradle', 'gradle.kts', 'properties'].map(
+          ext => `:(glob)${dir}/**/*.${ext}`
+        )
+      ),
     ]);
     const violations = listed
       ? [
           ...this.keyMaterial(projectRoot, listed),
-          ...this.scripts(readPublishableFiles(projectRoot, listed.filter(file => /\.gradle(\.kts)?$/.test(file)))),
-          ...this.properties(readPublishableFiles(projectRoot, listed.filter(file => file.endsWith('.properties')))),
+          ...this.scripts(
+            readPublishableFiles(
+              projectRoot,
+              listed.filter(file => /\.gradle(\.kts)?$/.test(file))
+            )
+          ),
+          ...this.properties(
+            readPublishableFiles(
+              projectRoot,
+              listed.filter(file => file.endsWith('.properties'))
+            )
+          ),
         ]
       : [
           'git could not be asked which files are in the repository (not a work tree, or no git), so key material and properties files were not checked — this law does not pass without asking',
@@ -71,22 +96,41 @@ export class CapacitorSigningSecretsOutsideRepoLaw extends LawBase {
   }
 
   /** Tracked and untracked-but-not-ignored files matching the pathspecs; null when git cannot answer. */
-  private static gitList(projectRoot: string, pathspecs: string[]): string[] | null {
+  private static gitList(
+    projectRoot: string,
+    pathspecs: string[]
+  ): string[] | null {
     try {
-      const inside = execFileSync('git', ['rev-parse', '--is-inside-work-tree'], {
-        cwd: projectRoot,
-        encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'ignore'],
-        windowsHide: true,
-      });
+      const inside = execFileSync(
+        'git',
+        ['rev-parse', '--is-inside-work-tree'],
+        {
+          cwd: projectRoot,
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'ignore'],
+          windowsHide: true,
+        }
+      );
       if (inside.trim() !== 'true') return null;
-      const out = execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard', '--', ...pathspecs], {
-        cwd: projectRoot,
-        encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'ignore'],
-        windowsHide: true,
-        maxBuffer: 64 * 1024 * 1024,
-      });
+      const out = execFileSync(
+        'git',
+        [
+          'ls-files',
+          '-z',
+          '--cached',
+          '--others',
+          '--exclude-standard',
+          '--',
+          ...pathspecs,
+        ],
+        {
+          cwd: projectRoot,
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'ignore'],
+          windowsHide: true,
+          maxBuffer: 64 * 1024 * 1024,
+        }
+      );
       return [...new Set(out.split('\0').filter(Boolean))];
     } catch {
       return null;
@@ -94,7 +138,11 @@ export class CapacitorSigningSecretsOutsideRepoLaw extends LawBase {
   }
 
   private static keyMaterial(projectRoot: string, listed: string[]): string[] {
-    const keys = listed.filter(file => KEY_MATERIAL_EXTENSIONS.some(ext => file.toLowerCase().endsWith(`.${ext}`)));
+    const keys = listed.filter(file =>
+      KEY_MATERIAL_EXTENSIONS.some(ext =>
+        file.toLowerCase().endsWith(`.${ext}`)
+      )
+    );
     if (keys.length === 0) return [];
     const states = gitExposure(projectRoot, keys);
     return keys.map(file =>
@@ -110,12 +158,26 @@ export class CapacitorSigningSecretsOutsideRepoLaw extends LawBase {
       const gradle = new GradleText(content);
       const literals = [...gradle.plain.matchAll(PASSWORD_ASSIGNMENT)]
         .filter(match => /\w/.test(gradle.code[match.index ?? 0] ?? ''))
-        .filter(match => (match[3] ?? '').length > 0 && !(match[2] === '"' && (match[3] ?? '').includes('$')))
-        .map(match => `${file}:${gradle.lineOf(match.index ?? 0)}: ${match[1]} is a string literal — read it from a project property or an environment variable, and rotate the key it opens`);
+        .filter(
+          match =>
+            (match[3] ?? '').length > 0 &&
+            !(match[2] === '"' && (match[3] ?? '').includes('$'))
+        )
+        .map(
+          match =>
+            `${file}:${gradle.lineOf(match.index ?? 0)}: ${match[1]} is a string literal — read it from a project property or an environment variable, and rotate the key it opens`
+        );
       const debugSigned = gradle
         .named('release')
-        .filter(block => block.parent?.name === 'buildTypes' && DEBUG_SIGNING.test(gradle.body(block)))
-        .map(block => `${file}:${gradle.lineOf(block.open)}: the release build type can be signed with signingConfigs.debug — that APK installs, then the next real-key update fails to install over it on users' phones; leave release unsigned when the key is absent`);
+        .filter(
+          block =>
+            block.parent?.name === 'buildTypes' &&
+            DEBUG_SIGNING.test(gradle.body(block))
+        )
+        .map(
+          block =>
+            `${file}:${gradle.lineOf(block.open)}: the release build type can be signed with signingConfigs.debug — that APK installs, then the next real-key update fails to install over it on users' phones; leave release unsigned when the key is absent`
+        );
       return [...literals, ...debugSigned];
     });
   }
@@ -125,7 +187,9 @@ export class CapacitorSigningSecretsOutsideRepoLaw extends LawBase {
       content
         .split(/\r?\n/)
         .map((line, index) => ({ line: line.trim(), index }))
-        .filter(({ line }) => line && !line.startsWith('#') && !line.startsWith('!'))
+        .filter(
+          ({ line }) => line && !line.startsWith('#') && !line.startsWith('!')
+        )
         .map(({ line, index }) => {
           const separator = line.search(/[=:]/);
           const key = (separator < 0 ? line : line.slice(0, separator)).trim();
@@ -141,12 +205,17 @@ export class CapacitorSigningSecretsOutsideRepoLaw extends LawBase {
   /** Without git: the app and root build scripts at their fixed paths. */
   private static fixedScripts(context: LawCheckContext): Listed[] {
     return CapacitorProjects.find(context.projectRoot).flatMap(project => {
-      const native = CapacitorProjects.nativePaths(project, context.projectRoot);
+      const native = CapacitorProjects.nativePaths(
+        project,
+        context.projectRoot
+      );
       const app = native.androidAppBuildGradle;
       const root = PathOperations.join(native.androidDir, 'build.gradle');
       return [app, `${app}.kts`, root, `${root}.kts`].flatMap(file => {
         const content = CapacitorProjects.readNative(file);
-        return content === null ? [] : [{ file: relative(context, file), content }];
+        return content === null
+          ? []
+          : [{ file: relative(context, file), content }];
       });
     });
   }

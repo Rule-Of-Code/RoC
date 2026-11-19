@@ -77,23 +77,32 @@ export class PlaywrightNoFixedWaitLaw extends LawBase {
     const ts = source.ts;
     const text = source.text;
     let statement: TS.Node = call;
-    while (statement.parent && !ts.isBlock(statement.parent) && !ts.isSourceFile(statement.parent)) {
+    while (
+      statement.parent &&
+      !ts.isBlock(statement.parent) &&
+      !ts.isSourceFile(statement.parent)
+    ) {
       statement = statement.parent;
     }
     const lineOf = (position: number): number =>
       source.sourceFile.getLineAndCharacterOfPosition(position).line;
     const startLine = lineOf(statement.getStart(source.sourceFile));
     const comments = [
-      ...(ts.getLeadingCommentRanges(text, statement.getFullStart()) ?? []).filter(
-        range => lineOf(range.end) >= startLine - 1
-      ),
+      ...(
+        ts.getLeadingCommentRanges(text, statement.getFullStart()) ?? []
+      ).filter(range => lineOf(range.end) >= startLine - 1),
       ...(ts.getTrailingCommentRanges(text, statement.getEnd()) ?? []),
     ];
-    return comments.some(range => this.isReason(text.slice(range.pos, range.end)));
+    return comments.some(range =>
+      this.isReason(text.slice(range.pos, range.end))
+    );
   }
 
   private static isReason(comment: string): boolean {
-    let body = comment.replace(/^\/\/|^\/\*+|\*+\/$/g, '').replace(/^\s*\*/gm, '').trim();
+    let body = comment
+      .replace(/^\/\/|^\/\*+|\*+\/$/g, '')
+      .replace(/^\s*\*/gm, '')
+      .trim();
     if (/^eslint-disable/.test(body)) {
       const dashes = body.indexOf('--');
       body = dashes >= 0 ? body.slice(dashes + 2) : '';

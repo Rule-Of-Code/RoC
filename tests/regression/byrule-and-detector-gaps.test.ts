@@ -62,7 +62,10 @@ describe('byRule keys, datetime literals, merge sampling and launch artefacts', 
       // each law. The id form silently filtered nothing, because the id was
       // never threaded down to the file scan.
       write('package.json', '{"name":"x"}');
-      write('src/fixtures.ts', 'export function f(x: number) { return x > 4242; }');
+      write(
+        'src/fixtures.ts',
+        'export function f(x: number) { return x > 4242; }'
+      );
 
       const config = FileUtils.getMinimalDefaultConfig();
       config.ignores.byRule = { 'law-42': ['src/fixtures.ts'] };
@@ -73,14 +76,17 @@ describe('byRule keys, datetime literals, merge sampling and launch artefacts', 
         lawId: 'law-42',
       });
 
-      expect(
-        (result.violations ?? []).some(v => /Magic numbers/.test(v))
-      ).toBe(false);
+      expect((result.violations ?? []).some(v => /Magic numbers/.test(v))).toBe(
+        false
+      );
     });
 
     it('still reports the file when no rule entry matches', () => {
       write('package.json', '{"name":"x"}');
-      write('src/fixtures.ts', 'export function f(x: number) { return x > 4242; }');
+      write(
+        'src/fixtures.ts',
+        'export function f(x: number) { return x > 4242; }'
+      );
 
       const config = FileUtils.getMinimalDefaultConfig();
       config.ignores.byRule = { 'some-other-law': ['src/fixtures.ts'] };

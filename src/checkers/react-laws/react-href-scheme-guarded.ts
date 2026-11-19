@@ -19,7 +19,13 @@ import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { ReactProject } from '../../utils/react/react-project';
 import type { TsxSource } from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';
-import { calleeText, literalText, nameList, parseFilesMentioning, unwrap } from './react-security-support';
+import {
+  calleeText,
+  literalText,
+  nameList,
+  parseFilesMentioning,
+  unwrap,
+} from './react-security-support';
 
 /** The element → attribute pairs judged. */
 const URL_ATTRIBUTES: Record<string, string> = { a: 'href', iframe: 'src' };
@@ -41,7 +47,9 @@ export class ReactHrefSchemeGuardedLaw extends LawBase {
   static readonly LAW_NAME = 'React Href Scheme Guarded';
 
   static check(context: LawCheckContext): LawResult {
-    const guards = new Set(nameList(context.config.thresholds?.react?.urlGuards));
+    const guards = new Set(
+      nameList(context.config.thresholds?.react?.urlGuards)
+    );
     const { sources, unread } = parseFilesMentioning(context, ['href', 'src']);
     const violations = [...unread];
     for (const source of sources) {
@@ -50,10 +58,13 @@ export class ReactHrefSchemeGuardedLaw extends LawBase {
         const attributeName = URL_ATTRIBUTES[element.tag];
         if (!attributeName) continue;
         const attribute = element.node.attributes.properties.find(
-          p => source.ts.isJsxAttribute(p) && p.name.getText(source.sourceFile) === attributeName
+          p =>
+            source.ts.isJsxAttribute(p) &&
+            p.name.getText(source.sourceFile) === attributeName
         ) as TS.JsxAttribute | undefined;
         const init = attribute?.initializer;
-        if (!init || !source.ts.isJsxExpression(init) || !init.expression) continue;
+        if (!init || !source.ts.isJsxExpression(init) || !init.expression)
+          continue;
         if (this.fixed(source, init.expression, guards)) continue;
         violations.push(
           `${rel}:${element.line}: <${element.tag} ${attributeName}={${this.text(source, init.expression)}}> — the URL's scheme is not fixed by the code; a data: or vbscript: value, or a user's own page, would be used as is. Build it from a fixed prefix ('/…', 'https://…') or pass it through a URL guard named in thresholds.react.urlGuards`
@@ -65,7 +76,7 @@ export class ReactHrefSchemeGuardedLaw extends LawBase {
       this.LAW_NAME,
       'SECURITY',
       [
-        "Build links from a fixed prefix: href={`/users/${id}`}, not href={user.website}",
+        'Build links from a fixed prefix: href={`/users/${id}`}, not href={user.website}',
         'Pass user-supplied URLs through one guard that allows only http(s)/mailto, and name it in thresholds.react.urlGuards',
       ],
       context
@@ -73,31 +84,56 @@ export class ReactHrefSchemeGuardedLaw extends LawBase {
   }
 
   /** Whether the expression's scheme is fixed by code, or it passes a guard. */
-  private static fixed(source: TsxSource, expression: TS.Expression, guards: Set<string>): boolean {
+  private static fixed(
+    source: TsxSource,
+    expression: TS.Expression,
+    guards: Set<string>
+  ): boolean {
     const ts = source.ts;
     const e = unwrap(ts, expression);
     const literal = literalText(ts, e);
     // A whole literal is written by the author, not taken from data: out of scope.
     if (literal !== null) return true;
-    if (e.kind === ts.SyntaxKind.NullKeyword || (ts.isIdentifier(e) && e.text === 'undefined')) return true;
+    if (
+      e.kind === ts.SyntaxKind.NullKeyword ||
+      (ts.isIdentifier(e) && e.text === 'undefined')
+    )
+      return true;
     if (ts.isTemplateExpression(e)) return prefixFixesScheme(e.head.text);
     if (ts.isConditionalExpression(e)) {
-      return this.fixed(source, e.whenTrue, guards) && this.fixed(source, e.whenFalse, guards);
+      return (
+        this.fixed(source, e.whenTrue, guards) &&
+        this.fixed(source, e.whenFalse, guards)
+      );
     }
     if (ts.isBinaryExpression(e)) return this.fixedBinary(source, e, guards);
-    return ts.isCallExpression(e) && guards.has(calleeText(e, source.sourceFile));
+    return (
+      ts.isCallExpression(e) && guards.has(calleeText(e, source.sourceFile))
+    );
   }
 
   /** `prefix + rest` is fixed by its head; `a ?? b` / `a || b` when both are. */
-  private static fixedBinary(source: TsxSource, e: TS.BinaryExpression, guards: Set<string>): boolean {
+  private static fixedBinary(
+    source: TsxSource,
+    e: TS.BinaryExpression,
+    guards: Set<string>
+  ): boolean {
     const ts = source.ts;
     const op = e.operatorToken.kind;
     if (op === ts.SyntaxKind.PlusToken) {
       const head = literalText(ts, unwrap(ts, e.left));
-      return head !== null ? prefixFixesScheme(head) : this.fixed(source, e.left, guards);
+      return head !== null
+        ? prefixFixesScheme(head)
+        : this.fixed(source, e.left, guards);
     }
-    if (op === ts.SyntaxKind.QuestionQuestionToken || op === ts.SyntaxKind.BarBarToken) {
-      return this.fixed(source, e.left, guards) && this.fixed(source, e.right, guards);
+    if (
+      op === ts.SyntaxKind.QuestionQuestionToken ||
+      op === ts.SyntaxKind.BarBarToken
+    ) {
+      return (
+        this.fixed(source, e.left, guards) &&
+        this.fixed(source, e.right, guards)
+      );
     }
     return false;
   }

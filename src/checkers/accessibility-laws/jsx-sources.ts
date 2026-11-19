@@ -34,7 +34,10 @@ export interface ReadJsx {
 }
 
 /** Parse diagnostics a TypeScript SourceFile carries (internal, present since TS 1.x). */
-export function parseErrors(ts: TypeScriptModule, sourceFile: TS.SourceFile): string[] {
+export function parseErrors(
+  ts: TypeScriptModule,
+  sourceFile: TS.SourceFile
+): string[] {
   const diagnostics =
     (sourceFile as unknown as { parseDiagnostics?: readonly TS.Diagnostic[] })
       .parseDiagnostics ?? [];
@@ -57,7 +60,9 @@ export class JsxSources {
       const relative = ReactProject.relative(context, source.fileName);
       const errors = parseErrors(source.ts, source.sourceFile);
       if (errors.length > 0) {
-        unread.push(`${relative}: could not be parsed (${errors[0]}) — its JSX was NOT read`);
+        unread.push(
+          `${relative}: could not be parsed (${errors[0]}) — its JSX was NOT read`
+        );
         continue;
       }
       files.push({ source, relative, elements: source.jsxElements() });
@@ -76,7 +81,10 @@ export class JsxSources {
   }
 
   /** The literal value of `name` when it is written as a string, else undefined. */
-  static stringValue(element: JsxElementInfo, name: string): string | undefined {
+  static stringValue(
+    element: JsxElementInfo,
+    name: string
+  ): string | undefined {
     const attribute = jsxAttribute(element, name);
     return attribute?.kind === 'string' ? attribute.value : undefined;
   }
@@ -85,7 +93,11 @@ export class JsxSources {
   static ancestorTags(source: TsxSource, element: JsxElementInfo): string[] {
     const ts = source.ts;
     const tags: string[] = [];
-    for (let node: TS.Node | undefined = element.node.parent; node; node = node.parent) {
+    for (
+      let node: TS.Node | undefined = element.node.parent;
+      node;
+      node = node.parent
+    ) {
       if (ts.isJsxElement(node) && node.openingElement !== element.node) {
         tags.push(node.openingElement.tagName.getText(source.sourceFile));
       }

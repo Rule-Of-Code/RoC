@@ -1,0 +1,8 @@
+# Formatting covers code only: src, tests, scripts (see CONTRIBUTING).
+dist/
+coverage/
+node_modules/
+reports/
+*.md
+tests/**/__golden__/
+templates/

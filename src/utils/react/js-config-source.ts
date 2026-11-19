@@ -18,8 +18,7 @@ import { PathOperations } from '../path-operations';
 import { loadTypeScript, parserUnavailable, TsxSource } from './tsx-source';
 
 export type ConfigRead =
-  | { source: TsxSource; unread: null }
-  | { source: null; unread: string };
+  { source: TsxSource; unread: null } | { source: null; unread: string };
 
 function propertyName(ts: typeof TS, name: TS.PropertyName): string | null {
   if (ts.isIdentifier(name) || ts.isStringLiteral(name)) return name.text;
@@ -32,7 +31,10 @@ export class JsConfigSource {
     const relative = PathOperations.getRelative(projectRoot, file);
     const ts = loadTypeScript(projectRoot);
     if (!ts) {
-      return { source: null, unread: `${relative}: ${parserUnavailable(projectRoot)}` };
+      return {
+        source: null,
+        unread: `${relative}: ${parserUnavailable(projectRoot)}`,
+      };
     }
     let text: string;
     try {
@@ -51,7 +53,10 @@ export class JsConfigSource {
     const ts = source.ts;
     const found: TS.Expression[] = [];
     source.walk(node => {
-      if (ts.isPropertyAssignment(node) && propertyName(ts, node.name) === name) {
+      if (
+        ts.isPropertyAssignment(node) &&
+        propertyName(ts, node.name) === name
+      ) {
         found.push(node.initializer);
         return;
       }
@@ -84,7 +89,9 @@ export class JsConfigSource {
 
   /** The node is the literal `true` / `false`. */
   static isBoolean(source: TsxSource, node: TS.Node, value: boolean): boolean {
-    const kind = value ? source.ts.SyntaxKind.TrueKeyword : source.ts.SyntaxKind.FalseKeyword;
+    const kind = value
+      ? source.ts.SyntaxKind.TrueKeyword
+      : source.ts.SyntaxKind.FalseKeyword;
     return node.kind === kind;
   }
 
@@ -95,7 +102,9 @@ export class JsConfigSource {
 
   /** Some value of `name` is the literal `value`. */
   static hasBoolean(source: TsxSource, name: string, value: boolean): boolean {
-    return this.valuesOf(source, name).some(node => this.isBoolean(source, node, value));
+    return this.valuesOf(source, name).some(node =>
+      this.isBoolean(source, node, value)
+    );
   }
 
   /**
@@ -126,7 +135,11 @@ export class JsConfigSource {
   }
 
   /** `require('module')`, or `require('module')(...)` wrapped around it. */
-  private static isRequireOf(source: TsxSource, node: TS.Expression, module: string): boolean {
+  private static isRequireOf(
+    source: TsxSource,
+    node: TS.Expression,
+    module: string
+  ): boolean {
     const ts = source.ts;
     let current: TS.Expression = node;
     while (ts.isCallExpression(current)) {
@@ -136,7 +149,9 @@ export class JsConfigSource {
         current.arguments.length === 1
       ) {
         const argument = current.arguments[0];
-        return argument !== undefined && this.stringOf(source, argument) === module;
+        return (
+          argument !== undefined && this.stringOf(source, argument) === module
+        );
       }
       current = current.expression;
     }

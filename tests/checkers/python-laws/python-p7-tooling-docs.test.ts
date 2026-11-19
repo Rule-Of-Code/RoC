@@ -41,50 +41,129 @@ const ctx = (root: string): LawCheckContext => {
 
 describe('RuffConfiguredLaw', () => {
   it('flags a project with no linter config', () => {
-    expect(RuffConfiguredLaw.check(ctx(fixture({ 'requirements.txt': 'flask\n' }))).passed).toBe(false);
+    expect(
+      RuffConfiguredLaw.check(ctx(fixture({ 'requirements.txt': 'flask\n' })))
+        .passed
+    ).toBe(false);
   });
   it('passes with [tool.ruff] or a ruff.toml', () => {
-    expect(RuffConfiguredLaw.check(ctx(fixture({ 'pyproject.toml': '[tool.ruff]\nline-length = 100\n' }))).passed).toBe(true);
-    expect(RuffConfiguredLaw.check(ctx(fixture({ 'requirements.txt': 'x', 'ruff.toml': 'line-length = 100\n' }))).passed).toBe(true);
+    expect(
+      RuffConfiguredLaw.check(
+        ctx(fixture({ 'pyproject.toml': '[tool.ruff]\nline-length = 100\n' }))
+      ).passed
+    ).toBe(true);
+    expect(
+      RuffConfiguredLaw.check(
+        ctx(
+          fixture({
+            'requirements.txt': 'x',
+            'ruff.toml': 'line-length = 100\n',
+          })
+        )
+      ).passed
+    ).toBe(true);
   });
 });
 
 describe('MypyConfiguredLaw', () => {
   it('flags a project with no type checker config', () => {
-    expect(MypyConfiguredLaw.check(ctx(fixture({ 'pyproject.toml': '[project]\nname = "x"\n' }))).passed).toBe(false);
+    expect(
+      MypyConfiguredLaw.check(
+        ctx(fixture({ 'pyproject.toml': '[project]\nname = "x"\n' }))
+      ).passed
+    ).toBe(false);
   });
   it('passes with [tool.mypy]', () => {
-    expect(MypyConfiguredLaw.check(ctx(fixture({ 'pyproject.toml': '[tool.mypy]\nstrict = true\n' }))).passed).toBe(true);
+    expect(
+      MypyConfiguredLaw.check(
+        ctx(fixture({ 'pyproject.toml': '[tool.mypy]\nstrict = true\n' }))
+      ).passed
+    ).toBe(true);
   });
 });
 
 describe('PyprojectMetadataLaw', () => {
   it('flags a missing pyproject and a missing requires-python', () => {
-    expect(PyprojectMetadataLaw.check(ctx(fixture({ 'requirements.txt': 'x' }))).passed).toBe(false);
-    expect(PyprojectMetadataLaw.check(ctx(fixture({ 'pyproject.toml': '[project]\nname = "x"\n' }))).passed).toBe(false);
+    expect(
+      PyprojectMetadataLaw.check(ctx(fixture({ 'requirements.txt': 'x' })))
+        .passed
+    ).toBe(false);
+    expect(
+      PyprojectMetadataLaw.check(
+        ctx(fixture({ 'pyproject.toml': '[project]\nname = "x"\n' }))
+      ).passed
+    ).toBe(false);
   });
   it('passes a complete [project] table', () => {
-    expect(PyprojectMetadataLaw.check(ctx(fixture({ 'pyproject.toml': '[project]\nname = "x"\nrequires-python = ">=3.12"\n' }))).passed).toBe(true);
+    expect(
+      PyprojectMetadataLaw.check(
+        ctx(
+          fixture({
+            'pyproject.toml':
+              '[project]\nname = "x"\nrequires-python = ">=3.12"\n',
+          })
+        )
+      ).passed
+    ).toBe(true);
   });
 });
 
 describe('LockedDependenciesLaw', () => {
   it('flags declared dependencies with no lockfile', () => {
-    expect(LockedDependenciesLaw.check(ctx(fixture({ 'pyproject.toml': '[project]\ndependencies = ["fastapi"]\n' }))).passed).toBe(false);
+    expect(
+      LockedDependenciesLaw.check(
+        ctx(
+          fixture({
+            'pyproject.toml': '[project]\ndependencies = ["fastapi"]\n',
+          })
+        )
+      ).passed
+    ).toBe(false);
   });
   it('passes with a lockfile, fully pinned requirements, or no declared deps', () => {
-    expect(LockedDependenciesLaw.check(ctx(fixture({ 'pyproject.toml': '[project]\ndependencies = ["fastapi"]\n', 'uv.lock': 'x' }))).passed).toBe(true);
-    expect(LockedDependenciesLaw.check(ctx(fixture({ 'requirements.txt': 'fastapi==0.110\n' }))).passed).toBe(true);
-    expect(LockedDependenciesLaw.check(ctx(fixture({ 'pyproject.toml': '[project]\nname = "x"\n' }))).passed).toBe(true);
+    expect(
+      LockedDependenciesLaw.check(
+        ctx(
+          fixture({
+            'pyproject.toml': '[project]\ndependencies = ["fastapi"]\n',
+            'uv.lock': 'x',
+          })
+        )
+      ).passed
+    ).toBe(true);
+    expect(
+      LockedDependenciesLaw.check(
+        ctx(fixture({ 'requirements.txt': 'fastapi==0.110\n' }))
+      ).passed
+    ).toBe(true);
+    expect(
+      LockedDependenciesLaw.check(
+        ctx(fixture({ 'pyproject.toml': '[project]\nname = "x"\n' }))
+      ).passed
+    ).toBe(true);
   });
 });
 
 describe('PublicDocstringsLaw', () => {
   it('flags a public function without a docstring', () => {
-    expect(PublicDocstringsLaw.check(ctx(fixture({ 'pyproject.toml': 'x', 'src/a.py': 'def compute(x):\n    return x * 2\n' }))).passed).toBe(false);
+    expect(
+      PublicDocstringsLaw.check(
+        ctx(
+          fixture({
+            'pyproject.toml': 'x',
+            'src/a.py': 'def compute(x):\n    return x * 2\n',
+          })
+        )
+      ).passed
+    ).toBe(false);
   });
   it('passes documented symbols and exempts private names and one-liners', () => {
-    const code = 'def compute(x):\n    """Double x."""\n    return x * 2\n\ndef _private():\n    return 1\n\ndef stub(): ...\n';
-    expect(PublicDocstringsLaw.check(ctx(fixture({ 'pyproject.toml': 'x', 'src/a.py': code }))).passed).toBe(true);
+    const code =
+      'def compute(x):\n    """Double x."""\n    return x * 2\n\ndef _private():\n    return 1\n\ndef stub(): ...\n';
+    expect(
+      PublicDocstringsLaw.check(
+        ctx(fixture({ 'pyproject.toml': 'x', 'src/a.py': code }))
+      ).passed
+    ).toBe(true);
   });
 });

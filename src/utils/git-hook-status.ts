@@ -12,6 +12,7 @@
  * drift apart again.
  */
 
+import { ciSignalIn } from './ci-environment';
 import { FileUtils } from './file-utils';
 import { configuredHooksPath, resolveGitHooksDir } from './git/git-layout';
 import { PathOperations } from './path-operations';
@@ -111,13 +112,13 @@ function missingUserScript(hooksDir: string, hook: string): string | null {
 }
 
 /**
- * A CI checkout, where hooks are not installed by design: CI systems set `CI`
- * (GitHub Actions, GitLab CI, CircleCI, Bitbucket Pipelines, Travis, …), and
- * `HUSKY=0` is husky's own switch for "do not install the hooks here".
+ * A CI checkout, where hooks are not installed by design: a CI system's own
+ * variable is set ({@link ciSignalIn} — `CI`, or the variable of a CI that
+ * does not set `CI`), or `HUSKY=0`, husky's own switch for "do not install the
+ * hooks here".
  */
 export function isCiCheckout(env: NodeJS.ProcessEnv = process.env): boolean {
-  const ci = (env.CI ?? '').trim().toLowerCase();
-  return (ci !== '' && ci !== 'false' && ci !== '0') || env.HUSKY === '0';
+  return ciSignalIn(env) !== null || env.HUSKY === '0';
 }
 
 /**

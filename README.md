@@ -2,9 +2,13 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-gold.svg)](https://opensource.org/licenses/MIT)
 [![Constitutional Laws](https://img.shields.io/badge/Constitutional%20Laws-265-red.svg)](#-laws-and-scope)
-[![Tests](https://img.shields.io/badge/Tests-14%2C300%2B%20passing-success.svg)](#-development-and-release)
+[![CI](https://github.com/Rule-Of-Code/RoC/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Rule-Of-Code/RoC/actions/workflows/ci.yml)
 [![Fail Closed](https://img.shields.io/badge/Gate-fail--closed-blue.svg)](#-severity-semantics-and-fail-closed-guarantees)
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-Strict%20Mode-blue.svg)](https://www.typescriptlang.org/)
+
+![ruleofcode 7.28.0: a four-law allowlist is reported as PARTIAL SCAN — 4 of 75 applicable laws ran, no compliance verdict; the full run checks 77 laws and fails.](docs/demo/demo.gif)
+
+Real output of ruleofcode 7.28.0 from npm — reproduce with [docs/demo](docs/demo/README.md).
 
 **RoC is a constitutional-compliance CLI**: it audits a codebase against a catalog of
 laws, installs git hooks, and returns a single honest answer — pass or fail. RoC is a
@@ -59,7 +63,7 @@ stack do not run and are not counted:
 Of the frontend laws, **18** run only where an Ionic binding is declared and **19** only
 where Capacitor is (one law, the viewport-fit one, runs where either Ionic or Capacitor iOS
 is declared, so it is in both counts) — see [`requires`](#requires-a-law-about-a-toolkit-runs-only-where-the-toolkit-is).
-The laws about one framework are gated the same way: **19** run only where `@angular/core`
+The laws about one framework are gated the same way: **21** run only where `@angular/core`
 is declared, **10** only where `@ngrx/store` is, and **1** only where `rxjs` is. A React
 project does not run OnPush or NgRx laws, and an Angular app without a store does not run
 the NgRx ones.
@@ -79,7 +83,7 @@ IDE panel, a dashboard. It is versioned by `schemaVersion` (currently `2`).
 {
   "schemaVersion": 2,
   "tool": "ruleofcode",          // the package name this build was published under
-  "version": "7.28.0",
+  "version": "7.28.1",
   "registryTotal": 265,
   "satisfiedByStacks": {          // the mapping described below — read it, don't hardcode it
     "keys": ["typescript", "angular", "react", "python", "ionic", "capacitor"],
@@ -236,15 +240,19 @@ type`) — it is legitimate in shared configs.
 that the gate is armed:
 
 ```
-python   | laws=100 | green exit 0 | red exit 1 | zero-laws exit 1 (refused) | no-TypeError
-angular  | laws=136 | green exit 0 | red exit 1 | zero-laws exit 1 (refused) | no-TypeError
-node     | laws=78  | green exit 0 | red exit 1 | zero-laws exit 1 (refused) | no-TypeError
+python   | laws=N floor>=F ✅ | green exit 0 ✅ | red exit 1 ✅ | zero-laws exit 1 (refused) ✅ | no-TypeError ✅
+angular  | laws=N floor>=F ✅ | green exit 0 ✅ | red exit 1 ✅ | zero-laws exit 1 (refused) ✅ | no-TypeError ✅ | requires-gate ✅
+ngrx     | laws=N floor>=F ✅ | green exit 0 ✅ | red exit 1 ✅ | zero-laws exit 1 (refused) ✅ | no-TypeError ✅ | requires-gate ✅
+ionic    | laws=N floor>=F ✅ | green exit 0 ✅ | red exit 1 ✅ | zero-laws exit 1 (refused) ✅ | no-TypeError ✅ | requires-gate ✅
+react    | laws=N floor>=F ✅ | green exit 0 ✅ | red exit 1 ✅ | zero-laws exit 1 (refused) ✅ | no-TypeError ✅ | requires-gate ✅
+node     | laws=N floor>=F ✅ | green exit 0 ✅ | red exit 1 ✅ | zero-laws exit 1 (refused) ✅ | no-TypeError ✅
 ```
 
 - **green**: a clean tree + calibrated waivers → exit 0
 - **red**: one real violation (escalated to error) → exit 1
 - **zero-laws**: an empty allowlist → refusal, exit 1
-- **floor**: "Processing N laws" below a stack's floor = a collapsed selection = a blocker
+- **laws=N floor>=F**: the laws the profile ran and its floor; below the floor = a collapsed selection = a blocker. N depends on the release, so the run prints it and this page does not
+- **requires-gate**: the named laws gated on the profile's toolkit ran, and the named ones gated on other toolkits did not
 
 `node scripts/release-canary.js --tarball <package>.tgz` runs the same against the
 packed tarball installed as a consumer — the mandatory gate before every release tag.

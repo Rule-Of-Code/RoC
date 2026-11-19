@@ -259,6 +259,96 @@ describe('Independent Awaits Run Concurrently (#351)', () => {
     });
   });
 
+  /*
+   * Two awaits in ONE expression: independent operands run one after another
+   * (red); an await nested in another's argument is a dependency (green); the
+   * reasoned marker on that line keeps it (green), one without a reason does
+   * not (red). Python and TS alike. Two mechanisms keep the nested case green,
+   * each on its own: only outermost awaits are collected, and an await with
+   * another inside its operand takes its statement out of the run.
+   */
+  describe('two awaits in one expression', () => {
+    it('red: (await a(x)) op (await b(y)), Python and TS', () => {
+      const result = check({
+        ...py([
+          'async def shared(repo, first, second):',
+          '    both = set(await repo.ids_of(first)) & set(await repo.ids_of(second))',
+          '    return both',
+        ]),
+        ...tsx([
+          'export async function total(repo: any, a: string, b: string) {',
+          '  const sum = (await repo.count(a)) + (await repo.count(b));',
+          '  return sum;',
+          '}',
+        ]),
+      });
+      expect(result.violations).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(
+            /^app\/profile\.py:2: 2 independent awaits .* in shared\(\) — repo\.ids_of\(\) \(line 2\), repo\.ids_of\(\) \(line 2\)/
+          ),
+          expect.stringMatching(
+            /^src\/profile\.ts:2: 2 independent awaits .* in total\(\) — repo\.count\(\) \(line 2\), repo\.count\(\) \(line 2\)/
+          ),
+        ])
+      );
+      expect(result.violations).toHaveLength(2);
+    });
+
+    it('green: await f(await g()) — the outer call needs the inner result', () => {
+      expect(
+        check({
+          ...py([
+            'async def resolve(repo, uid):',
+            '    profile = await repo.profiles.get(await repo.keys.of(uid))',
+            '    return profile',
+          ]),
+          ...tsx([
+            'export async function resolve(repo: any, uid: string) {',
+            '  const profile = await repo.profiles.get(await repo.keys.of(uid));',
+            '  return profile;',
+            '}',
+          ]),
+        }).violations
+      ).toEqual([]);
+    });
+
+    it('green: the same expression with a reasoned marker on its line', () => {
+      expect(
+        check({
+          ...py([
+            'async def shared(repo, first, second):',
+            '    both = set(await repo.ids_of(first)) & set(await repo.ids_of(second))  # roc: sequential-ok two reads kept apart on purpose',
+            '    return both',
+          ]),
+          ...tsx([
+            'export async function total(repo: any, a: string, b: string) {',
+            '  const sum = (await repo.count(a)) + (await repo.count(b)); // roc: sequential-ok two reads kept apart on purpose',
+            '  return sum;',
+            '}',
+          ]),
+        }).violations
+      ).toEqual([]);
+    });
+
+    it('red: a marker without a reason on that line does not count', () => {
+      const result = check({
+        ...py([
+          'async def shared(repo, first, second):',
+          '    both = set(await repo.ids_of(first)) & set(await repo.ids_of(second))  # roc: sequential-ok',
+          '    return both',
+        ]),
+        ...tsx([
+          'export async function total(repo: any, a: string, b: string) {',
+          '  const sum = (await repo.count(a)) + (await repo.count(b)); // roc: sequential-ok',
+          '  return sum;',
+          '}',
+        ]),
+      });
+      expect(result.violations).toHaveLength(2);
+    });
+  });
+
   describe('selection: only a project with async code gets the law', () => {
     const LAW = REQUEST_PATH_LAWS.find(
       l => l.checkFunction === 'IndependentAwaitsRunConcurrentlyLaw.check'

@@ -1,0 +1,8 @@
+{
+  "name": "roc-readme-demo",
+  "private": true,
+  "description": "Records the README demo from real ruleofcode output and checks it.",
+  "devDependencies": {
+    "ruleofcode": "7.28.0"
+  }
+}

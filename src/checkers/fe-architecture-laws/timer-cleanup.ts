@@ -29,11 +29,22 @@ export class TimerCleanupLaw extends FeArchLawBase {
     const { projectRoot, config } = context;
     const violations: string[] = [];
 
-    for (const file of CheckerUtils.findTypeScriptFiles(projectRoot, config, context.lawId)) {
+    for (const file of CheckerUtils.findTypeScriptFiles(
+      projectRoot,
+      config,
+      context.lawId
+    )) {
       // A store file has no decorator (signal stores, NgRx) — its suffix stays;
       // components, services and directives also by decorator (#336).
       const isStore = /\.store\.ts$/.test(file.replace(/\\/g, '/'));
-      if (!isStore && !AngularComponentFiles.isKind(file, ['component', 'service', 'directive'])) {
+      if (
+        !isStore &&
+        !AngularComponentFiles.isKind(file, [
+          'component',
+          'service',
+          'directive',
+        ])
+      ) {
         continue;
       }
       const content = FileUtils.readFile(file);
@@ -48,7 +59,9 @@ export class TimerCleanupLaw extends FeArchLawBase {
       }
       if (
         /\brequestAnimationFrame\s*\(/.test(content) &&
-        !/\bcancelAnimationFrame\b|\bDestroyRef\b|\btakeUntilDestroyed\b/.test(content)
+        !/\bcancelAnimationFrame\b|\bDestroyRef\b|\btakeUntilDestroyed\b/.test(
+          content
+        )
       ) {
         violations.push(
           `${rel}: requestAnimationFrame without a cancelAnimationFrame / DestroyRef cleanup — leaked RAF loop`

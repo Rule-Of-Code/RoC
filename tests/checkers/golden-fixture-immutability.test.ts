@@ -3,7 +3,7 @@
  * GOLDEN-APPROVALS.md entry in the same change-set fails; with the entry it
  * passes; without declared goldenPaths the law is dormant. Real git fixtures.
  */
-import { execSync } from 'child_process';
+import { execSync } from '../../src/utils/child-process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -37,7 +37,10 @@ afterAll(() => {
     }
   }
 });
-const ctx = (root: string, extra?: Partial<RuleOfCodeConfig>): LawCheckContext => {
+const ctx = (
+  root: string,
+  extra?: Partial<RuleOfCodeConfig>
+): LawCheckContext => {
   const config = FileUtils.getMinimalDefaultConfig();
   if (extra) Object.assign(config, extra);
   return { projectRoot: root, config } as never;

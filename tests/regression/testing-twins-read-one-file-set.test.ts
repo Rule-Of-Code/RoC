@@ -17,7 +17,8 @@ import { ctx, project, removeProjects } from '../checkers/toolkit-fixture';
 
 afterAll(removeProjects);
 
-const SPEC = "it('saves', () => { sessionStorage.setItem('k', 'v'); expect(1).toBe(1); });";
+const SPEC =
+  "it('saves', () => { sessionStorage.setItem('k', 'v'); expect(1).toBe(1); });";
 const FILES = {
   'tests/store.spec.ts': SPEC,
   'e2e/b.spec.ts': SPEC,
@@ -29,11 +30,15 @@ const IGNORING_VENDOR = {
 };
 
 const isolationFindings = (root: string, overrides = {}) =>
-  UnitTestIsolationAnalyzerService.analyzeResourceIsolation(root, ctx(root, overrides).config)
-    .unisolated.sort();
+  UnitTestIsolationAnalyzerService.analyzeResourceIsolation(
+    root,
+    ctx(root, overrides).config
+  ).unisolated.sort();
 const dataManagementFindings = (root: string, overrides = {}) =>
-  UnitTestDataManagementAnalyzerService.analyzeCleanupPatterns(root, ctx(root, overrides).config)
-    .uncleaned.sort();
+  UnitTestDataManagementAnalyzerService.analyzeCleanupPatterns(
+    root,
+    ctx(root, overrides).config
+  ).uncleaned.sort();
 
 describe('the twin testing laws read one file set (#192)', () => {
   const root = project(FILES);
@@ -63,10 +68,19 @@ describe('the twin testing laws read one file set (#192)', () => {
 describe('TestFileDiscovery', () => {
   it('matches an ignores.global entry against the path from the project root', () => {
     const root = project(FILES);
-    const found = TestFileDiscovery.findTestFiles(root, ctx(root, IGNORING_VENDOR).config)
-      .map(file => file.replace(/\\/g, '/').slice(root.replace(/\\/g, '/').length + 1))
+    const found = TestFileDiscovery.findTestFiles(
+      root,
+      ctx(root, IGNORING_VENDOR).config
+    )
+      .map(file =>
+        file.replace(/\\/g, '/').slice(root.replace(/\\/g, '/').length + 1)
+      )
       .sort();
-    expect(found).toEqual(['e2e/b.spec.ts', 'src/app/a.spec.ts', 'tests/store.spec.ts']);
+    expect(found).toEqual([
+      'e2e/b.spec.ts',
+      'src/app/a.spec.ts',
+      'tests/store.spec.ts',
+    ]);
   });
 
   it('matches an includes.global entry against the path from the project root', () => {

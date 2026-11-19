@@ -92,7 +92,8 @@ export const CAPACITOR_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'CapacitorWebviewOriginDeclaredLaw.check',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article IV.4.51: Capacitor WebView origin left to per-platform defaults',
-    remediation: 'State server.hostname, server.androidScheme and server.iosScheme',
+    remediation:
+      'State server.hostname, server.androidScheme and server.iosScheme',
   },
 
   {
@@ -114,7 +115,7 @@ export const CAPACITOR_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       RESOLVED_ON_THIS_MACHINE,
       NEEDS_THE_CLI,
-      'allowNavigation has legitimate production uses (an OAuth flow that must stay in the WebView); the law follows Capacitor\'s own statement and expects such a project to park the key in laws.notApplicable with the reason.',
+      "allowNavigation has legitimate production uses (an OAuth flow that must stay in the WebView); the law follows Capacitor's own statement and expects such a project to park the key in laws.notApplicable with the reason.",
       'Reads the resolved config only; a cleartext opening in the Android source sets (usesCleartextTraffic, a network security config) is judged by Capacitor Android Cleartext Debug Only.',
     ],
     emoji: '🚧',
@@ -152,7 +153,7 @@ export const CAPACITOR_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Cannot judge values; a block with the wrong provider id passes.',
-      'Sees only plugins that augment PluginsConfig in dist/esm/definitions.d.ts (the plugin template\'s convention); a plugin that documents config in its README only is invisible.',
+      "Sees only plugins that augment PluginsConfig in dist/esm/definitions.d.ts (the plugin template's convention); a plugin that documents config in its README only is invisible.",
       'Needs node_modules installed and the config resolved by `cap config --json` on the auditing machine; without either it reports that it could not look, not green.',
       'Asks for a block even when every option has a default (an `App: {}`); whether that should be info rather than warning is open in the issue it came from.',
     ],
@@ -169,7 +170,8 @@ export const CAPACITOR_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'CapacitorPluginConfigDeclaredLaw.check',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article IV.4.53: Capacitor plugin left on its own silent defaults',
-    remediation: 'Add plugins.<Name> for every installed plugin that declares one ({} is enough)',
+    remediation:
+      'Add plugins.<Name> for every installed plugin that declares one ({} is enough)',
   },
 
   {
@@ -190,7 +192,7 @@ export const CAPACITOR_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Import-line and call-site patterns; a re-export through a barrel inside the boundary and consumed outside is credited to the boundary, and a wrapper that merely renames the plugin API is not detected as leakage.',
-      'Platform branching by other means (navigator.userAgent, window.innerWidth) is not this law\'s subject.',
+      "Platform branching by other means (navigator.userAgent, window.innerWidth) is not this law's subject.",
       'Without thresholds.capacitor.boundary the boundary is inferred: green only when exactly one project directory (nearest project.json / package.json) imports Capacitor. A monorepo with one boundary per app should configure it; a root ESLint no-restricted-imports rule naming @capacitor is accepted as the same boundary stated in another tool.',
     ],
     emoji: '🧱',
@@ -244,7 +246,8 @@ export const CAPACITOR_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'CapacitorPluginPlatformDeclarationsLaw.check',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article IV.4.55: Native shell lacks a declaration an installed plugin needs',
-    remediation: 'Add the permission, usage string or meta-data the plugin requires to the native shell',
+    remediation:
+      'Add the permission, usage string or meta-data the plugin requires to the native shell',
   },
 
   {
@@ -258,7 +261,7 @@ export const CAPACITOR_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '4.56',
     title: 'Capacitor Deep Link Contract',
     rationale:
-      "An https link opening the app is an Android intent-filter, an iOS associated-domains entitlement and an appUrlOpen listener agreeing on a host; a missing side fails without an error — the app opens at the launcher and the path is gone. Measured on a consumer: Android complete, iOS without an entitlements file, which no scan of src/ could report.",
+      'An https link opening the app is an Android intent-filter, an iOS associated-domains entitlement and an appUrlOpen listener agreeing on a host; a missing side fails without an error — the app opens at the launcher and the path is gone. Measured on a consumer: Android complete, iOS without an entitlements file, which no scan of src/ could report.',
     satisfiedBy: {
       capacitor:
         'Declare the host in the Android intent-filter (VIEW, BROWSABLE, https, autoVerify) and in the iOS applinks entitlement, and handle App.addListener("appUrlOpen") to route it. Keep the three in one commit.',
@@ -319,6 +322,7 @@ export const CAPACITOR_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'CapacitorSyncArtefactsMatchDependenciesLaw.check',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article IV.4.57: Tracked Capacitor sync artefact out of date with package.json',
-    remediation: 'Run npx cap sync and commit the regenerated artefacts with the dependency change',
+    remediation:
+      'Run npx cap sync and commit the regenerated artefacts with the dependency change',
   },
 ];

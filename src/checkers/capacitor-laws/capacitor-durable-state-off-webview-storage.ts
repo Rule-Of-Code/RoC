@@ -19,7 +19,10 @@
 import * as fs from 'fs';
 import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { relative, withNotes } from '../../utils/capacitor/capacitor-law-support';
+import {
+  relative,
+  withNotes,
+} from '../../utils/capacitor/capacitor-law-support';
 import {
   bridgeSources,
   enclosing,
@@ -61,7 +64,8 @@ export class CapacitorDurableStateOffWebviewStorageLaw extends LawBase {
   static check(context: LawCheckContext): LawResult {
     const { sources, unread } = bridgeSources(context);
     const violations = unread.map(
-      reason => `${reason} — a WebView storage writer in these files would not be judged, so this law does not pass on them`
+      reason =>
+        `${reason} — a WebView storage writer in these files would not be judged, so this law does not pass on them`
     );
     const settings = context.config.thresholds?.capacitor;
     const durable = new Set([PREFERENCES, ...(settings?.durableStores ?? [])]);
@@ -70,13 +74,22 @@ export class CapacitorDurableStateOffWebviewStorageLaw extends LawBase {
     const writers = sources.flatMap(source => this.writers(source));
     for (const writer of writers) {
       const where = `${relative(context, writer.source.fileName)}${writer.className ? ` (${writer.className})` : ''}`;
-      const session = writer.writes.filter(write => write.kind === 'sessionStorage');
+      const session = writer.writes.filter(
+        write => write.kind === 'sessionStorage'
+      );
       if (session.length > 0) {
-        notes.push(`${where}: writes sessionStorage — transient by definition, so only noted`);
+        notes.push(
+          `${where}: writes sessionStorage — transient by definition, so only noted`
+        );
       }
-      const lasting = writer.writes.filter(write => write.kind !== 'sessionStorage');
+      const lasting = writer.writes.filter(
+        write => write.kind !== 'sessionStorage'
+      );
       if (lasting.length === 0) continue;
-      if (lasting.every(write => write.key !== null && disposable.has(write.key))) continue;
+      if (
+        lasting.every(write => write.key !== null && disposable.has(write.key))
+      )
+        continue;
       if (this.hasNativeBranch(writer, sources, durable)) continue;
       violations.push(this.warning(where, lasting));
     }
@@ -97,7 +110,11 @@ export class CapacitorDurableStateOffWebviewStorageLaw extends LawBase {
 
   private static warning(where: string, writes: StorageWrite[]): string {
     const kinds = [...new Set(writes.map(write => write.kind))].join(' and ');
-    const keys = writes.map(write => (write.key === null ? `a runtime key (line ${write.line})` : `'${write.key}'`));
+    const keys = writes.map(write =>
+      write.key === null
+        ? `a runtime key (line ${write.line})`
+        : `'${write.key}'`
+    );
     return `${where}: writes ${kinds} (${[...new Set(keys)].join(', ')}) with no native branch — ${GUIDE}, so a hostname or scheme change orphans it on every device. Decide: back it with @capacitor/preferences (or a store in thresholds.capacitor.durableStores) on native, or declare its keys in thresholds.capacitor.disposableStorageKeys`;
   }
 
@@ -111,20 +128,33 @@ export class CapacitorDurableStateOffWebviewStorageLaw extends LawBase {
       if (!ts.isCallExpression(node) && !ts.isNewExpression(node)) return;
       const write = this.write(source, node, idbOnly);
       if (!write) return;
-      const owner = enclosing(node, (candidate): candidate is TS.ClassLikeDeclaration => ts.isClassLike(candidate)) ?? null;
-      const writer = byOwner.get(owner) ?? { source, owner, className: owner?.name?.text ?? null, writes: [] };
+      const owner =
+        enclosing(node, (candidate): candidate is TS.ClassLikeDeclaration =>
+          ts.isClassLike(candidate)
+        ) ?? null;
+      const writer = byOwner.get(owner) ?? {
+        source,
+        owner,
+        className: owner?.name?.text ?? null,
+        writes: [],
+      };
       writer.writes.push(write);
       byOwner.set(owner, writer);
     });
     return [...byOwner.values()];
   }
 
-  private static write(source: TsxSource, node: TS.CallExpression | TS.NewExpression, idbWrites: boolean): StorageWrite | null {
+  private static write(
+    source: TsxSource,
+    node: TS.CallExpression | TS.NewExpression,
+    idbWrites: boolean
+  ): StorageWrite | null {
     const ts = source.ts;
     const line = source.lineOf(node);
     const first = node.arguments?.[0];
     if (ts.isNewExpression(node)) {
-      return ts.isIdentifier(node.expression) && node.expression.text === 'Dexie'
+      return ts.isIdentifier(node.expression) &&
+        node.expression.text === 'Dexie'
         ? { kind: 'IndexedDB', key: stringValue(source, first), line }
         : null;
     }
@@ -135,18 +165,33 @@ export class CapacitorDurableStateOffWebviewStorageLaw extends LawBase {
         : null;
     }
     if (!ts.isPropertyAccessExpression(callee)) return null;
-    const kind = this.memberWrite(callee.expression.getText(source.sourceFile), callee.name.text, idbWrites);
+    const kind = this.memberWrite(
+      callee.expression.getText(source.sourceFile),
+      callee.name.text,
+      idbWrites
+    );
     if (!kind) return null;
-    const keyed = !(kind === 'IndexedDB' && callee.name.text === 'createInstance');
+    const keyed = !(
+      kind === 'IndexedDB' && callee.name.text === 'createInstance'
+    );
     return { kind, key: keyed ? stringValue(source, first) : null, line };
   }
 
   /** `<receiver>.<method>(…)`: which store it writes, or null. */
-  private static memberWrite(receiver: string, method: string, idbWrites: boolean): StoreKind | null {
-    if (method === 'setItem' && LOCAL_STORAGE.test(receiver)) return 'localStorage';
-    if (method === 'setItem' && SESSION_STORAGE.test(receiver)) return 'sessionStorage';
-    if (method === 'open' && INDEXED_DB.test(receiver)) return idbWrites ? 'IndexedDB' : null;
-    const localforage = receiver === 'localforage' && (method === 'setItem' || method === 'createInstance');
+  private static memberWrite(
+    receiver: string,
+    method: string,
+    idbWrites: boolean
+  ): StoreKind | null {
+    if (method === 'setItem' && LOCAL_STORAGE.test(receiver))
+      return 'localStorage';
+    if (method === 'setItem' && SESSION_STORAGE.test(receiver))
+      return 'sessionStorage';
+    if (method === 'open' && INDEXED_DB.test(receiver))
+      return idbWrites ? 'IndexedDB' : null;
+    const localforage =
+      receiver === 'localforage' &&
+      (method === 'setItem' || method === 'createInstance');
     return localforage ? 'IndexedDB' : null;
   }
 
@@ -172,17 +217,27 @@ export class CapacitorDurableStateOffWebviewStorageLaw extends LawBase {
    * object store)? An indexedDB.open that only reads — another library's
    * database, opened to look — is not a writer.
    */
-  private static indexedDbWrites(source: TsxSource, storeVariables: Set<string>): boolean {
+  private static indexedDbWrites(
+    source: TsxSource,
+    storeVariables: Set<string>
+  ): boolean {
     const ts = source.ts;
     let writes = false;
     source.walk(node => {
-      if (writes || !ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression)) return;
+      if (
+        writes ||
+        !ts.isCallExpression(node) ||
+        !ts.isPropertyAccessExpression(node.expression)
+      )
+        return;
       const method = node.expression.name.text;
       const receiver = node.expression.expression;
       if (method === 'createObjectStore') writes = true;
       if (method === 'put' || method === 'add') {
         const text = receiver.getText(source.sourceFile);
-        writes = /\.objectStore\s*\(/.test(text) || (ts.isIdentifier(receiver) && storeVariables.has(receiver.text));
+        writes =
+          /\.objectStore\s*\(/.test(text) ||
+          (ts.isIdentifier(receiver) && storeVariables.has(receiver.text));
       }
     });
     return writes;
@@ -192,18 +247,35 @@ export class CapacitorDurableStateOffWebviewStorageLaw extends LawBase {
     return source.imports().some(info => info.module === module);
   }
 
-  private static importsDurable(source: TsxSource, durable: ReadonlySet<string>): boolean {
-    return source.imports().some(info => !info.typeOnly && durable.has(info.module));
+  private static importsDurable(
+    source: TsxSource,
+    durable: ReadonlySet<string>
+  ): boolean {
+    return source
+      .imports()
+      .some(info => !info.typeOnly && durable.has(info.module));
   }
 
   /** A durable store in the writer's file, its port's file (one import), or a file that provides the class. */
-  private static hasNativeBranch(writer: Writer, sources: readonly TsxSource[], durable: ReadonlySet<string>): boolean {
+  private static hasNativeBranch(
+    writer: Writer,
+    sources: readonly TsxSource[],
+    durable: ReadonlySet<string>
+  ): boolean {
     if (this.importsDurable(writer.source, durable)) return true;
     if (!writer.owner || !writer.className) return false;
-    if (this.portFiles(writer).some(port => port.imports().some(info => !info.typeOnly && durable.has(info.module)))) return true;
+    if (
+      this.portFiles(writer).some(port =>
+        port.imports().some(info => !info.typeOnly && durable.has(info.module))
+      )
+    )
+      return true;
     const name = writer.className;
     return sources.some(
-      source => source !== writer.source && this.importsDurable(source, durable) && this.mentions(source, name)
+      source =>
+        source !== writer.source &&
+        this.importsDurable(source, durable) &&
+        this.mentions(source, name)
     );
   }
 
@@ -214,11 +286,17 @@ export class CapacitorDurableStateOffWebviewStorageLaw extends LawBase {
     const ports = (owner?.heritageClauses ?? [])
       .flatMap(clause => clause.types)
       .map(type => type.expression)
-      .filter((expression): expression is TS.Identifier => ts.isIdentifier(expression))
+      .filter((expression): expression is TS.Identifier =>
+        ts.isIdentifier(expression)
+      )
       .map(expression => expression.text);
     const files: TsxSource[] = [];
     for (const info of source.imports()) {
-      if (!info.module.startsWith('.') || !info.named.some(named => ports.includes(named.local))) continue;
+      if (
+        !info.module.startsWith('.') ||
+        !info.named.some(named => ports.includes(named.local))
+      )
+        continue;
       const file = resolveRelative(source.fileName, info.module);
       const port = file ? this.parseFile(source, file) : null;
       if (port) files.push(port);

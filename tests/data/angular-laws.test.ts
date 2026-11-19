@@ -173,7 +173,9 @@ describe('Angular Laws Data', () => {
     it('ships no vendor-specific UI-component law (framework/vendor-neutral)', () => {
       // Laws must name a capability, never a specific vendor's component kit —
       // no law title may carry a brand/scope token like "acme" or "@acme/ui".
-      const law = ANGULAR_LAWS.find(l => /\bacme\b|@[a-z0-9-]+\/ui\b/i.test(l.title));
+      const law = ANGULAR_LAWS.find(l =>
+        /\bacme\b|@[a-z0-9-]+\/ui\b/i.test(l.title)
+      );
       expect(law).toBeUndefined();
     });
 

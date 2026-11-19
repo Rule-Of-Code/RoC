@@ -5,6 +5,205 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.28.0] - 2026-11-19
+
+The rest of the same incident and what the 7.27.0 wave found on the way: git
+safety (an inherited `GIT_DIR`, hooks that never ran), the engine's narrowing and
+floor, a Pareto core that was a hardcoded list, and nine more laws. Closes #362,
+#363, #364, #365, #366, #367, #369, #370, #371, #372, #373, #374, #375, #376,
+#377, #379, #380, #381, #382, #383, #384, #387, #388, #391; #361 (the umbrella) closes
+with them. #385 (two audit stalls under load, not reproduced in 283 later runs)
+stays open as observed; #390 (Error Handling Standards, opt-in for now) stays open
+until its detection paths are fixed.
+
+### ⚠️ BREAKING — git: child processes no longer inherit `GIT_DIR` (#372)
+
+A git hook sets `GIT_DIR`; in a linked worktree it points at `.git/worktrees/<n>`.
+RoC started git, husky and npm with the inherited environment, so an audit run
+from a hook against another directory read **that** repository's history and tags
+(Branch Governance, Feature Branch Protection, Commit Size Control and Semantic
+Versioning judged the wrong repository), and `init` **wrote** `core.hooksPath`
+into it — silently switching off every hook of the other repository while the
+target's own hooks never ran. Every child process now starts in the target
+directory without the repository-locating `GIT_*` variables (`git rev-parse
+--local-env-vars`, plus `GIT_NAMESPACE`). **What changes for you:** `GIT_DIR` /
+`GIT_WORK_TREE` / `GIT_INDEX_FILE` can no longer point RoC at a repository.
+
+`init` fails closed: it prints "installed successfully" only when the target's
+own hooks directory holds every enabled hook, refuses hooks outside a git
+repository, and a failed init exits 1 (it exited 7 on an error, and succeeded
+with inactive hooks). `reinstall-hooks` checks the same.
+
+### ⚠️ BREAKING — a committed hook counts only when git runs it (#380)
+
+Git Hook Compliance and Git Hooks Standards called a hook active when
+`.husky/<hook>` existed, whatever `core.hooksPath` said — so a checkout where no
+hook could run passed. A hook is now active only when git runs it in this
+checkout (git resolves the hooks path; with husky 9 the user script must exist
+too). **What to do:** run `npx husky` in a developer checkout whose committed
+hooks are not activated. In a CI checkout (`CI` set, or `HUSKY=0`) it is not a
+finding: the verdict says only the committed configuration was checked.
+
+### ⚠️ BREAKING — Pareto core derived per stack and per gate (#383, #388)
+
+`paretoMode: true` / `--mode=fast` ran a hardcoded list of 27 laws (10.5% of
+the registry, no Python law). The core is now derived from each law's fields,
+for each stack and each `requires` gate: about 20% of every group, ranked by
+severity, priority, then SACRED, then CRITICAL SECURITY at `error`, then laws
+without a gate. SACRED laws and CRITICAL SECURITY laws at `error` are always in.
+A ratchet test keeps the core's share of the applicable laws in [15%, 25%] for
+six project profiles:
+
+| Profile (canary fixture) | 7.27.0 | 7.28.0 |
+|---|---|---|
+| python | 13 / 96 (13.5%, no Python law) | 19 / 96 (19.8%) |
+| angular | 21 / 119 (17.6%) | 26 / 119 (21.8%) |
+| angular + NgRx | — | 28 / 130 (21.5%) |
+| ionic | 21 / 149 (14.1%) | 32 / 149 (21.5%) |
+| react | 21 / 133 (15.8%) | 28 / 133 (21.1%) |
+| node | 20 / 76 (26.3%) | 17 / 76 (22.4%) |
+
+The core has 48 laws: universal 12, typescript 5, frontend 24, python 7. Fast
+mode keeps the four SACRED TypeScript laws and API Security Standards; Absolute
+Zero Tolerance Doctrine and Jest Unit Test 100% Coverage Mandate run in a full
+audit only (all seven would put a TypeScript project's core at 26%, 20 of 76).
+In the frontend group Next Server Only Boundary and No Test-Only Leakage
+(SECURITY at `error`) take the places of Internationalization (i18n) Compliance
+Policy and Observable Cleanup Requirements. A run in Pareto mode stays PARTIAL,
+never a compliance verdict.
+
+### ⚠️ BREAKING — the liveness floor only goes up (#371)
+
+The default floor took its count from `config.project.type` while the selection
+used the detected type. It now takes the larger of the two counts. `project.type:
+"generic"` on a Python project: 61 → 98 stack-applicable laws, floor 16 → 25.
+**What changes for you:** a project that selects 16–24 laws under such a config
+is now refused. Set `laws.minLawsChecked` explicitly to what you mean, or fix
+`project.type`, or run a full audit.
+
+### ⚠️ BREAKING — narrowing by `categories` is partial (#370)
+
+`categories` (a constructor option, not a CLI flag) printed COMPLIANCE over a
+subset and skipped waivers, the opt-in rule and the meta-gates. It now narrows
+the normal selection: waivers, the opt-in rule and the meta-gates apply, and
+fewer laws than apply is PARTIAL (`narrowedBy: 'categories'`). A TypeScript
+fixture narrowed to one category: 29 of 29 COMPLIANCE → 29 of 78 PARTIAL.
+
+### ⚠️ BREAKING — seven checks tested a file name without its extension (#369)
+
+`getBasename` returns the name without its extension; ten places tested it for
+one. Bundle Size Optimization now sees `loadChildren` (a false "Heavy
+dependencies … without lazy loading" is gone). NgRx RxJS Operators Selection
+Mandate sees `*.effects.ts`. `*.old.*` templates are skipped. Three sites are
+unreachable from any registered law (fixed in place and documented as dead
+code), and one filter was redundant (removed). A guard test forbids an extension
+check on a `getBasename` result.
+
+Two laws that had read nothing were measured on real code once they could see it:
+
+- **TODO Management Standards** now reads code, and a TODO is an upper-case tag at
+  the start of a comment's text, in the file's own comment syntax: `TODO:`,
+  `TODO(x):`, `TODO (Sprint 10):`, `FIXME:`, `HACK:`, `XXX:`. A marker in the middle
+  of a sentence, in inline code, or a bare `TODO` without a colon is not read;
+  NOTE is not a marker. The first version of this fix matched "note" anywhere —
+  CSS classes like `.cov-note`, `note: true`, prose — and every finding it gave on
+  the projects we measured was false: 13 → 0 and 202 → 0 on two real projects,
+  66 → 1 on a third (the one left is a real `TODO(tokens):`). On RoC's own code the
+  rule went from 3 correct of 10 to 3 of 3 before this release.
+- **Error Handling Standards is off by default.** Its five detection paths were
+  measured at 0 of 42 correct on real code. In 7.27.0 and earlier it reported
+  findings that were not real. It is opt-in now (`defaultEnabled: false`): not
+  selected and not counted unless `laws.severity` names it, and the detector is
+  unchanged until #390 lands. Re-enable it with `laws.severity` if you want it
+  anyway. Every project that does not name it runs one law fewer: the canary profiles
+  go python 98 → 97, angular 121 → 120, angular + NgRx 132 → 131, ionic 151 →
+  150, react 135 → 134, node 78 → 77.
+
+### ⚠️ BREAKING — smaller ones
+
+- **Request-path laws leave one-off scripts out (#384).** Independent Awaits
+  (#351), Document Read Once, Count With An Aggregation and the N+1 check skip
+  `scripts/`, `migrations/`, `alembic/`, `bin/`, `seeds/`, `seeders/`,
+  `management/commands/`; the skipped count is in `metrics.oneOffScriptsSkipped`.
+- **Dependency gates read what git publishes (#381).** `requires.anyDependency`,
+  `allDependencies` and `anyPythonDependency` ignore a git-ignored manifest.
+- **The programmatic constructor reads the config like the CLI (#387).** Without
+  a config object it used a loader that dropped `project.type` when the file had
+  no `laws`/`ignores`/`includes` section; it now uses the same loader as the CLI
+  (and its defaults: `parallel`, `scoring`, `ignores.global`).
+- **Six NgRx laws lose "(SACRED LAW)" from their title (#388).** Their category
+  was always `FRAMEWORK`; the title promised a protection they did not have. The
+  old titles still resolve as config keys. Their `urlSlug` changes (e.g.
+  `ngrx-store-pattern-mandate-sacred-law` → `ngrx-store-pattern-mandate`).
+
+### Added — nine laws, all `warning` by default
+
+Each is selected only where its subject is in the files git publishes, judges
+exactly those files and reports `file:line`. A law that read files and found
+nothing to judge passes with its counters (message and `metrics`) and says what
+it does not see; "nothing was judged" is reported only when it could read no file
+or its parser did not load, and never as a violation.
+
+| Law | Article | Issue |
+|---|---|---|
+| Proxy Target Keeps Origin Host — `new URL(path, ORIGIN)` / `urljoin` sends a `//host` path, with the secret header, to another host | XXIII.23.10 | #362 |
+| Worker Public URLs Declared — `wrangler.toml/json(c)` without explicit `workers_dev` / `preview_urls`; `secret put` before the first deploy | VIII.8.13 | #363 |
+| Hosting Rewrite Region Matches Deploy — a hosting rewrite pins a region the same repository does not deploy to | VIII.8.14 | #364 |
+| Test Builds Use Own Firebase Config — non-release builds bundle the production Firebase project with Messaging auto-init on; the finding lists the accepted fixes | XXIII.23.11 | #365 |
+| Job Definition Dumps Masked — scheduler/job definitions saved to a file or CI log with secret headers | XXIII.23.12 | #366 |
+| Test Rig Keeps Route Guards — a test re-declares an app route by hand and drops its guards | VII.7.40 | #367 |
+| Database Read Cache Safety — an in-process cache of database reads without TTL, bound, write invalidation, or inside an auth check | VI.6.30 | #373 |
+| Async Cache Single-Flight — store-after-await, or a stored future that is not removed when it fails | VI.6.31 | #374 |
+| Perf Harness Matches Production — DEBUG logging in a perf harness; a single-thread profiler with a threaded client (gRPC and similar) | VII.7.41 | #376, #377 |
+
+Latency Budget Harness Realism (#355) also asks a burst harness for its repeated
+reads (total, distinct, repeat ratio per collection) (#375). #364 is closed for
+one repository: a rewrite whose service is deployed from another repository is
+not seen (RoC reads one repository).
+
+**Total Laws Checked, 7.27.0 → 7.28.0:**
+
+| Simulated consumer | 7.27.0 | 7.28.0 |
+|---|---|---|
+| canary: python | 98 | 97 |
+| canary: angular | 121 | 120 |
+| canary: angular + NgRx | 132 | 131 |
+| canary: ionic | 151 | 150 |
+| canary: react | 135 | 134 |
+| canary: node | 78 | 77 |
+| a FastAPI service with a document database (real project, own config) | 94 | 96 |
+| an Ionic/Angular Nx app (real project, own config) | 153 | 156 |
+| a static web front end (real project, own config) | 66 | 65 |
+
+The canary counts are `laws=` from `node scripts/release-canary.js --tarball`, run
+against the published 7.27.0 tarball and against this release's tarball: the nine
+new laws are all gated and none of the canary fixtures holds their subject, so the
+one law fewer is Error Handling Standards going opt-in (#390). On
+the three real projects (full audits, own config, read-only) the new findings are
+the hook laws (#380: none of the three checkouts has its committed hooks
+activated) and Test Rig Keeps Route Guards with three findings on the Ionic app.
+TODO Management Standards gives 0 findings on all three (see #369 above).
+
+### Internal
+
+- The repository's own hooks are installed by `npm ci` (`prepare: husky && npm run
+  build`, #379); without `.git`, with `CI=true` or `HUSKY=0` the install and the
+  build still pass, and husky says why it skips.
+- Code is formatted with prettier (`.prettierrc.json`) in one reformat commit
+  listed in `.git-blame-ignore-revs`; the hook and CI only check formatting (#382).
+- lint-staged runs without its backup stash: the stash list is shared by every
+  worktree, so one hook could restore another worktree's backup.
+
+### Fixed — the audit cache follows the code (#391)
+
+The audit cache (`performance.cache: true`) was keyed by the project's files, the
+config, the mode and RoC's version string. Two builds of one version — release
+candidates, a local build, `npm link`, an install from git — shared entries, so
+the second could return the first one's verdict. Entries now also carry a hash of
+the running package's code (computed once per process, about 0.1 s, only when the
+cache is on); an entry from different code, or from before this release, is not
+used. Nothing is written into the package, so `npm pack` stays reproducible.
+
 ## [7.27.0] - 2026-11-18
 
 Nine performance laws from one production regression: a release passed every

@@ -13,7 +13,7 @@
  * about the real defect underneath — committed hooks at 100644 are not
  * executable when the repo is cloned on Linux.
  */
-import { execSync } from 'child_process';
+import { execSync } from '../../src/utils/child-process';
 import { GitHookComplianceLaw } from '../../src/checkers/git-laws/git-hook-compliance';
 import type { LawCheckContext } from '../../src/types/law.types';
 import { FileUtils } from '../../src/utils/file-utils';
@@ -63,7 +63,10 @@ describe('regression: hook exec bit is read from the git index', () => {
     git('config user.name "T"');
     git('config commit.gpgsign false');
 
-    write('package.json', JSON.stringify({ name: 't', devDependencies: { husky: '^9' } }));
+    write(
+      'package.json',
+      JSON.stringify({ name: 't', devDependencies: { husky: '^9' } })
+    );
     for (const hook of ['pre-commit', 'pre-push', 'commit-msg']) {
       write(`.husky/${hook}`, '#!/bin/sh\nnpx ruleofcode audit\n');
     }
@@ -83,9 +86,18 @@ describe('regression: hook exec bit is read from the git index', () => {
   });
 
   it('the fixture matches the real world: `_` is untracked, hooks are tracked', () => {
-    expect(trackedModesByBasename(repo, PathOperations.join(repo, '.husky/_')).size).toBe(0);
-    const tracked = trackedModesByBasename(repo, PathOperations.join(repo, '.husky'));
-    expect([...tracked.keys()].sort()).toEqual(['commit-msg', 'pre-commit', 'pre-push']);
+    expect(
+      trackedModesByBasename(repo, PathOperations.join(repo, '.husky/_')).size
+    ).toBe(0);
+    const tracked = trackedModesByBasename(
+      repo,
+      PathOperations.join(repo, '.husky')
+    );
+    expect([...tracked.keys()].sort()).toEqual([
+      'commit-msg',
+      'pre-commit',
+      'pre-push',
+    ]);
   });
 
   it('RED: committed hooks at 100644 are reported', () => {
@@ -101,13 +113,15 @@ describe('regression: hook exec bit is read from the git index', () => {
   });
 
   it('GREEN: the same hooks at 100755 are not reported', () => {
-    git('update-index --chmod=+x .husky/pre-commit .husky/pre-push .husky/commit-msg');
+    git(
+      'update-index --chmod=+x .husky/pre-commit .husky/pre-push .husky/commit-msg'
+    );
 
     const result = GitHookComplianceLaw.check(context());
 
-    expect(
-      (result.violations ?? []).some(v => /executable bit/i.test(v))
-    ).toBe(false);
+    expect((result.violations ?? []).some(v => /executable bit/i.test(v))).toBe(
+      false
+    );
   });
 
   it('never reports husky support files as hooks', () => {
@@ -135,12 +149,14 @@ describe('regression: hook exec bit is read from the git index', () => {
     // Everything under `_` is generated at install time and ignored wholesale.
     // A consumer cannot commit a mode for it, so a violation would be
     // unactionable — the exact failure this regression exists to prevent.
-    git('update-index --chmod=+x .husky/pre-commit .husky/pre-push .husky/commit-msg');
+    git(
+      'update-index --chmod=+x .husky/pre-commit .husky/pre-push .husky/commit-msg'
+    );
 
     const result = GitHookComplianceLaw.check(context());
 
-    expect(
-      (result.violations ?? []).some(v => /executable bit/i.test(v))
-    ).toBe(false);
+    expect((result.violations ?? []).some(v => /executable bit/i.test(v))).toBe(
+      false
+    );
   });
 });

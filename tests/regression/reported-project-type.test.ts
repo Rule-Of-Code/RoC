@@ -30,7 +30,9 @@ function fixture(files: Record<string, string>): string {
   return root;
 }
 
-async function audit(root: string): Promise<{ result: AuditResult; out: string }> {
+async function audit(
+  root: string
+): Promise<{ result: AuditResult; out: string }> {
   const chunks: string[] = [];
   const capture = (chunk: unknown): boolean => {
     chunks.push(String(chunk));
@@ -43,7 +45,11 @@ async function audit(root: string): Promise<{ result: AuditResult; out: string }
   const out = jest.spyOn(process.stdout, 'write').mockImplementation(capture);
   const err = jest.spyOn(process.stderr, 'write').mockImplementation(capture);
   try {
-    const auditor = await RuleOfCodeAuditor.create({ projectRoot: root, config: ConfigLoader.load(root), mode: 'full' });
+    const auditor = await RuleOfCodeAuditor.create({
+      projectRoot: root,
+      config: ConfigLoader.load(root),
+      mode: 'full',
+    });
     return { result: await auditor.audit(), out: chunks.join('\n') };
   } finally {
     log.mockRestore();
@@ -53,7 +59,10 @@ async function audit(root: string): Promise<{ result: AuditResult; out: string }
   }
 }
 
-const NEXT = JSON.stringify({ name: 'a', dependencies: { next: '16.4.6', react: '19.3.0', 'react-dom': '19.3.0' } });
+const NEXT = JSON.stringify({
+  name: 'a',
+  dependencies: { next: '16.4.6', react: '19.3.0', 'react-dom': '19.3.0' },
+});
 
 describe('the report says which project type selected the laws (#320)', () => {
   it('a Next app with no config: detected react, in the JSON and the console header', async () => {
@@ -61,13 +70,19 @@ describe('the report says which project type selected the laws (#320)', () => {
     const json = JSON.parse(AuditResultProcessor.exportResults(result, 'json'));
     expect(json.project).toEqual({ type: 'react', source: 'detected' });
     // eslint-disable-next-line no-control-regex
-    expect(out.replace(/\u001b\[[0-9;]*m/g, '')).toMatch(/Project type: react \(detected\)/);
+    expect(out.replace(/\u001b\[[0-9;]*m/g, '')).toMatch(
+      /Project type: react \(detected\)/
+    );
   });
 
   it('every law result echoes the config the law ran with — none says generic', async () => {
     const { result } = await audit(fixture({ 'package.json': NEXT }));
     const types = new Set(
-      [...result.results.values()].map(r => (r as { config?: { project?: { type?: string } } }).config?.project?.type)
+      [...result.results.values()].map(
+        r =>
+          (r as { config?: { project?: { type?: string } } }).config?.project
+            ?.type
+      )
     );
     expect([...types]).toEqual(['react']);
   });
@@ -82,7 +97,9 @@ describe('the report says which project type selected the laws (#320)', () => {
   });
 
   it('nothing detected and no type configured: generic, default', async () => {
-    const { result } = await audit(fixture({ 'public/index.html': '<html></html>' }));
+    const { result } = await audit(
+      fixture({ 'public/index.html': '<html></html>' })
+    );
     expect(result.project).toEqual({ type: 'generic', source: 'default' });
   });
 });

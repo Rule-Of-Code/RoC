@@ -13,7 +13,6 @@ export const logWarn = (
   error?: unknown
 ): void => {
   if (process.env.NODE_ENV !== 'production') {
-     
     console.warn(`[${context}] ${message}`, error);
   }
 };
@@ -27,7 +26,6 @@ export const logError = (
   error?: unknown
 ): void => {
   if (process.env.NODE_ENV !== 'production') {
-     
     console.error(`[${context}] ${message}`, error);
   }
 };
@@ -41,7 +39,6 @@ export const logInfo = (
   data?: unknown
 ): void => {
   if (process.env.NODE_ENV !== 'production') {
-     
     console.info(`[${context}] ${message}`, data);
   }
 };
@@ -55,7 +52,6 @@ export const logDebug = (
   data?: unknown
 ): void => {
   if (process.env.NODE_ENV !== 'production' && process.env.DEBUG) {
-     
     console.debug(`[${context}] ${message}`, data);
   }
 };

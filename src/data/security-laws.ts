@@ -24,7 +24,7 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
         'Keep only a template (.env.example / environment.template.ts) in the repo; inject real values at deploy time and gitignore the real files.',
     },
     detectionLimits: [
-      'Scans a fixed list of files at the project ROOT only — no recursion, so Angular\'s src/environments/environment.ts and any nested config are not seen.',
+      "Scans a fixed list of files at the project ROOT only — no recursion, so Angular's src/environments/environment.ts and any nested config are not seen.",
       'Whole-file regex: a real secret sitting next to a placeholder in the same file is suppressed along with the placeholder.',
       'Detects quoted, length-thresholded secrets; an unquoted KEY=value in a .env is not matched. No Python.',
       'Judges only what git could publish: a tracked file is read from the index, a present one that is not ignored from disk; an ignored, untracked local file is out of scope. Outside a git repository every listed file on disk is read.',
@@ -99,7 +99,7 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'A repo-hygiene / file-presence law, not a vulnerability scanner — it checks that SECURITY.md, the docs and a lockfile EXIST, never their content, and it never runs an audit.',
-      'A project full of vulnerable dependencies passes as long as the required files are present; finding an actual CVE is Dependency Security Scanning\'s job, not this law\'s.',
+      "A project full of vulnerable dependencies passes as long as the required files are present; finding an actual CVE is Dependency Security Scanning's job, not this law's.",
     ],
     emoji: '🚨',
     description:
@@ -127,7 +127,7 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '6.5',
     title: 'Angular Security XSS Prevention Policy',
     rationale:
-      'XSS is the vulnerability that turns your users\' own browsers against them, and it almost always enters through a string that was rendered as HTML when it should have been text. This law flags the sinks and asks that untrusted HTML be sanitized.',
+      "XSS is the vulnerability that turns your users' own browsers against them, and it almost always enters through a string that was rendered as HTML when it should have been text. This law flags the sinks and asks that untrusted HTML be sanitized.",
     satisfiedBy: {
       angular:
         'Bind with interpolation or [textContent]; when you must render HTML, sanitize it in the same statement — DomSanitizer.sanitize(SecurityContext.HTML, v) — and never pass unsanitized input to bypassSecurityTrust*.',
@@ -136,7 +136,7 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Regex over .ts/.tsx/.jsx/.html with comments stripped, case-sensitive and anchored on the property access (.innerHTML =, .insertAdjacentHTML(, document.write(, eval(, bypassSecurityTrust*(, [innerHTML]=) — dangerouslySetInnerHTML is not read as innerHTML; plain .js files are not scanned.',
-      'A sanitizer counts only in the sink\'s own statement (up to `;` or the end of the line), by callee name: DOMPurify.sanitize, DomSanitizer .sanitize(SecurityContext.HTML, …) and thresholds.security.htmlSanitizers. A value sanitized on an earlier line and assigned later is flagged; a weak sanitizer configuration is not seen. No data-flow.',
+      "A sanitizer counts only in the sink's own statement (up to `;` or the end of the line), by callee name: DOMPurify.sanitize, DomSanitizer .sanitize(SecurityContext.HTML, …) and thresholds.security.htmlSanitizers. A value sanitized on an earlier line and assigned later is flagged; a weak sanitizer configuration is not seen. No data-flow.",
       'An Angular [innerHTML] binding is flagged although Angular sanitizes it itself; eval is always flagged. The CSP is judged by Security Standards (XSS Prevention) Policy, not here.',
     ],
     stack: 'frontend',
@@ -151,7 +151,8 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'checkXSSPrevention',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Section 6.5: Potential XSS vulnerability detected',
-    remediation: 'Render text, or sanitize HTML in the sink\'s own statement; never eval',
+    remediation:
+      "Render text, or sanitize HTML in the sink's own statement; never eval",
   },
 
   {
@@ -165,10 +166,10 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '6.19',
     title: 'Security Standards (XSS Prevention) Policy',
     rationale:
-      'Untrusted input rendered as markup is how a comment box becomes a keylogger, and no review finds every sink. A Content-Security-Policy is the backstop: a script the page did not author does not run. This law asks that one be declared for every entry the project serves; the sinks themselves are the Angular Security XSS Prevention law\'s, so one defect gives one result.',
+      "Untrusted input rendered as markup is how a comment box becomes a keylogger, and no review finds every sink. A Content-Security-Policy is the backstop: a script the page did not author does not run. This law asks that one be declared for every entry the project serves; the sinks themselves are the Angular Security XSS Prevention law's, so one defect gives one result.",
     satisfiedBy: {
       angular:
-        "Serve a Content-Security-Policy: a <meta http-equiv> in index.html, or the hosting headers (firebase.json, vercel.json, netlify.toml); name any other server config in thresholds.security.cspFiles.",
+        'Serve a Content-Security-Policy: a <meta http-equiv> in index.html, or the hosting headers (firebase.json, vercel.json, netlify.toml); name any other server config in thresholds.security.cspFiles.',
       react:
         "Declare a CSP: in next.config.* headers() or proxy.ts for Next (as Next's CSP guide shows), in index.html or the hosting headers otherwise; name any other server config in thresholds.security.cspFiles.",
     },
@@ -276,7 +277,7 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '5.10',
     title: 'API Security Testing Requirements',
     rationale:
-      'An API\'s security is only as real as the test that would fail if it broke. This law asks for SAST, dependency scanning, and tests that ASSERT the security properties — a 401 on an unauthenticated call, the presence of the headers — so a regression is caught by CI, not by an attacker.',
+      "An API's security is only as real as the test that would fail if it broke. This law asks for SAST, dependency scanning, and tests that ASSERT the security properties — a 401 on an unauthenticated call, the presence of the headers — so a regression is caught by CI, not by an attacker.",
     satisfiedBy: {
       typescript:
         'Wire a SAST tool and a dependency scanner into the gate, and assert 401/403 and security headers in integration tests.',

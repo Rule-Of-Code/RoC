@@ -3,7 +3,7 @@
  * Ensures proper semantic versioning and release tagging
  */
 
-import { execSync } from 'child_process';
+import { execSync } from '../../utils/child-process';
 import type {
   LawCheckContext,
   LawResult,
@@ -204,8 +204,7 @@ export class ReleaseTagStandardsLaw extends GitLawBase {
       const scripts =
         (packageJson && typeof packageJson === 'object'
           ? ((packageJson as Record<string, unknown>).scripts as
-              | Record<string, unknown>
-              | undefined)
+              Record<string, unknown> | undefined)
           : undefined) ?? {};
 
       const releaseTools = [

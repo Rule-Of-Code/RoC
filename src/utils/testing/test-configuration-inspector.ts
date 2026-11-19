@@ -218,8 +218,7 @@ export class TestConfigurationInspector {
       if (allDeps[lib]) {
         extractedFrameworks.push(lib);
         const devDeps = packageJson.devDependencies as
-          | Record<string, string>
-          | undefined;
+          Record<string, string> | undefined;
         if (devDeps?.[lib]) {
           extractedDevDeps.push(lib);
         }

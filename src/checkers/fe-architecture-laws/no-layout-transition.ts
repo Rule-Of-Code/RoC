@@ -15,7 +15,8 @@ import { FeArchLawBase } from './fe-arch-law-base';
 
 export class NoLayoutTransitionLaw extends FeArchLawBase {
   private static readonly LAW_NAME = 'No Layout Transition';
-  private static readonly TRANSITION = /\btransition(?:-property)?\s*:\s*([^;{}]*)/i;
+  private static readonly TRANSITION =
+    /\btransition(?:-property)?\s*:\s*([^;{}]*)/i;
   private static readonly LAYOUT_PROP =
     /\b(width|height|top|left|right|bottom|margin|padding|inset)\b/i;
 
@@ -38,7 +39,10 @@ export class NoLayoutTransitionLaw extends FeArchLawBase {
     // include-pattern bias of shouldIgnoreFile (which assumes TS/JS sources).
     const ignorePatterns = FileFilterUtils.getIgnorePatterns(config);
     const isIgnored = (abs: string): boolean => {
-      const rel = PathOperations.getRelative(projectRoot, abs).replace(/\\/g, '/');
+      const rel = PathOperations.getRelative(projectRoot, abs).replace(
+        /\\/g,
+        '/'
+      );
       return ignorePatterns.some(p => minimatch(abs, p) || minimatch(rel, p));
     };
 

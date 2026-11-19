@@ -64,12 +64,24 @@ describe('WebBundlerConfig — what next.config / vite.config turn on and off', 
   });
 
   it.each([
-    ["experimental: { turbopackMinify: false }", 'experimental.turbopackMinify'],
-    ['experimental: { turbopackMinify: { client: false } }', 'experimental.turbopackMinify'],
-    ['webpack(config) { config.optimization.minimize = false; return config; }', 'optimization.minimize = false'],
+    [
+      'experimental: { turbopackMinify: false }',
+      'experimental.turbopackMinify',
+    ],
+    [
+      'experimental: { turbopackMinify: { client: false } }',
+      'experimental.turbopackMinify',
+    ],
+    [
+      'webpack(config) { config.optimization.minimize = false; return config; }',
+      'optimization.minimize = false',
+    ],
   ])('reads a minification opt-out: %s', (body, where) => {
     const report = WebBundlerConfig.inspect(
-      project({ ...PLAIN_NEXT, 'next.config.js': `module.exports = { ${body} };` })
+      project({
+        ...PLAIN_NEXT,
+        'next.config.js': `module.exports = { ${body} };`,
+      })
     );
     expect(report.apps[0]?.minifyOff).toBe(where);
     expect(WebBundlerConfig.optimizingBuilds(report)).toHaveLength(0);
@@ -101,15 +113,21 @@ describe('WebBundlerConfig — what next.config / vite.config turn on and off', 
 
   it('a Vite app counts only when something runs `vite build`', () => {
     const vite = (scripts: Record<string, string>, config: string): Files => ({
-      'package.json': JSON.stringify({ scripts, devDependencies: { vite: '^8.0.0' } }),
+      'package.json': JSON.stringify({
+        scripts,
+        devDependencies: { vite: '^8.0.0' },
+      }),
       'vite.config.ts': config,
     });
     expect(
-      WebBundlerConfig.inspect(project(vite({ build: 'tsc -b && vite build' }, 'export default {};'))).apps[0]
-        ?.builds
+      WebBundlerConfig.inspect(
+        project(vite({ build: 'tsc -b && vite build' }, 'export default {};'))
+      ).apps[0]?.builds
     ).toBe(true);
     expect(
-      WebBundlerConfig.inspect(project(vite({ test: 'vitest' }, 'export default {};'))).apps[0]?.builds
+      WebBundlerConfig.inspect(
+        project(vite({ test: 'vitest' }, 'export default {};'))
+      ).apps[0]?.builds
     ).toBe(false);
     const chunked = WebBundlerConfig.inspect(
       project(
@@ -147,11 +165,15 @@ describe('ReactPerformanceSource — evidence from the parse', () => {
       ].join('\n'),
     });
     const evidence = ReactPerformanceSource.scan(ctx(root));
-    const labels = evidence.dynamicImports.map(entry => entry.split(' ').slice(1).join(' '));
+    const labels = evidence.dynamicImports.map(entry =>
+      entry.split(' ').slice(1).join(' ')
+    );
     expect(labels).toEqual(
       expect.arrayContaining(['next/dynamic', 'React.lazy', 'import()'])
     );
-    expect(evidence.dynamicImports.filter(e => e.endsWith('React.lazy'))).toHaveLength(2);
+    expect(
+      evidence.dynamicImports.filter(e => e.endsWith('React.lazy'))
+    ).toHaveLength(2);
   });
 
   it('a Web Vitals report is a CALL — an import alone or a comment is not', () => {
@@ -174,11 +196,14 @@ describe('ReactPerformanceSource — evidence from the parse', () => {
       ctx(
         project({
           ...PLAIN_NEXT,
-          'src/app/vitals.ts': "import * as vitals from 'web-vitals';\nvitals.onINP(console.log);",
+          'src/app/vitals.ts':
+            "import * as vitals from 'web-vitals';\nvitals.onINP(console.log);",
         })
       )
     );
-    expect(called.webVitalsReports).toEqual(['src/app/vitals.ts:2 web-vitals onINP']);
+    expect(called.webVitalsReports).toEqual([
+      'src/app/vitals.ts:2 web-vitals onINP',
+    ]);
   });
 
   it('reads next/image, lazy <img>, <link> hints, next/font and react-dom preloads', () => {
@@ -217,8 +242,11 @@ describe('ReactPerformanceSource — evidence from the parse', () => {
     const evidence = ReactPerformanceSource.scan(
       ctx(
         project({
-          'package.json': JSON.stringify({ dependencies: { '@angular/core': '^20.0.0' } }),
-          'src/app/x.tsx': "import dynamic from 'next/dynamic'; dynamic(() => import('y'));",
+          'package.json': JSON.stringify({
+            dependencies: { '@angular/core': '^20.0.0' },
+          }),
+          'src/app/x.tsx':
+            "import dynamic from 'next/dynamic'; dynamic(() => import('y'));",
         })
       )
     );
@@ -235,7 +263,9 @@ describe('ReactPerformanceSource — evidence from the parse', () => {
 });
 
 describe('PerformanceBudgetGates — an enforced budget and the gate that runs it', () => {
-  const sizeLimitConfig = JSON.stringify([{ path: 'dist/*.js', limit: '10 kB' }]);
+  const sizeLimitConfig = JSON.stringify([
+    { path: 'dist/*.js', limit: '10 kB' },
+  ]);
 
   it('size-limit counts with a limit AND something that runs it', () => {
     expect(
@@ -277,11 +307,15 @@ describe('PerformanceBudgetGates — an enforced budget and the gate that runs i
         '        run: npm run build',
       ].join('\n'),
     });
-    expect(PerformanceBudgetGates.budgetGates(ciWords)).toEqual({ hostedCi: true, gates: [] });
+    expect(PerformanceBudgetGates.budgetGates(ciWords)).toEqual({
+      hostedCi: true,
+      gates: [],
+    });
 
     const ciRuns = project({
       'package.json': JSON.stringify({ scripts: { size: 'size-limit' } }),
-      '.github/workflows/ci.yml': 'jobs:\n  b:\n    steps:\n      - run: npm run size\n',
+      '.github/workflows/ci.yml':
+        'jobs:\n  b:\n    steps:\n      - run: npm run size\n',
       '.husky/pre-push': 'npm run size\n',
     });
     const status = PerformanceBudgetGates.budgetGates(ciRuns);
@@ -294,17 +328,28 @@ describe('PerformanceBudgetGates — an enforced budget and the gate that runs i
     const files: Files = {
       'package.json': JSON.stringify({ scripts: { build: 'next build' } }),
       '.lighthouserc.json': JSON.stringify({
-        ci: { assert: { assertions: { 'categories:performance': ['error', { minScore: 0.9 }] } } },
+        ci: {
+          assert: {
+            assertions: {
+              'categories:performance': ['error', { minScore: 0.9 }],
+            },
+          },
+        },
       }),
       '.github/workflows/ci.yml':
         'jobs:\n  b:\n    steps:\n      # TODO: lighthouse / lhci autorun\n      - name: Lighthouse\n        run: npm run build\n',
     };
-    expect(PerformanceBudgetGates.enforcedLighthouse(project(files))).toBeNull();
+    expect(
+      PerformanceBudgetGates.enforcedLighthouse(project(files))
+    ).toBeNull();
     const wired = project({
       ...files,
-      '.github/workflows/ci.yml': 'jobs:\n  b:\n    steps:\n      - run: npx @lhci/cli autorun\n',
+      '.github/workflows/ci.yml':
+        'jobs:\n  b:\n    steps:\n      - run: npx @lhci/cli autorun\n',
     });
-    expect(PerformanceBudgetGates.enforcedLighthouse(wired)).toContain('a CI step runs it');
+    expect(PerformanceBudgetGates.enforcedLighthouse(wired)).toContain(
+      'a CI step runs it'
+    );
   });
 
   it('a git hook counts only where there is no hosted CI', () => {
@@ -329,7 +374,9 @@ describe('PerformanceBudgetGates — an enforced budget and the gate that runs i
                 build: {
                   builder: '@angular/build:application',
                   configurations: {
-                    production: { budgets: [{ type: 'initial', [maximum]: '1mb' }] },
+                    production: {
+                      budgets: [{ type: 'initial', [maximum]: '1mb' }],
+                    },
                   },
                 },
               },
@@ -338,9 +385,13 @@ describe('PerformanceBudgetGates — an enforced budget and the gate that runs i
         }),
         '.gitlab-ci.yml': 'build:\n  script:\n    - npm run build\n',
       });
-    expect(PerformanceBudgetGates.budgetGates(angular('maximumError')).gates).toEqual([
+    expect(
+      PerformanceBudgetGates.budgetGates(angular('maximumError')).gates
+    ).toEqual([
       'CI .gitlab-ci.yml runs the Angular build (maximumError budgets) (via script "build")',
     ]);
-    expect(PerformanceBudgetGates.budgetGates(angular('maximumWarning')).gates).toEqual([]);
+    expect(
+      PerformanceBudgetGates.budgetGates(angular('maximumWarning')).gates
+    ).toEqual([]);
   });
 });

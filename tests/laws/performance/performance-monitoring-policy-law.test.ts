@@ -49,7 +49,6 @@ describe('PerformanceMonitoringPolicyLaw', () => {
           parallel: true,
           maxConcurrent: 4,
           cache: true,
-
         },
       },
     };

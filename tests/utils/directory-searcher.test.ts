@@ -233,7 +233,11 @@ describe('utils/directory-searcher', () => {
 
     it('should traverse nested subdirectories of src', () => {
       // The repo src/utils directory contains TypeScript files
-      const srcUtilsDir = PathOperations.join(REAL_PROJECT_ROOT, 'src', 'utils');
+      const srcUtilsDir = PathOperations.join(
+        REAL_PROJECT_ROOT,
+        'src',
+        'utils'
+      );
       const files: string[] = [];
 
       DirectorySearcher.searchDirectoriesRecursively(

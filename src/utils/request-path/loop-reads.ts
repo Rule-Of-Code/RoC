@@ -12,8 +12,19 @@
  * (`asyncio.gather` / `Promise.all` over the items).
  */
 
-import { apisFor, classifyRead, isBatchedText, type ProjectClients } from './data-clients';
-import type { AwaitSite, FunctionModel, LoopAwait, ModuleModel, StatementModel } from './model';
+import {
+  apisFor,
+  classifyRead,
+  isBatchedText,
+  type ProjectClients,
+} from './data-clients';
+import type {
+  AwaitSite,
+  FunctionModel,
+  LoopAwait,
+  ModuleModel,
+  StatementModel,
+} from './model';
 
 export interface LoopRead {
   rel: string;
@@ -31,8 +42,15 @@ export interface LoopReadScan {
   recognisedReads: number;
 }
 
-function isRecognised(site: AwaitSite, module: ModuleModel, clients: ProjectClients): boolean {
-  return site.call !== null && classifyRead(site.call, apisFor(clients, module.language)) !== 'none';
+function isRecognised(
+  site: AwaitSite,
+  module: ModuleModel,
+  clients: ProjectClients
+): boolean {
+  return (
+    site.call !== null &&
+    classifyRead(site.call, apisFor(clients, module.language)) !== 'none'
+  );
 }
 
 /**
@@ -41,24 +59,38 @@ function isRecognised(site: AwaitSite, module: ModuleModel, clients: ProjectClie
  * function, at or before the call, that binds the receiver's root name is
  * read for a batch operator or a page cursor.
  */
-function receiverBuiltBatched(fn: FunctionModel, line: number, receiver: string): boolean {
+function receiverBuiltBatched(
+  fn: FunctionModel,
+  line: number,
+  receiver: string
+): boolean {
   const root = /^[A-Za-z_$][\w$]*/.exec(receiver)?.[0];
   if (!root || root === 'self' || root === 'this') return false;
   let builder: StatementModel | null = null;
   for (const statement of fn.blocks.flat()) {
-    if (statement.line <= line && statement.bound.includes(root) && (!builder || statement.line >= builder.line)) {
+    if (
+      statement.line <= line &&
+      statement.bound.includes(root) &&
+      (!builder || statement.line >= builder.line)
+    ) {
       builder = statement;
     }
   }
   return builder !== null && isBatchedText(builder.text);
 }
 
-function loopRead(module: ModuleModel, fn: FunctionModel, loopAwait: LoopAwait, clients: ProjectClients): LoopRead | null {
+function loopRead(
+  module: ModuleModel,
+  fn: FunctionModel,
+  loopAwait: LoopAwait,
+  clients: ProjectClients
+): LoopRead | null {
   const call = loopAwait.site.call;
   // N+1 is one read per item: a read that does not use the loop's item (a
   // retry, a poll) or a loop whose count is written in the source is not.
   if (loopAwait.fixedCount || !loopAwait.dependsOnLoop) return null;
-  if (!call || classifyRead(call, apisFor(clients, module.language)) !== 'read') return null;
+  if (!call || classifyRead(call, apisFor(clients, module.language)) !== 'read')
+    return null;
   if (receiverBuiltBatched(fn, loopAwait.site.line, call.receiver)) return null;
   return {
     rel: module.rel,
@@ -72,14 +104,22 @@ function loopRead(module: ModuleModel, fn: FunctionModel, loopAwait: LoopAwait, 
 }
 
 /** Every read-in-a-loop site in the modules, and how many reads were recognised at all. */
-export function scanLoopReads(modules: readonly ModuleModel[], clients: ProjectClients): LoopReadScan {
+export function scanLoopReads(
+  modules: readonly ModuleModel[],
+  clients: ProjectClients
+): LoopReadScan {
   const sites: LoopRead[] = [];
   const seen = new Set<string>();
   let recognisedReads = 0;
   for (const module of modules) {
     for (const fn of module.functions) {
-      recognisedReads += fn.blocks.flat().flatMap(s => s.awaits).filter(a => isRecognised(a, module, clients)).length;
-      recognisedReads += fn.loopAwaits.filter(l => l.site.asyncIteration && isRecognised(l.site, module, clients)).length;
+      recognisedReads += fn.blocks
+        .flat()
+        .flatMap(s => s.awaits)
+        .filter(a => isRecognised(a, module, clients)).length;
+      recognisedReads += fn.loopAwaits.filter(
+        l => l.site.asyncIteration && isRecognised(l.site, module, clients)
+      ).length;
       for (const loopAwait of fn.loopAwaits) {
         const site = loopRead(module, fn, loopAwait, clients);
         const key = site ? `${site.rel}:${site.line}:${site.callee}` : '';
@@ -95,7 +135,9 @@ export function scanLoopReads(modules: readonly ModuleModel[], clients: ProjectC
 
 /** The finding text for one site. */
 export function describeLoopRead(site: LoopRead): string {
-  const what = site.asyncIteration ? `async iteration over ${site.callee}()` : `await ${site.callee}()`;
+  const what = site.asyncIteration
+    ? `async iteration over ${site.callee}()`
+    : `await ${site.callee}()`;
   return (
     `${site.rel}:${site.line}: ${what} runs once per item of the ${site.loopKind} loop at line ${site.loopLine} ` +
     `in ${site.function}() — one database round trip per item (N+1). Read the keys in one call at this site ` +

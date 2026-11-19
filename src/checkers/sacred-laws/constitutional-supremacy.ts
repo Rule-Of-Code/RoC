@@ -6,7 +6,10 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileSystemOperations } from '../../utils/file-system-operations';
 import { FileUtils } from '../../utils/file-utils';
-import { hasRuleOfCodeConfig, acceptedConfigFileNames } from '../../utils/config/roc-config-presence';
+import {
+  hasRuleOfCodeConfig,
+  acceptedConfigFileNames,
+} from '../../utils/config/roc-config-presence';
 import { PathOperations } from '../../utils/path-operations';
 import { dependenciesIncludeRuleOfCode } from '../../utils/ruleofcode-package';
 import {

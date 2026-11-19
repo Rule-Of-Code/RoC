@@ -7,7 +7,6 @@
  * Handles loading and merging of configuration from multiple sources
  */
 
-import { FileUtils } from '../utils';
 import {
   ConfigurationFileLoader,
   ConfigurationMerger,
@@ -70,41 +69,19 @@ export class ConfigLoader {
   }
 
   /**
-   * Synchronous config loading method
-   * Properly merges project config with defaults - project config takes precedence
+   * The project's config as `load` reads it, with `project.root` set — what
+   * the auditor uses when it is given no config object.
+   *
+   * It had its own reader (`FileUtils.findConfig` merged over the minimal
+   * defaults), which accepted a file only when it had an `ignores`,
+   * `includes` or `laws` section: a config declaring only `project` was
+   * dropped and the type came back `generic`, and no detected type was ever
+   * applied (#387). One reader now, so the CLI and a programmatic audit see
+   * the same config.
    */
   static loadConfig(projectRoot: string): RuleOfCodeConfig {
-    // Start with default configuration as base
-    const defaultConfig = FileUtils.getMinimalDefaultConfig();
-
-    // Try to find existing config in project hierarchy
-    const projectConfig = FileUtils.findConfig(projectRoot);
-
-    if (projectConfig) {
-      // Merge: defaults first, then project config (project takes precedence)
-      const mergedConfig = ConfigurationMerger.mergeConfigs(
-        defaultConfig,
-        projectConfig
-      );
-
-      // Ensure project root is set correctly
-      return {
-        ...mergedConfig,
-        project: {
-          ...mergedConfig.project,
-          root: projectRoot,
-        },
-      };
-    }
-
-    // Fallback to default config if no config file found
-    return {
-      ...defaultConfig,
-      project: {
-        ...defaultConfig.project,
-        root: projectRoot,
-      },
-    };
+    const config = this.load(projectRoot);
+    return { ...config, project: { ...config.project, root: projectRoot } };
   }
 
   /**

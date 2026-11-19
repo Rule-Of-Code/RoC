@@ -249,13 +249,17 @@ describe('AuthenticationSecurityLaw', () => {
       it('should have details array', () => {
         const result = AuthenticationSecurityLaw.check(context);
 
-        expect(result.details === undefined || Array.isArray(result.details)).toBe(true);
+        expect(
+          result.details === undefined || Array.isArray(result.details)
+        ).toBe(true);
       });
 
       it('should have fixable property', () => {
         const result = AuthenticationSecurityLaw.check(context);
 
-        expect(result.fixable === undefined || typeof result.fixable === 'boolean').toBe(true);
+        expect(
+          result.fixable === undefined || typeof result.fixable === 'boolean'
+        ).toBe(true);
       });
 
       it('should return success message when passed', () => {

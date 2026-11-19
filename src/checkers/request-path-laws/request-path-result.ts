@@ -13,6 +13,7 @@
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { markJudgedNothing } from '../../utils/judged-nothing';
+import { ONE_OFF_SCRIPT_LOCATIONS } from '../../utils/request-path/one-off-scripts';
 import type { ProjectSources } from '../../utils/request-path/sources';
 import { LawBase } from '../law-base';
 
@@ -20,9 +21,12 @@ export function filesRead(sources: ProjectSources): number {
   return sources.counts.python + sources.counts.typescript;
 }
 
-/** `42 source files read (40 Python, 2 TS/JS)`. */
+/** `42 source files read (40 Python, 2 TS/JS), 3 one-off script(s) under scripts/, … not judged`. */
 export function describeFilesRead(sources: ProjectSources): string {
-  return `${filesRead(sources)} source file(s) read (${sources.counts.python} Python, ${sources.counts.typescript} TS/JS)`;
+  const read = `${filesRead(sources)} source file(s) read (${sources.counts.python} Python, ${sources.counts.typescript} TS/JS)`;
+  return sources.oneOffScripts > 0
+    ? `${read}, ${sources.oneOffScripts} one-off script(s) under ${ONE_OFF_SCRIPT_LOCATIONS} not judged`
+    : read;
 }
 
 export interface RequestPathVerdict {
@@ -40,23 +44,50 @@ export interface RequestPathVerdict {
 }
 
 export function requestPathResult(verdict: RequestPathVerdict): LawResult {
-  const { lawName, context, sources, findings, suggestions, compared, passSummary, notSeen } = verdict;
+  const {
+    lawName,
+    context,
+    sources,
+    findings,
+    suggestions,
+    compared,
+    passSummary,
+    notSeen,
+  } = verdict;
   const metrics = {
     filesRead: filesRead(sources),
     pythonFiles: sources.counts.python,
     typescriptFiles: sources.counts.typescript,
+    oneOffScriptsSkipped: sources.oneOffScripts,
     compared,
   };
   if (filesRead(sources) === 0) {
-    const why = sources.unread.length > 0 ? sources.unread.join('; ') : 'the project has no Python or TS/JS source file outside tests';
+    const why =
+      sources.unread.length > 0
+        ? sources.unread.join('; ')
+        : `the project has no Python or TS/JS source file outside tests and one-off scripts (${sources.oneOffScripts} under ${ONE_OFF_SCRIPT_LOCATIONS})`;
     return {
       ...markJudgedNothing(
-        LawBase.createResult([`${lawName}: nothing was judged — no source file could be read: ${why}`], lawName, 'PERFORMANCE', suggestions, context)
+        LawBase.createResult(
+          [
+            `${lawName}: nothing was judged — no source file could be read: ${why}`,
+          ],
+          lawName,
+          'PERFORMANCE',
+          suggestions,
+          context
+        )
       ),
       metrics,
     };
   }
-  const result = LawBase.createResult([...sources.unread, ...findings], lawName, 'PERFORMANCE', suggestions, context);
+  const result = LawBase.createResult(
+    [...sources.unread, ...findings],
+    lawName,
+    'PERFORMANCE',
+    suggestions,
+    context
+  );
   if (!result.passed) return { ...result, metrics };
   const message = `${lawName}: ${describeFilesRead(sources)}, ${passSummary}; ${notSeen}`;
   return { ...result, message, details: [message], metrics };

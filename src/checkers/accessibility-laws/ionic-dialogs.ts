@@ -83,7 +83,8 @@ export class IonicDialogReader {
       .filter(
         entry =>
           entry.text !== null &&
-          (entry.text.includes('templateUrl') || entry.text.includes('ModalController'))
+          (entry.text.includes('templateUrl') ||
+            entry.text.includes('ModalController'))
       ) as Array<{ file: string; text: string }>;
     if (relevant.length === 0) return { presented, unread: [] };
 
@@ -110,14 +111,21 @@ export class IonicDialogReader {
         continue;
       }
       components.push(...this.components(ts, source, file));
-      this.collectCreated(ts, source, PathOperations.getRelative(context.projectRoot, file), created);
+      this.collectCreated(
+        ts,
+        source,
+        PathOperations.getRelative(context.projectRoot, file),
+        created
+      );
     }
 
     const nested = this.nestedInIonModal(context, templates);
     for (const component of components) {
       if (!component.template) continue;
       const byController = created.get(component.className);
-      const bySelector = component.selector ? nested.get(component.selector) : undefined;
+      const bySelector = component.selector
+        ? nested.get(component.selector)
+        : undefined;
       const presentation = byController ?? bySelector;
       if (presentation) presented.set(component.template, presentation);
     }
@@ -148,7 +156,12 @@ export class IonicDialogReader {
         className: node.name.text,
         selector: this.stringProperty(ts, options, 'selector'),
         template: templateUrl
-          ? templateKey(PathOperations.resolve(PathOperations.getDirectory(file), templateUrl))
+          ? templateKey(
+              PathOperations.resolve(
+                PathOperations.getDirectory(file),
+                templateUrl
+              )
+            )
           : null,
       });
     });
@@ -213,7 +226,11 @@ export class IonicDialogReader {
     source.walk(node => {
       if (!ts.isCallExpression(node)) return;
       const callee = node.expression;
-      if (!ts.isPropertyAccessExpression(callee) || callee.name.text !== 'create') return;
+      if (
+        !ts.isPropertyAccessExpression(callee) ||
+        callee.name.text !== 'create'
+      )
+        return;
       const options = node.arguments[0];
       if (!options || !ts.isObjectLiteralExpression(options)) return;
       const component = this.property(ts, options, 'component');
@@ -221,7 +238,9 @@ export class IonicDialogReader {
       const focusTrap = this.property(ts, options, 'focusTrap');
       created.set(component.text, {
         via: `ModalController.create in ${relative}`,
-        focusTrap: !(focusTrap && focusTrap.kind === ts.SyntaxKind.FalseKeyword),
+        focusTrap: !(
+          focusTrap && focusTrap.kind === ts.SyntaxKind.FalseKeyword
+        ),
       });
     });
   }
@@ -233,7 +252,9 @@ export class IonicDialogReader {
   ): Map<string, IonicPresentation> {
     const nested = new Map<string, IonicPresentation>();
     for (const [file, document] of templates) {
-      for (const modal of document.elements.filter(el => el.tag === ION_MODAL)) {
+      for (const modal of document.elements.filter(
+        el => el.tag === ION_MODAL
+      )) {
         const trap = TemplateMarkup.attribute(modal, 'focusTrap');
         const presentation: IonicPresentation = {
           via: `<ion-modal> in ${PathOperations.getRelative(context.projectRoot, file)}`,

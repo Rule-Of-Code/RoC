@@ -84,9 +84,11 @@ export class AngularSignalAdoptionLaw {
     if (!this.isAngular16Plus(projectRoot)) return [];
 
     const violations: string[] = [];
-    const files = CheckerUtils.findFilesByExtension(projectRoot, ['.ts'], config).filter(file =>
-      AngularComponentFiles.isKind(file, ['component'])
-    );
+    const files = CheckerUtils.findFilesByExtension(
+      projectRoot,
+      ['.ts'],
+      config
+    ).filter(file => AngularComponentFiles.isKind(file, ['component']));
     for (const file of files) {
       const raw = FileUtils.readFileContentSync(file);
       if (!raw) continue;
@@ -122,7 +124,10 @@ export class AngularSignalAdoptionLaw {
         pkg.dependencies?.['@angular/core'] ??
         pkg.devDependencies?.['@angular/core'];
       if (!ver) return false;
-      const major = parseInt(ver.replace(/[^\d.]/g, '').split('.')[0] ?? '0', 10);
+      const major = parseInt(
+        ver.replace(/[^\d.]/g, '').split('.')[0] ?? '0',
+        10
+      );
       return major >= 16;
     } catch {
       return false;

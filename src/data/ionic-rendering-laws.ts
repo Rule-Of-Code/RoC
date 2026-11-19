@@ -18,7 +18,10 @@
 
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
-import { REQUIRES_IONIC_ANGULAR, REQUIRES_IONIC_OR_CAPACITOR_IOS } from '../utils/ionic/ionic-project';
+import {
+  REQUIRES_IONIC_ANGULAR,
+  REQUIRES_IONIC_OR_CAPACITOR_IOS,
+} from '../utils/ionic/ionic-project';
 
 const TEMPLATES_ANGULAR_ONLY =
   'Angular templates only (inline `template` and `templateUrl`); @ionic/react and @ionic/vue are not selected because JSX and SFC templates are not read.';
@@ -140,7 +143,8 @@ export const IONIC_RENDERING_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'IonicIconsRegisteredLaw.check',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article IV.4.82: ion-icon name not registered with addIcons',
-    remediation: "Register the icon: addIcons({ camelCaseName }) from 'ionicons/icons'",
+    remediation:
+      "Register the icon: addIcons({ camelCaseName }) from 'ionicons/icons'",
   },
 
   {
@@ -165,7 +169,8 @@ export const IONIC_RENDERING_LAWS: EnhancedConstitutionalLaw[] = [
       TEMPLATES_ANGULAR_ONLY,
     ],
     emoji: '📜',
-    description: 'Scroll is read and listened to through ion-content, never through the window',
+    description:
+      'Scroll is read and listened to through ion-content, never through the window',
     priority: 'MEDIUM',
     category: 'FRAMEWORK',
     stack: 'frontend',
@@ -215,7 +220,8 @@ export const IONIC_RENDERING_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'IonicViewportFitCoverLaw.check',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article IV.4.84: index.html viewport without viewport-fit=cover',
-    remediation: 'Add viewport-fit=cover to the <meta name="viewport"> content of index.html',
+    remediation:
+      'Add viewport-fit=cover to the <meta name="viewport"> content of index.html',
   },
 
   {
@@ -276,7 +282,7 @@ export const IONIC_RENDERING_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'A component is judged when it binds pointerdown and pointermove or pointerup (template, host metadata, @HostListener, addEventListener, fromEvent, renderer.listen) and has an ion-content or is placed inside one; createGesture elsewhere in the same component is not credited, because its raw pointer handlers are still raw (and that createGesture itself survives the scroller was not measured).',
-      'A touch-action rule (other than auto) is matched by selector: in the component\'s own styles on :host, ::part(scroll) or a class/tag of the binding element; in any stylesheet on ::part(scroll), the component\'s element selector or those classes. A rule that matches through the cascade another way is reported as missing (false warning).',
+      "A touch-action rule (other than auto) is matched by selector: in the component's own styles on :host, ::part(scroll) or a class/tag of the binding element; in any stylesheet on ::part(scroll), the component's element selector or those classes. A rule that matches through the cascade another way is reported as missing (false warning).",
       'Cannot tell whether the gesture is horizontal or vertical; it only asks that some touch-action be chosen. Gestures from third-party libraries are not judged. WebKit was not measured.',
       TEMPLATES_ANGULAR_ONLY,
     ],
@@ -321,7 +327,8 @@ export const IONIC_RENDERING_LAWS: EnhancedConstitutionalLaw[] = [
       TEMPLATES_ANGULAR_ONLY,
     ],
     emoji: '📌',
-    description: 'Floating UI inside ion-content is placed in its fixed slot, not in the scroller',
+    description:
+      'Floating UI inside ion-content is placed in its fixed slot, not in the scroller',
     priority: 'MEDIUM',
     category: 'FRAMEWORK',
     stack: 'frontend',
@@ -332,6 +339,7 @@ export const IONIC_RENDERING_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'IonicFixedContentInFixedSlotLaw.check',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article IV.4.87: Floating UI inside the ion-content scroller',
-    remediation: 'Make it a direct child of ion-content with slot="fixed", or use ToastController',
+    remediation:
+      'Make it a direct child of ion-content with slot="fixed", or use ToastController',
   },
 ];

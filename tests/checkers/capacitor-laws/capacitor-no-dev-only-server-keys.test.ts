@@ -20,7 +20,9 @@ describe('CapacitorNoDevOnlyServerKeysLaw without a runnable CLI', () => {
     const result = check(law, null);
     expect(result.passed).toBe(false);
     expect(result.violations).toEqual([
-      expect.stringMatching(/capacitor\.config\.ts: could not resolve the Capacitor config — @capacitor\/cli is not installed/),
+      expect.stringMatching(
+        /capacitor\.config\.ts: could not resolve the Capacitor config — @capacitor\/cli is not installed/
+      ),
     ]);
   });
 });
@@ -37,10 +39,19 @@ describe('CapacitorNoDevOnlyServerKeysLaw (#155)', () => {
   });
 
   it.each([
-    [{ server: { allowNavigation: ['*.example.com'] } }, 'server.allowNavigation'],
+    [
+      { server: { allowNavigation: ['*.example.com'] } },
+      'server.allowNavigation',
+    ],
     [{ android: { allowMixedContent: true } }, 'android.allowMixedContent'],
-    [{ android: { webContentsDebuggingEnabled: true } }, 'android.webContentsDebuggingEnabled'],
-    [{ ios: { webContentsDebuggingEnabled: true } }, 'ios.webContentsDebuggingEnabled'],
+    [
+      { android: { webContentsDebuggingEnabled: true } },
+      'android.webContentsDebuggingEnabled',
+    ],
+    [
+      { ios: { webContentsDebuggingEnabled: true } },
+      'ios.webContentsDebuggingEnabled',
+    ],
   ])('red: %j', (config, key) => {
     expect(check(CapacitorNoDevOnlyServerKeysLaw, config).violations).toEqual([
       expect.stringContaining(`${key} is set`),
@@ -49,7 +60,12 @@ describe('CapacitorNoDevOnlyServerKeysLaw (#155)', () => {
 
   it('green: none of them, or their safe values', () => {
     const result = check(CapacitorNoDevOnlyServerKeysLaw, {
-      server: { hostname: 'app.example', cleartext: false, allowNavigation: [], url: '' },
+      server: {
+        hostname: 'app.example',
+        cleartext: false,
+        allowNavigation: [],
+        url: '',
+      },
       android: { webContentsDebuggingEnabled: false },
     });
     expect(result.violations).toEqual([]);

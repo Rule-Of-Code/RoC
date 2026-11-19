@@ -64,7 +64,8 @@ export class ChecklistValidatorBase {
     },
     {
       name: 'monitoring / alerting',
-      pattern: /\b(monitor|alert|observab|logging|metric|dashboard|on-?call)\b/i,
+      pattern:
+        /\b(monitor|alert|observab|logging|metric|dashboard|on-?call)\b/i,
     },
   ];
 

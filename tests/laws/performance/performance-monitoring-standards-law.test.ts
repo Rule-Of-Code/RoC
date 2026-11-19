@@ -49,7 +49,6 @@ describe('PerformanceMonitoringStandardsLaw', () => {
           parallel: true,
           maxConcurrent: 4,
           cache: true,
-
         },
       },
     };

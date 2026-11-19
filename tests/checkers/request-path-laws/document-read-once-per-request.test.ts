@@ -11,10 +11,15 @@ import { ctx, project, removeProjects } from '../toolkit-fixture';
 
 afterAll(removeProjects);
 
-const PYPROJECT = '[project]\nname = "svc"\ndependencies = ["google-cloud-firestore"]\n';
-const PACKAGE = JSON.stringify({ name: 'svc', dependencies: { firebase: '^11.0.0' } });
+const PYPROJECT =
+  '[project]\nname = "svc"\ndependencies = ["google-cloud-firestore"]\n';
+const PACKAGE = JSON.stringify({
+  name: 'svc',
+  dependencies: { firebase: '^11.0.0' },
+});
 
-const check = (files: Record<string, string>) => DocumentReadOncePerRequestLaw.check(ctx(project(files)));
+const check = (files: Record<string, string>) =>
+  DocumentReadOncePerRequestLaw.check(ctx(project(files)));
 const lines = (...l: string[]): string => l.join('\n') + '\n';
 
 const PY_HANDLER = lines(
@@ -33,8 +38,16 @@ describe('Document Read Once Per Request (#353)', () => {
         'pyproject.toml': PYPROJECT,
         'app/__init__.py': '',
         'app/handlers.py': PY_HANDLER,
-        'app/prefs.py': lines('async def load_prefs(db, user_id):', '    snap = await db.collection("users").document(user_id).get()', '    return snap.to_dict()["prefs"]'),
-        'app/blocks.py': lines('async def load_blocks(db, uid):', '    snap = await db.collection("users").document(uid).get()', '    return snap.to_dict()["blocks"]'),
+        'app/prefs.py': lines(
+          'async def load_prefs(db, user_id):',
+          '    snap = await db.collection("users").document(user_id).get()',
+          '    return snap.to_dict()["prefs"]'
+        ),
+        'app/blocks.py': lines(
+          'async def load_blocks(db, uid):',
+          '    snap = await db.collection("users").document(uid).get()',
+          '    return snap.to_dict()["blocks"]'
+        ),
       });
       expect(result.passed).toBe(false);
       expect(result.violations).toEqual([
@@ -71,7 +84,9 @@ describe('Document Read Once Per Request (#353)', () => {
         ),
       });
       expect(result.violations).toEqual([
-        expect.stringMatching(/^src\/prefs\.ts:3: users\/\{uid\} is read 2 times while serving getMe\(\) — src\/prefs\.ts:3 in loadPrefs\(\) \(called at src\/handler\.ts:4\), src\/blocks\.ts:4 in loadBlocks\(\) \(called at src\/handler\.ts:5\)/),
+        expect.stringMatching(
+          /^src\/prefs\.ts:3: users\/\{uid\} is read 2 times while serving getMe\(\) — src\/prefs\.ts:3 in loadPrefs\(\) \(called at src\/handler\.ts:4\), src\/blocks\.ts:4 in loadBlocks\(\) \(called at src\/handler\.ts:5\)/
+        ),
       ]);
     });
 
@@ -96,7 +111,11 @@ describe('Document Read Once Per Request (#353)', () => {
           '    return await db.collection(PEOPLE).document(str(uid)).get()'
         ),
       });
-      expect(result.violations).toEqual([expect.stringMatching(/^app\/prefs\.py:4: users\/\{str\(uid\)\} is read 2 times while serving get_me\(\)/)]);
+      expect(result.violations).toEqual([
+        expect.stringMatching(
+          /^app\/prefs\.py:4: users\/\{str\(uid\)\} is read 2 times while serving get_me\(\)/
+        ),
+      ]);
     });
 
     it('a handler that reads the document itself and calls a method of its class that reads it again', () => {
@@ -113,7 +132,11 @@ describe('Document Read Once Per Request (#353)', () => {
           '        return user.get("badges")'
         ),
       });
-      expect(result.violations).toEqual([expect.stringMatching(/^app\/svc\.py:3: users\/\{uid\} is read 2 times while serving Profiles\.page\(\)/)]);
+      expect(result.violations).toEqual([
+        expect.stringMatching(
+          /^app\/svc\.py:3: users\/\{uid\} is read 2 times while serving Profiles\.page\(\)/
+        ),
+      ]);
     });
   });
 
@@ -130,8 +153,14 @@ describe('Document Read Once Per Request (#353)', () => {
             '    user = (await db.collection("users").document(uid).get()).to_dict()',
             '    return prefs.prefs_of(user), blocks.blocks_of(user)'
           ),
-          'app/prefs.py': lines('def prefs_of(user):', '    return user["prefs"]'),
-          'app/blocks.py': lines('def blocks_of(user):', '    return user["blocks"]'),
+          'app/prefs.py': lines(
+            'def prefs_of(user):',
+            '    return user["prefs"]'
+          ),
+          'app/blocks.py': lines(
+            'def blocks_of(user):',
+            '    return user["blocks"]'
+          ),
         }).violations
       ).toEqual([]);
     });
@@ -170,9 +199,20 @@ describe('Document Read Once Per Request (#353)', () => {
         check({
           'pyproject.toml': PYPROJECT,
           'app/__init__.py': '',
-          'app/handlers.py': lines('from app import prefs, blocks', '', 'async def pair(uid, other, db):', '    return await prefs.load_prefs(db, uid), await blocks.load_blocks(db, other)'),
-          'app/prefs.py': lines('async def load_prefs(db, uid):', '    return await db.collection("users").document(uid).get()'),
-          'app/blocks.py': lines('async def load_blocks(db, uid):', '    return await db.collection("users").document(uid).get()'),
+          'app/handlers.py': lines(
+            'from app import prefs, blocks',
+            '',
+            'async def pair(uid, other, db):',
+            '    return await prefs.load_prefs(db, uid), await blocks.load_blocks(db, other)'
+          ),
+          'app/prefs.py': lines(
+            'async def load_prefs(db, uid):',
+            '    return await db.collection("users").document(uid).get()'
+          ),
+          'app/blocks.py': lines(
+            'async def load_blocks(db, uid):',
+            '    return await db.collection("users").document(uid).get()'
+          ),
         }).violations
       ).toEqual([]);
     });
@@ -182,11 +222,25 @@ describe('Document Read Once Per Request (#353)', () => {
         check({
           'pyproject.toml': PYPROJECT,
           'app/__init__.py': '',
-          'app/handlers.py': lines('from app import a, b', '', 'async def get(uid, db, coll):', '    return await a.load(db, coll, uid), await b.load(db, coll, uid)'),
-          'app/a.py': lines('async def load(db, coll, uid):', '    return await db.collection(coll).document(uid).get()'),
-          'app/b.py': lines('async def load(db, coll, uid):', '    return await db.collection(coll).document(uid).get()'),
+          'app/handlers.py': lines(
+            'from app import a, b',
+            '',
+            'async def get(uid, db, coll):',
+            '    return await a.load(db, coll, uid), await b.load(db, coll, uid)'
+          ),
+          'app/a.py': lines(
+            'async def load(db, coll, uid):',
+            '    return await db.collection(coll).document(uid).get()'
+          ),
+          'app/b.py': lines(
+            'async def load(db, coll, uid):',
+            '    return await db.collection(coll).document(uid).get()'
+          ),
           // One literal read elsewhere, so the law has something to judge.
-          'app/c.py': lines('async def settings(db):', '    return await db.collection("config").document("main").get()'),
+          'app/c.py': lines(
+            'async def settings(db):',
+            '    return await db.collection("config").document("main").get()'
+          ),
         }).violations
       ).toEqual([]);
     });
@@ -196,9 +250,20 @@ describe('Document Read Once Per Request (#353)', () => {
     const DYNAMIC_ONLY = {
       'pyproject.toml': PYPROJECT,
       'app/__init__.py': '',
-      'app/handlers.py': lines('from app import a, b', '', 'async def get(uid, db, coll):', '    return await a.load(db, coll, uid), await b.load(db, coll, uid)'),
-      'app/a.py': lines('async def load(db, coll, uid):', '    return await db.collection(coll).document(uid).get()'),
-      'app/b.py': lines('async def load(db, coll, uid):', '    return await db.collection(coll).document(uid).get()'),
+      'app/handlers.py': lines(
+        'from app import a, b',
+        '',
+        'async def get(uid, db, coll):',
+        '    return await a.load(db, coll, uid), await b.load(db, coll, uid)'
+      ),
+      'app/a.py': lines(
+        'async def load(db, coll, uid):',
+        '    return await db.collection(coll).document(uid).get()'
+      ),
+      'app/b.py': lines(
+        'async def load(db, coll, uid):',
+        '    return await db.collection(coll).document(uid).get()'
+      ),
     };
 
     it('a DB client and only dynamic collections: PASS with the counter and what it did not compare, never judged nothing', () => {
@@ -209,31 +274,55 @@ describe('Document Read Once Per Request (#353)', () => {
         'Document Read Once Per Request: 4 source file(s) read (4 Python, 0 TS/JS), 0 document reads keyed by a literal collection — nothing to compare; not compared: reads whose collection or id is computed at run time, reads through a repository or wrapper the reader does not resolve, and reads more than one call deep'
       );
       expect(result.details).toEqual([result.message]);
-      expect(result.metrics).toEqual({ filesRead: 4, pythonFiles: 4, typescriptFiles: 0, compared: 0 });
+      expect(result.metrics).toEqual({
+        filesRead: 4,
+        pythonFiles: 4,
+        typescriptFiles: 0,
+        oneOffScriptsSkipped: 0,
+        compared: 0,
+      });
     });
 
     it('keyed reads and no duplicate: PASS that counts what it compared', () => {
-      const result = check({ ...DYNAMIC_ONLY, 'app/c.py': lines('async def settings(db):', '    return await db.collection("config").document("main").get()') });
+      const result = check({
+        ...DYNAMIC_ONLY,
+        'app/c.py': lines(
+          'async def settings(db):',
+          '    return await db.collection("config").document("main").get()'
+        ),
+      });
       expect(result.passed).toBe(true);
-      expect(result.message).toMatch(/: 5 source file\(s\) read \(5 Python, 0 TS\/JS\), 1 keyed document read\(s\) compared, no document read twice in one request; not compared: /);
+      expect(result.message).toMatch(
+        /: 5 source file\(s\) read \(5 Python, 0 TS\/JS\), 1 keyed document read\(s\) compared, no document read twice in one request; not compared: /
+      );
       expect(result.metrics).toMatchObject({ filesRead: 5, compared: 1 });
     });
 
     it('no source file to read: judged nothing, never a pass', () => {
-      const result = check({ 'pyproject.toml': PYPROJECT, 'tests/test_x.py': lines('async def test_x():', '    pass') });
+      const result = check({
+        'pyproject.toml': PYPROJECT,
+        'tests/test_x.py': lines('async def test_x():', '    pass'),
+      });
       expect(result.passed).toBe(false);
       expect(result.score).toBe(0);
       expect(result.judgedNothing).toBe(true);
-      expect(result.violations?.[0]).toMatch(/nothing was judged — no source file could be read: the project has no Python or TS\/JS source file outside tests/);
+      expect(result.violations?.[0]).toMatch(
+        /nothing was judged — no source file could be read: the project has no Python or TS\/JS source file outside tests/
+      );
     });
 
     it('the TS parser cannot be loaded: judged nothing, saying why', () => {
       const spy = jest.spyOn(tsxSource, 'loadTypeScript').mockReturnValue(null);
       try {
-        const result = check({ 'package.json': PACKAGE, 'src/a.ts': 'export const a = 1;\n' });
+        const result = check({
+          'package.json': PACKAGE,
+          'src/a.ts': 'export const a = 1;\n',
+        });
         expect(result.passed).toBe(false);
         expect(result.judgedNothing).toBe(true);
-        expect(result.violations?.[0]).toMatch(/nothing was judged — no source file could be read: 1 TS\/JS file\(s\): could not load the 'typescript' package/);
+        expect(result.violations?.[0]).toMatch(
+          /nothing was judged — no source file could be read: 1 TS\/JS file\(s\): could not load the 'typescript' package/
+        );
       } finally {
         spy.mockRestore();
       }

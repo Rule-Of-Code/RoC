@@ -94,7 +94,9 @@ describe('a downstream consumer: ambiguous keys and the lying banner (v7.10.0)',
 
   describe('the banner never announces a scope it has not executed', () => {
     it('prints no law count in full mode', () => {
-      const log = jest.spyOn(console, 'log').mockImplementation(() => undefined);
+      const log = jest
+        .spyOn(console, 'log')
+        .mockImplementation(() => undefined);
 
       displayModeHeader('full', false);
       const printed = log.mock.calls.flat().join(' ');
@@ -107,7 +109,9 @@ describe('a downstream consumer: ambiguous keys and the lying banner (v7.10.0)',
     });
 
     it('says out loud that a Pareto run is a subset', () => {
-      const log = jest.spyOn(console, 'log').mockImplementation(() => undefined);
+      const log = jest
+        .spyOn(console, 'log')
+        .mockImplementation(() => undefined);
 
       displayModeHeader('fast', true);
       const printed = log.mock.calls.flat().join(' ');

@@ -1,0 +1,4 @@
+# Commits that only reformat code. Skip them in blame:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# style: format src, tests and scripts with prettier (no code change) — #382
+e35aacaac859000b85d155f163e06654dd44fada

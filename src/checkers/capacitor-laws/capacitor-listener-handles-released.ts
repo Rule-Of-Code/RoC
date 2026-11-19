@@ -34,8 +34,13 @@ import { LawBase } from '../law-base';
 
 const SHORT_LIVED_DECORATORS = new Set(['Component', 'Directive', 'Pipe']);
 const APP_LIFETIME_SCOPES = new Set(['root', 'platform']);
-const TEARDOWN_METHODS = new Set(['ngOnDestroy', 'ionViewWillLeave', 'ionViewDidLeave']);
-const TEARDOWN_PLACES = 'ngOnDestroy, DestroyRef.onDestroy, ionViewWillLeave or ionViewDidLeave';
+const TEARDOWN_METHODS = new Set([
+  'ngOnDestroy',
+  'ionViewWillLeave',
+  'ionViewDidLeave',
+]);
+const TEARDOWN_PLACES =
+  'ngOnDestroy, DestroyRef.onDestroy, ionViewWillLeave or ionViewDidLeave';
 
 /** What happens to the promise of a handle at the call site. */
 export type HandleFate =
@@ -50,7 +55,8 @@ export class CapacitorListenerHandlesReleasedLaw extends LawBase {
   static check(context: LawCheckContext): LawResult {
     const { sources, unread } = bridgeSources(context);
     const violations = unread.map(
-      reason => `${reason} — plugin listeners in these files would not be judged, so this law does not pass on them`
+      reason =>
+        `${reason} — plugin listeners in these files would not be judged, so this law does not pass on them`
     );
     for (const source of sources) {
       const pageFile = IonicProject.isPage(source.fileName, source.text);
@@ -78,7 +84,10 @@ export class CapacitorListenerHandlesReleasedLaw extends LawBase {
     pageFile: boolean
   ): string | null {
     const ts = source.ts;
-    const owner = enclosing(call.call, (node): node is TS.ClassLikeDeclaration => ts.isClassLike(node));
+    const owner = enclosing(
+      call.call,
+      (node): node is TS.ClassLikeDeclaration => ts.isClassLike(node)
+    );
     if (!owner) return null; // a module function or token factory: app lifetime
     const kind = this.shortLived(source, owner, pageFile);
     if (!kind) return null;
@@ -95,15 +104,29 @@ export class CapacitorListenerHandlesReleasedLaw extends LawBase {
   }
 
   /** Why the class is short-lived ('component', 'page', …), or null when it lives as long as the app. */
-  private static shortLived(source: TsxSource, owner: TS.ClassLikeDeclaration, pageFile: boolean): string | null {
+  private static shortLived(
+    source: TsxSource,
+    owner: TS.ClassLikeDeclaration,
+    pageFile: boolean
+  ): string | null {
     const decorators = classDecorators(source, owner);
-    const decorated = decorators.find(decorator => SHORT_LIVED_DECORATORS.has(decorator.name));
-    if (decorated) return pageFile && decorated.name === 'Component' ? 'page' : decorated.name.toLowerCase();
-    const injectable = decorators.find(decorator => decorator.name === 'Injectable');
+    const decorated = decorators.find(decorator =>
+      SHORT_LIVED_DECORATORS.has(decorator.name)
+    );
+    if (decorated)
+      return pageFile && decorated.name === 'Component'
+        ? 'page'
+        : decorated.name.toLowerCase();
+    const injectable = decorators.find(
+      decorator => decorator.name === 'Injectable'
+    );
     if (injectable) {
       const scope = objectProperty(source, injectable.argument, 'providedIn');
-      const value = scope && source.ts.isStringLiteralLike(scope) ? scope.text : null;
-      return value && APP_LIFETIME_SCOPES.has(value) ? null : 'service not provided in root';
+      const value =
+        scope && source.ts.isStringLiteralLike(scope) ? scope.text : null;
+      return value && APP_LIFETIME_SCOPES.has(value)
+        ? null
+        : 'service not provided in root';
     }
     return pageFile ? 'page' : null;
   }
@@ -112,20 +135,41 @@ export class CapacitorListenerHandlesReleasedLaw extends LawBase {
   static fate(source: TsxSource, call: TS.CallExpression): HandleFate {
     const ts = source.ts;
     let node: TS.Node = call;
-    while (ts.isAwaitExpression(node.parent) || ts.isParenthesizedExpression(node.parent)) node = node.parent;
+    while (
+      ts.isAwaitExpression(node.parent) ||
+      ts.isParenthesizedExpression(node.parent)
+    )
+      node = node.parent;
     const parent = node.parent;
-    if (ts.isExpressionStatement(parent) || ts.isVoidExpression(parent)) return { kind: 'discarded' };
-    if (ts.isReturnStatement(parent) || (ts.isArrowFunction(parent) && parent.body === node)) {
+    if (ts.isExpressionStatement(parent) || ts.isVoidExpression(parent))
+      return { kind: 'discarded' };
+    if (
+      ts.isReturnStatement(parent) ||
+      (ts.isArrowFunction(parent) && parent.body === node)
+    ) {
       return { kind: 'returned' };
     }
-    if (ts.isBinaryExpression(parent) && parent.operatorToken.kind === ts.SyntaxKind.EqualsToken) {
+    if (
+      ts.isBinaryExpression(parent) &&
+      parent.operatorToken.kind === ts.SyntaxKind.EqualsToken
+    ) {
       return { kind: 'kept', name: this.nameOf(source, parent.left) };
     }
-    if ((ts.isVariableDeclaration(parent) || ts.isPropertyDeclaration(parent)) && parent.initializer === node) {
+    if (
+      (ts.isVariableDeclaration(parent) || ts.isPropertyDeclaration(parent)) &&
+      parent.initializer === node
+    ) {
       return { kind: 'kept', name: this.nameOf(source, parent.name) };
     }
-    if (ts.isCallExpression(parent) && ts.isPropertyAccessExpression(parent.expression) && parent.expression.name.text === 'push') {
-      return { kind: 'kept', name: this.nameOf(source, parent.expression.expression) };
+    if (
+      ts.isCallExpression(parent) &&
+      ts.isPropertyAccessExpression(parent.expression) &&
+      parent.expression.name.text === 'push'
+    ) {
+      return {
+        kind: 'kept',
+        name: this.nameOf(source, parent.expression.expression),
+      };
     }
     return { kind: 'kept', name: null };
   }
@@ -138,20 +182,33 @@ export class CapacitorListenerHandlesReleasedLaw extends LawBase {
   }
 
   /** Is there a remove() of the handle, or a removeAllListeners(), in a teardown of the class? */
-  private static released(source: TsxSource, owner: TS.ClassLikeDeclaration, name: string | null): boolean {
+  private static released(
+    source: TsxSource,
+    owner: TS.ClassLikeDeclaration,
+    name: string | null
+  ): boolean {
     return this.teardowns(source, owner).some(region => {
-      if (methodCalls(source, region, 'removeAllListeners').length > 0) return true;
+      if (methodCalls(source, region, 'removeAllListeners').length > 0)
+        return true;
       if (methodCalls(source, region, 'remove').length === 0) return false;
       return name === null || this.mentions(source, region, name);
     });
   }
 
   /** The bodies that run when the instance ends: the teardown hooks and DestroyRef.onDestroy callbacks. */
-  private static teardowns(source: TsxSource, owner: TS.ClassLikeDeclaration): TS.Node[] {
+  private static teardowns(
+    source: TsxSource,
+    owner: TS.ClassLikeDeclaration
+  ): TS.Node[] {
     const ts = source.ts;
     const regions: TS.Node[] = [];
     for (const member of owner.members) {
-      if (ts.isMethodDeclaration(member) && member.body && ts.isIdentifier(member.name) && TEARDOWN_METHODS.has(member.name.text)) {
+      if (
+        ts.isMethodDeclaration(member) &&
+        member.body &&
+        ts.isIdentifier(member.name) &&
+        TEARDOWN_METHODS.has(member.name.text)
+      ) {
         regions.push(member.body);
       }
     }
@@ -162,11 +219,19 @@ export class CapacitorListenerHandlesReleasedLaw extends LawBase {
     return regions;
   }
 
-  private static mentions(source: TsxSource, region: TS.Node, name: string): boolean {
+  private static mentions(
+    source: TsxSource,
+    region: TS.Node,
+    name: string
+  ): boolean {
     const ts = source.ts;
     let found = false;
     const visit = (node: TS.Node): void => {
-      if ((ts.isIdentifier(node) || ts.isPrivateIdentifier(node)) && node.text === name) found = true;
+      if (
+        (ts.isIdentifier(node) || ts.isPrivateIdentifier(node)) &&
+        node.text === name
+      )
+        found = true;
       if (!found) ts.forEachChild(node, visit);
     };
     visit(region);

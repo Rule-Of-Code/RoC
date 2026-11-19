@@ -157,12 +157,10 @@ export class PerformanceValidationChecker {
     const architect = project.architect as Record<string, unknown> | undefined;
     const build = architect?.build as Record<string, unknown> | undefined;
     const configurations = build?.configurations as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     const options = build?.options as Record<string, unknown> | undefined;
     const production = configurations?.production as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
 
     return !!(production?.budgets ?? options?.budgets);
   }

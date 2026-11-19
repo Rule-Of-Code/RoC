@@ -27,7 +27,13 @@ import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { ReactProject } from '../../utils/react/react-project';
 import type { TsxSource } from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';
-import { calleeText, literalText, nameList, parseFilesMentioning, unwrap } from './react-security-support';
+import {
+  calleeText,
+  literalText,
+  nameList,
+  parseFilesMentioning,
+  unwrap,
+} from './react-security-support';
 
 const BODY_READERS = new Set(['json', 'formData', 'text']);
 const REQUEST_TYPES = new Set(['Request', 'NextRequest']);
@@ -46,14 +52,23 @@ export class NextOpenRedirectGuardedLaw extends LawBase {
   static readonly LAW_NAME = 'Next Open Redirect Guarded';
 
   static check(context: LawCheckContext): LawResult {
-    const guards = new Set(nameList(context.config.thresholds?.react?.redirectGuards));
-    const { sources, unread } = parseFilesMentioning(context, ['redirect', 'Redirect']);
+    const guards = new Set(
+      nameList(context.config.thresholds?.react?.redirectGuards)
+    );
+    const { sources, unread } = parseFilesMentioning(context, [
+      'redirect',
+      'Redirect',
+    ]);
     const violations = [...unread];
     for (const source of sources) {
       const rel = ReactProject.relative(context, source.fileName);
       for (const call of this.redirectCalls(source)) {
         const target = call.arguments[0];
-        if (!target || !this.fromRequest(source, target, this.taintOf(source, call, guards))) continue;
+        if (
+          !target ||
+          !this.fromRequest(source, target, this.taintOf(source, call, guards))
+        )
+          continue;
         violations.push(
           `${rel}:${source.lineOf(call)}: ${calleeText(call, source.sourceFile)}(${this.text(source, target)}) sends the visitor to a target taken from the request (searchParams / the body) with no guard — a crafted link lands them on any site. Allow only same-site paths, through a guard named in thresholds.react.redirectGuards`
         );
@@ -79,15 +94,21 @@ export class NextOpenRedirectGuardedLaw extends LawBase {
     for (const info of source.imports()) {
       if (info.typeOnly) continue;
       for (const { imported, local } of info.named) {
-        if (info.module === 'next/navigation' && (imported === 'redirect' || imported === 'permanentRedirect')) navigation.add(local);
-        if (info.module === 'next/server' && imported === 'NextResponse') responses.add(local);
+        if (
+          info.module === 'next/navigation' &&
+          (imported === 'redirect' || imported === 'permanentRedirect')
+        )
+          navigation.add(local);
+        if (info.module === 'next/server' && imported === 'NextResponse')
+          responses.add(local);
       }
     }
     const calls: TS.CallExpression[] = [];
     source.walk(node => {
       if (!ts.isCallExpression(node)) return;
       const callee = node.expression;
-      if (ts.isIdentifier(callee) && navigation.has(callee.text)) calls.push(node);
+      if (ts.isIdentifier(callee) && navigation.has(callee.text))
+        calls.push(node);
       else if (
         ts.isPropertyAccessExpression(callee) &&
         callee.name.text === 'redirect' &&
@@ -101,15 +122,25 @@ export class NextOpenRedirectGuardedLaw extends LawBase {
   }
 
   /** The taint sources of the function a call sits in (and of the functions around it). */
-  private static taintOf(source: TsxSource, call: TS.CallExpression, guards: Set<string>): Taint {
+  private static taintOf(
+    source: TsxSource,
+    call: TS.CallExpression,
+    guards: Set<string>
+  ): Taint {
     const ts = source.ts;
-    const taint: Taint = { requests: new Set(), formData: new Set(), locals: new Set(), guards };
+    const taint: Taint = {
+      requests: new Set(),
+      formData: new Set(),
+      locals: new Set(),
+      guards,
+    };
     let fn: TS.Node | undefined = call.parent;
     let innermost: TS.Node | undefined;
     while (fn) {
       if (ts.isFunctionLike(fn)) {
         innermost ??= fn;
-        for (const param of fn.parameters) this.addParameter(source, param, taint);
+        for (const param of fn.parameters)
+          this.addParameter(source, param, taint);
       }
       fn = fn.parent;
     }
@@ -117,13 +148,24 @@ export class NextOpenRedirectGuardedLaw extends LawBase {
     return taint;
   }
 
-  private static addParameter(source: TsxSource, param: TS.ParameterDeclaration, taint: Taint): void {
+  private static addParameter(
+    source: TsxSource,
+    param: TS.ParameterDeclaration,
+    taint: Taint
+  ): void {
     const ts = source.ts;
     if (!ts.isIdentifier(param.name)) return;
     const name = param.name.text;
-    const type = param.type && ts.isTypeReferenceNode(param.type) ? param.type.typeName.getText(source.sourceFile) : '';
+    const type =
+      param.type && ts.isTypeReferenceNode(param.type)
+        ? param.type.typeName.getText(source.sourceFile)
+        : '';
     if (type === 'FormData') taint.formData.add(name);
-    else if (REQUEST_TYPES.has(type) || (!param.type && REQUEST_NAMES.has(name))) taint.requests.add(name);
+    else if (
+      REQUEST_TYPES.has(type) ||
+      (!param.type && REQUEST_NAMES.has(name))
+    )
+      taint.requests.add(name);
   }
 
   /** Locals initialised from the request, to a fixpoint, in this function only. */
@@ -132,7 +174,8 @@ export class NextOpenRedirectGuardedLaw extends LawBase {
     const declarations: TS.VariableDeclaration[] = [];
     const collect = (node: TS.Node): void => {
       if (node !== fn && ts.isFunctionLike(node)) return;
-      if (ts.isVariableDeclaration(node) && node.initializer) declarations.push(node);
+      if (ts.isVariableDeclaration(node) && node.initializer)
+        declarations.push(node);
       ts.forEachChild(node, collect);
     };
     collect(fn);
@@ -140,7 +183,14 @@ export class NextOpenRedirectGuardedLaw extends LawBase {
     while (grew) {
       grew = false;
       for (const declaration of declarations) {
-        if (!this.fromRequest(source, declaration.initializer as TS.Expression, taint)) continue;
+        if (
+          !this.fromRequest(
+            source,
+            declaration.initializer as TS.Expression,
+            taint
+          )
+        )
+          continue;
         for (const name of this.boundNames(source, declaration.name)) {
           if (!taint.locals.has(name)) {
             taint.locals.add(name);
@@ -160,18 +210,31 @@ export class NextOpenRedirectGuardedLaw extends LawBase {
   }
 
   /** Whether the expression carries a value from the request, unguarded. */
-  private static fromRequest(source: TsxSource, expression: TS.Expression, taint: Taint): boolean {
+  private static fromRequest(
+    source: TsxSource,
+    expression: TS.Expression,
+    taint: Taint
+  ): boolean {
     const ts = source.ts;
     const e = unwrap(ts, expression);
     if (this.staticallySameSite(source, e)) return false;
     // new URL(target, base): where it lands is decided by the target; the base
     // (request.url) only resolves a relative one against this site.
-    const first = ts.isNewExpression(e) && ts.isIdentifier(e.expression) && e.expression.text === 'URL' ? e.arguments?.[0] : undefined;
+    const first =
+      ts.isNewExpression(e) &&
+      ts.isIdentifier(e.expression) &&
+      e.expression.text === 'URL'
+        ? e.arguments?.[0]
+        : undefined;
     if (first) return this.fromRequest(source, first, taint);
     let found = false;
     const visit = (node: TS.Node): void => {
       if (found || ts.isFunctionLike(node)) return;
-      if (ts.isCallExpression(node) && taint.guards.has(calleeText(node, source.sourceFile))) return;
+      if (
+        ts.isCallExpression(node) &&
+        taint.guards.has(calleeText(node, source.sourceFile))
+      )
+        return;
       if (this.isSource(source, node, taint)) {
         found = true;
         return;
@@ -182,29 +245,57 @@ export class NextOpenRedirectGuardedLaw extends LawBase {
     return found;
   }
 
-  private static isSource(source: TsxSource, node: TS.Node, taint: Taint): boolean {
+  private static isSource(
+    source: TsxSource,
+    node: TS.Node,
+    taint: Taint
+  ): boolean {
     const ts = source.ts;
     if (ts.isIdentifier(node)) {
-      return node.text === 'searchParams' || taint.formData.has(node.text) || taint.locals.has(node.text);
+      return (
+        node.text === 'searchParams' ||
+        taint.formData.has(node.text) ||
+        taint.locals.has(node.text)
+      );
     }
-    if (ts.isPropertyAccessExpression(node) && node.name.text === 'searchParams') return true;
+    if (
+      ts.isPropertyAccessExpression(node) &&
+      node.name.text === 'searchParams'
+    )
+      return true;
     if (!ts.isCallExpression(node)) return false;
     const callee = node.expression;
     if (ts.isIdentifier(callee)) return callee.text === 'useSearchParams';
-    if (!ts.isPropertyAccessExpression(callee) || !BODY_READERS.has(callee.name.text)) return false;
+    if (
+      !ts.isPropertyAccessExpression(callee) ||
+      !BODY_READERS.has(callee.name.text)
+    )
+      return false;
     const receiver = unwrap(ts, callee.expression);
-    return node.arguments.length === 0 && ts.isIdentifier(receiver) && taint.requests.has(receiver.text);
+    return (
+      node.arguments.length === 0 &&
+      ts.isIdentifier(receiver) &&
+      taint.requests.has(receiver.text)
+    );
   }
 
   /** A template or + chain (or literal) whose static start is a same-site path. */
-  private static staticallySameSite(source: TsxSource, e: TS.Expression): boolean {
+  private static staticallySameSite(
+    source: TsxSource,
+    e: TS.Expression
+  ): boolean {
     const ts = source.ts;
     const literal = literalText(ts, e);
     if (literal !== null) return true;
     if (ts.isTemplateExpression(e)) return SAME_SITE_PATH.test(e.head.text);
-    if (ts.isBinaryExpression(e) && e.operatorToken.kind === ts.SyntaxKind.PlusToken) {
+    if (
+      ts.isBinaryExpression(e) &&
+      e.operatorToken.kind === ts.SyntaxKind.PlusToken
+    ) {
       const head = literalText(ts, unwrap(ts, e.left));
-      return head !== null ? SAME_SITE_PATH.test(head) : this.staticallySameSite(source, unwrap(ts, e.left));
+      return head !== null
+        ? SAME_SITE_PATH.test(head)
+        : this.staticallySameSite(source, unwrap(ts, e.left));
     }
     return false;
   }

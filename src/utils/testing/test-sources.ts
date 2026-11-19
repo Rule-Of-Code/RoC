@@ -24,7 +24,16 @@ import { ReactProject } from '../react/react-project';
 import type { TsxSource } from '../react/tsx-source';
 
 /** Every extension a JS/TS test can be written in. */
-export const TEST_SOURCE_EXTENSIONS = ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs'];
+export const TEST_SOURCE_EXTENSIONS = [
+  '.ts',
+  '.tsx',
+  '.mts',
+  '.cts',
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.cjs',
+];
 
 /** A test file name in the default spelling of Jest, Vitest, Mocha, Jasmine, Playwright and Cypress. */
 export const TEST_SOURCE_NAME = /\.(?:spec|test|cy|e2e-spec)\.[cm]?[jt]sx?$/;
@@ -39,7 +48,9 @@ const PLAYWRIGHT_CONFIG = /(?:^|\/)playwright(?:-ct)?\.config\.[cm]?[jt]s$/;
 export const PLAYWRIGHT_MODULES = ['@playwright/test', 'playwright'];
 
 /** Selected where Playwright is declared. */
-export const REQUIRES_PLAYWRIGHT: LawRequirement = { anyDependency: PLAYWRIGHT_MODULES };
+export const REQUIRES_PLAYWRIGHT: LawRequirement = {
+  anyDependency: PLAYWRIGHT_MODULES,
+};
 
 /**
  * Selected where a JS/TS runner that has a focus modifier is declared:
@@ -103,13 +114,17 @@ export class TestSources {
   }
 
   /** Parse with the project's TypeScript; see ReactProject.parse for the contract. */
-  static parse(context: LawCheckContext, files: readonly string[]): ReadSources {
+  static parse(
+    context: LawCheckContext,
+    files: readonly string[]
+  ): ReadSources {
     return ReactProject.parse(context, files);
   }
 
   /** True when the file imports, re-exports or requires one of `modules`. */
   static importsAny(source: TsxSource, modules: readonly string[]): boolean {
-    if (source.imports().some(info => modules.includes(info.module))) return true;
+    if (source.imports().some(info => modules.includes(info.module)))
+      return true;
     const ts = source.ts;
     const reExports = source.sourceFile.statements.some(
       statement =>
@@ -125,7 +140,8 @@ export class TestSources {
       const [argument] = node.arguments;
       const isLoad =
         node.expression.kind === ts.SyntaxKind.ImportKeyword ||
-        (ts.isIdentifier(node.expression) && node.expression.text === 'require');
+        (ts.isIdentifier(node.expression) &&
+          node.expression.text === 'require');
       if (isLoad && argument && ts.isStringLiteralLike(argument)) {
         found = modules.includes(argument.text);
       }
@@ -140,7 +156,9 @@ export class TestSources {
    */
   static playwrightFiles(context: LawCheckContext): PlaywrightFiles {
     const files = this.codeFiles(context);
-    const configFiles = files.filter(file => PLAYWRIGHT_CONFIG.test(file.replace(/\\/g, '/')));
+    const configFiles = files.filter(file =>
+      PLAYWRIGHT_CONFIG.test(file.replace(/\\/g, '/'))
+    );
     const configs = this.parse(context, configFiles);
     const testDirs = configs.sources.map(config => this.testDir(config));
     const underTestDir = (file: string): boolean =>
@@ -148,7 +166,8 @@ export class TestSources {
 
     const candidates = files.filter(
       file =>
-        !configFiles.includes(file) && (underTestDir(file) || this.isTestFile(file))
+        !configFiles.includes(file) &&
+        (underTestDir(file) || this.isTestFile(file))
     );
     const parsed = this.parse(context, candidates);
     const sources = parsed.sources.filter(source => {

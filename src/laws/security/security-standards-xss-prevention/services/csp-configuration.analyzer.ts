@@ -1,7 +1,6 @@
 import { FileUtils, PathOperations } from '../../../../utils';
 import { CSPConstants } from '../constants';
 
-
 /**
  * CSPConfigurationAnalyzer
  *

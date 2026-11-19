@@ -10,7 +10,10 @@
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { describeCountByFetch, scanCountByFetch } from '../../utils/request-path/count-by-fetch';
+import {
+  describeCountByFetch,
+  scanCountByFetch,
+} from '../../utils/request-path/count-by-fetch';
 import { declaredClients } from '../../utils/request-path/data-clients';
 import { projectSources } from '../../utils/request-path/sources';
 import { LawBase } from '../law-base';
@@ -21,7 +24,10 @@ export class CountWithAggregationLaw extends LawBase {
 
   static check(context: LawCheckContext): LawResult {
     const sources = projectSources(context);
-    const { sites, fetches } = scanCountByFetch(sources.modules, declaredClients(context.projectRoot));
+    const { sites, fetches } = scanCountByFetch(
+      sources.modules,
+      declaredClients(context.projectRoot)
+    );
     return requestPathResult({
       lawName: this.LAW_NAME,
       context,

@@ -20,8 +20,12 @@ async function sites(files: Record<string, string>): Promise<string[]> {
   return (result.violations ?? []).filter(v => N_PLUS_ONE.test(v));
 }
 
-const TS_MANIFEST = JSON.stringify({ name: 'svc', dependencies: { 'firebase-admin': '^12.0.0' } });
-const PY_MANIFEST = '[project]\nname = "svc"\ndependencies = ["google-cloud-firestore>=2"]\n';
+const TS_MANIFEST = JSON.stringify({
+  name: 'svc',
+  dependencies: { 'firebase-admin': '^12.0.0' },
+});
+const PY_MANIFEST =
+  '[project]\nname = "svc"\ndependencies = ["google-cloud-firestore>=2"]\n';
 
 const TS_BATCHED = [
   "import { getFirestore } from 'firebase-admin/firestore';",
@@ -70,7 +74,9 @@ describe('database-query-optimization: N+1 per call site (#352)', () => {
         'src/roles.service.ts': TS_LOOP_READ,
       });
       expect(found).toHaveLength(1);
-      expect(found[0]).toMatch(/^src\/roles\.service\.ts:6: await db\.collection\("roles"\)\.doc\(id\)\.get\(\) runs once per item of the for-of loop at line 5/);
+      expect(found[0]).toMatch(
+        /^src\/roles\.service\.ts:6: await db\.collection\("roles"\)\.doc\(id\)\.get\(\) runs once per item of the for-of loop at line 5/
+      );
     });
 
     it('Python: one batched file and one loop-read file → the loop site is named', async () => {
@@ -81,7 +87,9 @@ describe('database-query-optimization: N+1 per call site (#352)', () => {
         'app/roles_service.py': PY_LOOP_READ,
       });
       expect(found).toHaveLength(1);
-      expect(found[0]).toMatch(/^app\/roles_service\.py:4: await people\.get\(\) runs once per item of the for loop at line 3 in load_roles\(\)/);
+      expect(found[0]).toMatch(
+        /^app\/roles_service\.py:4: await people\.get\(\) runs once per item of the for loop at line 3 in load_roles\(\)/
+      );
     });
 
     it('Python: a comprehension with await is detected', async () => {
@@ -94,7 +102,9 @@ describe('database-query-optimization: N+1 per call site (#352)', () => {
         ].join('\n'),
       });
       expect(found).toHaveLength(1);
-      expect(found[0]).toMatch(/^app\/roles\.py:2: await db\.collection\("roles"\)\.document\(i\)\.get\(\) runs once per item of the comprehension loop/);
+      expect(found[0]).toMatch(
+        /^app\/roles\.py:2: await db\.collection\("roles"\)\.document\(i\)\.get\(\) runs once per item of the comprehension loop/
+      );
     });
 
     it('Python: async iteration over a query inside a loop, and an awaited read in an async for body', async () => {
@@ -113,8 +123,12 @@ describe('database-query-optimization: N+1 per call site (#352)', () => {
         ].join('\n'),
       });
       expect(found).toHaveLength(2);
-      expect(found[0]).toMatch(/^app\/feed\.py:3: async iteration over db\.collection\("posts"\)\.where\("author", "==", uid\)\.stream\(\) runs once per item of the for loop at line 2/);
-      expect(found[1]).toMatch(/^app\/feed\.py:8: await .*\.get\(\) runs once per item of the async for loop at line 7/);
+      expect(found[0]).toMatch(
+        /^app\/feed\.py:3: async iteration over db\.collection\("posts"\)\.where\("author", "==", uid\)\.stream\(\) runs once per item of the for loop at line 2/
+      );
+      expect(found[1]).toMatch(
+        /^app\/feed\.py:8: await .*\.get\(\) runs once per item of the async for loop at line 7/
+      );
     });
 
     it('TS: .forEach with an async callback, a classic for, and an id derived from the item in the body', async () => {
@@ -338,7 +352,10 @@ describe('database-query-optimization: N+1 per call site (#352)', () => {
     });
 
     it('a Python project with a database but no recognised read stays not applicable', async () => {
-      const root = project({ 'pyproject.toml': '[project]\ndependencies = ["sqlalchemy"]\n', 'main.py': 'def run():\n    pass\n' });
+      const root = project({
+        'pyproject.toml': '[project]\ndependencies = ["sqlalchemy"]\n',
+        'main.py': 'def run():\n    pass\n',
+      });
       const result = await DatabaseQueryOptimizationLaw.check(ctx(root));
       expect(result.passed).toBe(true);
       expect(result.message).toContain('Not applicable');

@@ -11,7 +11,7 @@ Project type: typescript (detected)
    Run 'npx ruleofcode reinstall-hooks' to install them
 
 ⚖️  Executing constitutional checks...
-🔍 Processing 80 laws (parallel: true)
+🔍 Processing 79 laws (parallel: true)
 
 
 ════════════════════════════════════════════════════════════
@@ -20,10 +20,10 @@ Project type: typescript (detected)
 
 📊 AUDIT SUMMARY:
 ────────────────────────────────────────────────────────────
-Total Laws Checked: 80
-  of which count for the liveness floor: 78 (+2 always-on meta-gates — set laws.minLawsChecked against 78)
+Total Laws Checked: 79
+  of which count for the liveness floor: 77 (+2 always-on meta-gates — set laws.minLawsChecked against 77)
 
-✓ Passed: 80
+✓ Passed: 79
 ✗ Failed: 0
 Score: 100% (Pass Rate: 100%)
 Execution time: <n>ms
@@ -103,14 +103,13 @@ Execution time: <n>ms
 70. TODO Management Standards (Score: 100/100)
 71. MD Footer Footer Consistency (Score: 100/100)
 72. Strategic Document Updates (Score: 100/100)
-73. Error Handling Standards (Score: 100/100)
-74. Incident Response Protocol (Score: 100/100)
-75. Audit Liveness Assertion (Score: 100/100)
-76. Config Integrity Guard (Score: 100/100)
-77. Golden Fixture Immutability (Score: 100/100)
-78. Guard Function Has Production Caller (Score: 100/100)
-79. Tsconfig Exclude Leaves Code Untyped (Score: 100/100)
-80. Test Server Loopback Address Match (Score: 100/100)
+73. Incident Response Protocol (Score: 100/100)
+74. Audit Liveness Assertion (Score: 100/100)
+75. Config Integrity Guard (Score: 100/100)
+76. Golden Fixture Immutability (Score: 100/100)
+77. Guard Function Has Production Caller (Score: 100/100)
+78. Tsconfig Exclude Leaves Code Untyped (Score: 100/100)
+79. Test Server Loopback Address Match (Score: 100/100)
 
 ════════════════════════════════════════════════════════════
 ✅ CONSTITUTIONAL COMPLIANCE: PASSED

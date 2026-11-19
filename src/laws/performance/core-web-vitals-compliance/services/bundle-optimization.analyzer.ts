@@ -21,8 +21,12 @@ export class BundleOptimizationAnalyzerService {
 
     // Next.js / Vite: the production build minifies unless the config turns
     // it off; React source: next/dynamic, React.lazy, dynamic import().
-    for (const app of bundler ? WebBundlerConfig.optimizingBuilds(bundler) : []) {
-      optimizations.push(`${WebBundlerConfig.label(projectRoot, app)} production build optimizes`);
+    for (const app of bundler
+      ? WebBundlerConfig.optimizingBuilds(bundler)
+      : []) {
+      optimizations.push(
+        `${WebBundlerConfig.label(projectRoot, app)} production build optimizes`
+      );
     }
     if (react && react.dynamicImports.length > 0) {
       optimizations.push(`Lazy-loaded code: ${react.dynamicImports[0]}`);

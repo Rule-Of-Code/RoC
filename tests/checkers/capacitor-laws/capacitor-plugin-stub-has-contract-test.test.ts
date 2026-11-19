@@ -22,8 +22,13 @@ const PRESET = [
   '};',
 ].join('\n');
 const APP = `import { FirebaseAuthentication } from '${AUTH}';\nexport const token = async () => (await FirebaseAuthentication.getCurrentUser()).user;\nexport const out = () => FirebaseAuthentication.signOut();\n`;
-const run = (files: Record<string, string>, capacitor: Record<string, unknown> = {}) =>
-  CapacitorPluginStubHasContractTestLaw.check(ctx(capacitorProject(files, undefined, DEPS), { thresholds: { capacitor } }));
+const run = (
+  files: Record<string, string>,
+  capacitor: Record<string, unknown> = {}
+) =>
+  CapacitorPluginStubHasContractTestLaw.check(
+    ctx(capacitorProject(files, undefined, DEPS), { thresholds: { capacitor } })
+  );
 
 describe('CapacitorPluginStubHasContractTestLaw (#272)', () => {
   it('is info severity, as the issue states', () => {
@@ -44,18 +49,30 @@ describe('CapacitorPluginStubHasContractTestLaw (#272)', () => {
       ctx(
         capacitorProject(
           {
-            'apps/mobile/jest.config.cts': "module.exports = { moduleNameMapper: { '^@capacitor/push-notifications$': '<rootDir>/push.stub.ts' } };",
+            'apps/mobile/jest.config.cts':
+              "module.exports = { moduleNameMapper: { '^@capacitor/push-notifications$': '<rootDir>/push.stub.ts' } };",
             'apps/web/vitest.config.ts': `export default { test: { alias: [{ find: /^@capacitor-firebase\\/authentication$/, replacement: './auth.stub.ts' }] } };`,
           },
           undefined,
           DEPS
         ),
-        { ignores: { global: ['**/jest.config.cts', '**/vitest.config.ts'], tests: [], build: [], design: [] } }
+        {
+          ignores: {
+            global: ['**/jest.config.cts', '**/vitest.config.ts'],
+            tests: [],
+            build: [],
+            design: [],
+          },
+        }
       )
     );
     expect(result.violations).toEqual([
-      expect.stringContaining(`${AUTH} is stubbed workspace-wide by apps/web/vitest.config.ts`),
-      expect.stringContaining('@capacitor/push-notifications is stubbed workspace-wide by apps/mobile/jest.config.cts'),
+      expect.stringContaining(
+        `${AUTH} is stubbed workspace-wide by apps/web/vitest.config.ts`
+      ),
+      expect.stringContaining(
+        '@capacitor/push-notifications is stubbed workspace-wide by apps/mobile/jest.config.cts'
+      ),
     ]);
   });
 
@@ -68,18 +85,29 @@ describe('CapacitorPluginStubHasContractTestLaw (#272)', () => {
   });
 
   it('green only when declared: a browser probe under thresholds.capacitor.contractTests imports it', () => {
-    const files = { 'jest.preset.js': PRESET, 'tools/qa/auth-probe/probe-entry.js': `import { FirebaseAuthentication } from '${AUTH}';\n` };
+    const files = {
+      'jest.preset.js': PRESET,
+      'tools/qa/auth-probe/probe-entry.js': `import { FirebaseAuthentication } from '${AUTH}';\n`,
+    };
     expect(run(files).passed).toBe(false);
-    expect(run(files, { contractTests: ['tools/qa/**'] }).violations).toEqual([]);
+    expect(run(files, { contractTests: ['tools/qa/**'] }).violations).toEqual(
+      []
+    );
   });
 
   it('red: a probe that imports a different package does not cover this one', () => {
-    const files = { 'jest.preset.js': PRESET, 'tools/qa/probe.js': "import { App } from '@capacitor/app';\n" };
+    const files = {
+      'jest.preset.js': PRESET,
+      'tools/qa/probe.js': "import { App } from '@capacitor/app';\n",
+    };
     expect(run(files, { contractTests: ['tools/qa/**'] }).passed).toBe(false);
   });
 
   it('green: no stub for any Capacitor plugin (a mapper for something else)', () => {
-    const result = run({ 'jest.config.ts': "export default { moduleNameMapper: { '^lodash-es$': 'lodash' } };" });
+    const result = run({
+      'jest.config.ts':
+        "export default { moduleNameMapper: { '^lodash-es$': 'lodash' } };",
+    });
     expect(result.violations).toEqual([]);
   });
 
@@ -88,18 +116,31 @@ describe('CapacitorPluginStubHasContractTestLaw (#272)', () => {
       'package.json': JSON.stringify({
         name: 'x',
         dependencies: { '@capacitor/core': '8.5.1', ...DEPS },
-        jest: { moduleNameMapper: { '^@capacitor/push-notifications$': '<rootDir>/push.stub.ts' } },
+        jest: {
+          moduleNameMapper: {
+            '^@capacitor/push-notifications$': '<rootDir>/push.stub.ts',
+          },
+        },
       }),
-      'src/push.spec.ts': "jest.requireActual('@capacitor/push-notifications');",
+      'src/push.spec.ts':
+        "jest.requireActual('@capacitor/push-notifications');",
     });
     expect(result.violations).toEqual([]);
   });
 
   it('cannot read: no TypeScript to parse a JS/TS config — fails, never passes', () => {
-    const root = capacitorProject({ 'jest.preset.js': PRESET }, undefined, DEPS);
-    const result = withoutTypeScript(() => CapacitorPluginStubHasContractTestLaw.check(ctx(root)));
+    const root = capacitorProject(
+      { 'jest.preset.js': PRESET },
+      undefined,
+      DEPS
+    );
+    const result = withoutTypeScript(() =>
+      CapacitorPluginStubHasContractTestLaw.check(ctx(root))
+    );
     expect(result.passed).toBe(false);
-    expect(result.violations?.[0]).toMatch(/module mappings in them were not read/);
+    expect(result.violations?.[0]).toMatch(
+      /module mappings in them were not read/
+    );
   });
 
   describe('selection (requires)', () => {

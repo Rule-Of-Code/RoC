@@ -36,8 +36,14 @@ export class PerformanceBudgetComplianceLaw {
 
     const angularBudgets = analyzer.analyzeAngularBudgets(projectRoot);
     const webpackPerformance = analyzer.analyzeWebpackBudgets(projectRoot);
-    const sizeLimit = PerformanceBudgetGates.enforcedSizeLimit(projectRoot, config);
-    const lighthouse = PerformanceBudgetGates.enforcedLighthouse(projectRoot, config);
+    const sizeLimit = PerformanceBudgetGates.enforcedSizeLimit(
+      projectRoot,
+      config
+    );
+    const lighthouse = PerformanceBudgetGates.enforcedLighthouse(
+      projectRoot,
+      config
+    );
     const hasBudget =
       angularBudgets.configured ||
       webpackPerformance.configured ||
@@ -48,7 +54,9 @@ export class PerformanceBudgetComplianceLaw {
     if (!hasBudget) {
       if (WorkspaceManifests.declares(projectRoot, '@angular/core')) {
         violations.push('Angular CLI performance budgets not configured');
-        suggestions.push('Add performance budgets in angular.json build configurations');
+        suggestions.push(
+          'Add performance budgets in angular.json build configurations'
+        );
       } else {
         violations.push(
           'No enforced performance budget: declare webpack performance hints, Lighthouse assertions, or a size-limit check, run by a script or CI'
@@ -96,7 +104,9 @@ export class PerformanceBudgetComplianceLaw {
       react
     );
     if (!prodMonitoring.monitored) {
-      violations.push('Production performance budget monitoring not configured');
+      violations.push(
+        'Production performance budget monitoring not configured'
+      );
       suggestions.push(
         'Configure alerts for performance budget violations in production'
       );

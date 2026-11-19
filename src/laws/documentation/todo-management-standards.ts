@@ -3,6 +3,7 @@ import { CheckerUtils } from '../../utils/checker-utils';
 import { ConfigFileUtils } from '../../utils/config-file-utils';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
+import { commentLines } from '../../utils/comment-text';
 // Interfaces for TODO analysis
 interface TodoFormattingAnalysis {
   properlyFormattedCount: number;
@@ -193,12 +194,15 @@ export class TodoManagementStandardsLaw {
           '.scss',
           '.css',
           '.md',
+          // Python is a stack RoC audits; its markers are `#` comments.
+          '.py',
         ],
         ConfigFileUtils.getMinimalDefaultConfig()
       );
 
       for (const filePath of allFiles) {
-        if (this.isCodeFile(PathOperations.getBasename(filePath))) {
+        // The name WITH its extension: isCodeFile matches extensions (#369).
+        if (this.isCodeFile(PathOperations.getFilename(filePath))) {
           this.extractTODOsFromFile(filePath, todos);
         }
       }
@@ -238,28 +242,31 @@ export class TodoManagementStandardsLaw {
     return codeExtensions.some(ext => filename.endsWith(ext));
   }
 
+  /**
+   * The task markers in a file's COMMENTS, by the comment syntax of its
+   * language. Every line of every file used to be matched with
+   * case-insensitive `TODO|FIXME|HACK|XXX|NOTE` anywhere: on a real site all
+   * 66 findings were false — `.cov-note {`, `note: true`, "footnote", prose
+   * ("Note the line…") and this law's own name in a JSON string. A marker is
+   * now the upper-case WORD in a comment; NOTE is a remark, not a task, and is
+   * not one. A format without comments (JSON) has no markers.
+   */
   private static extractTODOsFromFile(
     filePath: string,
     todos: TODOComment[]
   ): void {
     try {
       const content = FileUtils.readFile(filePath, { encoding: 'utf8' });
-      const lines = content.split('\n');
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        if (line) {
-          const todoMatch = this.findTODOInLine(line);
-
-          if (todoMatch) {
-            todos.push({
-              file: filePath,
-              line: i + 1,
-              content: todoMatch.content,
-              type: todoMatch.type,
-              fullLine: line.trim(),
-            });
-          }
+      for (const comment of commentLines(filePath, content)) {
+        const todoMatch = this.findTODOInLine(comment.text);
+        if (todoMatch) {
+          todos.push({
+            file: filePath,
+            line: comment.line,
+            content: todoMatch.content,
+            type: todoMatch.type,
+            fullLine: comment.text.trim(),
+          });
         }
       }
     } catch (_error) {
@@ -267,24 +274,34 @@ export class TodoManagementStandardsLaw {
     }
   }
 
+  /**
+   * The task marker of a comment line: the upper-case word in TAG form at
+   * the start of the comment's text — `TODO:`, `TODO(x):`, `TODO (Sprint
+   * 10):`, `FIXME:`, `HACK:`, `XXX:` — then what it says. Opening the line
+   * with the bare word was too wide: a law's title (`TODO Management
+   * Standards Law`), a continuation line (`TODO; scanning raw source…`) and
+   * prose (`TODO marker that only appears…`) start that way. A marker in
+   * inline code or mid-sentence is not at the start, so it is not one.
+   * `// TODO fix this` without a colon is not read (see detectionLimits).
+   */
   private static findTODOInLine(
-    line: string
+    comment: string
   ): { content: string; type: string } | null {
-    const todoPatterns = [
-      { pattern: /TODO[\s:]+(.+)/i, type: 'ActionItem' },
-
-      { pattern: /FIXME[\s:]+(.+)/i, type: 'BugFix' },
-
-      { pattern: /HACK[\s:]+(.+)/i, type: 'Temporary' },
-      { pattern: /XXX[\s:]+(.+)/i, type: 'XXX' },
-      { pattern: /NOTE[\s:]+(.+)/i, type: 'NOTE' },
+    const markers = [
+      { word: 'TODO', type: 'ActionItem' },
+      { word: 'FIXME', type: 'BugFix' },
+      { word: 'HACK', type: 'Temporary' },
+      { word: 'XXX', type: 'XXX' },
     ];
 
-    for (const { pattern, type } of todoPatterns) {
-      const match = line.match(pattern);
-      if (match?.[1]) {
+    for (const { word, type } of markers) {
+      const tag = new RegExp(
+        String.raw`^[\s*]*${word}\s*((?:\([^)]*\)\s*)?:.*)$`
+      );
+      const match = tag.exec(comment);
+      if (match) {
         return {
-          content: match[1].trim(),
+          content: (match[1] ?? '').replace(/^:\s*/, '').trim(),
           type,
         };
       }

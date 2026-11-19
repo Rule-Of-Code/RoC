@@ -26,15 +26,39 @@ import { minimatch } from 'minimatch';
 import * as path from 'path';
 import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { relativePath, trackedFiles } from '../../utils/integrity/tracked-files';
-import { loadTypeScript, type TypeScriptModule } from '../../utils/react/tsx-source';
+import {
+  relativePath,
+  trackedFiles,
+} from '../../utils/integrity/tracked-files';
+import {
+  loadTypeScript,
+  type TypeScriptModule,
+} from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';
 
 /** Exclude entries naming one of these are dependency or build output, not code. */
 export const DEPENDENCY_AND_BUILD_FOLDERS = [
-  'node_modules', 'bower_components', 'jspm_packages', 'dist', 'build', 'out', 'tmp', 'temp',
-  '.next', '.nuxt', '.output', '.svelte-kit', '.angular', '.nx', '.turbo', '.vercel', '.expo',
-  'coverage', 'www', 'android', 'ios',
+  'node_modules',
+  'bower_components',
+  'jspm_packages',
+  'dist',
+  'build',
+  'out',
+  'tmp',
+  'temp',
+  '.next',
+  '.nuxt',
+  '.output',
+  '.svelte-kit',
+  '.angular',
+  '.nx',
+  '.turbo',
+  '.vercel',
+  '.expo',
+  'coverage',
+  'www',
+  'android',
+  'ios',
 ];
 
 /** TS18003 "No inputs were found": an empty config is not unresolvable. */
@@ -44,7 +68,12 @@ const SAMPLE = 3;
 
 interface ResolvedConfig {
   file: string;
-  raw: { include?: unknown; files?: unknown; exclude?: unknown; extends?: unknown };
+  raw: {
+    include?: unknown;
+    files?: unknown;
+    exclude?: unknown;
+    extends?: unknown;
+  };
   fileNames: string[];
   outDirs: string[];
 }
@@ -72,12 +101,26 @@ export class TsconfigExcludeLeavesCodeUntypedLaw extends LawBase {
 
   private static findings(root: string): string[] {
     const ts = loadTypeScript(root);
-    if (!ts) return [`could not load the 'typescript' package from ${root} — no tsconfig was resolved`];
-    const listed = trackedFiles(root, ['*tsconfig*.json', '*.ts', '*.tsx', '*.mts', '*.cts']);
+    if (!ts)
+      return [
+        `could not load the 'typescript' package from ${root} — no tsconfig was resolved`,
+      ];
+    const listed = trackedFiles(root, [
+      '*tsconfig*.json',
+      '*.ts',
+      '*.tsx',
+      '*.mts',
+      '*.cts',
+    ]);
     if (!listed.ok) return [`${listed.reason} — no tsconfig was resolved`];
-    const configFiles = listed.files.filter(file => /tsconfig[^/\\]*\.json$/.test(path.basename(file)));
-    if (configFiles.length === 0) return ['no tracked tsconfig*.json — nothing says what is type-checked'];
-    const sources = listed.files.filter(file => /\.(?:ts|tsx|mts|cts)$/.test(file) && !/\.d\.[cm]?ts$/.test(file));
+    const configFiles = listed.files.filter(file =>
+      /tsconfig[^/\\]*\.json$/.test(path.basename(file))
+    );
+    if (configFiles.length === 0)
+      return ['no tracked tsconfig*.json — nothing says what is type-checked'];
+    const sources = listed.files.filter(
+      file => /\.(?:ts|tsx|mts|cts)$/.test(file) && !/\.d\.[cm]?ts$/.test(file)
+    );
 
     const findings: string[] = [];
     const resolved = this.resolveAll(ts, root, configFiles, findings);
@@ -105,13 +148,18 @@ export class TsconfigExcludeLeavesCodeUntypedLaw extends LawBase {
       const result = this.resolve(ts, file);
       const where = relativePath(root, file);
       if (typeof result === 'string') {
-        findings.push(`${where}: cannot resolve — ${result}; the files it would include are unknown, so nothing it excludes is passed`);
+        findings.push(
+          `${where}: cannot resolve — ${result}; the files it would include are unknown, so nothing it excludes is passed`
+        );
         continue;
       }
       resolved.push(result.config);
       for (const reference of result.references) {
         if (fs.existsSync(reference)) queue.push(reference);
-        else findings.push(`${where}: references ${relativePath(root, reference)}, which does not exist`);
+        else
+          findings.push(
+            `${where}: references ${relativePath(root, reference)}, which does not exist`
+          );
       }
     }
     return resolved;
@@ -123,34 +171,57 @@ export class TsconfigExcludeLeavesCodeUntypedLaw extends LawBase {
   ): { config: ResolvedConfig; references: string[] } | string {
     const read = ts.readConfigFile(file, ts.sys.readFile);
     if (read.error) return this.message(ts, read.error);
-    const parsed = ts.parseJsonConfigFileContent(read.config, ts.sys, path.dirname(file), undefined, file);
-    const errors = parsed.errors.filter(error => error.code !== NO_INPUTS);
-    if (errors.length > 0) return errors.map(error => this.message(ts, error)).join('; ');
-    const outDirs = [parsed.options.outDir, parsed.options.declarationDir].filter(
-      (dir): dir is string => typeof dir === 'string'
+    const parsed = ts.parseJsonConfigFileContent(
+      read.config,
+      ts.sys,
+      path.dirname(file),
+      undefined,
+      file
     );
+    const errors = parsed.errors.filter(error => error.code !== NO_INPUTS);
+    if (errors.length > 0)
+      return errors.map(error => this.message(ts, error)).join('; ');
+    const outDirs = [
+      parsed.options.outDir,
+      parsed.options.declarationDir,
+    ].filter((dir): dir is string => typeof dir === 'string');
     const references = (parsed.projectReferences ?? []).map(reference =>
-      path.extname(reference.path) === '.json' ? reference.path : path.join(reference.path, 'tsconfig.json')
+      path.extname(reference.path) === '.json'
+        ? reference.path
+        : path.join(reference.path, 'tsconfig.json')
     );
     return {
-      config: { file, raw: read.config as ResolvedConfig['raw'], fileNames: parsed.fileNames, outDirs },
+      config: {
+        file,
+        raw: read.config as ResolvedConfig['raw'],
+        fileNames: parsed.fileNames,
+        outDirs,
+      },
       references,
     };
   }
 
-  private static message(ts: TypeScriptModule, diagnostic: TS.Diagnostic): string {
+  private static message(
+    ts: TypeScriptModule,
+    diagnostic: TS.Diagnostic
+  ): string {
     return ts.flattenDiagnosticMessageText(diagnostic.messageText, ' ');
   }
 
   /** Files some config includes, shared bases (implicit include, extended by another) left out. */
-  private static covered(ts: TypeScriptModule, configs: ResolvedConfig[]): Set<string> {
+  private static covered(
+    ts: TypeScriptModule,
+    configs: ResolvedConfig[]
+  ): Set<string> {
     const extended = new Set<string>();
     for (const config of configs) {
-      for (const target of this.extendsTargets(config.file, config.raw.extends)) extended.add(key(target));
+      for (const target of this.extendsTargets(config.file, config.raw.extends))
+        extended.add(key(target));
     }
     const covered = new Set<string>();
     for (const config of configs) {
-      const sharedBase = extended.has(key(config.file)) && !this.setsInputs(ts, config.file, 0);
+      const sharedBase =
+        extended.has(key(config.file)) && !this.setsInputs(ts, config.file, 0);
       if (sharedBase) continue;
       for (const file of config.fileNames) covered.add(key(file));
     }
@@ -161,7 +232,10 @@ export class TsconfigExcludeLeavesCodeUntypedLaw extends LawBase {
   private static extendsTargets(file: string, value: unknown): string[] {
     const list = Array.isArray(value) ? value : [value];
     return list
-      .filter((target): target is string => typeof target === 'string' && /^\.{0,2}[/\\]|^[A-Za-z]:/.test(target))
+      .filter(
+        (target): target is string =>
+          typeof target === 'string' && /^\.{0,2}[/\\]|^[A-Za-z]:/.test(target)
+      )
       .map(target => {
         const full = path.resolve(path.dirname(file), target);
         return full.endsWith('.json') ? full : `${full}.json`;
@@ -169,13 +243,19 @@ export class TsconfigExcludeLeavesCodeUntypedLaw extends LawBase {
   }
 
   /** Whether a config, or anything it extends, says `include` or `files`. */
-  private static setsInputs(ts: TypeScriptModule, file: string, depth: number): boolean {
+  private static setsInputs(
+    ts: TypeScriptModule,
+    file: string,
+    depth: number
+  ): boolean {
     if (depth > MAX_EXTENDS_DEPTH) return true; // a cycle: do not call it a base
     const read = ts.readConfigFile(file, ts.sys.readFile);
     if (read.error) return true;
     const raw = read.config as ResolvedConfig['raw'];
     if (raw.include !== undefined || raw.files !== undefined) return true;
-    return this.extendsTargets(file, raw.extends).some(target => this.setsInputs(ts, target, depth + 1));
+    return this.extendsTargets(file, raw.extends).some(target =>
+      this.setsInputs(ts, target, depth + 1)
+    );
   }
 
   /** Each own `exclude` entry of `config` whose tracked files no config includes. */
@@ -188,16 +268,23 @@ export class TsconfigExcludeLeavesCodeUntypedLaw extends LawBase {
     const exclude = config.raw.exclude;
     if (exclude === undefined) return [];
     const where = relativePath(root, config.file);
-    if (!Array.isArray(exclude) || !exclude.every(entry => typeof entry === 'string')) {
+    if (
+      !Array.isArray(exclude) ||
+      !exclude.every(entry => typeof entry === 'string')
+    ) {
       return [`${where}: cannot read — "exclude" is not a list of strings`];
     }
     const dir = path.dirname(config.file);
     const findings: string[] = [];
     for (const entry of exclude as string[]) {
       if (this.isDependencyOrBuild(entry, dir, config.outDirs)) continue;
-      const missing = this.matching(entry, dir, sources).filter(file => !covered.has(key(file)));
+      const missing = this.matching(entry, dir, sources).filter(
+        file => !covered.has(key(file))
+      );
       if (missing.length === 0) continue;
-      const sample = missing.slice(0, SAMPLE).map(file => relativePath(root, file));
+      const sample = missing
+        .slice(0, SAMPLE)
+        .map(file => relativePath(root, file));
       findings.push(
         `${where}: exclude "${entry}" leaves ${missing.length} TypeScript file(s) in no tsconfig (${sample.join(', ')}${missing.length > SAMPLE ? ', …' : ''}) — a green tsc says nothing about them`
       );
@@ -205,20 +292,37 @@ export class TsconfigExcludeLeavesCodeUntypedLaw extends LawBase {
     return findings;
   }
 
-  private static isDependencyOrBuild(entry: string, dir: string, outDirs: string[]): boolean {
+  private static isDependencyOrBuild(
+    entry: string,
+    dir: string,
+    outDirs: string[]
+  ): boolean {
     const segments = entry.replace(/\\/g, '/').split('/');
-    if (segments.some(segment => DEPENDENCY_AND_BUILD_FOLDERS.includes(segment))) return true;
+    if (
+      segments.some(segment => DEPENDENCY_AND_BUILD_FOLDERS.includes(segment))
+    )
+      return true;
     const literal = path.resolve(dir, entry.replace(/\/\*\*.*$/, ''));
     return outDirs.some(out => key(out) === key(literal));
   }
 
   /** Tracked sources under `dir` that the exclude entry matches (the entry, or anything beneath it). */
-  private static matching(entry: string, dir: string, sources: string[]): string[] {
-    const pattern = entry.replace(/\\/g, '/').replace(/^\.\//, '').replace(/\/$/, '');
+  private static matching(
+    entry: string,
+    dir: string,
+    sources: string[]
+  ): string[] {
+    const pattern = entry
+      .replace(/\\/g, '/')
+      .replace(/^\.\//, '')
+      .replace(/\/$/, '');
     return sources.filter(file => {
       const rel = path.relative(dir, file).replace(/\\/g, '/');
       if (rel.startsWith('../') || path.isAbsolute(rel)) return false;
-      return minimatch(rel, pattern, { dot: true }) || minimatch(rel, `${pattern}/**`, { dot: true });
+      return (
+        minimatch(rel, pattern, { dot: true }) ||
+        minimatch(rel, `${pattern}/**`, { dot: true })
+      );
     });
   }
 }

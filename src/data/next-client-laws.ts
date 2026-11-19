@@ -20,7 +20,7 @@ import { generateLawId } from '../utils/id-generator';
 
 /** Shared limits. */
 const PAGE_EXTENSIONS =
-  'Route files are recognised by Next\'s default pageExtensions (tsx, ts, jsx, js); a custom `pageExtensions` in next.config is not read.';
+  "Route files are recognised by Next's default pageExtensions (tsx, ts, jsx, js); a custom `pageExtensions` in next.config is not read.";
 const UNREAD_FAILS =
   "Uses the project's own `typescript` to parse; without it, or for a file it cannot open, the law reports what it did not read instead of passing.";
 const GRAPH_RESOLUTION =
@@ -61,8 +61,10 @@ export const NEXT_CLIENT_LAWS: EnhancedConstitutionalLaw[] = [
     defaultSeverity: 'warning',
     automation: 'AUTOMATED',
     checkFunction: 'NextMetadataDeclaredLaw.check',
-    violationMessage: 'CONSTITUTIONAL VIOLATION Article XXIV.24.1: Next page without a title',
-    remediation: 'Export metadata with a title from the page or a layout above it (Pages Router: next/head <title>)',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXIV.24.1: Next page without a title',
+    remediation:
+      'Export metadata with a title from the page or a layout above it (Pages Router: next/head <title>)',
   },
 
   {
@@ -99,8 +101,10 @@ export const NEXT_CLIENT_LAWS: EnhancedConstitutionalLaw[] = [
     defaultSeverity: 'warning',
     automation: 'AUTOMATED',
     checkFunction: 'NextHeavyLibInClientGraphLaw.check',
-    violationMessage: 'CONSTITUTIONAL VIOLATION Article XXIV.24.2: heavy library imported statically into the client bundle',
-    remediation: 'Load the library with next/dynamic or import(), or keep it on the server',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXIV.24.2: heavy library imported statically into the client bundle',
+    remediation:
+      'Load the library with next/dynamic or import(), or keep it on the server',
   },
 
   {
@@ -136,8 +140,10 @@ export const NEXT_CLIENT_LAWS: EnhancedConstitutionalLaw[] = [
     defaultSeverity: 'warning',
     automation: 'AUTOMATED',
     checkFunction: 'NextImageHasDimensionsLaw.check',
-    violationMessage: 'CONSTITUTIONAL VIOLATION Article XXIV.24.3: image without reserved dimensions',
-    remediation: 'Give the image width and height (next/image: or fill, or a static import)',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXIV.24.3: image without reserved dimensions',
+    remediation:
+      'Give the image width and height (next/image: or fill, or a static import)',
   },
 
   {
@@ -151,7 +157,7 @@ export const NEXT_CLIENT_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '24.4',
     title: 'Next Third Party Script Declared',
     rationale:
-      "A third-party script is added in one line and costs what its vendor decides: its bytes, its main-thread time, the scripts it loads in turn, all from a host that can change them without a deploy. It is the quickest way to break a performance budget, and the line that adds it looks like any other. Declaring each host with its reason makes adding one a reviewed decision.",
+      'A third-party script is added in one line and costs what its vendor decides: its bytes, its main-thread time, the scripts it loads in turn, all from a host that can change them without a deploy. It is the quickest way to break a performance budget, and the line that adds it looks like any other. Declaring each host with its reason makes adding one a reviewed decision.',
     satisfiedBy: {
       react:
         '`"thresholds": { "next": { "thirdPartyScripts": [{ "host": "www.googletagmanager.com", "reason": "analytics required by …" }] } }` (host may be a glob such as `*.example.com`), with the script written as a literal URL, preferably `<Script src="https://…" strategy="lazyOnload" />` from next/script.',
@@ -173,8 +179,10 @@ export const NEXT_CLIENT_LAWS: EnhancedConstitutionalLaw[] = [
     defaultSeverity: 'warning',
     automation: 'AUTOMATED',
     checkFunction: 'NextThirdPartyScriptDeclaredLaw.check',
-    violationMessage: 'CONSTITUTIONAL VIOLATION Article XXIV.24.4: undeclared third-party script',
-    remediation: 'Declare the script host with a reason in thresholds.next.thirdPartyScripts',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXIV.24.4: undeclared third-party script',
+    remediation:
+      'Declare the script host with a reason in thresholds.next.thirdPartyScripts',
   },
 
   {
@@ -188,7 +196,7 @@ export const NEXT_CLIENT_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '24.5',
     title: 'HTML Lang Declared',
     rationale:
-      'Without `lang` on `<html>` a screen reader guesses the language of every page and reads it with the wrong pronunciation rules, and the browser offers to translate a page already in the reader\'s language (WCAG 2.x SC 3.1.1 Language of Page). In a Next app it is one attribute in one file: the root layout\'s `<html>`, or `pages/_document`\'s `<Html>`, which Next fills from the i18n locale when i18n is configured (next/dist/pages/_document.js: `lang: props.lang || locale`).',
+      "Without `lang` on `<html>` a screen reader guesses the language of every page and reads it with the wrong pronunciation rules, and the browser offers to translate a page already in the reader's language (WCAG 2.x SC 3.1.1 Language of Page). In a Next app it is one attribute in one file: the root layout's `<html>`, or `pages/_document`'s `<Html>`, which Next fills from the i18n locale when i18n is configured (next/dist/pages/_document.js: `lang: props.lang || locale`).",
     satisfiedBy: {
       react:
         'App Router: `<html lang="en">` in the root layout (`lang={locale}` under a `[locale]` segment). Pages Router: `<Html lang="en">` in pages/_document, or `i18n` in next.config.',
@@ -211,8 +219,10 @@ export const NEXT_CLIENT_LAWS: EnhancedConstitutionalLaw[] = [
     defaultSeverity: 'warning',
     automation: 'AUTOMATED',
     checkFunction: 'HtmlLangDeclaredLaw.check',
-    violationMessage: 'CONSTITUTIONAL VIOLATION Article XXIV.24.5: <html> without lang',
-    remediation: 'Set lang on the root layout <html> (Pages Router: _document <Html>)',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXIV.24.5: <html> without lang',
+    remediation:
+      'Set lang on the root layout <html> (Pages Router: _document <Html>)',
   },
 
   {
@@ -226,7 +236,7 @@ export const NEXT_CLIENT_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '24.6',
     title: 'Next Internal Link Component',
     rationale:
-      "A plain `<a href=\"/pricing\">` to a page of the same app is a full document load: the browser discards the JavaScript heap, every client state and the router cache, then downloads and hydrates the app again. `next/link` navigates on the client and prefetches the target (next/dist/docs: linking-and-navigating). Sometimes a full load is the point — a recovery page that must reset client state — so the law takes a reason, not a ban.",
+      'A plain `<a href="/pricing">` to a page of the same app is a full document load: the browser discards the JavaScript heap, every client state and the router cache, then downloads and hydrates the app again. `next/link` navigates on the client and prefetches the target (next/dist/docs: linking-and-navigating). Sometimes a full load is the point — a recovery page that must reset client state — so the law takes a reason, not a ban.',
     satisfiedBy: {
       react:
         '`<Link href="/pricing">Pricing</Link>` from next/link. A link that must reload: `{/* roc-allow-full-reload: resets the client cache after sign-out */}` on the line before it, or `thresholds.next.fullReloadLinks: [{ "path": "/logout", "reason": "…" }]`.',
@@ -249,7 +259,8 @@ export const NEXT_CLIENT_LAWS: EnhancedConstitutionalLaw[] = [
     defaultSeverity: 'info',
     automation: 'AUTOMATED',
     checkFunction: 'NextInternalLinkComponentLaw.check',
-    violationMessage: 'CONSTITUTIONAL VIOLATION Article XXIV.24.6: internal link without next/link',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXIV.24.6: internal link without next/link',
     remediation: 'Use <Link> from next/link for links to pages of the app',
   },
 
@@ -270,7 +281,7 @@ export const NEXT_CLIENT_LAWS: EnhancedConstitutionalLaw[] = [
         "Keep page.tsx and layout.tsx Server Components; put the interactive part in its own file (`'use client'; export function LikeButton() { const [n, setN] = useState(0) … }`) and render it from the page. Remove the directive from a module that only renders markup.",
     },
     detectionLimits: [
-      "A module counts as needing the client when it calls a hook (`use…`, `use`), createContext, writes an `on…` handler or a function-valued prop (incl. `action`/`formAction`/`ref`), touches a browser global (window, document, localStorage, …), declares a class component, or re-exports (`export … from`, the wrapper pattern for libraries without the directive). Anything else — e.g. client-only behaviour reached through a helper not named use… — is a false positive of the second check.",
+      'A module counts as needing the client when it calls a hook (`use…`, `use`), createContext, writes an `on…` handler or a function-valued prop (incl. `action`/`formAction`/`ref`), touches a browser global (window, document, localStorage, …), declares a class component, or re-exports (`export … from`, the wrapper pattern for libraries without the directive). Anything else — e.g. client-only behaviour reached through a helper not named use… — is a false positive of the second check.',
       'error.tsx and global-error.tsx are exempt from the second check (Next requires them to be Client Components).',
       'Does not judge a real client component that is simply too large.',
       PAGE_EXTENSIONS,
@@ -287,7 +298,8 @@ export const NEXT_CLIENT_LAWS: EnhancedConstitutionalLaw[] = [
     defaultSeverity: 'warning',
     automation: 'AUTOMATED',
     checkFunction: 'NextUseClientAtLeavesLaw.check',
-    violationMessage: "CONSTITUTIONAL VIOLATION Article XXIV.24.7: 'use client' above the interactive leaves",
+    violationMessage:
+      "CONSTITUTIONAL VIOLATION Article XXIV.24.7: 'use client' above the interactive leaves",
     remediation: "Move 'use client' down to the interactive component",
   },
 
@@ -325,8 +337,10 @@ export const NEXT_CLIENT_LAWS: EnhancedConstitutionalLaw[] = [
     defaultSeverity: 'warning',
     automation: 'AUTOMATED',
     checkFunction: 'NextClientPropsSerializableLaw.check',
-    violationMessage: 'CONSTITUTIONAL VIOLATION Article XXIV.24.8: unserializable prop passed to a Client Component',
-    remediation: 'Pass plain data or a Server Function across the client boundary',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXIV.24.8: unserializable prop passed to a Client Component',
+    remediation:
+      'Pass plain data or a Server Function across the client boundary',
   },
 
   {
@@ -362,8 +376,10 @@ export const NEXT_CLIENT_LAWS: EnhancedConstitutionalLaw[] = [
     defaultSeverity: 'error',
     automation: 'CONFIGURABLE',
     checkFunction: 'NextRouteJsBudgetLaw.check',
-    violationMessage: 'CONSTITUTIONAL VIOLATION Article XXIV.24.9: route JavaScript over budget or not measured',
-    remediation: 'Build with Turbopack before the audit and keep every route under thresholds.next.routeJsBudgetKb',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXIV.24.9: route JavaScript over budget or not measured',
+    remediation:
+      'Build with Turbopack before the audit and keep every route under thresholds.next.routeJsBudgetKb',
   },
 
   {
@@ -400,8 +416,10 @@ export const NEXT_CLIENT_LAWS: EnhancedConstitutionalLaw[] = [
     defaultSeverity: 'warning',
     automation: 'AUTOMATED',
     checkFunction: 'NextSegmentConfigConsistentLaw.check',
-    violationMessage: 'CONSTITUTIONAL VIOLATION Article XXIV.24.10: segment config contradicts a request-time API',
-    remediation: "Drop force-static/revalidate from the segment, or move the cookies()/headers() read",
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXIV.24.10: segment config contradicts a request-time API',
+    remediation:
+      'Drop force-static/revalidate from the segment, or move the cookies()/headers() read',
   },
 
   {
@@ -438,7 +456,9 @@ export const NEXT_CLIENT_LAWS: EnhancedConstitutionalLaw[] = [
     defaultSeverity: 'info',
     automation: 'AUTOMATED',
     checkFunction: 'NextLoadingForAsyncPageLaw.check',
-    violationMessage: 'CONSTITUTIONAL VIOLATION Article XXIV.24.11: async page without a loading boundary',
-    remediation: 'Add loading.tsx to the segment (or above), or wrap the awaited part in <Suspense>',
+    violationMessage:
+      'CONSTITUTIONAL VIOLATION Article XXIV.24.11: async page without a loading boundary',
+    remediation:
+      'Add loading.tsx to the segment (or above), or wrap the awaited part in <Suspense>',
   },
 ];

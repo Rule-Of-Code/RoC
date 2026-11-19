@@ -64,7 +64,9 @@ describe('urlSlug contract for /laws/:slug (v7.11.0)', () => {
   });
 
   it('urlSlug is a SEPARATE field, never a replacement for configKeys', () => {
-    const sacred = laws.find(candidate => /\(SACRED LAW\)$/.test(candidate.name));
+    const sacred = laws.find(candidate =>
+      /\(SACRED LAW\)$/.test(candidate.name)
+    );
     const law = serializeLaw(sacred!);
 
     // The URL drops the parentheses; the config keys keep every spelling the

@@ -44,12 +44,16 @@ interface Frame {
   rule: CssRule | null;
 }
 
-const NOT_ELEMENT_RULES = /^@(?:-[\w]+-)?(?:keyframes|font-face|page|property|counter-style)\b/i;
+const NOT_ELEMENT_RULES =
+  /^@(?:-[\w]+-)?(?:keyframes|font-face|page|property|counter-style)\b/i;
 
 export class CssRules {
   /** Every rule with at least one declaration, in source order. */
   static parse(text: string, file = '', firstLine = 1): CssRule[] {
-    const source = this.stripComments(text, /\.(?:scss|sass|less)$/i.test(file));
+    const source = this.stripComments(
+      text,
+      /\.(?:scss|sass|less)$/i.test(file)
+    );
     const rules: CssRule[] = [];
     const stack: Frame[] = [{ selector: '', skip: false, rule: null }];
     let buffer = '';
@@ -80,7 +84,12 @@ export class CssRules {
   static subjectClasses(selector: string): string[] {
     const names: string[] = [];
     for (const one of selector.split(',')) {
-      const last = one.trim().split(/\s+|>|\+|~/).filter(Boolean).pop() ?? '';
+      const last =
+        one
+          .trim()
+          .split(/\s+|>|\+|~/)
+          .filter(Boolean)
+          .pop() ?? '';
       for (const match of last.matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)) {
         if (match[1]) names.push(match[1]);
       }
@@ -90,7 +99,9 @@ export class CssRules {
 
   /** Every class name anywhere in a selector list. */
   static allClasses(selector: string): string[] {
-    return [...selector.matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)].map(match => match[1] ?? '');
+    return [...selector.matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)].map(
+      match => match[1] ?? ''
+    );
   }
 
   /** Same length as `text`; comments become spaces, newlines kept. */
@@ -123,7 +134,11 @@ export class CssRules {
   }
 
   /** Index past the comment starting at `i`, or `i` when none starts there. */
-  private static commentEnd(text: string, i: number, lineComments: boolean): number {
+  private static commentEnd(
+    text: string,
+    i: number,
+    lineComments: boolean
+  ): number {
     if (text[i] !== '/') return i;
     if (text[i + 1] === '*') {
       const end = text.indexOf('*/', i + 2);
@@ -149,25 +164,36 @@ export class CssRules {
       stack.push(this.open(top, text, bufferLine));
       return;
     }
-    if (text && top?.rule && !top.skip) this.declare(top.rule, text, bufferLine);
+    if (text && top?.rule && !top.skip)
+      this.declare(top.rule, text, bufferLine);
     if (terminator === '}' && stack.length > 1) {
       const closed = stack.pop();
       if (closed?.rule?.declarations.length) rules.push(closed.rule);
     }
   }
 
-  private static open(parent: Frame | undefined, header: string, line: number): Frame {
+  private static open(
+    parent: Frame | undefined,
+    header: string,
+    line: number
+  ): Frame {
     const parentSelector = parent?.selector ?? '';
     if (parent?.skip || NOT_ELEMENT_RULES.test(header)) {
       return { selector: parentSelector, skip: true, rule: null };
     }
     if (header.startsWith('@')) {
       // @media / @supports / @layer: the rules inside belong to the enclosing selector.
-      const rule = parentSelector ? { selector: parentSelector, declarations: [], line } : null;
+      const rule = parentSelector
+        ? { selector: parentSelector, declarations: [], line }
+        : null;
       return { selector: parentSelector, skip: false, rule };
     }
     const selector = this.join(parentSelector, header);
-    return { selector, skip: false, rule: { selector, declarations: [], line } };
+    return {
+      selector,
+      skip: false,
+      rule: { selector, declarations: [], line },
+    };
   }
 
   private static join(parent: string, header: string): string {
@@ -178,7 +204,9 @@ export class CssRules {
       .split(',')
       .map(one => one.trim())
       .flatMap(one =>
-        parents.map(p => (one.includes('&') ? one.replace(/&/g, p) : `${p} ${one}`))
+        parents.map(p =>
+          one.includes('&') ? one.replace(/&/g, p) : `${p} ${one}`
+        )
       )
       .join(', ');
   }
@@ -188,7 +216,11 @@ export class CssRules {
     if (colon <= 0 || text.startsWith('@')) return;
     const property = text.slice(0, colon).trim().toLowerCase();
     if (!/^-{0,2}[a-z][\w-]*$/.test(property)) return;
-    rule.declarations.push({ property, value: text.slice(colon + 1).trim(), line });
+    rule.declarations.push({
+      property,
+      value: text.slice(colon + 1).trim(),
+      line,
+    });
   }
 }
 
@@ -216,7 +248,9 @@ export function projectStyleSheets(
     try {
       text = fs.readFileSync(file, 'utf8');
     } catch {
-      unread.push(`${PathOperations.getRelative(context.projectRoot, file)}: could not be read`);
+      unread.push(
+        `${PathOperations.getRelative(context.projectRoot, file)}: could not be read`
+      );
       continue;
     }
     sheets.push({ file, rules: CssRules.parse(text, file) });
@@ -225,7 +259,10 @@ export function projectStyleSheets(
   for (const style of inline) {
     const isSheet = /\.(?:s?css|sass|less)$/i.test(style.file);
     if (isSheet && scanned.has(PathOperations.normalize(style.file))) continue;
-    sheets.push({ file: style.file, rules: CssRules.parse(style.text, style.file, style.firstLine) });
+    sheets.push({
+      file: style.file,
+      rules: CssRules.parse(style.text, style.file, style.firstLine),
+    });
   }
   return { sheets, unread };
 }

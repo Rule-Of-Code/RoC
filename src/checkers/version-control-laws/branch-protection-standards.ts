@@ -112,8 +112,7 @@ export class BranchProtectionStandardsLaw {
         ) as Record<string, unknown>;
 
         const devDeps = packageJson.devDependencies as
-          | Record<string, unknown>
-          | undefined;
+          Record<string, unknown> | undefined;
         if (!devDeps?.['commitizen'] && !devDeps?.['@commitlint/cli']) {
           suggestions.push(
             'Consider using commitizen or commitlint for consistent commit messages'

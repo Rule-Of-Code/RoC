@@ -48,7 +48,10 @@ export class AngularLawBase extends LawBase {
     if (!version) {
       return null;
     }
-    const major = parseInt(version.replace(/[^\d.]/g, '').split('.')[0] ?? '', 10);
+    const major = parseInt(
+      version.replace(/[^\d.]/g, '').split('.')[0] ?? '',
+      10
+    );
     return Number.isNaN(major) ? null : major;
   }
 

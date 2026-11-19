@@ -13,11 +13,22 @@
 import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { NextAppFiles } from '../../utils/react/next-app-files';
-import { type NextSources, NextSourcesLoader } from '../../utils/react/next-sources';
+import {
+  type NextSources,
+  NextSourcesLoader,
+} from '../../utils/react/next-sources';
 import { ReactProject } from '../../utils/react/react-project';
-import { jsxAttribute, type JsxElementInfo, type TsxSource } from '../../utils/react/tsx-source';
+import {
+  jsxAttribute,
+  type JsxElementInfo,
+  type TsxSource,
+} from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';
-import { matchesAny, nextThresholds, reasonedEntries } from './next-client-law-support';
+import {
+  matchesAny,
+  nextThresholds,
+  reasonedEntries,
+} from './next-client-law-support';
 
 const CONFIG_KEY = 'thresholds.next.fullReloadLinks';
 /** The marker followed by a reason that starts with a word, not by the comment's closing. */
@@ -28,9 +39,14 @@ export class NextInternalLinkComponentLaw extends LawBase {
 
   static check(context: LawCheckContext): LawResult {
     const sources = NextSourcesLoader.load(context, ['.tsx', '.jsx', '.js']);
-    const { allowed, problems } = reasonedEntries(nextThresholds(context).fullReloadLinks, 'path', CONFIG_KEY);
+    const { allowed, problems } = reasonedEntries(
+      nextThresholds(context).fullReloadLinks,
+      'path',
+      CONFIG_KEY
+    );
     const violations = [...sources.unread, ...problems];
-    if (!NextSourcesLoader.hasRouter(sources)) violations.push(NextAppFiles.noRouterDirectory(context));
+    if (!NextSourcesLoader.hasRouter(sources))
+      violations.push(NextAppFiles.noRouterDirectory(context));
     const routes = this.routes(sources);
     for (const source of sources.parsed.values()) {
       violations.push(...this.checkSource(context, source, routes, allowed));
@@ -40,7 +56,7 @@ export class NextInternalLinkComponentLaw extends LawBase {
       this.LAW_NAME,
       'PERFORMANCE',
       [
-        "Link to the app's own pages with <Link href=\"/x\"> from next/link",
+        'Link to the app\'s own pages with <Link href="/x"> from next/link',
         `A link that must reload the page: add {/* roc-allow-full-reload: <reason> */} before it, or list it with a reason in ${CONFIG_KEY}`,
       ],
       context
@@ -50,8 +66,10 @@ export class NextInternalLinkComponentLaw extends LawBase {
   /** Every page route of every router, as segment patterns. */
   static routes(sources: NextSources): string[][] {
     const routes = new Set<string>();
-    for (const page of NextAppFiles.pages(sources.appFiles)) routes.add(NextAppFiles.routeOf(page.appDir, page.segmentDir));
-    for (const page of sources.pagesFiles) if (page.route) routes.add(page.route);
+    for (const page of NextAppFiles.pages(sources.appFiles))
+      routes.add(NextAppFiles.routeOf(page.appDir, page.segmentDir));
+    for (const page of sources.pagesFiles)
+      if (page.route) routes.add(page.route);
     return [...routes].map(route => route.split('/').filter(Boolean));
   }
 
@@ -96,7 +114,8 @@ export class NextInternalLinkComponentLaw extends LawBase {
     if (!href.value.startsWith('/') || href.value.startsWith('//')) return null;
     if (jsxAttribute(element, 'download')) return null;
     const target = jsxAttribute(element, 'target');
-    if (target && !(target.kind === 'string' && target.value === '_self')) return null;
+    if (target && !(target.kind === 'string' && target.value === '_self'))
+      return null;
     const path = href.value.split(/[?#]/)[0] ?? '';
     return path.length > 1 ? path.replace(/\/+$/, '') : '/';
   }
@@ -104,17 +123,34 @@ export class NextInternalLinkComponentLaw extends LawBase {
   /** `roc-allow-full-reload: <reason>` in a comment right before the element. */
   static hasInlineReason(source: TsxSource, element: JsxElementInfo): boolean {
     const ts = source.ts;
-    const jsx: TS.Node = ts.isJsxOpeningElement(element.node) ? element.node.parent : element.node;
-    const leading = ts.getLeadingCommentRanges(source.text, jsx.getFullStart()) ?? [];
-    if (leading.some(range => INLINE_REASON.test(source.text.slice(range.pos, range.end)))) return true;
+    const jsx: TS.Node = ts.isJsxOpeningElement(element.node)
+      ? element.node.parent
+      : element.node;
+    const leading =
+      ts.getLeadingCommentRanges(source.text, jsx.getFullStart()) ?? [];
+    if (
+      leading.some(range =>
+        INLINE_REASON.test(source.text.slice(range.pos, range.end))
+      )
+    )
+      return true;
     const parent = jsx.parent;
-    if (!parent || !(ts.isJsxElement(parent) || ts.isJsxFragment(parent))) return false;
+    if (!parent || !(ts.isJsxElement(parent) || ts.isJsxFragment(parent)))
+      return false;
     const siblings = parent.children;
-    for (let index = siblings.indexOf(jsx as TS.JsxChild) - 1; index >= 0; index--) {
+    for (
+      let index = siblings.indexOf(jsx as TS.JsxChild) - 1;
+      index >= 0;
+      index--
+    ) {
       const sibling = siblings[index];
       if (!sibling) break;
       if (ts.isJsxText(sibling) && sibling.text.trim() === '') continue;
-      return ts.isJsxExpression(sibling) && !sibling.expression && INLINE_REASON.test(sibling.getText(source.sourceFile));
+      return (
+        ts.isJsxExpression(sibling) &&
+        !sibling.expression &&
+        INLINE_REASON.test(sibling.getText(source.sourceFile))
+      );
     }
     return false;
   }

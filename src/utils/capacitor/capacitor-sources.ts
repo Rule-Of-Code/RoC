@@ -31,11 +31,21 @@ export const BRIDGE_SOURCE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mjs'];
 
 const REGISTER_PLUGIN = 'registerPlugin';
 const CORE = '@capacitor/core';
-const RESOLVE_EXTENSIONS = ['.ts', '.tsx', '.js', '.mjs', '/index.ts', '/index.js'];
+const RESOLVE_EXTENSIONS = [
+  '.ts',
+  '.tsx',
+  '.js',
+  '.mjs',
+  '/index.ts',
+  '/index.js',
+];
 
 /** Non-test source through the normal scan, parsed; see ParsedSources for the contract. */
 export function bridgeSources(context: LawCheckContext): ParsedSources {
-  return ReactProject.parse(context, ReactProject.sourceFiles(context, BRIDGE_SOURCE_EXTENSIONS));
+  return ReactProject.parse(
+    context,
+    ReactProject.sourceFiles(context, BRIDGE_SOURCE_EXTENSIONS)
+  );
 }
 
 /** What a local name is bound to: the plugin package, or `registerPlugin` for a local plugin. */
@@ -92,10 +102,15 @@ export function pluginBindings(source: TsxSource): PluginBindings {
   return bindings;
 }
 
-function importedPlugins(source: TsxSource, info: ImportInfo, bindings: PluginBindings): void {
+function importedPlugins(
+  source: TsxSource,
+  info: ImportInfo,
+  bindings: PluginBindings
+): void {
   if (CAPACITOR_PLUGIN_MODULE.test(info.module)) {
     for (const { imported, local } of info.named) {
-      if (info.module !== CORE || imported !== REGISTER_PLUGIN) bindings.set(local, info.module);
+      if (info.module !== CORE || imported !== REGISTER_PLUGIN)
+        bindings.set(local, info.module);
     }
     if (info.namespaceName) bindings.set(info.namespaceName, info.module);
     return;
@@ -125,7 +140,11 @@ function registeredPlugins(source: TsxSource, bindings: PluginBindings): void {
 }
 
 /** The names a relative module exports that are Capacitor plugins. */
-function reexportedPlugins(fromFile: string, specifier: string, like: TsxSource): Map<string, string> {
+function reexportedPlugins(
+  fromFile: string,
+  specifier: string,
+  like: TsxSource
+): Map<string, string> {
   const found = new Map<string, string>();
   const file = resolveRelative(fromFile, specifier);
   if (!file) return found;
@@ -146,7 +165,8 @@ function reexportedPlugins(fromFile: string, specifier: string, like: TsxSource)
     ) {
       const module = statement.moduleSpecifier.text;
       if (statement.exportClause && ts.isNamedExports(statement.exportClause)) {
-        for (const element of statement.exportClause.elements) found.set(element.name.text, module);
+        for (const element of statement.exportClause.elements)
+          found.set(element.name.text, module);
       }
     }
   }
@@ -165,8 +185,14 @@ function reexportedPlugins(fromFile: string, specifier: string, like: TsxSource)
 }
 
 /** A relative import resolved to a file on disk, or null. */
-export function resolveRelative(fromFile: string, specifier: string): string | null {
-  const base = PathOperations.join(PathOperations.getDirectory(fromFile), specifier);
+export function resolveRelative(
+  fromFile: string,
+  specifier: string
+): string | null {
+  const base = PathOperations.join(
+    PathOperations.getDirectory(fromFile),
+    specifier
+  );
   const candidates = [base, ...RESOLVE_EXTENSIONS.map(ext => `${base}${ext}`)];
   return candidates.find(candidate => isFile(candidate)) ?? null;
 }
@@ -194,20 +220,30 @@ export function receiverBinding(
     return bindings.get(receiver.name.text) ?? null;
   }
   // A namespace import: `Plugins.App.addListener` → the namespace's package.
-  if (ts.isPropertyAccessExpression(receiver) && ts.isIdentifier(receiver.expression)) {
+  if (
+    ts.isPropertyAccessExpression(receiver) &&
+    ts.isIdentifier(receiver.expression)
+  ) {
     return bindings.get(receiver.expression.text) ?? null;
   }
   return null;
 }
 
 /** Every `<plugin>.addListener('<literal>', …)` call in a source. */
-export function listenerCalls(source: TsxSource, bindings: PluginBindings = pluginBindings(source)): ListenerCall[] {
+export function listenerCalls(
+  source: TsxSource,
+  bindings: PluginBindings = pluginBindings(source)
+): ListenerCall[] {
   const ts = source.ts;
   const calls: ListenerCall[] = [];
   source.walk(node => {
     if (!ts.isCallExpression(node)) return;
     const callee = node.expression;
-    if (!ts.isPropertyAccessExpression(callee) || callee.name.text !== 'addListener') return;
+    if (
+      !ts.isPropertyAccessExpression(callee) ||
+      callee.name.text !== 'addListener'
+    )
+      return;
     const [first] = node.arguments;
     if (!first || !ts.isStringLiteralLike(first)) return;
     const module = receiverBinding(source, callee.expression, bindings);
@@ -228,7 +264,10 @@ export function listenerCalls(source: TsxSource, bindings: PluginBindings = plug
  * `const` string literal in the same file. Null when it is built at runtime
  * or defined elsewhere.
  */
-export function stringValue(source: TsxSource, expression: TS.Expression | undefined): string | null {
+export function stringValue(
+  source: TsxSource,
+  expression: TS.Expression | undefined
+): string | null {
   const ts = source.ts;
   if (!expression) return null;
   if (ts.isStringLiteralLike(expression)) return expression.text;
@@ -257,13 +296,21 @@ export function classDecorators(
   node: TS.ClassLikeDeclaration
 ): Array<{ name: string; argument: TS.Expression | undefined }> {
   const ts = source.ts;
-  const decorators = ts.canHaveDecorators(node) ? (ts.getDecorators(node) ?? []) : [];
+  const decorators = ts.canHaveDecorators(node)
+    ? (ts.getDecorators(node) ?? [])
+    : [];
   return decorators.flatMap(decorator => {
     const expression = decorator.expression;
-    if (ts.isCallExpression(expression) && ts.isIdentifier(expression.expression)) {
-      return [{ name: expression.expression.text, argument: expression.arguments[0] }];
+    if (
+      ts.isCallExpression(expression) &&
+      ts.isIdentifier(expression.expression)
+    ) {
+      return [
+        { name: expression.expression.text, argument: expression.arguments[0] },
+      ];
     }
-    if (ts.isIdentifier(expression)) return [{ name: expression.text, argument: undefined }];
+    if (ts.isIdentifier(expression))
+      return [{ name: expression.text, argument: undefined }];
     return [];
   });
 }
@@ -302,7 +349,11 @@ export function enclosing<T extends TS.Node>(
 }
 
 /** Every call expression under `root` whose callee is `<anything>.<name>(…)`. */
-export function methodCalls(source: TsxSource, root: TS.Node, name: string): TS.CallExpression[] {
+export function methodCalls(
+  source: TsxSource,
+  root: TS.Node,
+  name: string
+): TS.CallExpression[] {
   const ts = source.ts;
   const found: TS.CallExpression[] = [];
   const visit = (node: TS.Node): void => {

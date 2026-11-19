@@ -13,7 +13,10 @@ export class NgRxEffectPatternsValidation {
   private static readonly Config = NgRxEffectPatternsConfiguration;
   private static readonly Messages = this.Config.VALIDATION_MESSAGES;
   private static readonly FILENAME_PLACEHOLDER = '{fileName}';
-  private static readonly EffectAnalysis = Object.create(null) as Record<string, unknown>;
+  private static readonly EffectAnalysis = Object.create(null) as Record<
+    string,
+    unknown
+  >;
 
   private static formatMessage(message: string, fileName: string): string {
     return message.replace(this.FILENAME_PLACEHOLDER, fileName);
@@ -37,7 +40,8 @@ export class NgRxEffectPatternsValidation {
       ],
       config
     ).filter(file =>
-      this.Config.isEffectFile(PathOperations.getBasename(file))
+      // The name WITH its extension: isEffectFile looks for `.effects.ts` (#369).
+      this.Config.isEffectFile(PathOperations.getFilename(file))
     );
 
     for (const file of effectFiles) {

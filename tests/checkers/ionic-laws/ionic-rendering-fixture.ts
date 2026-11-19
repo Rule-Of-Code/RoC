@@ -26,7 +26,11 @@ export interface ComponentSpec {
 }
 
 /** `{ 'src/app/x.page.ts': …, 'src/app/x.page.html': … }` for one component. */
-export function component(path: string, className: string, spec: ComponentSpec): Record<string, string> {
+export function component(
+  path: string,
+  className: string,
+  spec: ComponentSpec
+): Record<string, string> {
   const base = path.replace(/\.ts$/, '');
   const name = base.split('/').pop() ?? base;
   const files: Record<string, string> = {};
@@ -57,6 +61,10 @@ export function component(path: string, className: string, spec: ComponentSpec):
 export function runner(
   check: (context: LawCheckContext) => LawResult,
   base: Record<string, string> = { 'package.json': IONIC_ANGULAR }
-): (files: Record<string, string>, overrides?: Record<string, unknown>) => LawResult {
-  return (files, overrides = {}) => check(ctx(project({ ...base, ...files }), overrides));
+): (
+  files: Record<string, string>,
+  overrides?: Record<string, unknown>
+) => LawResult {
+  return (files, overrides = {}) =>
+    check(ctx(project({ ...base, ...files }), overrides));
 }

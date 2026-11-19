@@ -21,9 +21,10 @@ interface RecommendResult {
 
 export function runRecommend(projectRoot: string): number {
   // Plain-JS generator: it must run without a build step, so it is not in dist.
-  const { generateRecommendedConfig } = require('../../scripts/recommend-config') as {
-    generateRecommendedConfig: (root: string) => RecommendResult;
-  };
+  const { generateRecommendedConfig } =
+    require('../../scripts/recommend-config') as {
+      generateRecommendedConfig: (root: string) => RecommendResult;
+    };
 
   const result = generateRecommendedConfig(projectRoot);
 
@@ -38,7 +39,9 @@ export function runRecommend(projectRoot: string): number {
 
   if (!result.written) {
     console.log(
-      chalk.green(`✅ ${result.fileName} is already up to date (${result.stack} stack).`)
+      chalk.green(
+        `✅ ${result.fileName} is already up to date (${result.stack} stack).`
+      )
     );
     return 0;
   }

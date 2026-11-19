@@ -544,9 +544,9 @@ describe('ProfessionalExcellenceLaw', () => {
       const context = createContext(tempDir);
       const result = ProfessionalExcellenceLaw.check(context);
 
-      expect(
-        result.violations!.some(v => v.includes('Missing eslint'))
-      ).toBe(false);
+      expect(result.violations!.some(v => v.includes('Missing eslint'))).toBe(
+        false
+      );
       expect(
         result.violations!.some(v => v.includes('Missing .prettierrc'))
       ).toBe(false);

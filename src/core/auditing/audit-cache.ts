@@ -3,8 +3,10 @@
  * Caches audit results to improve performance on subsequent runs
  */
 
-import { execSync } from 'child_process';
+import { execSync } from '../../utils/child-process';
 import crypto from 'crypto';
+import * as fs from 'fs';
+import * as path from 'path';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 import type { AuditResult } from './audit-types';
@@ -58,6 +60,20 @@ export interface CacheEntry {
    * which never equals a real version string, so they invalidate safely.
    */
   toolVersion: string;
+
+  /**
+   * The CODE that computed this verdict: a hash of the running package's
+   * compiled sources (see {@link AuditCache.codeFingerprint}).
+   *
+   * The version string alone did not identify a build. Two release
+   * candidates, a local build, `npm link` or an install from git all report
+   * the same version with different detectors, and the second build served
+   * the first build's verdict, indistinguishable from its own (#391).
+   *
+   * Entries written before this field existed have `codeFingerprint ===
+   * undefined`, which never equals a real hash, so they invalidate safely.
+   */
+  codeFingerprint: string;
 }
 
 export class AuditCache {
@@ -69,6 +85,65 @@ export class AuditCache {
     } catch {
       return 'unknown';
     }
+  }
+
+  /**
+   * The top of the running code tree: `dist/` in the installed package (this
+   * file is `dist/core/auditing/audit-cache.js`), `src/` under ts-jest.
+   */
+  static codeRoot: string = path.resolve(__dirname, '..', '..');
+
+  /** Fingerprints by code root; the code does not change while it runs. */
+  private static readonly fingerprints = new Map<string, string>();
+
+  /** A compiled or source module of the tool; declarations carry no behaviour. */
+  private static isCodeFile(name: string): boolean {
+    return (
+      (name.endsWith('.js') || name.endsWith('.ts')) && !name.endsWith('.d.ts')
+    );
+  }
+
+  /**
+   * SHA-256 over the relative path and CONTENT of every code file under
+   * {@link codeRoot}, in a fixed order. Content, not mtime: `npm pack` gives
+   * every file the same fixed mtime, so two candidates installed from their
+   * tarballs differ only in content, and a detector change can keep a file's
+   * size. Computed once per process and only when the cache is consulted, so
+   * nothing build-specific is written into the package and `npm pack` stays
+   * reproducible. Unreadable code yields a fresh random value: no hit, ever,
+   * rather than a hit we cannot vouch for.
+   */
+  static codeFingerprint(root: string = this.codeRoot): string {
+    const known = this.fingerprints.get(root);
+    if (known) return known;
+    let fingerprint: string;
+    try {
+      const hash = crypto.createHash('sha256');
+      for (const file of this.codeFiles(root)) {
+        hash.update(`${path.relative(root, file).split(path.sep).join('/')}\0`);
+        hash.update(fs.readFileSync(file));
+        hash.update('\0');
+      }
+      fingerprint = hash.digest('hex');
+    } catch {
+      fingerprint = `unreadable-${crypto.randomUUID()}`;
+    }
+    this.fingerprints.set(root, fingerprint);
+    return fingerprint;
+  }
+
+  /** Code files under `dir`, sorted by path. */
+  private static codeFiles(dir: string): string[] {
+    const files: string[] = [];
+    const walk = (current: string): void => {
+      for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+        const full = path.join(current, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (this.isCodeFile(entry.name)) files.push(full);
+      }
+    };
+    walk(dir);
+    return files.sort();
   }
 
   private static readonly CACHE_DIR = '.ruleofcode-cache';
@@ -134,6 +209,12 @@ export class AuditCache {
         return null;
       }
 
+      if (cacheData.codeFingerprint !== this.codeFingerprint()) {
+        // Same version, different build: its detectors may answer differently.
+        // Checked last, so the hash is computed only for an otherwise valid entry.
+        return null;
+      }
+
       // Convert results back to Map (JSON.parse converts Maps to objects)
       const results = cacheData.results;
       if (
@@ -184,6 +265,7 @@ export class AuditCache {
         gitState: this.getGitState(projectRoot),
         mode,
         toolVersion: this.toolVersion(),
+        codeFingerprint: this.codeFingerprint(),
       };
 
       FileUtils.writeFile(cachePath, JSON.stringify(cacheEntry, null, 2));

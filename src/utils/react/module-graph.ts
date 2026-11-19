@@ -26,7 +26,8 @@ import { ReactProject } from './react-project';
 import { TsxSource, type TypeScriptModule } from './tsx-source';
 
 /** Specifiers that name a stylesheet, an image, a font or data — not code to walk. */
-const ASSET = /\.(?:css|scss|sass|less|styl|svg|png|jpe?g|gif|webp|avif|ico|bmp|json|woff2?|ttf|otf|eot|mp4|webm|mp3|wav|txt|md|mdx|html|wasm)(?:\?.*)?$/i;
+const ASSET =
+  /\.(?:css|scss|sass|less|styl|svg|png|jpe?g|gif|webp|avif|ico|bmp|json|woff2?|ttf|otf|eot|mp4|webm|mp3|wav|txt|md|mdx|html|wasm)(?:\?.*)?$/i;
 
 export type Resolution =
   | { kind: 'asset' }
@@ -76,15 +77,26 @@ export class ModuleResolver {
 
   resolve(specifier: string, fromFile: string): Resolution {
     const config = this.configFor(fromFile);
-    if (typeof config === 'string') return { kind: 'unresolved', reason: config };
-    const result = this.ts.resolveModuleName(specifier, fromFile, config.options, this.ts.sys, config.cache)
-      .resolvedModule;
+    if (typeof config === 'string')
+      return { kind: 'unresolved', reason: config };
+    const result = this.ts.resolveModuleName(
+      specifier,
+      fromFile,
+      config.options,
+      this.ts.sys,
+      config.cache
+    ).resolvedModule;
     const relativeOrAlias =
-      specifier.startsWith('.') || specifier.startsWith('/') || this.isAlias(specifier, config);
+      specifier.startsWith('.') ||
+      specifier.startsWith('/') ||
+      this.isAlias(specifier, config);
     if (!result) {
       if (ASSET.test(specifier)) return { kind: 'asset' };
       return relativeOrAlias
-        ? { kind: 'unresolved', reason: `'${specifier}' did not resolve to a file` }
+        ? {
+            kind: 'unresolved',
+            reason: `'${specifier}' did not resolve to a file`,
+          }
         : { kind: 'external', specifier };
     }
     const resolved = PathOperations.normalize(result.resolvedFileName);
@@ -101,20 +113,26 @@ export class ModuleResolver {
     return config.aliasPatterns.some(pattern => {
       const star = pattern.indexOf('*');
       if (star < 0) return specifier === pattern;
-      return specifier.startsWith(pattern.slice(0, star)) && specifier.endsWith(pattern.slice(star + 1));
+      return (
+        specifier.startsWith(pattern.slice(0, star)) &&
+        specifier.endsWith(pattern.slice(star + 1))
+      );
     });
   }
 
   /** The nearest tsconfig.json at or above the file, up to the project root. */
   private nearestTsconfig(fromFile: string): string | null {
-    const root = PathOperations.normalize(this.context.projectRoot).toLowerCase();
+    const root = PathOperations.normalize(
+      this.context.projectRoot
+    ).toLowerCase();
     let dir = PathOperations.getDirectory(fromFile);
     for (;;) {
       const candidate = PathOperations.join(dir, 'tsconfig.json');
       if (fs.existsSync(candidate)) return candidate;
       const parent = PathOperations.getDirectory(dir);
       const atRoot = dir.toLowerCase() === root;
-      if (atRoot || parent === dir || !parent.toLowerCase().startsWith(root)) return null;
+      if (atRoot || parent === dir || !parent.toLowerCase().startsWith(root))
+        return null;
       dir = parent;
     }
   }
@@ -123,7 +141,9 @@ export class ModuleResolver {
     const tsconfig = this.nearestTsconfig(fromFile) ?? '';
     const known = this.byConfig.get(tsconfig);
     if (known !== undefined) return known;
-    const loaded = tsconfig ? this.load(tsconfig) : { options: {}, aliasPatterns: [] };
+    const loaded = tsconfig
+      ? this.load(tsconfig)
+      : { options: {}, aliasPatterns: [] };
     const result =
       typeof loaded === 'string'
         ? loaded
@@ -131,7 +151,9 @@ export class ModuleResolver {
             aliasPatterns: loaded.aliasPatterns,
             cache: this.ts.createModuleResolutionCache(
               PathOperations.getDirectory(tsconfig || this.context.projectRoot),
-              this.ts.sys.useCaseSensitiveFileNames ? name => name : name => name.toLowerCase()
+              this.ts.sys.useCaseSensitiveFileNames
+                ? name => name
+                : name => name.toLowerCase()
             ),
             options: {
               ...loaded.options,
@@ -171,11 +193,16 @@ export class ModuleResolver {
       undefined,
       tsconfig
     );
-    const extendsError = parsed.errors.find(error => error.code === 6053 || error.code === 5083);
+    const extendsError = parsed.errors.find(
+      error => error.code === 6053 || error.code === 5083
+    );
     if (extendsError) {
       return `${where}: ${ts.flattenDiagnosticMessageText(extendsError.messageText, ' ')} — its path aliases were not resolved`;
     }
-    return { options: parsed.options, aliasPatterns: Object.keys(parsed.options.paths ?? {}) };
+    return {
+      options: parsed.options,
+      aliasPatterns: Object.keys(parsed.options.paths ?? {}),
+    };
   }
 }
 
@@ -188,10 +215,15 @@ export function staticImports(
   source: TsxSource,
   compiled: CompiledImports
 ): Array<{ specifier: string; line: number; statement: TS.Statement }> {
-  const found: Array<{ specifier: string; line: number; statement: TS.Statement }> = [];
+  const found: Array<{
+    specifier: string;
+    line: number;
+    statement: TS.Statement;
+  }> = [];
   for (const statement of source.sourceFile.statements) {
     const specifier = compiled.runtimeSpecifier(source, statement);
-    if (specifier !== null) found.push({ specifier, line: source.lineOf(statement), statement });
+    if (specifier !== null)
+      found.push({ specifier, line: source.lineOf(statement), statement });
   }
   return found;
 }
@@ -205,7 +237,11 @@ export interface GraphOptions {
    */
   stopAt?: (source: TsxSource, isEntry: boolean) => boolean;
   /** Skip edges of a module (an import used only in server-side data functions). */
-  skipEdge?: (source: TsxSource, statement: TS.Statement, isEntry: boolean) => boolean;
+  skipEdge?: (
+    source: TsxSource,
+    statement: TS.Statement,
+    isEntry: boolean
+  ) => boolean;
 }
 
 /** Walk the static imports from `entries`, breadth first. */
@@ -219,12 +255,17 @@ export function buildModuleGraph(
   const nodes = new Map<string, GraphNode>();
   const unread: string[] = [];
   const compiled = new CompiledImports(ts);
-  const queue: Array<{ file: string; parent: string | null }> = entries.map(file => ({
-    file: PathOperations.normalize(file),
-    parent: null,
-  }));
+  const queue: Array<{ file: string; parent: string | null }> = entries.map(
+    file => ({
+      file: PathOperations.normalize(file),
+      parent: null,
+    })
+  );
   while (queue.length > 0) {
-    const { file, parent } = queue.shift() as { file: string; parent: string | null };
+    const { file, parent } = queue.shift() as {
+      file: string;
+      parent: string | null;
+    };
     if (nodes.has(file)) continue;
     const source = options.parsed.get(file) ?? readSource(ts, file);
     if (!source) {
@@ -235,22 +276,37 @@ export function buildModuleGraph(
     const node: GraphNode = { source, edges: [], parent };
     nodes.set(file, node);
     if (options.stopAt?.(source, parent === null)) continue;
-    node.edges.push(...edgesOf(source, file, parent === null, resolver, compiled, options));
+    node.edges.push(
+      ...edgesOf(source, file, parent === null, resolver, compiled, options)
+    );
     for (const edge of node.edges) {
       const resolution = edge.resolution;
-      if (resolution.kind === 'local') queue.push({ file: resolution.file, parent: file });
-      else if (resolution.kind === 'unresolved') unread.push(unresolvedMessage(context, file, edge.line, resolution.reason));
+      if (resolution.kind === 'local')
+        queue.push({ file: resolution.file, parent: file });
+      else if (resolution.kind === 'unresolved')
+        unread.push(
+          unresolvedMessage(context, file, edge.line, resolution.reason)
+        );
     }
   }
   return { nodes, unread: [...new Set([...resolver.problems, ...unread])] };
 }
 
-function unreadMessage(context: LawCheckContext, file: string, parent: string | null): string {
+function unreadMessage(
+  context: LawCheckContext,
+  file: string,
+  parent: string | null
+): string {
   const importer = parent ? ReactProject.relative(context, parent) : 'an entry';
   return `${ReactProject.relative(context, file)}: could not be read (imported by ${importer})`;
 }
 
-function unresolvedMessage(context: LawCheckContext, file: string, line: number, reason: string): string {
+function unresolvedMessage(
+  context: LawCheckContext,
+  file: string,
+  line: number,
+  reason: string
+): string {
   return `${ReactProject.relative(context, file)}:${line}: ${reason} — the modules below it were not read`;
 }
 
@@ -264,7 +320,11 @@ function edgesOf(
 ): ImportEdge[] {
   return staticImports(source, compiled)
     .filter(({ statement }) => !options.skipEdge?.(source, statement, isEntry))
-    .map(({ specifier, line }) => ({ specifier, line, resolution: resolver.resolve(specifier, file) }));
+    .map(({ specifier, line }) => ({
+      specifier,
+      line,
+      resolution: resolver.resolve(specifier, file),
+    }));
 }
 
 function readSource(ts: TypeScriptModule, file: string): TsxSource | null {
@@ -278,12 +338,20 @@ function readSource(ts: TypeScriptModule, file: string): TsxSource | null {
 }
 
 /** Parsed sources keyed by normalized path. */
-export function sourcesByFile(sources: readonly TsxSource[]): Map<string, TsxSource> {
-  return new Map(sources.map(source => [PathOperations.normalize(source.fileName), source]));
+export function sourcesByFile(
+  sources: readonly TsxSource[]
+): Map<string, TsxSource> {
+  return new Map(
+    sources.map(source => [PathOperations.normalize(source.fileName), source])
+  );
 }
 
 /** The chain of importers from an entry down to `file`, for messages. */
-export function importChain(context: LawCheckContext, graph: ModuleGraph, file: string): string {
+export function importChain(
+  context: LawCheckContext,
+  graph: ModuleGraph,
+  file: string
+): string {
   const chain: string[] = [];
   let current: string | null = file;
   while (current && chain.length < 20) {

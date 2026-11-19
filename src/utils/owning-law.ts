@@ -32,15 +32,17 @@ function resolveLawClass(lawName: string): SyncLawClass | null {
   // Required lazily: the registry imports every law, so a law importing the
   // registry at module scope would close a cycle. By the time a check runs,
   // every module is loaded.
-  const { ALL_ENHANCED_CONSTITUTIONAL_LAWS } = require('../data/enhanced-laws') as {
-    ALL_ENHANCED_CONSTITUTIONAL_LAWS: Array<{
-      title?: string;
-      checkFunction?: string;
-    }>;
-  };
-  const { ModularLawsRegistry } = require('../registry/modular-laws-registry') as {
-    ModularLawsRegistry: { LAW_CLASS_MAPPING: Record<string, SyncLawClass> };
-  };
+  const { ALL_ENHANCED_CONSTITUTIONAL_LAWS } =
+    require('../data/enhanced-laws') as {
+      ALL_ENHANCED_CONSTITUTIONAL_LAWS: Array<{
+        title?: string;
+        checkFunction?: string;
+      }>;
+    };
+  const { ModularLawsRegistry } =
+    require('../registry/modular-laws-registry') as {
+      ModularLawsRegistry: { LAW_CLASS_MAPPING: Record<string, SyncLawClass> };
+    };
 
   const law = ALL_ENHANCED_CONSTITUTIONAL_LAWS.find(l => l.title === lawName);
   if (!law?.checkFunction) return null;

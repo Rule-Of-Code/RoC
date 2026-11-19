@@ -12,7 +12,10 @@ import { NgRxErrorHandlingConfiguration } from './ngrx-error-handling-configurat
  */
 export class NgRxErrorHandlingValidationPatterns {
   private static readonly Config = NgRxErrorHandlingConfiguration;
-  private static readonly ErrorAnalysis = Object.create(null) as Record<string, unknown>;
+  private static readonly ErrorAnalysis = Object.create(null) as Record<
+    string,
+    unknown
+  >;
   /**
    * Validate all NgRx error handling patterns in a project
    */
@@ -28,7 +31,8 @@ export class NgRxErrorHandlingValidationPatterns {
       [FILE_EXTENSIONS.EFFECTS_TS, FILE_EXTENSIONS.EFFECT_TS],
       config
     ).filter(file => {
-      const fileName = PathOperations.getBasename(file);
+      // The name WITH its extension: isEffectsFile looks for `.effects.` (#369).
+      const fileName = PathOperations.getFilename(file);
       return this.Config.isEffectsFile(fileName);
     });
 

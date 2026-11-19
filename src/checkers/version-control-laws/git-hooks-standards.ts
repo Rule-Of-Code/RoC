@@ -6,7 +6,12 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileSystemOperations } from '../../utils/file-system-operations';
 import { FileUtils } from '../../utils/file-utils';
-import { resolveGitHookStatus } from '../../utils/git-hook-status';
+import type { GitHookStatus } from '../../utils/git-hook-status';
+import {
+  hookVerdictBasis,
+  notInstalledFinding,
+  resolveGitHookStatus,
+} from '../../utils/git-hook-status';
 import { resolveGitHooksDir } from '../../utils/git/git-layout';
 import { PathOperations } from '../../utils/path-operations';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
@@ -15,6 +20,7 @@ export class GitHooksStandardsLaw {
   static check(context: LawCheckContext): LawResult {
     const violations: string[] = [];
     const suggestions: string[] = [];
+    let statuses: Record<string, GitHookStatus> = {};
 
     // Check for Git repository
     const gitCheckResult = VersionControlLawBase.checkGitRepository(
@@ -33,6 +39,7 @@ export class GitHooksStandardsLaw {
       const hooksAnalysis = this.checkHooksDirectory(context.projectRoot);
       violations.push(...hooksAnalysis.violations);
       suggestions.push(...hooksAnalysis.suggestions);
+      statuses = hooksAnalysis.statuses;
 
       // Check for pre-commit hook tools
       const preCommitTools = this.checkPreCommitTools(context.projectRoot);
@@ -44,13 +51,22 @@ export class GitHooksStandardsLaw {
     const scriptAnalysis = this.analyzePackageScripts(context.projectRoot);
     suggestions.push(...scriptAnalysis.suggestions);
 
-    return VersionControlLawBase.createResult(
+    const result = VersionControlLawBase.createResult(
       violations,
       'Git Hooks Standards',
       'VERSION_CONTROL',
       suggestions,
       context
     );
+    // Same basis statement as Git Hook Compliance (src/utils/git-hook-status.ts).
+    const basis = hookVerdictBasis(statuses);
+    result.metrics = {
+      ...result.metrics,
+      hooks: statuses,
+      checked: basis.checked,
+    };
+    if (basis.note) result.message = `${result.message} (${basis.note})`;
+    return result;
   }
 
   /**
@@ -70,6 +86,7 @@ export class GitHooksStandardsLaw {
   private static checkHooksDirectory(projectRoot: string): {
     violations: string[];
     suggestions: string[];
+    statuses: Record<string, GitHookStatus>;
   } {
     // Where git ACTUALLY looks: core.hooksPath when the project sets one (husky
     // does), and the main repository's git dir from a linked worktree, where
@@ -81,6 +98,7 @@ export class GitHooksStandardsLaw {
       return {
         violations: ['Git hooks directory missing'],
         suggestions: [`Git hooks directory should exist (${hooksDir})`],
+        statuses: {},
       };
     }
 
@@ -93,9 +111,12 @@ export class GitHooksStandardsLaw {
   ): {
     violations: string[];
     suggestions: string[];
+    statuses: Record<string, GitHookStatus>;
   } {
     const violations: string[] = [];
     const suggestions: string[] = [];
+    const statuses: Record<string, GitHookStatus> = {};
+    const notInstalled: string[] = [];
 
     const recommendedHooks = [
       { name: 'pre-commit', purpose: 'Run linting and tests before commit' },
@@ -111,7 +132,12 @@ export class GitHooksStandardsLaw {
     // knew nothing about committed `.husky/<hook>`, the modern layout.
     for (const hook of recommendedHooks) {
       const status = resolveGitHookStatus(projectRoot, hooksDir, hook.name);
-      if (status === 'active') {
+      statuses[hook.name] = status;
+      if (status === 'active' || status === 'ci-not-installed') {
+        continue;
+      }
+      if (status === 'not-installed') {
+        notInstalled.push(hook.name);
         continue;
       }
       violations.push(
@@ -122,7 +148,13 @@ export class GitHooksStandardsLaw {
       suggestions.push(`Configure ${hook.name} hook: ${hook.purpose}`);
     }
 
-    return { violations, suggestions };
+    const finding = notInstalledFinding(projectRoot, notInstalled);
+    if (finding) {
+      violations.push(finding);
+      suggestions.push('Activate the committed hooks: npx husky');
+    }
+
+    return { violations, suggestions, statuses };
   }
 
   private static checkPreCommitTools(projectRoot: string): {
@@ -194,8 +226,7 @@ export class GitHooksStandardsLaw {
           {}
         ) as Record<string, unknown>;
         const scripts = packageJson.scripts as
-          | Record<string, unknown>
-          | undefined;
+          Record<string, unknown> | undefined;
         if (!scripts) return { violations: [], suggestions };
 
         // Recommended scripts for Git workflow

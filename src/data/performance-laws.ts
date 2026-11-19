@@ -20,8 +20,10 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
     rationale:
       'A slow app is a broken app the profiler has not caught yet — users leave before they reach the feature. This law asks for the guardrails (a Lighthouse threshold, budgets, web-vitals, bundle and image optimization) that keep speed from silently regressing.',
     satisfiedBy: {
-      angular: 'Add a Lighthouse config with a >=90 threshold, angular.json/webpack budgets, web-vitals tracking, lazy-loading and image optimization.',
-      react: 'Run Lighthouse from a script or CI step with a performance threshold, declare one enforced budget (Lighthouse assertions or a size-limit check that a script runs), report Web Vitals with useReportWebVitals or web-vitals, and render images with next/image. A Next build already optimizes and caches hashed assets unless next.config turns that off.',
+      angular:
+        'Add a Lighthouse config with a >=90 threshold, angular.json/webpack budgets, web-vitals tracking, lazy-loading and image optimization.',
+      react:
+        'Run Lighthouse from a script or CI step with a performance threshold, declare one enforced budget (Lighthouse assertions or a size-limit check that a script runs), report Web Vitals with useReportWebVitals or web-vitals, and render images with next/image. A Next build already optimizes and caches hashed assets unless next.config turns that off.',
       capacitor:
         'No service worker is needed for caching in the shell; if the web build registers one, disable it on native or handle SwUpdate (#268).',
     },
@@ -29,7 +31,7 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
       'Configuration and source evidence only — it never measures a real Lighthouse score, LCP or CLS. On Angular, "web-vitals usage" is a substring match in main.ts / app.component.ts / *monitoring*.ts; on React/Next it is a parsed CALL of useReportWebVitals or a web-vitals metric function.',
       'The Lighthouse >=90 threshold is checked only IF a config file exists; a missing file yields a different, non-threshold violation.',
       'Next.js / Vite bundle optimization and Next caching are credited to the framework defaults (read in next/dist and vite types): it checks only that next.config / vite.config does not turn minification off or set output: "export". Values imported into the config from another module are not resolved.',
-      'next/image counts as image optimization without resolving `src` (Next serves an SVG unoptimized); only the element\'s `unoptimized` prop and next.config images.unoptimized are read.',
+      "next/image counts as image optimization without resolving `src` (Next serves an SVG unoptimized); only the element's `unoptimized` prop and next.config images.unoptimized are read.",
       'TypeScript/JavaScript only — no Python path, so a backend fails all six checks.',
       'A project declaring @capacitor/core in any workspace manifest is exempt from the caching-strategy check. A service worker such an app does register runs in the native WebView too and can serve the previous release on the first cold start after an update; that is not judged here (#268).',
     ],
@@ -62,8 +64,10 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
     rationale:
       'Every kilobyte the browser must download is time the user waits before anything works. A bundle that grows unchecked is a page that gets slower with every feature. This law asks that the bundle be optimized and measured.',
     satisfiedBy: {
-      angular: 'Enable optimization/tree-shaking in the build, lazy-load routes (loadChildren), and add a bundle analyzer (source-map-explorer / webpack-bundle-analyzer).',
-      react: 'Build with next build or vite build without turning minification off, run a bundle analyzer from a script (next experimental-analyze, @next/bundle-analyzer wired into next.config, source-map-explorer, size-limit), and load heavy libraries with next/dynamic or React.lazy.',
+      angular:
+        'Enable optimization/tree-shaking in the build, lazy-load routes (loadChildren), and add a bundle analyzer (source-map-explorer / webpack-bundle-analyzer).',
+      react:
+        'Build with next build or vite build without turning minification off, run a bundle analyzer from a script (next experimental-analyze, @next/bundle-analyzer wired into next.config, source-map-explorer, size-limit), and load heavy libraries with next/dynamic or React.lazy.',
     },
     detectionLimits: [
       'Never measures actual bundle bytes despite the name: "optimization configured" is read from the build tool\'s config (Angular budgets/esbuild/"optimization", Next/Vite defaults unless minification is turned off, webpack production mode, a Rollup terser plugin), never from the output.',
@@ -99,8 +103,10 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
     rationale:
       'Core Web Vitals — LCP, CLS, INP — are how Google and your users measure whether the page feels fast. This law asks for the setup that keeps them green: budgets, lazy-loading, caching, resource hints.',
     satisfiedBy: {
-      angular: 'Set performance budgets, lazy-load, add a service worker / caching, image optimization and resource hints (preload/preconnect) in index.html; track web-vitals.',
-      react: 'Run Lighthouse from a script or CI step, declare an enforced budget (Lighthouse assertions or a size-limit check that a script runs), render images with next/image or loading="lazy", and preload fonts with next/font or a <link rel="preconnect"> in the root layout. Next serves hashed assets with immutable caching unless next.config sets output: "export".',
+      angular:
+        'Set performance budgets, lazy-load, add a service worker / caching, image optimization and resource hints (preload/preconnect) in index.html; track web-vitals.',
+      react:
+        'Run Lighthouse from a script or CI step, declare an enforced budget (Lighthouse assertions or a size-limit check that a script runs), render images with next/image or loading="lazy", and preload fonts with next/font or a <link rel="preconnect"> in the root layout. Next serves hashed assets with immutable caching unless next.config sets output: "export".',
     },
     detectionLimits: [
       'Measures NO actual Core Web Vitals despite the name — configuration and source evidence only, and Lighthouse is wiring-only here (no threshold read).',
@@ -136,8 +142,10 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
     rationale:
       'Shipping one giant bundle means the user downloads the checkout page to see the home page. A real optimization strategy — code-splitting, tree-shaking, vendor chunking — sends only what each route needs.',
     satisfiedBy: {
-      angular: 'Code-split with lazy routes and dynamic import(), enable tree-shaking (ESM, optimization), and configure vendor / critical-css chunking in angular.json.',
-      react: 'Build with next build (route splitting, minification, tree-shaking and chunking are Next\'s own), enable experimental.optimizeCss (with critters) for critical CSS, split heavy client code with next/dynamic or React.lazy, and check it with an analyzer (next experimental-analyze, @next/bundle-analyzer, size-limit). On Vite, declare manualChunks / codeSplitting groups.',
+      angular:
+        'Code-split with lazy routes and dynamic import(), enable tree-shaking (ESM, optimization), and configure vendor / critical-css chunking in angular.json.',
+      react:
+        "Build with next build (route splitting, minification, tree-shaking and chunking are Next's own), enable experimental.optimizeCss (with critters) for critical CSS, split heavy client code with next/dynamic or React.lazy, and check it with an analyzer (next experimental-analyze, @next/bundle-analyzer, size-limit). On Vite, declare manualChunks / codeSplitting groups.",
     },
     detectionLimits: [
       'All configuration reads (angular.json / project.json / package.json / next.config / vite.config) — it measures no bundle.',
@@ -173,8 +181,10 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
     rationale:
       'You cannot fix a slowdown you cannot see. This law asks for the monitoring that turns "users say it is slow" into a graph: RUM, error tracking, alerts, dashboards, web-vitals in production.',
     satisfiedBy: {
-      angular: 'Wire RUM (or analytics), error tracking, performance alerts, a dashboard, and web-vitals reporting from production.',
-      react: 'Report Web Vitals with useReportWebVitals (or web-vitals) and errors with @sentry/nextjs or @sentry/react from the root layout or instrumentation*.ts; declare a size-limit or Lighthouse budget, an alert definition and a dashboard.',
+      angular:
+        'Wire RUM (or analytics), error tracking, performance alerts, a dashboard, and web-vitals reporting from production.',
+      react:
+        'Report Web Vitals with useReportWebVitals (or web-vitals) and errors with @sentry/nextjs or @sentry/react from the root layout or instrumentation*.ts; declare a size-limit or Lighthouse budget, an alert definition and a dashboard.',
     },
     detectionLimits: [
       'Dependency / config / file presence only — no proof monitoring actually reports; a Google Analytics snippet is detected by an index.html substring. On React/Next a parsed useReportWebVitals / web-vitals CALL counts as RUM and Web Vitals monitoring, and an error-tracking SDK import anywhere in the source counts as error tracking.',
@@ -291,11 +301,12 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
         'Read the keys of a loop in one call (Firestore get_all or an "in" filter, Mongo $in, SQLAlchemy .in_(), Django __in / in_bulk) or gather the reads with asyncio.gather; use select_related / prefetch_related (Django) or joinedload (SQLAlchemy) instead of a query per row.',
     },
     detectionLimits: [
-      'N+1 is judged per call site in Python and TS/JS sources (test files excluded): an awaited read in the body of a loop of the same function — for / async for / a comprehension element in Python; for / for…of / for await / for…in / a .forEach callback in TS/JS — whose arguments or receiver use the loop\'s item: its target, or a name the body derived from it (simple def-use). A read that does not use the item (a retry or poll re-reading one key, any while / do loop, which binds no item) is not reported. A read is a call the client registry lists for Firestore, MongoDB, SQLAlchemy, Django ORM, Prisma, TypeORM or Sequelize, or an awaited method with a read-like name (get…, find…, fetch…, load…, query…, list…); an in-memory repository or an HTTP call with such a name is counted too.',
+      'The N+1 check judges the request path, not code that runs once: files under scripts/, migrations/, alembic/, bin/, seeds/, seeders/ or management/commands/ (Django), at any depth, are not read by it. Recognised by location only: a one-off script kept elsewhere is judged, and request code imported from one of those directories is left out with it.',
+      "N+1 is judged per call site in Python and TS/JS sources (test files excluded): an awaited read in the body of a loop of the same function — for / async for / a comprehension element in Python; for / for…of / for await / for…in / a .forEach callback in TS/JS — whose arguments or receiver use the loop's item: its target, or a name the body derived from it (simple def-use). A read that does not use the item (a retry or poll re-reading one key, any while / do loop, which binds no item) is not reported. A read is a call the client registry lists for Firestore, MongoDB, SQLAlchemy, Django ORM, Prisma, TypeORM or Sequelize, or an awaited method with a read-like name (get…, find…, fetch…, load…, query…, list…); an in-memory repository or an HTTP call with such a name is counted too.",
       'Accepted at the site and not reported: a batch read (get_all / getAll / in_bulk), an in / array-contains-any / $in / .in_() / __in / In() / Op.in / Prisma in: filter or a paged read (start_after, offset, cursor …), also when it was built into the receiver variable earlier in the same function; reads gathered concurrently (asyncio.gather / Promise.all over a map); a loop over a literal tuple/list/set/dict/array, over a name bound to one at module level in the same file, or to a literal bound (a fixed fan-out). A collection computed at module level or imported from another module is not recognised as fixed.',
       'Not seen: synchronous reads in a loop (Django lazy relations, sync SQLAlchemy or pymongo), a read behind a helper the loop calls under a name that is not read-like, and a dependency on the item through shared state (an attribute the body sets on self). An in-memory or fake repository with read-like method names is not told apart from a real one and is reported.',
       'The index, batching, pagination and caching checks are JS/TS-only and read *.service / firestore / database / repository files under src, apps and libs. A Python project without JS/TS sources gets the N+1 check only; when it holds no recognised awaited read the law is N/A, never a pass.',
-      'TS/JS is parsed with the project\'s typescript package (or the one RoC resolves); when neither loads, the files are reported as unread, never as clean.',
+      "TS/JS is parsed with the project's typescript package (or the one RoC resolves); when neither loads, the files are reported as unread, never as clean.",
       'It flags query SHAPES it recognises; it cannot prove a query is slow without running it against real data.',
     ],
     emoji: '🗃️',
@@ -323,7 +334,10 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
     title: 'CDN and Caching Strategy',
     rationale:
       'Serving every asset from your origin, uncached, on every request pays for latency you could have avoided. A CDN and cache headers put the bytes close to the user and keep them there.',
-    satisfiedBy: { angular: 'Serve assets via a CDN (firebase hosting headers / deployUrl), set cache-control headers, add a service worker, and enable HTTP/2.' },
+    satisfiedBy: {
+      angular:
+        'Serve assets via a CDN (firebase hosting headers / deployUrl), set cache-control headers, add a service worker, and enable HTTP/2.',
+    },
     detectionLimits: [
       'Correctly N/A for a pure backend (it gates on web assets first) — but its CDN check matches a bare "assets" or "cdn" anywhere in an env file, a trivially-satisfied false pass.',
       'All detection is config-file presence; no runtime CDN/edge verification.',
@@ -355,8 +369,10 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
     rationale:
       'A performance budget is a number a regression cannot cross without failing the build — without it, "a little slower each release" compounds into unusable. This law asks that the budget exist and be enforced in CI.',
     satisfiedBy: {
-      angular: 'Declare angular.json/webpack budgets, a Lighthouse budget, bundle-size monitoring, and a CI gate that fails on a budget breach.',
-      react: 'Declare one enforced budget — a size-limit check with a limit, or Lighthouse CI assertions — run by a script, run it from a CI step (or a git hook when the project has no hosted CI), and report Web Vitals or errors in production (useReportWebVitals, @sentry/nextjs).',
+      angular:
+        'Declare angular.json/webpack budgets, a Lighthouse budget, bundle-size monitoring, and a CI gate that fails on a budget breach.',
+      react:
+        'Declare one enforced budget — a size-limit check with a limit, or Lighthouse CI assertions — run by a script, run it from a CI step (or a git hook when the project has no hosted CI), and report Web Vitals or errors in production (useReportWebVitals, @sentry/nextjs).',
     },
     detectionLimits: [
       'Presence only — it reads that a budget is declared and wired, never the budget value, and never whether a build actually breaches it.',

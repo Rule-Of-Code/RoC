@@ -77,7 +77,10 @@ export class HealthCheckMonitoringLaw {
     // 3. Check for external service health checks
     const externalServiceHealth =
       this.analyzeExternalServiceHealthChecks(projectRoot);
-    if (tsProbesApply && !externalServiceHealth.hasExternalServiceHealthChecks) {
+    if (
+      tsProbesApply &&
+      !externalServiceHealth.hasExternalServiceHealthChecks
+    ) {
       violations.push('Missing external service dependency health checks');
       suggestions.push('Add health checks for external service dependencies');
       score -= 20;

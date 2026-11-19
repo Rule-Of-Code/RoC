@@ -17,7 +17,7 @@ import { ALL_ENHANCED_CONSTITUTIONAL_LAWS } from '../../src/data/enhanced-laws';
  */
 describe('detection-limits ratchet', () => {
   // Raise this when you author more limits. It must never go DOWN.
-  const DECLARED_FLOOR = 256;
+  const DECLARED_FLOOR = 265;
 
   const declared = ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(
     law => Array.isArray(law.detectionLimits) && law.detectionLimits.length > 0
@@ -44,7 +44,8 @@ describe('detection-limits ratchet', () => {
 
   it('a declared law never ships an empty limits array (that reads as "no limits")', () => {
     const emptyArray = ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(
-      law => Array.isArray(law.detectionLimits) && law.detectionLimits.length === 0
+      law =>
+        Array.isArray(law.detectionLimits) && law.detectionLimits.length === 0
     );
     // null means "not declared yet" (honest debt); [] would falsely read as
     // "this law has no limits". Never ship the empty array.
@@ -58,16 +59,15 @@ describe('detection-limits ratchet', () => {
  * has its own floor that may never regress and is meant to grow in public.
  */
 describe('rationale & satisfiedBy ratchet', () => {
-  const RATIONALE_FLOOR = 256;
-  const SATISFIED_FLOOR = 255;
+  const RATIONALE_FLOOR = 265;
+  const SATISFIED_FLOOR = 264;
 
   const withRationale = ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(
     law => typeof law.rationale === 'string' && law.rationale.trim().length > 0
   );
   const withSatisfied = ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(
     law =>
-      law.satisfiedBy !== undefined &&
-      Object.keys(law.satisfiedBy).length > 0
+      law.satisfiedBy !== undefined && Object.keys(law.satisfiedBy).length > 0
   );
 
   it(`at least ${RATIONALE_FLOOR} laws declare a rationale (ratchet)`, () => {
@@ -91,7 +91,9 @@ describe('rationale & satisfiedBy ratchet', () => {
       Object.entries(law.satisfiedBy ?? {})
         .filter(
           ([stack, hint]) =>
-            !stacks.has(stack) || typeof hint !== 'string' || hint.trim().length < 15
+            !stacks.has(stack) ||
+            typeof hint !== 'string' ||
+            hint.trim().length < 15
         )
         .map(([stack]) => `${law.title}.${stack}`)
     );
@@ -108,14 +110,21 @@ describe('rationale & satisfiedBy ratchet', () => {
   it.each([
     ['ionic', '@ionic/'],
     ['capacitor', '@capacitor/core'],
-  ])('a law whose only guidance is satisfiedBy.%s is gated on %s', (key, dependency) => {
-    const ungated = ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(
-      law =>
-        Object.keys(law.satisfiedBy ?? {}).join() === key &&
-        !(law.requires?.anyDependency ?? []).some(name => name.startsWith(dependency)) &&
-        // allDependencies: every one is required, so one naming the toolkit gates the law.
-        !(law.requires?.allDependencies ?? []).some(name => name.startsWith(dependency))
-    ).map(law => law.title);
-    expect(ungated).toEqual([]);
-  });
+  ])(
+    'a law whose only guidance is satisfiedBy.%s is gated on %s',
+    (key, dependency) => {
+      const ungated = ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(
+        law =>
+          Object.keys(law.satisfiedBy ?? {}).join() === key &&
+          !(law.requires?.anyDependency ?? []).some(name =>
+            name.startsWith(dependency)
+          ) &&
+          // allDependencies: every one is required, so one naming the toolkit gates the law.
+          !(law.requires?.allDependencies ?? []).some(name =>
+            name.startsWith(dependency)
+          )
+      ).map(law => law.title);
+      expect(ungated).toEqual([]);
+    }
+  );
 });

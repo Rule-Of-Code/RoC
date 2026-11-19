@@ -163,7 +163,9 @@ describe('DeploymentEnvironmentAnalyzer', () => {
         []
       );
 
-      expect(result.violations.join(' ')).toContain('No environment contract declared');
+      expect(result.violations.join(' ')).toContain(
+        'No environment contract declared'
+      );
     });
 
     it('should return violation when only one file', () => {
@@ -174,7 +176,9 @@ describe('DeploymentEnvironmentAnalyzer', () => {
         envPath,
       ]);
 
-      expect(result.violations.join(' ')).toContain('No environment contract declared');
+      expect(result.violations.join(' ')).toContain(
+        'No environment contract declared'
+      );
     });
 
     it('should suggest creating separate environment files', () => {
@@ -185,7 +189,9 @@ describe('DeploymentEnvironmentAnalyzer', () => {
       // We ask for the CONTRACT (.env.example), never for the values: a law that
       // demands .env.production demands you commit your secrets (a backend consumer).
       expect(result.suggestions.join(' ')).toContain('.env.example');
-      expect(result.suggestions.join(' ')).toMatch(/do NOT commit \.env\.production/i);
+      expect(result.suggestions.join(' ')).toMatch(
+        /do NOT commit \.env\.production/i
+      );
     });
 
     it('should check consistency between two env files', () => {

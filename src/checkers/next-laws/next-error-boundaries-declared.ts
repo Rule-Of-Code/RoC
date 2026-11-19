@@ -16,7 +16,10 @@
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { markJudgedNothing } from '../../utils/judged-nothing';
-import { isClientModule, NextModuleGraph } from '../../utils/react/next-module-graph';
+import {
+  isClientModule,
+  NextModuleGraph,
+} from '../../utils/react/next-module-graph';
 import { routerLayout, specialFile } from '../../utils/react/next-routes';
 import { ReactProject } from '../../utils/react/react-project';
 import { LawBase } from '../law-base';
@@ -29,7 +32,8 @@ export class NextErrorBoundariesDeclaredLaw extends LawBase {
   static readonly LAW_NAME = 'Next Error Boundaries Declared';
 
   static check(context: LawCheckContext): LawResult {
-    const rel = (file: string): string => ReactProject.relative(context, file) || '.';
+    const rel = (file: string): string =>
+      ReactProject.relative(context, file) || '.';
     const appDirs = ReactProject.nextApps(context.projectRoot)
       .map(app => routerLayout(app).appDir)
       .filter((dir): dir is string => dir !== null);
@@ -40,7 +44,8 @@ export class NextErrorBoundariesDeclaredLaw extends LawBase {
       );
     }
     const graph = NextModuleGraph.create(context);
-    for (const appDir of appDirs) violations.push(...this.checkAppDir(appDir, graph, rel));
+    for (const appDir of appDirs)
+      violations.push(...this.checkAppDir(appDir, graph, rel));
     if (typeof graph !== 'string') violations.push(...graph.unread);
     const result = this.createResult(
       violations,
@@ -66,7 +71,9 @@ export class NextErrorBoundariesDeclaredLaw extends LawBase {
     for (const name of REQUIRED) {
       const file = specialFile(appDir, name);
       if (!file) {
-        violations.push(`${rel(appDir)}: no ${name}.tsx (or .ts/.jsx/.js) — ${this.why(name)}`);
+        violations.push(
+          `${rel(appDir)}: no ${name}.tsx (or .ts/.jsx/.js) — ${this.why(name)}`
+        );
       } else if (CLIENT_REQUIRED.has(name)) {
         violations.push(...this.checkBoundary(file, name, graph, rel));
       }
@@ -86,21 +93,27 @@ export class NextErrorBoundariesDeclaredLaw extends LawBase {
     if (!source) return [];
     const violations: string[] = [];
     if (!isClientModule(source)) {
-      violations.push(`${rel(file)}: does not open with 'use client' — error boundaries must be Client Components`);
+      violations.push(
+        `${rel(file)}: does not open with 'use client' — error boundaries must be Client Components`
+      );
     }
     if (name === GLOBAL_ERROR) {
       const tags = new Set(source.jsxElements().map(element => element.tag));
       const missing = ['html', 'body'].filter(tag => !tags.has(tag));
       if (missing.length > 0) {
-        violations.push(`${rel(file)}: renders no <${missing.join('> or <')}> — global-error replaces the root layout and must define its own document`);
+        violations.push(
+          `${rel(file)}: renders no <${missing.join('> or <')}> — global-error replaces the root layout and must define its own document`
+        );
       }
     }
     return violations;
   }
 
   private static why(name: string): string {
-    if (name === GLOBAL_ERROR) return 'an error in the root layout is caught by nothing you wrote; Next shows its default page';
-    if (name === 'error') return 'a render error shows Next\'s default error page instead of a recovery UI';
-    return 'notFound() and unknown URLs show Next\'s default 404';
+    if (name === GLOBAL_ERROR)
+      return 'an error in the root layout is caught by nothing you wrote; Next shows its default page';
+    if (name === 'error')
+      return "a render error shows Next's default error page instead of a recovery UI";
+    return "notFound() and unknown URLs show Next's default 404";
   }
 }

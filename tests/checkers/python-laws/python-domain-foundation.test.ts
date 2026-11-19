@@ -55,45 +55,57 @@ describe('DomainLayerFrameworkIndependenceLaw (Clean Architecture)', () => {
       'pyproject.toml': "[project]\nname='x'\n",
       'src/app/domain/order.py': 'import sqlalchemy\nclass Order:\n    pass\n',
     });
-    expect(DomainLayerFrameworkIndependenceLaw.check(ctx(dir)).passed).toBe(false);
+    expect(DomainLayerFrameworkIndependenceLaw.check(ctx(dir)).passed).toBe(
+      false
+    );
   });
   it('passes a pure domain file', () => {
     const dir = fixture({
       'pyproject.toml': "[project]\nname='x'\n",
-      'src/app/domain/order.py': 'from dataclasses import dataclass\n\n@dataclass\nclass Order:\n    id: str\n',
+      'src/app/domain/order.py':
+        'from dataclasses import dataclass\n\n@dataclass\nclass Order:\n    id: str\n',
     });
-    expect(DomainLayerFrameworkIndependenceLaw.check(ctx(dir)).passed).toBe(true);
+    expect(DomainLayerFrameworkIndependenceLaw.check(ctx(dir)).passed).toBe(
+      true
+    );
   });
   it('ignores a forbidden import that appears only in a comment/string', () => {
     const dir = fixture({
       'pyproject.toml': "[project]\nname='x'\n",
-      'src/app/domain/note.py': '# we used to: import sqlalchemy\nMSG = "import requests here"\n',
+      'src/app/domain/note.py':
+        '# we used to: import sqlalchemy\nMSG = "import requests here"\n',
     });
-    expect(DomainLayerFrameworkIndependenceLaw.check(ctx(dir)).passed).toBe(true);
+    expect(DomainLayerFrameworkIndependenceLaw.check(ctx(dir)).passed).toBe(
+      true
+    );
   });
 });
 
 describe('FastApiTypedResponsesLaw (FastAPI conventions)', () => {
-  const FASTAPI_PYPROJECT = "[project]\nname='x'\ndependencies = ['fastapi>=0.110']\n";
+  const FASTAPI_PYPROJECT =
+    "[project]\nname='x'\ndependencies = ['fastapi>=0.110']\n";
 
   it('flags a data route with no response_model', () => {
     const dir = fixture({
       'pyproject.toml': FASTAPI_PYPROJECT,
-      'src/app/api/routes.py': 'from fastapi import APIRouter\nrouter = APIRouter()\n\n@router.get("/items")\nasync def items():\n    return []\n',
+      'src/app/api/routes.py':
+        'from fastapi import APIRouter\nrouter = APIRouter()\n\n@router.get("/items")\nasync def items():\n    return []\n',
     });
     expect(FastApiTypedResponsesLaw.check(ctx(dir)).passed).toBe(false);
   });
   it('passes a route declaring response_model (handles nested parens)', () => {
     const dir = fixture({
       'pyproject.toml': FASTAPI_PYPROJECT,
-      'src/app/api/routes.py': 'from fastapi import APIRouter, Depends\nrouter = APIRouter()\n\n@router.get("/items", response_model=list[Item], dependencies=[Depends(auth)])\nasync def items():\n    return []\n',
+      'src/app/api/routes.py':
+        'from fastapi import APIRouter, Depends\nrouter = APIRouter()\n\n@router.get("/items", response_model=list[Item], dependencies=[Depends(auth)])\nasync def items():\n    return []\n',
     });
     expect(FastApiTypedResponsesLaw.check(ctx(dir)).passed).toBe(true);
   });
   it('exempts routes with a custom response_class or 204', () => {
     const dir = fixture({
       'pyproject.toml': FASTAPI_PYPROJECT,
-      'src/app/api/routes.py': 'from fastapi import APIRouter\nfrom fastapi.responses import StreamingResponse\nrouter = APIRouter()\n\n@router.get("/stream", response_class=StreamingResponse)\nasync def stream():\n    ...\n\n@router.put("/x", status_code=204)\nasync def upd():\n    ...\n',
+      'src/app/api/routes.py':
+        'from fastapi import APIRouter\nfrom fastapi.responses import StreamingResponse\nrouter = APIRouter()\n\n@router.get("/stream", response_class=StreamingResponse)\nasync def stream():\n    ...\n\n@router.put("/x", status_code=204)\nasync def upd():\n    ...\n',
     });
     expect(FastApiTypedResponsesLaw.check(ctx(dir)).passed).toBe(true);
   });

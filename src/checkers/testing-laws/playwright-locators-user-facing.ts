@@ -35,7 +35,8 @@ export const USER_FACING_LOCATORS = new Set([
 /** The locators that find an element by an implementation detail. */
 export const IMPLEMENTATION_LOCATORS = new Set(['getByTestId', 'locator']);
 
-export const LOCATOR_FLOOR_KEY = 'thresholds.testing.playwrightUserFacingLocatorPercent';
+export const LOCATOR_FLOOR_KEY =
+  'thresholds.testing.playwrightUserFacingLocatorPercent';
 const DEFAULT_FLOOR = 50;
 
 export interface LocatorCounts {
@@ -62,7 +63,10 @@ export class PlaywrightLocatorsUserFacingLaw extends LawBase {
     for (const source of suite.sources) {
       const counts = this.count(source);
       userFacing += counts.userFacing;
-      byFile.push({ file: ReactProject.relative(context, source.fileName), count: counts.implementation });
+      byFile.push({
+        file: ReactProject.relative(context, source.fileName),
+        count: counts.implementation,
+      });
     }
     const verdict = shareSummary({
       userFacing,
@@ -99,8 +103,14 @@ export class PlaywrightLocatorsUserFacingLaw extends LawBase {
     return counts;
   }
 
-  private static calledMember(ts: TsxSource['ts'], node: TS.Node): string | null {
-    if (!ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression)) {
+  private static calledMember(
+    ts: TsxSource['ts'],
+    node: TS.Node
+  ): string | null {
+    if (
+      !ts.isCallExpression(node) ||
+      !ts.isPropertyAccessExpression(node.expression)
+    ) {
       return null;
     }
     return node.expression.name.text;

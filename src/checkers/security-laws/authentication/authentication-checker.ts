@@ -43,10 +43,12 @@ export class AuthenticationChecker extends SecurityCheckerBase {
         },
         {
           validator: codeFiles =>
-            !this.handlesPasswords(codeFiles) || this.hasSecurePasswordHandling(codeFiles),
+            !this.handlesPasswords(codeFiles) ||
+            this.hasSecurePasswordHandling(codeFiles),
           violationMessage:
             'Passwords are handled without a recognised hashing library (bcrypt, scrypt, argon2, pbkdf2) or managed auth',
-          suggestionMessage: 'Hash passwords with bcrypt, scrypt or argon2, or delegate to a managed auth provider',
+          suggestionMessage:
+            'Hash passwords with bcrypt, scrypt or argon2, or delegate to a managed auth provider',
         },
       ]
     );
@@ -132,7 +134,10 @@ export class AuthenticationChecker extends SecurityCheckerBase {
   ];
 
   /** Does any file match any pattern? An unreadable file matches nothing. */
-  private static anyFileMatches(codeFiles: string[], patterns: readonly RegExp[]): boolean {
+  private static anyFileMatches(
+    codeFiles: string[],
+    patterns: readonly RegExp[]
+  ): boolean {
     return codeFiles.some(file => {
       try {
         const content = FileUtils.readFile(file);

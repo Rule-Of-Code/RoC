@@ -37,10 +37,12 @@
 
 import * as nodeChildProcess from 'child_process';
 import type {
+  ChildProcess,
   ExecFileSyncOptions,
   ExecFileSyncOptionsWithStringEncoding,
   ExecSyncOptions,
   ExecSyncOptionsWithStringEncoding,
+  SpawnOptions,
   SpawnSyncOptions,
   SpawnSyncOptionsWithStringEncoding,
   SpawnSyncReturns,
@@ -152,4 +154,17 @@ export function spawnSync(
   options: Targeted<SpawnSyncOptions>
 ): SpawnSyncReturns<string | Buffer> {
   return nodeChildProcess.spawnSync(file, args, targeted(options));
+}
+
+/**
+ * `child_process.spawn` (no shell), in `cwd`, with {@link childEnvironment}:
+ * the asynchronous door, for a caller that must act on the child while it
+ * runs (close its stdout, wait for its exit with a deadline).
+ */
+export function spawn(
+  file: string,
+  args: readonly string[],
+  options: Targeted<SpawnOptions>
+): ChildProcess {
+  return nodeChildProcess.spawn(file, args, targeted(options));
 }

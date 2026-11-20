@@ -4,6 +4,10 @@ import { UnitTestDataManagementAnalyzerService } from './unit-test-data-manageme
 import { markJudgedNothing } from '../../utils/judged-nothing';
 import { namedFiles } from '../../utils/testing/fixture-isolation';
 import { TestFileDiscovery } from './test-file-discovery';
+import {
+  loadTypeScript,
+  parserUnavailable,
+} from '../../utils/react/tsx-source';
 
 /** Said when no test imports an external client, so mocking was not judged. */
 export const MOCKING_NOT_JUDGED =
@@ -42,6 +46,21 @@ export class TestDataManagementLaw {
             passed: false,
             message: nothing,
             violations: [nothing],
+            suggestions,
+            score: 0,
+            context,
+          })
+        );
+      }
+      // Without the parser the code cannot be told from its strings: say the
+      // files were not read, rather than judge them with a regex (#427).
+      if (!loadTypeScript(projectRoot)) {
+        const notRead = `${parserUnavailable(projectRoot, `the ${testFiles.length} test file(s)`)} — Test Data Management judged nothing`;
+        return markJudgedNothing(
+          LawBase.buildDetailedResult({
+            passed: false,
+            message: notRead,
+            violations: [notRead],
             suggestions,
             score: 0,
             context,

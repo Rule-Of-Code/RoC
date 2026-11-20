@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — without `typescript`, two testing laws judged by a regex and said nothing (#427)
+
+`CodeText.codeOnly` (the code of a file, without its comments and strings) fell
+back to a regex when no `typescript` could be loaded. The regex reads a string
+in a test as code, so **Test Isolation Enforcement** (error severity) failed a
+project that passes with the parser — the verdict depended on the machine, and
+nothing said the files had not really been read.
+
+Now `codeOnly` throws instead of guessing, and the two laws that reach it check
+for the parser first:
+
+| | before, no `typescript` | after, no `typescript` | with `typescript` |
+|---|---|---|---|
+| Test Isolation Enforcement | judged by the regex, silently | "could not load the 'typescript' package … the N test file(s) were NOT read" — judged nothing | unchanged |
+| Test Data Management | judged by the regex, silently | the same note — judged nothing | unchanged |
+
+A judged-nothing law fails at error severity and makes the run partial at a
+non-blocking one. `typescript` resolves from the project or from RoC itself, so
+this shows only where neither has it.
+
 ### 🐛 Fixed — an ignores entry written as a Windows path, an absolute path, with `./` or a trailing slash matched nothing (#414)
 
 `ignores.*` patterns were passed to the matcher as written, while the paths

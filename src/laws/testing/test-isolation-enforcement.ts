@@ -3,6 +3,10 @@ import { UnitTestIsolationAnalyzerService } from './unit-test-isolation/services
 import { markJudgedNothing } from '../../utils/judged-nothing';
 import { namedFiles } from '../../utils/testing/fixture-isolation';
 import { TestFileDiscovery } from './test-file-discovery';
+import {
+  loadTypeScript,
+  parserUnavailable,
+} from '../../utils/react/tsx-source';
 
 /**
  * Test Isolation Enforcement Law
@@ -32,6 +36,21 @@ export class TestIsolationEnforcementLaw {
           this.buildFinalResult(context, {
             violations: [
               TestFileDiscovery.nothingToJudge('Test Isolation Enforcement'),
+            ],
+            suggestions: [],
+            score: 0,
+            sharedStateAnalysis: { hasSharedMutableState: false },
+            setupTeardownAnalysis: { hasProperIsolation: false },
+          })
+        );
+      }
+      // Without the parser the code cannot be told from its strings: say the
+      // files were not read, rather than judge them with a regex (#427).
+      if (!loadTypeScript(context.projectRoot)) {
+        return markJudgedNothing(
+          this.buildFinalResult(context, {
+            violations: [
+              `${parserUnavailable(context.projectRoot, `the ${testFiles.length} test file(s)`)} — Test Isolation Enforcement judged nothing`,
             ],
             suggestions: [],
             score: 0,

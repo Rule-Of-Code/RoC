@@ -5,6 +5,65 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.29.1] - 2026-11-20
+
+**The first release on npm after 7.28.1.** 7.29.0 was tagged but never
+published to npm. Upgrading from 7.28.1 brings this release's fix (#405) and
+everything in [7.29.0] below, including one **breaking** change. No law added
+or removed (265). The JSON contract keeps its shape. Closes #405.
+
+### ⚠️ BREAKING (from 7.29.0) — Error Handling Standards, turned on, judges nothing (#390)
+
+Its five checks were measured on six real projects at 0–33% precision and
+removed. The law stays in the registry (265 laws), so a key or a waiver that
+names it is still valid, and it stays opt-in. Turned on (`laws.severity` or
+`laws.enabled`), it reports a failure with score 0, at the severity the config
+gives it:
+
+```
+Error Handling Standards has no verified detection path in this version — this law judged nothing. Its five checks were measured on real projects at 0–33% precision and removed (#390); waive it or leave it off until a check is verified.
+```
+
+**Breaking** for a config that turned it on: the findings it used to report
+(nearly all of them false) are replaced by this single failure. A config that
+left it off, or waives it, sees no change. The measurement, the known limit
+and the removed suggestions are in [7.29.0].
+
+### Also from 7.29.0
+
+- **#385:** a finished audit no longer stalls on exit. It sets the exit code
+  and ends on its own, with an unref'd 10 s backup timer.
+- **#399:** a waiver of an opt-in law that only `laws.enabled` turns on is
+  reported in `scope.waivedLaws` and on the console.
+
+### 🐛 Fixed — a reader that closed the pipe early turned a failed audit into exit 0 (#405)
+
+The CLI exited with a hard-coded 0 on a broken pipe (an `EPIPE` on write, or
+`SIGPIPE`). So `ruleofcode audit --json | head` under `set -o pipefail` passed a
+failed audit: PIPESTATUS `0 0`, measured on 7.28.1 and the 7.29.0 candidate in
+200 of 200 runs where the reader stopped early. Read to the end, the same runs
+exit 1.
+
+A broken pipe now only stops the writing. The command runs to its end and
+exits with its own code, whether or not anyone read the output: a failed audit
+1, a passing audit still 0. This holds for `--json` on stdout, for the human
+output on stderr, and for text mode, which keeps writing after the pipe broke
+without a crash. `laws` keeps exiting 0. `init`, `recommend` and
+`reinstall-hooks` now end with their own code instead of 0.
+
+Two side effects, both fail-closed:
+
+- An `EPIPE` that is not on stdout or stderr (for example on a child process's
+  stdin) used to exit 0 silently. It now ends the process the way Node does:
+  a stack trace on stderr and exit 1.
+- Any other uncaught error now exits 1 (Node's default) instead of 7. Exit 7
+  came from the old handler rethrowing the error; it was never a documented
+  code.
+
+Measured on Windows (Node 24); Linux is covered by CI. macOS was not measured.
+Node ignores `SIGPIPE` on both POSIX systems unless a listener is installed,
+so a write fails with `EPIPE` there too. That is an assumption for macOS.
+
 ## [7.29.0] - 2026-11-19
 
 No law added or removed (265). The JSON contract keeps its shape. Closes #385,

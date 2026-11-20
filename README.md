@@ -10,11 +10,7 @@
 
 ![ruleofcode 7.29.1: a four-law allowlist is reported as PARTIAL SCAN — 4 of 75 applicable laws ran, no compliance verdict; the full run checks 77 laws and fails.](docs/demo/demo.gif)
 
-**What a real PASS takes.** ruleofcode audits its own repository at v7.29.1: the full law set, no waiver, 0 failed — and 46 warnings it reports without blocking.
-
-![ruleofcode 7.29.1 audits its own repository at tag v7.29.1: full run, 84 laws checked, 38 passed, 0 failed, 46 reported warnings (not blocking), no waivers — CONSTITUTIONAL COMPLIANCE: PASSED, followed by the victory art.](docs/demo/pass.gif)
-
-Real output of ruleofcode 7.29.1 from npm — reproduce both with [docs/demo](docs/demo/README.md).
+Real output of ruleofcode 7.29.1 from npm — reproduce with [docs/demo](docs/demo/README.md).
 
 **RoC is a constitutional-compliance CLI**: it audits a codebase against a catalog of
 laws, installs git hooks, and returns a single honest answer — pass or fail. RoC is a

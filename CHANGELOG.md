@@ -5,7 +5,36 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [7.29.1] - 2026-11-20
+
+**The first release on npm after 7.28.1.** 7.29.0 was tagged but never
+published to npm. Upgrading from 7.28.1 brings this release's fix (#405) and
+everything in [7.29.0] below, including one **breaking** change. No law added
+or removed (265). The JSON contract keeps its shape. Closes #405.
+
+### ⚠️ BREAKING (from 7.29.0) — Error Handling Standards, turned on, judges nothing (#390)
+
+Its five checks were measured on six real projects at 0–33% precision and
+removed. The law stays in the registry (265 laws), so a key or a waiver that
+names it is still valid, and it stays opt-in. Turned on (`laws.severity` or
+`laws.enabled`), it reports a failure with score 0, at the severity the config
+gives it:
+
+```
+Error Handling Standards has no verified detection path in this version — this law judged nothing. Its five checks were measured on real projects at 0–33% precision and removed (#390); waive it or leave it off until a check is verified.
+```
+
+**Breaking** for a config that turned it on: the findings it used to report
+(nearly all of them false) are replaced by this single failure. A config that
+left it off, or waives it, sees no change. The measurement, the known limit
+and the removed suggestions are in [7.29.0].
+
+### Also from 7.29.0
+
+- **#385:** a finished audit no longer stalls on exit. It sets the exit code
+  and ends on its own, with an unref'd 10 s backup timer.
+- **#399:** a waiver of an opt-in law that only `laws.enabled` turns on is
+  reported in `scope.waivedLaws` and on the console.
 
 ### 🐛 Fixed — a reader that closed the pipe early turned a failed audit into exit 0 (#405)
 

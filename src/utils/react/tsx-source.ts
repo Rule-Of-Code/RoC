@@ -44,8 +44,11 @@ export function loadTypeScript(projectRoot: string): TypeScriptModule | null {
 }
 
 /** The message a law gives when it needed the parser and could not load it. */
-export function parserUnavailable(projectRoot: string): string {
-  return `could not load the 'typescript' package from ${projectRoot} — the .tsx/.jsx files were NOT read. Install typescript in the project (it compiles these files) so this law can inspect them`;
+export function parserUnavailable(
+  projectRoot: string,
+  notRead = 'the .tsx/.jsx files'
+): string {
+  return `could not load the 'typescript' package from ${projectRoot} — ${notRead} were NOT read. Install typescript in the project (it compiles these files) so this law can inspect them`;
 }
 
 /** One JSX attribute as written. */

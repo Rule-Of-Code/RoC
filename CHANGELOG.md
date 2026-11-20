@@ -5,6 +5,36 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 🐛 Fixed — a reader that closed the pipe early turned a failed audit into exit 0 (#405)
+
+The CLI exited with a hard-coded 0 on a broken pipe (an `EPIPE` on write, or
+`SIGPIPE`). So `ruleofcode audit --json | head` under `set -o pipefail` passed a
+failed audit: PIPESTATUS `0 0`, measured on 7.28.1 and the 7.29.0 candidate in
+200 of 200 runs where the reader stopped early. Read to the end, the same runs
+exit 1.
+
+A broken pipe now only stops the writing. The command runs to its end and
+exits with its own code, whether or not anyone read the output: a failed audit
+1, a passing audit still 0. This holds for `--json` on stdout, for the human
+output on stderr, and for text mode, which keeps writing after the pipe broke
+without a crash. `laws` keeps exiting 0. `init`, `recommend` and
+`reinstall-hooks` now end with their own code instead of 0.
+
+Two side effects, both fail-closed:
+
+- An `EPIPE` that is not on stdout or stderr (for example on a child process's
+  stdin) used to exit 0 silently. It now ends the process the way Node does:
+  a stack trace on stderr and exit 1.
+- Any other uncaught error now exits 1 (Node's default) instead of 7. Exit 7
+  came from the old handler rethrowing the error; it was never a documented
+  code.
+
+Measured on Windows (Node 24); Linux is covered by CI. macOS was not measured.
+Node ignores `SIGPIPE` on both POSIX systems unless a listener is installed,
+so a write fails with `EPIPE` there too. That is an assumption for macOS.
+
 ## [7.29.0] - 2026-11-19
 
 No law added or removed (265). The JSON contract keeps its shape. Closes #385,

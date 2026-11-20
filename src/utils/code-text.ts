@@ -1,4 +1,4 @@
-import { loadTypeScript } from './react/tsx-source';
+import { loadTypeScript, parserUnavailable } from './react/tsx-source';
 
 /**
  * Strip COMMENTS from source text, so a pattern search sees code, not prose.
@@ -52,8 +52,15 @@ export class CodeText {
    * template literal holding `"it('…')"` — and from there reads code as text
    * and text as code; a test file that keeps fixtures as source strings is
    * exactly that shape. Strings are blanked first (from the parse, so a `//`
-   * or a quote inside one cannot mislead), then comments are stripped. Falls
-   * back to stripCommentsAndStrings when no `typescript` can be loaded.
+   * or a quote inside one cannot mislead), then comments are stripped.
+   *
+   * Without a loadable `typescript` it throws instead of falling back to the
+   * regex (#427): that fallback made an error law's result depend on the
+   * machine — the regex read strings in detector tests as code and failed a
+   * project that passes with the parser — and said nothing. A law that needs
+   * this checks `loadTypeScript` first and reports its files as not read; a
+   * caller that forgets ends in the law's error result, never in a silent
+   * second opinion.
    */
   static codeOnly(
     content: string,
@@ -61,7 +68,7 @@ export class CodeText {
     projectRoot = process.cwd()
   ): string {
     const ts = loadTypeScript(projectRoot);
-    if (!ts) return this.stripCommentsAndStrings(content);
+    if (!ts) throw new Error(parserUnavailable(projectRoot, 'the files'));
     const source = ts.createSourceFile(
       fileName,
       content,

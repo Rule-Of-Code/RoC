@@ -37,6 +37,7 @@ import type {
   WaivedLaw,
 } from './audit-types';
 import { AuditResultProcessor } from './result-processor';
+import { absolutePatternsIn } from '../../utils/config/path-patterns';
 
 // Force chalk to use colors in all environments
 chalk.level = 1;
@@ -177,6 +178,7 @@ export class RuleOfCodeAuditor {
 
     // A typo'd severity override must not pass silently
     this.validateSeverityOverrides();
+    this.validatePathPatterns();
 
     // Check cache if enabled
     const cacheEnabled = (this.config as any).performance?.cache ?? false;
@@ -816,6 +818,20 @@ export class RuleOfCodeAuditor {
           `⚠️  ${label}: unknown law '${key}' — these patterns filter nothing. Check the name with 'roc laws --list'.`
         );
       }
+    }
+  }
+
+  /**
+   * An absolute ignores/includes path outside the project matches no file in
+   * any form (#414). The loader makes an absolute path inside the project
+   * relative; one left absolute points elsewhere, so say so instead of
+   * excluding nothing in silence.
+   */
+  private validatePathPatterns(): void {
+    for (const [where, pattern] of absolutePatternsIn(this.config)) {
+      console.warn(
+        `⚠️  ${where}: '${pattern}' is an absolute path outside the project (${this.projectRoot}) — it matches nothing. Write it relative to the project root.`
+      );
     }
   }
 

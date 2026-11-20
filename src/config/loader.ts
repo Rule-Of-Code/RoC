@@ -14,6 +14,7 @@ import {
 } from '../utils/config';
 import type { RuleOfCodeConfig } from './types';
 import { ANGULAR_CONFIG, DEFAULT_CONFIG, REACT_CONFIG } from './types';
+import { normalizeConfigPatterns } from '../utils/config/path-patterns';
 
 export class ConfigLoader {
   /**
@@ -65,7 +66,8 @@ export class ConfigLoader {
     // Apply optimizations - delegated to merger
     ConfigurationMerger.applyParetoOptimization(mergedConfig);
 
-    return mergedConfig;
+    // Every ignores.* / includes.* pattern in one form, for every reader (#414).
+    return normalizeConfigPatterns(mergedConfig, projectRoot);
   }
 
   /**

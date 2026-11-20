@@ -43,6 +43,37 @@ The console lists the laws that judged nothing in their own block
 warnings. The exit code follows severity, as before. A consumer that keyed a
 pass on `verdict === 'compliance'` should accept `compliance-with-warnings`
 and `compliance-with-waivers` too, or read the lists.
+### 🐛 Fixed — an ignores entry written as a Windows path, an absolute path, with `./` or a trailing slash matched nothing (#414)
+
+`ignores.*` patterns were passed to the matcher as written, while the paths
+they are matched against are project-relative with forward slashes. minimatch
+reads `\` as an escape, so `vendor\**` never matched `vendor/lib.js`; `./vendor/**`,
+`vendor/` and an absolute path never matched either. Nothing said so: the files
+the entry was meant to exclude were still judged.
+
+Every `ignores.*` and `includes.*` pattern (`global`, `tests`, `build`,
+`design`, `byRule`) is now brought to one form when the config is loaded, so
+every reader of it sees the same thing: `\` → `/`, a leading `./` dropped,
+`dir/` → `dir/**`, an absolute path inside the project made relative to it
+(a leading `!` is kept). An absolute path outside the project cannot match a
+project file; it is left as written and the audit warns:
+
+```
+⚠️  ignores.global: '<path>' is an absolute path outside the project (<root>) — it matches nothing. Write it relative to the project root.
+```
+
+| `ignores.global` | `vendor/lib.js` excluded, before | after |
+|---|---|---|
+| `vendor/**`, `**/vendor/**` | yes | yes |
+| `./vendor/**` | no | yes |
+| `vendor/` | no | yes |
+| `vendor\**`, `vendor\lib.js` | no | yes |
+| `<project root>/vendor/**`, with `/` or `\` | no | yes |
+| an absolute path outside the project | no, silently | no, with the warning |
+
+The same forms in `includes.*` now match too (`\` and a bare directory already
+did). A config that relied on one of these entries doing nothing will see the
+files it names excluded (or, for includes, included).
 
 ### Internal — no tool attribution in the project's public text
 

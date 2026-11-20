@@ -63,23 +63,37 @@ export function isRoCPath(path?: string): boolean {
   );
 }
 
-/**
- * Setup process error handlers
- * @param exitFn - Function to call on exit (defaults to process.exit)
- */
-export function setupErrorHandlers(
-  exitFn: (code: number) => void = code => process.exit(code)
-): void {
-  // Graceful handling of broken pipes
-  process.on('SIGPIPE', () => {
-    exitFn(0);
-  });
+/** The write failed because the reader closed the pipe. */
+const BROKEN_PIPE = 'EPIPE';
+/** A later write to a stream that went down with that broken pipe. */
+const WRITE_AFTER_BROKEN_PIPE = 'ERR_STREAM_DESTROYED';
 
-  // Handle EPIPE errors gracefully
-  process.on('uncaughtException', (err: Error & { code?: string }) => {
-    if (err.code === 'EPIPE') {
-      exitFn(0);
-    }
-    throw err;
-  });
+/**
+ * A reader that closes the pipe early (`audit --json | head`) stops the
+ * writing, never the command (#405).
+ *
+ * Exiting on the broken pipe used a hard-coded 0, so under `pipefail` a failed
+ * audit read by `head` passed. Now an EPIPE on stdout or stderr marks that
+ * stream closed and is swallowed; the command runs to its end and exits with
+ * its own code — a failed audit 1, a passing one 0 — whether or not anyone
+ * read it. ERR_STREAM_DESTROYED counts as the same closed pipe only after an
+ * EPIPE on that stream. Any other stream error is thrown: a fault, not a pass.
+ *
+ * No SIGPIPE listener: Node ignores SIGPIPE unless one is installed, so on
+ * POSIX the write fails with EPIPE and lands here too. No uncaughtException
+ * listener: an EPIPE anywhere else (a child process's stdin, a socket) is a
+ * real failure and ends the process the way Node ends it, with exit 1.
+ */
+export function setupErrorHandlers(): void {
+  for (const stream of [process.stdout, process.stderr]) {
+    let closed = false;
+    stream.on('error', (err: Error & { code?: string }) => {
+      if (err.code === BROKEN_PIPE) {
+        closed = true;
+        return;
+      }
+      if (closed && err.code === WRITE_AFTER_BROKEN_PIPE) return;
+      throw err;
+    });
+  }
 }

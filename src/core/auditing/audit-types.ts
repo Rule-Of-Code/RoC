@@ -6,14 +6,29 @@ import type { RuleOfCodeConfig } from '../../types';
 import type { LivenessFloor } from '../../utils/liveness-floor';
 
 /**
- * The one-word answer of a run (#350), for badges and CI steps. `compliance`
- * is a clean pass of every law that applies; `compliance-with-waivers` passed
- * with `laws.notApplicable` waivers (named in `scope.waivedLaws`); `partial`
- * passed a narrowed subset; `failed` and `refused` say what they say. The exit
- * code does not depend on it: 0 for the three passes, 1 otherwise, as before.
+ * The one-word answer of a run (#350), for badges and CI steps, the first
+ * that holds of: `refused` > `failed` > `partial` (a narrowed subset, or a
+ * law that judged nothing) > `compliance-with-waivers` (named in
+ * `scope.waivedLaws`) > `compliance-with-warnings` (laws reporting
+ * warnings, named in `scope.warningLaws`) > `compliance`, which is only the
+ * clean pass: no law failed, waived, warning or judging nothing. One value,
+ * and no information lost: every list is in `scope`. The exit code does not
+ * depend on it: 0 for the passes and for `partial`, 1 otherwise, as before.
  */
 export type AuditVerdict =
-  'compliance' | 'compliance-with-waivers' | 'failed' | 'partial' | 'refused';
+  | 'compliance'
+  | 'compliance-with-waivers'
+  | 'compliance-with-warnings'
+  | 'failed'
+  | 'partial'
+  | 'refused';
+
+/** A law named in a list of the scope, by canonical title and id. */
+export interface ScopedLaw {
+  /** Canonical registry title. */
+  law: string;
+  lawId: string;
+}
 
 /** A law `laws.notApplicable` took out of the run, with the reason given. */
 export interface WaivedLaw {
@@ -32,6 +47,8 @@ export interface AuditResult {
   failedLaws: number;
   /** Laws with violations at warning/info severity — reported, not failing */
   warningLaws?: number;
+  /** Laws that judged nothing at a non-blocking severity: neither passed nor failed; the run is partial. */
+  judgedNothingLaws?: number;
   /**
    * Laws that count as EVIDENCE — everything except the always-on meta-gates.
    * This is the number the liveness floor (laws.minLawsChecked) is compared
@@ -115,7 +132,22 @@ export interface AuditScope {
   waivedLaws: WaivedLaw[];
   /** What narrowed the run, if anything (first of Pareto, laws.enabled, categories). `laws.notApplicable` waivers do not: they change what applies. */
   narrowedBy: 'laws.enabled' | 'paretoMode' | 'categories' | undefined;
-  /** Narrowed AND fewer laws selected than apply: no compliance verdict is printed. Always false on a refusal (no law ran; see `refused`). */
+  /**
+   * Laws that reported violations at warning or info severity: they ran and
+   * did not block. Sorted by `law`; its length is `stats.warningLaws`.
+   */
+  warningLaws: ScopedLaw[];
+  /**
+   * Laws that found nothing in this project to judge (`judgedNothing` on the
+   * law's result). They did not pass, whatever their severity; the run is
+   * partial. Never counted among the warnings. Sorted by `law`.
+   */
+  judgedNothingLaws: ScopedLaw[];
+  /**
+   * No compliance verdict is printed: narrowed AND fewer laws selected than
+   * apply, or a law that judged nothing. Always false on a refusal (no law
+   * ran; see `refused`).
+   */
   partial: boolean;
   /**
    * The Audit Liveness floor and its source (#350). Its `applicableLaws` (L)
@@ -157,6 +189,8 @@ export interface AuditStats {
   passedLaws: number;
   failedLaws: number;
   warningLaws?: number;
+  /** Laws that judged nothing (`scope.judgedNothingLaws`), counted apart from the warnings. */
+  judgedNothingLaws?: number;
   score: number;
   duration: number;
 }

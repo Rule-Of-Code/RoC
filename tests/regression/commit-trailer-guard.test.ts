@@ -32,6 +32,15 @@ const GRANDFATHERED = new Set([
 
 const FORBIDDEN = /^Co-Authored-By:/im;
 
+/** The tool-attribution line, from the public-text guard (one definition). */
+const { FORBIDDEN: PUBLIC_TEXT } =
+  require('../../scripts/public-text-guard') as {
+    FORBIDDEN: Array<{ name: string; pattern: RegExp }>;
+  };
+const ATTRIBUTION = PUBLIC_TEXT.find(
+  rule => rule.name === 'tool attribution line'
+)?.pattern;
+
 /** Run git, or return null when there is no usable repository. */
 function git(args: string): string | null {
   try {
@@ -79,6 +88,27 @@ describe('regression: no Co-Authored-By trailer in commit messages', () => {
       offenders.push(`${sha.slice(0, 7)} ${subject}`);
     }
 
+    expect(offenders).toEqual([]);
+  });
+
+  it('no commit, merges included, carries the tool-attribution line', () => {
+    // No grandfathering: the history had none when this test was added, so
+    // the first one is a new commit to reword, not an accident to excuse.
+    expect(ATTRIBUTION).toBeInstanceOf(RegExp);
+    if (!ATTRIBUTION || git('rev-parse HEAD') === null) return;
+    const log = git('log -z --format=%H%x00%s%x00%B');
+    if (log === null) return;
+
+    const fields = log.split('\0');
+    const offenders: string[] = [];
+    for (let i = 0; i + 2 < fields.length; i += 3) {
+      const message = fields[i + 2] ?? '';
+      if (message.split(/\r?\n/).some(line => ATTRIBUTION.test(line)))
+        offenders.push(
+          `${(fields[i] ?? '').trim().slice(0, 7)} ${fields[i + 1]}`
+        );
+    }
+    expect(fields.length).toBeGreaterThan(300);
     expect(offenders).toEqual([]);
   });
 

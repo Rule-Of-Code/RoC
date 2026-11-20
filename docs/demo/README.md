@@ -51,12 +51,12 @@ for the clone, and [`agg`](https://github.com/asciinema/agg) 1.9.0 for the GIFs.
 npm ci                     # pins ruleofcode 7.29.1
 node record.mjs            # refusal: writes out/ and demo.cast
 node check.mjs             # must print only ✓ lines and exit 0
-agg --renderer resvg --font-size 13 --theme github-dark --fps-cap 10 \
+agg --renderer resvg --font-size 14 --line-height 1.15 --theme asciinema --fps-cap 10 \
     --idle-time-limit 3 --last-frame-duration 4 demo.cast demo.gif
 
 node record.mjs --pass     # pass: writes out-pass/ and pass.cast
 node check.mjs --pass
-agg --renderer resvg --font-size 13 --theme github-dark --fps-cap 10 \
+agg --renderer resvg --font-size 14 --line-height 1.15 --theme asciinema --fps-cap 10 \
     --idle-time-limit 3 --last-frame-duration 4 pass.cast pass.gif
 ```
 

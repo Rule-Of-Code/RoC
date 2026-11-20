@@ -24,7 +24,7 @@ const PAGE_EXTENSIONS =
 const UNREAD_FAILS =
   "Uses the project's own `typescript` to parse; without it, or for a file it cannot open, the law reports what it did not read instead of passing.";
 const GRAPH_RESOLUTION =
-  'The import graph is static: specifiers are resolved with the nearest tsconfig.json (relative paths, index files, `paths` aliases) under bundler resolution. Webpack/Turbopack `resolve.alias` in next.config is not read; an alias that only exists there is reported as unresolved. Packages are not walked into, and `require()` calls are not edges.';
+  "The import graph is the one every Next law walks, resolved as Next's bundler resolves it: the nearest tsconfig.json or jsconfig.json (relative paths, index files, `paths`, `baseUrl`), package `exports` and package.json `imports`, always under bundler resolution. Webpack/Turbopack `resolve.alias` in next.config is not read: an alias that only exists there is reported as not read, like a package that is not installed, a type declaration with no JavaScript beside it, an import that leaves the project root and a tsconfig that cannot be read. Installed packages are not walked into (a workspace package linked into node_modules is). For this law the graph is static: `import()` and `require()` are not edges.";
 
 export const NEXT_CLIENT_LAWS: EnhancedConstitutionalLaw[] = [
   {
@@ -85,7 +85,7 @@ export const NEXT_CLIENT_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Does not measure bytes: a library is heavy because it is on the list (default: moment, lodash root, chart.js, d3, three, plotly.js, mapbox-gl, monaco-editor, pdfjs-dist — a judgement, not a measurement). An unlisted heavy library passes; see Next Route JS Budget for bytes.',
-      "Client entries are the `'use client'` modules plus Pages Router pages and _app. Imports used only by getServerSideProps/getStaticProps/getStaticPaths are not edges (Next strips them from the client bundle); an import used elsewhere in the page counts even if tree-shaking would drop it.",
+      "Client entries are the `'use client'` modules, Pages Router pages with _app and _error, and instrumentation-client. Imports used only by getServerSideProps/getStaticProps/getStaticPaths are not edges (Next strips them from the client bundle); an import used elsewhere in the page counts even if tree-shaking would drop it.",
       GRAPH_RESOLUTION,
       'A package that is itself client code (a UI kit that marks its own modules) is not walked, so what it imports is not seen.',
       UNREAD_FAILS,

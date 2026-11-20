@@ -11,12 +11,19 @@
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { importChain } from '../../utils/react/module-graph';
 import { NextAppFiles } from '../../utils/react/next-app-files';
+import { clientGraph, type GraphChoice } from '../../utils/react/next-entries';
+import {
+  isBareSpecifier,
+  type ModuleEdge,
+  NOT_RESOLVED,
+} from '../../utils/react/next-module-graph';
 import { NextSourcesLoader } from '../../utils/react/next-sources';
 import { ReactProject } from '../../utils/react/react-project';
 import { LawBase } from '../law-base';
 import { matchesAny, nextThresholds } from './next-client-law-support';
+import { readProject } from './next-server-support';
+import { notReadInWalk } from './next-walk-messages';
 
 /**
  * Libraries that are large as a whole and are commonly imported whole. The
@@ -43,19 +50,29 @@ export const DEFAULT_HEAVY_CLIENT_LIBRARIES: readonly string[] = [
 export class NextHeavyLibInClientGraphLaw extends LawBase {
   static readonly LAW_NAME = 'Next Heavy Lib In Client Graph';
 
+  /**
+   * First-load JavaScript is what this law weighs: `import()` and
+   * `require()` are not edges here (a lazy chunk is fetched when needed),
+   * and a `'use server'` module is a node without edges.
+   */
+  static readonly GRAPH: GraphChoice = { calls: false, boundary: 'module' };
+
   static check(context: LawCheckContext): LawResult {
-    const sources = NextSourcesLoader.load(context);
-    if (!NextSourcesLoader.hasRouter(sources)) {
+    const { graph, unread } = readProject(context);
+    const apps = ReactProject.nextApps(context.projectRoot);
+    if (!NextSourcesLoader.hasRouter({ apps })) {
       return this.result(
-        [...sources.unread, NextAppFiles.noRouterDirectory(context)],
+        [...unread, NextAppFiles.noRouterDirectory(context)],
         context
       );
     }
-    const graph = NextSourcesLoader.clientGraph(context, sources);
+    if (!graph) return this.result(unread, context);
+    const walk = clientGraph(graph, apps, this.GRAPH);
     if (
-      sources.unread.length === 0 &&
       graph.unread.length === 0 &&
-      graph.nodes.size === 0
+      walk.unresolved.length === 0 &&
+      walk.configs.length === 0 &&
+      walk.modules.size === 0
     ) {
       return NextAppFiles.withoutSubject(
         this.LAW_NAME,
@@ -66,20 +83,35 @@ export class NextHeavyLibInClientGraphLaw extends LawBase {
     const heavy =
       nextThresholds(context).heavyClientLibraries ??
       DEFAULT_HEAVY_CLIENT_LIBRARIES;
-    const violations = [...sources.unread, ...graph.unread];
-    for (const [file, node] of graph.nodes) {
-      for (const edge of node.edges) {
-        if (
-          edge.resolution.kind !== 'external' ||
-          !matchesAny(edge.specifier, heavy)
-        )
+    const violations: string[] = [];
+    for (const [file, visit] of walk.modules) {
+      for (const edge of visit.edges) {
+        if (!this.isPackage(edge) || !matchesAny(edge.specifier, heavy))
           continue;
         violations.push(
-          `${ReactProject.relative(context, file)}:${edge.line}: imports '${edge.specifier}' statically, and this module ships to the browser (${importChain(context, graph, file)}) — load it with next/dynamic or import()`
+          `${graph.relative(file)}:${edge.line}: imports '${edge.specifier}' statically, and this module ships to the browser (${graph.chain(walk.modules, file)}) — load it with next/dynamic or import()`
         );
       }
     }
-    return this.result(violations, context);
+    return this.result(
+      [...graph.unread, ...notReadInWalk(graph, walk), ...violations],
+      context
+    );
+  }
+
+  /**
+   * An import of a package: an installed one, or a package name that did not
+   * resolve (then the walk also reports it as not read — the import is
+   * written all the same).
+   */
+  private static isPackage(edge: ModuleEdge): boolean {
+    const resolution = edge.resolution;
+    return (
+      resolution.kind === 'external' ||
+      (resolution.kind === 'unresolved' &&
+        resolution.reason === NOT_RESOLVED &&
+        isBareSpecifier(edge.specifier))
+    );
   }
 
   private static result(

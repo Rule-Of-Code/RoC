@@ -20,19 +20,16 @@
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import {
-  clientGraph,
   DEFAULT_SERVER_MODULES,
-  isClientModule,
   isListedModule,
   isServerModule,
   NextModuleGraph,
   type Unresolved,
   type Visit,
 } from '../../utils/react/next-module-graph';
-import { nextServerEntries } from '../../utils/react/next-entries';
+import { clientGraph, serverGraph } from '../../utils/react/next-entries';
 import { NextThresholds } from '../../utils/react/next-thresholds';
 import { ReactProject } from '../../utils/react/react-project';
-import type { TsxSource } from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';
 import { readProject } from './next-server-support';
 
@@ -49,31 +46,29 @@ export class NextServerOnlyBoundaryLaw extends LawBase {
     const apps = ReactProject.nextApps(context.projectRoot);
     const client = clientGraph(graph, apps);
     const unresolved: Unresolved[] = [...client.unresolved];
+    const configs = new Set(client.configs);
     for (const [file, visit] of client.modules) {
-      for (const specifier of this.serverImports(
-        graph,
-        visit.source,
-        serverModules
-      )) {
+      for (const specifier of this.serverImports(visit, serverModules)) {
         violations.push(
           `${graph.relative(file)}:${specifier.line}: imports '${specifier.specifier}', and is bundled for the browser through ${graph.chain(client.modules, file)} — move the server code behind a Server Component, a route handler or a 'use server' action`
         );
       }
     }
     if (marker.value !== false) {
-      const entries = nextServerEntries(graph, apps);
-      const server = graph.walk(entries, isClientModule);
+      const server = serverGraph(graph, apps);
       unresolved.push(...server.unresolved);
+      for (const config of server.configs) configs.add(config);
       violations.push(
         ...this.unmarked(
           graph,
           server.modules,
-          new Set(entries),
+          new Set(server.entries),
           client.modules,
           serverModules
         )
       );
     }
+    violations.push(...configs);
     const seen = new Set<string>();
     for (const item of unresolved) {
       const message = graph.describeUnresolved(item);
@@ -100,14 +95,14 @@ export class NextServerOnlyBoundaryLaw extends LawBase {
     );
   }
 
+  /** The imports of a client module that name a server module (what Next strips from a page is not among them). */
   private static serverImports(
-    graph: NextModuleGraph,
-    source: TsxSource,
+    visit: Visit,
     serverModules: readonly string[]
   ): Array<{ specifier: string; line: number }> {
-    return graph
-      .importsOf(source)
-      .filter(item => isListedModule(item.specifier, serverModules));
+    return visit.edges.filter(item =>
+      isListedModule(item.specifier, serverModules)
+    );
   }
 
   private static unmarked(

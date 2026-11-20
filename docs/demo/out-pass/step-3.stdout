@@ -1,0 +1,563 @@
+[36m🏛️  RuleOfCode v7.29.1 — constitutional audit[39m
+[92m🏛️  FULL MODE — the whole applicable law set will run.[39m
+[90m   The executed count is reported below, after config selection.[39m
+[90m[39m
+[94m🔍 Starting constitutional audit...[39m
+[90mProject:[39m d:\tmp\roc-self
+[90mMode:[39m full
+[90mProject type:[39m node (configured)
+[33m[39m
+[33m⚠️  Warning: Outdated git hooks: pre-commit, pre-push, commit-msg[39m
+[90m   Run 'npx ruleofcode reinstall-hooks' to update to latest version[39m
+
+[33m⚖️  Executing constitutional checks...[39m
+🔍 Processing 84 laws (parallel: true)
+
+
+[36m════════════════════════════════════════════════════════════[39m
+[1m[37m   🏛️  CONSTITUTIONAL AUDIT RESULTS[39m[22m
+[36m════════════════════════════════════════════════════════════[39m
+
+[1m📊 AUDIT SUMMARY:[22m
+[90m────────────────────────────────────────────────────────────[39m
+[36mTotal Laws Checked:[39m [1m[37m84[39m[22m
+[90m  of which count for the liveness floor:[39m [37m82[39m [90m(+2 always-on meta-gates — set laws.minLawsChecked against 82)[39m
+[90m  Audit Liveness:[39m [37mfloor 70 — laws.minLawsChecked[39m
+
+[32m✓ Passed:[39m [1m[32m38[39m[22m
+[31m✗ Failed:[39m [1m[31m0[39m[22m
+[33m⚠ Warnings:[39m [1m[33m46[39m[22m [90m(reported, not blocking)[39m
+[33mScore:[39m [1m[33m71%[39m[22m [90m(Pass Rate: 45%)[39m
+[90mExecution time:[39m [37m92256ms[39m
+
+[33m[1m⚠️  WARNING LAWS (reported, not blocking):[22m[39m
+[90m────────────────────────────────────────────────────────────[39m
+
+[31m[1m1.[22m[39m [37m[1mInvestment-Grade Quality (SACRED LAW)[22m[39m [31m[1 violations][39m[90m (Score: 90/100)[39m
+   [90m•[39m [2mQuality tool missing: eslint[22m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mConfigure testing framework[22m
+   [90m•[39m [2mSetup TypeScript[22m
+   [90m•[39m [2mImplement quality metrics monitoring[22m
+
+[31m[1m2.[22m[39m [37m[1mTypeScript Strict Mode (SACRED LAW)[22m[39m [31m[6 violations][39m[90m (Score: 40/100)[39m
+   [90m•[39m [2mTypeScript noUnusedLocals must be true[22m
+   [90m•[39m [2mTypeScript noUnusedParameters must be true[22m
+   [90m•[39m [2mTypeScript exactOptionalPropertyTypes must be true[22m
+   [90m•[39m [2mTypeScript noImplicitOverride must be true[22m
+   [90m•[39m [2mTypeScript noPropertyAccessFromIndexSignature must be true[22m
+   [33m... and 1 more violations[39m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mEnable strict mode in tsconfig.json[22m
+   [90m•[39m [2mConfigure all strict compiler options[22m
+   [90m•[39m [2mSet target to ES2020 or higher[22m
+   [33m... and 1 more — run with --verbose for all, or --export json for the full result[39m
+
+[31m[1m3.[22m[39m [37m[1mConstitutional Supremacy Doctrine[22m[39m [31m[1 violations][39m[90m (Score: 80/100)[39m
+   [90m•[39m [2mNo constitutional law enforcement scripts[22m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mDocument constitutional principles in project documentation[22m
+   [90m•[39m [2mRun the audit from a script — any name will do, the command is what is read (e.g. "audit": "ruleofcode audit --mode=full"). These names are also accepted on their own: check:laws, audit:constitutional, compliance:check, quality:gate, report:compliance, report:quality[22m
+   [90m•[39m [2mInstall RuleOfCode (the ruleofcode package) for constitutional enforcement[22m
+   [33m... and 2 more — run with --verbose for all, or --export json for the full result[39m
+
+[31m[1m4.[22m[39m [37m[1mProfessional Excellence Mandate[22m[39m [31m[1 violations][39m[90m (Score: 85/100)[39m
+   [90m•[39m [2mMissing eslint for Code linting[22m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mInstall eslint for professional Code linting[22m
+   [90m•[39m [2mConsider adding commitizen for enhanced enhanced quality control[22m
+   [90m•[39m [2mDocument coding standards and style guidelines[22m
+   [33m... and 4 more — run with --verbose for all, or --export json for the full result[39m
+
+[31m[1m5.[22m[39m [37m[1mContinuous Compliance Doctrine[22m[39m [31m[1 violations][39m[90m (Score: 90/100)[39m
+   [90m•[39m [2mNo constitutional law enforcement tools detected[22m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mAdd scheduled compliance checks to CI/CD pipeline[22m
+   [90m•[39m [2mAdd automated compliance reporting scripts[22m
+   [90m•[39m [2mInstall RuleOfCode for automated FileHeaderComplianceAnalyzer constitutional compliance[22m
+   [33m... and 2 more — run with --verbose for all, or --export json for the full result[39m
+
+[31m[1m6.[22m[39m [37m[1mAbsolute Zero Tolerance Doctrine[22m[39m [31m[44 violations][39m[90m (Score: 0/100)[39m
+   [90m•[39m [2mStrict type violations in d:/tmp/roc-self/src/checkers/code-quality-laws/no-explicit-any-non-null.ts: 1 occurrences[22m
+   [90m•[39m [2mStrict type violations in d:/tmp/roc-self/src/checkers/fe-architecture-laws/no-hostname-gating.ts: 1 occurrences[22m
+   [90m•[39m [2mStrict type violations in d:/tmp/roc-self/src/checkers/next-laws/index.ts: 1 occurrences[22m
+   [90m•[39m [2mStrict type violations in d:/tmp/roc-self/src/checkers/request-path-laws/independent-awaits-run-concurrently.ts: 1 occurrences[22m
+   [90m•[39m [2mTODO/FIXME comments found in d:/tmp/roc-self/src/checkers/testing-laws/no-focused-tests.ts: 1 occurrences[22m
+   [33m... and 39 more violations[39m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mEnable TypeScript strict mode[22m
+   [90m•[39m [2mRemove all console statements[22m
+   [90m•[39m [2mConfigure strict ESLint rules[22m
+
+[31m[1m7.[22m[39m [37m[1mNX Commands Only Policy[22m[39m [31m[1 violations][39m[90m (Score: 90/100)[39m
+   [90m•[39m [2mnx.json configuration file missing - Nx workspace required[22m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mReplace ng commands with nx commands[22m
+   [90m•[39m [2mUpdate package.json scripts to use nx[22m
+   [90m•[39m [2mUpdate documentation to show nx usage[22m
+   [33m... and 1 more — run with --verbose for all, or --export json for the full result[39m
+
+[31m[1m8.[22m[39m [37m[1mCode Documentation Standards[22m[39m [31m[82 violations][39m[90m (Score: 0/100)[39m
+   [90m•[39m [2mLow comment ratio in d:/tmp/roc-self/src/checkers/angular-checker.ts: 7.7% (should be >10%)[22m
+   [90m•[39m [2mLow comment ratio in d:/tmp/roc-self/src/checkers/angular-laws/ngrx-store-pattern.ts: 8.8% (should be >10%)[22m
+   [90m•[39m [2mLow comment ratio in d:/tmp/roc-self/src/checkers/capacitor-laws/capacitor-firebase-native-config-not-skipped.ts: 9.2% (should be >10%)[22m
+   [90m•[39m [2mLow comment ratio in d:/tmp/roc-self/src/checkers/capacitor-laws/capacitor-local-plugin-contract.ts: 6.7% (should be >10%)[22m
+   [90m•[39m [2mLow comment ratio in d:/tmp/roc-self/src/checkers/capacitor-laws/capacitor-plugin-platform-declarations.ts: 9.3% (should be >10%)[22m
+   [33m... and 77 more violations[39m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mAdd JSDoc comments to classes and functions[22m
+
+[31m[1m9.[22m[39m [37m[1mCode Complexity Control[22m[39m [31m[283 violations][39m[90m (Score: 0/100)[39m
+   [90m•[39m [2mFunction complexity too high in src/checkers/accessibility-laws/accessibility-linting-enforcement.ts (worst function 14, max 10)[22m
+   [90m•[39m [2mFunction complexity too high in src/checkers/accessibility-laws/disclosure-control-aria-state.ts (worst function 11, max 10)[22m
+   [90m•[39m [2mFunction complexity too high in src/checkers/accessibility-laws/form-control-labeling.ts (worst function 11, max 10)[22m
+   [90m•[39m [2mFunction complexity too high in src/checkers/accessibility-laws/ionic-dialogs.ts (worst function 12, max 10)[22m
+   [90m•[39m [2mFunction complexity too high in src/checkers/accessibility-laws/modal-dialog-accessibility.ts (worst function 11, max 10)[22m
+   [33m... and 278 more violations[39m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mInstall ESLint for automated complexity checking[22m
+   [90m•[39m [2mBreak down large files into smaller, focused modules[22m
+   [90m•[39m [2mExtract reusable functions and components[22m
+
+[31m[1m10.[22m[39m [37m[1mNaming Convention Enforcement[22m[39m [31m[1 violations][39m[90m (Score: 90/100)[39m
+   [90m•[39m [2mNo naming convention rules configured in ESLint[22m
+
+   [36m📁 Affected files:[39m
+   [90m•[39m [33meslint.config.mjs[39m[90m - [39m[2mNo naming convention rules configured (@typescript-eslint/naming-convention)[22m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mConfigure @typescript-eslint/naming-convention rule[22m
+
+[31m[1m11.[22m[39m [37m[1mDead Code Elimination[22m[39m [31m[12 violations][39m[90m (Score: 0/100)[39m
+   [90m•[39m [2mDead code in src/checkers/capacitor-laws/capacitor-no-dev-only-server-keys.ts: debug statement: debugger[22m
+   [90m•[39m [2mDead code in src/checkers/code-quality-laws/code-complexity-control.ts: commented code blocks detected[22m
+   [90m•[39m [2mDead code in src/checkers/code-quality-laws/dead-code-elimination.ts: debug statement: debugger[22m
+   [90m•[39m [2mDead code in src/checkers/code-quality-laws/magic-number-prevention.ts: commented code blocks detected[22m
+   [90m•[39m [2mDead code in src/checkers/typescript-checker.ts: debug statement: debugger[22m
+   [33m... and 7 more violations[39m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mConsider adding dead code detection tools (ts-unused-exports, depcheck)[22m
+   [90m•[39m [2mRemove unused imports and variables[22m
+   [90m•[39m [2mUse ESLint auto-fix to clean up dead code[22m
+
+[31m[1m12.[22m[39m [37m[1mMagic Number Prevention[22m[39m [31m[106 violations][39m[90m (Score: 0/100)[39m
+   [90m•[39m [2mMagic numbers in src/checkers/accessibility-laws/template-markup.ts: 200[22m
+   [90m•[39m [2mMagic numbers in src/checkers/angular-laws/angular-signal-adoption.ts: 16[22m
+   [90m•[39m [2mMagic numbers in src/checkers/angular-laws/angular-testing-excellence.ts: 80[22m
+   [90m•[39m [2mMagic numbers in src/checkers/angular-laws/defer-heavy-blocks.ts: 250[22m
+   [90m•[39m [2mMagic numbers in src/checkers/angular-laws/generic-angular.ts: 16.0[22m
+   [33m... and 101 more violations[39m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mConfigure ESLint with magic number detection[22m
+   [90m•[39m [2mReplace magic numbers with named constants[22m
+   [90m•[39m [2mCreate a constants file for shared numeric values[22m
+   [33m... and 1 more — run with --verbose for all, or --export json for the full result[39m
+
+[31m[1m13.[22m[39m [37m[1mCode Duplication Control[22m[39m [31m[37 violations][39m[90m (Score: 0/100)[39m
+   [90m•[39m [2mCode duplication found in: src/checkers/angular-laws/ngrx-actions-hygiene.ts, src/checkers/angular-laws/ngrx-effects-error-handling.ts[22m
+   [90m•[39m [2mCode duplication found in: src/checkers/cache-harness-laws/database-read-cache-safety.ts, src/utils/request-path/cache-usage.ts, src/utils/request-path/read-caches.ts, src/utils/request-path/single-flight.ts[22m
+   [90m•[39m [2mCode duplication found in: src/checkers/client-deploy-laws/serverless-deploy-pins-resources.ts, src/utils/edge-deploy/gate-files.ts[22m
+   [90m•[39m [2mCode duplication found in: src/checkers/git-laws/commit-scope.ts, src/utils/git/git-layout.ts[22m
+   [90m•[39m [2mCode duplication found in: src/checkers/ionic-laws/ionic-route-reuse-strategy-provided.ts, src/utils/ionic/ionic-project.ts[22m
+   [33m... and 32 more violations[39m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mExtract common code into shared functions or modules[22m
+   [90m•[39m [2mUse inheritance or composition to reduce duplication[22m
+   [90m•[39m [2mConsider creating utility functions for repeated patterns[22m
+
+[31m[1m14.[22m[39m [37m[1mError Handling Completeness[22m[39m [31m[33 violations][39m[90m (Score: 0/100)[39m
+   [90m•[39m [2mError handling gaps in src/checkers/angular-checker.ts: async calls without proper error handling[22m
+   [90m•[39m [2mError handling gaps in src/checkers/angular-laws/no-subscribe-in-effect.ts: Promise chains without .catch() handlers[22m
+   [90m•[39m [2mError handling gaps in src/checkers/cache-harness-laws/async-cache-single-flight.ts: async calls without proper error handling[22m
+   [90m•[39m [2mError handling gaps in src/checkers/code-quality-laws/code-documentation.ts: Promise chains without .catch() handlers[22m
+   [90m•[39m [2mError handling gaps in src/checkers/ionic-laws/ionic-scroll-through-ion-content.ts: event handlers without error handling[22m
+   [33m... and 28 more violations[39m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mAdd try-catch blocks around async operations and API calls[22m
+   [90m•[39m [2mImplement proper error boundaries in React components[22m
+   [90m•[39m [2mUse Result/Either patterns for functional error handling[22m
+   [33m... and 6 more — run with --verbose for all, or --export json for the full result[39m
+
+[31m[1m15.[22m[39m [37m[1mNo Explicit Any / Non-Null Assertion[22m[39m [31m[17 violations][39m[90m (Score: 15/100)[39m
+   [90m•[39m [2mExplicit `any`/weak type in src/checkers/code-quality-laws/no-explicit-any-non-null.ts: 1 occurrence(s) — model the real type or validate at the boundary.[22m
+   [90m•[39m [2mNon-null assertion `!` in src/checkers/measurement-laws/latency-budget-harness-realism.ts: 1 occurrence(s) — narrow the value with a guard instead of asserting.[22m
+   [90m•[39m [2mExplicit `any`/weak type in src/checkers/next-laws/guard-exemption-matches-a-route.ts: 1 occurrence(s) — model the real type or validate at the boundary.[22m
+   [90m•[39m [2mNon-null assertion `!` in src/cli/init-interactive.ts: 1 occurrence(s) — narrow the value with a guard instead of asserting.[22m
+   [90m•[39m [2mExplicit `any`/weak type in src/core/auditing/audit-engine.ts: 14 occurrence(s) — model the real type or validate at the boundary.[22m
+   [33m... and 12 more violations[39m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mReplace `any`/`Function`/`Object` with precise types[22m
+   [90m•[39m [2mReplace non-null `!` with an explicit guard (if (x) { … })[22m
+   [90m•[39m [2mSet @typescript-eslint/no-explicit-any + no-non-null-assertion to error and run lint with --max-warnings 0[22m
+
+[31m[1m16.[22m[39m [37m[1mNo Double Cast[22m[39m [31m[16 violations][39m[90m (Score: 20/100)[39m
+   [90m•[39m [2mDouble cast (as unknown as) in src/checkers/accessibility-laws/jsx-sources.ts: 1 occurrence(s) — launders the type and defeats checking. Model the real type or validate at the boundary.[22m
+   [90m•[39m [2mDouble cast (as unknown as) in src/checkers/angular-laws/inject-over-constructor-di.ts: 1 occurrence(s) — launders the type and defeats checking. Model the real type or validate at the boundary.[22m
+   [90m•[39m [2mDouble cast (as unknown as) in src/checkers/code-quality-laws/no-double-cast.ts: 2 occurrence(s) — launders the type and defeats checking. Model the real type or validate at the boundary.[22m
+   [90m•[39m [2mDouble cast (as unknown as) in src/core/auditing/audit-cache.ts: 1 occurrence(s) — launders the type and defeats checking. Model the real type or validate at the boundary.[22m
+   [90m•[39m [2mDouble cast (as unknown as) in src/core/auditing/audit-engine.ts: 1 occurrence(s) — launders the type and defeats checking. Model the real type or validate at the boundary.[22m
+   [33m... and 11 more violations[39m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mReplace `as unknown as T` with a correctly modelled type[22m
+   [90m•[39m [2mValidate untrusted data at the boundary instead of casting[22m
+
+[31m[1m17.[22m[39m [37m[1mTyped HTTP Boundaries[22m[39m [31m[1 violations][39m[90m (Score: 95/100)[39m
+   [90m•[39m [2mUntyped HttpClient call(s) in src/data/code-quality-laws.ts: 1 — add a response-type generic (e.g. http.get<ResponseType>(...)).[22m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mAdd a response-type generic to every HttpClient call[22m
+   [90m•[39m [2mConsider schema validation at the boundary for runtime safety[22m
+
+[31m[1m18.[22m[39m [37m[1mCentralized Logging[22m[39m [31m[18 violations][39m[90m (Score: 10/100)[39m
+   [90m•[39m [2msrc/cli/audit-command.ts: 12 direct console.* call(s) — route logging through the logger service.[22m
+   [90m•[39m [2msrc/cli/init-command.ts: 10 direct console.* call(s) — route logging through the logger service.[22m
+   [90m•[39m [2msrc/cli/init-helpers.ts: 10 direct console.* call(s) — route logging through the logger service.[22m
+   [90m•[39m [2msrc/cli/init-interactive.ts: 10 direct console.* call(s) — route logging through the logger service.[22m
+   [90m•[39m [2msrc/cli/laws-command.ts: 20 direct console.* call(s) — route logging through the logger service.[22m
+   [33m... and 13 more violations[39m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mUse the gated LoggerService instead of console.* (TS) / the logging module instead of print() (Python)[22m
+   [90m•[39m [2mconsole.* is allowed only in logger.service.ts and main.ts; print() only in CLI entrypoints (scripts/, __main__.py)[22m
+
+[31m[1m19.[22m[39m [37m[1mPull Request Workflow Standards[22m[39m [31m[1 violations][39m[90m (Score: 90/100)[39m
+   [90m•[39m [2mMissing automated check scripts: precommit, prepush[22m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mCreate CODEOWNERS file for automatic review assignments[22m
+   [90m•[39m [2mDocument PR and code review process in README.md[22m
+   [90m•[39m [2mAdd automated scripts for PR validation (test, lint, build)[22m
+
+[31m[1m20.[22m[39m [37m[1mGit Hooks Standards[22m[39m [31m[1 violations][39m[90m (Score: 90/100)[39m
+   [90m•[39m [2mHooks committed in .husky/ but not installed in this checkout: pre-commit, commit-msg (git runs hooks from d:/tmp/roc-self/.git/hooks (core.hooksPath is unset), which has no pre-commit); run `npx husky` at the repository root[22m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mActivate the committed hooks: npx husky[22m
+   [90m•[39m [2mConsider using pre-commit tools like Husky or pre-commit[22m
+   [90m•[39m [2mAdd automated code quality checks before commits[22m
+   [33m... and 3 more — run with --verbose for all, or --export json for the full result[39m
+
+[31m[1m21.[22m[39m [37m[1mCommit Size Control[22m[39m [31m[2 violations][39m[90m (Score: 80/100)[39m
+   [90m•[39m [2m1 of the last 10 authored commits exceed the size limit (>10 files or >500 lines changed)[22m
+   [90m•[39m [2mNo atomic commit policies documented[22m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mScope: the last 10 commits on this branch. Set thresholds.git.*.baseline to a ref to measure only commits made after adopting the law.[22m
+   [90m•[39m [2mKeep commits atomic: under 10 files and 500 changed lines each[22m
+   [90m•[39m [2mDocument atomic commit principles: one logical change per commit[22m
+   [33m... and 2 more — run with --verbose for all, or --export json for the full result[39m
+
+[31m[1m22.[22m[39m [37m[1mGit Hook Compliance[22m[39m [31m[1 violations][39m[90m (Score: 90/100)[39m
+   [90m•[39m [2mHooks committed in .husky/ but not installed in this checkout: pre-commit, pre-push, commit-msg (git runs hooks from d:/tmp/roc-self/.git/hooks (core.hooksPath is unset), which has no pre-commit); run `npx husky` at the repository root[22m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mActivate the committed hooks: npx husky (and keep "prepare": "husky" in package.json)[22m
+   [90m•[39m [2mCreate hook configuration files for better maintainability[22m
+   [90m•[39m [2mConfigure sample hooks or install hook management tools[22m
+
+[31m[1m23.[22m[39m [37m[1mConstitutional Compliance Headers[22m[39m [31m[4 violations][39m[90m (Score: 60/100)[39m
+   [90m•[39m [2mNo header template file found[22m
+   [90m•[39m [2mNo constitutional documentation found[22m
+   [90m•[39m [2m20/20 sample files lack constitutional compliance headers (100.0%)[22m
+   [90m•[39m [2mNo automated header management found[22m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mCreate a header template file (e.g., templates/file-header.txt) with standard compliance header[22m
+   [90m•[39m [2mCreate CONSTITUTION.md or POLICIES.md to define compliance requirements[22m
+   [90m•[39m [2mConsider adding a license/header management tool (e.g., license-header)[22m
+   [33m... and 5 more — run with --verbose for all, or --export json for the full result[39m
+
+[31m[1m24.[22m[39m [37m[1mEnvironment Security Enforcement[22m[39m [31m[57 violations][39m[90m (Score: 0/100)[39m
+   [90m•[39m [2md:/tmp/roc-self/src/checkers/code-quality-laws/magic-number-prevention.ts: Hardcoded URL detected: 'http://host:8080'[22m
+   [90m•[39m [2md:/tmp/roc-self/src/checkers/git-laws/git-law-base.ts: Environment variable GITHUB_HEAD_REF used without fallback[22m
+   [90m•[39m [2md:/tmp/roc-self/src/checkers/git-laws/git-law-base.ts: Environment variable CI_MERGE_REQUEST_SOURCE_BRANCH_NAME used without fallback[22m
+   [90m•[39m [2md:/tmp/roc-self/src/checkers/git-laws/git-law-base.ts: Environment variable CI_COMMIT_BRANCH used without fallback[22m
+   [90m•[39m [2md:/tmp/roc-self/src/checkers/git-laws/git-law-base.ts: Environment variable BITBUCKET_BRANCH used without fallback[22m
+   [33m... and 52 more violations[39m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mConsider using NODE_ENV to differentiate between environments[22m
+   [90m•[39m [2mMove URLs to environment variables for different environments[22m
+   [90m•[39m [2mProvide default value for GITHUB_HEAD_REF or validate its presence[22m
+   [33m... and 47 more — run with --verbose for all, or --export json for the full result[39m
+
+[31m[1m25.[22m[39m [37m[1mSecurity Vulnerability Response[22m[39m [31m[4 violations][39m[90m (Score: 60/100)[39m
+   [90m•[39m [2mNo security policy documentation found[22m
+   [90m•[39m [2mMissing Security Policy documentation[22m
+   [90m•[39m [2mMissing Security Documentation documentation[22m
+   [90m•[39m [2mMissing Privacy Policy documentation[22m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mCreate SECURITY.md with vulnerability reporting procedures[22m
+   [90m•[39m [2mEnable GitHub Dependabot for automated security updates[22m
+   [90m•[39m [2mCreate .github/dependabot.yml configuration[22m
+   [33m... and 49 more — run with --verbose for all, or --export json for the full result[39m
+
+[31m[1m26.[22m[39m [37m[1mData Encryption Standards[22m[39m [31m[29 violations][39m[90m (Score: 0/100)[39m
+   [90m•[39m [2md:/tmp/roc-self/src/checkers/code-quality-laws/code-quality-law-base.ts: HTTP connections detected, use HTTPS[22m
+   [90m•[39m [2md:/tmp/roc-self/src/checkers/edge-deploy-laws/test-builds-use-own-firebase-config.ts: Potential hardcoded secret detected[22m
+   [90m•[39m [2md:/tmp/roc-self/src/checkers/git-laws/shared-git-utilities.ts: Math.random() is not cryptographically secure[22m
+   [90m•[39m [2md:/tmp/roc-self/src/checkers/next-laws/guard-exemption-matches-a-route.ts: Potential hardcoded secret detected[22m
+   [90m•[39m [2md:/tmp/roc-self/src/checkers/security-laws/authentication/authentication-checker.ts: Weak encryption algorithm detected: MD5[22m
+   [33m... and 24 more violations[39m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mUse HTTPS for all external communications[22m
+   [90m•[39m [2mMove secrets to environment variables or secure configuration[22m
+   [90m•[39m [2mConsider implementing key rotation for cryptographic keys[22m
+   [33m... and 37 more — run with --verbose for all, or --export json for the full result[39m
+
+[31m[1m27.[22m[39m [37m[1mAuthentication Security[22m[39m [31m[1 violations][39m[90m (Score: 85/100)[39m
+   [90m•[39m [2mInsecure password handling detected[22m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mUse proper password hashing and validation[22m
+
+[31m[1m28.[22m[39m [37m[1mAPI Security Standards[22m[39m [31m[8 violations][39m[90m (Score: 0/100)[39m
+   [90m•[39m [2mNo authentication service implementation found[22m
+   [90m•[39m [2msrc/utils/angular/angular-service-architecture/angular-service-architecture-configuration.ts: HTTP requests without proper validation[22m
+   [90m•[39m [2msrc/checkers/client-deploy-laws/serverless-deploy-pins-resources.ts: Express server missing CORS configuration[22m
+   [90m•[39m [2msrc/checkers/measurement-laws/test-server-loopback-address-match.ts: Express server missing CORS configuration[22m
+   [90m•[39m [2msrc/checkers/next-laws/next-server-action-authorizes.ts: Express server missing CORS configuration[22m
+   [33m... and 3 more violations[39m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mImplement HTTPS redirect and enforce TLS 1.2+[22m
+   [90m•[39m [2mImplement JWT-based authentication with refresh tokens[22m
+   [90m•[39m [2mAdd rate limiting to prevent API abuse[22m
+   [33m... and 5 more — run with --verbose for all, or --export json for the full result[39m
+
+[31m[1m29.[22m[39m [37m[1mPerformance Monitoring Standards[22m[39m [31m[3 violations][39m[90m (Score: 55/100)[39m
+   [90m•[39m [2mNo performance monitoring tools configured[22m
+   [90m•[39m [2mPerformance error tracking not configured[22m
+   [90m•[39m [2mPerformance alerts not configured[22m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mIntegrate service performance monitoring (Prometheus, OpenTelemetry, Sentry, Datadog)[22m
+   [90m•[39m [2mConfigure error/latency tracking (Sentry, OpenTelemetry) for the service[22m
+   [90m•[39m [2mDefine alerting rules (Prometheus rules / Alertmanager / Grafana) for latency and error-rate degradation[22m
+
+[31m[1m30.[22m[39m [37m[1mCDN and Caching Strategy[22m[39m [31m[5 violations][39m[90m (Score: 0/100)[39m
+   [90m•[39m [2mCDN configuration not implemented[22m
+   [90m•[39m [2mStatic asset optimization not configured[22m
+   [90m•[39m [2mBrowser caching headers not configured[22m
+   [90m•[39m [2mService worker caching not implemented[22m
+   [90m•[39m [2mHTTP/2 optimization not configured[22m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mConfigure CDN for static assets (Firebase Hosting, Cloudflare, etc.)[22m
+   [90m•[39m [2mConfigure asset versioning, compression, and CDN paths[22m
+   [90m•[39m [2mConfigure Cache-Control, ETag, and Expires headers[22m
+   [33m... and 2 more — run with --verbose for all, or --export json for the full result[39m
+
+[31m[1m31.[22m[39m [37m[1mTest Coverage Constitutional Standard[22m[39m [31m[1 violations][39m[90m (Score: 85/100)[39m
+   [90m•[39m [2m547 source files lack corresponding test files[22m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mAdd test files for: src/checkers/accessibility-laws/accessibility-law-base.ts, src/checkers/accessibility-laws/accessibility-linting-enforcement.ts, src/checkers/accessibility-laws/disclosure-control-aria-state.ts, src/checkers/accessibility-laws/explicit-button-type.ts, src/checkers/accessibility-laws/form-control-labeling.ts...[22m
+
+[31m[1m32.[22m[39m [37m[1mUnit Test Quality Standards[22m[39m [31m[660 violations][39m[90m (Score: 0/100)[39m
+   [90m•[39m [2mNo edge case testing found in tests/checkers/accessibility-laws/accessibility-laws.test.ts[22m
+   [90m•[39m [2mDependencies found but no mocking detected in tests/checkers/accessibility-laws/accessibility-laws.test.ts[22m
+   [90m•[39m [2mDependencies found but no mocking detected in tests/checkers/accessibility-laws/ionic-accessibility.test.ts[22m
+   [90m•[39m [2mDependencies found but no mocking detected in tests/checkers/accessibility-laws/jsx-accessibility.test.ts[22m
+   [90m•[39m [2mDependencies found but no mocking detected in tests/checkers/angular-checker.test.ts[22m
+   [33m... and 655 more violations[39m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mConsider testing null and undefined input scenarios[22m
+   [90m•[39m [2mConsider testing boundary values and limits[22m
+   [90m•[39m [2mConsider testing empty strings and whitespace scenarios[22m
+   [33m... and 7 more — run with --verbose for all, or --export json for the full result[39m
+
+[31m[1m33.[22m[39m [37m[1mTest Data Management[22m[39m [31m[3 violations][39m[90m (Score: 10/100)[39m
+   [90m•[39m [2mTest files share module-scope mutable state with no beforeEach/afterEach to reset it: tests/checkers/next-laws/next-third-party-script-declared.test.ts[22m
+   [90m•[39m [2mFound hardcoded test data in test files: tests/checkers/angular-laws/angular-testing-excellence.test.ts; tests/checkers/angular-laws/generic-angular.test.ts; tests/checkers/angular-laws/modern-control-flow.test.ts; tests/checkers/angular-laws/onpush-change-detection.test.ts; tests/checkers/angular-laws/standalone-components-architecture.test.ts; and 94 more[22m
+   [90m•[39m [2mTests have shared mutable state issues: tests/checkers/code-quality-laws/error-handling-completeness.test.ts; tests/checkers/next-laws/next-third-party-script-declared.test.ts; tests/laws/performance/performance-monitoring-policy-law.test.ts; tests/laws/testing/test-isolation-enforcement.test.ts; tests/laws/testing/unit-test-coverage-quality.test.ts; and 2 more[22m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mImplement beforeEach/afterEach for test data setup[22m
+   [90m•[39m [2mUse test data factories or builders instead of hardcoded values[22m
+   [90m•[39m [2mEnsure tests are isolated with proper cleanup[22m
+   [33m... and 3 more — run with --verbose for all, or --export json for the full result[39m
+
+[31m[1m34.[22m[39m [37m[1mTest Documentation Requirements[22m[39m [31m[1 violations][39m[90m (Score: 98/100)[39m
+   [90m•[39m [2m1 test cases have unclear descriptions: tests/checkers/integrity-laws/retention-registry-covers-schema.test.ts: "is opt-in"[22m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mWrite clear, descriptive test case names and descriptions[22m
+   [90m•[39m [2mDocument testing strategies, patterns, and best practices[22m
+
+[31m[1m35.[22m[39m [37m[1mPre-Deployment Checklist (MANDATORY)[22m[39m [31m[4 violations][39m[90m (Score: 15/100)[39m
+   [90m•[39m [2mPRE_DEPLOYMENT_CHECKLIST.md missing - CRITICAL violation[22m
+   [90m•[39m [2mSecurity vulnerability scanning not configured[22m
+   [90m•[39m [2mPerformance benchmarking not configured[22m
+   [90m•[39m [2mLogging not properly configured[22m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mCreate comprehensive PRE_DEPLOYMENT_CHECKLIST.md with validation steps[22m
+   [90m•[39m [2mConfigure a dependency and code scanner in the gate (npm audit, or pip-audit + bandit)[22m
+   [90m•[39m [2mConfigure performance monitoring and benchmarking tools[22m
+   [33m... and 1 more — run with --verbose for all, or --export json for the full result[39m
+
+[31m[1m36.[22m[39m [37m[1mLaunch Readiness Checklist[22m[39m [31m[1 violations][39m[90m (Score: 45/100)[39m
+   [90m•[39m [2mMissing launch readiness checklist document[22m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mCreate LAUNCH_CHECKLIST.md with comprehensive deployment requirements[22m
+   [90m•[39m [2mComplete security review and document findings[22m
+   [90m•[39m [2mVerify monitoring and alerting configuration[22m
+
+[31m[1m37.[22m[39m [37m[1mPre-PR Quality Gates[22m[39m [31m[1 violations][39m[90m (Score: 70/100)[39m
+   [90m•[39m [2mMissing branch protection configuration[22m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mConfigure branch protection rules with required status checks[22m
+   [90m•[39m [2mConfigure minimum code review requirements[22m
+
+[31m[1m38.[22m[39m [37m[1mEnvironment Parity Standards[22m[39m [31m[60 violations][39m[90m (Score: 0/100)[39m
+   [90m•[39m [2mNo environment contract declared — commit .env.example (or .env.template) listing every variable with placeholder values[22m
+   [90m•[39m [2m.env.example file not found[22m
+   [90m•[39m [2md:/tmp/roc-self/src/checkers/code-quality-laws/magic-number-prevention.ts: Hardcoded URL detected: 'http://host:8080'[22m
+   [90m•[39m [2md:/tmp/roc-self/src/checkers/git-laws/git-law-base.ts: Environment variable GITHUB_HEAD_REF used without fallback[22m
+   [90m•[39m [2md:/tmp/roc-self/src/checkers/git-laws/git-law-base.ts: Environment variable CI_MERGE_REQUEST_SOURCE_BRANCH_NAME used without fallback[22m
+   [33m... and 55 more violations[39m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mDeclare the variables in .env.example with placeholders. Do NOT commit .env.production: real values are injected at deploy time, and a checked-in production env file is a secret in your repository[22m
+   [90m•[39m [2mCreate .env.example file with all required environment variables[22m
+   [90m•[39m [2mConsider using a secret management solution for production environments[22m
+   [33m... and 166 more — run with --verbose for all, or --export json for the full result[39m
+
+[31m[1m39.[22m[39m [37m[1mMD Footer Template (MANDATORY)[22m[39m [31m[1 violations][39m[90m (Score: 80/100)[39m
+   [90m•[39m [2mNo markdown files found in project[22m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mCreate documentation with proper MD files[22m
+
+[31m[1m40.[22m[39m [37m[1mTODO Management Constitutional Requirements[22m[39m [31m[2 violations][39m[90m (Score: 80/100)[39m
+   [90m•[39m [2m2 TODOs should be converted to GitHub Issues[22m
+   [90m•[39m [2m3 potentially stale TODOs (old sprint references)[22m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mConvert complex TODOs to GitHub Issues with proper tracking[22m
+   [90m•[39m [2mReview and update old sprint TODOs or mark as completed[22m
+
+[31m[1m41.[22m[39m [37m[1mTODO Management Standards[22m[39m [31m[1 violations][39m[90m (Score: 91/100)[39m
+   [90m•[39m [2m3 TODOs without JIRA/GitHub references[22m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mAdd JIRA ticket or GitHub issue references to all TODOs[22m
+   [90m•[39m [2m2 TODOs without clear categorization[22m
+
+[31m[1m42.[22m[39m [37m[1mStrategic Document Updates[22m[39m [31m[1 violations][39m[90m (Score: 75/100)[39m
+   [90m•[39m [2mMissing PROJECT_STATUS.md file[22m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mCreate PROJECT_STATUS.md to track project milestones and current status[22m
+
+[31m[1m43.[22m[39m [37m[1mError Handling Standards[22m[39m [31m[1 violations][39m[90m (Score: 0/100)[39m
+   [90m•[39m [2mError Handling Standards has no verified detection path in this version — this law judged nothing. Its five checks were measured on real projects at 0–33% precision and removed (#390); waive it or leave it off until a check is verified.[22m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mWaive it in laws.notApplicable with the reason, or remove it from laws.severity / laws.enabled, until a verified check ships.[22m
+
+[31m[1m44.[22m[39m [37m[1mIncident Response Protocol[22m[39m [31m[3 violations][39m[90m (Score: 25/100)[39m
+   [90m•[39m [2mMissing incident response protocol documentation[22m
+   [90m•[39m [2mMissing incident escalation procedures[22m
+   [90m•[39m [2mMissing incident communication plans[22m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mCreate comprehensive incident response plan documentation[22m
+   [90m•[39m [2mDocument clear escalation paths and decision criteria[22m
+   [90m•[39m [2mDocument communication templates and notification procedures[22m
+   [33m... and 2 more — run with --verbose for all, or --export json for the full result[39m
+
+[31m[1m45.[22m[39m [37m[1mIndependent Awaits Run Concurrently[22m[39m [31m[3 violations][39m[90m (Score: 70/100)[39m
+   [90m•[39m [2msrc/cli/init-interactive.ts:204: 2 independent awaits run one after another in interactiveSetup() — getComponentConfig() (line 207), getLawsMode() (line 208); none uses another's result, so the request waits for the sum of the round trips — run them together with Promise.all([...]), or mark the line '// roc: sequential-ok <reason>'[22m
+   [90m•[39m [2msrc/laws/performance/performance-monitoring-policy/services/performance-monitoring-policy.analyzer.ts:38: 2 independent awaits run one after another in PerformanceMonitoringPolicyAnalyzerService.analyzeMonitoringPolicy() — ErrorTrackingPolicyAnalyzerService.checkErrorAndPerformanceTracking() (line 50), CoreWebVitalsPolicyAnalyzerService.checkCoreWebVitalsMonitoring() (line 60); none uses another's result, so the request waits for the sum of the round trips — run them together with Promise.all([...]), or mark the line '// roc: sequential-ok <reason>'[22m
+   [90m•[39m [2msrc/laws/performance/performance-monitoring/services/performance-monitoring.analyzer.ts:26: 2 independent awaits run one after another in PerformanceMonitoringAnalyzerService.analyzeMonitoring() — RealUserMonitoringAnalyzerService.checkRealUserMonitoring() (line 32), ErrorTrackingAnalyzerService.checkPerformanceErrorTracking() (line 43); none uses another's result, so the request waits for the sum of the round trips — run them together with Promise.all([...]), or mark the line '// roc: sequential-ok <reason>'[22m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mStart independent calls together and await them once: asyncio.gather(a(), b()) in Python, await Promise.all([a(), b()]) in TS/JS[22m
+   [90m•[39m [2mKeep an order that is part of the meaning (a write before its read, a transaction) and mark it on the line: roc: sequential-ok <reason>[22m
+
+[31m[1m46.[22m[39m [37m[1mAsync Cache Single-Flight[22m[39m [31m[1 violations][39m[90m (Score: 90/100)[39m
+   [90m•[39m [2msrc/core/auditing/audit-engine.ts:278: RuleOfCodeAuditor.audit checks AuditCache (line 201) and stores into it only after awaiting this.executeLawChecks(…) (line 245) — concurrent callers all miss and all run the fetch; store the in-flight future/promise before the await (single-flight), and drop it on failure[22m
+
+   [36m💡 What the law is asking for:[39m
+   [90m•[39m [2mStore the in-flight future/promise before the await so concurrent callers share it (single-flight)[22m
+   [90m•[39m [2mRemove the entry when the fetch fails (except/finally, .catch/finally), so an error is not cached[22m
+
+[36m════════════════════════════════════════════════════════════[39m
+[32m[1m✅ CONSTITUTIONAL COMPLIANCE: PASSED[22m[39m
+[33m⚠️  46 law(s) reported warnings — address them in the warn cycle (or enforce with failOnWarnings).[39m
+[36m════════════════════════════════════════════════════════════[39m
+
+[36m[39m
+[36m                        ::[39m
+[36m                        ;.::                               ::[39m
+[36m                         :.::                            ::::[39m
+[36m                         ::.:;  .;                      :::::[39m
+[36m                          ;...;x . +;+:.              ::::::[39m
+[36m                        ;::;;;;X .::+;;;::;         .:::::;:[39m
+[36m                      :::+;;+++X+  ;++;;;::;       :.:::::::                            .:[39m
+[36m                     +:;+;;+;;;      ;+;+: ::    :..:. :::::                         ::...[39m
+[36m                    ;;++;;++++;       +;+:.:;  :....  ::::::                    .::.  .:[39m
+[36m                      +;;+x.   .      ;+;:::.;. ..  .:: :::.            .::....    .:;:[39m
+[36m                      :x;   X:;       ;;;:::..;..  .:  .;;;     ..::..      ...::;:::::[39m
+[36m                      :      +;       +;:::...:  .:.    .:;;..       ...  ::::::::::[39m
+[36m                     ;          ..    +;::...:;+..  .:..;.    .::;:..  ..::::::::::::[39m
+[36m                    :                 +;::..;:;;; .:..:.  .:::.  ...:..;:::::::::::[39m
+[36m                   ;               :  ;;;;..;::;;;. .;   ;:...:..  ...::::::::::::[39m
+[36m                   ;:.   .   :;:;      :+;;;x::;;: .:   .::.  ..::...:::::::::::.[39m
+[36m                    :   .. :   ;       :+;:;:::;;:.;.  :::       ..:::::::::::[39m
+[36m                              :       ;+;:;:::;;;:;.  ::.. .::.... :::::::::::[39m
+[36m                            :       ;+;:;;:::+;;+:  .;:.     ...::;::::::::[39m
+[36m               :;;         ;      ;+;:;;;:::;;;+.  .:..  .....  .::::::::::[39m
+[36m              :     :     x;     ;;;X;;;:::;;+;   ::.   .....:;;:::::::..[39m
+[36m            :    .    :  :.+;:  ++. ;;;:::++;   ::.  ..... . .:::::::::[39m
+[36m                .+      ;  :;;;+Xx;x;;:::+;  .::.  . ...  .:::::::;:[39m
+[36m           :    : :.    ;          +;;:;;. ...     ..  ..::::::::::[39m
+[36m           :   :    :  ..          :;;:  :   . .:.. ..++;::::::[39m
+[36m          :.  .;:     .+:           ;;:   .:  .:. .:;::::::[39m
+[36m          ::::;;+     .;             ;+     .:.::....:;:: :[39m
+[36m           :+x+:  ;                                        ;+++++[39m
+[36m                ;                                   :;;    :+:..++++[39m
+[36m               .   :;::;+++++:.                            : .+..;++;[39m
+[36m              :   ;          ::                 :;;   ::   : ;+..;+++[39m
+[36m             .   :              ::              .:;       ++;::.:+++[39m
+[36m             +   .                 .;..                 ++;;:;..++;;[39m
+[36m             +  ;;X                   :   ::;:        ;+;;;:;..+++x[39m
+[36m             +;:;++                   .     :.       ;+;;;;:...++;;.[39m
+[36m             +:;++                     .     ;       X;;;;;::..;+;;;;;[39m
+[36m              ;;                       ..    :       X;;;;;:. ...++;;;;;+:[39m
+[36m                                        :    .+      x;;;;+;;:::...:+++;;;;;:[39m
+[36m                                        ;   :  :     .+;;;;;;;::::... :+++;;;+.[39m
+[36m                                       .   .     .    ;x;;;;;;;;;:::.....;++;:+[39m
+[36m                                      :    :     ..   .  ++;;;;;;;;:::.....+;  ;[39m
+[36m                                     x     .      :   :     ;x+;;;;;;::... :+;:;.[39m
+[36m                                     +:::++:     :    :         :++;;;:;....+;;+[39m
+[36m                                      ;+++x:    .    ..            :x;:;...:+;;;[39m
+[36m                                                ;    :      +.     .;;:... +;;;[39m
+[36m                                               :;::;++      ;..::;++:....:+;;+[39m
+[36m                                                :+;;+;       +;........;+;;+[39m
+[36m                                                               :+++++++++.[39m
+[36m[39m
+[36m[39m
+

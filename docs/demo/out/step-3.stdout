@@ -1,4 +1,4 @@
-[36m🏛️  RuleOfCode v7.28.0 — constitutional audit[39m
+[36m🏛️  RuleOfCode v7.29.1 — constitutional audit[39m
 [92m🏛️  FULL MODE — the whole applicable law set will run.[39m
 [90m   The executed count is reported below, after config selection.[39m
 [90m[39m
@@ -28,7 +28,7 @@
 [31m✗ Failed:[39m [1m[31m34[39m[22m
 [33m⚠ Warnings:[39m [1m[33m15[39m[22m [90m(reported, not blocking)[39m
 [33mScore:[39m [1m[33m70%[39m[22m [90m(Pass Rate: 36%)[39m
-[90mExecution time:[39m [37m5666ms[39m
+[90mExecution time:[39m [37m7084ms[39m
 
 [31m[1m❌ FAILED CONSTITUTIONAL LAWS:[22m[39m
 [90m────────────────────────────────────────────────────────────[39m

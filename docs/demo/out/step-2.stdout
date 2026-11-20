@@ -1,4 +1,4 @@
-[36m🏛️  RuleOfCode v7.28.0 — constitutional audit[39m
+[36m🏛️  RuleOfCode v7.29.1 — constitutional audit[39m
 [93m🎯 ALLOWLIST — only the laws named in laws.enabled will run.[39m
 [33m   Unless it names every applicable law, this cannot produce a compliance verdict.[39m
 [33m[39m
@@ -27,7 +27,7 @@
 [32m✓ Passed:[39m [1m[32m6[39m[22m
 [31m✗ Failed:[39m [1m[31m0[39m[22m
 [33mScore:[39m [1m[33m100%[39m[22m [90m(Pass Rate: 100%)[39m
-[90mExecution time:[39m [37m3438ms[39m
+[90mExecution time:[39m [37m5174ms[39m
 
 [36m════════════════════════════════════════════════════════════[39m
 [93m[1m⚠️  PARTIAL SCAN — 4 of 75 applicable laws ran (narrowed by laws.enabled). The selected laws passed; no compliance verdict.[22m[39m

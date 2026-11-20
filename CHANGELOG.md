@@ -5,6 +5,28 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Internal — no tool attribution in the project's public text
+
+The founder's rule: no generated-with/by line naming the tool and no
+Co-Authored-By trailer in a commit, a pull request, an issue, a comment, a
+release note, the code or the docs. Agent tooling appends these lines by
+default, so the rule is held by machinery:
+
+- `scripts/public-text-guard.js` finds both, line by line, in files, stdin or —
+  with `--scan owner/repo` — every release, issue, pull request and comment
+  through the GitHub API. A scan reports how much it read and fails (exit 2) if
+  a page cannot be read.
+- The workflow `Public text guard`: the check "No tool attribution in the pull
+  request" runs on every PR to master and develop (opened, edited, pushed),
+  with the script from the base branch; issues, comments and releases are
+  checked when written (non-blocking, the text is already public); and a
+  weekly scan.
+- `commit-trailer-guard.test.ts` also refuses the attribution line in any
+  commit, merges included, with no exceptions (the history had none), and a
+  new test refuses it in any tracked file.
+
 ## [7.29.1] - 2026-11-20
 
 **The first release on npm after 7.28.1.** 7.29.0 was tagged but never

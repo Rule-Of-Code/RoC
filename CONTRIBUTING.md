@@ -67,6 +67,11 @@ Conventional Commits: `type(scope): summary`
   before committing. A regression test fails the build on any commit that carries
   one, and the eight historical exceptions it names are frozen — the list only ever
   shrinks. If you pair with someone, credit them in the body.
+- 🔴 **no tool attribution anywhere** — no generated-with/by line naming the tool
+  in a commit, a pull request, an issue, a comment, a release note, the code or the
+  docs. `scripts/public-text-guard.js` holds it: a regression test over the history
+  and the tracked files, the required check "No tool attribution in the pull
+  request" on every PR, and a weekly scan of the repository's public text.
 
 ## The gate
 

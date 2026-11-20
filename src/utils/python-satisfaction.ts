@@ -56,10 +56,6 @@ const TEST_RUNNER_FILES = ['pytest.ini', 'tox.ini', 'noxfile.py'];
 const PY_TEST_CONFIG =
   /\[tool\.pytest\.ini_options\]|\[tool:pytest\]|\[pytest\]|\[testenv|\bpytest\b|\bunittest\b|\bnox\b|\btox\b/i;
 
-/** Outbound HTTP, the Python way (urllib / requests / httpx / aiohttp). */
-const PY_HTTP_CALL =
-  /\b(?:urlopen|requests\.(?:get|post|put|delete|patch|head|request)|httpx\.(?:get|post|put|delete|patch|request|stream|Client|AsyncClient)|aiohttp\.(?:ClientSession|request))\s*\(/;
-
 export class PythonSatisfaction {
   /** Is this a Python project at all? */
   static isPython(projectRoot: string): boolean {
@@ -489,72 +485,6 @@ export class PythonSatisfaction {
     return this.pythonFiles(projectRoot).some(file =>
       /(^|\/)test_[^/]*\.py$|_test\.py$/.test(this.normalize(file))
     );
-  }
-
-  /**
-   * Every outbound HTTP call in first-party Python code sits inside a `try:`
-   * block that has an `except` clause. A project that makes no outbound call at
-   * all has nothing to guard — that concern is N/A, which is not a violation
-   * either. Test code is excluded: it is not the app talking to the network.
-   */
-  static hasGuardedHttpCalls(projectRoot: string): boolean {
-    return this.pythonFiles(projectRoot).every(file => {
-      if (this.isTestPath(file)) return true;
-      const content = FileUtils.readFileContentSync(file);
-      return !content || this.httpCallsGuarded(this.stripPython(content));
-    });
-  }
-
-  /** Is every HTTP call site in this (stripped) source inside a try/except? */
-  private static httpCallsGuarded(content: string): boolean {
-    const lines = content.split('\n');
-    return lines.every(
-      (line, index) =>
-        !PY_HTTP_CALL.test(line) || this.insideTryWithExcept(lines, index)
-    );
-  }
-
-  /**
-   * Walk up the enclosing blocks of `index` — in Python the block structure IS
-   * the indentation. The call is guarded when the chain reaches a `try:` with an
-   * `except` clause before it leaves the function (a `def`/`class` header at a
-   * lower indent means no try wrapped it).
-   */
-  private static insideTryWithExcept(lines: string[], index: number): boolean {
-    let indent = this.indentOf(lines[index] ?? '');
-    for (let i = index - 1; i >= 0; i--) {
-      const line = lines[i] ?? '';
-      if (line.trim() === '') continue;
-      const lineIndent = this.indentOf(line);
-      if (lineIndent >= indent) continue;
-      if (/^\s*try\s*:/.test(line)) {
-        return this.hasExceptClause(lines, i, lineIndent);
-      }
-      if (/^\s*(?:async\s+def|def|class)\s/.test(line)) return false;
-      indent = lineIndent;
-    }
-    return false;
-  }
-
-  /** Does the try block opened at `tryIndex` have an `except` clause of its own? */
-  private static hasExceptClause(
-    lines: string[],
-    tryIndex: number,
-    tryIndent: number
-  ): boolean {
-    for (let i = tryIndex + 1; i < lines.length; i++) {
-      const line = lines[i] ?? '';
-      if (line.trim() === '') continue;
-      const lineIndent = this.indentOf(line);
-      if (lineIndent > tryIndent) continue;
-      return lineIndent === tryIndent && /^\s*except\b/.test(line);
-    }
-    return false;
-  }
-
-  /** Leading-whitespace width — Python's block delimiter. */
-  private static indentOf(line: string): number {
-    return line.length - line.trimStart().length;
   }
 
   /** Forward-slash, lower-cased path (Windows checkouts included). */

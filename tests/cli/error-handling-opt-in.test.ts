@@ -74,12 +74,17 @@ describe('#390 Error Handling Standards is opt-in', () => {
     expect(report.stats.totalLaws).toBe(on.stats.totalLaws - 1);
   });
 
-  it('laws.severity turns it on, and it judges as it does today', () => {
+  // 7.29.0: its five checks were measured and removed (#390). Turned on, it
+  // runs and reports that it judged nothing: a failure, never a pass.
+  it('laws.severity turns it on, and it reports that it judged nothing', () => {
     const report = audit(dir, { severity: { [LAW]: 'warning' } });
-    const result = report.results.find(r => r.lawTitle === LAW);
+    const result = report.results.find(r => r.lawTitle === LAW) as
+      { violations?: string[]; passed?: boolean; score?: number } | undefined;
     expect(result).toBeDefined();
-    expect(result?.violations).toContain(
-      '1 critical areas missing try-catch blocks'
-    );
+    expect(result?.passed).toBe(false);
+    expect(result?.score).toBe(0);
+    expect(result?.violations).toEqual([
+      'Error Handling Standards has no verified detection path in this version — this law judged nothing. Its five checks were measured on real projects at 0–33% precision and removed (#390); waive it or leave it off until a check is verified.',
+    ]);
   });
 });

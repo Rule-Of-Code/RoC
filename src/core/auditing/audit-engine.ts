@@ -503,6 +503,19 @@ export class RuleOfCodeAuditor {
       notApplicable: undefined,
     });
     const applicableLaws = applicable.length;
+    // A waiver also counts when it removed a law from THIS run's selection:
+    // an opt-in law that only `laws.enabled` turns on is not in the open
+    // selection, and its waiver changed the run without a trace (#399).
+    const waivedLaws = this.waivedLawsOf(
+      [
+        [applicable, beforeWaivers],
+        [
+          this.substantiveSelection(this.config.laws),
+          this.substantiveSelection({ ...laws, notApplicable: undefined }),
+        ],
+      ],
+      laws.notApplicable
+    );
     return {
       // What actually ran: 0 on a refusal, the selection minus the history
       // laws a pre-commit defers. Reporting the selection here said "2 ran"
@@ -510,12 +523,10 @@ export class RuleOfCodeAuditor {
       executedLaws: executedSubstantive,
       selectedLaws: selectedSubstantive,
       applicableLaws,
-      applicableBeforeWaivers: beforeWaivers.length,
-      waivedLaws: this.waivedLawsOf(
-        applicable,
-        beforeWaivers,
-        laws.notApplicable
-      ),
+      // M₀ = M + W by construction: the waived set is what the waivers took
+      // out of the open selection or out of this run's selection.
+      applicableBeforeWaivers: applicableLaws + waivedLaws.length,
+      waivedLaws,
       narrowedBy,
       // Partial is about the SELECTION: a pre-commit defers the history laws
       // by design, which is not a narrowing. A refusal is not partial — no
@@ -548,15 +559,33 @@ export class RuleOfCodeAuditor {
     ) as Array<{ id: string; name: string }>;
   }
 
-  /** The laws in `beforeWaivers` that the waivers removed, with their reasons. */
+  /** Substantive laws this run's config selects with these `laws` settings. */
+  private substantiveSelection(
+    laws: unknown
+  ): Array<{ id: string; name: string }> {
+    return this.getSelectedLaws({
+      ...this.config,
+      laws,
+    } as RuleOfCodeConfig).filter(
+      law => !(law as { alwaysEnabled?: boolean }).alwaysEnabled
+    ) as Array<{ id: string; name: string }>;
+  }
+
+  /**
+   * The laws the waivers removed, with their reasons: for each [after, before]
+   * pair of selections, what is in `before` and not in `after`; each law once.
+   */
   private waivedLawsOf(
-    applicable: Array<{ id: string }>,
-    beforeWaivers: Array<{ id: string; name: string }>,
+    pairs: Array<[Array<{ id: string }>, Array<{ id: string; name: string }>]>,
     notApplicable: unknown
   ): WaivedLaw[] {
-    const kept = new Set(applicable.map(law => law.id));
-    return beforeWaivers
-      .filter(law => !kept.has(law.id))
+    const removed = new Map<string, { id: string; name: string }>();
+    for (const [after, before] of pairs) {
+      const kept = new Set(after.map(law => law.id));
+      for (const law of before)
+        if (!kept.has(law.id) && !removed.has(law.id)) removed.set(law.id, law);
+    }
+    return [...removed.values()]
       .map(law => ({
         law: law.name,
         lawId: law.id,

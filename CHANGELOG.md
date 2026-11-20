@@ -5,6 +5,113 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.29.0] - 2026-11-19
+
+No law added or removed (265). The JSON contract keeps its shape. Closes #385,
+#390 and #399.
+
+### Fixed — a finished audit no longer stalls on exit (#385)
+
+A finished `ruleofcode audit` sometimes stalled at 0 CPU, with its stdout and
+stderr pipes still open, inside `process.exit()`, which it called right after
+the last write. QA measured both ways of ending in an interleaved A/B on
+7.28.1, on the same fixture, without instrumentation:
+
+| How the audit ends | Stalls |
+|---|---|
+| `process.exit(exitCode)` after the last write (≤ 7.28.1) | 9 of 60 |
+| `process.exitCode = exitCode`, the process ends on its own | 0 of 60 |
+
+The difference is p ≈ 0.003. The audit now sets `process.exitCode` and
+returns. The exit code is unchanged.
+
+A process that ends on its own waits for every open handle, so a handle left
+open anywhere would keep it alive forever. A backup timer covers that. It is
+unref'd, so it never keeps the process alive itself. After 10 s
+(`EXIT_BACKUP_MS`) it exits with the same code, and it waits again while
+stdout/stderr still hold unwritten data, so a slow reader is never cut short.
+In that case the exit comes 10 s late; it does not hang. QA measures the time
+to exit in the acceptance runs.
+
+**What is not shown:**
+- Why `process.exit()` stalls on Windows with the pipes still open.
+- That the stall is gone. 0 of 60 rules out only a stall rate above roughly
+  5%. The acceptance is 600 audits on the candidate, at least 300 of them with
+  a large output, interleaved, plus a closed stdout.
+
+The other `process.exit` calls in `src/cli` (`laws` with a non-zero code,
+`recommend`, `reinstall-hooks`, the help and parse-error paths) are not the
+same case (a large output to a pipe followed at once by `process.exit`) and are
+unchanged.
+
+### Fixed — a waiver of an opt-in law that the allowlist turns on is reported (#399)
+
+A `laws.notApplicable` waiver of an opt-in law that only `laws.enabled` turns
+on removed the law from the run and turned a failing run into an exit-0
+partial one. Nothing reported it: the law was not in `scope.waivedLaws`, and
+the console printed no waiver block. `scope.waivedLaws` was computed against
+the open selection (no allowlist), and such a law is not in it. A waiver that
+removes a law from **this run's** selection is now listed too, once per law,
+so the console block, the PARTIAL line ("…; 1 waived") and the JSON agree.
+`applicableBeforeWaivers` is `applicableLaws + waivedLaws.length`, so
+M₀ = M + W still holds. `applicableLaws` and the liveness floor are unchanged.
+
+| Config | 7.28.1 | 7.29.0 |
+|---|---|---|
+| allowlist names an opt-in law, no waiver | failed, exit 1, `waivedLaws: []` | unchanged |
+| the same + a waiver of that law | partial, exit 0, `waivedLaws: []`, no line | partial, exit 0, the law in `waivedLaws` with its reason, the waiver block printed |
+| opt-in law turned on by `laws.severity` + waiver | listed once | unchanged |
+| an ordinary law in the allowlist + waiver | listed once | unchanged |
+
+### ⚠️ BREAKING — Error Handling Standards has no verified check; turned on, it judges nothing (#390)
+
+Once #369 (7.28.0) let Error Handling Standards see source files, its five
+checks could be measured. Each was a whole-file pattern match. A random sample
+of each (seed recorded) was labelled on six real projects, three private and
+three public (angular-realworld-example-app, node-express-realworld-example-app,
+ionic-conference-app). The labelling criteria were written before the samples
+were read. A check stays only at ≥ 80% true on ≥ 10 findings:
+
+| Check | Findings | Sampled | True | Precision | What the false ones were |
+|---|---|---|---|---|---|
+| critical areas missing try/catch | 127 | 12 | 2 | 17% | an await that returns to its caller (the error propagates on purpose); a subscribe with an error handler, flagged because the file has no `try {` |
+| error logging | 337 | 12 | 0 | 0% | the error turned into UI state, or rethrown; fixtures that only throw |
+| user-friendly messages | 3 | 3 | 0 | 0% | a status code in a comment; a value of a union type |
+| HTTP error handling | 107 | 12 | 0 | 0% | a repository that returns its promise or observable to the caller |
+| Observable error handling | 23 | 12 | 4 | 33% | router, service-worker and auth-state streams, which do not error; services with no subscribe |
+
+All five are removed. The law stays in the registry (265 laws), so a key or a
+waiver that names it is still valid. It stays opt-in, as it has been since
+7.28.0. Turned on (`laws.severity` or `laws.enabled`), it does not pass a
+project it did not judge (#369). It reports:
+
+```
+Error Handling Standards has no verified detection path in this version — this law judged nothing. Its five checks were measured on real projects at 0–33% precision and removed (#390); waive it or leave it off until a check is verified.
+```
+
+That is a failure with score 0, at the severity the config gives it.
+**Breaking** for a config that turned it on: findings it used to report
+(nearly all of them false) are replaced by this single failure. A config that
+left it off, or waives it, sees no change. The two suggestions it printed
+without a finding (a global error handler, error boundaries) are gone with the
+checks. The Python HTTP-guard helper that only this law used is removed.
+
+**Known limit, not "there are none".** Of the 51 findings reviewed across the
+five checks, 6 were true, all from the two checks that had any (2 of 12 and 4
+of 12). All 6 have one shape: a component subscribes to a service method that
+returns an HTTP observable, with no error handling. The two public Angular
+apps above have that shape in at least 7 places (a rough count, not checked one
+by one). A narrow check for the same request subscribed in the same expression
+(`http.get(…).subscribe(…)` with no error handler) was defined before it was
+measured and found 0 times in the six projects, so it could not be verified
+either. From 7.29.0 the law does not see that shape at all. Finding it needs
+following the observable from the service into the component across files,
+which would be a new detector with its own measurement.
+
+The labels were reviewed independently by QA: 0 disagreements in the 24
+findings of the two checks with true findings. The narrow check was also 0 by
+QA's own detector.
+
 ## [7.28.1] - 2026-11-19
 
 A patch: no law added or removed (265), no change to the JSON contract. Closes

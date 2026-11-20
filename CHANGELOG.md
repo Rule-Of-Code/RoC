@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — five more laws gave a weaker answer, and no note, without `typescript` (#427)
+
+The rest of the class #427 found: when `typescript` could not be loaded, these
+laws fell back to a second-best reading and said nothing. Now each says what
+it did not read; with the parser nothing changes.
+
+| law | before, no `typescript` | after, no `typescript` |
+|---|---|---|
+| HTML Lang Declared | an unread `next.config` counted as "no i18n": **"no _document and no i18n in next.config"**, possibly false | "… the next.config file(s) were NOT read … whether i18n sets <html lang> was not judged" |
+| Accessibility Linting Enforcement | an ESLint config script it could not parse counted as "no jsx-a11y preset": **"rules missing"** | "<config>: … the ESLint config script(s) were NOT read … whether they enable the jsx-a11y preset was not judged" |
+| TypeScript Strict Mode | an `extends` chain not followed; the flags read from `tsconfig.json` alone, silently | the same check, plus "tsconfig.json extends …: … the inherited compiler options were NOT read … the strict flags were read from tsconfig.json alone" |
+| Inject Over Constructor DI | constructors counted by a regex | "… the N Angular file(s) were NOT read", no count; a file that does not parse is named as not read |
+| Test Documentation Requirements | test titles read by a regex | "… the N test file(s) were NOT read" — judged nothing |
+
 ### 🐛 Fixed — without `typescript`, two testing laws judged by a regex and said nothing (#427)
 
 `CodeText.codeOnly` (the code of a file, without its comments and strings) fell

@@ -9,18 +9,16 @@
 import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils/file-utils';
-import { loadTypeScript, TsxSource } from '../../utils/react/tsx-source';
+import {
+  loadTypeScript,
+  parserUnavailable,
+  TsxSource,
+} from '../../utils/react/tsx-source';
 import { PathOperations } from '../../utils/path-operations';
 import { AngularLawBase } from './angular-law-base';
 import { AngularComponentFiles } from '../../utils/angular-component-files';
 
 export class InjectOverConstructorDiLaw extends AngularLawBase {
-  // A constructor whose parameter list declares a parameter-property (access
-  // modifier before a parameter name) = constructor DI.
-  private static readonly CONSTRUCTOR = /constructor\s*\(([\s\S]*?)\)/g;
-  private static readonly PARAM_PROPERTY =
-    /\b(private|public|protected|readonly)\s+[A-Za-z_$]/;
-
   static check(context: LawCheckContext): LawResult {
     const { projectRoot } = context;
     const violations: string[] = [];
@@ -40,16 +38,24 @@ export class InjectOverConstructorDiLaw extends AngularLawBase {
       ])
     );
 
+    // Without the parser the constructors are not read: say so, and judge
+    // none of them with a regex (#427).
+    if (files.length > 0 && !loadTypeScript(projectRoot)) {
+      violations.push(
+        parserUnavailable(projectRoot, `the ${files.length} Angular file(s)`)
+      );
+      files.length = 0;
+    }
     for (const file of files) {
       const content = FileUtils.readFileContentSync(file);
       if (!content) continue;
-      const code = content
-        .replace(/\/\*[\s\S]*?\*\//g, ' ')
-        .replace(/(^|[^:])\/\/[^\n]*/g, '$1');
-
-      const count =
-        this.injectedConstructors(projectRoot, file, content) ??
-        this.regexCount(code);
+      const count = this.injectedConstructors(projectRoot, file, content);
+      if (count === null) {
+        violations.push(
+          `${PathOperations.getRelative(projectRoot, file)}: could not be parsed — its constructors were NOT read`
+        );
+        continue;
+      }
       if (count > 0) {
         violations.push(
           `${PathOperations.getRelative(projectRoot, file)}: ${count} constructor(s) using parameter-property DI — inject() in a field initializer instead.`
@@ -131,17 +137,6 @@ export class InjectOverConstructorDiLaw extends AngularLawBase {
         }
       }
     });
-    return count;
-  }
-
-  /** Without a parser: every parameter-property constructor in the file, as before. */
-  private static regexCount(code: string): number {
-    let count = 0;
-    let match: RegExpExecArray | null;
-    this.CONSTRUCTOR.lastIndex = 0;
-    while ((match = this.CONSTRUCTOR.exec(code)) !== null) {
-      if (this.PARAM_PROPERTY.test(match[1] ?? '')) count++;
-    }
     return count;
   }
 }

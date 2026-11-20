@@ -1,16 +1,16 @@
-# README demo — ruleofcode 7.28.0
+# README demo — ruleofcode 7.29.1
 
-`demo.gif` is a recording of real `ruleofcode@7.28.0` output, from npm, on a
+`demo.gif` is a recording of real `ruleofcode@7.29.1` output, from npm, on a
 neutral two-file TypeScript project (`fixture/`, "demo-app"). Nothing in it is
 typed by hand or generated.
 
 What it shows, in three commands:
 
 1. `cat allowlist.json` — a config that names four laws in `laws.enabled`.
-2. `npx --yes ruleofcode@7.28.0 audit --mode=full --only-failures --config allowlist.json`
+2. `npx --yes ruleofcode@7.29.1 audit --mode=full --only-failures --config allowlist.json`
    → `⚠️ PARTIAL SCAN — 4 of 75 applicable laws ran … no compliance verdict.`
    The four laws pass; the CLI still refuses to call that compliance.
-3. `npx --yes ruleofcode@7.28.0 audit --mode=full --only-failures`
+3. `npx --yes ruleofcode@7.29.1 audit --mode=full --only-failures`
    → `Total Laws Checked: 77`, `✓ Passed: 28`, `✗ Failed: 34`,
    `❌ CONSTITUTIONAL COMPLIANCE: FAILED`.
 
@@ -20,7 +20,7 @@ Requirements: Node, `bash` on PATH (Git Bash on Windows), network for `npx`,
 and [`agg`](https://github.com/asciinema/agg) 1.9.0 for the GIF.
 
 ```sh
-npm ci                     # pins ruleofcode 7.28.0 for check.mjs
+npm ci                     # pins ruleofcode 7.29.1 for check.mjs
 node record.mjs            # runs the three steps, writes out/ and demo.cast
 node check.mjs             # must print only ✓ lines and exit 0
 agg --renderer resvg --font-size 13 --theme github-dark --fps-cap 10 \
@@ -41,7 +41,7 @@ in `record.mjs` and the pin in `package.json`, then run all four commands.
   `\r\n`). Timing is not a fact: pauses let the summary and the verdict be read,
   and the long list of failed laws is sent in batches so it scrolls quickly.
 - Every line a `ruleofcode` step printed exists in the installed
-  `ruleofcode@7.28.0` dist: a colour change is a seam (each colour is its own
+  `ruleofcode@7.29.1` dist: a colour change is a seam (each colour is its own
   chalk call), numbers / quoted values / `laws.*` paths / the project path are
   cut out as run-time values, and a segment built from a template literal must
   match that template whole, with every hole's content passing the same check.

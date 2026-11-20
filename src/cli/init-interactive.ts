@@ -205,7 +205,8 @@ export async function interactiveSetup(
     projectType === 'python'
       ? { componentPrefix: '', domain: '' }
       : await getComponentConfig(promptFn);
-  const lawsMode = await getLawsMode(promptFn);
+  // The prompts share one terminal: the user answers them one at a time.
+  const lawsMode = await getLawsMode(promptFn); // roc: sequential-ok interactive prompts are asked in order
 
   saveConfigAndShowSuccess(projectRoot, {
     projectName,

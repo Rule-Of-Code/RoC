@@ -133,96 +133,100 @@ describe('cli/utils', () => {
     });
   });
 
-  describe('setupErrorHandlers', () => {
-    let sigpipeHandler: (() => void) | undefined;
-    let uncaughtHandler: ((err: Error & { code?: string }) => void) | undefined;
-    let mockExit: jest.Mock;
-    let onSpy: jest.SpyInstance;
+  /**
+   * #405 — a reader that closes the pipe early must not decide the exit code.
+   * The handlers used to exit 0 on SIGPIPE and on EPIPE, so a failed
+   * `audit --json | head` passed under pipefail. Now a broken pipe only stops
+   * the writing; the command still ends with its own exit code.
+   */
+  describe('setupErrorHandlers (#405: a broken pipe never sets the exit code)', () => {
+    type Code = 'EPIPE' | 'ERR_STREAM_DESTROYED' | 'EIO';
+    const streamError = (code: Code): Error & { code: Code } =>
+      Object.assign(new Error(`write ${code}`), { code });
+
+    let before: Map<NodeJS.WriteStream, Set<unknown>>;
+    let exitSpy: jest.SpyInstance;
+    let exitCodeBefore: typeof process.exitCode;
 
     beforeEach(() => {
-      mockExit = jest.fn();
-
-      // Capture handlers when setup is called
-      onSpy = jest.spyOn(process, 'on').mockImplementation((event, handler) => {
-        if (event === 'SIGPIPE') {
-          sigpipeHandler = handler as () => void;
-        } else if (event === 'uncaughtException') {
-          uncaughtHandler = handler as (err: Error & { code?: string }) => void;
-        }
-        return process;
-      });
-
-      setupErrorHandlers(mockExit);
+      before = new Map(
+        [process.stdout, process.stderr].map(s => [
+          s,
+          new Set<unknown>(s.listeners('error')),
+        ])
+      );
+      exitCodeBefore = process.exitCode;
+      exitSpy = jest
+        .spyOn(process, 'exit')
+        .mockImplementation(() => undefined as never);
     });
 
     afterEach(() => {
-      sigpipeHandler = undefined;
-      uncaughtHandler = undefined;
-      onSpy.mockRestore();
-    });
-
-    it('should register SIGPIPE handler', () => {
-      expect(sigpipeHandler).toBeDefined();
-    });
-
-    it('should register uncaughtException handler', () => {
-      expect(uncaughtHandler).toBeDefined();
-    });
-
-    it('should call exitFn with 0 for SIGPIPE', () => {
-      sigpipeHandler?.();
-
-      expect(mockExit).toHaveBeenCalledWith(0);
-    });
-
-    it('should call exitFn with 0 for EPIPE error', () => {
-      const epipeError = new Error('write EPIPE') as Error & { code?: string };
-      epipeError.code = 'EPIPE';
-
-      try {
-        uncaughtHandler?.(epipeError);
-      } catch {
-        // May throw, that's ok
-      }
-
-      expect(mockExit).toHaveBeenCalledWith(0);
-    });
-
-    it('should rethrow non-EPIPE errors', () => {
-      const regularError = new Error('Some other error');
-
-      expect(() => {
-        uncaughtHandler?.(regularError);
-      }).toThrow('Some other error');
-
-      expect(mockExit).not.toHaveBeenCalled();
-    });
-
-    it('should use process.exit as default when no exitFn provided', () => {
-      // Reset handlers
-      onSpy.mockRestore();
-
-      const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
-        return undefined as never;
-      });
-
-      let testSigpipeHandler: (() => void) | undefined;
-
-      onSpy = jest.spyOn(process, 'on').mockImplementation((event, handler) => {
-        if (event === 'SIGPIPE') {
-          testSigpipeHandler = handler as () => void;
+      for (const [stream, known] of before) {
+        for (const listener of stream.listeners('error')) {
+          if (!known.has(listener)) {
+            stream.removeListener(
+              'error',
+              listener as (...args: unknown[]) => void
+            );
+          }
         }
-        return process;
-      });
+      }
+      process.removeAllListeners('SIGPIPE');
+      exitSpy.mockRestore();
+      process.exitCode = exitCodeBefore;
+    });
 
-      // Call without exitFn to use default
+    it('registers no SIGPIPE and no uncaughtException handler', () => {
+      const sigpipe = process.listenerCount('SIGPIPE');
+      const uncaught = process.listeners('uncaughtException');
+
       setupErrorHandlers();
 
-      // Trigger SIGPIPE handler
-      testSigpipeHandler?.();
+      expect(process.listenerCount('SIGPIPE')).toBe(sigpipe);
+      expect(process.listeners('uncaughtException')).toEqual(uncaught);
+    });
 
-      expect(exitSpy).toHaveBeenCalledWith(0);
-      exitSpy.mockRestore();
+    describe.each([
+      ['stdout', process.stdout],
+      ['stderr', process.stderr],
+    ])('%s', (_name, stream) => {
+      it('EPIPE: swallowed — no exit, the exit code is left alone', () => {
+        setupErrorHandlers();
+        process.exitCode = 1;
+
+        expect(() => stream.emit('error', streamError('EPIPE'))).not.toThrow();
+        expect(exitSpy).not.toHaveBeenCalled();
+        expect(process.exitCode).toBe(1);
+      });
+
+      it('ERR_STREAM_DESTROYED after an EPIPE: the same closed pipe, swallowed', () => {
+        setupErrorHandlers();
+        stream.emit('error', streamError('EPIPE'));
+
+        expect(() =>
+          stream.emit('error', streamError('ERR_STREAM_DESTROYED'))
+        ).not.toThrow();
+        expect(exitSpy).not.toHaveBeenCalled();
+      });
+
+      it('ERR_STREAM_DESTROYED without a broken pipe first: thrown', () => {
+        setupErrorHandlers();
+
+        expect(() =>
+          stream.emit('error', streamError('ERR_STREAM_DESTROYED'))
+        ).toThrow('write ERR_STREAM_DESTROYED');
+      });
+
+      it('any other stream error: thrown, even after a broken pipe', () => {
+        setupErrorHandlers();
+        stream.emit('error', streamError('EPIPE'));
+
+        expect(() => stream.emit('error', streamError('EIO'))).toThrow(
+          'write EIO'
+        );
+        expect(exitSpy).not.toHaveBeenCalled();
+      });
     });
   });
 });

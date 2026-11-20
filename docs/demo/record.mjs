@@ -29,7 +29,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const VERSION = '7.28.0';
+const VERSION = '7.29.1';
 const WORK =
   process.argv[2] ?? (process.platform === 'win32' ? 'd:/tmp/demo-app' : '/tmp/demo-app');
 

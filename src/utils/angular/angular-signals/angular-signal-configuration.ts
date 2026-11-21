@@ -105,7 +105,7 @@ export class AngularSignalConfiguration extends SignalConfigurationBase {
    * Apply fileName placeholder to validation message object
    * RULE 2: Handles message objects with multiple properties containing placeholders
    */
-  static buildMessageObject<T extends Record<string, string>>(
+  static override buildMessageObject<T extends Record<string, string>>(
     messageTemplate: T,
     fileName: string
   ): T {

@@ -248,7 +248,9 @@ export class ZeroToleranceStrictLaw extends CodeQualityLawBase {
     return count;
   }
 
-  protected static hasStrictTypeScriptConfig(tsConfigContent: string): boolean {
+  protected static override hasStrictTypeScriptConfig(
+    tsConfigContent: string
+  ): boolean {
     try {
       // Simple check: does the file contain "strict": true
       // This handles both direct settings and extended configs

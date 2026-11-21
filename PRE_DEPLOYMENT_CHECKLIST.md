@@ -9,6 +9,11 @@ for one release, in its release PR, not committed as done.
 - [ ] A `release/vX.Y.Z` branch from `develop`, with the version in
       `package.json` / `package-lock.json` and a `## [X.Y.Z]` section in
       `CHANGELOG.md` (what each changed law judged before and after).
+- [ ] The git hooks regenerated for the new version after the bump
+      (`npx ruleofcode reinstall-hooks`), keeping the one documented change in
+      `.husky/pre-commit`: `npx lint-staged --no-stash` (0350ddf — the stash
+      list is shared by every worktree). A hook without the new version is
+      reported as outdated by the self-audit.
 - [ ] A release PR `release/vX.Y.Z` → `master`. Its body closes each issue of
       the wave with its own keyword (`Closes #A. Closes #B.`); PRs to `develop`
       only say `Refs #N`.

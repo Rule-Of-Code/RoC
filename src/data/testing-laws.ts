@@ -102,6 +102,7 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Edge-case and mock detection are keyword heuristics (imports imply "has dependencies"; jest.mock/spyOn imply mocks) — a test that mocks via a helper import is misread; no semantics.',
       'It counts structure, not assertion strength; a test with one weak assertion passes.',
+      'The async patterns (.then without catch, setTimeout without fake timers, done() with async, awaited literals) are read from the code of the TypeScript parse — not from strings or comments; without a loadable `typescript` they are NOT read and the law says so.',
       'TS/JS .spec/.test files only — no Python. realDataMode suppresses the no-mocking / hardcoded-data findings for projects that test against real data by design.',
     ],
     stack: 'typescript',

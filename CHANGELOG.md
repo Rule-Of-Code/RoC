@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Unit Test Quality read the async code a test keeps in strings (#424)
+
+The async analysis of every test file ran over the raw text, so a test that
+holds the code it feeds a detector as a string was told its promise chains
+have no `.catch()`, could use async/await, mix `done()` with async, or use
+`setTimeout` without fake timers.
+
+| | before | after |
+|---|---|---|
+| `.then(`, `setTimeout(`, `done()`, `await` in a string or comment | an async finding | not code |
+| the same in code | a finding | a finding |
+| no loadable `typescript` | text scanned | "the async patterns of the N test file(s) were NOT read" |
+
+The other Unit Test Quality checks (mocking, edge cases, HTTP calls) are
+unchanged.
+
 ### ⚠️ BREAKING — `compliance` and the victory art mean a clean pass; a law that judged nothing makes the run partial
 
 A run of this repository listed 46 laws with violations at warning level, one

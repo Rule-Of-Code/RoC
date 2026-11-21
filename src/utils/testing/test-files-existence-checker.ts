@@ -1,9 +1,14 @@
 import type { RuleOfCodeConfig } from '../../config/types';
 import { DirectoryScanner } from '../directory-scanner';
 import { FileFilterUtils } from '../file-filter-utils';
+import { PARTLY_READ_TEXT } from '../judged-nothing';
 import { PathOperations } from '../path-operations';
+import { loadTypeScript, parserUnavailable } from '../react/tsx-source';
+import { canonicalPath, TestImportReader } from './test-import-reader';
 /** How many discovered test files to name before summarising the rest. */
 const TEST_FILE_EXAMPLES = 5;
+/** How many uncovered source files to name before summarising the rest. */
+const MISSING_TEST_EXAMPLES = 5;
 
 /**
  * Test Files Existence Checker
@@ -35,43 +40,43 @@ export class TestFilesExistenceChecker {
       this.shouldHaveTest(file)
     );
 
-    let missingTestCount = 0;
-    const missingTestExamples: string[] = [];
+    // A file is covered when a test is named after it OR imports it directly
+    // (see TestImportReader). Without the TypeScript package the imports are
+    // not read: the name rule alone decides, and the finding says so.
+    const ts = loadTypeScript(projectRoot);
+    const imported = ts
+      ? new TestImportReader(ts, projectRoot).importedBy(testFiles)
+      : new Set<string>();
 
-    for (const sourceFile of testableSources) {
-      // A source `foo.component.ts` (or Angular-20 `home.ts`) is covered by
-      // EITHER `foo.component.spec.ts` or `.test.ts`. The old check demanded
-      // `.test.` exactly, so every Angular file — which uses `.spec.` — was
-      // reported as lacking a test. Match by the source name with the
-      // spec/test marker stripped.
-      const sourceName = PathOperations.getBasename(sourceFile);
-      const hasTest = testFiles.some(
-        testFile =>
-          PathOperations.getBasename(testFile).replace(/\.(spec|test)$/, '') ===
-          sourceName
-      );
+    const uncovered = testableSources.filter(
+      sourceFile =>
+        !this.hasTestByName(sourceFile, testFiles) &&
+        !imported.has(canonicalPath(sourceFile))
+    );
 
-      if (!hasTest) {
-        missingTestCount++;
-        if (missingTestExamples.length < 5) {
-          // Limit examples for readability
-          missingTestExamples.push(
-            PathOperations.getRelative(projectRoot, sourceFile)
-          );
-        }
-      }
-    }
-
-    if (missingTestCount > 0) {
+    if (uncovered.length > 0) {
+      const unread = ts
+        ? ''
+        : ` — ${parserUnavailable(projectRoot, `the imports of the ${testFiles.length} test file(s)`)}, so a file a test imports but is not named after was counted as lacking a test; ${PARTLY_READ_TEXT}`;
       violations.push(
-        `${missingTestCount} source files lack corresponding test files`
+        `${uncovered.length} source files lack corresponding test files (a test that imports a file counts)${unread}`
       );
       suggestions.push(
-        `Add test files for: ${missingTestExamples.join(', ')}${missingTestCount > 5 ? '...' : ''}`
+        `Add test files for: ${uncovered
+          .slice(0, MISSING_TEST_EXAMPLES)
+          .map(file => PathOperations.getRelative(projectRoot, file))
+          .join(', ')}${uncovered.length > MISSING_TEST_EXAMPLES ? '...' : ''}`
+      );
+      suggestions.push(
+        'A test covers a file when it is named after it (foo.ts ↔ foo.spec.ts / foo.test.ts) or imports it directly — a relative path or a tsconfig/jsconfig `paths`/`baseUrl` alias; an alias declared only in a Jest `moduleNameMapper` or a bundler config is not followed'
       );
     }
 
-    // Check test coverage ratio
+    // The ratio stays test files per testable source file. Counting the files
+    // covered above instead would raise a NEW finding wherever tests import
+    // through an alias this law does not follow, or are not named after a
+    // source: a project with as many test files as before would fail a ratio
+    // it passed. The rule above only ever removes findings.
     const coverageRatio =
       testableSources.length === 0
         ? 100
@@ -89,6 +94,22 @@ export class TestFilesExistenceChecker {
     }
 
     return { violations, suggestions };
+  }
+
+  /**
+   * A test named after the source: `foo.component.ts` (or Angular-20
+   * `home.ts`) is covered by EITHER `foo.component.spec.ts` or `.test.ts`.
+   */
+  private static hasTestByName(
+    sourceFile: string,
+    testFiles: string[]
+  ): boolean {
+    const sourceName = PathOperations.getBasename(sourceFile);
+    return testFiles.some(
+      testFile =>
+        PathOperations.getBasename(testFile).replace(/\.(spec|test)$/, '') ===
+        sourceName
+    );
   }
 
   /**

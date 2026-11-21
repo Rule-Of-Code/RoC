@@ -142,6 +142,12 @@ function writeOfCollection(
   return ref.fn.calls.find(call => isDatabaseWrite(call, apis)) ?? null;
 }
 
+/**
+ * Whether any database-writing function clears the cache at `site` itself or
+ * through a function it calls one step deep. Only when one does are the
+ * remaining writes checked: each function that writes one of `collections`
+ * (named as a literal) without reaching an invalidation is a stale write.
+ */
 export function invalidationOf(
   site: CacheSite,
   collections: readonly string[],

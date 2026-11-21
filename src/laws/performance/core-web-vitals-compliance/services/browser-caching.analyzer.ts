@@ -7,6 +7,14 @@ import { CoreWebVitalsFileDiscoveryConstants as FileDiscovery } from '../constan
 import { CoreWebVitalsPerformanceChecksConstants as Checks } from '../constants/performance-checks';
 import type { BrowserCachingResult } from '../constants/types';
 
+/**
+ * Lists the browser caching strategies a project has, any one of which
+ * satisfies the check: a service worker file or ngsw-config.json (root or Nx
+ * app), a web app manifest, Cache-Control/Expires in nginx.conf or caching
+ * headers in firebase.json, and for Next.js apps either Cache-Control in
+ * next.config `headers()` or the Next server's immutable `/_next/static`
+ * responses (not counted with `output: 'export'`).
+ */
 export class BrowserCachingAnalyzerService {
   static analyze(projectRoot: string): BrowserCachingResult {
     const strategies: string[] = [];

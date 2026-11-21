@@ -272,6 +272,7 @@ export function scanCountByFetch(
   return { sites, fetches };
 }
 
+/** The finding for one count-by-fetch site, with the server-side count to use in its language. */
 export function describeCountByFetch(site: CountByFetch): string {
   const fix =
     site.language === 'python'

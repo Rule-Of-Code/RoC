@@ -23,6 +23,10 @@ export const INIT_PROJECT_TYPES = [
   'vue',
 ] as const;
 
+/**
+ * Whether `type` is one of INIT_PROJECT_TYPES, the values `init --type`
+ * accepts.
+ */
 export function isInitProjectType(
   type: string | undefined
 ): type is ProjectType {

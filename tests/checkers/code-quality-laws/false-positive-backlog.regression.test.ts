@@ -4,7 +4,7 @@
  * Real temp-dir fixtures (no mocks) covering:
  *   #4 magic-number — comments + Tailwind/CSS utility numbers ignored, real literals flagged
  *   #5 code-complexity — identifiers/optional-chaining not counted; line limit configurable
- *   #6 code-documentation — denominator counts declarations, not call-expressions
+ *   #6 code-documentation — declarations are judged, not call-expressions
  */
 import fs from 'fs';
 import os from 'os';
@@ -133,7 +133,7 @@ describe('Code Complexity Control — accurate counting + configurable limit (#5
 });
 
 describe('Code Documentation — declarations, not call-expressions (#6)', () => {
-  it('does not inflate the denominator with function calls', () => {
+  it('judges the documented class, not the calls inside its methods', () => {
     const root = fixture(
       'svc.ts',
       [
@@ -150,11 +150,7 @@ describe('Code Documentation — declarations, not call-expressions (#6)', () =>
       ].join('\n')
     );
     const result = CodeDocumentationLaw.check(ctx(root));
-    expect(
-      (result.violations ?? []).some(v =>
-        v.includes('Function documentation coverage')
-      )
-    ).toBe(false);
+    expect(result.violations ?? []).toEqual([]);
   });
 });
 

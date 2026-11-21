@@ -2,8 +2,9 @@
  * Base class for Checklist Validation
  * Consolidates common checklist validation logic across deployment checklists
  */
+import { minimatch } from 'minimatch';
+
 import type { RuleOfCodeConfig } from '../../config/types';
-import { CheckerUtils } from '../checker-utils';
 import { FileUtils } from '../file-utils';
 import { PathOperations } from '../path-operations';
 
@@ -86,15 +87,17 @@ export class ChecklistValidatorBase {
     missingConcerns: string[];
     missingAdvisedConcerns: string[];
   } {
+    // The checklist is a project file at the root, not source code: it is
+    // looked up at its path, not through the source scan. The scan applies
+    // `includes.global`, so a project whose includes name only its source
+    // (src/**/*.ts) was told its committed checklist was missing. And a match
+    // anywhere (docs/…/PRE_DEPLOYMENT_CHECKLIST.md) was then read from the
+    // root, where it is not. `ignores.global` can still leave it out.
     const checklistPath = PathOperations.join(projectRoot, checklistFileName);
-    const markdownFiles = CheckerUtils.findFilesByExtension(
-      projectRoot,
-      ['.md'],
-      config
+    const ignored = (config.ignores?.global ?? []).some(pattern =>
+      minimatch(checklistFileName, pattern, { dot: true })
     );
-    const checklistExists = markdownFiles.some(file =>
-      file.endsWith(checklistFileName)
-    );
+    const checklistExists = !ignored && FileUtils.exists(checklistPath);
 
     if (!checklistExists) {
       return this.buildEmptyChecklistResult();

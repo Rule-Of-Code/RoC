@@ -1,8 +1,8 @@
 /**
  * Which top-level import and re-export statements survive compilation: the
  * one rule every import graph of the React/Next laws applies (the Next module
- * graph, the client/server module graph, the test-only graph), so the graphs
- * cannot disagree about the same import again.
+ * graph and the test-only graph), so the graphs cannot disagree about the
+ * same import again.
  *
  * TypeScript and SWC drop an import none of whose bindings is used as a
  * value (`import { Row } from './db'` used only as `: Row`), and every

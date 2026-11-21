@@ -24,8 +24,8 @@ import { glob } from 'glob';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
+import { clientGraph, strippedFromPage } from '../../utils/react/next-entries';
 import {
-  clientGraph,
   envReads,
   type NextModuleGraph,
 } from '../../utils/react/next-module-graph';
@@ -125,7 +125,10 @@ export class NextPublicEnvIsBuildTimeLaw extends LawBase {
     );
     const violations: string[] = [];
     for (const [file, visit] of client.modules) {
-      for (const read of envReads(visit.source).filter(r => !r.inlined)) {
+      const reads = envReads(visit.source).filter(
+        read => !read.inlined && !strippedFromPage(client, file, read.node)
+      );
+      for (const read of reads) {
         violations.push(
           `${graph.relative(file)}:${read.line}: ${read.text} — computed, destructured or whole-object process.env in browser code is never inlined; it is undefined there. Read each variable as process.env.NEXT_PUBLIC_NAME`
         );
@@ -133,6 +136,7 @@ export class NextPublicEnvIsBuildTimeLaw extends LawBase {
     }
     return [
       ...violations,
+      ...client.configs,
       ...client.unresolved.map(item => graph.describeUnresolved(item)),
     ];
   }

@@ -69,8 +69,10 @@ export class DeadCodeEliminationLaw extends CodeQualityLawBase {
 
     // Check for ESLint rules that catch dead code
     if (devDeps.eslint) {
-      const eslintConfig = this.findESLintConfig(projectRoot);
-      if (!this.hasDeadCodeRules(eslintConfig)) {
+      const eslint = this.readESLintConfig(projectRoot);
+      if (eslint?.notRead !== undefined) {
+        violations.push(eslint.notRead);
+      } else if (!this.hasDeadCodeRules(eslint?.config ?? null)) {
         violations.push('ESLint dead code detection rules not configured');
         suggestions.push(
           'Configure no-unused-vars and no-unreachable-code rules'

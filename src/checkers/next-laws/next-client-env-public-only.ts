@@ -18,8 +18,8 @@
 
 import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
+import { clientGraph, strippedFromPage } from '../../utils/react/next-entries';
 import {
-  clientGraph,
   type EnvRead,
   envReads,
   type NextModuleGraph,
@@ -65,6 +65,7 @@ export class NextClientEnvPublicOnlyLaw extends LawBase {
       for (const read of envReads(visit.source)) {
         if (
           !read.name ||
+          strippedFromPage(client, file, read.node) ||
           read.name.startsWith('NEXT_PUBLIC_') ||
           ALWAYS_INLINED.has(read.name)
         )
@@ -76,6 +77,7 @@ export class NextClientEnvPublicOnlyLaw extends LawBase {
       }
     }
     violations.push(
+      ...client.configs,
       ...client.unresolved.map(item => graph.describeUnresolved(item)),
       ...graph.unread
     );

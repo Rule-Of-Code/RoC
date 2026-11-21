@@ -30,6 +30,142 @@ TypeScript parse.
 Score deductions, unnamed length limits and other unnamed literals in code
 are reported as before.
 
+### 🐛 Fixed — a committed PRE_DEPLOYMENT_CHECKLIST.md was reported missing when `includes` name only source (#476)
+
+Pre-Deployment Checklist looked the checklist up through the source scan,
+which applies `includes.global`. A project whose includes name only its
+source (this repository: `src/**/*.ts`, `scripts/**/*.js`, `tests/**/*.ts`)
+was told "PRE_DEPLOYMENT_CHECKLIST.md missing" with the file committed at its
+root. A file of that name anywhere (`docs/…`) counted as found and was then
+read from the root, where it is not.
+
+Before: found only when the includes cover the root `.md`, or anywhere by
+name. After: the root `PRE_DEPLOYMENT_CHECKLIST.md`, whatever the includes
+say; `ignores.global` can still leave it out. What it must cover is unchanged
+(build & tests, security, rollback / recovery).
+
+This repository now commits its checklist: the release process it actually
+follows — candidate, build and tests, security, GO from QA and the site on the
+untagged candidate, tag, publish by the founder, and rollback by
+`npm deprecate` and a new patch.
+
+### 🐛 Fixed — an Angular CLI project was told to add webpack limits it cannot write (#449)
+
+Once the budget suggestion read angular.json correctly (#449), the two
+Angular/Ionic projects of the QA matrix were told "Add maxAssetSize and
+maxEntrypointSize in webpack configuration". An Angular CLI project has no
+webpack config of its own — the CLI owns it, and the budgets live in
+angular.json — so the advice could not be followed. The law still passed; only
+the suggestion was wrong.
+
+Before: the webpack suggestions were given to every Angular project without a
+webpack config. After: only to a project that has one — a
+`webpack.config.*` / `webpack.prod.*` at the root or under `config/`, or an
+angular.json build through `@angular-builders/custom-webpack`, `ngx-build-plus`
+or `customWebpackConfig`.
+
+### ⚠️ BREAKING — Node 20 or later (#21)
+
+`engines.node` is now `>=20` (was `>=16.0.0`). The old floor was already
+untrue: a runtime dependency in 7.29.1's lockfile (`@inquirer/external-editor`)
+declares `>=18`, and CI ran Node 20 only. Node 20 is now the floor because it
+is the oldest line that both `glob` 14 (`18 || 20 || >=22`) and `minimatch` 11
+(`20 || >=22`) support.
+
+Node 20 is past end-of-life (2026-04-30, nodejs/Release `schedule.json`); 20
+is the floor because it is the lowest version this release's dependencies
+support, not a recommendation. Run a supported line — 26 (Active LTS) or 24
+(Maintenance LTS) on 2026-11-21. Raising the floor is a separate decision.
+
+On Node 18, npm warns `EBADENGINE` (for `ruleofcode`, `minimatch`,
+`brace-expansion` and `lru-cache`) and installs anyway; with `engine-strict`
+the install fails. Node 18 is unsupported and is not run in CI.
+
+CI runs the whole gate (build, lint, format, jest, release canary, self-audit)
+on Node 20, the declared floor, and on Node 26, the Active LTS line on
+2026-11-21 (nodejs.org/dist/index.json; nodejs/Release `schedule.json`: v26
+Active LTS since 2026-10-28). The required check `Constitutional gate` is now
+a job that is green only when every Node version is. A test reads
+package.json, the CI matrix and the lockfile, and fails when the lowest CI
+version is not the declared floor, a CI step pins its own Node version, or a
+runtime dependency declares an `engines.node` that refuses the floor.
+
+### ⬆️ Dependencies — `glob` 10.5.0 → 14.0.6, `minimatch` 9.0.9 → 11.0.9 (#21)
+
+No source change was needed: what RoC uses (`glob`, `globSync`, `sync`,
+`glob.sync`; `minimatch(path, pattern, options)`; glob options `cwd`,
+`ignore`, `absolute`, `dot`, `nodir`, `maxDepth`) behaves the same.
+`npm audit --omit=dev` goes from two moderate advisories (GHSA-3g3m-2fjr-6pw4,
+glob 9.0.0–14.0.1; GHSA-g3hv-75wg-m249, minimatch 7.0.0–11.0.0) to none. The
+ranges start at the measured versions (`^14.0.6`, `^11.0.9`): `^14` alone
+would admit 14.0.0, which is inside the advisory. 17 runtime packages leave
+the tree and 2 come in (`@isaacs/nonrecursive-glob-match`, a newer
+`balanced-match`).
+
+Measured on Windows, so that a different file set cannot hide behind an
+unchanged verdict (173 projects: 165 Next.js fixtures, the `_ng-outside`
+fixture, saas-starter, commerce, create-t3-turbo, three read-only festrr
+clones, and RoC's own develop tree; the audit cache off):
+
+| what | result |
+|---|---|
+| every `glob`/`minimatch` call of `audit --json` recorded under 10.5.0 + 9.0.9 and under 14.0.6 + 11.0.9, same build | identical in 173/173 projects: 16,260 distinct glob calls (pattern, options, sorted result), 21,128 minimatch pattern+option pairs over 1,232,214 distinct (pattern, path) tests, and the same call counts |
+| `audit --json` of develop's build vs this branch's build | byte-identical in 173/173 (no field stripped), same exit code in 173/173 |
+| 307 glob-like literals (274 from `src`, 33 from the projects' configs) × 10,065 paths × 4 option sets, minimatch 9.0.9 vs 11.0.9 | 0 of 12,359,820 disagree |
+| escaped forms from #451 (`weird\[1\]/**`, `a\{b,c\}`, `x\(1\)`, `\!keep`, …): minimatch, and glob `ignore` on a real tree | 0 of 780, 0 of 15 |
+| read-only clones, `git status --porcelain` before and after every run | empty, unchanged |
+
+The full set was measured on develop 1d24269. After develop gained #451
+(a minimatch call for escaped brackets in config patterns), both
+comparisons were run again on 9a2386b for the seven projects that are not
+fixtures: call logs identical in 7/7 (478 glob calls, 856 minimatch
+pattern+option pairs over 914,208 tests), audit JSON byte-identical in 7/7.
+
+### 🔧 CI — `actions/checkout` and `actions/setup-node` v4 → v7 (#21)
+
+`actions/checkout` and `actions/setup-node` go from v4 to v7 in both
+workflows: v4 targets Node 20, which GitHub now forces onto Node 24 with a
+warning on each job that uses them.
+
+### 🐛 Fixed — a law that read none of its files was counted as a finding, not as judged nothing (#427)
+
+Without `typescript`, No Focused Tests, Guard Function Has Production Caller,
+Tsconfig Exclude Leaves Code Untyped and Independent Awaits Run Concurrently
+said their files were NOT read — but the note counted as an ordinary finding.
+The law was not in `scope.judgedNothingLaws`, so a run with them alone was
+`compliance-with-warnings`, while Test Isolation Enforcement in the same state
+made it `partial`.
+
+One rule now, for every law, in one place: a result whose every finding is a
+parser-unavailable note read none of its files — it judged nothing (failed,
+score 0; `failed` or `partial` by severity, as for any law that judged
+nothing). A law that also reads input without the parser and judged it says
+so in the note ("the rest of what this law reads was judged") and is not
+judged nothing; neither is a note beside a real finding, nor a file that did
+not parse.
+
+| law, no `typescript` | before | after |
+|---|---|---|
+| No Focused Tests · Guard Function Has Production Caller · Tsconfig Exclude Leaves Code Untyped · Independent Awaits (TS/JS only) | one finding: "… NOT read" | judged nothing |
+| HTML Lang Declared (next.config) · Accessibility Linting (config script) · Capacitor Plugin Stub (test configs) · Independent Awaits / cache laws with Python read | the note, a finding | the note, a finding, ending "the rest of what this law reads was judged" |
+
+Two more corrections, found by QA on the same fixtures:
+
+- **TypeScript Strict Mode reads the `extends` chain without `typescript`.**
+  Before: tsconfig.json alone — a project whose strict flags live in its base
+  config got 14 "must be enabled" findings, all false, and no note (QA
+  p478-tsstrict-extends). After: the chain is read as JSONC — relative paths
+  and packages in `node_modules`, an `extends` array with later entries over
+  earlier ones — and `target`, `moduleResolution` and `sourceMap` are judged
+  as inherited too. A link that cannot be read is named ("… which could not
+  be read — the inherited compiler options were NOT read …"), and a flag the
+  files that were read leave unset is not judged; one set to `false` still is.
+- **A not-read note names the files it means.** The default wording of the
+  parser-unavailable note said "the .tsx/.jsx files" whatever was not read;
+  the request-path reader (Independent Awaits, the cache laws) said it of
+  `.ts` files (QA p478-awaits-py-ts). It now names their extensions, and the
+  default is neutral ("the files this law parses").
+
 ### 🐛 Fixed — a PARTIAL line said "passed" for laws that reported warnings
 
 The judged-nothing line said "The other laws passed" and the narrowed line
@@ -143,6 +279,80 @@ Two more corrections of the same notes:
 - The note names the files that were not read: "the .ts file(s) were NOT read",
   not ".tsx/.jsx" for every file (No Focused Tests on 714 `.ts` tests, and every
   law that parses through the same reader).
+
+### ⚠️ BREAKING — the Next laws walk one module graph, as Next sees the code (#287)
+
+The Next laws that follow imports carried two static import graphs: one for
+**Next Heavy Lib In Client Graph** and **Next Client Props Serializable**, one
+for **Next Server Only Boundary**, **Next Client Env Public Only** and **Next
+Public Env Is Build Time**. They resolved the same import differently, so a
+client law and a server law could reach opposite conclusions about the same
+code. There is now one graph (`next-module-graph.ts`, entries in
+`next-entries.ts`). The rule it follows: resolve the way Next and its bundler
+do; what cannot be read is reported as not read (the law is partial), never
+passed in silence.
+
+What differs between the laws is a parameter of the walk: which calls are
+edges (point a, below) and whether a boundary module is part of the result
+(Heavy Lib and Client Props keep it as a node without edges, as before; the
+other three leave it out, as before).
+
+| # | shape | before | after |
+|---|---|---|---|
+| a | `require('x')` (the bundler puts it in the same chunk) | an edge only for Client Env, Server Only, Public Env | an edge for every graph law |
+| a | `import('x')` (a chunk of its own) | an edge only for Client Env, Server Only, Public Env | also for Client Props (a Server Component loaded that way still passes its props across the boundary); still not for Heavy Lib (a lazy chunk is not first-load JavaScript — it is the remedy that law recommends) |
+| b | workspace package linked through `node_modules` | Heavy Lib, Client Props: a package, not walked — its code was never judged | walked as first-party code |
+| c | `paths` in `jsconfig.json` (no tsconfig) | Heavy Lib, Client Props: `@/x` taken for a package, nothing walked, nothing said | read |
+| d | bare package that is not installed | Heavy Lib, Client Props: a package, silent (Heavy Lib still matched the name) | not read; Heavy Lib still names a heavy one |
+| e | first-party `.d.ts` | Heavy Lib, Client Props: skipped in silence | the `.js` beside it is read; with none, not read |
+| g | `tsconfig.json` that cannot be parsed, or whose `extends` is missing | the server laws used default options in silence; Heavy Lib, Client Props stopped at every import | named as not read by every law; what resolves without it is still read |
+| zh | relative import that leaves the audited root | Heavy Lib, Client Props: walked outside the root | not read |
+| 8 | package.json `imports` (`#x`) | the server laws cut the specifier at `#` and reported it not read | resolved |
+| 10 | tsconfig `moduleResolution` that ignores `exports` | the server laws could not resolve an `exports`-only subpath: not read | bundler resolution, as Next: resolved |
+| 13 | alias or `baseUrl` path no config maps | Heavy Lib, Client Props: taken for a package, silent | not read |
+| 9 | `.glsl` import | Heavy Lib: not read; the server laws: an asset | an asset (no imports to walk) |
+| 11 | client entries | Heavy Lib: `'use client'` + Pages Router pages; the server laws: `'use client'` + `instrumentation-client` | all three, for every client law; what a page's `getServerSideProps` / `getStaticProps` / `getStaticPaths` alone uses is not client code |
+| 12 | server entries | Client Props: special files of both `app/` and `src/app/` | the router Next reads (`app/` over `src/app/`); Server Only rule 2 also starts at `_app`, `_document`, `_error` |
+
+What you may see:
+
+- **more "not read"** where the project is not installed (no `node_modules`)
+  or a config cannot be read: Heavy Lib and Client Props now say so where they
+  used to pass in silence;
+- **more findings** where workspace packages are linked into `node_modules`
+  (Heavy Lib, Client Props now read their code) and in Pages Router apps
+  (Client Env and Server Only rule 1 now walk from each page);
+- Server Only rule 2 no longer reports a module that a Pages Router page
+  bundles for the browser: rule 1 reports it, as it reports any client module.
+
+Measured on the #287 fixture set (165 fixtures, 29 verdicts that 7.29.1 got
+wrong on purpose; `develop` before this change is identical to the 7.28.1
+baseline on every fixture): all 29 now give the verdict Next's behaviour calls
+for (judge287: FIXED 29, STILL 0, CHANGED-OK 12, OTHER-LAWS 22).
+
+Three verdicts the old fixtures expected change, each as decided
+(judge287 REGRESSION 3; the fixtures are being updated):
+
+- `nc-heavy-neutral-require`: Heavy Lib now names `moment` that a client
+  module loads with `require()` (point a; the case recorded the old limit);
+- `ng-pages-router`: the helper a Pages Router page bundles is reported by
+  Server Only rule 1, not rule 2 (point 11);
+- `nc-heavy-green-subpath`: `lodash/max`, not installed in the fixture, is
+  reported as not read (point d).
+
+Fourteen verdicts on four cases whose expectation was 7.29.1's own behaviour
+changed and were reviewed against the rule (judge287 REVIEW 14): a relative
+import that leaves the root is not read (`ng-outside-root`, point zh), a
+`.glsl` import is an asset (`ng-asset-glsl`, point 9), and an unreadable
+tsconfig is named by every graph law (`ng-extends-missing`,
+`ng-tsconfig-broken-relative`, point g).
+
+On three installed public Next apps (`nextjs/saas-starter`,
+`vercel/commerce`, `t3-oss/create-t3-turbo`) no verdict and no message
+changed before point a; in create-t3-turbo the Heavy Lib walk now reaches 16
+modules instead of 12 and the Client Props walk 26 instead of 11, the
+difference being workspace-package code.
+
 ### 🐛 Fixed — without `typescript`, two testing laws judged by a regex and said nothing (#427)
 
 `CodeText.codeOnly` (the code of a file, without its comments and strings) fell

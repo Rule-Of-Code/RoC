@@ -1,22 +1,29 @@
 /**
- * The module graph of a Next app, as the bundler would follow it.
+ * The one module graph of the Next laws, as Next and its bundler follow it.
  *
  * A `'use client'` file pulls every module it imports into the browser
  * bundle, and so does each of those, transitively. Which modules that is
- * cannot be read off one file: it takes resolution — relative paths, tsconfig
- * `paths`, workspace packages linked through node_modules, package `exports`.
- * This module asks the project's own TypeScript (`ts.resolveModuleName`, with
- * the compiler options of the nearest tsconfig) instead of guessing, and
- * walks only first-party source: a resolved file inside the workspace and
- * outside node_modules is followed; a package is a leaf, known by its name.
+ * cannot be read off one file: it takes resolution — relative paths,
+ * tsconfig/jsconfig `paths` and `baseUrl`, package.json `imports`, workspace
+ * packages linked through node_modules, package `exports`. This module asks
+ * the project's own TypeScript (`ts.resolveModuleName`, with the compiler
+ * options of the nearest tsconfig.json or jsconfig.json) under bundler
+ * resolution — how Next's bundlers resolve, whatever `moduleResolution` the
+ * config names — and walks only first-party source: a resolved file inside
+ * the workspace and outside node_modules is followed (a workspace package
+ * linked into node_modules is first-party); an installed package is a leaf,
+ * known by its name.
  *
- * A walk never drops what it could not follow. An import it cannot resolve,
- * or a file it cannot read, is returned as `unresolved`, and the laws report
- * it — the graph past it was not inspected, so it is not passed.
+ * A walk never drops what it could not follow. An import it cannot resolve
+ * (a package that is not installed, an alias no config maps, a path that
+ * leaves the workspace, a type declaration with no code beside it), a file
+ * it cannot read, and a config it cannot read are returned, and the laws
+ * report them: the graph past them was not inspected, so it is not passed.
  *
- * Next's own rule: a `'use server'` module imported from client code becomes
- * a reference to a server endpoint, not bundled code, so a client walk stops
- * at one (React's server-function boundary).
+ * What differs between the laws is a parameter of the walk, not a second
+ * graph: where it stops (`'use server'` from the client, `'use client'` from
+ * the server), whether a boundary module is part of the result, and whether
+ * `import()` / `require()` are edges.
  */
 
 import * as fs from 'fs';
@@ -31,8 +38,6 @@ import {
   TsxSource,
   type TypeScriptModule,
 } from './tsx-source';
-import { ReactProject, type NextApp } from './react-project';
-import { routerLayout, specialFile } from './next-routes';
 
 /**
  * Modules that must never reach the browser bundle: the Node built-ins Next
@@ -77,14 +82,36 @@ export const DEFAULT_SERVER_MODULES: readonly string[] = [
 /** Packages Next resolves itself, with no node_modules entry needed. */
 const NEXT_PROVIDED = new Set(['server-only', 'client-only']);
 
+/** Stylesheets, images, fonts, media, data and shaders: loaded by a loader, not code to walk. */
 const ASSET =
-  /\.(?:css|scss|sass|less|styl|svg|png|jpe?g|gif|webp|avif|ico|bmp|woff2?|ttf|otf|eot|mp4|webm|mp3|wav|txt|md|mdx|html|wasm|glsl)$/i;
+  /\.(?:css|scss|sass|less|styl|svg|png|jpe?g|gif|webp|avif|ico|bmp|json|woff2?|ttf|otf|eot|mp4|webm|mp3|wav|txt|md|mdx|html|wasm|glsl)$/i;
 
 const NODE_BUILTINS = new Set(builtinModules);
 
+/** The configs Next reads compiler options from, in the order it looks for them. */
+const CONFIG_FILES = ['tsconfig.json', 'jsconfig.json'];
+
+/** TS6053 "File not found" and TS5083 "Cannot read file": an `extends` that did not load. */
+const EXTENDS_NOT_LOADED = new Set([6053, 5083]);
+
+/** Why an import was not followed when it resolved to nothing at all. */
+export const NOT_RESOLVED =
+  'could not be resolved — the modules behind it were NOT read';
+
+/** One import of a module: a kept static import or re-export, or an `import()` / `require()` call. */
 export interface ModuleImport {
   specifier: string;
   line: number;
+  /** The import statement, or the call for `import()` / `require()`. */
+  node: TS.Node;
+  /** A kept static import or re-export, a `require('x')`, or an `import('x')`. */
+  kind: 'static' | 'require' | 'import';
+}
+
+/** Which calls are edges: `require()` is bundled in the same chunk, `import()` is a chunk of its own. */
+export interface CallEdges {
+  require: boolean;
+  dynamicImport: boolean;
 }
 
 export type Resolution =
@@ -92,6 +119,11 @@ export type Resolution =
   | { kind: 'external'; packageName: string }
   | { kind: 'source'; file: string }
   | { kind: 'unresolved'; reason: string };
+
+/** An import a walk followed, with where it led. */
+export interface ModuleEdge extends ModuleImport {
+  resolution: Resolution;
+}
 
 export interface Unresolved {
   from: string;
@@ -104,11 +136,38 @@ export interface Visit {
   source: TsxSource;
   /** The module that imported this one first; null for an entry. */
   via: string | null;
+  /** The imports the walk followed out of this module (none for a boundary module). */
+  edges: ModuleEdge[];
 }
 
 export interface WalkResult {
   modules: Map<string, Visit>;
   unresolved: Unresolved[];
+  /** Configs the walk resolved under but could not read: what they map was not resolved. */
+  configs: string[];
+}
+
+/** How a walk follows the graph: the parameters that differ between the laws. */
+export interface WalkOptions {
+  /** A boundary module: its imports are not followed. */
+  stop?: (source: TsxSource) => boolean;
+  /**
+   * `'module'`: a boundary module reached is in the result, without edges.
+   * `'outside'` (default): it is not in the result at all.
+   */
+  boundary?: 'module' | 'outside';
+  /** Follow `require()` as an edge (default true). */
+  require?: boolean;
+  /** Follow `import()` as an edge (default true). */
+  dynamicImport?: boolean;
+  /** An import of `file` that Next strips from the bundle being walked. */
+  skip?: (file: string, source: TsxSource, item: ModuleImport) => boolean;
+}
+
+interface LoadedConfig {
+  options: TS.CompilerOptions;
+  /** Why the config (or a config it extends) could not be read, or null. */
+  problem: string | null;
 }
 
 /** `node:fs/promises` → `fs/promises`. */
@@ -122,6 +181,11 @@ export function packageNameOf(specifier: string): string {
   return bare.startsWith('@')
     ? parts.slice(0, 2).join('/')
     : (parts[0] ?? bare);
+}
+
+/** True for a specifier that is neither relative nor absolute (a package, an alias, `#x`). */
+export function isBareSpecifier(specifier: string): boolean {
+  return !specifier.startsWith('.') && !specifier.startsWith('/');
 }
 
 /** Whether `specifier` is one of `modules` or a subpath of one. */
@@ -140,7 +204,9 @@ export class NextModuleGraph {
   /** Files that could not be read or parsed, as messages. */
   readonly unread: string[] = [];
   private readonly sources = new Map<string, TsxSource | null>();
-  private readonly options = new Map<string, TS.CompilerOptions>();
+  /** The config file that governs a directory ('' when none), by directory key. */
+  private readonly configOfDir = new Map<string, string>();
+  private readonly configs = new Map<string, LoadedConfig>();
   private readonly resolutions = new Map<string, Resolution>();
   private readonly realRoot: string;
   private readonly rootKey: string;
@@ -223,17 +289,26 @@ export class NextModuleGraph {
   /**
    * Every import that brings code in: the static imports and `export … from`
    * the compiler keeps (see CompiledImports — an import used only as a type
-   * is erased, so it is no edge), side-effect imports, and `import('x')` /
-   * `require('x')` with a literal name.
+   * is erased, so it is no edge), side-effect imports, and — as `calls`
+   * asks — `require('x')` and `import('x')` with a literal name.
    */
-  importsOf(source: TsxSource): ModuleImport[] {
+  importsOf(
+    source: TsxSource,
+    calls: CallEdges = { require: true, dynamicImport: true }
+  ): ModuleImport[] {
     const ts = this.ts;
     const found: ModuleImport[] = [];
     for (const statement of source.sourceFile.statements) {
       const module = this.compiled.runtimeSpecifier(source, statement);
       if (module)
-        found.push({ specifier: module, line: source.lineOf(statement) });
+        found.push({
+          specifier: module,
+          line: source.lineOf(statement),
+          node: statement,
+          kind: 'static',
+        });
     }
+    if (!calls.require && !calls.dynamicImport) return found;
     source.walk(node => {
       if (!ts.isCallExpression(node)) return;
       const [first] = node.arguments;
@@ -242,8 +317,16 @@ export class NextModuleGraph {
         node.expression.kind === ts.SyntaxKind.ImportKeyword;
       const requireCall =
         ts.isIdentifier(node.expression) && node.expression.text === 'require';
-      if (dynamicImport || requireCall)
-        found.push({ specifier: first.text, line: source.lineOf(node) });
+      if (
+        (dynamicImport && calls.dynamicImport) ||
+        (requireCall && calls.require)
+      )
+        found.push({
+          specifier: first.text,
+          line: source.lineOf(node),
+          node,
+          kind: dynamicImport ? 'import' : 'require',
+        });
     });
     return found;
   }
@@ -258,8 +341,13 @@ export class NextModuleGraph {
     return resolution;
   }
 
+  /** Why the config that governs `file` could not be read, or null. */
+  configProblem(file: string): string | null {
+    return this.configFor(file).problem;
+  }
+
   private resolveUncached(specifier: string, fromFile: string): Resolution {
-    const bare = !specifier.startsWith('.') && !specifier.startsWith('/');
+    const bare = isBareSpecifier(specifier);
     if (
       specifier.startsWith('node:') ||
       (bare && NODE_BUILTINS.has(packageNameOf(specifier)))
@@ -268,32 +356,34 @@ export class NextModuleGraph {
     }
     if (NEXT_PROVIDED.has(specifier))
       return { kind: 'external', packageName: specifier };
-    const path = specifier.replace(/[?#].*$/, '');
+    // A query or a fragment is the bundler's, not the file's; a leading `#`
+    // is a package.json `imports` name, not a fragment.
+    const path = specifier.replace(/\?.*$/, '').replace(/(.)#.*$/, '$1');
     if (ASSET.test(path)) return { kind: 'asset' };
     const result = this.ts.resolveModuleName(
       path,
       fromFile,
-      this.compilerOptions(fromFile),
+      this.configFor(fromFile).options,
       this.ts.sys
-    );
-    const resolved = result.resolvedModule?.resolvedFileName;
-    if (!resolved) {
-      return {
-        kind: 'unresolved',
-        reason: 'could not be resolved — the modules behind it were NOT read',
-      };
-    }
-    const file = NextModuleGraph.canonical(resolved);
+    ).resolvedModule;
+    if (!result) return { kind: 'unresolved', reason: NOT_RESOLVED };
+    const file = NextModuleGraph.canonical(result.resolvedFileName);
     if (!this.isFirstParty(file)) {
-      return bare
-        ? { kind: 'external', packageName: packageNameOf(specifier) }
+      const installed =
+        result.isExternalLibraryImport === true ||
+        NextModuleGraph.key(file).includes('/node_modules/');
+      return installed
+        ? {
+            kind: 'external',
+            packageName: bare ? packageNameOf(specifier) : specifier,
+          }
         : {
             kind: 'unresolved',
             reason: `resolves outside the workspace (${file})`,
           };
     }
     if (/\.d\.[cm]?ts$/.test(file)) return this.implementationOf(file);
-    if (/\.json$/.test(file)) return { kind: 'asset' };
+    if (ASSET.test(file)) return { kind: 'asset' };
     return { kind: 'source', file };
   }
 
@@ -317,77 +407,146 @@ export class NextModuleGraph {
     );
   }
 
-  private compilerOptions(fromFile: string): TS.CompilerOptions {
-    const ts = this.ts;
-    const dir = PathOperations.getDirectory(fromFile);
-    const configFile =
-      ts.findConfigFile(dir, ts.sys.fileExists, 'tsconfig.json') ??
-      ts.findConfigFile(dir, ts.sys.fileExists, 'jsconfig.json');
-    const key = configFile ?? '';
-    const known = this.options.get(key);
-    if (known) return known;
-    let options: TS.CompilerOptions = {
-      module: ts.ModuleKind.ESNext,
-      moduleResolution: ts.ModuleResolutionKind.Bundler,
-    };
-    if (configFile) {
-      const read = ts.readConfigFile(configFile, ts.sys.readFile);
-      if (!read.error) {
-        const host = { ...ts.sys, readDirectory: (): string[] => [] };
-        const parsed = ts.parseJsonConfigFileContent(
-          read.config,
-          host,
-          PathOperations.getDirectory(configFile),
-          undefined,
-          configFile
-        );
-        options = { ...options, ...parsed.options };
+  /** The nearest tsconfig.json or jsconfig.json at or above the file, up to the project root. */
+  private configFileOf(dir: string): string {
+    const dirKey = NextModuleGraph.key(dir);
+    const known = this.configOfDir.get(dirKey);
+    if (known !== undefined) return known;
+    let found = '';
+    for (const name of CONFIG_FILES) {
+      const candidate = PathOperations.join(dir, name);
+      if (fs.existsSync(candidate)) {
+        found = candidate;
+        break;
       }
     }
-    options = { ...options, allowJs: true, resolveJsonModule: true };
-    this.options.set(key, options);
-    return options;
+    if (!found) {
+      const parent = PathOperations.getDirectory(dir);
+      const insideRoot = NextModuleGraph.key(parent).startsWith(this.rootKey);
+      if (dirKey !== this.rootKey && parent !== dir && insideRoot)
+        found = this.configFileOf(parent);
+    }
+    this.configOfDir.set(dirKey, found);
+    return found;
+  }
+
+  private configFor(fromFile: string): LoadedConfig {
+    const file = this.configFileOf(PathOperations.getDirectory(fromFile));
+    const known = this.configs.get(file);
+    if (known) return known;
+    const loaded = file ? this.load(file) : { options: {}, problem: null };
+    const ts = this.ts;
+    const config: LoadedConfig = {
+      problem: loaded.problem,
+      options: {
+        ...loaded.options,
+        // Next's bundlers resolve like `moduleResolution: bundler` (package
+        // `exports` and `imports` included) whatever the config names, and
+        // read .js/.json as well as TS whatever the config allows.
+        module: ts.ModuleKind.ESNext,
+        moduleResolution: ts.ModuleResolutionKind.Bundler,
+        allowJs: true,
+        resolveJsonModule: true,
+        jsx: loaded.options.jsx ?? ts.JsxEmit.Preserve,
+      },
+    };
+    this.configs.set(file, config);
+    return config;
+  }
+
+  /** The options of a config file; what cannot be read is named in `problem`. */
+  private load(file: string): LoadedConfig {
+    const ts = this.ts;
+    const where = this.relative(file);
+    const read = ts.readConfigFile(file, name => ts.sys.readFile(name));
+    if (read.error) {
+      return {
+        options: {},
+        problem: `${where}: could not be parsed (${ts.flattenDiagnosticMessageText(read.error.messageText, ' ')}) — its path aliases were not resolved`,
+      };
+    }
+    // A host that lists no files: only the options are wanted, and listing
+    // `include` would walk the whole repository for nothing.
+    const host: TS.ParseConfigHost = {
+      useCaseSensitiveFileNames: ts.sys.useCaseSensitiveFileNames,
+      readDirectory: () => [],
+      fileExists: name => ts.sys.fileExists(name),
+      readFile: name => ts.sys.readFile(name),
+    };
+    const parsed = ts.parseJsonConfigFileContent(
+      read.config,
+      host,
+      PathOperations.getDirectory(file),
+      undefined,
+      file
+    );
+    const extendsError = parsed.errors.find(error =>
+      EXTENDS_NOT_LOADED.has(error.code)
+    );
+    return {
+      options: parsed.options,
+      problem: extendsError
+        ? `${where}: ${ts.flattenDiagnosticMessageText(extendsError.messageText, ' ')} — its path aliases were not resolved`
+        : null,
+    };
   }
 
   /**
-   * Breadth-first from `entries`, following first-party source. `stop`
-   * decides which reached modules are boundaries (not entered, not counted).
+   * Breadth-first from `entries`, following first-party source; the options
+   * say where the walk stops and which imports are edges.
    */
-  walk(
-    entries: readonly string[],
-    stop: (source: TsxSource) => boolean = () => false
-  ): WalkResult {
+  walk(entries: readonly string[], options: WalkOptions = {}): WalkResult {
+    const stop = options.stop ?? (() => false);
+    const keepBoundary = options.boundary === 'module';
+    const calls: CallEdges = {
+      require: options.require ?? true,
+      dynamicImport: options.dynamicImport ?? true,
+    };
     const modules = new Map<string, Visit>();
     const unresolved: Unresolved[] = [];
+    const configs = new Set<string>();
     const queue: string[] = [];
+    const enter = (
+      file: string,
+      source: TsxSource,
+      via: string | null
+    ): void => {
+      const boundary = stop(source);
+      if (boundary && !keepBoundary) return;
+      modules.set(file, { source, via, edges: [] });
+      if (!boundary) queue.push(file);
+    };
     for (const entry of entries) {
-      const source = this.source(entry);
-      const normal = NextModuleGraph.canonical(entry);
-      if (source && !modules.has(normal)) {
-        modules.set(normal, { source, via: null });
-        queue.push(normal);
-      }
+      const file = NextModuleGraph.canonical(entry);
+      const source = this.source(file);
+      if (source && !modules.has(file)) enter(file, source, null);
     }
     while (queue.length > 0) {
       const file = queue.shift() as string;
       const visit = modules.get(file) as Visit;
-      for (const item of this.importsOf(visit.source)) {
-        const reached = this.follow(file, item, modules, unresolved, stop);
-        if (reached) queue.push(reached);
+      const imports = this.importsOf(visit.source, calls).filter(
+        item => !options.skip?.(file, visit.source, item)
+      );
+      const problem = imports.length > 0 ? this.configProblem(file) : null;
+      if (problem) configs.add(problem);
+      for (const item of imports) {
+        const resolution = this.resolve(item.specifier, file);
+        visit.edges.push({ ...item, resolution });
+        const reached = this.reached(file, item, resolution, unresolved);
+        if (reached && !modules.has(reached.file))
+          enter(reached.file, reached.source, file);
       }
     }
-    return { modules, unresolved };
+    return { modules, unresolved, configs: [...configs] };
   }
 
-  /** One import of `file`: the newly reached module to visit, or null. */
-  private follow(
+  /** The module an import leads to, or null (an unread one recorded in `unresolved`). */
+  private reached(
     file: string,
     { specifier, line }: ModuleImport,
-    modules: Map<string, Visit>,
-    unresolved: Unresolved[],
-    stop: (source: TsxSource) => boolean
-  ): string | null {
-    const resolution = this.resolve(specifier, file);
+    resolution: Resolution,
+    unresolved: Unresolved[]
+  ): { file: string; source: TsxSource } | null {
     if (resolution.kind === 'unresolved') {
       unresolved.push({
         from: file,
@@ -397,10 +556,9 @@ export class NextModuleGraph {
       });
       return null;
     }
-    if (resolution.kind !== 'source' || modules.has(resolution.file))
-      return null;
-    const next = this.source(resolution.file);
-    if (!next) {
+    if (resolution.kind !== 'source') return null;
+    const source = this.source(resolution.file);
+    if (!source) {
       unresolved.push({
         from: file,
         specifier,
@@ -409,9 +567,7 @@ export class NextModuleGraph {
       });
       return null;
     }
-    if (stop(next)) return null;
-    modules.set(resolution.file, { source: next, via: file });
-    return resolution.file;
+    return { file: resolution.file, source };
   }
 
   /** `a.tsx → b.ts → c.ts`, from the entry that reached `file`. */
@@ -439,34 +595,6 @@ export const isServerModule = (source: TsxSource): boolean =>
 export const isClientModule = (source: TsxSource): boolean =>
   source.directives().includes('use client');
 
-/**
- * The client bundle's entry points: every non-test source file that opens
- * with `'use client'`, and each app's `instrumentation-client` file.
- */
-export function clientEntries(
-  graph: NextModuleGraph,
-  apps: readonly NextApp[]
-): string[] {
-  const entries = graph
-    .sourcesOf(ReactProject.sourceFiles(graph.context))
-    .filter(isClientModule)
-    .map(source => source.fileName);
-  for (const app of apps) {
-    const dir = routerLayout(app).conventionDir;
-    const file = dir ? specialFile(dir, 'instrumentation-client') : null;
-    if (file) entries.push(NextModuleGraph.canonical(file));
-  }
-  return [...new Set(entries)];
-}
-
-/** The client graph: every module a client entry bundles, stopping at `'use server'` modules. */
-export function clientGraph(
-  graph: NextModuleGraph,
-  apps: readonly NextApp[]
-): WalkResult {
-  return graph.walk(clientEntries(graph, apps), isServerModule);
-}
-
 /** The names of `process.env` reads, by form. */
 export interface EnvRead {
   /** The literal name, or null for a computed or whole-object use. */
@@ -480,6 +608,8 @@ export interface EnvRead {
    * in the browser it is undefined.
    */
   inlined: boolean;
+  /** Where it is read, for telling code Next strips from a bundle. */
+  node: TS.Node;
 }
 
 /**
@@ -503,6 +633,7 @@ export function envReads(source: TsxSource): EnvRead[] {
         line: source.lineOf(parent),
         text: text(parent),
         inlined: true,
+        node: parent,
       });
     } else if (
       ts.isElementAccessExpression(parent) &&
@@ -515,6 +646,7 @@ export function envReads(source: TsxSource): EnvRead[] {
         line: source.lineOf(parent),
         text: text(parent),
         inlined: name !== null,
+        node: parent,
       });
     } else {
       const destructured = destructuredEnvReads(source, node);
@@ -525,6 +657,7 @@ export function envReads(source: TsxSource): EnvRead[] {
             line: source.lineOf(node),
             text: text(parent),
             inlined: false,
+            node,
           },
         ])
       );
@@ -600,6 +733,7 @@ function destructuredEnvReads(
         ? `${literal} (destructured from process.env)`
         : `${written} (destructured from process.env)`,
       inlined: false,
+      node: at,
     };
   });
 }

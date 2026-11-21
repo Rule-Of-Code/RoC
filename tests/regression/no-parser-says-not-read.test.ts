@@ -153,13 +153,13 @@ describe('TypeScript Strict Mode: an extends chain it cannot follow is named', (
   let dir: string;
   beforeAll(() => dirs.push((dir = project(files))));
 
-  it('without typescript: says the flags were read from tsconfig.json alone', () => {
+  // The chain is now read as JSONC without the compiler (QA
+  // p478-tsstrict-extends): the inherited strict is found, nothing is noted.
+  it('without typescript: the inherited strict is read from the chain, no note', () => {
     loadTypeScript.mockReturnValue(null);
     const { text } = run(c => TypeScriptStrictLaw.check(c as never), dir);
-    expect(text).toContain('tsconfig.json extends "./tsconfig.base.json"');
-    expect(text).toContain(
-      'the strict flags were read from tsconfig.json alone'
-    );
+    expect(text).not.toContain('strict mode must be enabled');
+    expect(text).not.toContain('NOT read');
   });
 
   it('with typescript: the inherited strict is read, no extends note', () => {

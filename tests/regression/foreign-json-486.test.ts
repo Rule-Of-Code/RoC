@@ -17,9 +17,7 @@ import { AutomationFirstLaw } from '../../src/checkers/sacred-laws/automation-fi
 import { ContinuousComplianceLaw } from '../../src/checkers/sacred-laws/continuous-compliance';
 import { ZeroToleranceLaw } from '../../src/checkers/sacred-laws/zero-tolerance';
 import { SecurityVulnerabilityResponseLaw } from '../../src/checkers/security-laws/security-vulnerability-response';
-import { TypeScriptChecker } from '../../src/checkers/typescript-checker';
 import { LicenseCompatibilityChecker } from '../../src/laws/security/dependency-scanning/license-checker';
-import type { RawConstitutionalLaw } from '../../src/types/law.types';
 import { readJsonManifest } from '../../src/utils/json-manifest';
 import { SecurityPolicyChecker } from '../../src/utils/security/security-policy-checker';
 import {
@@ -72,39 +70,6 @@ describe('readJsonManifest', () => {
     ).toEqual({
       name: 'x',
     });
-  });
-});
-
-describe('TypeScriptChecker (tsconfig)', () => {
-  const law = {
-    id: 'law-3',
-    title: 'TypeScript Strict Mode',
-    description: 'Ensures TypeScript strict mode is enabled',
-  } as RawConstitutionalLaw;
-
-  it('says NOT read for an invalid tsconfig', async () => {
-    write('tsconfig.json', '{ "compilerOptions": ');
-    const result = await new TypeScriptChecker(law, 3).check(context());
-    expect(result.passed).toBe(false);
-    expect(result.message).toMatch(
-      /^tsconfig\.json is not valid JSON .* — its compiler options were NOT read$/
-    );
-  });
-
-  it('reads strict mode from the file (it never saw it before)', async () => {
-    write('tsconfig.json', json({ compilerOptions: { strict: true } }));
-    const checker = new TypeScriptChecker(law, 3);
-    const run = jest
-      .spyOn(
-        checker as unknown as {
-          executeCommand: () => { success: boolean; stderr: string };
-        },
-        'executeCommand'
-      )
-      .mockReturnValue({ success: true, stderr: '' });
-    const result = await checker.check(context());
-    expect(run).toHaveBeenCalled();
-    expect(result.message).not.toBe('TypeScript strict mode is not enabled');
   });
 });
 

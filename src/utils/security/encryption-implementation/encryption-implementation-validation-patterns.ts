@@ -5,7 +5,7 @@
 
 import type { RuleOfCodeConfig } from '../../../types/law.types';
 import { loadTypeScript, parserUnavailable } from '../../react/tsx-source';
-import { type CodeView, matchesFromCode, readCodeView } from '../code-view';
+import { type CodeView, codeMatches, readCodeView } from '../code-view';
 import { scanAndAnalyzeFiles } from '../file-scanning-helper';
 import * as Config from './encryption-implementation-configuration';
 
@@ -131,11 +131,12 @@ function checkHardcodedSecrets(
     return; // These are key names, not actual secrets
   }
 
-  if (
-    Config.HARDCODED_SECRET_PATTERNS.some(pattern =>
-      matchesFromCode(view, pattern)
-    )
-  ) {
+  // A value that is a dotted property path — `KEY = 'thresholds.next.x'`, a
+  // config key or a message id — names something; it is not a secret.
+  const secrets = Config.HARDCODED_SECRET_PATTERNS.flatMap(pattern =>
+    codeMatches(view, pattern)
+  ).filter(match => !Config.NAME_PATH_VALUE.test(match));
+  if (secrets.length > 0) {
     result.violations.push(
       Config.formatMessage(Config.VALIDATION_MESSAGES.hardcodedSecret, {
         filePath,

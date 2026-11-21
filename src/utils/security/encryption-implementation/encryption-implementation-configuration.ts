@@ -30,6 +30,14 @@ export const HARDCODED_SECRET_PATTERNS = [
   /\bkey\s*=\s*["'](?!.*(_key|_metrics|_storage|_cache|_consent))[^"']+["']/gi,
 ] as const;
 
+/**
+ * The quoted value of a secret match is a dotted property path
+ * (`'thresholds.next.guardExemptions'`, `'auth.login.title'`): a name, not a
+ * secret. Two or more segments, each a lower-case-led identifier.
+ */
+export const NAME_PATH_VALUE =
+  /["'][a-z][A-Za-z0-9]*(?:\.[a-z][A-Za-z0-9]*)+["']$/;
+
 // Safe key patterns (constant names, not actual secrets)
 export const SAFE_KEY_PATTERNS = [
   /_KEY\s*=/i, // Constants ending with _KEY

@@ -15,7 +15,9 @@ import { AuthenticationSecurityLaw } from '../../src/checkers/security-laws/auth
 import { DataEncryptionStandardsLaw } from '../../src/checkers/security-laws/data-encryption-standards';
 import { ConfigLoader } from '../../src/config/loader';
 import { TestDataManagementLaw } from '../../src/laws/testing/test-data-management';
+import { ModularLawsRegistry } from '../../src/registry/modular-laws-registry';
 import { FileUtils } from '../../src/utils/file-utils';
+import { lawRequirementsMet } from '../../src/utils/law-requirements';
 
 const made: string[] = [];
 afterAll(() => {
@@ -156,5 +158,57 @@ describe('#426 Test Data Management judges code, not fixture strings', () => {
         ].join('\n')
       )
     ).toBe(true);
+  });
+});
+
+describe('Data Encryption: a dotted name path is not a secret', () => {
+  const secretIn = (line: string): boolean => {
+    const dir = project({ 'src/k.ts': `${line}\n` });
+    return (
+      DataEncryptionStandardsLaw.check({ projectRoot: dir, config })
+        .violations ?? []
+    ).some(v => v.includes('Potential hardcoded secret detected'));
+  };
+
+  it("const KEY = 'thresholds.next.guardExemptions' names a config key", () => {
+    expect(
+      secretIn("export const KEY = 'thresholds.next.guardExemptions';")
+    ).toBe(false);
+  });
+
+  it("const KEY = 'a8f3k2l9q0x7' is still a secret (control)", () => {
+    expect(secretIn("export const KEY = 'a8f3k2l9q0x7';")).toBe(true);
+  });
+});
+
+describe('#428 Authentication Security is selected only where users reach the code', () => {
+  const card = ModularLawsRegistry.getAll().find(
+    law => law.name === 'Authentication Security'
+  );
+  const selected = (manifest: Record<string, unknown>): boolean => {
+    const dir = project({});
+    fs.writeFileSync(
+      path.join(dir, 'package.json'),
+      JSON.stringify({ name: 'auth-428', version: '1.0.0', ...manifest })
+    );
+    return lawRequirementsMet(card?.requires, dir);
+  };
+
+  it('a command-line tool is not a subject', () => {
+    expect(
+      selected({
+        bin: { tool: 'dist/cli.js' },
+        dependencies: { commander: '^12.0.0' },
+      })
+    ).toBe(false);
+  });
+
+  it.each([
+    ['a web surface', { 'react-dom': '^18.0.0' }],
+    ['an Angular app', { '@angular/core': '^20.0.0' }],
+    ['a Node HTTP API', { express: '^4.0.0' }],
+    ['a mobile app', { '@capacitor/core': '^6.0.0' }],
+  ])('%s is (control)', (_kind, dependencies) => {
+    expect(selected({ dependencies })).toBe(true);
   });
 });

@@ -41,14 +41,21 @@ Without a loadable `typescript` the files are reported as not read.
   `const users = [{ id: '1' }]` as an input string was "hardcoded test data".
   After: a pattern counts where it starts in the test's code.
 
-Self-audit of this repository: Data Encryption Standards 28 → 1 (`const KEY =
-'thresholds.next.guardExemptions'`, a real assignment the secret pattern
-matches); Authentication Security 1 → 2 (the "insecure password" finding is
-gone; "No proper token management" and "No resource-level authorization",
-which passed only on the checkers' own patterns, now fire — a CLI with no
-authentication); Test Data Management: the detector's own test
-(`tests/laws/testing/unit-test-data-management-constants.test.ts`) is no
-longer among the hardcoded-data files.
+A secret match whose value is a dotted property path (`KEY =
+'thresholds.next.guardExemptions'`, a config key or a message id) is a name,
+not a secret.
+
+**Authentication Security is selected only where users reach the code**
+(#428): a web surface, an HTTP API (Node or Python) or a mobile app
+(`REQUIRES_USER_SURFACE` in `production-subject-requirements.ts`). A
+command-line tool or a library has nobody to sign in; before, it was judged
+for an auth service, token storage and route guards it cannot have.
+
+Self-audit of this repository: Data Encryption Standards 28 → 0;
+Authentication Security 1 finding → not selected (a CLI); Test Data
+Management 3 → 2 (the detector's own test,
+`tests/laws/testing/unit-test-data-management-constants.test.ts`, is no
+longer a hardcoded-data file).
 
 ### 🐛 Fixed — Test Data Management read an exact expected value as hardcoded test data (#439)
 

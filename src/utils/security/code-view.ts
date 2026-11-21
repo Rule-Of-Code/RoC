@@ -191,13 +191,18 @@ export function readCodeView(
   };
 }
 
-/** True when `pattern` matches somewhere that starts in code, not in a literal. */
-export function matchesFromCode(view: CodeView, pattern: RegExp): boolean {
+/** The texts `pattern` matches where the match starts in code, not in a literal. */
+export function codeMatches(view: CodeView, pattern: RegExp): string[] {
   const global = new RegExp(
     pattern.source,
     pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`
   );
-  for (const match of view.commentless.matchAll(global))
-    if (!view.inLiteral(match.index ?? 0)) return true;
-  return false;
+  return [...view.commentless.matchAll(global)]
+    .filter(match => !view.inLiteral(match.index ?? 0))
+    .map(match => match[0]);
+}
+
+/** True when `pattern` matches somewhere that starts in code, not in a literal. */
+export function matchesFromCode(view: CodeView, pattern: RegExp): boolean {
+  return codeMatches(view, pattern).length > 0;
 }

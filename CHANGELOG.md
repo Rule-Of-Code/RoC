@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed — Commit Size Control does not count generated files at all
+
+Generated files count neither lines nor files; asciinema `.cast` recordings
+join the built-in lockfile list, and `thresholds.git.commitSize.generatedFiles`
+now ADDS to that list instead of replacing it. Test files count like any
+other code. This repository declares its demo captures and recorded goldens
+as generated, and CONTRIBUTING states the atomic-commit policy.
+
+Self-audit of this repository: Commit Size Control — before 2 findings (4 of the last 10 commits oversized; no atomic-commit policy), after 1 (2 of the last 10: two hand-written commits of 534 and 597 lines, tests included; they leave the window as new commits land).
+
 ### ⚠️ BREAKING — `compliance` and the victory art mean a clean pass; a law that judged nothing makes the run partial
 
 A run of this repository listed 46 laws with violations at warning level, one

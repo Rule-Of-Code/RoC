@@ -3,14 +3,13 @@
  * project's own logging module (#425).
  *
  * A package that declares `bin` in its package.json ships a command. In that
- * package `console.log/info` is how the command talks to its user — the
- * report, the progress line — so it is the product's output, not a forgotten
- * debug statement. `console.warn` writes to stderr, as `console.error` does,
- * and is judged with it: counted, until it is decided whether a command's
- * stderr is output too. `console.debug/trace` stay debug statements
- * everywhere. The rule is the same for every project: a file is judged by the
- * nearest package.json above it. Every law that applies it asks
- * `countedConsoleMethods`, so the laws cannot disagree.
+ * package `console.log/info/warn/error` is how the command talks to its user —
+ * the report, the progress line, the warning and the error on stderr — so it
+ * is the product's output, not a forgotten debug statement.
+ * `console.debug/trace` stay debug statements everywhere. The rule is the same
+ * for every project: a file is judged by the nearest package.json above it.
+ * Every law that applies it asks `countedConsoleMethods`, so the laws cannot
+ * disagree.
  */
 import * as fs from 'fs';
 import * as path from 'path';
@@ -38,6 +37,8 @@ export class CliPackages {
   static readonly COMMAND_OUTPUT: ReadonlySet<string> = new Set([
     'log',
     'info',
+    'warn',
+    'error',
   ]);
 
   /**

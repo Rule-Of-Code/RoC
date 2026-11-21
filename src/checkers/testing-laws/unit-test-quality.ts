@@ -9,7 +9,6 @@ import { CodeText } from '../../utils/code-text';
 import { ConfigHelper } from '../../utils/config-helper';
 import { FileUtils } from '../../utils/file-utils';
 import { markJudgedNothing } from '../../utils/judged-nothing';
-import { PathOperations } from '../../utils/path-operations';
 import {
   loadTypeScript,
   parserUnavailable,

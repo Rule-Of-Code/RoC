@@ -18,13 +18,41 @@ export const JUDGED_NOTHING_TEXT =
 interface JudgeableResult {
   judgedNothing?: boolean;
   violations?: unknown;
+  message?: unknown;
 }
 
-/** The result, marked as having judged nothing: failed, score 0. */
+/** A note that says the law judged nothing, or that files were not read. */
+const NOT_JUDGED_NOTE = new RegExp(
+  String.raw`${JUDGED_NOTHING_TEXT.source}|\bNOT read\b`,
+  'i'
+);
+
+/**
+ * The result, marked as having judged nothing: failed, score 0, and its
+ * message taken from its own not-judged note. A law that computed a summary
+ * from defaults ("poor setup/teardown isolation") would otherwise headline a
+ * finding it never made (#427).
+ */
 export function markJudgedNothing<T extends object>(
   result: T
 ): T & { judgedNothing: true; passed: false; score: 0 } {
-  return { ...result, judgedNothing: true, passed: false, score: 0 };
+  const res = result as JudgeableResult;
+  const note = Array.isArray(res.violations)
+    ? res.violations.find(
+        (v): v is string => typeof v === 'string' && NOT_JUDGED_NOTE.test(v)
+      )
+    : undefined;
+  const message =
+    typeof res.message === 'string' && NOT_JUDGED_NOTE.test(res.message)
+      ? res.message
+      : note;
+  return {
+    ...result,
+    ...(message !== undefined ? { message } : {}),
+    judgedNothing: true,
+    passed: false,
+    score: 0,
+  };
 }
 
 /** Whether a law result says — by flag or by its wording — it judged nothing. */

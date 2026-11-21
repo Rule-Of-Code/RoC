@@ -44,6 +44,16 @@ global handling (maintainer decision for 8.0.0).
 Self-audit of this repository: 33 findings → 0. The global handler is found
 in `src/cli.ts` (the `bin`): `program.parse()` inside a try with a catch.
 
+### Internal — eslint is a direct devDependency
+
+`npm run lint` runs `eslint .`, but `eslint` was only installed as a peer of
+`@typescript-eslint/parser` and `eslint-plugin-sonarjs`, never named in
+`devDependencies`. Investment-Grade Quality ("Quality tool missing: eslint")
+and Professional Excellence ("Missing eslint for Code linting") reported that
+on the self-audit, and they were right. `eslint` `^9.39.5` — the version
+already in the lockfile — is now a devDependency; the lockfile changes only
+by dropping the `peer` flag from eslint and its dependencies.
+
 ### Internal — this repository keeps MD Footer Template on
 
 MD Footer Template became opt-in in this release (#468). This repository does

@@ -33,8 +33,8 @@ class TestCodeQualityLaw extends CodeQualityLawBase {
     return this.hasProperCleanup(content);
   }
 
-  static testHasStrictTypeScriptConfig(tsconfigContent: string): boolean {
-    return this.hasStrictTypeScriptConfig(tsconfigContent);
+  static testStrictTypeScriptConfig(tsconfigPath: string) {
+    return this.strictTypeScriptConfig(tsconfigPath);
   }
 
   static testHasProperDocumentation(content: string): boolean {
@@ -64,10 +64,8 @@ class TestCodeQualityLaw extends CodeQualityLawBase {
     return this.findSpecFiles(projectRoot, context);
   }
 
-  static testFindESLintConfig(
-    projectRoot: string
-  ): Record<string, unknown> | null {
-    return this.findESLintConfig(projectRoot);
+  static testReadESLintConfig(projectRoot: string) {
+    return this.readESLintConfig(projectRoot);
   }
 
   static testHasAnyESLintRule(
@@ -284,42 +282,82 @@ describe('CodeQualityLawBase', () => {
     });
   });
 
-  describe('hasStrictTypeScriptConfig()', () => {
-    it('should handle strict mode config content', () => {
-      const config = JSON.stringify({
-        compilerOptions: {
-          strict: true,
-          noImplicitAny: true,
-          strictNullChecks: true,
-        },
+  describe('strictTypeScriptConfig() — reads the file (#486)', () => {
+    const write = (name: string, text: string): string => {
+      const file = PathOperations.join(tempDir, name);
+      FileUtils.writeFile(file, text);
+      return file;
+    };
+
+    // Red on 8b5a6ff: the helper was handed the TEXT of tsconfig.json and
+    // passed it to RoC's config loader as a path, so it was always false.
+    it('is strict for a strict tsconfig.json', () => {
+      const file = write(
+        'tsconfig.json',
+        JSON.stringify({ compilerOptions: { strict: true } })
+      );
+      expect(TestCodeQualityLaw.testStrictTypeScriptConfig(file)).toEqual({
+        strict: true,
       });
-      // Note: The implementation may have issues parsing content vs path
-      const result = TestCodeQualityLaw.testHasStrictTypeScriptConfig(config);
-      expect(typeof result).toBe('boolean');
     });
 
-    it('should return false for non-strict config', () => {
-      const config = JSON.stringify({
-        compilerOptions: {
-          strict: false,
-        },
+    it('reads a JSONC tsconfig (comments, trailing commas)', () => {
+      const file = write(
+        'tsconfig.json',
+        '{\n  // strict build\n  "compilerOptions": { "strict": true, },\n}\n'
+      );
+      expect(TestCodeQualityLaw.testStrictTypeScriptConfig(file)).toEqual({
+        strict: true,
       });
-      expect(TestCodeQualityLaw.testHasStrictTypeScriptConfig(config)).toBe(
-        false
+    });
+
+    it('follows extends to a strict base', () => {
+      write(
+        'tsconfig.base.json',
+        JSON.stringify({ compilerOptions: { strict: true } })
+      );
+      const file = write(
+        'tsconfig.json',
+        JSON.stringify({ extends: './tsconfig.base.json' })
+      );
+      expect(TestCodeQualityLaw.testStrictTypeScriptConfig(file)).toEqual({
+        strict: true,
+      });
+    });
+
+    it('is not strict for strict: false (text with "strict" and "true" in it)', () => {
+      const file = write(
+        'tsconfig.json',
+        JSON.stringify({ compilerOptions: { strict: false, sourceMap: true } })
+      );
+      expect(TestCodeQualityLaw.testStrictTypeScriptConfig(file)).toEqual({
+        strict: false,
+      });
+    });
+
+    it('is not strict without compilerOptions', () => {
+      const file = write('tsconfig.json', '{}');
+      expect(TestCodeQualityLaw.testStrictTypeScriptConfig(file)).toEqual({
+        strict: false,
+      });
+    });
+
+    it('says NOT read for an invalid tsconfig', () => {
+      const file = write('tsconfig.json', '{ "compilerOptions": { "strict": ');
+      const verdict = TestCodeQualityLaw.testStrictTypeScriptConfig(file);
+      expect(verdict.notRead).toMatch(
+        /^tsconfig\.json is not valid JSON .* — its compiler options were NOT read$/
       );
     });
 
-    it('should return false for missing compilerOptions', () => {
-      const config = JSON.stringify({});
-      expect(TestCodeQualityLaw.testHasStrictTypeScriptConfig(config)).toBe(
-        false
+    it('says NOT read when strict is unset and the base cannot be read', () => {
+      const file = write(
+        'tsconfig.json',
+        JSON.stringify({ extends: './missing.json' })
       );
-    });
-
-    it('should return false for invalid JSON', () => {
-      expect(
-        TestCodeQualityLaw.testHasStrictTypeScriptConfig('invalid json')
-      ).toBe(false);
+      expect(TestCodeQualityLaw.testStrictTypeScriptConfig(file).notRead).toBe(
+        'tsconfig.json extends "./missing.json", which could not be read — whether strict mode is on was NOT read'
+      );
     });
   });
 
@@ -459,19 +497,75 @@ export function getProduct() {}
     });
   });
 
-  describe('findESLintConfig()', () => {
-    it('should find .eslintrc.json', () => {
-      FileUtils.writeFile(
-        PathOperations.join(tempDir, '.eslintrc.json'),
+  describe('readESLintConfig() (#486)', () => {
+    const write = (name: string, text: string): void =>
+      FileUtils.writeFile(PathOperations.join(tempDir, name), text);
+
+    // Red on 8b5a6ff: the lookup asked for "eslint.json", never
+    // ".eslintrc.json", and read JSON with RoC's own config loader.
+    it('reads .eslintrc.json', () => {
+      write(
+        '.eslintrc.json',
         JSON.stringify({ rules: { 'no-console': 'error' } })
       );
-      const config = TestCodeQualityLaw.testFindESLintConfig(tempDir);
-      expect(config).toBeDefined();
+      expect(TestCodeQualityLaw.testReadESLintConfig(tempDir)).toEqual({
+        file: '.eslintrc.json',
+        config: { rules: { 'no-console': 'error' } },
+      });
     });
 
-    it('should return null when no config exists', () => {
-      const config = TestCodeQualityLaw.testFindESLintConfig(tempDir);
-      expect(config).toBeNull();
+    it('reads .eslintrc.json with comments', () => {
+      write(
+        '.eslintrc.json',
+        '{ // lint\n "rules": { "complexity": "error", } }'
+      );
+      expect(TestCodeQualityLaw.testReadESLintConfig(tempDir)?.config).toEqual({
+        rules: { complexity: 'error' },
+      });
+    });
+
+    it('reads package.json eslintConfig', () => {
+      write(
+        'package.json',
+        JSON.stringify({
+          name: 'x',
+          eslintConfig: { rules: { complexity: 'error' } },
+        })
+      );
+      expect(TestCodeQualityLaw.testReadESLintConfig(tempDir)).toEqual({
+        file: 'package.json',
+        config: { rules: { complexity: 'error' } },
+      });
+    });
+
+    it('says NOT read for an invalid .eslintrc.json', () => {
+      write('.eslintrc.json', '{ "rules": ');
+      expect(TestCodeQualityLaw.testReadESLintConfig(tempDir)?.notRead).toMatch(
+        /^\.eslintrc\.json is not valid JSON .* — its rules were NOT read$/
+      );
+    });
+
+    it('says NOT read for a YAML config', () => {
+      write('.eslintrc.yml', 'rules:\n  complexity: error\n');
+      expect(TestCodeQualityLaw.testReadESLintConfig(tempDir)?.notRead).toBe(
+        '.eslintrc.yml is YAML, which this law does not read — its rules were NOT read'
+      );
+    });
+
+    it('says NOT read for an invalid package.json with no config file', () => {
+      write('package.json', '{ "name": ');
+      expect(TestCodeQualityLaw.testReadESLintConfig(tempDir)?.notRead).toMatch(
+        /^package\.json is not valid JSON .* — its ESLint config \(eslintConfig\) was NOT read$/
+      );
+    });
+
+    it('is null for package.json without eslintConfig', () => {
+      write('package.json', JSON.stringify({ name: 'x' }));
+      expect(TestCodeQualityLaw.testReadESLintConfig(tempDir)).toBeNull();
+    });
+
+    it('is null when no config exists', () => {
+      expect(TestCodeQualityLaw.testReadESLintConfig(tempDir)).toBeNull();
     });
   });
 

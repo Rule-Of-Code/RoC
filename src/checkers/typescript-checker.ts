@@ -4,10 +4,11 @@
  */
 
 import type { LawCheckContext, LawResult } from '../types/law.types';
-import { ConfigFileUtils } from '../utils/config-file-utils';
 import { FileUtils } from '../utils/file-utils';
 import { GlobUtils } from '../utils/glob-utils';
+import { notReadNote } from '../utils/json-manifest';
 import { PathOperations } from '../utils/path-operations';
+import { readTsconfigChain, strictModeOf } from '../utils/tsconfig-chain';
 import { BaseChecker } from './base-checker';
 
 export class TypeScriptChecker extends BaseChecker {
@@ -53,13 +54,32 @@ export class TypeScriptChecker extends BaseChecker {
         };
       }
 
-      const tsconfig = ConfigFileUtils.loadConfig(tsconfigPath) as Record<
-        string,
-        unknown
-      > | null;
-      const compilerOptions = tsconfig?.compilerOptions as
-        Record<string, unknown> | undefined;
-      const strict = compilerOptions?.strict;
+      // RoC's own config loader returned null for every tsconfig (#486), so
+      // this always said "not enabled". Read as JSONC, `extends` merged.
+      const chain = readTsconfigChain(tsconfigPath);
+      if (chain.notRead !== undefined) {
+        return {
+          passed: false,
+          message: notReadNote(
+            'tsconfig.json',
+            chain.notRead,
+            'its compiler options were'
+          ),
+          score: 0,
+          fixable: false,
+          config: context.config,
+        };
+      }
+      const strict = strictModeOf(chain);
+      if (strict === null) {
+        return {
+          passed: false,
+          message: `tsconfig.json extends ${chain.unread.map(e => JSON.stringify(e)).join(', ')}, which could not be read — whether strict mode is on was NOT read`,
+          score: 0,
+          fixable: false,
+          config: context.config,
+        };
+      }
 
       if (!strict) {
         return {

@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — laws about a running product are selected only where there is one (#428)
+
+CDN and Caching Strategy, Performance Monitoring Standards, Incident
+Response Protocol, Launch Readiness Checklist and NX Commands Only Policy
+declared no `requires` and judged every TypeScript project; a CLI tool or a
+library was asked for a CDN, an APM, an incident runbook, a launch checklist
+and an Nx workspace. They are now gated by shared, exported requirements in
+`src/utils/production-subject-requirements.ts` — `REQUIRES_WEB_SURFACE`
+(CDN), `REQUIRES_PRODUCTION_SUBJECT` (a Node or Python HTTP framework, a web
+surface, a mobile app shell or a deploy target: monitoring, incident
+response, launch readiness) — and `REQUIRES_NX_OR_ANGULAR` (NX Commands
+Only). `REQUIRES_NODE_HTTP_SERVER` moves there and is exported. Pre-Deployment
+Checklist asks its authentication, benchmarking, health-check and
+production-logging clauses only where `REQUIRES_PRODUCTION_SUBJECT` holds.
+
+| law (self-audit of this repository) | before | after |
+|---|---|---|
+| CDN and Caching Strategy | 5 findings | not selected (no web surface) |
+| Performance Monitoring Standards | 3 findings | not selected |
+| Incident Response Protocol | 3 findings | not selected |
+| Launch Readiness Checklist | 1 finding | not selected |
+| NX Commands Only Policy | 1 finding | not selected (no Nx, no Angular) |
+| Pre-Deployment Checklist (MANDATORY) | 4 findings | 2 (benchmarking and production logging are not asked) |
+
+Fast mode: the Pareto quota of the ungated universal group is taken over a
+group five laws smaller, so CI/CD Constitutional Tribunal leaves the fast
+core; Launch Readiness Checklist enters it for projects that declare a
+production subject.
+
 ### ⚠️ BREAKING — `compliance` and the victory art mean a clean pass; a law that judged nothing makes the run partial
 
 A run of this repository listed 46 laws with violations at warning level, one

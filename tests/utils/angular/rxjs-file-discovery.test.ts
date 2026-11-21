@@ -1,225 +1,87 @@
 /**
  * @fileoverview Tests for rxjs-file-discovery.ts
- * @description Tests for RxJS File Discovery utility
+ * @description RxJS File Discovery on real projects: the TypeScript files
+ * are scanned from disk, the effects files are told by their name and their
+ * content is read. No helper of the code under test is replaced.
  */
 
-import type { RuleOfCodeConfig } from '../../../src/config/types';
+import path from 'path';
+
 import { RxJSFileDiscovery } from '../../../src/utils/angular/rxjs-file-discovery';
-import { RxJSOperatorUsageConfiguration } from '../../../src/utils/angular/rxjs-operator-usage';
-import { DirectoryScanner } from '../../../src/utils/directory-scanner';
 import { FileUtils } from '../../../src/utils/file-utils';
-import { PathOperations } from '../../../src/utils/path-operations';
+import { project, removeProjects } from '../../checkers/toolkit-fixture';
+
+afterAll(removeProjects);
+
+const config = FileUtils.getMinimalDefaultConfig();
+
+/** An effects class the way NgRx writes one. */
+const EFFECTS = [
+  "import { Injectable } from '@angular/core';",
+  "import { Actions, createEffect, ofType } from '@ngrx/effects';",
+  '@Injectable()',
+  'export class AppEffects {',
+  '  constructor(private actions$: Actions) {}',
+  '  loadData$ = createEffect(() =>',
+  "    this.actions$.pipe(ofType('[App] Load Data'))",
+  '  );',
+  '}',
+  '',
+].join('\n');
+
+/** The effects files found, relative to the project, with forward slashes. */
+const found = (files: Record<string, string>): string[] => {
+  const root = project(files);
+  return RxJSFileDiscovery.findNgRxFiles(root, config)
+    .map(file => path.relative(root, file).replace(/\\/g, '/'))
+    .sort();
+};
 
 describe('utils/angular/rxjs-file-discovery', () => {
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
+  describe('RxJSFileDiscovery.findNgRxFiles', () => {
+    it('finds nothing in a project without TypeScript files', () => {
+      expect(found({ 'package.json': '{}' })).toEqual([]);
+    });
 
-  describe('RxJSFileDiscovery', () => {
-    const mockConfig = {
-      projectRoot: '/test/project',
-      laws: {},
-    } as unknown as RuleOfCodeConfig;
+    it('keeps only effects files, by name', () => {
+      expect(
+        found({
+          'src/app/user.effects.ts': EFFECTS,
+          'src/app/auth.effects.ts': EFFECTS,
+          'src/app/user.service.ts': EFFECTS,
+          'src/app/app.component.ts': EFFECTS,
+        })
+      ).toEqual(['src/app/auth.effects.ts', 'src/app/user.effects.ts']);
+    });
 
-    describe('findNgRxFiles', () => {
-      it('should return empty array when no TypeScript files found', () => {
-        const scanSpy = jest.spyOn(DirectoryScanner, 'scanForTypeScriptFiles');
-        scanSpy.mockReturnValue([]);
+    it('does not keep an effects file without NgRx content', () => {
+      expect(
+        found({
+          'src/app/user.effects.ts': EFFECTS,
+          'src/app/fake.effects.ts': 'export class FakeEffects {}\n',
+        })
+      ).toEqual(['src/app/user.effects.ts']);
+    });
 
-        const result = RxJSFileDiscovery.findNgRxFiles(
-          '/test/project',
-          mockConfig
-        );
+    it('does not keep an empty effects file', () => {
+      expect(found({ 'src/app/empty.effects.ts': '' })).toEqual([]);
+    });
 
-        expect(result).toEqual([]);
-        expect(scanSpy).toHaveBeenCalledWith(
-          '/test/project',
-          mockConfig,
-          false
-        );
-      });
+    it('does not count a spec of an effects file', () => {
+      expect(
+        found({
+          'src/app/app.effects.ts': EFFECTS,
+          'src/app/app.effects.spec.ts': EFFECTS,
+        })
+      ).toEqual(['src/app/app.effects.ts']);
+    });
 
-      it('should filter to only NgRx effects files', () => {
-        const scanSpy = jest.spyOn(DirectoryScanner, 'scanForTypeScriptFiles');
-        scanSpy.mockReturnValue([
-          '/test/project/src/app/user.effects.ts',
-          '/test/project/src/app/user.service.ts',
-          '/test/project/src/app/auth.effects.ts',
-          '/test/project/src/app/app.component.ts',
-        ]);
+    it('returns the absolute path of the file it found', () => {
+      const root = project({ 'src/app/app.effects.ts': EFFECTS });
+      const [file] = RxJSFileDiscovery.findNgRxFiles(root, config);
 
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        basenameSpy.mockImplementation(
-          (path: string) => path.split('/').pop() || ''
-        );
-
-        const isNgRxSpy = jest.spyOn(
-          RxJSOperatorUsageConfiguration,
-          'isNgRxEffectsFile'
-        );
-        isNgRxSpy.mockImplementation(
-          (fileName: string) =>
-            fileName.includes('.effects.') || fileName.includes('.effect.')
-        );
-
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockReturnValue(
-          '@Injectable() export class Effects { constructor(private actions$: Actions) {} createEffect() {} }'
-        );
-
-        const result = RxJSFileDiscovery.findNgRxFiles(
-          '/test/project',
-          mockConfig
-        );
-
-        expect(result).toContain('/test/project/src/app/user.effects.ts');
-        expect(result).toContain('/test/project/src/app/auth.effects.ts');
-        expect(result).not.toContain('/test/project/src/app/user.service.ts');
-        expect(result).not.toContain('/test/project/src/app/app.component.ts');
-      });
-
-      it('should validate file content for NgRx patterns', () => {
-        const scanSpy = jest.spyOn(DirectoryScanner, 'scanForTypeScriptFiles');
-        scanSpy.mockReturnValue([
-          '/test/project/src/app/user.effects.ts',
-          '/test/project/src/app/fake.effects.ts',
-        ]);
-
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        basenameSpy.mockImplementation(
-          (path: string) => path.split('/').pop() || ''
-        );
-
-        const isNgRxSpy = jest.spyOn(
-          RxJSOperatorUsageConfiguration,
-          'isNgRxEffectsFile'
-        );
-        isNgRxSpy.mockReturnValue(true);
-
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockImplementation((path: string) => {
-          if (path.includes('user.effects.ts')) {
-            return '@Injectable() export class UserEffects { constructor(private actions$: Actions) {} effect = createEffect(() => this.actions$.pipe());';
-          }
-          return 'export class FakeEffects {}'; // No NgRx patterns
-        });
-
-        const result = RxJSFileDiscovery.findNgRxFiles(
-          '/test/project',
-          mockConfig
-        );
-
-        expect(result).toContain('/test/project/src/app/user.effects.ts');
-        expect(result).not.toContain('/test/project/src/app/fake.effects.ts');
-      });
-
-      it('should exclude files without required content', () => {
-        const scanSpy = jest.spyOn(DirectoryScanner, 'scanForTypeScriptFiles');
-        scanSpy.mockReturnValue(['/test/project/src/app/empty.effects.ts']);
-
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        basenameSpy.mockReturnValue('empty.effects.ts');
-
-        const isNgRxSpy = jest.spyOn(
-          RxJSOperatorUsageConfiguration,
-          'isNgRxEffectsFile'
-        );
-        isNgRxSpy.mockReturnValue(true);
-
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockReturnValue('');
-
-        const result = RxJSFileDiscovery.findNgRxFiles(
-          '/test/project',
-          mockConfig
-        );
-
-        expect(result).toHaveLength(0);
-      });
-
-      it('should handle files that cannot be read', () => {
-        const scanSpy = jest.spyOn(DirectoryScanner, 'scanForTypeScriptFiles');
-        scanSpy.mockReturnValue(['/test/project/src/app/broken.effects.ts']);
-
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        basenameSpy.mockReturnValue('broken.effects.ts');
-
-        const isNgRxSpy = jest.spyOn(
-          RxJSOperatorUsageConfiguration,
-          'isNgRxEffectsFile'
-        );
-        isNgRxSpy.mockReturnValue(true);
-
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockReturnValue('');
-
-        const result = RxJSFileDiscovery.findNgRxFiles(
-          '/test/project',
-          mockConfig
-        );
-
-        expect(result).toHaveLength(0);
-      });
-
-      it('should check for required NgRx content patterns', () => {
-        const scanSpy = jest.spyOn(DirectoryScanner, 'scanForTypeScriptFiles');
-        scanSpy.mockReturnValue(['/test/project/src/app/app.effects.ts']);
-
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        basenameSpy.mockReturnValue('app.effects.ts');
-
-        const isNgRxSpy = jest.spyOn(
-          RxJSOperatorUsageConfiguration,
-          'isNgRxEffectsFile'
-        );
-        isNgRxSpy.mockReturnValue(true);
-
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockReturnValue(`
-          import { Injectable } from '@angular/core';
-          import { Actions, createEffect, ofType } from '@ngrx/effects';
-
-          @Injectable()
-          export class AppEffects {
-            constructor(private actions$: Actions) {}
-
-            loadData$ = createEffect(() =>
-              this.actions$.pipe(
-                ofType('[App] Load Data'),
-                switchMap(() => this.dataService.load())
-              )
-            );
-          }
-        `);
-
-        const result = RxJSFileDiscovery.findNgRxFiles(
-          '/test/project',
-          mockConfig
-        );
-
-        expect(result).toHaveLength(1);
-        expect(result[0]).toBe('/test/project/src/app/app.effects.ts');
-      });
-
-      it('should pass correct config to DirectoryScanner', () => {
-        const customConfig = {
-          projectRoot: '/custom/project',
-          laws: {
-            enabled: { 'custom-law': true },
-          },
-        } as unknown as RuleOfCodeConfig;
-
-        const scanSpy = jest.spyOn(DirectoryScanner, 'scanForTypeScriptFiles');
-        scanSpy.mockReturnValue([]);
-
-        RxJSFileDiscovery.findNgRxFiles('/custom/project', customConfig);
-
-        expect(scanSpy).toHaveBeenCalledWith(
-          '/custom/project',
-          customConfig,
-          false
-        );
-      });
+      expect(path.isAbsolute(file ?? '')).toBe(true);
+      expect(FileUtils.exists(file ?? '')).toBe(true);
     });
   });
 });

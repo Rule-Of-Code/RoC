@@ -42,6 +42,77 @@ Self-audit of this repository: Environment Security Enforcement 57 → 0
 findings; Environment Parity Standards 60 → 2 (no `.env.example`; no
 environment detection — unchanged).
 
+### 🐛 Fixed — Test Data Management read an exact expected value as hardcoded test data (#439)
+
+Any string of 20 or more characters inside `expect(…).toBe(…)` matched the
+"hardcoded test data" pattern, so `expect(result.lawName).toBe('angular-testing-excellence')`
+was reported as test data to replace with a factory. The value a test expects
+back is the assertion itself; no factory can produce it.
+
+Before: a file was "hardcoded test data" if it held an inline array of records
+with string ids, a `mockReturnValue` of a 4+ digit number, or any long exact
+string in `toBe(…)`. After: the first two only; an expected value is not data.
+
+Self-audit of this repository: Test Data Management "Found hardcoded test data"
+— before 102 files (101 of them for a long expected string), after 1 (a
+detector test whose fixture strings hold the two remaining patterns).
+
+### 🐛 Fixed — Absolute Zero Tolerance judged text as code, and a CLI's output as debug logging (#424, #425)
+
+Every check ran a regex over the raw file, so a `console.log` in a message,
+`any` in a comment's prose, `TODO` in a string or in a sentence about the
+TODO law, and `eslint-disable` in a string were all findings. The checks now
+read the TypeScript parse.
+
+| | before | after |
+|---|---|---|
+| `console.*`, `: any`, empty `catch (e) {}` | anywhere in the text | in code only |
+| `as any` cast | not counted (the regex matched only `: any`) | counted with the `: any` annotations |
+| TODO/FIXME/XXX/HACK | any `//` line containing the word, any case | a tag in capitals at the start of a `//` comment |
+| `eslint-disable` | anywhere in the text | in comments only |
+| `unknown[]` | a strict-type violation | not a violation (the safe type for data of unknown shape) |
+| `constructor(...args: any[])` of a mixin | a violation | not counted (TypeScript requires it, TS2545) |
+| package with `bin` in package.json | every `console.*` counted | `console.log/info` is the command's output in the whole package; `console.warn` only in the command's entry modules (the source of each `bin` target, the directory named after it, a `commands/` beside it); elsewhere `warn`, and `debug/trace` everywhere, still count |
+| a logging module (`logger.*`, `logging*`, `log.*`) | its `console.*` counted | not counted |
+| no loadable `typescript` | text scanned | ".ts file(s) were NOT read" — judged nothing |
+
+Findings name the file relative to the project on Windows too (they carried
+the absolute path when the project root was written with backslashes).
+
+### 🐛 Fixed — Magic Number Prevention reported numbers that are already named, and missed some that are not (#431)
+
+The law scanned text: a regex literal was skipped but not blanked, so
+`{0,300}` was a magic number; a name was accepted only in `const X = N` or
+`key: N` on the same line; and whole template literals were blanked, so
+`${text.slice(0, 57)}` was never seen. Literals are now read from the
+TypeScript parse.
+
+| | before | after |
+|---|---|---|
+| digits in a regex literal | reported | not code |
+| `config.x ?? 50` (also with `??` on the line before) | reported | named by the left side |
+| parameter / destructuring default `before = 50` | reported | named |
+| `MAX_AGE = 24 * 60 * 60 * 1000`, `SIZES = [16, 32]` | later factors / elements reported | named |
+| `const CODES = new Set([401, 403])`, a class field `= new Map([...])` | elements reported | named by the const / field |
+| a Set/Map built anywhere else (parameter default, object property, argument) | elements reported | still reported |
+| `parseInt(s, 16)` | reported | the radix is not a magic number |
+| `${t.slice(0, 57)}` inside a template | never seen | reported |
+| no loadable `typescript` | scanned as text | "code file(s) were NOT read" — judged nothing |
+
+Score deductions, unnamed length limits and other unnamed literals in code
+are reported as before.
+
+### 🐛 Fixed — Centralized Logging counted a CLI's output, strings and the logging module itself (#424, #425)
+
+| | before | after |
+|---|---|---|
+| `console.log(` inside a string | a call | not code |
+| package with `bin` in package.json | every `console.*` counted | `console.log/info` is the command's output in the whole package; `console.warn/error` only in the command's entry modules (the source of each `bin` target, the directory named after it, a `commands/` beside it); elsewhere `warn/error`, and `debug/trace` everywhere, still count |
+| where console is allowed | files named `logger.service.ts` and `main.ts` | also any logging module: `logger.*`, `logging*`, `log.*` |
+| no loadable `typescript` | text scanned | ".ts file(s) were NOT read" — judged nothing |
+
+The Python branch is unchanged.
+
 ### 🐛 Fixed — a committed PRE_DEPLOYMENT_CHECKLIST.md was reported missing when `includes` name only source (#476)
 
 Pre-Deployment Checklist looked the checklist up through the source scan,

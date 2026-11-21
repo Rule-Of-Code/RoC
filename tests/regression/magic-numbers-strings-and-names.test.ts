@@ -61,7 +61,7 @@ describe('a magic number is unnamed, and in code', () => {
    * findings in the rest of the file. This codebase is full of such regexes,
    * which is how it was caught.
    */
-  describe('a regex literal is skipped, not blanked', () => {
+  describe('a regex literal is not code, and does not hide the code after it', () => {
     it.each([
       [`const q = /['"]/;\nif (x > 4242) {}`, '4242', 'quotes inside a regex'],
       [`const r = /it\\'s/;\nif (y > 8080) {}`, '8080', 'an escaped quote'],

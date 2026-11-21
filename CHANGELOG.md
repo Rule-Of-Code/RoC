@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — Pre-Deployment Checklist reads the dependency scan from the command
+
+The security-scan clause read only script names (`audit`, `security`,
+`snyk` …). It now also reads what package scripts and CI steps run (npm /
+yarn / pnpm audit, pip-audit, safety check, snyk test).
+
+Self-audit of this repository: Pre-Deployment Checklist — before 4 findings, after 3 ("Security vulnerability scanning not configured" is gone: `security-audit` runs `npm audit`, and so does the CI step).
+
 ### ⚠️ BREAKING — `compliance` and the victory art mean a clean pass; a law that judged nothing makes the run partial
 
 A run of this repository listed 46 laws with violations at warning level, one

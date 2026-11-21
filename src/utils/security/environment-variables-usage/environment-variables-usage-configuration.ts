@@ -198,8 +198,8 @@ export function hasDestructuring(content: string): boolean {
 
 /**
  * Whether `content` holds a mongodb://, mysql://, postgresql:// or
- * redis:// connection string. The patterns are global regexes, so each
- * test advances their `lastIndex` between calls.
+ * redis:// connection string. hasAnyRegexPattern starts every search at
+ * 0, so an earlier call (another file, another law) does not matter (#487).
  */
 export function matchesAnyDbPattern(content: string): boolean {
   return hasAnyRegexPattern(content, DB_CONNECTION_PATTERNS);
@@ -207,8 +207,8 @@ export function matchesAnyDbPattern(content: string): boolean {
 
 /**
  * Whether `content` has a quoted `api_key`, `token` or `secret` key
- * assigned a quoted value of 20+ characters (case-insensitive). The
- * patterns are global regexes, so each test advances their `lastIndex`.
+ * assigned a quoted value of 20+ characters (case-insensitive), whatever
+ * earlier calls matched (#487).
  */
 export function matchesAnySecretPattern(content: string): boolean {
   return hasAnyRegexPattern(content, SECRET_PATTERNS);

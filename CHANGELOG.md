@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — a secret or connection string in a second file was missed: `hasAnyRegexPattern` carried `lastIndex` (#487)
+
+`PatternMatchingUtils.hasAnyRegexPattern` ran `.test()` on the patterns as
+given. The database-URL and secret tables of the environment-variable usage
+analyzer (Environment Security Enforcement, Environment Parity Standards) and
+the hard-coded secret table of Data Encryption Standards are global (`/g`,
+`/gi`) module constants, so a match left `lastIndex` past it and the next
+call — on the next file — searched from there.
+
+Before: the same hard-coded `mongodb://…` URL in two files was reported for
+the first file only; the same text tested three times answered true, false,
+true. The tables are shared by Environment Security Enforcement and
+Environment Parity Standards, so the state also carried from one law to the
+other: on three identical files one law reported `a` and `c`, the other `b`.
+After: every call starts at the beginning of the text and leaves the
+pattern at `lastIndex` 0, so the answer depends on the text and the patterns
+only, for every caller of `hasAnyRegexPattern`.
+
+The same holds for every other `/g` regex in `src` that reached `.test()`:
+`PatternMatchingUtils.hasRegexPattern` resets `lastIndex` too, and the
+direct `.test()` calls on global constants go through the two helpers —
+Environment Variables Policy's placeholder table (two placeholders in one
+file: the second was reported as a secret), the event-listener, timer and
+DOM-reference analyzers, the NgRx selector `parameters` check and the TODO
+line check. Before: the same text asked twice could answer true, then
+false. After: the same answer every time.
+
 ### 🐛 Fixed — environment-variable usage judges each `process.env` read where it stands; a URL is reported once (#433)
 
 The usage analyzer shared by Environment Security Enforcement and Environment

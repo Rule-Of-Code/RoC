@@ -100,6 +100,11 @@ describe('Absolute Zero Tolerance reads code (#424, #425)', () => {
         'Strict type violations',
       ],
       [
+        'an as-any cast',
+        'export const f = (x: unknown) => (x as any).id;\n',
+        'Strict type violations',
+      ],
+      [
         'a TODO tag',
         '// TODO: remove after the migration\nexport const x = 1;\n',
         'TODO/FIXME',
@@ -150,6 +155,17 @@ describe('Absolute Zero Tolerance reads code (#424, #425)', () => {
         'Console statements found in src/report.ts: 1 occurrences',
       ]);
     });
+  });
+
+  it('counts `as any` casts and `: any` annotations together', () => {
+    write(
+      'src/subject.ts',
+      'export function f(y: any) { return (y as any).id + (y as any[]).length; }\n'
+    );
+
+    expect(findingsFor('subject.ts')).toEqual([
+      'Strict type violations in src/subject.ts: 3 occurrences',
+    ]);
   });
 
   it('does not count console output in the logging module itself', () => {

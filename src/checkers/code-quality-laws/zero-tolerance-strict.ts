@@ -165,10 +165,11 @@ export class ZeroToleranceStrictLaw extends CodeQualityLawBase {
   }
 
   /**
-   * `: any` written as the type of a declaration — a parameter, variable,
-   * property or return type, also as `any[]`. The rest parameter of a
-   * constructor typed `any[]` is exempt: TypeScript requires exactly that
-   * for a mixin (TS2545), so it is not a choice anyone could make otherwise.
+   * `any` written by hand: as the type of a declaration — a parameter,
+   * variable, property or return type — or as the target of an `as` cast,
+   * also as `any[]`. The rest parameter of a constructor typed `any[]` is
+   * exempt: TypeScript requires exactly that for a mixin (TS2545), so it is
+   * not a choice anyone could make otherwise.
    */
   private static anyAnnotations(ts: typeof TS, source: TS.SourceFile): number {
     let count = 0;
@@ -186,8 +187,8 @@ export class ZeroToleranceStrictLaw extends CodeQualityLawBase {
   }
 
   /**
-   * Is this `any` the annotation after the `:` of a declaration (directly or
-   * as `any[]`)? `as any` is a cast, not an annotation, and is not counted.
+   * Is this `any` the type after the `:` of a declaration or after `as`
+   * (directly or as `any[]`)?
    */
   private static isAnnotation(ts: typeof TS, anyNode: TS.Node): boolean {
     const typeNode = ts.isArrayTypeNode(anyNode.parent)
@@ -195,6 +196,7 @@ export class ZeroToleranceStrictLaw extends CodeQualityLawBase {
       : anyNode;
     const owner = typeNode.parent as TS.Node & { type?: TS.Node };
     const declarations = [
+      ts.isAsExpression,
       ts.isParameter,
       ts.isVariableDeclaration,
       ts.isPropertyDeclaration,

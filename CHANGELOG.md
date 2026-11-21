@@ -17,6 +17,7 @@ read the TypeScript parse.
 | | before | after |
 |---|---|---|
 | `console.*`, `: any`, empty `catch (e) {}` | anywhere in the text | in code only |
+| `as any` cast | not counted (the regex matched only `: any`) | counted with the `: any` annotations |
 | TODO/FIXME/XXX/HACK | any `//` line containing the word, any case | a tag in capitals at the start of a `//` comment |
 | `eslint-disable` | anywhere in the text | in comments only |
 | `unknown[]` | a strict-type violation | not a violation (the safe type for data of unknown shape) |

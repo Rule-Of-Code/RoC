@@ -267,18 +267,25 @@ export function pythonCalls(
 /** The index after one piece of a primary expression at `j` (a name, a bracket group, a literal, a dot), or null. */
 function primaryStep(text: string, i: number, j: number): number | null {
   const ch = text[j] as string;
-  if (/\w/.test(ch) && (j === i || /[.\w]/.test(text[j - 1] as string))) {
-    let k = j;
-    while (k < text.length && /\w/.test(text[k] as string)) k++;
-    return k;
-  }
-  if (ch === '(' || ch === '[') {
-    const close = matchingClose(text, j);
-    return close < 0 ? text.length : close + 1;
-  }
+  if (/\w/.test(ch) && (j === i || /[.\w]/.test(text[j - 1] as string)))
+    return nameEnd(text, j);
+  if (ch === '(' || ch === '[') return groupEnd(text, j);
   if (ch === '«') return text.indexOf('»', j) + 1 || text.length;
   if (ch === '.' && /[A-Za-z_]/.test(text[j + 1] ?? '')) return j + 1;
   return null;
+}
+
+/** The index after the identifier that starts at `j`. */
+function nameEnd(text: string, j: number): number {
+  let k = j;
+  while (k < text.length && /\w/.test(text[k] as string)) k++;
+  return k;
+}
+
+/** The index after the bracket group that opens at `j` (the text's end when unclosed). */
+function groupEnd(text: string, j: number): number {
+  const close = matchingClose(text, j);
+  return close < 0 ? text.length : close + 1;
 }
 
 /** End index (exclusive) of the primary expression that starts at `i`. */

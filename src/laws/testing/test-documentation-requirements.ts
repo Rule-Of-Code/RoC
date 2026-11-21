@@ -2,6 +2,12 @@ import { LawBase } from '../../checkers/law-base';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { UnitTestDocumentationAnalyzerService } from './unit-test-documentation/services/documentation-analyzer.service';
 import { namedFiles } from '../../utils/testing/fixture-isolation';
+import { markJudgedNothing } from '../../utils/judged-nothing';
+import {
+  loadTypeScript,
+  parserUnavailable,
+} from '../../utils/react/tsx-source';
+import { TestFileDiscovery } from './test-file-discovery';
 
 /**
  * Test Documentation Requirements Law
@@ -22,6 +28,26 @@ import { namedFiles } from '../../utils/testing/fixture-isolation';
 export class TestDocumentationRequirementsLaw {
   static check(context: LawCheckContext): LawResult {
     try {
+      // Without the parser a test's title cannot be told from a string that
+      // looks like one: say the files were not read, rather than read their
+      // titles with a regex (#427).
+      const testFiles = TestFileDiscovery.findTestFiles(
+        context.projectRoot,
+        context.config
+      );
+      if (testFiles.length > 0 && !loadTypeScript(context.projectRoot)) {
+        return markJudgedNothing(
+          this.buildFinalResult(context, {
+            violations: [
+              `${parserUnavailable(context.projectRoot, `the ${testFiles.length} test file(s)`)} — Test Documentation Requirements judged nothing`,
+            ],
+            suggestions: [],
+            score: 0,
+            testDocsAnalysis: { hasTestDocumentation: false },
+            testFileDocsAnalysis: { poorlyDocumentedFiles: [] },
+          })
+        );
+      }
       const analysisResult = this.runAllAnalyses(context);
       return this.buildFinalResult(context, analysisResult);
     } catch (error: unknown) {

@@ -1,13 +1,11 @@
 /**
- * Environment variable reads and hardcoded URLs, read from the parse (#433).
+ * Environment variable reads, read from the parse (#433).
  *
  * The text scan judged every `process.env.X` of a file by a 150-character
  * window around the FIRST occurrence of that text, counted `default` or `? `
- * anywhere in the window as a fallback, matched law prose and comments, and
- * ran three overlapping URL regexes so one quoted URL was reported twice.
+ * anywhere in the window as a fallback, and matched law prose and comments.
  *
- * Here each `process.env.X` read is judged where it stands, and each URL is
- * taken once, from the string it is written in.
+ * Here each `process.env.X` read is judged where it stands.
  */
 import type * as TS from 'typescript';
 
@@ -16,12 +14,6 @@ export interface EnvRead {
   name: string;
   start: number;
   handled: boolean;
-}
-
-/** One URL written in a string literal. */
-export interface UrlLiteral {
-  url: string;
-  start: number;
 }
 
 /** The names the text scan reported: upper-case, as environment names are. */
@@ -66,33 +58,6 @@ export function isCiProvided(name: string): boolean {
   return CI_NAMES.has(name) || CI_PREFIXES.some(p => name.startsWith(p));
 }
 
-/** A URL with a host that has a dot and a top-level label, as the old scan required. */
-const URL_IN_TEXT = /https?:\/\/[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}[^\s'"`<>)\]}]*/g;
-
-/**
- * Hosts that are never a real endpoint: loopback, and the names reserved
- * for examples and tests (RFC 2606, RFC 6761).
- */
-const NON_ENDPOINT_HOST =
-  /^(?:localhost|127\.0\.0\.1|(?:[^.]+\.)*(?:example\.(?:com|net|org)|example|test|invalid|localhost))$/i;
-
-/**
- * A URL bound to one of these names is a link for a reader — a manual page,
- * a reference — not an endpoint the program calls or that differs between
- * environments.
- */
-const DOC_NAME_WORDS = new Set([
-  'doc',
-  'docs',
-  'documentation',
-  'reference',
-  'help',
-  'guide',
-  'manual',
-  'homepage',
-  'readme',
-]);
-
 const LOGICAL_FALLBACK = new Set<number>();
 const COMPARISON = new Set<number>();
 const ASSIGNMENT = new Set<number>();
@@ -136,6 +101,51 @@ const CONVERSIONS = new Set([
   'parseFloat',
 ]);
 
+/** Parentheses and type assertions: the value passes through unchanged. */
+function isTransparent(ts: typeof TS, parent: TS.Node): boolean {
+  return (
+    ts.isParenthesizedExpression(parent) ||
+    ts.isAsExpression(parent) ||
+    ts.isNonNullExpression(parent) ||
+    ts.isTypeAssertionExpression(parent) ||
+    ts.isSatisfiesExpression(parent)
+  );
+}
+
+/** `Number(<x>)`, `parseInt(<x>)`: as absent as its argument. */
+function isConversionOf(
+  ts: typeof TS,
+  parent: TS.Node,
+  current: TS.Node
+): boolean {
+  return (
+    ts.isCallExpression(parent) &&
+    parent.arguments.some(arg => arg === current) &&
+    ts.isIdentifier(parent.expression) &&
+    CONVERSIONS.has(parent.expression.text)
+  );
+}
+
+/** `a || <x>`, `a ?? <x>`: the whole is absent when <x> is. */
+function isFallbackRightOf(
+  ts: typeof TS,
+  parent: TS.Node,
+  current: TS.Node
+): boolean {
+  if (!ts.isBinaryExpression(parent) || parent.right !== current) return false;
+  const op = parent.operatorToken.kind;
+  return LOGICAL_FALLBACK.has(op) && !ASSIGNMENT.has(op);
+}
+
+/** An arm (not the condition) of `?:`. */
+function isConditionalArm(
+  ts: typeof TS,
+  parent: TS.Node,
+  current: TS.Node
+): boolean {
+  return ts.isConditionalExpression(parent) && parent.condition !== current;
+}
+
 /**
  * The expression whose position decides: climbs out of parentheses, type
  * assertions, conversions, the right side of `a || <read>` and the arms of a
@@ -143,43 +153,18 @@ const CONVERSIONS = new Set([
  */
 function climb(ts: typeof TS, node: TS.Node): TS.Node {
   let current = node;
-  for (;;) {
-    const parent = current.parent;
-    if (!parent) return current;
-    if (
-      ts.isParenthesizedExpression(parent) ||
-      ts.isAsExpression(parent) ||
-      ts.isNonNullExpression(parent) ||
-      ts.isTypeAssertionExpression(parent) ||
-      ts.isSatisfiesExpression(parent)
-    ) {
-      current = parent;
-      continue;
-    }
-    if (
-      ts.isCallExpression(parent) &&
-      parent.arguments.includes(current as TS.Expression) &&
-      ts.isIdentifier(parent.expression) &&
-      CONVERSIONS.has(parent.expression.text)
-    ) {
-      current = parent;
-      continue;
-    }
-    if (
-      ts.isBinaryExpression(parent) &&
-      parent.right === current &&
-      LOGICAL_FALLBACK.has(parent.operatorToken.kind) &&
-      !ASSIGNMENT.has(parent.operatorToken.kind)
-    ) {
-      current = parent;
-      continue;
-    }
-    if (ts.isConditionalExpression(parent) && parent.condition !== current) {
-      current = parent;
-      continue;
-    }
-    return current;
+  let parent = current.parent;
+  while (
+    parent &&
+    (isTransparent(ts, parent) ||
+      isConversionOf(ts, parent, current) ||
+      isFallbackRightOf(ts, parent, current) ||
+      isConditionalArm(ts, parent, current))
+  ) {
+    current = parent;
+    parent = current.parent;
   }
+  return current;
 }
 
 /** `<read> ?? d`, `<read> || d`, `a && <read>`, `<read> === 'x'`. */
@@ -259,31 +244,37 @@ function scopeOf(ts: typeof TS, node: TS.Node): TS.Node {
   return current ?? node.getSourceFile();
 }
 
+/** `process.env` itself. */
+function isProcessEnv(ts: typeof TS, node: TS.Expression): boolean {
+  return (
+    ts.isPropertyAccessExpression(node) &&
+    node.name.text === 'env' &&
+    ts.isIdentifier(node.expression) &&
+    node.expression.text === 'process'
+  );
+}
+
+/** `process.env.X = …` or `delete process.env.X`: a write, not a read. */
+function isWrite(ts: typeof TS, node: TS.Node): boolean {
+  const parent = node.parent;
+  if (!parent) return false;
+  if (ts.isDeleteExpression(parent)) return true;
+  return (
+    ts.isBinaryExpression(parent) &&
+    parent.left === node &&
+    parent.operatorToken.kind === ts.SyntaxKind.EqualsToken
+  );
+}
+
 /** `process.env.NAME`, read (not assigned, not deleted). */
 function envReadName(
   ts: typeof TS,
   node: TS.Node
 ): { name: string; node: TS.PropertyAccessExpression } | null {
   if (!ts.isPropertyAccessExpression(node)) return null;
-  const object = node.expression;
-  if (
-    !ts.isPropertyAccessExpression(object) ||
-    object.name.text !== 'env' ||
-    !ts.isIdentifier(object.expression) ||
-    object.expression.text !== 'process'
-  )
-    return null;
+  if (!isProcessEnv(ts, node.expression)) return null;
   const name = node.name.text;
-  if (!ENV_NAME.test(name)) return null;
-  const parent = node.parent;
-  if (
-    parent &&
-    ts.isBinaryExpression(parent) &&
-    parent.left === node &&
-    parent.operatorToken.kind === ts.SyntaxKind.EqualsToken
-  )
-    return null;
-  if (parent && ts.isDeleteExpression(parent)) return null;
+  if (!ENV_NAME.test(name) || isWrite(ts, node)) return null;
   return { name, node };
 }
 
@@ -350,92 +341,4 @@ export function findEnvReads(ts: typeof TS, source: TS.SourceFile): EnvRead[] {
       read.direct ||
       !!guardedInScope.get(scopeOf(ts, read.node))?.has(read.name),
   }));
-}
-
-/** The words of an identifier: `CLOUD_RUN_YAML_REFERENCE`, `docsUrl`. */
-function nameWords(name: string): string[] {
-  return name
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .split(/[^A-Za-z0-9]+/)
-    .filter(Boolean)
-    .map(word => word.toLowerCase());
-}
-
-/** The name a string literal is bound to, through parentheses and assertions. */
-function literalBindingName(ts: typeof TS, node: TS.Node): string | null {
-  let current = node;
-  while (
-    current.parent &&
-    (ts.isParenthesizedExpression(current.parent) ||
-      ts.isAsExpression(current.parent) ||
-      ts.isSatisfiesExpression(current.parent))
-  )
-    current = current.parent;
-  const parent = current.parent;
-  if (!parent) return null;
-  if (
-    (ts.isPropertyAssignment(parent) ||
-      ts.isVariableDeclaration(parent) ||
-      ts.isPropertyDeclaration(parent)) &&
-    parent.initializer === current &&
-    parent.name &&
-    (ts.isIdentifier(parent.name) || ts.isStringLiteral(parent.name))
-  )
-    return parent.name.text;
-  return null;
-}
-
-function isDocLink(ts: typeof TS, node: TS.Node): boolean {
-  const name = literalBindingName(ts, node);
-  return !!name && nameWords(name).some(word => DOC_NAME_WORDS.has(word));
-}
-
-function hostOf(url: string): string {
-  return (url.replace(/^https?:\/\//, '').split(/[/?#:]/)[0] ?? '').replace(
-    /\.$/,
-    ''
-  );
-}
-
-/** True for a URL whose host is loopback or a name reserved for examples. */
-export function isNonEndpointUrl(url: string): boolean {
-  return NON_ENDPOINT_HOST.test(hostOf(url));
-}
-
-/**
- * Every URL written in a string or template literal of the file, once, at
- * the offset it is written at. Comments and JSX text are prose, not values;
- * loopback and reserved example hosts are not endpoints; a URL bound to a
- * documentation name (`reference`, `DOCS_URL`) is a link for a reader.
- */
-export function findUrlLiterals(
-  ts: typeof TS,
-  source: TS.SourceFile
-): UrlLiteral[] {
-  const found: UrlLiteral[] = [];
-  const visit = (node: TS.Node): void => {
-    if (
-      ts.isStringLiteral(node) ||
-      ts.isNoSubstitutionTemplateLiteral(node) ||
-      ts.isTemplateHead(node) ||
-      ts.isTemplateMiddle(node) ||
-      ts.isTemplateTail(node)
-    ) {
-      const start = node.getStart(source);
-      const text = source.text.slice(start, node.getEnd());
-      const docLink =
-        (ts.isStringLiteral(node) ||
-          ts.isNoSubstitutionTemplateLiteral(node)) &&
-        isDocLink(ts, node);
-      if (!docLink)
-        for (const match of text.matchAll(URL_IN_TEXT)) {
-          if (isNonEndpointUrl(match[0])) continue;
-          found.push({ url: match[0], start: start + (match.index ?? 0) });
-        }
-      return;
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(source);
-  return found;
 }

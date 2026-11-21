@@ -9,10 +9,8 @@ import { loadTypeScript, parserUnavailable } from '../../react/tsx-source';
 import { scanAndAnalyzeFiles } from '../file-scanning-helper';
 import { SecretManagementAnalyzer } from '../secret-management';
 import * as Config from './environment-variables-usage-configuration';
-import {
-  findEnvReads,
-  findUrlLiterals,
-} from './environment-variables-usage-reads';
+import { findEnvReads } from './environment-variables-usage-reads';
+import { findUrlLiterals } from './environment-variables-usage-urls';
 
 // ============================================================================
 // Main Validation Entry Point

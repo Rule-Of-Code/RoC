@@ -20,21 +20,13 @@
  * fix — a correct result should not be indistinguishable from a broken one.
  */
 
-import { execSync } from '../../utils/child-process';
+import { GitLawBase } from './git-law-base';
 
 /** Run a git command and return trimmed stdout, or null when it fails. */
 function git(command: string, projectRoot: string): string | null {
-  try {
-    const out = execSync(command, {
-      cwd: projectRoot,
-      encoding: 'utf8',
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
-    const value = out.toString().trim();
-    return value.length > 0 ? value : null;
-  } catch {
-    return null;
-  }
+  const result = GitLawBase.executeGitCommand(command, projectRoot);
+  const value = result.success ? result.stdout.trim() : '';
+  return value.length > 0 ? value : null;
 }
 
 /**

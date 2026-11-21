@@ -99,6 +99,15 @@ When no Markdown file is left to read — none in the project, or
 repository's config no longer enables it.
 
 Self-audit of this repository: MD Footer Template — before 1 finding ("No markdown files found in project"), after not selected (opt-in, not enabled).
+### Fixed — a checklist clause defers to an owning law the audit would not select (#428)
+
+Pre-Deployment Checklist consults the law that owns each runtime concern.
+That law was run even when the audit would not select it for the project
+(its `stack` or `requires` unmet), so it inspected an absent subject, failed,
+and the clause was reported. An owning law the audit would not select now
+answers "satisfied", like a written `notApplicable`.
+
+Self-audit of this repository: no change — the four owning laws are selected here, so they still run (measured).
 ### 🐛 Fixed — an Angular CLI project was told to add webpack limits it cannot write (#449)
 
 Once the budget suggestion read angular.json correctly (#449), the two

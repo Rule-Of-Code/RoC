@@ -8,6 +8,16 @@ import type { LawCheckContext, RuleOfCodeConfig } from '../../../src/types';
 import { FileUtils } from '../../../src/utils/file-utils';
 import { PathOperations } from '../../../src/utils/path-operations';
 
+/**
+ * A file of logic `count` lines long: one-line functions, so it is not a
+ * data file (at most two functions), which the length limit leaves alone.
+ */
+const logicLines = (count: number, tag = 'f'): string =>
+  Array.from(
+    { length: count },
+    (_, i) => `function ${tag}${i}(): number { return ${i}; }`
+  ).join('\n');
+
 describe('CodeComplexityControlLaw', () => {
   let tempDir: string;
   let mockConfig: RuleOfCodeConfig;
@@ -192,7 +202,7 @@ describe('CodeComplexityControlLaw', () => {
     });
 
     it('should detect files over 300 lines', () => {
-      const longContent = Array(350).fill('const x = 1;').join('\n');
+      const longContent = logicLines(350);
       FileUtils.writeFile(
         PathOperations.join(tempDir, 'src', 'large-file.ts'),
         longContent
@@ -209,13 +219,12 @@ describe('CodeComplexityControlLaw', () => {
     });
 
     /**
-     * The fixture branches on purpose.
+     * Many functions AND one too complex to hold in your head.
      *
-     * It used to be 25 trivial `return i` functions, and that no longer
-     * reports — deliberately. A file of many functions with no decision points
-     * is a table (a routing table, a provider array), and the ceiling exists
-     * for a file that is hard to reason about, not for a declarative one. The
-     * test directly below this asserts that half.
+     * Many functions alone are not reported: a file of small helpers, a
+     * routing table or a provider array costs a function per entry and
+     * nothing to reason about. The ceiling is for a file that also has a
+     * function over the complexity limit.
      */
     it('should detect files with too many functions', () => {
       const manyFunctions = Array(25)
@@ -223,6 +232,9 @@ describe('CodeComplexityControlLaw', () => {
         .map(
           (_, i) =>
             `function func${i}(a) { if (a > ${i}) { return a; } else if (a < 0) { return 0; } return -a; }`
+        )
+        .concat(
+          'function tangled(a, b, c) { if (a && b || c) { for (const x of a) { if (x) { while (b) { if (c) { return a ? b : c; } } } } } return a && b && c || 0; }'
         )
         .join('\n');
       FileUtils.writeFile(
@@ -295,7 +307,7 @@ function complexFunction() {
     });
 
     it('should suggest refactoring for complex files', () => {
-      const longContent = Array(350).fill('const x = 1;').join('\n');
+      const longContent = logicLines(350);
       FileUtils.writeFile(
         PathOperations.join(tempDir, 'src', 'large-file.ts'),
         longContent
@@ -370,7 +382,7 @@ export function greet(name: string): string {
     });
 
     it('should deduct points for violations', () => {
-      const longContent = Array(350).fill('const x = 1;').join('\n');
+      const longContent = logicLines(350);
       FileUtils.writeFile(
         PathOperations.join(tempDir, 'src', 'large-file.ts'),
         longContent
@@ -388,7 +400,7 @@ export function greet(name: string): string {
       // Create many violations
       FileUtils.createDirectory(PathOperations.join(tempDir, 'src'));
       for (let i = 0; i < 15; i++) {
-        const longContent = Array(350).fill(`const x${i} = ${i};`).join('\n');
+        const longContent = logicLines(350, `f${i}_`);
         FileUtils.writeFile(
           PathOperations.join(tempDir, 'src', `large-file-${i}.ts`),
           longContent

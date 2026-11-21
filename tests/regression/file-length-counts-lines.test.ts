@@ -32,9 +32,10 @@ describe('a file is as long as wc -l says it is', () => {
   });
 
   const linesOf = (count: number): string =>
-    Array.from({ length: count }, (_, i) => `export const v${i} = ${i};`).join(
-      '\n'
-    );
+    Array.from(
+      { length: count },
+      (_, i) => `export function v${i}(): number { return ${i}; }`
+    ).join('\n');
 
   const tooLongFindings = (): string[] => {
     const result = CodeComplexityControlLaw.check({
@@ -61,13 +62,13 @@ describe('a file is as long as wc -l says it is', () => {
   it('reports a file one over the limit, with the real count', () => {
     write('src/f.ts', `${linesOf(301)}\n`);
 
-    expect(tooLongFindings()[0]).toMatch(/\(301 lines, max 300\)/);
+    expect(tooLongFindings()[0]).toMatch(/\(301 code lines, max 300\)/);
   });
 
   it('counts a file with no trailing newline the same way', () => {
     write('src/f.ts', linesOf(301));
 
-    expect(tooLongFindings()[0]).toMatch(/\(301 lines, max 300\)/);
+    expect(tooLongFindings()[0]).toMatch(/\(301 code lines, max 300\)/);
   });
 
   it('does not call an empty file one line long', () => {

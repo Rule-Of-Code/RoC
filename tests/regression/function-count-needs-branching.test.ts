@@ -46,14 +46,17 @@ describe('the function ceiling asks whether the file also branches', () => {
     return `export const routes = [\n${entries}\n];\n`;
   };
 
-  /** The same number of functions, each one branching. */
+  /**
+   * The same number of functions, each one branching, and one of them over
+   * the complexity limit: many functions are debt only next to that.
+   */
   const branchingCallbacks = (count: number): string => {
     const fns = Array.from(
       { length: count },
       (_, i) =>
         `export const f${i} = (a: number) => { if (a > ${i}) { return a; } else if (a < 0) { return 0; } return -a; };`
     ).join('\n');
-    return fns + '\n';
+    return `${fns}\nexport const tangled = (a: number, b: number, c: number) => { if (a && b || c) { for (const x of [a]) { if (x) { while (b) { if (c) { return a ? b : c; } } } } } return a && b && c || 0; };\n`;
   };
 
   beforeEach(() => {
@@ -87,10 +90,20 @@ describe('the function ceiling asks whether the file also branches', () => {
     expect(countFindings().length).toBeGreaterThan(0);
   });
 
-  it('names the decision count in the finding, not just the function count', () => {
+  /** Many functions that each branch a little are not reported (a3). */
+  it('says nothing about many simple branching functions', () => {
+    write(
+      'src/handlers.ts',
+      branchingCallbacks(24).replace(/export const tangled[^\n]*\n/, '')
+    );
+
+    expect(countFindings()).toEqual([]);
+  });
+
+  it('names the complexity in the finding, not just the function count', () => {
     write('src/handlers.ts', branchingCallbacks(24));
 
-    expect(countFindings()[0]).toMatch(/decision points/);
+    expect(countFindings()[0]).toMatch(/a function of complexity \d+/);
   });
 
   describe('the threshold has a name that says what it counts', () => {

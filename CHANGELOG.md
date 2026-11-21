@@ -40,6 +40,14 @@ Without a loadable `typescript` the files are reported as not read.
   matched fixture strings — a detector's own test keeping
   `const users = [{ id: '1' }]` as an input string was "hardcoded test data".
   After: a pattern counts where it starts in the test's code.
+- **TODO Management Constitutional Requirements.** Before: every file —
+  Markdown, HTML, CSS included — went through the JS string blanker, which
+  pairs `'`, `"` and backticks as JS does; in Markdown an apostrophe opened a
+  "string", so whether a `` `// TODO` `` example in a CHANGELOG line counted
+  depended on the prose above it (this repository's CHANGELOG had one).
+  After: the blanker runs on JS/TS only; in Markdown, fenced code blocks and
+  inline code are examples and are blanked, prose and `<!-- TODO -->`
+  comments are read as written; HTML and CSS are read as written.
 
 A secret match whose value is a dotted property path (`KEY =
 'thresholds.next.guardExemptions'`, a config key or a message id) is a name,
@@ -55,7 +63,9 @@ Self-audit of this repository: Data Encryption Standards 28 → 0;
 Authentication Security 1 finding → not selected (a CLI); Test Data
 Management 3 → 2 (the detector's own test,
 `tests/laws/testing/unit-test-data-management-constants.test.ts`, is no
-longer a hardcoded-data file).
+longer a hardcoded-data file); TODO Management Constitutional Requirements
+2 → 0 (the one "TODO" it counted was a `` `// TODO` `` example in
+CHANGELOG.md).
 
 ### 🐛 Fixed — Test Data Management read an exact expected value as hardcoded test data (#439)
 

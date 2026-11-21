@@ -14,6 +14,7 @@ import path from 'path';
 import { AuthenticationSecurityLaw } from '../../src/checkers/security-laws/authentication-security';
 import { DataEncryptionStandardsLaw } from '../../src/checkers/security-laws/data-encryption-standards';
 import { ConfigLoader } from '../../src/config/loader';
+import { TodoManagementLaw } from '../../src/laws/documentation/todo-management';
 import { TestDataManagementLaw } from '../../src/laws/testing/test-data-management';
 import { ModularLawsRegistry } from '../../src/registry/modular-laws-registry';
 import { FileUtils } from '../../src/utils/file-utils';
@@ -210,5 +211,44 @@ describe('#428 Authentication Security is selected only where users reach the co
     ['a mobile app', { '@capacitor/core': '^6.0.0' }],
   ])('%s is (control)', (_kind, dependencies) => {
     expect(selected({ dependencies })).toBe(true);
+  });
+});
+
+describe('#426 TODO Management reads Markdown as Markdown', () => {
+  const todoCount = async (files: Record<string, string>): Promise<string> => {
+    const dir = project(files);
+    return (
+      (await TodoManagementLaw.check({ projectRoot: dir, config })).message ??
+      ''
+    );
+  };
+
+  it('an apostrophe in prose does not turn an inline `// TODO` example into a TODO', async () => {
+    expect(
+      await todoCount({
+        'CHANGELOG.md': [
+          '# Changelog',
+          '',
+          "- don't read `'a'` as code; a `// TODO` in a string is an example",
+          '- a fenced example:',
+          '',
+          '```ts',
+          '// TODO: an example, not a task',
+          '```',
+          '',
+        ].join('\n'),
+      })
+    ).toContain('compliant: 0 TODOs');
+  });
+
+  it('an HTML comment TODO in Markdown and a // TODO in code still count (control)', async () => {
+    expect(
+      await todoCount({
+        'notes.md':
+          "It's here.\n<!-- TODO (Sprint 12): write the deployment guide for the team -->\n",
+        'src/a.ts':
+          '// TODO (Sprint 12): remove the legacy config shim after the migration\nexport const a = 1;\n',
+      })
+    ).not.toContain('compliant: 0 TODOs');
   });
 });

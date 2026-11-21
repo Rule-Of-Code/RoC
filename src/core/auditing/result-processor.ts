@@ -10,7 +10,20 @@ import type {
   AuditResult,
   AuditStats,
   AuditVerdict,
+  ScopedLaw,
 } from './audit-types';
+
+/** Where one law's result counts: the four buckets of a run. */
+export type LawOutcome = 'passed' | 'warning' | 'judged-nothing' | 'failed';
+
+interface ClassifiableResult {
+  passed?: boolean;
+  severity?: string;
+  judgedNothing?: boolean;
+  lawId?: string;
+  lawTitle?: string;
+  lawName?: string;
+}
 
 export class AuditResultProcessor {
   /**
@@ -30,20 +43,69 @@ export class AuditResultProcessor {
   }
 
   /**
-   * The verdict of a run (#350), from the facts already in it: a refusal, a
-   * failure, a narrowed subset, a pass with `laws.notApplicable` waivers, or a
+   * Where a law's result counts. A law that judged nothing is its own bucket
+   * at a non-blocking severity — never a warning — and a failure at error
+   * severity (or under failOnWarnings), like any other failing law.
+   */
+  static outcomeOf(
+    lawResult: ClassifiableResult,
+    failOnWarnings = false
+  ): LawOutcome {
+    if (lawResult.passed) return 'passed';
+    if (!AuditResultProcessor.isWarningResult(lawResult, failOnWarnings))
+      return 'failed';
+    return lawResult.judgedNothing === true ? 'judged-nothing' : 'warning';
+  }
+
+  /**
+   * The laws of a run that reported warnings, and those that judged nothing
+   * (whatever their severity), by canonical title, sorted — the lists
+   * `scope.warningLaws` and `scope.judgedNothingLaws` (8.0.0).
+   */
+  static scopedLaws(
+    results: Map<string, unknown>,
+    failOnWarnings = false
+  ): { warningLaws: ScopedLaw[]; judgedNothingLaws: ScopedLaw[] } {
+    const warningLaws: ScopedLaw[] = [];
+    const judgedNothingLaws: ScopedLaw[] = [];
+    for (const [id, result] of results) {
+      const lawResult = result as ClassifiableResult;
+      const named: ScopedLaw = {
+        law: lawResult.lawTitle ?? lawResult.lawName ?? id,
+        lawId: lawResult.lawId ?? id,
+      };
+      if (lawResult.judgedNothing === true) judgedNothingLaws.push(named);
+      else if (
+        AuditResultProcessor.outcomeOf(lawResult, failOnWarnings) === 'warning'
+      )
+        warningLaws.push(named);
+    }
+    const byLaw = (a: ScopedLaw, b: ScopedLaw): number =>
+      a.law.localeCompare(b.law);
+    return {
+      warningLaws: warningLaws.sort(byLaw),
+      judgedNothingLaws: judgedNothingLaws.sort(byLaw),
+    };
+  }
+
+  /**
+   * The verdict of a run (#350), the first that holds: refused, failed,
+   * partial (narrowed, or a law that judged nothing), a pass with
+   * `laws.notApplicable` waivers, a pass with laws reporting warnings, or the
    * clean pass. A result that carries no `verdict` (cached by a build that
    * predates the field) gets the same answer here.
    */
   static verdictOf(
-    result: Pick<AuditResult, 'passed' | 'refused' | 'scope'>
+    result: Pick<AuditResult, 'passed' | 'refused' | 'scope' | 'warningLaws'>
   ): AuditVerdict {
     if (result.refused) return 'refused';
     if (!result.passed) return 'failed';
     if (result.scope?.partial) return 'partial';
-    return (result.scope?.waivedLaws?.length ?? 0) > 0
-      ? 'compliance-with-waivers'
-      : 'compliance';
+    if ((result.scope?.waivedLaws?.length ?? 0) > 0)
+      return 'compliance-with-waivers';
+    const warnings =
+      result.scope?.warningLaws?.length ?? result.warningLaws ?? 0;
+    return warnings > 0 ? 'compliance-with-warnings' : 'compliance';
   }
 
   /**
@@ -65,30 +127,26 @@ export class AuditResultProcessor {
     const failOnWarnings =
       (options as { failOnWarnings?: boolean })?.failOnWarnings ?? false;
     const totalLaws = results.size;
-    let passedLaws = 0;
-    let warningLaws = 0;
+    const count: Record<LawOutcome, number> = {
+      passed: 0,
+      warning: 0,
+      'judged-nothing': 0,
+      failed: 0,
+    };
     let score = 0;
 
     for (const [, result] of results) {
-      const lawResult = result as {
-        passed?: boolean;
-        score?: number;
-        severity?: string;
-      };
-
+      const lawResult = result as ClassifiableResult & { score?: number };
       // Trust the law's own determination of passed status
-      if (lawResult.passed) {
-        passedLaws++;
-      } else if (
-        AuditResultProcessor.isWarningResult(lawResult, failOnWarnings)
-      ) {
-        warningLaws++;
-      }
-
+      count[AuditResultProcessor.outcomeOf(lawResult, failOnWarnings)]++;
       score += lawResult.score ?? 0;
     }
 
-    const failedLaws = totalLaws - passedLaws - warningLaws;
+    const passedLaws = count.passed;
+    const warningLaws = count.warning;
+    // a judged-nothing law at a non-blocking severity neither passed nor
+    // failed; the run is partial (the engine marks the scope)
+    const failedLaws = count.failed;
 
     return {
       // FAIL-CLOSED: an empty result set is never compliance — zero executed
@@ -99,6 +157,7 @@ export class AuditResultProcessor {
       passedLaws,
       failedLaws,
       warningLaws,
+      judgedNothingLaws: count['judged-nothing'],
       results,
       duration: 0,
       paretoMode: false,
@@ -252,6 +311,7 @@ export class AuditResultProcessor {
       passedLaws: result.passedLaws,
       failedLaws: result.failedLaws,
       warningLaws: result.warningLaws ?? 0,
+      judgedNothingLaws: result.scope?.judgedNothingLaws?.length ?? 0,
       score: result.score,
       duration: result.duration,
     };

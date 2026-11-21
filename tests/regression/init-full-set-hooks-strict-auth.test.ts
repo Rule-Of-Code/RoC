@@ -445,11 +445,15 @@ describe('#348 a narrowed run is PARTIAL N of M, never COMPLIANCE', () => {
     const waived = await audit({
       notApplicable: { 'Data Encryption Standards': 'no data at rest' },
     });
-    expect(plain.result.scope.partial).toBe(false);
-    expect(waived.result.scope).toMatchObject({
-      partial: false,
-      narrowedBy: undefined,
-    });
+    // A waiver narrows nothing: no narrowedBy. Since 8.0.0 a law that judged
+    // nothing (here the testing laws: the fixture has no tests) also makes
+    // the scope partial — that, and only that, may set it.
+    for (const run of [plain, waived]) {
+      expect(run.result.scope.narrowedBy).toBeUndefined();
+      expect(run.result.scope.partial).toBe(
+        run.result.scope.judgedNothingLaws.length > 0
+      );
+    }
     expect(waived.result.scope.applicableLaws).toBe(
       plain.result.scope.applicableLaws - 1
     );

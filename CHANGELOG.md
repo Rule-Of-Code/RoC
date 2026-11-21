@@ -7,6 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ⚠️ BREAKING — the Next laws walk one module graph, as Next sees the code (#287)
+
+The Next laws that follow imports carried two static import graphs: one for
+**Next Heavy Lib In Client Graph** and **Next Client Props Serializable**, one
+for **Next Server Only Boundary**, **Next Client Env Public Only** and **Next
+Public Env Is Build Time**. They resolved the same import differently, so a
+client law and a server law could reach opposite conclusions about the same
+code. There is now one graph (`next-module-graph.ts`, entries in
+`next-entries.ts`). The rule it follows: resolve the way Next and its bundler
+do; what cannot be read is reported as not read (the law is partial), never
+passed in silence.
+
+What differs between the laws is a parameter of the walk, and each law keeps
+the choice it had: Heavy Lib and Client Props follow static imports only and
+keep a boundary module as a node without edges; the other three also follow
+`import()` / `require()` and leave a boundary module out.
+
+| # | shape | before | after (every graph law) |
+|---|---|---|---|
+| b | workspace package linked through `node_modules` | Heavy Lib, Client Props: a package, not walked — its code was never judged | walked as first-party code |
+| c | `paths` in `jsconfig.json` (no tsconfig) | Heavy Lib, Client Props: `@/x` taken for a package, nothing walked, nothing said | read |
+| d | bare package that is not installed | Heavy Lib, Client Props: a package, silent (Heavy Lib still matched the name) | not read; Heavy Lib still names a heavy one |
+| e | first-party `.d.ts` | Heavy Lib, Client Props: skipped in silence | the `.js` beside it is read; with none, not read |
+| g | `tsconfig.json` that cannot be parsed, or whose `extends` is missing | the server laws used default options in silence; Heavy Lib, Client Props stopped at every import | named as not read by every law; what resolves without it is still read |
+| zh | relative import that leaves the audited root | Heavy Lib, Client Props: walked outside the root | not read |
+| 8 | package.json `imports` (`#x`) | the server laws cut the specifier at `#` and reported it not read | resolved |
+| 10 | tsconfig `moduleResolution` that ignores `exports` | the server laws could not resolve an `exports`-only subpath: not read | bundler resolution, as Next: resolved |
+| 13 | alias or `baseUrl` path no config maps | Heavy Lib, Client Props: taken for a package, silent | not read |
+| 9 | `.glsl` import | Heavy Lib: not read; the server laws: an asset | an asset (no imports to walk) |
+| 11 | client entries | Heavy Lib: `'use client'` + Pages Router pages; the server laws: `'use client'` + `instrumentation-client` | all three, for every client law; what a page's `getServerSideProps` / `getStaticProps` / `getStaticPaths` alone uses is not client code |
+| 12 | server entries | Client Props: special files of both `app/` and `src/app/` | the router Next reads (`app/` over `src/app/`); Server Only rule 2 also starts at `_app`, `_document`, `_error` |
+
+What you may see:
+
+- **more "not read"** where the project is not installed (no `node_modules`)
+  or a config cannot be read: Heavy Lib and Client Props now say so where they
+  used to pass in silence;
+- **more findings** where workspace packages are linked into `node_modules`
+  (Heavy Lib, Client Props now read their code) and in Pages Router apps
+  (Client Env and Server Only rule 1 now walk from each page);
+- Server Only rule 2 no longer reports a module that a Pages Router page
+  bundles for the browser: rule 1 reports it, as it reports any client module.
+
+Measured on the #287 fixture set (165 fixtures, 29 verdicts that 7.29.1 got
+wrong on purpose): 26 now give the verdict Next's behaviour calls for. The
+other 3 are point a, kept as each law had it: Heavy Lib does not follow a
+`require()`, and Client Props follows neither `require()` nor a page's
+`await import()`. On three installed public Next apps (`nextjs/saas-starter`,
+`vercel/commerce`, `t3-oss/create-t3-turbo`) no verdict and no message
+changed; in create-t3-turbo the Heavy Lib walk now reaches 16 modules instead
+of 12 and the Client Props walk 26 instead of 11, the difference being
+workspace-package code.
+
 ### 🐛 Fixed — without `typescript`, two testing laws judged by a regex and said nothing (#427)
 
 `CodeText.codeOnly` (the code of a file, without its comments and strings) fell

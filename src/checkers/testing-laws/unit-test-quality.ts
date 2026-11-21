@@ -15,7 +15,10 @@ import {
   parserUnavailable,
 } from '../../utils/react/tsx-source';
 import { AsyncTestAnalyzer } from '../../utils/testing/async-test-analyzer';
-import { TestCoverageAnalyzer } from '../../utils/testing/test-coverage-analyzer';
+import {
+  TestCoverageAnalyzer,
+  TestCoverageAnalyzerConfiguration,
+} from '../../utils/testing/test-coverage-analyzer';
 import { TestStructureAnalyzer } from '../../utils/testing/test-structure-analyzer';
 import { TestingLawBase } from './testing-law-base';
 
@@ -52,7 +55,7 @@ export class UnitTestQualityLaw extends TestingLawBase {
     );
     if (!ts) {
       violations.push(
-        `${parserUnavailable(context.projectRoot, `the async patterns of the ${testFiles.length} test file(s)`)}`
+        `${parserUnavailable(context.projectRoot, `the async and mocking patterns of the ${testFiles.length} test file(s)`)}`
       );
     }
     violations.push(...qualityAnalysis.violations);
@@ -127,18 +130,30 @@ export class UnitTestQualityLaw extends TestingLawBase {
         // chain, a timer or a done callback written inside a fixture string
         // is the input of a test, not what the test does. Without the
         // parser the patterns are not read (said once, by the caller).
-        const asyncAnalysis = AsyncTestAnalyzer.analyzeAsyncPatterns(
-          ts ? CodeText.codeOnly(content, file, projectRoot) : ''
-        );
+        const code = ts ? CodeText.codeOnly(content, file, projectRoot) : '';
+        const asyncAnalysis = AsyncTestAnalyzer.analyzeAsyncPatterns(code);
         const asyncViolations = ts ? asyncAnalysis.asyncIssues : [];
         violations.push(...asyncViolations.map(named));
         const asyncSuggestions = asyncAnalysis.recommendations;
         suggestions.push(...asyncSuggestions);
 
         // Coverage analysis
+        // The mocking checks read the same code and the clients the file
+        // loads, from its syntax tree (#429); without the parser, not at all.
         const coverageAnalysis = TestCoverageAnalyzer.analyzeCoverage(
           content,
-          shown
+          shown,
+          ts
+            ? {
+                code,
+                networkClients:
+                  TestCoverageAnalyzerConfiguration.networkClientsImported(
+                    ts,
+                    content,
+                    file
+                  ),
+              }
+            : null
         );
         const coverageViolations = this.extractViolations(coverageAnalysis);
         violations.push(...coverageViolations.map(named));

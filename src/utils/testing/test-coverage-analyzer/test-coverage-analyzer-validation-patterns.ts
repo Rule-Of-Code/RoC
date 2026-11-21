@@ -1,5 +1,13 @@
+import { CodeText } from '../../code-text';
 import { FileUtils } from '../../file-utils';
+import { loadTypeScript } from '../../react/tsx-source';
 import { TestCoverageAnalyzerConfiguration } from './test-coverage-analyzer-configuration';
+
+/** A test file's code (comments and literals blanked) and the clients it loads. */
+export interface CodeReading {
+  code: string;
+  networkClients: string[];
+}
 
 /**
  * Test Coverage Analyzer Validation Patterns
@@ -12,11 +20,18 @@ export class TestCoverageAnalyzerValidationPatterns {
    * RULE 2: Configuration-driven iteration replaces duplicate if-checks
    * Eliminates 4 separate if-blocks with single unified loop
    */
-  static detectMockingIssues(content: string): string[] {
+  static detectMockingIssues(
+    content: string,
+    code: string | null = TestCoverageAnalyzerValidationPatterns.read(content)
+      ?.code ?? null
+  ): string[] {
     const issues: string[] = [];
 
     for (const config of TestCoverageAnalyzerConfiguration.MOCKING_ISSUE_DETECTION_CONFIGS) {
-      if (config.checker(content)) {
+      // A check that reads code is not run on text when there is no code
+      // to read (no parser): the caller says the file was not read (#427).
+      const subject = config.readsCode ? code : content;
+      if (subject !== null && config.checker(subject)) {
         issues.push(config.message);
       }
     }
@@ -45,28 +60,57 @@ export class TestCoverageAnalyzerValidationPatterns {
    * Analyze coverage and edge cases using centralized Configuration
    * RULE 2: Unified analysis method replaces multiple boolean checks
    */
-  static analyzeCoverageAndEdgeCases(content: string): {
+  static analyzeCoverageAndEdgeCases(
+    content: string,
+    reading: CodeReading | null = TestCoverageAnalyzerValidationPatterns.read(
+      content
+    )
+  ): {
     testsEdgeCases: boolean;
-    hasDependencies: boolean;
+    /** The network and service clients the test loads with no double in its code. */
+    unmockedClients: string[];
     usesMocks: boolean;
     mockingIssues: string[];
     edgeCaseRecommendations: string[];
   } {
     const testsEdgeCases =
       TestCoverageAnalyzerConfiguration.testsEdgeCases(content);
-    const hasDependencies =
-      TestCoverageAnalyzerConfiguration.hasDependencies(content);
+    const unmockedClients =
+      reading && !TestCoverageAnalyzerConfiguration.hasTestDouble(reading.code)
+        ? reading.networkClients
+        : [];
     const usesMocks = TestCoverageAnalyzerConfiguration.usesMocks(content);
-    const mockingIssues = this.detectMockingIssues(content);
+    const mockingIssues = this.detectMockingIssues(
+      content,
+      reading?.code ?? null
+    );
     const edgeCaseRecommendations =
       this.generateEdgeCaseRecommendations(content);
 
     return {
       testsEdgeCases,
-      hasDependencies,
+      unmockedClients,
       usesMocks,
       mockingIssues,
       edgeCaseRecommendations,
+    };
+  }
+
+  /**
+   * What the mocking checks read of a file, with this machine's parser —
+   * for a direct caller; the law builds it once per file, with the
+   * project's parser, or passes null when there is none.
+   */
+  static read(content: string, fileName = 'file.ts'): CodeReading | null {
+    const ts = loadTypeScript(process.cwd());
+    if (!ts) return null;
+    return {
+      code: CodeText.codeOnly(content, fileName),
+      networkClients: TestCoverageAnalyzerConfiguration.networkClientsImported(
+        ts,
+        content,
+        fileName
+      ),
     };
   }
 
@@ -75,7 +119,11 @@ export class TestCoverageAnalyzerValidationPatterns {
    */
   static analyzeCoverage(
     content: string,
-    file: string
+    file: string,
+    reading: CodeReading | null = TestCoverageAnalyzerValidationPatterns.read(
+      content,
+      file
+    )
   ): {
     violations: string[];
     suggestions: string[];
@@ -84,7 +132,7 @@ export class TestCoverageAnalyzerValidationPatterns {
     const violations: string[] = [];
     const suggestions: string[] = [];
 
-    const coverageAndEdges = this.analyzeCoverageAndEdgeCases(content);
+    const coverageAndEdges = this.analyzeCoverageAndEdgeCases(content, reading);
 
     violations.push(...coverageAndEdges.mockingIssues);
     suggestions.push(...coverageAndEdges.edgeCaseRecommendations);
@@ -102,14 +150,17 @@ export class TestCoverageAnalyzerValidationPatterns {
       );
     }
 
-    if (coverageAndEdges.hasDependencies && !coverageAndEdges.usesMocks) {
+    // A network or service client loaded with no double (#429). The module
+    // under test, the filesystem and a child process are not such a
+    // dependency; the finding names the clients.
+    if (coverageAndEdges.unmockedClients.length > 0) {
       TestCoverageAnalyzerConfiguration.addViolationSuggestionPair(
         violations,
         suggestions,
         TestCoverageAnalyzerConfiguration.COVERAGE_MESSAGES.DEPENDENCIES_WITHOUT_MOCKS_VIOLATION.replace(
           '{fileName}',
           file
-        ),
+        ).replace('{clients}', coverageAndEdges.unmockedClients.join(', ')),
         TestCoverageAnalyzerConfiguration.COVERAGE_MESSAGES
           .DEPENDENCIES_WITHOUT_MOCKS_SUGGESTION
       );

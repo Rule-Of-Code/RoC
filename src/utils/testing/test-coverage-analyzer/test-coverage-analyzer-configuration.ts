@@ -3,6 +3,8 @@
  * Centralized configuration for coverage patterns and validation (RULE 1: Single source of truth)
  * Eliminates hardcoded patterns and messages scattered across methods
  */
+import type * as TS from 'typescript';
+import { UnitTestDataManagementConstants } from '../../../laws/testing/unit-test-data-management/constants/data-management';
 
 /**
  * Configuration for mocking issue detection (RULE 1: Single source of truth)
@@ -11,6 +13,11 @@
 interface MockingIssueDetectionConfig {
   checker: (content: string) => boolean;
   message: string;
+  /**
+   * The checker reads the file's CODE (CodeText.codeOnly), not its text: a
+   * request written inside a fixture string is not one the test makes.
+   */
+  readsCode?: true;
 }
 
 /**
@@ -95,15 +102,22 @@ export class TestCoverageAnalyzerConfiguration {
   } as const;
 
   /**
-   * Dependency detection patterns
-   * Note: Not using /g flag since these are used with .test()
+   * The external clients Test Data Management names (one table) that a unit
+   * test can run for real on its own machine: the filesystem and a child
+   * process. A test that builds a temp-dir fixture or spawns the CLI it
+   * ships is an integration test by design; a double there would remove the
+   * very thing it checks. What is left reaches a network or a shared service.
    */
-  static readonly DEPENDENCY_PATTERNS = {
-    IMPORT_STATEMENT: /import\s+.*from/,
-    REQUIRE_CALL: /require\s*\(/,
-    INJECT_FUNCTION: /inject\(/,
-    TEST_BED: /TestBed/,
-  } as const;
+  static readonly LOCAL_PROCESS_MODULE =
+    /^(?:node:)?(?:fs|fs\/promises|child_process)$/;
+
+  /**
+   * A double in the CODE of a test: what Test Data Management recognises
+   * (jest/vi mocks, spies, sinon, msw, nock, Angular's HTTP testing
+   * backend) or a hand-written one named for what it is (`fakeClient`,
+   * `stubApi`, `mockHttp`).
+   */
+  static readonly DOUBLE_NAME_PATTERN = /mock|spy|stub|fake|sinon/i;
 
   /**
    * Mock detection patterns
@@ -206,13 +220,15 @@ export class TestCoverageAnalyzerConfiguration {
         // matched a URL in a comment, a JSDoc link and an import path, so a spec
         // that makes no network request at all was told to mock its HTTP calls —
         // a message that sends the reader looking for code that is not there.
-        checker: (content: string) =>
-          TestCoverageAnalyzerConfiguration.HTTP_CALL_PATTERN.test(content) &&
-          !content.includes('mock') &&
-          !content.includes('stub'),
+        // Read from the code (#429): a `fetch(` inside a detector's fixture
+        // string is the input of a test, not a request it makes.
+        checker: (code: string) =>
+          TestCoverageAnalyzerConfiguration.HTTP_CALL_PATTERN.test(code) &&
+          !TestCoverageAnalyzerConfiguration.hasTestDouble(code),
         message:
           TestCoverageAnalyzerConfiguration.MOCKING_ISSUE_MESSAGES
             .UNMOCKED_HTTP_CALLS,
+        readsCode: true,
       },
       {
         checker: (content: string): boolean => {
@@ -329,7 +345,7 @@ export class TestCoverageAnalyzerConfiguration {
     NO_EDGE_CASES_SUGGESTION:
       'Add tests for edge cases like null, undefined, empty values',
     DEPENDENCIES_WITHOUT_MOCKS_VIOLATION:
-      'Dependencies found but no mocking detected in {fileName}',
+      'Dependencies found but no mocking detected in {fileName} ({clients})',
     DEPENDENCIES_WITHOUT_MOCKS_SUGGESTION:
       'Consider using mocks for external dependencies',
   } as const;
@@ -375,11 +391,68 @@ export class TestCoverageAnalyzerConfiguration {
   }
 
   /**
-   * Check if content has dependencies
+   * The network and service clients a test file loads, from its syntax tree:
+   * `import … from`, a side-effect `import`, `export … from`, `import x =
+   * require()`, `require()` and `import()` with a literal specifier. An
+   * import of the code under test, a Node built-in that stays on the
+   * machine, or a package that is not a client is not a dependency to mock
+   * (#429) — before, any `import … from`, `require(`, `inject(` or `TestBed`
+   * was one. A type-only import loads nothing and is not counted.
    */
-  static hasDependencies(content: string): boolean {
-    return Object.values(this.DEPENDENCY_PATTERNS).some(pattern =>
-      pattern.test(content)
+  static networkClientsImported(
+    ts: typeof TS,
+    content: string,
+    fileName: string
+  ): string[] {
+    const source = ts.createSourceFile(
+      fileName,
+      content,
+      ts.ScriptTarget.Latest,
+      true
+    );
+    const found = new Set<string>();
+    const add = (node: TS.Node | undefined): void => {
+      if (!node || !ts.isStringLiteralLike(node)) return;
+      const specifier = node.text;
+      if (
+        UnitTestDataManagementConstants.EXTERNAL_CLIENT_MODULE.test(
+          specifier
+        ) &&
+        !this.LOCAL_PROCESS_MODULE.test(specifier)
+      ) {
+        found.add(specifier);
+      }
+    };
+    const visit = (node: TS.Node): void => {
+      if (ts.isImportDeclaration(node)) {
+        if (!node.importClause?.isTypeOnly) add(node.moduleSpecifier);
+      } else if (ts.isExportDeclaration(node)) {
+        if (!node.isTypeOnly) add(node.moduleSpecifier);
+      } else if (
+        ts.isImportEqualsDeclaration(node) &&
+        !node.isTypeOnly &&
+        ts.isExternalModuleReference(node.moduleReference)
+      ) {
+        add(node.moduleReference.expression);
+      } else if (
+        ts.isCallExpression(node) &&
+        ((ts.isIdentifier(node.expression) &&
+          node.expression.text === 'require') ||
+          node.expression.kind === ts.SyntaxKind.ImportKeyword)
+      ) {
+        add(node.arguments[0]);
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+    return [...found];
+  }
+
+  /** Whether the CODE of a test file holds a test double (see DOUBLE_NAME_PATTERN). */
+  static hasTestDouble(code: string): boolean {
+    return (
+      UnitTestDataManagementConstants.hasTestDouble(code) ||
+      this.DOUBLE_NAME_PATTERN.test(code)
     );
   }
 

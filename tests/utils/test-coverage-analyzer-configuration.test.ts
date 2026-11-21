@@ -3,6 +3,8 @@
  *
  * Tests the test coverage analyzer configuration patterns and methods.
  */
+import ts from 'typescript';
+
 import { TestCoverageAnalyzerConfiguration } from '../../src/utils/testing/test-coverage-analyzer/test-coverage-analyzer-configuration';
 
 describe('TestCoverageAnalyzerConfiguration', () => {
@@ -175,37 +177,20 @@ describe('TestCoverageAnalyzerConfiguration', () => {
     });
   });
 
-  describe('DEPENDENCY_PATTERNS', () => {
-    it('should have IMPORT_STATEMENT pattern', () => {
-      expect(
-        TestCoverageAnalyzerConfiguration.DEPENDENCY_PATTERNS.IMPORT_STATEMENT.test(
-          'import x from "y"'
-        )
-      ).toBe(true);
-    });
+  describe('LOCAL_PROCESS_MODULE', () => {
+    it.each(['fs', 'node:fs', 'fs/promises', 'child_process'])(
+      'reads %s as a local process boundary',
+      specifier => {
+        expect(
+          TestCoverageAnalyzerConfiguration.LOCAL_PROCESS_MODULE.test(specifier)
+        ).toBe(true);
+      }
+    );
 
-    it('should have REQUIRE_CALL pattern', () => {
+    it('does not read a network module as local', () => {
       expect(
-        TestCoverageAnalyzerConfiguration.DEPENDENCY_PATTERNS.REQUIRE_CALL.test(
-          'require("module")'
-        )
-      ).toBe(true);
-    });
-
-    it('should have INJECT_FUNCTION pattern', () => {
-      expect(
-        TestCoverageAnalyzerConfiguration.DEPENDENCY_PATTERNS.INJECT_FUNCTION.test(
-          'inject(Service)'
-        )
-      ).toBe(true);
-    });
-
-    it('should have TEST_BED pattern', () => {
-      expect(
-        TestCoverageAnalyzerConfiguration.DEPENDENCY_PATTERNS.TEST_BED.test(
-          'TestBed.configureTestingModule'
-        )
-      ).toBe(true);
+        TestCoverageAnalyzerConfiguration.LOCAL_PROCESS_MODULE.test('http')
+      ).toBe(false);
     });
   });
 
@@ -566,7 +551,9 @@ describe('TestCoverageAnalyzerConfiguration', () => {
       expect(
         TestCoverageAnalyzerConfiguration.COVERAGE_MESSAGES
           .DEPENDENCIES_WITHOUT_MOCKS_VIOLATION
-      ).toBe('Dependencies found but no mocking detected in {fileName}');
+      ).toBe(
+        'Dependencies found but no mocking detected in {fileName} ({clients})'
+      );
     });
 
     it('should have DEPENDENCIES_WITHOUT_MOCKS_SUGGESTION message', () => {
@@ -601,33 +588,70 @@ describe('TestCoverageAnalyzerConfiguration', () => {
     });
   });
 
-  describe('hasDependencies', () => {
-    it('should return true for import statement', () => {
-      const content = 'import { Service } from "./service"';
-      expect(TestCoverageAnalyzerConfiguration.hasDependencies(content)).toBe(
-        true
+  describe('networkClientsImported', () => {
+    const clients = (content: string): string[] =>
+      TestCoverageAnalyzerConfiguration.networkClientsImported(
+        ts,
+        content,
+        'x.test.ts'
       );
+
+    it('names the network and service clients a test loads', () => {
+      expect(
+        clients(
+          [
+            "import axios from 'axios';",
+            "import { Pool } from 'pg';",
+            "const https = require('node:https');",
+            "const s3 = await import('@aws-sdk/client-s3');",
+          ].join('\n')
+        )
+      ).toEqual(['axios', 'pg', 'node:https', '@aws-sdk/client-s3']);
     });
 
-    it('should return true for require call', () => {
-      const content = 'const module = require("module")';
-      expect(TestCoverageAnalyzerConfiguration.hasDependencies(content)).toBe(
-        true
-      );
+    it('does not count the code under test, fs, child_process or other packages', () => {
+      expect(
+        clients(
+          [
+            "import { audit } from '../src/audit';",
+            "import fs from 'fs';",
+            "import { execFileSync } from 'child_process';",
+            "import ts from 'typescript';",
+            'TestBed.configureTestingModule({ providers: [inject(Svc)] });',
+          ].join('\n')
+        )
+      ).toEqual([]);
     });
 
-    it('should return true for TestBed', () => {
-      const content = 'TestBed.configureTestingModule({})';
-      expect(TestCoverageAnalyzerConfiguration.hasDependencies(content)).toBe(
-        true
-      );
+    it('does not count a type-only import, or a client named in a string or comment', () => {
+      expect(
+        clients(
+          [
+            "import type { AxiosInstance } from 'axios';",
+            "// import axios from 'axios';",
+            'const fixture = "import { Pool } from \'pg\';";',
+          ].join('\n')
+        )
+      ).toEqual([]);
+    });
+  });
+
+  describe('hasTestDouble', () => {
+    it.each([
+      "jest.mock('axios');",
+      'const spy = jest.spyOn(api, "get");',
+      'const fakeClient = { get: () => Promise.resolve(1) };',
+      'TestBed.configureTestingModule({ imports: [HttpClientTestingModule] });',
+    ])('recognises a double in %s', code => {
+      expect(TestCoverageAnalyzerConfiguration.hasTestDouble(code)).toBe(true);
     });
 
-    it('should return false for no dependencies', () => {
-      const content = 'const x = 1;';
-      expect(TestCoverageAnalyzerConfiguration.hasDependencies(content)).toBe(
-        false
-      );
+    it('finds none in code that calls a client for real', () => {
+      expect(
+        TestCoverageAnalyzerConfiguration.hasTestDouble(
+          'const r = await axios.get("");'
+        )
+      ).toBe(false);
     });
   });
 

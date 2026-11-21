@@ -12,6 +12,7 @@ import {
 } from '../../utils/config/roc-config-presence';
 import { PathOperations } from '../../utils/path-operations';
 import { dependenciesIncludeRuleOfCode } from '../../utils/ruleofcode-package';
+import { auditInvocations } from '../../utils/audit-invocation';
 import {
   runsConstitutionalAudit,
   complianceScriptSuggestion,
@@ -117,7 +118,12 @@ export class ConstitutionalSupremacyLaw {
         // had no constitutional enforcement. The remedy that invites is
         // `"check:laws": "npm run audit"`: a number moves, a gate does not
         // appear, which is the edit this tool exists to argue against.
-        if (!runsConstitutionalAudit(packageJson.scripts)) {
+        // ... nor only in package scripts: a committed git hook or a CI step
+        // that runs the audit is the same enforcement (#434).
+        if (
+          !runsConstitutionalAudit(packageJson.scripts) &&
+          auditInvocations(projectRoot).length === 0
+        ) {
           violations.push('No constitutional law enforcement scripts');
           suggestions.push(complianceScriptSuggestion());
         }

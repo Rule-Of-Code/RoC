@@ -134,7 +134,7 @@ export const VERSION_CONTROL_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'It reads configuration files, not real pull requests — it can never see whether reviews actually happen.',
-      'The required-scripts violation is package.json-only, so a repo with no package.json skips that check instead of failing it.',
+      'The required-scripts violation is package.json-only, so a repo with no package.json skips that check instead of failing it. precommit / prepush are also met by a committed git hook of that name (.husky, .githooks, lefthook, pre-commit config, simple-git-hooks).',
       'When .github/ is absent the template and CODEOWNERS checks become suggestions, leaving only the CI-presence violations live.',
     ],
     emoji: '🔄',

@@ -81,7 +81,7 @@ export class ReactProject {
       return {
         sources: [],
         unread: [
-          `${files.length} file(s): ${parserUnavailable(context.projectRoot)}`,
+          `${files.length} file(s): ${parserUnavailable(context.projectRoot, `the ${ReactProject.extensionsOf(files)} file(s)`)}`,
         ],
       };
     }
@@ -110,6 +110,14 @@ export class ReactProject {
   }
 
   /** A path relative to the project root, with forward slashes, for messages. */
+  /** `.ts/.tsx`: the extensions of `files`, so a note names what was not read. */
+  static extensionsOf(files: readonly string[]): string {
+    const extensions = new Set(
+      files.map(file => PathOperations.getExtension(file) || '(none)')
+    );
+    return [...extensions].sort().join('/');
+  }
+
   static relative(context: LawCheckContext, file: string): string {
     return PathOperations.getRelative(context.projectRoot, file);
   }

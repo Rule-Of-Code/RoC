@@ -30,6 +30,34 @@ function isAsync(ts: typeof TS, node: TS.Node): boolean {
   );
 }
 
+/** The name of an async function: `async function f`, `const f = async () =>`. */
+function asyncFunctionName(ts: typeof TS, node: TS.Node): string | null {
+  if (ts.isFunctionDeclaration(node))
+    return node.name && isAsync(ts, node) ? node.name.text : null;
+  if (!ts.isVariableDeclaration(node) || !ts.isIdentifier(node.name))
+    return null;
+  const init = node.initializer;
+  const isFunction =
+    !!init && (ts.isArrowFunction(init) || ts.isFunctionExpression(init));
+  return isFunction && isAsync(ts, init) ? node.name.text : null;
+}
+
+/** The names of a class's async methods. */
+function asyncMethodNames(
+  ts: typeof TS,
+  node: TS.ClassDeclaration
+): Set<string> {
+  const names = new Set<string>();
+  for (const member of node.members)
+    if (
+      ts.isMethodDeclaration(member) &&
+      ts.isIdentifier(member.name) &&
+      isAsync(ts, member)
+    )
+      names.add(member.name.text);
+  return names;
+}
+
 /** Names of the async functions, and of the async methods per class, the file declares. */
 function asyncDeclarations(
   ts: typeof TS,
@@ -38,28 +66,10 @@ function asyncDeclarations(
   const functions = new Set<string>();
   const methods = new Map<string, Set<string>>();
   const visit = (node: TS.Node): void => {
-    if (ts.isFunctionDeclaration(node) && node.name && isAsync(ts, node))
-      functions.add(node.name.text);
-    if (
-      ts.isVariableDeclaration(node) &&
-      ts.isIdentifier(node.name) &&
-      node.initializer &&
-      (ts.isArrowFunction(node.initializer) ||
-        ts.isFunctionExpression(node.initializer)) &&
-      isAsync(ts, node.initializer)
-    )
-      functions.add(node.name.text);
-    if (ts.isClassDeclaration(node) && node.name) {
-      const names = new Set<string>();
-      for (const member of node.members)
-        if (
-          ts.isMethodDeclaration(member) &&
-          ts.isIdentifier(member.name) &&
-          isAsync(ts, member)
-        )
-          names.add(member.name.text);
-      methods.set(node.name.text, names);
-    }
+    const name = asyncFunctionName(ts, node);
+    if (name) functions.add(name);
+    if (ts.isClassDeclaration(node) && node.name)
+      methods.set(node.name.text, asyncMethodNames(ts, node));
     ts.forEachChild(node, visit);
   };
   visit(source);

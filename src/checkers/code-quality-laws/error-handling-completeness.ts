@@ -155,41 +155,41 @@ export class ErrorHandlingCompletenessLaw extends CodeQualityLawBase {
       );
     }
 
-    const tryBlocks = code.match(/try\s*{/g) ?? [];
-    const catchBlocks = code.match(/\.catch\(/g) ?? [];
+    violations.push(...this.guardingGaps(code));
 
-    // Check for HTTP requests without error handling
-    // More specific patterns to avoid false positives (FormBuilder.get, Map.get, provideHttpClient, etc.)
-    // Exclude Angular config files which only provide HTTP client, not use it
+    return { violations, suggestions: [] };
+  }
+
+  /**
+   * HTTP calls and event listeners in a file with no try/catch at all —
+   * judged on the code view (strings and comments blanked). Angular config
+   * files only provide the HTTP client and the global listeners; they are
+   * not judged.
+   */
+  private static guardingGaps(code: string): string[] {
     const isAngularConfig =
       code.includes('ApplicationConfig') ||
       code.includes('provideRouter') ||
       code.includes('CapacitorConfig');
+    if (isAngularConfig) return [];
+    return [...this.unguardedHttp(code), ...this.unguardedListeners(code)];
+  }
 
-    const httpRequests =
-      code.match(/(fetch\(|axios\.|this\.http\.|\.httpClient\.)/g) ?? [];
-    if (
-      httpRequests.length > 0 &&
-      tryBlocks.length === 0 &&
-      catchBlocks.length === 0 &&
-      !isAngularConfig
-    ) {
-      violations.push('HTTP requests without error handling');
-    }
+  /** fetch / axios / HttpClient calls in a file with no try {} and no .catch(). */
+  private static unguardedHttp(code: string): string[] {
+    // Specific patterns: FormBuilder.get, Map.get, provideHttpClient are not calls.
+    const hasHttp = /(fetch\(|axios\.|this\.http\.|\.httpClient\.)/.test(code);
+    const guarded = /try\s*{/.test(code) || /\.catch\(/.test(code);
+    return hasHttp && !guarded ? ['HTTP requests without error handling'] : [];
+  }
 
-    // Check for event listeners without error handling
-    // Exclude Angular provider functions (provideBrowserGlobalErrorListeners, etc)
-    const eventListeners = code.match(/addEventListener\(/g) ?? [];
-    if (
-      eventListeners.length > 0 &&
-      !code.includes('try') &&
-      !code.includes('catch') &&
-      !isAngularConfig // Don't flag Angular config files
-    ) {
-      violations.push('event handlers without error handling');
-    }
-
-    return { violations, suggestions: [] };
+  /** addEventListener in a file with no try and no catch. */
+  private static unguardedListeners(code: string): string[] {
+    const hasListener = code.includes('addEventListener(');
+    const guarded = code.includes('try') || code.includes('catch');
+    return hasListener && !guarded
+      ? ['event handlers without error handling']
+      : [];
   }
 
   private static checkGlobalErrorHandling(projectRoot: string): {

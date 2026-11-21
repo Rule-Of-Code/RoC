@@ -1,9 +1,12 @@
 import { ConfigFileUtils } from '../config-file-utils';
+import { notReadNote, readJsonManifest } from '../json-manifest';
 import { ProjectTypeDetector } from '../config/project-type-detector';
 import { ProjectTypeDetectorValidation } from '../config/project-type-detector/project-type-detector-validation';
 import { DirectoryScanner } from '../directory-scanner';
 import { FileUtils } from '../file-utils';
 import { PathOperations } from '../path-operations';
+const PACKAGE_JSON = 'package.json';
+
 /**
  * Security Policy Checker
  * Specialized utility for checking security policies and audit resolution configuration
@@ -41,12 +44,13 @@ export class SecurityPolicyChecker {
         let scoreModifier = 0;
 
         const hasAuditConfig = this.checkNpmrcAuditConfig(projectRoot);
-        const hasPackageAuditConfig =
-          this.checkPackageJsonAuditConfig(projectRoot);
+        const packageAudit = this.checkPackageJsonAuditConfig(projectRoot);
+        // An unreadable package.json is said so, not "no audit config" (#486).
+        if (typeof packageAudit === 'string') violations.push(packageAudit);
         const hasAuditResolveFile = this.checkAuditResolveFiles(projectRoot);
 
         // Evaluate audit resolve configuration
-        if (!hasAuditConfig && !hasPackageAuditConfig && !hasAuditResolveFile) {
+        if (!hasAuditConfig && !packageAudit && !hasAuditResolveFile) {
           violations.push('No audit resolution configuration found');
           suggestions.push(
             'Configure audit-level in .npmrc or add audit scripts'
@@ -88,15 +92,21 @@ export class SecurityPolicyChecker {
     return false;
   }
 
-  private static checkPackageJsonAuditConfig(projectRoot: string): boolean {
-    const packageJsonPath = PathOperations.join(projectRoot, 'package.json');
+  /**
+   * Whether package.json declares an audit script or tool; the not-read note
+   * when it cannot be read. RoC's own config loader read it before, and
+   * returned null for every package.json (#486).
+   */
+  private static checkPackageJsonAuditConfig(projectRoot: string) {
+    const packageJsonPath = PathOperations.join(projectRoot, PACKAGE_JSON);
+    const read = readJsonManifest(packageJsonPath);
+    if (read.notRead && FileUtils.exists(packageJsonPath))
+      return notReadNote(PACKAGE_JSON, read.notRead, 'its scripts were');
 
-    if (FileUtils.exists(packageJsonPath)) {
+    if (read.data) {
       try {
-        const packageJson = ConfigFileUtils.loadConfig(packageJsonPath);
-
         // Check for audit scripts
-        const scripts = (packageJson?.scripts ?? {}) as Record<string, string>;
+        const scripts = (read.data.scripts ?? {}) as Record<string, string>;
         const auditScripts = [
           'audit',
           'security',

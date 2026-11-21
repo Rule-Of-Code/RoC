@@ -4,9 +4,14 @@
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { FileSystemOperations } from '../../utils/file-system-operations';
+import {
+  ESLINTRC_DATA_FILES,
+  readPackageJsonESLintConfig,
+} from '../../utils/eslint-config-json';
 import { FileUtils } from '../../utils/file-utils';
+import { notReadNote } from '../../utils/json-manifest';
 import { PathOperations } from '../../utils/path-operations';
+import { readTsconfigChain } from '../../utils/tsconfig-chain';
 import { SacredLawBase } from './sacred-law-base';
 
 export class ZeroToleranceLaw {
@@ -14,33 +19,16 @@ export class ZeroToleranceLaw {
     const { projectRoot } = context;
     const violations: string[] = [];
 
-    // Check TypeScript config for strict mode
-    const tsConfig = this.getTsConfig(projectRoot);
-    const compilerOptions = (tsConfig?.compilerOptions || {}) as Record<
-      string,
-      unknown
-    >;
+    this.checkTsConfig(projectRoot, violations);
 
-    if (!tsConfig || !compilerOptions.strict) {
-      violations.push('TypeScript strict mode not enabled');
-    }
-    if (!tsConfig || !compilerOptions.noImplicitAny) {
-      violations.push('TypeScript noImplicitAny not enabled');
-    }
-
-    // Check for ESLint config
-    const hasESLint =
-      FileUtils.fileExistsSync(
-        PathOperations.join(projectRoot, 'eslint.config.js')
-      ) ||
-      FileUtils.fileExistsSync(
-        PathOperations.join(projectRoot, 'eslint.config.mjs')
-      ) ||
-      FileUtils.fileExistsSync(
-        PathOperations.join(projectRoot, '.eslintrc.js')
-      );
-
-    if (!hasESLint) {
+    // Any ESLint config counts: flat, legacy (.eslintrc.json/.yaml/…) or
+    // package.json `eslintConfig`. Only three names were known, so a
+    // project configured by .eslintrc.json read "ESLint configuration not
+    // found" (#486).
+    const eslint = this.eslintConfigured(projectRoot);
+    if (typeof eslint === 'string') {
+      violations.push(eslint);
+    } else if (!eslint) {
       violations.push('ESLint configuration not found');
     }
 
@@ -56,17 +44,78 @@ export class ZeroToleranceLaw {
     );
   }
 
-  private static getTsConfig(
-    projectRoot: string
-  ): Record<string, unknown> | null {
-    const tsConfigPath = PathOperations.join(projectRoot, 'tsconfig.json');
-    if (!FileUtils.fileExistsSync(tsConfigPath)) return null;
+  /** The ESLint config files, flat and legacy, that configure a project. */
+  private static readonly ESLINT_CONFIG_FILES = [
+    'eslint.config.js',
+    'eslint.config.mjs',
+    'eslint.config.cjs',
+    'eslint.config.ts',
+    'eslint.config.mts',
+    'eslint.config.cts',
+    '.eslintrc.js',
+    '.eslintrc.cjs',
+    ...ESLINTRC_DATA_FILES,
+  ];
 
-    // tsconfig.json is JSONC — a plain JSON.parse threw on comments and reported
-    // strict as "not enabled" on a config that had it (a false failure).
-    return FileSystemOperations.readJsoncFile<Record<string, unknown> | null>(
-      tsConfigPath,
-      null
+  /** Whether an ESLint config exists; the note when only package.json could tell and was not read. */
+  private static eslintConfigured(projectRoot: string): boolean | string {
+    const at = (name: string): string => PathOperations.join(projectRoot, name);
+    if (
+      this.ESLINT_CONFIG_FILES.some(name => FileUtils.fileExistsSync(at(name)))
+    ) {
+      return true;
+    }
+    if (!FileUtils.fileExistsSync(at('package.json'))) return false;
+    const read = readPackageJsonESLintConfig(
+      at('package.json'),
+      'whether it holds an ESLint config (eslintConfig) was'
     );
+    return read?.notRead ?? read !== null;
+  }
+
+  /**
+   * strict and noImplicitAny from tsconfig.json, its `extends` chain merged
+   * (JSONC). An unparseable tsconfig read as "strict mode not enabled" (#486);
+   * it is said to be NOT read, and so is a flag a base that could not be read
+   * may set.
+   */
+  private static checkTsConfig(
+    projectRoot: string,
+    violations: string[]
+  ): void {
+    const tsConfigPath = PathOperations.join(projectRoot, 'tsconfig.json');
+    if (!FileUtils.fileExistsSync(tsConfigPath)) {
+      violations.push('TypeScript strict mode not enabled');
+      violations.push('TypeScript noImplicitAny not enabled');
+      return;
+    }
+    const chain = readTsconfigChain(tsConfigPath);
+    if (chain.notRead !== undefined) {
+      violations.push(
+        notReadNote(
+          'tsconfig.json',
+          chain.notRead,
+          'strict and noImplicitAny were'
+        )
+      );
+      return;
+    }
+    const unknown: string[] = [];
+    for (const [flag, finding] of [
+      ['strict', 'TypeScript strict mode not enabled'],
+      ['noImplicitAny', 'TypeScript noImplicitAny not enabled'],
+    ] as const) {
+      if (chain.options[flag]) continue;
+      if (chain.unread.length > 0 && chain.options[flag] === undefined) {
+        unknown.push(flag);
+      } else {
+        violations.push(finding);
+      }
+    }
+    if (unknown.length > 0) {
+      violations.push(
+        `tsconfig.json extends ${chain.unread.map(e => JSON.stringify(e)).join(', ')}, which could not be read — ${unknown.join(' and ')} ${unknown.length > 1 ? 'were' : 'was'} NOT read`
+      );
+    }
   }
 }

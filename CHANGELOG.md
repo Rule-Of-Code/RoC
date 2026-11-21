@@ -33,6 +33,20 @@ no users' data to declare.
 Self-audit of this repository: Security Vulnerability Response 2 → 0
 findings.
 
+### Internal — two copied helpers read through their one implementation
+
+Code Duplication Control reported three copies in our own code; two are
+removed here. `GlobUtils` carried its own `createTypePattern`,
+`createMultiExtensionPattern`, `getStandardPatterns` and `getFilePatterns`,
+line for line the functions of `file-patterns`; it now delegates to them, and
+its unused `createTypePattern` is gone. `commit-scope` carried its own
+`execSync` wrapper for git; it now reads through
+`GitLawBase.executeGitCommand` (made public for it), with the same result:
+trimmed stdout, or null when git fails or prints nothing. No output changes.
+
+A test title in Retention Registry Covers Schema ("is opt-in") was below Test
+Documentation Requirements' minimum length; it now says what it checks.
+
 ### Internal — eslint is a direct devDependency
 
 `npm run lint` runs `eslint .`, but `eslint` was only installed as a peer of
@@ -42,6 +56,41 @@ and Professional Excellence ("Missing eslint for Code linting") reported that
 on the self-audit, and they were right. `eslint` `^9.39.5` — the version
 already in the lockfile — is now a devDependency; the lockfile changes only
 by dropping the `peer` flag from eslint and its dependencies.
+
+### 🐛 Fixed — package.json, tsconfig.json and ESLint .json configs are read as what they are (#486)
+
+Eleven places read a file that is not RoC's config — package.json,
+tsconfig.json, `.eslintrc.json`, package.json `eslintConfig` — with RoC's own
+config loader, which returns null for any JSON without `ignores`, `includes`
+or `laws`. The file always came back empty: some laws passed what they never
+read, others reported a valid file as missing. They now go through one reader
+(`readJsonManifest`, `src/utils/json-manifest.ts`; tsconfig and `.eslintrc*`
+as JSONC, tsconfig with its `extends` chain). A file that cannot be read is
+said to be NOT read — never a silent pass, never a TypeError in the findings.
+
+| law | before | after |
+|---|---|---|
+| Absolute Zero Tolerance Doctrine | strict judged by a text search for `"strict"` and `true` (`"strict": false, "sourceMap": true` passed); an invalid tsconfig passed | strict read from the parsed config, `extends` followed; an invalid tsconfig: `tsconfig.json is not valid JSON (…) — its compiler options were NOT read` |
+| Zero Tolerance Doctrine (sacred) | "ESLint configuration not found" unless `eslint.config.js/.mjs` or `.eslintrc.js`; an invalid tsconfig read as "TypeScript strict mode not enabled" | any ESLint config counts (`.eslintrc.json`/`.eslintrc`/YAML, `eslint.config.cjs/.ts/.mts/.cts`, `.eslintrc.cjs`, package.json `eslintConfig`); strict and noImplicitAny read through the `extends` chain; an invalid tsconfig is NOT read |
+| Naming Convention Enforcement | "No ESLint configuration found" next to a valid `.eslintrc.json` or package.json `eslintConfig` | the config is read and its naming rules judged; invalid JSON or YAML is NOT read |
+| Dead Code Elimination | "ESLint dead code detection rules not configured" for any `.eslintrc.json` (the lookup asked for `eslint.json`) | the rules of `.eslintrc.json` / `eslintConfig` are read; the finding stays only where no dead-code rule is configured |
+| Code Complexity Control | an `.eslintrc.json` without complexity rules passed (never read) | **new finding** "ESLint complexity rules not configured" when it has none; an unreadable config is NOT read |
+| Magic Number Prevention | an `.eslintrc.json` without the rule was only a suggestion (never read) | **new finding** "ESLint magic numbers rule not configured" when it has none; an unreadable config is NOT read |
+| Security Vulnerability Response | "Add npm audit script…" with an audit script in package.json; dependency tools never seen | scripts and dependencies are read; an invalid package.json: `… — its scripts and dependencies were NOT read` |
+| Automation First Principle, Continuous Compliance Doctrine | an invalid package.json put "Package.json script check check failed: Cannot read properties of undefined (reading 'scripts')" in the findings | `package.json is not valid JSON (…) — its scripts were NOT read` |
+
+Not a law, same reader: `SecurityPolicyChecker.checkAuditResolve` and
+`LicenseCompatibilityChecker` (src/laws/security/dependency-scanning; it threw
+on the null package.json) and `TypeScriptChecker`. No law calls them.
+
+Removed: the supply-chain risk analyzer (`src/utils/security/supply-chain-risk/`
+— `SupplyChainRiskAnalyzer`, `SupplyChainRiskConfiguration`,
+`SupplyChainRiskValidationPatterns`, `RiskAnalysisResult`) and
+`SecuritySharedUtils.loadPackageJson`, its only reader of package.json. No law
+called them; they were exported from `src/utils/index.ts` and
+`src/utils/security/index.ts`, not from the package entry point.
+
+Self-audit of this repository (develop 63690ed → this branch merged with it): verdict compliance-with-warnings → compliance-with-warnings, 0 waived, score 84 → 84, findings 1095 → 1094. This repository is configured by `eslint.config.mjs` and its package.json and tsconfig.json are valid, so no law that reads them changes. The one difference is Commit Size Control (1 → 0): this branch's commits are each under 500 lines and 10 files and move two larger develop commits out of its last-10 window — a window effect, not a fix.
 
 ### Internal — this repository keeps MD Footer Template on
 

@@ -17,17 +17,13 @@ export interface RequiredDocConfig {
 // Required Documentation Files
 // ============================================================================
 
+// The security policy (SECURITY.md at the root, in docs/ or in .github/ —
+// the three places GitHub reads it from) is judged once, by
+// SecurityPolicyChecker, in the vulnerability-management analysis of the
+// same law. Listing it here too reported one missing file two or three
+// times: as "Security Policy" and again as "Security Documentation" for
+// docs/SECURITY.md (#439).
 export const REQUIRED_DOCS: readonly RequiredDocConfig[] = [
-  {
-    files: [DOC_FILES.SECURITY, '.github/SECURITY.md'],
-    name: 'Security Policy',
-    description: 'vulnerability reporting and security procedures',
-  },
-  {
-    files: ['docs/security.md', 'docs/SECURITY.md'],
-    name: 'Security Documentation',
-    description: 'detailed security implementation and practices',
-  },
   {
     files: ['docs/privacy.md', DOC_FILES.PRIVACY],
     name: 'Privacy Policy',

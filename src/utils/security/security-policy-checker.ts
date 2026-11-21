@@ -179,12 +179,15 @@ export class SecurityPolicyChecker {
     violations: string[],
     suggestions: string[]
   ): number {
+    // The one place the law asks for a security policy (#439): the security
+    // documentation analyzer no longer asks for the same file again.
     const securityFiles = [
       'SECURITY.md',
       'SECURITY.txt',
       'docs/SECURITY.md',
       '.github/SECURITY.md',
       'security.md',
+      'docs/security.md',
     ];
 
     let hasSecurityPolicy = false;

@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Security Vulnerability Response asks for the security policy once (#439)
+
+Before: two analyzers of the law looked for the security policy, each with
+its own file list. A project without one got three findings — "No security
+policy documentation found", "Missing Security Policy documentation" (root or
+`.github/` only) and "Missing Security Documentation documentation" (the
+same `SECURITY.md` in `docs/`) — and a project with `SECURITY.md` at the
+root was still told the `docs/` one was missing.
+
+After: one requirement, one finding ("No security policy documentation
+found"), satisfied by `SECURITY.md` at the root, in `docs/` or in
+`.github/` (the places GitHub reads it from), or `SECURITY.txt` /
+`security.md` / `docs/security.md` as before. The privacy-policy
+requirement is unchanged.
+
+Self-audit of this repository: Security Vulnerability Response 2 → 1 finding
+(the remaining one: no `PRIVACY.md` / `docs/privacy.md`).
+
 ### 🐛 Fixed — a committed PRE_DEPLOYMENT_CHECKLIST.md was reported missing when `includes` name only source (#476)
 
 Pre-Deployment Checklist looked the checklist up through the source scan,

@@ -6,7 +6,7 @@
  * package scripts, committed hooks and CI steps; a project that runs the
  * audit nowhere still fails all three.
  */
-import { execFileSync } from 'child_process';
+import { execFileSync } from '../../src/utils/child-process';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';

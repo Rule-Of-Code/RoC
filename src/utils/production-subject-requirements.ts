@@ -152,21 +152,6 @@ export const REQUIRES_MOBILE_APP: LawRequirement = {
   ],
 };
 
-/**
- * Something users sign in to or call: a web surface, an HTTP API (Node or
- * Python), or a mobile app. A CLI tool or a library has no login, no session
- * and no route to guard, so the laws about authentication and about a
- * privacy policy for users' data have nothing to judge there (#428).
- */
-export const REQUIRES_USER_SURFACE: LawRequirement = {
-  anyOf: [
-    REQUIRES_WEB_SURFACE,
-    REQUIRES_NODE_HTTP_SERVER,
-    REQUIRES_PYTHON_HTTP_SERVER,
-    REQUIRES_MOBILE_APP,
-  ],
-};
-
 /** Anything that runs for users: a service, a web surface, a mobile app, or a deploy target. */
 export const REQUIRES_PRODUCTION_SUBJECT: LawRequirement = {
   anyOf: [

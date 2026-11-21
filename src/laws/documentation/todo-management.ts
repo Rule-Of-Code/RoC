@@ -414,7 +414,9 @@ export class TodoManagementLaw {
     const blank = (text: string): string => text.replace(/[^\n]/g, ' ');
     return content
       .replace(/^[ \t]*(`{3,}|~{3,})[^\n]*\n[\s\S]*?^[ \t]*\1[^\n]*$/gm, blank)
-      .replace(/(`+)[^`\n]+?\1/g, blank);
+      // A span opened by N backticks closes at the next run of N: a
+      // double-backtick span can hold single backticks (`` `x` ``).
+      .replace(/(`+)[^\n]*?\1/g, blank);
   }
 
   /**

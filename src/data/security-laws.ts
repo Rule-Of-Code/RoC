@@ -5,7 +5,7 @@
 
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
-import { REQUIRES_USER_SURFACE } from '../utils/production-subject-requirements';
+import { REQUIRES_PRODUCTION_SUBJECT } from '../utils/production-subject-requirements';
 
 export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
   {
@@ -262,8 +262,9 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
     automation: 'AUTOMATED',
     checkFunction: 'AuthenticationSecurityLaw.check',
     // A CLI or a library has nobody to authenticate (#428): selected only
-    // where users reach the code — a web surface, an HTTP API, a mobile app.
-    requires: REQUIRES_USER_SURFACE,
+    // where something runs for users — a service, a web surface, a mobile
+    // app or a deploy target (the shared #428 requirement).
+    requires: REQUIRES_PRODUCTION_SUBJECT,
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article V.5.7: Authentication security compromised',
     remediation:

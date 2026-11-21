@@ -37,9 +37,15 @@ const GATED = [
   'Incident Response Protocol',
   'Launch Readiness Checklist',
   'NX Commands Only Policy',
+  'Authentication Security',
 ];
 const OPT_IN = 'MD Footer Template (MANDATORY)';
 const ENTERS_BY_SUBJECT = 'Launch Readiness Checklist';
+// Authentication Security is gated on the same subject (#428) and is a
+// protected core law (CRITICAL SECURITY at error). Where both are selected
+// it ranks first in that gate group and holds the group's one quota slot,
+// so Launch Readiness no longer enters the core by subject.
+const HOLDS_SUBJECT_SLOT = 'Authentication Security';
 
 const BEFORE: EnhancedConstitutionalLaw[] =
   ALL_ENHANCED_CONSTITUTIONAL_LAWS.map(law =>
@@ -107,7 +113,9 @@ describe('the fast-mode core survives gating (#428)', () => {
       const expected = new Set(
         [...before.core].filter(title => after.selected.has(title))
       );
-      if (after.selected.has(ENTERS_BY_SUBJECT))
+      if (after.selected.has(HOLDS_SUBJECT_SLOT))
+        expected.delete(ENTERS_BY_SUBJECT);
+      else if (after.selected.has(ENTERS_BY_SUBJECT))
         expected.add(ENTERS_BY_SUBJECT);
       expect([...after.core].sort()).toEqual([...expected].sort());
     }

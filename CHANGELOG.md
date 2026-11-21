@@ -53,11 +53,18 @@ A secret match whose value is a dotted property path (`KEY =
 'thresholds.next.guardExemptions'`, a config key or a message id) is a name,
 not a secret.
 
-**Authentication Security is selected only where users reach the code**
-(#428): a web surface, an HTTP API (Node or Python) or a mobile app
-(`REQUIRES_USER_SURFACE` in `production-subject-requirements.ts`). A
+**Authentication Security is selected only where something runs for
+users** (#428): a Node or Python HTTP service, a web surface, a mobile app
+or a deploy target (`REQUIRES_PRODUCTION_SUBJECT`, the shared requirement
+the other #428 laws use). A
 command-line tool or a library has nobody to sign in; before, it was judged
 for an auth service, token storage and route guards it cannot have.
+Consequences: the stack templates advertise one applicable law fewer
+(python 94 → 93, frontend 97 → 96, node 73 → 72); in fast mode, where a
+project has a production subject, Authentication Security (a protected
+core law) now sits in that subject's gate group and holds its one quota
+slot, so Launch Readiness Checklist leaves the fast core of those
+profiles (it still runs in a full audit).
 
 Self-audit of this repository: Data Encryption Standards 28 → 0;
 Authentication Security 1 finding → not selected (a CLI); Test Data

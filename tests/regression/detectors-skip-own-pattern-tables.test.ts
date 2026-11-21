@@ -230,6 +230,7 @@ describe('#426 TODO Management reads Markdown as Markdown', () => {
           '# Changelog',
           '',
           "- don't read `'a'` as code; a `// TODO` in a string is an example",
+          '- a double-backtick span: `` `// TODO` `` is an example too',
           '- a fenced example:',
           '',
           '```ts',
@@ -250,5 +251,15 @@ describe('#426 TODO Management reads Markdown as Markdown', () => {
           '// TODO (Sprint 12): remove the legacy config shim after the migration\nexport const a = 1;\n',
       })
     ).not.toContain('compliant: 0 TODOs');
+  });
+});
+
+describe('#428 a deployed service keeps Authentication Security', () => {
+  it('a Procfile web process (bare node, no framework dependency) is a subject', () => {
+    const dir = project({ Procfile: 'web: node server.js\n' });
+    const card = ModularLawsRegistry.getAll().find(
+      law => law.name === 'Authentication Security'
+    );
+    expect(lawRequirementsMet(card?.requires, dir)).toBe(true);
   });
 });

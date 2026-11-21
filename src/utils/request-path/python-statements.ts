@@ -16,10 +16,12 @@ import {
   iterationAwait,
   pythonAwaits,
   pythonCalls,
-  pythonComprehensions,
-  type Comprehension,
   renderPython,
 } from './python-expr';
+import {
+  type Comprehension,
+  pythonComprehensions,
+} from './python-comprehensions';
 import { finishLoop, type WalkedLoop } from './loop-dependence';
 import { headerDefUse, simpleDefUse } from './python-def-use';
 import type { PyLiteral, PyNode } from './python-source';

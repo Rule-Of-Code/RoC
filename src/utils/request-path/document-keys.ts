@@ -103,6 +103,11 @@ function documentSegments(arg: CallArgument, first: boolean): string[] {
   return [arg.literal !== null ? arg.literal : `{${arg.text}}`];
 }
 
+/** `.document(x)` (Python) or `.doc(x)` (Node). */
+function isDocumentLink(name: string): boolean {
+  return name === 'document' || name === 'doc';
+}
+
 function chainedFirestore(call: CallSite, scope: KeyScope): DocumentKey | null {
   if (call.method !== 'get' || call.args.length > 1) return null;
   const segments: string[] = [];
@@ -114,7 +119,7 @@ function chainedFirestore(call: CallSite, scope: KeyScope): DocumentKey | null {
       const collection = literalOf(arg, scope);
       if (collection === null) return null;
       segments.push(collection);
-    } else if (link.name === 'document' || link.name === 'doc') {
+    } else if (isDocumentLink(link.name)) {
       segments.push(...documentSegments(arg, segments.length === 0));
       sawDocument = true;
     }
@@ -149,13 +154,22 @@ export function modularDocKey(
 }
 
 function mongoKey(call: CallSite, scope: KeyScope): DocumentKey | null {
-  if (call.method === 'findById' && call.args.length >= 1) {
-    const model = call.receiver.split('.').pop() ?? '';
-    return /^[A-Z]\w*$/.test(model)
-      ? { path: `${model}/{0}`, ids: [call.args[0]?.text ?? ''] }
-      : null;
-  }
+  if (call.method === 'findById' && call.args.length >= 1)
+    return findByIdKey(call);
   if (call.method !== 'find_one' && call.method !== 'findOne') return null;
+  return findOneKey(call, scope);
+}
+
+/** Mongoose `Model.findById(id)`. */
+function findByIdKey(call: CallSite): DocumentKey | null {
+  const model = call.receiver.split('.').pop() ?? '';
+  return /^[A-Z]\w*$/.test(model)
+    ? { path: `${model}/{0}`, ids: [call.args[0]?.text ?? ''] }
+    : null;
+}
+
+/** `collection.find_one({"_id": x})` / `db.users.findOne({ _id: x })`. */
+function findOneKey(call: CallSite, scope: KeyScope): DocumentKey | null {
   const id = /^\{\s*"?_id"?\s*:\s*([^,{}]+?)\s*\}$/.exec(
     call.args[0]?.text ?? ''
   )?.[1];

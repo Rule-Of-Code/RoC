@@ -50,7 +50,6 @@
       "Environment Parity Standards": "warning",
       "Environment Security Enforcement": "warning",
       "Error Handling Completeness": "warning",
-      "Error Handling Standards": "warning",
       "Feature Branch Protection": "warning",
       "Health Check Monitoring": "warning",
       "Incident Response Protocol": "warning",

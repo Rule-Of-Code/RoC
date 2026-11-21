@@ -22,12 +22,16 @@ import { CodeQualityLawBase } from './code-quality-law-base';
 import { readSource } from './source-view';
 
 export class CentralizedLoggingLaw extends CodeQualityLawBase {
-  private static readonly CONSOLE =
-    /\bconsole\s*\.\s*(log|debug|info|warn|error|trace)\s*\(/g;
-  // In a package that declares a `bin`: log/info are the command's output.
-  // warn writes to stderr as error does and is counted with it.
-  private static readonly CLI_CONSOLE =
-    /\bconsole\s*\.\s*(warn|debug|error|trace)\s*\(/g;
+  // The console methods this law counts. In a package that declares a
+  // `bin`, CliPackages takes the command's output out of the list.
+  private static readonly METHODS = [
+    'log',
+    'debug',
+    'info',
+    'warn',
+    'error',
+    'trace',
+  ];
   private static readonly ALLOWED =
     /(?:^|[\\/])(?:logger\.service\.ts|main\.ts)$/;
   // Python branch (arch proposal №12): print() in source is the console.* of
@@ -43,10 +47,10 @@ export class CentralizedLoggingLaw extends CodeQualityLawBase {
    *
    * Calls are read from the parse (#424): `console.log(` in a message string
    * or a comment is not a call. In a package that declares a `bin`,
-   * console.log/info are how the command talks to its user — its output, not
-   * logging that bypasses a logger (#425) — so there only warn, error, debug
-   * and trace are counted. warn goes to stderr like error and is judged with
-   * it. A logging module (logger.*, logging*, log.*) and the
+   * console.log/info/warn/error are how the command talks to its user — its
+   * output, not logging that bypasses a logger (#425) — so there only debug
+   * and trace are counted. The list comes from CliPackages, shared with
+   * Absolute Zero Tolerance. A logging module (logger.*, logging*, log.*) and the
    * bootstrap (main.ts) are where console output is meant to live.
    */
   private static collectConsoleViolations(
@@ -72,7 +76,12 @@ export class CentralizedLoggingLaw extends CodeQualityLawBase {
       }
       const content = FileUtils.readFileContentSync(file);
       if (!content) continue;
-      const pattern = cli.isCliFile(file) ? this.CLI_CONSOLE : this.CONSOLE;
+      const methods = cli.countedConsoleMethods(file, this.METHODS);
+      if (methods.length === 0) continue;
+      const pattern = new RegExp(
+        `\\bconsole\\s*\\.\\s*(${methods.join('|')})\\s*\\(`,
+        'g'
+      );
       const matches = readSource(ts, content, file).code.match(pattern);
       if (matches && matches.length > 0) {
         violations.push(

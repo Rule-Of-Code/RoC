@@ -8,7 +8,7 @@ import * as tsxSource from '../../src/utils/react/tsx-source';
 
 /**
  * Centralized Logging reads console calls from the code (#424), and in a
- * package that declares a `bin` the command's console.log/info are its
+ * package that declares a `bin` the command's console.log/info/warn/error are its
  * output, not logging that bypasses a logger (#425).
  *
  * The TypeScript branch stripped comments only, so `console.log(` in a
@@ -58,6 +58,18 @@ describe('Centralized Logging: code only, and a CLI prints (#424, #425)', () => 
     expect(findings()).toEqual([]);
   });
 
+  /** The red control: without a `bin` warn and error are counted. */
+  it('counts warn and error outside a package that declares a bin', () => {
+    write(
+      'src/utils/cache.ts',
+      "export function save(ok: boolean): void {\n  if (!ok) console.warn('cache write failed');\n  if (!ok) console.error('cache lost');\n}\n"
+    );
+
+    expect(findings()).toEqual([
+      'src/utils/cache.ts: 2 direct console.* call(s) — route logging through the logger service.',
+    ]);
+  });
+
   it('still counts a console call in library code', () => {
     write('src/cache.ts', "export const save = () => console.warn('slow');\n");
 
@@ -83,29 +95,24 @@ describe('Centralized Logging: code only, and a CLI prints (#424, #425)', () => 
       expect(findings()).toEqual([]);
     });
 
-    /**
-     * warn writes to stderr, as error does, and is judged with error: still
-     * counted until it is decided whether a CLI's stderr is output too.
-     */
-    it('still counts warn, as it counts error', () => {
+    /** warn and error, on stderr, are the command's output as well. */
+    it('does not count warn and error in a library file of the package', () => {
+      write(
+        'src/utils/cache.ts',
+        "export function save(ok: boolean): void {\n  if (!ok) console.warn('cache write failed');\n  if (!ok) console.error('cache lost');\n}\n"
+      );
+
+      expect(findings()).toEqual([]);
+    });
+
+    it('still counts debug and trace', () => {
       write(
         'src/cli/report.ts',
-        "export function report(n: number): void {\n  console.info(n);\n  console.warn('slow');\n  console.error('failed');\n}\n"
+        "export function report(n: number): void {\n  console.log(n);\n  console.debug('[DEBUG]', n);\n  console.trace('here');\n}\n"
       );
 
       expect(findings()).toEqual([
         'src/cli/report.ts: 2 direct console.* call(s) — route logging through the logger service.',
-      ]);
-    });
-
-    it('still counts error, debug and trace', () => {
-      write(
-        'src/cli/report.ts',
-        "export function report(n: number): void {\n  console.log(n);\n  console.debug('[DEBUG]', n);\n}\n"
-      );
-
-      expect(findings()).toEqual([
-        'src/cli/report.ts: 1 direct console.* call(s) — route logging through the logger service.',
       ]);
     });
   });

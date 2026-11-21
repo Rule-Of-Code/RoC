@@ -55,9 +55,11 @@ export class TestFilesExistenceChecker {
     );
 
     if (uncovered.length > 0) {
-      const unread = ts
-        ? ''
-        : ` — ${parserUnavailable(projectRoot, `the imports of the ${testFiles.length} test file(s)`)}, so a file a test imports but is not named after was counted as lacking a test; ${PARTLY_READ_TEXT}`;
+      // With no test file there are no imports to read: the note would be noise.
+      const unread =
+        ts || testFiles.length === 0
+          ? ''
+          : ` — ${parserUnavailable(projectRoot, `the imports of the ${testFiles.length} test file(s)`)}, so a file a test imports but is not named after was counted as lacking a test; ${PARTLY_READ_TEXT}`;
       violations.push(
         `${uncovered.length} source files lack corresponding test files (a test that imports a file counts)${unread}`
       );

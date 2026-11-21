@@ -28,6 +28,7 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Presence, not a number: it checks that a test runner and coverage CONFIG exist plus a source-to-test FILE ratio — never the actual line/branch coverage percentage.',
+      'A .ts/.tsx/.js/.jsx source file counts as tested when a test is named after it (foo.ts ↔ foo.spec.ts / foo.test.ts) or imports it directly: import/export from, require(), import(), or a jest.mock / vi.mock path, resolved from the test file — relative paths and the paths/baseUrl of the nearest tsconfig/jsconfig. A file a test reaches only through another module does not count; an alias declared only in a Jest moduleNameMapper or a bundler config is not followed; a type-only import counts. Without the typescript package the imports are not read and only the name counts — the finding says so. The ratio stays test files per source file.',
       'Jest-biased for JS/TS — a project on Karma/Jasmine with no jest config trips "No Jest configuration found".',
       'Only the Python stack gets a non-Jest exemption; React/Vue/Node do not.',
     ],

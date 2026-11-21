@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🔧 CI — `actions/checkout` and `actions/setup-node` v4 → v7 (#21)
+
+`actions/checkout` and `actions/setup-node` go from v4 to v7 in both
+workflows: v4 targets Node 20, which GitHub now forces onto Node 24 with a
+warning on each job that uses them.
+
 ### 🐛 Fixed — a PARTIAL line said "passed" for laws that reported warnings
 
 The judged-nothing line said "The other laws passed" and the narrowed line

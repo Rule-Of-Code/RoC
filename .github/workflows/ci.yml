@@ -11,7 +11,7 @@ jobs:
     name: Constitutional gate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Full history: the git laws (commit message/description, branch
           # governance, release tags) read real history. A shallow clone
@@ -19,7 +19,7 @@ jobs:
           # a green that proves nothing.
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: npm

@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Unit Test Quality: edge cases, test counts, timers and mock cleanup (#429)
+
+Four more templates of the law judged text where a test says something
+else.
+
+- **No edge case testing.** Before: asked of every test file, answered by
+  words such as null, empty or invalid in a title, or a throw, null or
+  negated matcher in the body. A negative title (does NOT flag, ignores,
+  rejects, fails, without) and `toBe(false)` did not count, so a detector
+  suite made of exactly these was told it tests no edge case; a file of
+  export checks or constant tables, which has no input, was asked for one.
+  After: negative titles, `toBe(false)` and `toBeFalsy()` count; edge cases
+  are asked only of a test that calls the code it imports with an argument
+  (an imported function, a method of an imported binding, a class), read
+  from its syntax tree. A Node built-in, a type-only import and a value
+  method of an imported table (`LAWS.filter`) are not that call.
+- **Excessive mocking.** Before: tests were counted with `it\s*\(`, so
+  `it.each(` counted none and `submit(` or `split(` counted one. After:
+  `it(` and `test(`, with modifiers and `.each`, as words. A spy that only
+  silences the console or a standard stream is not counted as a double.
+- **setTimeout usage without fake timers.** Before: any `setTimeout` in the
+  code. After: not `jest.setTimeout(n)`, which sets the test time limit;
+  not a timer whose handle the file clears with `clearTimeout(handle)`, a
+  watchdog on a real process; any fake timers (`jest.`, `vi.` or
+  `sinon.useFakeTimers`) answer it.
+- **Mock functions without cleanup.** Before: read on the text of the file,
+  fixture strings included, and asked even where the runner resets mocks.
+  After: read on the code, and not asked when the root Jest or Vitest
+  config, or the `jest` key of package.json, sets `resetMocks`,
+  `restoreMocks`, `clearMocks` or `mockReset`.
+
+Without a loadable `typescript` the edge-case check is not read either, and
+the law says so with the async and mocking patterns.
+
+Self-audit of this repository: Unit Test Quality — before 116 findings (75
+edge case, 20 excessive mocking, 17 setTimeout, 4 cleanup), after 32 (4, 19,
+9, 0); what is left is debt in the tests themselves.
+
 ### 🐛 Fixed — Unit Test Quality asked every test to mock the module it tests (#429)
 
 "Dependencies found but no mocking detected" fired for any test file with an

@@ -4,6 +4,7 @@
  * Eliminates hardcoded patterns and messages scattered across methods
  */
 import { TestEdgeCases } from './test-edge-cases';
+import { TestFileReading } from './test-file-reading';
 import { TestNetworkClients } from './test-network-clients';
 
 /**
@@ -18,6 +19,8 @@ interface MockingIssueDetectionConfig {
    * request written inside a fixture string is not one the test makes.
    */
   readsCode?: true;
+  /** The check is answered by a runner that resets mocks between tests. */
+  excusedByMockReset?: true;
 }
 
 /**
@@ -62,7 +65,12 @@ export class TestCoverageAnalyzerConfiguration {
    * Test pattern detection
    */
   static readonly TEST_PATTERNS = {
-    IT_BLOCK: /it\s*\(/g,
+    // A test, as Jest, Vitest, Mocha and Playwright declare one: `it(`,
+    // `test(`, with a modifier (`it.only(`) or as a table (`it.each(` or a
+    // tagged `it.each` template, one block). `it\s*\(` counted `it.each` as
+    // no test and `submit(`, `wait(` or `split(` as tests (#429).
+    IT_BLOCK:
+      /\b(?:it|test)(?:\.(?:only|skip|concurrent|failing|todo))*(?:\s*\(|\.each\s*[(`])/g,
     IT_BLOCK_DESCRIPTION: /it\s*\(['"].*?['"]\)/g,
     DESCRIBE_BLOCK: /describe\(/,
     DESCRIBE_BLOCK_DESCRIPTION: /describe\s*\(['"].*?['"]\)/g,
@@ -114,14 +122,18 @@ export class TestCoverageAnalyzerConfiguration {
         // A suite that resets mocks the standard afterEach way — clearAllMocks /
         // resetAllMocks / restoreAllMocks — is doing cleanup; the old check only
         // recognised the per-mock `mockClear` and flagged the common global form.
-        checker: (content: string) =>
-          content.includes('jest.fn()') &&
+        // Read from the code, and not asked of a project whose runner resets
+        // mocks itself (`resetMocks`/`restoreMocks`/`clearMocks`) (#429).
+        checker: (code: string) =>
+          code.includes('jest.fn()') &&
           !/mockClear|clearAllMocks|resetAllMocks|restoreAllMocks|mockReset|mockRestore/.test(
-            content
+            code
           ),
         message:
           TestCoverageAnalyzerConfiguration.MOCKING_ISSUE_MESSAGES
             .MOCKS_WITHOUT_CLEANUP,
+        readsCode: true,
+        excusedByMockReset: true,
       },
       {
         checker: (content: string): boolean => {
@@ -301,7 +313,10 @@ export class TestCoverageAnalyzerConfiguration {
    * Count mock patterns in content (RULE 1: Centralized helper)
    */
   static countMockPatterns(content: string): number {
-    return (content.match(this.MOCK_PATTERN_MULTIPLIER) ?? []).length;
+    return (
+      (content.match(this.MOCK_PATTERN_MULTIPLIER) ?? []).length -
+      TestFileReading.silencedOutputSetups(content)
+    );
   }
 
   /**

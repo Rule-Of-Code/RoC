@@ -30,6 +30,13 @@ export class TestEdgeCases {
     UNSET_VALUE: /\bunset\b/i,
     MISSING_VALUE: /\bmissing\b/i,
     NOT_FOUND: /not found|no such|\bnever\b/i,
+
+    // A NEGATIVE title is an edge case stated as such: "does NOT flag a
+    // single cast", "ignores console in comments", "rejects a bad id". The
+    // list above had no negation, so a detector suite made of exactly these
+    // was told it tests no edge case (#429).
+    NEGATED_TITLE:
+      /\bnot\b|n't\b|\bno\b|\bwithout\b|\bnothing\b|\bnone\b|\bignores?\b|\brejects?\b|\bfails?\b|\brefuses?\b/i,
   } as const;
 
   /**
@@ -65,6 +72,11 @@ export class TestEdgeCases {
     EMPTY_COUNT: /\.toHaveCount\(\s*0\s*\)/,
     EMPTY_LENGTH: /\.toHaveLength\(\s*0\s*\)/,
     NEGATED_MATCHER: /\.not\.to[A-Z]\w+/,
+
+    // The negative answer asserted: what must not be reported, matched or
+    // allowed. `toBe(false)` is the commonest edge-case assertion there is.
+    TO_BE_FALSE: /\.toBe\(\s*false\s*\)/,
+    TO_BE_FALSY: /\.toBeFalsy\(/,
   } as const;
 
   /**

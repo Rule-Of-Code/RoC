@@ -2,12 +2,17 @@ import { CodeText } from '../../code-text';
 import { FileUtils } from '../../file-utils';
 import { loadTypeScript } from '../../react/tsx-source';
 import { TestCoverageAnalyzerConfiguration } from './test-coverage-analyzer-configuration';
+import { TestFileReading } from './test-file-reading';
 import { TestNetworkClients } from './test-network-clients';
 
-/** A test file's code (comments and literals blanked) and the clients it loads. */
+/** A test file's code (comments and literals blanked) and what it reaches. */
 export interface CodeReading {
   code: string;
   networkClients: string[];
+  /** The test calls the code it imports with an argument (TestFileReading). */
+  callsWithInput: boolean;
+  /** The project's runner resets mocks between tests. */
+  runnerResetsMocks: boolean;
 }
 
 /**
@@ -23,15 +28,17 @@ export class TestCoverageAnalyzerValidationPatterns {
    */
   static detectMockingIssues(
     content: string,
-    code: string | null = TestCoverageAnalyzerValidationPatterns.read(content)
-      ?.code ?? null
+    reading: CodeReading | null = TestCoverageAnalyzerValidationPatterns.read(
+      content
+    )
   ): string[] {
     const issues: string[] = [];
 
     for (const config of TestCoverageAnalyzerConfiguration.MOCKING_ISSUE_DETECTION_CONFIGS) {
       // A check that reads code is not run on text when there is no code
       // to read (no parser): the caller says the file was not read (#427).
-      const subject = config.readsCode ? code : content;
+      const subject = config.readsCode ? (reading?.code ?? null) : content;
+      if (config.excusedByMockReset && reading?.runnerResetsMocks) continue;
       if (subject !== null && config.checker(subject)) {
         issues.push(config.message);
       }
@@ -81,10 +88,7 @@ export class TestCoverageAnalyzerValidationPatterns {
         ? reading.networkClients
         : [];
     const usesMocks = TestCoverageAnalyzerConfiguration.usesMocks(content);
-    const mockingIssues = this.detectMockingIssues(
-      content,
-      reading?.code ?? null
-    );
+    const mockingIssues = this.detectMockingIssues(content, reading);
     const edgeCaseRecommendations =
       this.generateEdgeCaseRecommendations(content);
 
@@ -103,11 +107,14 @@ export class TestCoverageAnalyzerValidationPatterns {
    * project's parser, or passes null when there is none.
    */
   static read(content: string, fileName = 'file.ts'): CodeReading | null {
-    const ts = loadTypeScript(process.cwd());
+    const root = process.cwd();
+    const ts = loadTypeScript(root);
     if (!ts) return null;
     return {
       code: CodeText.codeOnly(content, fileName),
       networkClients: TestNetworkClients.imported(ts, content, fileName),
+      callsWithInput: TestFileReading.callsWithInput(ts, content, fileName),
+      runnerResetsMocks: TestFileReading.runnerResetsMocks(root),
     };
   }
 
@@ -134,7 +141,10 @@ export class TestCoverageAnalyzerValidationPatterns {
     violations.push(...coverageAndEdges.mockingIssues);
     suggestions.push(...coverageAndEdges.edgeCaseRecommendations);
 
-    if (!coverageAndEdges.testsEdgeCases) {
+    // Edge cases are asked of a test that gives the code under test an
+    // input; a file of export checks or constant tables has none (#429).
+    // Without the parser this is not read, as the mocking checks.
+    if (reading?.callsWithInput && !coverageAndEdges.testsEdgeCases) {
       TestCoverageAnalyzerConfiguration.addViolationSuggestionPair(
         violations,
         suggestions,

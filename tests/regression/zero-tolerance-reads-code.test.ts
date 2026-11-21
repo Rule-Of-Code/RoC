@@ -12,7 +12,8 @@ import * as tsxSource from '../../src/utils/react/tsx-source';
  *
  * The checks ran regexes over the raw file: a `console.log` in a message, an
  * `any` in a comment's prose, a `TODO` in a regex or in a sentence about the
- * TODO law, an `eslint-disable` in a string — all were findings. `unknown[]`
+ * TODO law, an `eslint-disable` in a string — all were findings. In a package
+ * that declares a `bin`, console.log/info are the command's output. `unknown[]`
  * was reported as a strict-type violation, and so was the `any[]` rest
  * parameter TypeScript requires of a mixin constructor.
  */
@@ -136,13 +137,28 @@ describe('Absolute Zero Tolerance reads code (#424, #425)', () => {
       );
     });
 
-    it('does not count log, info and warn: they are the output', () => {
+    it('does not count log and info: they are the output', () => {
       write(
         'src/report.ts',
-        "export function report(n: number) {\n  console.log(`${n} files`);\n  console.info('done');\n  console.warn('slow');\n}\n"
+        "export function report(n: number) {\n  console.log(`${n} files`);\n  console.info('done');\n}\n"
       );
 
       expect(findingsFor('report.ts')).toEqual([]);
+    });
+
+    /**
+     * warn writes to stderr, as error does, and is judged with it — counted
+     * until it is decided whether a CLI's stderr is output too.
+     */
+    it('still counts warn in a library file of the package', () => {
+      write(
+        'src/utils/cache.ts',
+        "export function save(ok: boolean) {\n  console.info('saved');\n  if (!ok) console.warn('cache write failed');\n}\n"
+      );
+
+      expect(findingsFor('utils/cache.ts')).toEqual([
+        'Console statements found in src/utils/cache.ts: 1 occurrences',
+      ]);
     });
 
     it('still counts debug and trace', () => {

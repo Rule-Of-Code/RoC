@@ -3,11 +3,14 @@
  * project's own logging module (#425).
  *
  * A package that declares `bin` in its package.json ships a command. In that
- * package `console.log/info/warn` is how the command talks to its user — the
- * report, the progress line, the warning on stderr — so it is the product's
- * output, not a forgotten debug statement. `console.debug/trace` stay debug
- * statements everywhere. The rule is the same for every project: a file is
- * judged by the nearest package.json above it.
+ * package `console.log/info` is how the command talks to its user — the
+ * report, the progress line — so it is the product's output, not a forgotten
+ * debug statement. `console.warn` writes to stderr, as `console.error` does,
+ * and is judged with it: counted, until it is decided whether a command's
+ * stderr is output too. `console.debug/trace` stay debug statements
+ * everywhere. The rule is the same for every project: a file is judged by the
+ * nearest package.json above it. Every law that applies it asks
+ * `countedConsoleMethods`, so the laws cannot disagree.
  */
 import * as fs from 'fs';
 import * as path from 'path';
@@ -29,6 +32,22 @@ export class CliPackages {
     return /^(?:logger|logging|log)(?:[.-][\w.-]*)?\.[cm]?[jt]sx?$/i.test(
       path.basename(file)
     );
+  }
+
+  /** The console methods that are a command's output in a `bin` package. */
+  static readonly COMMAND_OUTPUT: ReadonlySet<string> = new Set([
+    'log',
+    'info',
+  ]);
+
+  /**
+   * The console methods a law counts in `file`: its own list, less the
+   * command's output when the file belongs to a package with a `bin`.
+   */
+  countedConsoleMethods(file: string, methods: readonly string[]): string[] {
+    return this.isCliFile(file)
+      ? methods.filter(method => !CliPackages.COMMAND_OUTPUT.has(method))
+      : [...methods];
   }
 
   /** Is `file` part of a package that declares a `bin`? */

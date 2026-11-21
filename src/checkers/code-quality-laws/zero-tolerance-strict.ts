@@ -5,7 +5,7 @@
  * Every per-file check reads the CODE of the file, or its COMMENTS, from the
  * TypeScript parse (#424): a `console.log` in a message string, `: any` in a
  * comment's prose or `TODO` in a regex is not code. In a package that
- * declares a `bin`, `console.log/info/warn` is the program's output, not a
+ * declares a `bin`, `console.log/info` is the program's output, not a
  * debug statement (#425).
  */
 
@@ -130,10 +130,11 @@ export class ZeroToleranceStrictLaw extends CodeQualityLawBase {
   }
 
   /**
-   * `console.*` in code. In a package that declares a `bin`, log/info/warn
-   * are what the command prints — its output — so only debug and trace are
-   * debug statements there. A logging module (logger.*, logging*, log.*) is
-   * where console output is supposed to live.
+   * `console.*` in code. In a package that declares a `bin`, log and info
+   * are what the command prints — its output; warn, debug and trace are
+   * still counted (the rule lives in CliPackages, shared with Centralized
+   * Logging). A logging module (logger.*, logging*, log.*) is where console
+   * output is supposed to live.
    */
   private static consoleCalls(
     view: SourceView,
@@ -141,9 +142,15 @@ export class ZeroToleranceStrictLaw extends CodeQualityLawBase {
     cli: CliPackages
   ): number {
     if (CliPackages.isLoggingModule(file)) return 0;
-    const pattern = cli.isCliFile(file)
-      ? /console\.(debug|trace)/g
-      : /console\.(log|debug|warn|info|trace)/g;
+    const methods = cli.countedConsoleMethods(file, [
+      'log',
+      'debug',
+      'warn',
+      'info',
+      'trace',
+    ]);
+    if (methods.length === 0) return 0;
+    const pattern = new RegExp(`console\\.(${methods.join('|')})`, 'g');
     return (view.code.match(pattern) ?? []).length;
   }
 

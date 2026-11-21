@@ -20,7 +20,6 @@ export class SessionManagementChecker extends SecurityCheckerBase {
   } {
     const sessionFlow =
       AuthenticationPatternValidators.createSecurityAnalysisFlow(
-        'SessionManagement',
         {
           validator: codeFiles => this.hasSessionConfiguration(codeFiles),
           violationMessage: 'No secure session configuration found',

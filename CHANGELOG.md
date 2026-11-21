@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Absolute Zero Tolerance judged text as code, and a CLI's output as debug logging (#424, #425)
+
+Every check ran a regex over the raw file, so a `console.log` in a message,
+`any` in a comment's prose, `TODO` in a string or in a sentence about the
+TODO law, and `eslint-disable` in a string were all findings. The checks now
+read the TypeScript parse.
+
+| | before | after |
+|---|---|---|
+| `console.*`, `: any`, empty `catch (e) {}` | anywhere in the text | in code only |
+| TODO/FIXME/XXX/HACK | any `//` line containing the word, any case | a tag in capitals at the start of a `//` comment |
+| `eslint-disable` | anywhere in the text | in comments only |
+| `unknown[]` | a strict-type violation | not a violation (the safe type for data of unknown shape) |
+| `constructor(...args: any[])` of a mixin | a violation | not counted (TypeScript requires it, TS2545) |
+| package with `bin` in package.json | every `console.*` counted | `console.log/info/warn` is the command's output; `debug/trace` still count |
+| a logging module (`logger.*`, `logging*`, `log.*`) | its `console.*` counted | not counted |
+| no loadable `typescript` | text scanned | ".ts file(s) were NOT read" — judged nothing |
+
+Findings name the file relative to the project on Windows too (they carried
+the absolute path when the project root was written with backslashes).
+
 ### ⚠️ BREAKING — `compliance` and the victory art mean a clean pass; a law that judged nothing makes the run partial
 
 A run of this repository listed 46 laws with violations at warning level, one

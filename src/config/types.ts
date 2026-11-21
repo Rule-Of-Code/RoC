@@ -101,12 +101,14 @@ export interface RuleOfCodeConfig {
   /**
    * File and directory patterns to include (POSITIVE INCLUSION APPROACH)
    */
-  includes?: {
-    /** Patterns to include globally - if specified, ONLY these paths will be audited */
-    global?: string[];
-    /** Patterns to include for specific rules */
-    byRule?: Record<string, string[]>;
-  };
+  includes?:
+    | {
+        /** Patterns to include globally - if specified, ONLY these paths will be audited */
+        global?: string[];
+        /** Patterns to include for specific rules */
+        byRule?: Record<string, string[]>;
+      }
+    | undefined;
 
   /**
    * File and directory patterns to ignore (NEGATIVE EXCLUSION APPROACH)

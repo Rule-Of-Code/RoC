@@ -25,11 +25,12 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Zero tolerance means the build has no acceptable number of console.logs, TODOs, `any`s or empty catches — because "we will clean it up later" is the comment on every line that shipped a bug. The bar is zero, so there is no line to argue about.',
     satisfiedBy: {
       typescript:
-        'Enable strict in tsconfig and keep zero console.*, TODO/FIXME, `: any`/unknown[], eslint-disable and empty catch blocks across non-test .ts.',
+        "Enable strict in tsconfig and keep zero console.*, TODO/FIXME tags, `: any` annotations and `as any` casts, eslint-disable and empty catch blocks across non-test .ts. In a package that declares `bin`, console.log/info is the command's output, and console.warn too in the command's entry modules (what `bin` points to, and its command directory); console.debug/trace still count.",
     },
     detectionLimits: [
       'The strict check is a SUBSTRING test: `"strict"` plus any `true` in the tsconfig passes — even `"strict": false` next to `"esModuleInterop": true`.',
-      'No comment/string stripping — a console.log, `: any` or TODO inside a comment or string counts; only the ROOT tsconfig is read.',
+      'Reads the code and the comments from the TypeScript parse: console, `: any` annotations, `as any` casts and empty catch in code only, TODO tags (capitals, at the start of a // comment) and eslint-disable in comments only; without a loadable `typescript` the files are NOT read and the law judges nothing. Only the ROOT tsconfig is read.',
+      'In a package whose nearest package.json declares `bin`, console.log/info are not counted anywhere in it — a stray log in such a package is not told apart from output; console.warn is not counted in the entry modules derived from `bin` (the source of each bin target, the directory named after it and a commands/ directory beside it), and is counted in the rest. A logging module (logger.*, logging*, log.*) is not counted.',
       'TS/Angular only; a Python project has no tsconfig and cannot pass.',
     ],
     stack: 'typescript',
@@ -287,6 +288,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Flags numeric literals by pattern; it cannot tell a domain constant from a magic number by MEANING, only by whether the value is named.',
       'It does not verify a named constant is used correctly — a well-named but wrong constant passes.',
+      'Literals are read from the TypeScript parse: a digit in a string, template text, regex or comment is not one; without a loadable `typescript` the files are NOT read and the law judges nothing. Named: an initializer of a variable, property, class field, enum member, parameter or destructuring default (also through a constant expression or an array), the elements of a new Set/Map that initialises a const or a class field, the fallback of `??`, and a parseInt radix.',
     ],
     emoji: '🔮',
     description: 'All numeric literals must be replaced with named constants',
@@ -535,12 +537,13 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'A console.log in production is a log nobody collects and a leak nobody audits — scattered logging means no levels, no correlation, no off switch. A logging boundary is where you decide, once, what gets recorded and where.',
     satisfiedBy: {
       typescript:
-        'Log through a logger service, not console.*; keep console out of application code.',
+        "Log through a logger service, not console.*; keep console out of application code. A logging module (logger.*, logging*, log.*) and main.ts may use console; in a package that declares `bin`, console.log/info is the command's output, and console.warn/error too in the command's entry modules (what `bin` points to, and its command directory).",
       python:
         'Log through the logging module / a logger, not print() — recognised natively (scripts, __main__, cli.py are exempt).',
     },
     detectionLimits: [
-      'TS side matches inside string literals (comments stripped, strings not) and only the six named console methods; an aliased console is missed.',
+      'TS side reads console calls from the TypeScript parse (not in strings or comments; without a loadable `typescript` the .ts files are NOT read) and only the six named console methods; an aliased console is missed.',
+      'In a package whose nearest package.json declares `bin`, console.log/info are not counted anywhere in it — library code in such a package that bypasses its logger with them is not told apart from output; console.warn/error are not counted in the entry modules derived from `bin` (the source of each bin target, the directory named after it and a commands/ directory beside it), and are counted in the rest; console.debug/trace still count.',
       'Python side is comment- and string-clean and exempts scripts/tools/__main__/cli.py/manage.py.',
       'Dual-stack (TypeScript and Python); not Angular-gated.',
     ],

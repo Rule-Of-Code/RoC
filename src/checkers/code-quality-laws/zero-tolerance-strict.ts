@@ -1,24 +1,57 @@
 /**
  * Zero Tolerance Strict Law
  * Enhanced version of Sacred Law 2 with stricter requirements
+ *
+ * Every per-file check reads the CODE of the file, or its COMMENTS, from the
+ * TypeScript parse (#424): a `console.log` in a message string, `: any` in a
+ * comment's prose or `TODO` in a regex is not code. In a package that
+ * declares a `bin`, `console.log/info` is the program's output, and so is
+ * `console.warn` in the command's entry modules — not a debug statement
+ * (#425).
  */
 
+import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { CheckerUtils } from '../../utils/checker-utils';
 import { ConfigFileUtils } from '../../utils/config-file-utils';
 import { FileUtils } from '../../utils/file-utils';
+import { markJudgedNothing } from '../../utils/judged-nothing';
 import { PathOperations } from '../../utils/path-operations';
+import {
+  loadTypeScript,
+  parserUnavailable,
+} from '../../utils/react/tsx-source';
+import { CliPackages } from './cli-packages';
 import { CodeQualityLawBase } from './code-quality-law-base';
+import { readSource, type SourceView } from './source-view';
 
 export class ZeroToleranceStrictLaw extends CodeQualityLawBase {
   static check(context: LawCheckContext): LawResult {
     const { projectRoot } = context;
     const violations: string[] = [];
 
+    const ts = loadTypeScript(projectRoot);
+    const tsFiles = CheckerUtils.findTypeScriptFiles(
+      projectRoot,
+      context.config
+    );
+    if (!ts && tsFiles.length > 0) {
+      return markJudgedNothing({
+        ...this.createResult(
+          [
+            `${parserUnavailable(projectRoot, `the ${tsFiles.length} .ts file(s)`)} — Absolute Zero Tolerance Doctrine judged nothing`,
+          ],
+          'Zero Tolerance Strict Standards',
+          'CODE_QUALITY_LAW',
+          [],
+          context
+        ),
+      });
+    }
+
     try {
       this.checkTypeScriptConfig(projectRoot, violations);
-      this.checkConsoleStatements(projectRoot, violations, context);
-      this.checkESLintConfig(projectRoot, violations, context);
+      if (ts) this.checkFiles(ts, projectRoot, tsFiles, violations);
     } catch (_error) {
       violations.push('Error performing zero tolerance checks');
     }
@@ -51,102 +84,168 @@ export class ZeroToleranceStrictLaw extends CodeQualityLawBase {
     }
   }
 
-  private static checkConsoleStatements(
+  /** Every per-file check, on one parse of each file. */
+  private static checkFiles(
+    ts: typeof TS,
     projectRoot: string,
-    violations: string[],
-    context: LawCheckContext
+    tsFiles: string[],
+    violations: string[]
   ): void {
-    const tsFiles = CheckerUtils.findTypeScriptFiles(
-      projectRoot,
-      context.config
-    );
-    let _consoleStatements = 0;
-
+    const cli = new CliPackages(projectRoot);
+    const code: string[] = [];
+    const lint: string[] = [];
     for (const file of tsFiles) {
       const content = FileUtils.readFileContentSync(file);
       if (!content) continue;
-
-      const consoleMatches = content.match(
-        /console\.(log|debug|warn|info|trace)/g
+      const view = readSource(ts, content, file);
+      const relativePath = PathOperations.getRelative(projectRoot, file);
+      // Two groups, in the order the findings have always been listed:
+      // statements and types per file first, lint and catch blocks after.
+      code.push(
+        ...this.counted(relativePath, [
+          ['Console statements found in', this.consoleCalls(view, file, cli)],
+          ['TODO/FIXME comments found in', this.todoTags(view)],
+          ['Strict type violations in', this.anyAnnotations(ts, view.source)],
+        ])
       );
-      if (consoleMatches) {
-        _consoleStatements += consoleMatches.length;
-        const relativePath = file.replace(projectRoot, '').replace(/^\//, '');
-        violations.push(
-          `Console statements found in ${relativePath}: ${consoleMatches.length} occurrences`
-        );
+      lint.push(
+        ...this.counted(relativePath, [
+          ['ESLint rules disabled in', this.lintDisables(view)],
+          ['Empty catch blocks in', this.emptyCatches(ts, view.source)],
+        ])
+      );
+    }
+    violations.push(...code, ...lint);
+  }
+
+  /** One finding per check that counted anything in the file. */
+  private static counted(
+    relativePath: string,
+    counts: Array<[string, number]>
+  ): string[] {
+    return counts
+      .filter(([, count]) => count > 0)
+      .map(
+        ([finding, count]) => `${finding} ${relativePath}: ${count} occurrences`
+      );
+  }
+
+  /**
+   * `console.*` in code. In a package that declares a `bin`, log and info
+   * are what the command prints — its output; in the command's entry modules
+   * warn is too. Library code's warn, and debug and trace everywhere, are
+   * counted. The rule lives in CliPackages, shared with Centralized Logging;
+   * this law has no error check. A logging module (logger.*, logging*,
+   * log.*) is where console output is supposed to live.
+   */
+  private static consoleCalls(
+    view: SourceView,
+    file: string,
+    cli: CliPackages
+  ): number {
+    if (CliPackages.isLoggingModule(file)) return 0;
+    const methods = cli.countedConsoleMethods(file, [
+      'log',
+      'debug',
+      'warn',
+      'info',
+      'trace',
+    ]);
+    if (methods.length === 0) return 0;
+    const pattern = new RegExp(`console\\.(${methods.join('|')})`, 'g');
+    return (view.code.match(pattern) ?? []).length;
+  }
+
+  /**
+   * Line comments that START with a TODO/FIXME/XXX/HACK tag, in capitals and
+   * followed by a space, `:`, `(` or `-` — a tag, not the word in a sentence.
+   */
+  private static todoTags(view: SourceView): number {
+    return view.comments.filter(comment =>
+      /^\/\/\s*(?:TODO|FIXME|XXX|HACK)(?=[\s:(-]|$)/.test(comment.text)
+    ).length;
+  }
+
+  /** `eslint-disable` directives — they live in comments, nowhere else. */
+  private static lintDisables(view: SourceView): number {
+    return view.comments.filter(comment =>
+      /^(?:\/\/ eslint-disable|\/\* eslint-disable)/.test(comment.text)
+    ).length;
+  }
+
+  /**
+   * `any` written by hand: as the type of a declaration — a parameter,
+   * variable, property or return type — or as the target of an `as` cast,
+   * also as `any[]`. The rest parameter of a constructor typed `any[]` is
+   * exempt: TypeScript requires exactly that for a mixin (TS2545), so it is
+   * not a choice anyone could make otherwise.
+   */
+  private static anyAnnotations(ts: typeof TS, source: TS.SourceFile): number {
+    let count = 0;
+    const visit = (node: TS.Node): void => {
+      if (
+        node.kind === ts.SyntaxKind.AnyKeyword &&
+        this.isAnnotation(ts, node)
+      ) {
+        count++;
       }
-
-      this.checkTodoComments(content, file, projectRoot, violations);
-      this.checkAnyTypeUsage(content, file, projectRoot, violations);
-    }
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+    return count;
   }
 
-  private static checkTodoComments(
-    content: string,
-    file: string,
-    projectRoot: string,
-    violations: string[]
-  ): void {
-    const todoMatches = content.match(/\/\/(.*?)(TODO|FIXME|XXX|HACK)/gi);
-    if (todoMatches && todoMatches.length > 0) {
-      const relativePath = file.replace(projectRoot, '').replace(/^\//, '');
-      violations.push(
-        `TODO/FIXME comments found in ${relativePath}: ${todoMatches.length} occurrences`
-      );
+  /**
+   * Is this `any` the type after the `:` of a declaration or after `as`
+   * (directly or as `any[]`)?
+   */
+  private static isAnnotation(ts: typeof TS, anyNode: TS.Node): boolean {
+    const typeNode = ts.isArrayTypeNode(anyNode.parent)
+      ? anyNode.parent
+      : anyNode;
+    const owner = typeNode.parent as TS.Node & { type?: TS.Node };
+    const declarations = [
+      ts.isAsExpression,
+      ts.isParameter,
+      ts.isVariableDeclaration,
+      ts.isPropertyDeclaration,
+      ts.isPropertySignature,
+      ts.isIndexSignatureDeclaration,
+      ts.isFunctionLike,
+    ];
+    if (!declarations.some(is => is(owner)) || owner.type !== typeNode) {
+      return false;
     }
+    return !(typeNode !== anyNode && this.isMixinRest(ts, owner));
   }
 
-  private static checkAnyTypeUsage(
-    content: string,
-    file: string,
-    projectRoot: string,
-    violations: string[]
-  ): void {
-    const anyTypeMatches = content.match(/:\s*any\b|unknown\[\]/g);
-    if (anyTypeMatches && anyTypeMatches.length > 0) {
-      const relativePath = file.replace(projectRoot, '').replace(/^\//, '');
-      violations.push(
-        `Strict type violations in ${relativePath}: ${anyTypeMatches.length} occurrences`
-      );
-    }
-  }
-
-  private static checkESLintConfig(
-    projectRoot: string,
-    violations: string[],
-    context: LawCheckContext
-  ): void {
-    const tsFiles = CheckerUtils.findTypeScriptFiles(
-      projectRoot,
-      context.config
+  /** `...args` of a constructor or constructor type: the mixin signature. */
+  private static isMixinRest(ts: typeof TS, owner: TS.Node): boolean {
+    return (
+      ts.isParameter(owner) &&
+      owner.dotDotDotToken !== undefined &&
+      (ts.isConstructorDeclaration(owner.parent) ||
+        ts.isConstructorTypeNode(owner.parent))
     );
+  }
 
-    for (const file of tsFiles) {
-      const content = FileUtils.readFileContentSync(file);
-      if (!content) continue;
-
-      // Check for disabled linter rules
-      const disabledLintMatches = content.match(
-        /\/\/ eslint-disable|\/\* eslint-disable/g
-      );
-      if (disabledLintMatches && disabledLintMatches.length > 0) {
-        const relativePath = file.replace(projectRoot, '').replace(/^\//, '');
-        violations.push(
-          `ESLint rules disabled in ${relativePath}: ${disabledLintMatches.length} occurrences`
-        );
+  /** `catch (e) {}` — a binding, and nothing at all between the braces. */
+  private static emptyCatches(ts: typeof TS, source: TS.SourceFile): number {
+    let count = 0;
+    const visit = (node: TS.Node): void => {
+      if (
+        ts.isCatchClause(node) &&
+        node.variableDeclaration !== undefined &&
+        ts.isIdentifier(node.variableDeclaration.name) &&
+        node.block.statements.length === 0 &&
+        /^\{\s*\}$/.test(node.block.getText(source))
+      ) {
+        count++;
       }
-
-      // Check for empty catch blocks
-      const emptyCatchPattern = /catch\s*\(\s*\w*\s*\)\s*{\s*}/g;
-      const emptyCatchMatches = content.match(emptyCatchPattern);
-      if (emptyCatchMatches && emptyCatchMatches.length > 0) {
-        const relativePath = file.replace(projectRoot, '').replace(/^\//, '');
-        violations.push(
-          `Empty catch blocks in ${relativePath}: ${emptyCatchMatches.length} occurrences`
-        );
-      }
-    }
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+    return count;
   }
 
   protected static hasStrictTypeScriptConfig(tsConfigContent: string): boolean {

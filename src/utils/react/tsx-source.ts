@@ -58,7 +58,10 @@ export function internalArray<T>(node: object, name: string): readonly T[] {
 /** The message a law gives when it needed the parser and could not load it. */
 export function parserUnavailable(
   projectRoot: string,
-  notRead = 'the .tsx/.jsx files'
+  // Neutral: a caller that does not name its files must not be told they
+  // were ".tsx/.jsx" — No Focused Tests and the request-path reader said so
+  // of .ts files (#427).
+  notRead = 'the files this law parses'
 ): string {
   return `could not load the 'typescript' package from ${projectRoot} — ${notRead} were NOT read. Install typescript in the project (it compiles these files) so this law can inspect them`;
 }

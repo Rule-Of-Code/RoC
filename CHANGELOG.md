@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Internal — dead code removed
+
+Fifteen source files that nothing reaches: no importer in `src`, `tests`,
+`scripts` or the package entry point (`src/index.ts`), no registry entry
+that names them, no dynamic `require`/`import()` by name. Checked per file
+with a TypeScript-resolved import graph and `git grep` on the module path
+and on every exported name.
+
+- `src/checkers/typescript-checker.ts` (`TypeScriptChecker`; exported only
+  from `src/checkers/index.ts`, which only a test imports)
+- `src/checkers/dependency-scanning/license-checker.ts`,
+  `src/laws/dependency-scanning/license-checker.ts` and
+  `src/laws/dependency-scanning/license-checker/` (index, constants,
+  `LicenseCheckerAnalysisService`)
+- `src/laws/dependency-scanning/vulnerability-checker.ts` and
+  `src/laws/dependency-scanning/dependency-pinning-checker.ts`
+- `src/laws/security/dependency-scanning/dependency-pinning-checker.ts`,
+  `npm-audit-checker.ts` and `vulnerability-checker.ts` (the live checkers of
+  the same names are in `src/checkers/dependency-scanning`)
+- `src/checkers/git-laws/commit-message-standards-impl.ts` (a second
+  `CommitMessageStandardsLaw`; the registry runs `commit-message-standards.ts`)
+  — its line in the Commit Message Standards detection limits goes with it
+- `src/types/law-result.ts`, `src/utils/file-scanner-helper.ts`,
+  `src/utils/security/security-validation-pattern-base.ts`
+
+Tests that covered only this code go with it: the `TypeScriptChecker` suite,
+its two #486 cases and barrel-export check, and the `LicenseCheckerConstants`
+suite. No law changes what it reports.
+
 ### Internal — eslint is a direct devDependency
 
 `npm run lint` runs `eslint .`, but `eslint` was only installed as a peer of

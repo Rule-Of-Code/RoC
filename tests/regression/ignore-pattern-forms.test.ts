@@ -14,6 +14,7 @@ import path from 'path';
 import { ConfigLoader } from '../../src/config/loader';
 import {
   absolutePatternsIn,
+  literalNamesReadAsClassesIn,
   normalizePathPattern,
 } from '../../src/utils/config/path-patterns';
 import { FileUtils } from '../../src/utils/file-utils';
@@ -35,6 +36,14 @@ describe('#414 normalizePathPattern: one form for every way of writing it', () =
       ['vendor\\lib.js', 'vendor/lib.js'],
       ['**/vendor/**', '**/vendor/**'],
       ['!./vendor/keep.js', '!vendor/keep.js'],
+      // \ escapes a glob character only where it cannot be a separator
+      ['weird\\[1\\]/**', 'weird\\[1\\]/**'],
+      ['a\\{b,c\\}', 'a\\{b,c\\}'],
+      ['x\\(1\\)', 'x\\(1\\)'],
+      ['\\!keep', '\\!keep'],
+      ['app\\[slug]\\page.tsx', 'app/[slug]/page.tsx'],
+      ['app\\[slug]\\[id]\\page.tsx', 'app/[slug]/[id]/page.tsx'],
+      ['src\\[a-c]*.ts', 'src/[a-c]*.ts'],
     ])('%s → %s', (pattern, expected) => {
       expect(normalizePathPattern(pattern, root)).toBe(expected);
     });
@@ -164,6 +173,113 @@ describe('#414 an absolute path outside the project is named, not ignored in sil
     });
     expect(run.stderr).toContain(
       `ignores.global: '${outside}' is an absolute path outside the project`
+    );
+  });
+});
+
+describe('#414 a literal [name] is a glob class: excluded as written, and named', () => {
+  jest.setTimeout(120000);
+  let dir: string;
+  beforeAll(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-414-class-'));
+    const write = (rel: string, text: string): void => {
+      fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+      fs.writeFileSync(path.join(dir, rel), text);
+    };
+    write(
+      'package.json',
+      JSON.stringify({ name: 'classes', version: '1.0.0' })
+    );
+    write('src/app.ts', 'export const app = 1;\n');
+    write('weird[1]/brackets.ts', 'export const w = 1;\n');
+    write('app/[slug]/page.tsx', 'export const route = 1;\n');
+    write('app/s/page.tsx', 'export const decoy = 1;\n'); // what [slug] matches
+  });
+  afterAll(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+  const load = (ignores: string[]): ReturnType<typeof ConfigLoader.load> => {
+    fs.writeFileSync(
+      path.join(dir, 'ruleofcode.config.json'),
+      JSON.stringify({ ignores: { global: ignores } })
+    );
+    return ConfigLoader.load(dir);
+  };
+  const scanned = (ignores: string[]): string[] =>
+    FileUtils.scanForFiles(dir, load(ignores), ['.ts', '.tsx']).map(file =>
+      path.relative(dir, path.resolve(dir, file)).replace(/\\/g, '/')
+    );
+
+  it('precondition: with no ignore, all three are scanned', () => {
+    expect(scanned([])).toEqual(
+      expect.arrayContaining([
+        'weird[1]/brackets.ts',
+        'app/[slug]/page.tsx',
+        'app/s/page.tsx',
+      ])
+    );
+  });
+
+  it('weird\\[1\\]/** excludes the directory weird[1] (the escape is kept)', () => {
+    const files = scanned(['weird\\[1\\]/**']);
+    expect(files).not.toContain('weird[1]/brackets.ts');
+    expect(files).toContain('src/app.ts');
+  });
+
+  it.each([
+    ['with /', 'app/[slug]/page.tsx'],
+    ['with \\', 'app\\[slug]\\page.tsx'],
+  ])(
+    '[slug] %s is a class: it excludes app/s, not the route — and is named',
+    (_label, pattern) => {
+      const files = scanned([pattern]);
+      expect(files).not.toContain('app/s/page.tsx');
+      expect(files).toContain('app/[slug]/page.tsx');
+      expect(literalNamesReadAsClassesIn(load([pattern]), dir)).toEqual([
+        ['ignores.global', 'app/[slug]/page.tsx', '[slug]', 'directory'],
+      ]);
+    }
+  );
+
+  it.each([
+    ['escaped', 'app/\\[slug\\]/page.tsx'],
+    ['as a class of [', 'app/[[]slug]/page.tsx'],
+  ])(
+    '[slug] %s excludes the route, not app/s — and is not named',
+    (_label, pattern) => {
+      const files = scanned([pattern]);
+      expect(files).not.toContain('app/[slug]/page.tsx');
+      expect(files).toContain('app/s/page.tsx');
+      expect(literalNamesReadAsClassesIn(load([pattern]), dir)).toEqual([]);
+    }
+  );
+
+  it('a class that names nothing on disk is not named', () => {
+    expect(
+      literalNamesReadAsClassesIn(load(['src/[a-c]*.ts', 'app/[x]/**']), dir)
+    ).toEqual([]);
+  });
+
+  it('includes are judged too', () => {
+    fs.writeFileSync(
+      path.join(dir, 'ruleofcode.config.json'),
+      JSON.stringify({ includes: { global: ['app/[slug]/**'] } })
+    );
+    expect(literalNamesReadAsClassesIn(ConfigLoader.load(dir), dir)).toEqual([
+      ['includes.global', 'app/[slug]/**', '[slug]', 'directory'],
+    ]);
+  });
+
+  it('the audit prints a warning that names the class and the literal form', () => {
+    if (!fs.existsSync(CLI))
+      throw new Error('dist/cli.js missing — run `npm run build` before jest');
+    load(['app/[slug]/page.tsx']);
+    const run = spawnSync(process.execPath, [CLI, 'audit', '--json'], {
+      cwd: dir,
+      encoding: 'utf8',
+      maxBuffer: 64 * 1024 * 1024,
+    });
+    expect(run.stderr).toContain(
+      "ignores.global: 'app/[slug]/page.tsx' — '[slug]' is a glob character class and does not match the directory '[slug]' — write \\[slug\\] for the literal name."
     );
   });
 });

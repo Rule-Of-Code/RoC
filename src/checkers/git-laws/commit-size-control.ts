@@ -439,28 +439,4 @@ export class CommitSizeControlLaw extends GitLawBase {
       return false;
     }
   }
-
-  /**
-   * Process files changed line and return increment for large commits
-   */
-  /** How many files a `--stat` summary line reports as changed. */
-  private static filesChangedCount(line: string): number {
-    const filesMatch = line.match(/(\d+) files? changed/);
-    return filesMatch?.[1] ? parseInt(filesMatch[1], 10) : 0;
-  }
-
-  /**
-   * Process changes line and return total changes
-   */
-  private static processChangesLine(line: string): number {
-    const insertionsMatch = line.match(/(\d+) insertions?/);
-    const deletionsMatch = line.match(/(\d+) deletions?/);
-
-    const insertions = insertionsMatch?.[1]
-      ? parseInt(insertionsMatch[1], 10)
-      : 0;
-    const deletions = deletionsMatch?.[1] ? parseInt(deletionsMatch[1], 10) : 0;
-
-    return insertions + deletions;
-  }
 }

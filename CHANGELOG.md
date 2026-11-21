@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Unit Test Quality asked every test to mock the module it tests (#429)
+
+"Dependencies found but no mocking detected" fired for any test file with an
+`import … from`, a `require(`, `inject(` or `TestBed` and no mock word in it:
+a test of its own module, a test that builds a temp-dir fixture, a test that
+spawns the CLI it ships. "HTTP calls should be mocked in unit tests" fired on
+a `fetch(` or `http.get(` written inside a fixture string of a detector test.
+
+Before: a dependency was any import; a double was the word spy, stub, fake or
+sinon (or a jest mock call) anywhere in the text of the file, comments and strings
+included. After: a dependency is a network or service client the test loads,
+read from its syntax tree (`import`, `export … from`, `import x = require()`,
+`require()`, `import()`; type-only imports load nothing) — the clients Test
+Data Management names, without the filesystem and child processes, which a
+test may run for real on its own machine. A double is one in the code of the file:
+what Test Data Management recognises (jest and vi mocks, spies, sinon, msw,
+nock, the HTTP testing backend of Angular) or a hand-written one named mock, spy,
+stub or fake. The finding names the clients:
+`Dependencies found but no mocking detected in src/api.test.ts (axios)`.
+The HTTP check is the same rule over the code of the file, so a request inside a
+string or a comment is not one, and a double named only in a comment no
+longer excuses a real request. Without a loadable `typescript` the mocking
+checks are not read and the law says so, with the async patterns.
+
+Self-audit of this repository: Unit Test Quality — before 634 findings, 500
+"no mocking" (381 tests importing only the code under test, 114 adding only
+fs/path/os/child_process, 5 adding a package that is not a client, none
+loading a network client) and 18 "HTTP calls" (all in fixture strings);
+after 116, none of either.
+
 ### 🐛 Fixed — Test Data Management read an exact expected value as hardcoded test data (#439)
 
 Any string of 20 or more characters inside `expect(…).toBe(…)` matched the

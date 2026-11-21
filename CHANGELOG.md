@@ -15,6 +15,11 @@ declares `>=18`, and CI ran Node 20 only. Node 20 is now the floor because it
 is the oldest line that both `glob` 14 (`18 || 20 || >=22`) and `minimatch` 11
 (`20 || >=22`) support.
 
+Node 20 is past end-of-life (2026-04-30, nodejs/Release `schedule.json`); 20
+is the floor because it is the lowest version this release's dependencies
+support, not a recommendation. Run a supported line — 26 (Active LTS) or 24
+(Maintenance LTS) on 2026-11-21. Raising the floor is a separate decision.
+
 CI runs the whole gate (build, lint, format, jest, release canary, self-audit)
 on Node 20, the declared floor, and on Node 26, the Active LTS line on
 2026-11-21 (nodejs.org/dist/index.json; nodejs/Release `schedule.json`: v26

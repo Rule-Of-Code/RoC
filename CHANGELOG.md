@@ -35,6 +35,60 @@ other code. This repository declares its demo captures and recorded goldens
 as generated, and CONTRIBUTING states the atomic-commit policy.
 
 Self-audit of this repository: Commit Size Control — before 2 findings (4 of the last 10 commits oversized; no atomic-commit policy), after 1 (2 of the last 10: two hand-written commits of 534 and 597 lines, tests included; they leave the window as new commits land).
+### ⚠️ BREAKING — laws about a running product run only where there is one; MD Footer Template is opt-in
+
+Five laws had no `requires` and judged every TypeScript project; a CLI tool or
+a library was asked for a CDN, an APM, an incident runbook, a launch checklist
+and an Nx workspace. They are now gated by shared, exported requirements
+(`src/utils/production-subject-requirements.ts`, `REQUIRES_NX_OR_ANGULAR` in
+`src/utils/framework-requirements.ts`). **A project that does not meet the
+condition no longer runs the law, and nothing is printed about it** — except
+when its config names the law in `laws.severity` or `laws.notApplicable`, which
+prints one ℹ️ line saying the law is requirement-gated (#428).
+
+| law | not selected without | lawId |
+|---|---|---|
+| CDN and Caching Strategy | `REQUIRES_WEB_SURFACE`: a browser framework (`react-dom`, `@angular/core`, `vue`, `svelte`, `next`, `nuxt`, `astro`, `lit` …), a web build or hosting config (angular.json, next.config.*, firebase.json, vercel.json, netlify.toml, wrangler.toml, nginx.conf), or an HTML page outside test trees | `performance_664dd2d3` |
+| Performance Monitoring Standards | `REQUIRES_PRODUCTION_SUBJECT`: a Node HTTP framework (`next`, `express`, `fastify`, `koa`, `hono`, `@nestjs/core`, `@hapi/hapi`), a Python one (fastapi, flask, django, starlette, aiohttp …), a web surface, a mobile app shell (`react-native`, `expo`, `@capacitor/core`, `@nativescript/core`), or a deploy target (Dockerfile, Procfile, compose, app.yaml, fly.toml, render.yaml, firebase.json, vercel.json, netlify.toml, wrangler.*, serverless.yml, Chart.yaml, a serverless deploy command) | `performance_351f896e` |
+| Incident Response Protocol | `REQUIRES_PRODUCTION_SUBJECT` | `docs_cd2817cb` |
+| Launch Readiness Checklist | `REQUIRES_PRODUCTION_SUBJECT` | `deployment_b1c8dba1` |
+| NX Commands Only Policy | `REQUIRES_NX_OR_ANGULAR`: nx.json, `nx` / `@nx/workspace` / `@nrwl/workspace`, or `@angular/core` (an Angular project without Nx is still asked to use Nx) | `quality_f66318df` |
+
+Pre-Deployment Checklist (MANDATORY) (`deployment_37c13d47`) asks its
+authentication, benchmarking, health-check and production-logging clauses only
+where `REQUIRES_PRODUCTION_SUBJECT` holds; the checklist, build, test and
+security-scan clauses are asked everywhere.
+
+**MD Footer Template (MANDATORY) is opt-in** (#436). A project that wants it
+turns it on with `laws.severity: { "MD Footer Template (MANDATORY)": "warning" }`
+(or its lawId `docs_5ef46de8`), or lists it in `laws.enabled`. Without that the
+law does not run, and nothing is printed. MD Footer Footer Consistency stays on
+by default.
+
+Laws selected per release-canary profile, before → after, and what leaves:
+
+| profile | before → after | no longer selected |
+|---|---|---|
+| python | 97 → 92 | CDN, Performance Monitoring, Incident Response, Launch Readiness (no production subject); MD Footer (opt-in) |
+| angular | 120 → 119 | MD Footer (opt-in) |
+| ngrx | 131 → 130 | MD Footer (opt-in) |
+| ionic | 150 → 149 | MD Footer (opt-in) |
+| react | 134 → 132 | NX Commands Only (no Nx, no Angular); MD Footer (opt-in) |
+| node | 77 → 71 | CDN, Performance Monitoring, Incident Response, Launch Readiness (no production subject); NX Commands Only (no Nx, no Angular); MD Footer (opt-in) |
+
+Fast mode core before → after: unchanged, except that Launch Readiness
+Checklist enters it where `REQUIRES_PRODUCTION_SUBJECT` holds (its own gated
+group's 20% share), and the laws above leave it where they are no longer
+selected. A CRITICAL `error` law that every project selects (no stack, no
+`requires`) is now protected from the quota, so CI/CD Constitutional Tribunal
+stays in the core: the share of the ungated universal group shrank with the
+laws that moved to their subject, and it would have cut it as a side effect.
+
+Self-audit of this repository, before → after: CDN and Caching Strategy 5
+findings, Performance Monitoring Standards 3, Incident Response Protocol 3,
+Launch Readiness Checklist 1, NX Commands Only Policy 1 → not selected;
+Pre-Deployment Checklist 4 → 2.
+
 ### 🐛 Fixed — an Angular CLI project was told to add webpack limits it cannot write (#449)
 
 Once the budget suggestion read angular.json correctly (#449), the two

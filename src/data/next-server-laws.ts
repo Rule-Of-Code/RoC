@@ -16,30 +16,13 @@ import type {
   LawRequirement,
 } from '../types/enhanced-law.types';
 import { REQUIRES_NEXT } from '../utils/framework-requirements';
+import { REQUIRES_NODE_HTTP_SERVER } from '../utils/production-subject-requirements';
 import { generateLawId } from '../utils/id-generator';
 
 /** The App Router laws: `next` declared, and an app/ or src/app/ directory present. */
 const REQUIRES_NEXT_APP_ROUTER: LawRequirement = {
   anyDependency: ['next'],
   anyFile: ['app', 'src/app'],
-};
-
-/**
- * Client IP handling is a concern of any server that answers HTTP, not of
- * Next alone. A dependency is the only thing `requires` can read, so the law
- * is selected by the common Node HTTP frameworks; a server built on bare
- * `node:http` declares none of them and is not selected.
- */
-const REQUIRES_NODE_HTTP_SERVER: LawRequirement = {
-  anyDependency: [
-    'next',
-    'express',
-    'fastify',
-    'koa',
-    'hono',
-    '@nestjs/core',
-    '@hapi/hapi',
-  ],
 };
 
 const PARSER_LIMIT =

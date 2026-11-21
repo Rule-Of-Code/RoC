@@ -2,13 +2,6 @@ import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { CheckerUtils } from '../../utils/checker-utils';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
-// Interface for footer analysis
-interface FooterAnalysis {
-  consistentFooters: number;
-  inconsistentFooters: number;
-  missingFooters: number;
-  totalFiles: number;
-}
 
 /**
  * MD Footer Footer Consistency Law

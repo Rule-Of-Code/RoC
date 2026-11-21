@@ -130,6 +130,14 @@ titles do not count.
 | Constitutional Supremacy Doctrine | 1 finding (no enforcement script) | pass (.husky/pre-commit, .husky/pre-push run the audit) |
 | Continuous Compliance Doctrine | 1 finding (no enforcement tool) | pass |
 | Pull Request Workflow Standards | 1 finding (missing precommit, prepush) | pass |
+### Fixed — Pre-PR Quality Gates: GitHub and GitLab keep branch protection server-side (#435)
+
+A github.com or gitlab.com remote is now a server-side protection host, as
+bitbucket.org and Azure DevOps already were (inferred from the host, not
+verified). The message is built from the violations; it printed "Missing "
+with an empty list when branch protection was the only one.
+
+Self-audit of this repository: Pre-PR Quality Gates — before 1 finding ("Missing branch protection configuration", message "Missing "), after pass (github.com remote).
 ### 🐛 Fixed — an Angular CLI project was told to add webpack limits it cannot write (#449)
 
 Once the budget suggestion read angular.json correctly (#449), the two

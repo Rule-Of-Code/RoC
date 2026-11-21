@@ -141,7 +141,7 @@ export const DEPLOYMENT_LAWS: EnhancedConstitutionalLaw[] = [
         'Same — branch protection is configured in the host settings (GitHub / Bitbucket).',
     },
     detectionLimits: [
-      'Branch protection is server-side on Bitbucket/Azure — it is inferred from the host, not verified; the PR-template check reads a fixed set of in-repo paths.',
+      'Branch protection is server-side on Bitbucket, Azure DevOps, GitHub and GitLab (a github.com / gitlab.com / bitbucket.org / Azure remote) — it is inferred from the host, not verified, and a self-hosted GitHub or GitLab is not recognised by its host name; the PR-template check reads a fixed set of in-repo paths.',
       'CI / status-check detection is keyword presence in a workflow, not proof the checks run.',
       'Reads config / host markers, not the actual enforced ruleset.',
     ],

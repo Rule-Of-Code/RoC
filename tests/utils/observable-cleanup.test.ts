@@ -4,7 +4,6 @@
  */
 import { Subject } from 'rxjs';
 import {
-  AutoCleanup,
   ObservableCleanup,
   ObservableCleanupBase,
   ObservableUtils,
@@ -193,63 +192,5 @@ describe('ObservableCleanup', () => {
       const content = 'this.data$.subscribe();';
       expect(ObservableCleanup.hasUnsubscribePattern(content)).toBe(false);
     });
-  });
-});
-
-describe('AutoCleanup decorator', () => {
-  it('should be a function', () => {
-    expect(typeof AutoCleanup).toBe('function');
-  });
-
-  it('should return a decorator function', () => {
-    const decorator = AutoCleanup();
-    expect(typeof decorator).toBe('function');
-  });
-
-  it('should create a class with destroy$ when applied', () => {
-    // Testing the decorator functionality without using decorator syntax
-    // to avoid TypeScript strict type checking issues
-    const decorator = AutoCleanup();
-    class BaseClass {
-      [key: string]: unknown;
-    }
-    const DecoratedClass = decorator(BaseClass);
-    const instance = new DecoratedClass() as { destroy$: Subject<void> };
-    expect(instance.destroy$).toBeInstanceOf(Subject);
-  });
-
-  it('should create a class with ngOnDestroy when applied', () => {
-    const decorator = AutoCleanup();
-    class BaseClass {
-      [key: string]: unknown;
-    }
-    const DecoratedClass = decorator(BaseClass);
-    const instance = new DecoratedClass() as {
-      destroy$: Subject<void>;
-      ngOnDestroy: () => void;
-    };
-    expect(typeof instance.ngOnDestroy).toBe('function');
-  });
-
-  it('should complete destroy$ when ngOnDestroy is called', () => {
-    const decorator = AutoCleanup();
-    class BaseClass {
-      [key: string]: unknown;
-    }
-    const DecoratedClass = decorator(BaseClass);
-    const instance = new DecoratedClass() as {
-      destroy$: Subject<void>;
-      ngOnDestroy: () => void;
-    };
-
-    let completed = false;
-    instance.destroy$.subscribe({
-      complete: () => {
-        completed = true;
-      },
-    });
-
-    instance.ngOnDestroy();
-    expect(completed).toBe(true);
   });
 });

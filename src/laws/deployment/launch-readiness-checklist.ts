@@ -59,7 +59,7 @@ export class LaunchReadinessChecklistLaw {
     if (performanceBenchmarks.hasPerformanceIssues) {
       violations.push('Missing performance benchmark validation');
       suggestions.push(
-        'Validate PerformanceTestUtils benchmarks and load testing results'
+        'Validate performance benchmarks and load testing results'
       );
       performanceBenchmarks.recommendations.forEach(rec => {
         suggestions.push(rec);
@@ -205,7 +205,6 @@ export class LaunchReadinessChecklistLaw {
       'load-test-results.md',
       'lighthouse-report.html',
       'performance/benchmarks.json',
-      'performance/PerformanceTestUtils-results.json',
     ];
 
     for (const perfFile of performanceFiles) {

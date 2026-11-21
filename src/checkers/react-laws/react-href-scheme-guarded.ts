@@ -43,6 +43,13 @@ export function prefixFixesScheme(prefix: string): boolean {
   return /^\s*[/?#.]/.test(prefix) || /^[^:]*[/?#]/.test(prefix);
 }
 
+/**
+ * React Href Scheme Guarded: reports each non-literal `<a href>` and
+ * `<iframe src>` whose URL scheme the code does not fix (by a path or safe
+ * scheme prefix, both branches of a conditional, or a guard named in
+ * `thresholds.react.urlGuards`), since a `data:` or `vbscript:` value would be
+ * used as is.
+ */
 export class ReactHrefSchemeGuardedLaw extends LawBase {
   static readonly LAW_NAME = 'React Href Scheme Guarded';
 

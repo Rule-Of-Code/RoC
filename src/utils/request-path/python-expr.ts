@@ -58,6 +58,7 @@ const PY_KEYWORDS = new Set([
 
 const PLACEHOLDER = /«(\d+)»/g;
 
+/** True for a Python keyword, the soft keywords `match`/`case`, or `print`. */
 export function isPyKeyword(name: string): boolean {
   return PY_KEYWORDS.has(name);
 }

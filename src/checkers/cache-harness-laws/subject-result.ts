@@ -41,6 +41,12 @@ export interface SubjectVerdict {
   metrics: Record<string, number>;
 }
 
+/**
+ * The LawResult of a cache or harness law, by the rule in this file's header:
+ * no file read is judged nothing; findings fail; a clean read passes with a
+ * message naming what was read and judged (or "nothing to judge") and what
+ * the law does not see. `metrics` is attached in every case.
+ */
 export function subjectResult(verdict: SubjectVerdict): LawResult {
   const { lawName, category, context, findings, suggestions, metrics } =
     verdict;

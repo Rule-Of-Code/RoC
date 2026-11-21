@@ -19,6 +19,12 @@ interface RecommendResult {
   applicableLaws?: number;
 }
 
+/**
+ * Writes the recommended config for the detected stack through
+ * scripts/recommend-config and prints what happened. Returns the exit code:
+ * 1 when there is no recommended config for the project type, 0 when the file
+ * was written or was already up to date.
+ */
 export function runRecommend(projectRoot: string): number {
   // Plain-JS generator: it must run without a build step, so it is not in dist.
   const { generateRecommendedConfig } =
@@ -59,6 +65,10 @@ export function runRecommend(projectRoot: string): number {
   return 0;
 }
 
+/**
+ * Registers `ruleofcode recommend`, which runs runRecommend in the current
+ * directory and exits with its code.
+ */
 export function recommendCommand(program: Command): void {
   program
     .command('recommend')

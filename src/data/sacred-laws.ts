@@ -134,7 +134,7 @@ export const SACRED_LAWS: EnhancedConstitutionalLaw[] = [
         'Commit ruleofcode.config.json and add a check:laws (or audit:constitutional) npm script that runs the audit.',
     },
     detectionLimits: [
-      'Existence only: it checks that ruleofcode.config.json exists and that a check:laws or audit:constitutional script is defined — it does not read the config content or verify the script does anything.',
+      'Existence only: it checks that ruleofcode.config.json exists and that the audit is run somewhere — a package script whose command runs ruleofcode / roc audit (or a check:laws-style name), a committed git hook (.husky, .githooks, lefthook, pre-commit config, simple-git-hooks) or a CI step that runs it. Comments, echo lines and step titles do not count; it does not read the config content or verify the run passes.',
       'CONSTITUTION.md, governance docs and CODEOWNERS are advisory here and never affect the result.',
       'The script check reads package.json, so a project without one can only fail on the missing config file.',
     ],
@@ -241,7 +241,7 @@ export const SACRED_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Existence and key-presence checks, plus a naive substring scan for "cron:"/"schedule:" in workflow YAML (no YAML parse — a comment matches) and a "badge" substring in the README.',
-      'It effectively requires the project to use npm and to depend on RuleOfCode itself — a repo not using this tool cannot satisfy it.',
+      'It requires the project to run RuleOfCode: as a dependency, or invoked (npx ruleofcode audit) from a package script, a committed git hook or a CI step — a repo not using this tool cannot satisfy it.',
       'Only .eslintrc.js counts as an eslint marker here; flat / JSON / YAML eslint configs are missed.',
     ],
     emoji: '🔄',

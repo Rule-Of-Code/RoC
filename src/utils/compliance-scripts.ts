@@ -22,7 +22,7 @@
  * `lint && roc audit` matches on its second command rather than by accident
  * across the whole line.
  */
-const RUNS_AUDIT = /\b(?:ruleofcode|roc)\b[^&|]*\baudit\b/i;
+export const RUNS_AUDIT = /\b(?:ruleofcode|roc)\b[^&|]*\baudit\b/i;
 
 /** Other compliance runners a project may gate on instead. */
 const RUNS_OTHER_COMPLIANCE = [

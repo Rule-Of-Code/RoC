@@ -116,6 +116,20 @@ as its only argument (the Map signature), so a file-backed API such as
 `Cache.get(root, key, mode)` is not judged as an in-memory map.
 
 Self-audit of this repository: Async Cache Single-Flight — before 1 finding (`src/core/auditing/audit-engine.ts`, a file-backed `AuditCache.get(…)` / `.set(…)`), after pass: 3 files read, 0 async check-then-store sites.
+### Fixed — the audit run from git hooks and CI counts as running it (#434)
+
+Constitutional Supremacy, Continuous Compliance and Pull Request Workflow
+read one place each (package scripts, a `ruleofcode` dependency, scripts
+named `precommit` / `prepush`). One shared probe, `auditInvocations`, now
+reads package scripts, committed git hooks (`.husky`, `.githooks`, lefthook,
+pre-commit, simple-git-hooks) and CI steps; comments, `echo` lines and step
+titles do not count.
+
+| law (self-audit of this repository) | before | after |
+|---|---|---|
+| Constitutional Supremacy Doctrine | 1 finding (no enforcement script) | pass (.husky/pre-commit, .husky/pre-push run the audit) |
+| Continuous Compliance Doctrine | 1 finding (no enforcement tool) | pass |
+| Pull Request Workflow Standards | 1 finding (missing precommit, prepush) | pass |
 ### 🐛 Fixed — an Angular CLI project was told to add webpack limits it cannot write (#449)
 
 Once the budget suggestion read angular.json correctly (#449), the two

@@ -10,6 +10,7 @@ import { FileUtils } from '../../utils/file-utils';
 import { CiCdDetector } from '../../utils/ci-cd-detector';
 import { PathOperations } from '../../utils/path-operations';
 import { hasCiConfig } from '../../utils/project-discovery';
+import { committedHooks } from '../../utils/audit-invocation';
 import { GitLawBase } from './git-law-base';
 
 export class PRWorkflowStandardsLaw extends GitLawBase {
@@ -173,10 +174,17 @@ export class PRWorkflowStandardsLaw extends GitLawBase {
     const scripts = packageJson.scripts as Record<string, unknown> | undefined;
     if (!scripts) return { violations, suggestions };
 
-    // Check for PR-related scripts
+    // Check for PR-related scripts. precommit / prepush are what a committed
+    // git hook of that name already is: .husky/pre-commit, a lefthook or
+    // pre-commit config, simple-git-hooks (#434).
     const prScripts = ['precommit', 'prepush', 'test', 'lint', 'build'];
+    const hooks = new Set(
+      committedHooks(projectRoot).map(hook => hook.hook.replace('-', ''))
+    );
 
-    const missingScripts = prScripts.filter(script => !scripts[script]);
+    const missingScripts = prScripts.filter(
+      script => !scripts[script] && !hooks.has(script)
+    );
     if (missingScripts.length) {
       violations.push(
         `Missing automated check scripts: ${missingScripts.join(', ')}`

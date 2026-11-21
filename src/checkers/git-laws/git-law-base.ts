@@ -14,7 +14,11 @@ export class GitLawBase extends LawBase {
     return FileUtils.exists(PathOperations.join(projectRoot, '.git'));
   }
 
-  protected static executeGitCommand(
+  /**
+   * Run a git command in `projectRoot`; never throws. Public so that
+   * commit-scope reads git through this runner instead of a copy of it.
+   */
+  public static executeGitCommand(
     command: string,
     projectRoot: string
   ): { success: boolean; stdout: string; stderr: string } {

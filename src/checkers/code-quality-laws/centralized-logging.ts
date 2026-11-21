@@ -24,9 +24,10 @@ import { readSource } from './source-view';
 export class CentralizedLoggingLaw extends CodeQualityLawBase {
   private static readonly CONSOLE =
     /\bconsole\s*\.\s*(log|debug|info|warn|error|trace)\s*\(/g;
-  // In a package that declares a `bin`: log/info/warn are the command's output.
+  // In a package that declares a `bin`: log/info are the command's output.
+  // warn writes to stderr as error does and is counted with it.
   private static readonly CLI_CONSOLE =
-    /\bconsole\s*\.\s*(debug|error|trace)\s*\(/g;
+    /\bconsole\s*\.\s*(warn|debug|error|trace)\s*\(/g;
   private static readonly ALLOWED =
     /(?:^|[\\/])(?:logger\.service\.ts|main\.ts)$/;
   // Python branch (arch proposal №12): print() in source is the console.* of
@@ -42,9 +43,10 @@ export class CentralizedLoggingLaw extends CodeQualityLawBase {
    *
    * Calls are read from the parse (#424): `console.log(` in a message string
    * or a comment is not a call. In a package that declares a `bin`,
-   * console.log/info/warn are how the command talks to its user — its output,
-   * not logging that bypasses a logger (#425) — so there only error, debug and
-   * trace are counted. A logging module (logger.*, logging*, log.*) and the
+   * console.log/info are how the command talks to its user — its output, not
+   * logging that bypasses a logger (#425) — so there only warn, error, debug
+   * and trace are counted. warn goes to stderr like error and is judged with
+   * it. A logging module (logger.*, logging*, log.*) and the
    * bootstrap (main.ts) are where console output is meant to live.
    */
   private static collectConsoleViolations(

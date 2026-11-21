@@ -8,7 +8,7 @@ import * as tsxSource from '../../src/utils/react/tsx-source';
 
 /**
  * Centralized Logging reads console calls from the code (#424), and in a
- * package that declares a `bin` the command's console.log/info/warn are its
+ * package that declares a `bin` the command's console.log/info are its
  * output, not logging that bypasses a logger (#425).
  *
  * The TypeScript branch stripped comments only, so `console.log(` in a
@@ -74,13 +74,28 @@ describe('Centralized Logging: code only, and a CLI prints (#424, #425)', () => 
       );
     });
 
-    it('does not count log, info and warn: they are the output', () => {
+    it('does not count log and info: they are the output', () => {
       write(
         'src/cli/report.ts',
-        "export function report(n: number): void {\n  console.log(`${n} files`);\n  console.info('done');\n  console.warn('slow');\n}\n"
+        "export function report(n: number): void {\n  console.log(`${n} files`);\n  console.info('done');\n}\n"
       );
 
       expect(findings()).toEqual([]);
+    });
+
+    /**
+     * warn writes to stderr, as error does, and is judged with error: still
+     * counted until it is decided whether a CLI's stderr is output too.
+     */
+    it('still counts warn, as it counts error', () => {
+      write(
+        'src/cli/report.ts',
+        "export function report(n: number): void {\n  console.info(n);\n  console.warn('slow');\n  console.error('failed');\n}\n"
+      );
+
+      expect(findings()).toEqual([
+        'src/cli/report.ts: 2 direct console.* call(s) — route logging through the logger service.',
+      ]);
     });
 
     it('still counts error, debug and trace', () => {

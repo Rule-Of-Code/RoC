@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Dead Code Elimination judged words as dead code (#424)
+
+| | before | after |
+|---|---|---|
+| `debugger` | the word anywhere in the file, strings and comments included | a `debugger;` statement |
+| "commented code blocks" | `//` lines containing "function", "const" or "let" anywhere | `//` comments that hold a const/let declaration or a function header |
+| "unreachable code after return" | a line starting with `return` (also `returnValue = …`) followed by a line at the same indent | a statement after a `return` in the same block (not a hoisted function or a type) |
+| no loadable `typescript` | text scanned | "code file(s) were NOT read" — judged nothing |
+
 ### ⚠️ BREAKING — `compliance` and the victory art mean a clean pass; a law that judged nothing makes the run partial
 
 A run of this repository listed 46 laws with violations at warning level, one

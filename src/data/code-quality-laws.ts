@@ -246,7 +246,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'The "unused vars/imports" in the title are enforced only by the PRESENCE of an ESLint rule — never actually detected in the code.',
-      'Unreachable-code detection is an indentation heuristic (not scope-aware); the debugger/keyword match hits comments and strings.',
+      'Read from the TypeScript parse (without a loadable `typescript` the files are NOT read and the law judges nothing): a `debugger;` statement, a statement after a `return` in the same block (a hoisted function or a type after it is not), and more than three `//` comments that hold a const/let declaration or a function header. Words in strings and prose comments are not code.',
       'TS/JS only; no Python.',
     ],
     emoji: '🧟',

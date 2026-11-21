@@ -77,7 +77,6 @@ export class RuleOfCodeAuditor {
 
   private readonly config: RuleOfCodeConfig;
   private readonly projectRoot: string;
-  private readonly suggestExceptions: boolean;
   private readonly mode: string;
   private readonly options: AuditOptions;
 
@@ -114,7 +113,8 @@ export class RuleOfCodeAuditor {
   constructor(
     _config: unknown,
     projectRoot: string = process.cwd(),
-    suggestExceptions = false,
+    // Positional slot of the public constructor; no code reads it.
+    _suggestExceptions = false,
     mode = 'fast',
     options: AuditOptions = {}
   ) {
@@ -125,7 +125,6 @@ export class RuleOfCodeAuditor {
         ? (_config as RuleOfCodeConfig)
         : ConfigLoader.loadConfig(projectRoot);
     this.projectRoot = projectRoot;
-    this.suggestExceptions = suggestExceptions;
     this.mode = mode;
 
     // Read settings from config
@@ -185,8 +184,6 @@ export class RuleOfCodeAuditor {
 
     // Check cache if enabled
     const cacheEnabled = (this.config as any).performance?.cache ?? false;
-    const incrementalEnabled =
-      (this.config as any).performance?.incremental ?? false;
 
     // The key is computed ONCE, before the run, and the same key is written
     // after it. Recomputing it after the run hashed the config the run had
@@ -221,9 +218,7 @@ export class RuleOfCodeAuditor {
 
     try {
       const selected = this.getSelectedLaws();
-      const laws = selected.filter(
-        law => !this.isHistoryLawBlockedByCommit(law as { name?: string })
-      );
+      const laws = this.getLawsToAudit(selected);
 
       // FAIL-CLOSED: a collapsed law selection is never compliance. The two
       // meta-gates are always-on (they cannot be configured away), so they do
@@ -410,8 +405,10 @@ export class RuleOfCodeAuditor {
   }
 
   /** The laws this run executes: the selection, minus what the mode defers. */
-  private getLawsToAudit(): unknown[] {
-    return this.getSelectedLaws().filter(
+  private getLawsToAudit(
+    selected: unknown[] = this.getSelectedLaws()
+  ): unknown[] {
+    return selected.filter(
       law => !this.isHistoryLawBlockedByCommit(law as { name?: string })
     );
   }
@@ -1743,11 +1740,6 @@ export class RuleOfCodeAuditor {
     return showScoring && score !== undefined
       ? chalk.gray(` (Score: ${score}/100)`)
       : '';
-  }
-
-  private displaySummary(_summary: unknown): void {
-    // Display summary logic would go here
-    process.stdout.write(`${chalk.blue('📊 Summary available')}\n`);
   }
 
   /**

@@ -174,20 +174,6 @@ export class MdFooterFooterConsistencyLaw {
     }
   }
 
-  private static shouldSkipDirectory(dirName: string): boolean {
-    const skipDirs = [
-      'node_modules',
-      '.git',
-      'dist',
-      'build',
-      'coverage',
-      'tmp',
-      '.nx',
-      '.angular',
-    ];
-    return skipDirs.includes(dirName) || dirName.startsWith('.');
-  }
-
   private static analyzeFooterConsistency(
     markdownFiles: string[],
     thresholds: { footerLastLinesCount: number }

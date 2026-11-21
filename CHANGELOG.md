@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Test Data Management read an exact expected value as hardcoded test data (#439)
+
+Any string of 20 or more characters inside `expect(…).toBe(…)` matched the
+"hardcoded test data" pattern, so `expect(result.lawName).toBe('angular-testing-excellence')`
+was reported as test data to replace with a factory. The value a test expects
+back is the assertion itself; no factory can produce it.
+
+Before: a file was "hardcoded test data" if it held an inline array of records
+with string ids, a `mockReturnValue` of a 4+ digit number, or any long exact
+string in `toBe(…)`. After: the first two only; an expected value is not data.
+
+Self-audit of this repository: Test Data Management "Found hardcoded test data"
+— before 102 files (101 of them for a long expected string), after 1 (a
+detector test whose fixture strings hold the two remaining patterns).
+
 ### 🐛 Fixed — a committed PRE_DEPLOYMENT_CHECKLIST.md was reported missing when `includes` name only source (#476)
 
 Pre-Deployment Checklist looked the checklist up through the source scan,

@@ -20,7 +20,9 @@ TypeScript parse.
 | digits in a regex literal | reported | not code |
 | `config.x ?? 50` (also with `??` on the line before) | reported | named by the left side |
 | parameter / destructuring default `before = 50` | reported | named |
-| `MAX_AGE = 24 * 60 * 60 * 1000`, `new Set([401, 403])`, `SIZES = [16, 32]` | later factors / elements reported | named |
+| `MAX_AGE = 24 * 60 * 60 * 1000`, `SIZES = [16, 32]` | later factors / elements reported | named |
+| `const CODES = new Set([401, 403])`, a class field `= new Map([...])` | elements reported | named by the const / field |
+| a Set/Map built anywhere else (parameter default, object property, argument) | elements reported | still reported |
 | `parseInt(s, 16)` | reported | the radix is not a magic number |
 | `${t.slice(0, 57)}` inside a template | never seen | reported |
 | no loadable `typescript` | scanned as text | "code file(s) were NOT read" — judged nothing |

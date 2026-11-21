@@ -12,7 +12,10 @@
  *  - it initialises a variable, a property, a class field, an enum member, a
  *    parameter or a destructuring default (`before = 50`);
  *  - it is part of a constant expression that does (`24 * 60 * 60 * 1000`) or
- *    an element of a named array or `new Set([...])`/`new Map([...])`;
+ *    an element of a named array;
+ *  - it is an element of a `new Set([...])`/`new Map([...])` that initialises
+ *    a named const or a class field — the collection names its elements only
+ *    as a whole, so built anywhere else they are not named by it;
  *  - it is the fallback of `??` — the left side names it
  *    (`config.thresholds?.max ?? 50`);
  *  - it is the radix argument of `parseInt`.
@@ -51,24 +54,47 @@ function isCollectionConstruction(ts: typeof TS, node: TS.Node): boolean {
   );
 }
 
+/** Where the literal's name comes from, and whether a Set/Map was on the way. */
+interface NamingPosition {
+  node: TS.Node;
+  inCollection: boolean;
+}
+
 /**
  * The node whose position names the literal: climb out of the constant
  * expression, the array or the collection the literal is part of.
  */
-function namingPosition(ts: typeof TS, literal: TS.Node): TS.Node {
+function namingPosition(ts: typeof TS, literal: TS.Node): NamingPosition {
   let node = literal;
+  let inCollection = false;
   for (;;) {
     const parent = node.parent;
+    const collection = isCollectionConstruction(ts, parent);
     const climbs =
       ts.isParenthesizedExpression(parent) ||
       ts.isPrefixUnaryExpression(parent) ||
       (ts.isBinaryExpression(parent) && isConstantExpression(ts, parent)) ||
       ts.isArrayLiteralExpression(parent) ||
       ts.isAsExpression(parent) ||
-      isCollectionConstruction(ts, parent);
-    if (!climbs) return node;
+      collection;
+    if (!climbs) return { node, inCollection };
+    inCollection ||= collection;
     node = parent;
   }
+}
+
+/** A Set/Map names its elements only as the initializer of a const or a class field. */
+function collectionIsNamed(
+  ts: typeof TS,
+  parent: TS.Node,
+  node: TS.Node
+): boolean {
+  if (ts.isPropertyDeclaration(parent)) return parent.initializer === node;
+  return (
+    ts.isVariableDeclaration(parent) &&
+    parent.initializer === node &&
+    (ts.getCombinedNodeFlags(parent) & ts.NodeFlags.Const) !== 0
+  );
 }
 
 /** A declaration that gives its initializer a name. */
@@ -112,8 +138,9 @@ function isRadix(ts: typeof TS, parent: TS.Node, node: TS.Node): boolean {
 
 /** Whether the code around a numeric literal already names it. */
 function isNamed(ts: typeof TS, literal: TS.NumericLiteral): boolean {
-  const node = namingPosition(ts, literal);
+  const { node, inCollection } = namingPosition(ts, literal);
   const parent = node.parent;
+  if (inCollection) return collectionIsNamed(ts, parent, node);
   return (
     initializerIsNamed(ts, parent, node) ||
     isNullishFallback(ts, parent, node) ||

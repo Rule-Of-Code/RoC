@@ -72,8 +72,12 @@ describe('Magic Number Prevention reads the parse (#431)', () => {
         'export const MAX_AGE = 24 * 60 * 60 * 1000;',
       ],
       [
-        'the elements of a named Set',
+        'the elements of a Set that initialises a named const',
         'export const CODES = new Set([401, 403]);',
+      ],
+      [
+        'the entries of a Map that initialises a class field',
+        "export class Status {\n  private readonly names = new Map([[401, 'auth'], [403, 'denied']]);\n}",
       ],
       ['the elements of a named array', 'export const SIZES = [16, 32, 64];'],
       [
@@ -90,6 +94,28 @@ describe('Magic Number Prevention reads the parse (#431)', () => {
   });
 
   describe('an unnamed literal in code is reported', () => {
+    /**
+     * A collection names its elements only as a whole, through the const or
+     * the field it initialises. Built anywhere else — a parameter default, an
+     * object property, an argument — its numbers are not named by it.
+     */
+    it.each([
+      [
+        'in a Set built as a parameter default',
+        'export const allowed = (codes = new Set([401, 403])) => codes;',
+      ],
+      [
+        'in a Set built as an object property',
+        'export const T = { codes: new Set([401, 403]) };',
+      ],
+      [
+        'in a Set built as an argument',
+        'export const has = (n: number) => new Set([401, 403]).has(n);',
+      ],
+    ])('%s', (_name, source) => {
+      expect(reported(source)).toEqual(['401', '403']);
+    });
+
     it('inside a template substitution', () => {
       expect(
         reported('export const cut = (t: string) => `${t.slice(0, 57)}…`;')

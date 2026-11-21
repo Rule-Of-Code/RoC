@@ -282,7 +282,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Flags numeric literals by pattern; it cannot tell a domain constant from a magic number by MEANING, only by whether the value is named.',
       'It does not verify a named constant is used correctly — a well-named but wrong constant passes.',
-      'Literals are read from the TypeScript parse: a digit in a string, template text, regex or comment is not one; without a loadable `typescript` the files are NOT read and the law judges nothing. Named: an initializer of a variable, property, class field, enum member, parameter or destructuring default (also through a constant expression, array or new Set/Map), the fallback of `??`, and a parseInt radix.',
+      'Literals are read from the TypeScript parse: a digit in a string, template text, regex or comment is not one; without a loadable `typescript` the files are NOT read and the law judges nothing. Named: an initializer of a variable, property, class field, enum member, parameter or destructuring default (also through a constant expression or an array), the elements of a new Set/Map that initialises a const or a class field, the fallback of `??`, and a parseInt radix.',
     ],
     emoji: '🔮',
     description: 'All numeric literals must be replaced with named constants',

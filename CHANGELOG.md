@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed — Strategic Document Updates: a CHANGELOG and an issue tracker are a status record
+
+The status clause is met by a PROJECT_STATUS / STATUS / ROADMAP file, or by
+a CHANGELOG together with an issue tracker (`bugs` in package.json, an Issues
+URL in pyproject.toml, GitHub or GitLab issue templates). A project with
+neither is asked, as before.
+
+Self-audit of this repository: Strategic Document Updates — before 1 finding ("Missing PROJECT_STATUS.md file"), after pass (CHANGELOG.md + `bugs` in package.json + .github/ISSUE_TEMPLATE).
+
 ### ⚠️ BREAKING — `compliance` and the victory art mean a clean pass; a law that judged nothing makes the run partial
 
 A run of this repository listed 46 laws with violations at warning level, one

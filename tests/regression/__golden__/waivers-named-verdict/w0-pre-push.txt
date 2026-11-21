@@ -11,7 +11,7 @@ Project type: typescript (detected)
    Run 'npx ruleofcode reinstall-hooks' to install them
 
 ⚖️  Executing constitutional checks...
-🔍 Processing 74 laws (parallel: true)
+🔍 Processing 73 laws (parallel: true)
 
 
 ════════════════════════════════════════════════════════════
@@ -20,10 +20,10 @@ Project type: typescript (detected)
 
 📊 AUDIT SUMMARY:
 ────────────────────────────────────────────────────────────
-Total Laws Checked: 74
-  of which count for the liveness floor: 72 (+2 always-on meta-gates — set laws.minLawsChecked against 72)
+Total Laws Checked: 73
+  of which count for the liveness floor: 71 (+2 always-on meta-gates — set laws.minLawsChecked against 71)
 
-✓ Passed: 74
+✓ Passed: 73
 ✗ Failed: 0
 Score: 100% (Pass Rate: 100%)
 Execution time: <n>ms
@@ -94,17 +94,16 @@ Execution time: <n>ms
 61. Health Check Monitoring (Score: 100/100)
 62. Documentation Standards (Score: 100/100)
 63. Project Structure Standards (Score: 100/100)
-64. MD Footer Template (MANDATORY) (Score: 100/100)
-65. TODO Management Constitutional Requirements (Score: 100/100)
-66. TODO Management Standards (Score: 100/100)
-67. MD Footer Footer Consistency (Score: 100/100)
-68. Strategic Document Updates (Score: 100/100)
-69. Audit Liveness Assertion (Score: 100/100)
-70. Config Integrity Guard (Score: 100/100)
-71. Golden Fixture Immutability (Score: 100/100)
-72. Guard Function Has Production Caller (Score: 100/100)
-73. Tsconfig Exclude Leaves Code Untyped (Score: 100/100)
-74. Test Server Loopback Address Match (Score: 100/100)
+64. TODO Management Constitutional Requirements (Score: 100/100)
+65. TODO Management Standards (Score: 100/100)
+66. MD Footer Footer Consistency (Score: 100/100)
+67. Strategic Document Updates (Score: 100/100)
+68. Audit Liveness Assertion (Score: 100/100)
+69. Config Integrity Guard (Score: 100/100)
+70. Golden Fixture Immutability (Score: 100/100)
+71. Guard Function Has Production Caller (Score: 100/100)
+72. Tsconfig Exclude Leaves Code Untyped (Score: 100/100)
+73. Test Server Loopback Address Match (Score: 100/100)
 
 ════════════════════════════════════════════════════════════
 ✅ CONSTITUTIONAL COMPLIANCE: PASSED

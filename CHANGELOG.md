@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Internal — `noUnusedParameters` is on
+
+This repository's `tsconfig.json` now sets `noUnusedParameters: true`, one of
+the flags TypeScript Strict Mode (SACRED LAW) asks for. The 33 parameters it
+found are gone: a parameter nobody reads is removed and its callers pass one
+argument less. Only where the signature is set from outside (a callback, a
+base-class hook) is the parameter kept, as `_name`.
+
+One of them says more than the others: `PerformanceAnalysisService` took a
+`projectRoot` and never read it, so its result never depended on the project.
+The parameter is removed, so the signature now says what the code does.
+
 ### Internal — this repository keeps MD Footer Template on
 
 MD Footer Template became opt-in in this release (#468). This repository does

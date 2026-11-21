@@ -20,11 +20,7 @@ export interface EnvUsageCheckResult {
 // Process.env Patterns
 // ============================================================================
 
-export const PROCESS_ENV_PATTERN = /process\.env\.([A-Z_][A-Z0-9_]*)/g;
-export const PROCESS_ENV_PREFIX = 'process.env.';
 export const PROCESS_ENV_DESTRUCTURING = /const\s+{[^}]+}\s*=\s*process\.env/;
-
-export const FALLBACK_INDICATORS = ['||', '??', '? ', 'default'] as const;
 
 export const PORT_ENV_VAR = 'process.env.PORT';
 export const PARSE_INT = 'parseInt';
@@ -53,14 +49,6 @@ export const PROCESS_ENV_COUNT_PATTERN = /process\.env\./g;
 // ============================================================================
 // Hardcoded Value Patterns
 // ============================================================================
-
-export const URL_PATTERNS = [
-  /https?:\/\/[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
-  /'https?:\/\/[^']+'/g,
-  /"https?:\/\/[^"]+"/g,
-] as const;
-
-export const LOCAL_HOST_INDICATORS = ['localhost', '127.0.0.1'] as const;
 
 export const DB_CONNECTION_PATTERNS = [
   /mongodb:\/\/[^\s'"]+/g,
@@ -164,28 +152,6 @@ export function safeReadFile(filePath: string): string {
   }
 }
 
-export function extractEnvVarName(match: string): string {
-  return match.replace(PROCESS_ENV_PREFIX, '');
-}
-
-export function getContextAround(
-  content: string,
-  match: string,
-  before = 50,
-  after = 100
-): string {
-  const matchIndex = content.indexOf(match);
-  if (matchIndex === -1) return '';
-
-  const contextStart = Math.max(0, matchIndex - before);
-  const contextEnd = Math.min(content.length, matchIndex + after);
-  return content.substring(contextStart, contextEnd);
-}
-
-export function hasFallbackValue(context: string): boolean {
-  return hasAnyPattern(context, FALLBACK_INDICATORS);
-}
-
 export function hasValidationLibrary(content: string): boolean {
   return hasAnyPattern(content, VALIDATION_LIBRARIES);
 }
@@ -214,27 +180,10 @@ export function hasDestructuring(content: string): boolean {
   return PROCESS_ENV_DESTRUCTURING.test(content);
 }
 
-export function isLocalUrl(url: string): boolean {
-  return hasAnyPattern(url, LOCAL_HOST_INDICATORS);
-}
-
 export function matchesAnyDbPattern(content: string): boolean {
   return hasAnyRegexPattern(content, DB_CONNECTION_PATTERNS);
 }
 
 export function matchesAnySecretPattern(content: string): boolean {
   return hasAnyRegexPattern(content, SECRET_PATTERNS);
-}
-
-export function findAllEnvMatches(content: string): string[] {
-  const matches = content.match(PROCESS_ENV_PATTERN);
-  return matches ?? [];
-}
-
-export function findUrlMatches(content: string): string[] {
-  return URL_PATTERNS.flatMap(pattern => content.match(pattern) ?? []);
-}
-
-export function filterNonLocalUrls(urls: string[]): string[] {
-  return urls.filter(url => !isLocalUrl(url));
 }

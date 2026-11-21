@@ -6,6 +6,7 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "lib": ["es2020", "dom"],
+    "types": ["jest", "node"],
     "target": "es2020",
     "composite": false,
     "declaration": false,

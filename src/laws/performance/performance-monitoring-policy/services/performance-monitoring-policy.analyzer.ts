@@ -35,6 +35,20 @@ export class PerformanceMonitoringPolicyAnalyzerService {
       { projectRoot, config: config as RuleOfCodeConfig, lawId },
       ErrorTrackingPolicyConstants.ERROR_TRACKING_TOOLS
     );
+    // The two awaited checks read different files and share only `react`,
+    // which neither changes: start both, then wait once.
+    const [errorTracking, coreWebVitals] = await Promise.all([
+      ErrorTrackingPolicyAnalyzerService.checkErrorAndPerformanceTracking(
+        projectRoot,
+        config,
+        react
+      ),
+      CoreWebVitalsPolicyAnalyzerService.checkCoreWebVitalsMonitoring(
+        projectRoot,
+        config,
+        react
+      ),
+    ]);
     return {
       realUserMonitoring:
         RealUserMonitoringPolicyAnalyzerService.checkRealUserMonitoring(
@@ -46,22 +60,12 @@ export class PerformanceMonitoringPolicyAnalyzerService {
           projectRoot,
           config
         ),
-      errorTracking:
-        await ErrorTrackingPolicyAnalyzerService.checkErrorAndPerformanceTracking(
-          projectRoot,
-          config,
-          react
-        ),
+      errorTracking,
       performanceAlerting:
         PerformanceAlertingPolicyAnalyzerService.checkPerformanceAlerting(
           projectRoot
         ),
-      coreWebVitals:
-        await CoreWebVitalsPolicyAnalyzerService.checkCoreWebVitalsMonitoring(
-          projectRoot,
-          config,
-          react
-        ),
+      coreWebVitals,
       performanceDashboards:
         PerformanceDashboardsPolicyAnalyzerService.checkPerformanceDashboards(
           projectRoot

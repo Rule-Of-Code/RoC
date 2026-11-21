@@ -23,6 +23,7 @@ import type { LawCheckContext } from '../../types/law.types';
 import { FileUtils } from '../file-utils';
 import { PathOperations } from '../path-operations';
 import {
+  internalArray,
   loadTypeScript,
   parserUnavailable,
   TsxSource,
@@ -68,7 +69,7 @@ export function decoratorsOf(
   if (typeof ts.getDecorators === 'function' && ts.canHaveDecorators(node)) {
     return ts.getDecorators(node) ?? [];
   }
-  return (node as unknown as { decorators?: TS.Decorator[] }).decorators ?? [];
+  return internalArray<TS.Decorator>(node, 'decorators');
 }
 
 /** The object literal argument of `@Name({...})` on a class, or null. */

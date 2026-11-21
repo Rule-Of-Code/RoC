@@ -189,25 +189,25 @@ describe('utils/angular/ngrx-setup/ngrx-setup-configuration', () => {
     });
 
     describe('containsNgRxPattern', () => {
-      it('should return false for storeModule pattern type (mapping mismatch)', () => {
+      // #511: each pattern type looks for its APP_MODULE_PATTERNS entry. The
+      // three cases below used to assert false ("mapping mismatch"), which was
+      // the bug: every NgModule project was told to add what it imports.
+      it('finds StoreModule.forRoot for the storeModule pattern type', () => {
         const content = `
           imports: [
             StoreModule.forRoot(reducers)
           ]
         `;
 
-        // The pattern mapping uses PATTERN_TYPES values as keys,
-        // but APP_MODULE_PATTERNS uses different keys (storeModuleForRoot, etc.)
-        // This causes the lookup to fail
         const result = NgRxSetupConfiguration.containsNgRxPattern(
           content,
           'storeModule'
         );
 
-        expect(result).toBe(false);
+        expect(result).toBe(true);
       });
 
-      it('should return false for effectsModule pattern type (mapping mismatch)', () => {
+      it('finds EffectsModule.forRoot for the effectsModule pattern type', () => {
         const content = `
           imports: [
             EffectsModule.forRoot([AppEffects])
@@ -219,10 +219,10 @@ describe('utils/angular/ngrx-setup/ngrx-setup-configuration', () => {
           'effectsModule'
         );
 
-        expect(result).toBe(false);
+        expect(result).toBe(true);
       });
 
-      it('should return false for devtoolsModule pattern type (mapping mismatch)', () => {
+      it('finds StoreDevtoolsModule for the devtoolsModule pattern type', () => {
         const content = `
           imports: [
             StoreDevtoolsModule.instrument({ maxAge: 25 })
@@ -234,7 +234,7 @@ describe('utils/angular/ngrx-setup/ngrx-setup-configuration', () => {
           'devtoolsModule'
         );
 
-        expect(result).toBe(false);
+        expect(result).toBe(true);
       });
 
       it('should return false when pattern type is not recognized', () => {

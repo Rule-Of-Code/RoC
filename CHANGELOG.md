@@ -36,6 +36,15 @@ caller yet, are bound the same way (`getAppConfigPath`, `getSourcePath`,
 after logging the swallowed TypeError. Four unit tests asserted that the alias
 *was* the owner's function, which is exactly the bug; they now compare results.
 
+The TypeError hid a second fault behind it. `containsNgRxPattern` looked up
+the pattern type's own value (`'storeModule'`) as an `APP_MODULE_PATTERNS` key
+that does not exist, so it never found `StoreModule.forRoot`,
+`EffectsModule.forRoot` or `StoreDevtoolsModule`. Every NgModule NgRx project
+would have been told `StoreModule.forRoot should be configured in
+app.module.ts` while importing it. Each pattern type now names the entry it
+looks for. Three unit tests asserted the wrong `false` ("mapping mismatch");
+they now expect the pattern to be found.
+
 ### Internal — eslint is a direct devDependency
 
 `npm run lint` runs `eslint .`, but `eslint` was only installed as a peer of

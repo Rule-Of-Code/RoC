@@ -91,6 +91,43 @@ describe('#511 static aliases run on the class that owns the method', () => {
     );
   });
 
+  // Hidden behind the TypeError: the store-module check looked up a pattern
+  // key that does not exist, so it never found StoreModule.forRoot (QA on #518).
+  it('does not ask for the StoreModule.forRoot an app.module.ts imports', () => {
+    const root = ngrxProject({
+      '@angular/core': '^17.0.0',
+      '@ngrx/store': '^17.0.0',
+      '@ngrx/store-devtools': '^17.0.0',
+    });
+
+    const result = NgRxSelectorsMemoizationMandateLaw.check(ctx(root));
+
+    expect((result.violations ?? []).join('\n')).not.toMatch(
+      /StoreModule\.forRoot should be configured/
+    );
+  });
+
+  it('still asks for StoreModule.forRoot when app.module.ts does not import it', () => {
+    const root = project({
+      'package.json': manifest({
+        '@angular/core': '^17.0.0',
+        '@ngrx/store': '^17.0.0',
+      }),
+      'src/app/app.module.ts': [
+        "import { NgModule } from '@angular/core';",
+        '@NgModule({ imports: [] })',
+        'export class AppModule {}',
+        '',
+      ].join('\n'),
+    });
+
+    const result = NgRxSelectorsMemoizationMandateLaw.check(ctx(root));
+
+    expect((result.violations ?? []).join('\n')).toMatch(
+      /StoreModule\.forRoot should be configured/
+    );
+  });
+
   it('lists workspace files through FileUtils, not an empty list from a swallowed TypeError', async () => {
     const root = ngrxProject({ '@ngrx/store': '^17.0.0' });
 

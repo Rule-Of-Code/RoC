@@ -85,7 +85,11 @@ export class PatternMatchingUtils {
    * @returns True if pattern matches
    */
   static hasRegexPattern(content: string, pattern: RegExp): boolean {
-    return pattern.test(content);
+    // Stateless for a `g`/`y` pattern too: see hasAnyRegexPattern (#487).
+    pattern.lastIndex = 0;
+    const found = pattern.test(content);
+    pattern.lastIndex = 0;
+    return found;
   }
 
   /**

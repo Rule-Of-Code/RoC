@@ -5,6 +5,7 @@ import type {
 } from '../../types/law.types';
 import { CheckerUtils } from '../../utils/checker-utils';
 import { FileUtils } from '../../utils/file-utils';
+import { PatternMatchingUtils } from '../../utils/pattern-matching-utils';
 import { PathOperations } from '../../utils/path-operations';
 import type { TodoAnalysisResult } from './todo-analysis-result';
 import { TodoAnalysisResultBuilder } from './todo-analysis-result';
@@ -388,7 +389,7 @@ export class TodoManagementLaw {
       /\/\*\s*TODO/gi,
       /#\s*TODO/gi,
     ];
-    return todoPatterns.some(pattern => pattern.test(line));
+    return PatternMatchingUtils.hasAnyRegexPattern(line, todoPatterns);
   }
 
   /**

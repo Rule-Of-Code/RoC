@@ -25,6 +25,15 @@ After: every call starts at the beginning of the text and leaves the
 pattern at `lastIndex` 0, so the answer depends on the text and the patterns
 only, for every caller of `hasAnyRegexPattern`.
 
+The same holds for every other `/g` regex in `src` that reached `.test()`:
+`PatternMatchingUtils.hasRegexPattern` resets `lastIndex` too, and the
+direct `.test()` calls on global constants go through the two helpers —
+Environment Variables Policy's placeholder table (two placeholders in one
+file: the second was reported as a secret), the event-listener, timer and
+DOM-reference analyzers, the NgRx selector `parameters` check and the TODO
+line check. Before: the same text asked twice could answer true, then
+false. After: the same answer every time.
+
 ### 🐛 Fixed — Test Data Management read an exact expected value as hardcoded test data (#439)
 
 Any string of 20 or more characters inside `expect(…).toBe(…)` matched the

@@ -5,6 +5,7 @@ import {
   NGRX_KEYWORDS,
 } from '../../constants';
 import { FileSystemOperations } from '../../file-system-operations';
+import { PatternMatchingUtils } from '../../pattern-matching-utils';
 import { PathOperations } from '../../path-operations';
 import { StringTemplateUtils } from '../../string-template-utils';
 import { AngularConfigurationBase } from '../angular-configuration-base';
@@ -245,7 +246,10 @@ export class NgRxSelectorPatternsConfiguration extends AngularConfigurationBase 
       case 'props':
         return content.includes(NGRX_KEYWORDS.PROPS);
       case 'parameters':
-        return patterns.parameterPattern.test(content);
+        return PatternMatchingUtils.hasRegexPattern(
+          content,
+          patterns.parameterPattern
+        );
       case 'duplicateLogic': {
         const matches = content.match(patterns.duplicateLogicPattern);
         return matches

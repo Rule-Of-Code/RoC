@@ -21,6 +21,21 @@ titles do not count.
 | Constitutional Supremacy Doctrine | 1 finding (no enforcement script) | pass (.husky/pre-commit, .husky/pre-push run the audit) |
 | Continuous Compliance Doctrine | 1 finding (no enforcement tool) | pass |
 | Pull Request Workflow Standards | 1 finding (missing precommit, prepush) | pass |
+### 🐛 Fixed — an Angular CLI project was told to add webpack limits it cannot write (#449)
+
+Once the budget suggestion read angular.json correctly (#449), the two
+Angular/Ionic projects of the QA matrix were told "Add maxAssetSize and
+maxEntrypointSize in webpack configuration". An Angular CLI project has no
+webpack config of its own — the CLI owns it, and the budgets live in
+angular.json — so the advice could not be followed. The law still passed; only
+the suggestion was wrong.
+
+Before: the webpack suggestions were given to every Angular project without a
+webpack config. After: only to a project that has one — a
+`webpack.config.*` / `webpack.prod.*` at the root or under `config/`, or an
+angular.json build through `@angular-builders/custom-webpack`, `ngx-build-plus`
+or `customWebpackConfig`.
+
 ### 🐛 Fixed — a PARTIAL line said "passed" for laws that reported warnings
 
 The judged-nothing line said "The other laws passed" and the narrowed line

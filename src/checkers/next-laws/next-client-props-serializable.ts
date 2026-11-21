@@ -14,8 +14,15 @@
 
 import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import type { ModuleGraph } from '../../utils/react/module-graph';
 import { NextAppFiles } from '../../utils/react/next-app-files';
+import {
+  type GraphChoice,
+  serverComponentGraph,
+} from '../../utils/react/next-entries';
+import type {
+  NextModuleGraph,
+  WalkResult,
+} from '../../utils/react/next-module-graph';
 import {
   hasDirective,
   NextSourcesLoader,
@@ -23,6 +30,8 @@ import {
 import { ReactProject } from '../../utils/react/react-project';
 import type { ImportInfo, TsxSource } from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';
+import { readProject } from './next-server-support';
+import { notReadInWalk } from './next-walk-messages';
 
 /** Classes React's Flight serializer accepts (react-server-dom renderModelDestructive). */
 const SERIALIZABLE_CLASSES = new Set([
@@ -65,29 +74,44 @@ const FUNCTION_PROBLEM =
 export class NextClientPropsSerializableLaw extends LawBase {
   static readonly LAW_NAME = 'Next Client Props Serializable';
 
+  /**
+   * Every import that renders: `require()` and `import()` are edges too (a
+   * Server Component loaded through either still passes its props across the
+   * boundary). A `'use client'` module is a node without edges: the law needs
+   * to know which imported components are client ones.
+   */
+  static readonly GRAPH: GraphChoice = {
+    require: true,
+    dynamicImport: true,
+    boundary: 'module',
+  };
+
   static check(context: LawCheckContext): LawResult {
-    const sources = NextSourcesLoader.load(context);
-    if (
-      !NextSourcesLoader.hasAppRouter(sources) &&
-      sources.unread.length === 0
-    ) {
+    const { graph, unread } = readProject(context);
+    const apps = ReactProject.nextApps(context.projectRoot);
+    if (!NextSourcesLoader.hasAppRouter({ apps }) && unread.length === 0) {
       return NextAppFiles.withoutSubject(
         this.LAW_NAME,
         'no app/ directory — Server Components and the props they serialize exist only in the App Router',
         context
       );
     }
-    const graph = NextSourcesLoader.serverGraph(context, sources);
-    const violations = [...sources.unread, ...graph.unread];
-    for (const [file, node] of graph.nodes) {
-      if (
-        hasDirective(node.source, 'use client') ||
-        hasDirective(node.source, 'use server')
-      )
-        continue;
-      violations.push(
-        ...this.checkServerModule(context, graph, file, node.source)
-      );
+    const violations: string[] = [];
+    if (graph) {
+      const walk = serverComponentGraph(graph, apps, this.GRAPH);
+      for (const [file, visit] of walk.modules) {
+        if (
+          hasDirective(visit.source, 'use client') ||
+          hasDirective(visit.source, 'use server')
+        )
+          continue;
+        violations.push(
+          ...this.checkServerModule(graph, walk, file, visit.source)
+        );
+      }
+      violations.unshift(...graph.unread, ...notReadInWalk(graph, walk));
+    } else {
+      violations.push(...unread);
     }
     return this.createResult(
       violations,
@@ -102,15 +126,15 @@ export class NextClientPropsSerializableLaw extends LawBase {
   }
 
   private static checkServerModule(
-    context: LawCheckContext,
-    graph: ModuleGraph,
+    graph: NextModuleGraph,
+    walk: WalkResult,
     file: string,
     source: TsxSource
   ): string[] {
-    const clientTags = this.clientComponentTags(graph, file);
+    const clientTags = this.clientComponentTags(walk, file);
     if (clientTags.size === 0) return [];
     const ts = source.ts;
-    const where = ReactProject.relative(context, file);
+    const where = graph.relative(file);
     const violations: string[] = [];
     for (const element of source.jsxElements()) {
       if (!clientTags.has(element.tag)) continue;
@@ -238,25 +262,25 @@ export class NextClientPropsSerializableLaw extends LawBase {
 
   /** Local JSX tag names in `file` that resolve to a `'use client'` module (through re-exports). */
   private static clientComponentTags(
-    graph: ModuleGraph,
+    graph: WalkResult,
     file: string
   ): Set<string> {
     const tags = new Set<string>();
-    const node = graph.nodes.get(file);
+    const node = graph.modules.get(file);
     if (!node) return tags;
     for (const info of node.source.imports()) {
       if (info.typeOnly) continue;
       const edge = node.edges.find(
         candidate => candidate.specifier === info.module
       );
-      if (edge?.resolution.kind === 'local')
+      if (edge?.resolution.kind === 'source')
         this.addClientTags(graph, info, edge.resolution.file, tags);
     }
     return this.expandNamespaces(node.source, tags);
   }
 
   private static addClientTags(
-    graph: ModuleGraph,
+    graph: WalkResult,
     info: ImportInfo,
     target: string,
     tags: Set<string>
@@ -285,20 +309,20 @@ export class NextClientPropsSerializableLaw extends LawBase {
     return tags;
   }
 
-  private static isClientModule(graph: ModuleGraph, file: string): boolean {
-    const node = graph.nodes.get(file);
+  private static isClientModule(graph: WalkResult, file: string): boolean {
+    const node = graph.modules.get(file);
     return node !== undefined && hasDirective(node.source, 'use client');
   }
 
   /** True when `name` exported by `file` comes from a `'use client'` module, following `export … from`. */
   private static isClientExport(
-    graph: ModuleGraph,
+    graph: WalkResult,
     file: string,
     name: string,
     depth: number
   ): boolean {
     if (this.isClientModule(graph, file)) return true;
-    const node = graph.nodes.get(file);
+    const node = graph.modules.get(file);
     if (!node || depth >= MAX_REEXPORT_DEPTH) return false;
     const ts = node.source.ts;
     for (const statement of node.source.sourceFile.statements) {
@@ -312,7 +336,7 @@ export class NextClientPropsSerializableLaw extends LawBase {
       const edge = node.edges.find(
         candidate => candidate.specifier === specifier
       );
-      if (edge?.resolution.kind !== 'local') continue;
+      if (edge?.resolution.kind !== 'source') continue;
       const forwarded = this.forwardedName(ts, statement, name);
       if (
         forwarded &&

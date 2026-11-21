@@ -54,6 +54,10 @@ is the floor because it is the lowest version this release's dependencies
 support, not a recommendation. Run a supported line — 26 (Active LTS) or 24
 (Maintenance LTS) on 2026-11-21. Raising the floor is a separate decision.
 
+On Node 18, npm warns `EBADENGINE` (for `ruleofcode`, `minimatch`,
+`brace-expansion` and `lru-cache`) and installs anyway; with `engine-strict`
+the install fails. Node 18 is unsupported and is not run in CI.
+
 CI runs the whole gate (build, lint, format, jest, release canary, self-audit)
 on Node 20, the declared floor, and on Node 26, the Active LTS line on
 2026-11-21 (nodejs.org/dist/index.json; nodejs/Release `schedule.json`: v26

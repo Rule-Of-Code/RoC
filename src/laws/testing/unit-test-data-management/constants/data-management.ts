@@ -229,10 +229,11 @@ export class UnitTestDataManagementConstants {
   }
 
   /** As UnitTestIsolationConstants.resourcesUsed, over this law's table. */
-  static resourcesUsed(content: string): string[] {
+  static resourcesUsed(content: string, fileName?: string): string[] {
     return FixtureIsolation.resourcesUsed(
       content,
-      this.EXTERNAL_RESOURCE_PATTERNS
+      this.EXTERNAL_RESOURCE_PATTERNS,
+      fileName
     );
   }
 

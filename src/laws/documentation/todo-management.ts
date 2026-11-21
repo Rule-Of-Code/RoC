@@ -8,6 +8,7 @@ import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 import type { TodoAnalysisResult } from './todo-analysis-result';
 import { TodoAnalysisResultBuilder } from './todo-analysis-result';
+import { todoScannableText } from './todo-scannable-text';
 /**
  * TODO Management Constitutional Requirements Law
  *
@@ -365,7 +366,7 @@ export class TodoManagementLaw {
     // string (e.g. an example of what a TODO looks like) is text, not a real
     // TODO; scanning raw source counted it. Newlines are preserved so line
     // numbers stay accurate.
-    const scannable = this.scannableText(content, file);
+    const scannable = todoScannableText(content, file);
     const lines = scannable.split('\n');
 
     for (let i = 0; i < lines.length; i++) {
@@ -389,46 +390,6 @@ export class TodoManagementLaw {
       /#\s*TODO/gi,
     ];
     return todoPatterns.some(pattern => pattern.test(line));
-  }
-
-  /**
-   * The text the TODO markers are looked for in, by the file's language
-   * (#426). The JS string blanker reads quotes as JS does; run over Markdown,
-   * an apostrophe in prose opened a "string" that swallowed the lines below,
-   * so whether a line counted depended on everything written above it.
-   *
-   * - JS/TS: string and template contents blanked (comments kept);
-   * - Markdown: fenced code blocks and inline code blanked — a `// TODO`
-   *   there is an example, not a pending task; prose and `<!-- TODO -->`
-   *   comments are read as written;
-   * - HTML, CSS, SCSS: read as written.
-   */
-  private static scannableText(content: string, file: string): string {
-    if (/\.[cm]?[jt]sx?$/i.test(file)) return this.blankStringLiterals(content);
-    if (/\.md$/i.test(file)) return this.blankMarkdownCode(content);
-    return content;
-  }
-
-  /** Blank fenced code blocks and inline code spans, keeping line breaks. */
-  private static blankMarkdownCode(content: string): string {
-    const blank = (text: string): string => text.replace(/[^\n]/g, ' ');
-    return content
-      .replace(/^[ \t]*(`{3,}|~{3,})[^\n]*\n[\s\S]*?^[ \t]*\1[^\n]*$/gm, blank)
-      // A span opened by N backticks closes at the next run of N: a
-      // double-backtick span can hold single backticks (`` `x` ``).
-      .replace(/(`+)[^\n]*?\1/g, blank);
-  }
-
-  /**
-   * Blank string/template-literal CONTENTS, keeping comments and newlines, so a
-   * TODO marker that only appears inside a string (a captured or display string
-   * showing what a TODO looks like) is not counted as a real TODO.
-   */
-  private static blankStringLiterals(content: string): string {
-    return content.replace(
-      /'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"|`(?:\\.|[^`\\])*`/g,
-      match => match.replace(/[^\n]/g, ' ')
-    );
   }
 
   /**

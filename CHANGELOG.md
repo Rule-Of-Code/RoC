@@ -40,6 +40,11 @@ Without a loadable `typescript` the files are reported as not read.
   matched fixture strings — a detector's own test keeping
   `const users = [{ id: '1' }]` as an input string was "hardcoded test data".
   After: a pattern counts where it starts in the test's code.
+- **Test Data Management and Test Isolation Enforcement** (external
+  resources without cleanup). Before: every test file was parsed as TSX, so
+  in a `.ts` test a generic arrow (`<T>(x: T) => …`) read as a JSX tag, the
+  parser lost its place and fixture strings after it (`'setInterval(…)'`)
+  were "code". After: each test is parsed by its own file name.
 - **TODO Management Constitutional Requirements.** Before: every file —
   Markdown, HTML, CSS included — went through the JS string blanker, which
   pairs `'`, `"` and backticks as JS does; in Markdown an apostrophe opened a

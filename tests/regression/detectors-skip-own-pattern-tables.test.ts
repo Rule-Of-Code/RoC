@@ -263,3 +263,51 @@ describe('#428 a deployed service keeps Authentication Security', () => {
     expect(lawRequirementsMet(card?.requires, dir)).toBe(true);
   });
 });
+
+describe('#426 a .ts test is parsed as TypeScript, not TSX', () => {
+  const uncleaned = (body: string): string[] => {
+    const dir = project({
+      'src/sum.ts':
+        'export const sum = (a: number, b: number): number => a + b;\n',
+      'src/sum.test.ts': body,
+    });
+    return (
+      TestDataManagementLaw.check({
+        projectRoot: dir,
+        config: ConfigLoader.load(dir),
+      }).violations ?? []
+    ).filter(v => v.startsWith('Tests missing proper cleanup'));
+  };
+
+  it('a generic arrow does not turn the fixture strings after it into code', () => {
+    expect(
+      uncleaned(
+        [
+          "import { sum } from './sum';",
+          'const twice = <T>(ask: () => T): T[] => [ask(), ask()];',
+          "const timers = 'setInterval(tick, 1000);';",
+          "describe('sum', () => {",
+          "  it('adds', () => expect(twice(() => sum(1, timers.length))).toHaveLength(2));",
+          '});',
+          '',
+        ].join('\n')
+      )
+    ).toEqual([]);
+  });
+
+  it('a real setInterval with no cleanup is still reported (control)', () => {
+    expect(
+      uncleaned(
+        [
+          "import { sum } from './sum';",
+          "describe('sum', () => {",
+          "  it('ticks', () => {",
+          '    setInterval(() => sum(1, 2), 1000);',
+          '  });',
+          '});',
+          '',
+        ].join('\n')
+      )
+    ).toHaveLength(1);
+  });
+});

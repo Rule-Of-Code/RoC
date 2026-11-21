@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — a checklist clause defers to an owning law the audit would not select (#428)
+
+Pre-Deployment Checklist consults the law that owns each runtime concern.
+That law was run even when the audit would not select it for the project
+(its `stack` or `requires` unmet), so it inspected an absent subject, failed,
+and the clause was reported. An owning law the audit would not select now
+answers "satisfied", like a written `notApplicable`.
+
+Self-audit of this repository: no change — the four owning laws are selected here, so they still run (measured).
+
 ### ⚠️ BREAKING — `compliance` and the victory art mean a clean pass; a law that judged nothing makes the run partial
 
 A run of this repository listed 46 laws with violations at warning level, one

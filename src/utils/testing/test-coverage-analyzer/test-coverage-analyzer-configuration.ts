@@ -3,6 +3,7 @@
  * Centralized configuration for coverage patterns and validation (RULE 1: Single source of truth)
  * Eliminates hardcoded patterns and messages scattered across methods
  */
+import { TestNetworkClients } from './test-network-clients';
 
 /**
  * Configuration for mocking issue detection (RULE 1: Single source of truth)
@@ -11,6 +12,11 @@
 interface MockingIssueDetectionConfig {
   checker: (content: string) => boolean;
   message: string;
+  /**
+   * The checker reads the file's CODE (CodeText.codeOnly), not its text: a
+   * request written inside a fixture string is not one the test makes.
+   */
+  readsCode?: true;
 }
 
 /**
@@ -92,17 +98,6 @@ export class TestCoverageAnalyzerConfiguration {
     EMPTY_COUNT: /\.toHaveCount\(\s*0\s*\)/,
     EMPTY_LENGTH: /\.toHaveLength\(\s*0\s*\)/,
     NEGATED_MATCHER: /\.not\.to[A-Z]\w+/,
-  } as const;
-
-  /**
-   * Dependency detection patterns
-   * Note: Not using /g flag since these are used with .test()
-   */
-  static readonly DEPENDENCY_PATTERNS = {
-    IMPORT_STATEMENT: /import\s+.*from/,
-    REQUIRE_CALL: /require\s*\(/,
-    INJECT_FUNCTION: /inject\(/,
-    TEST_BED: /TestBed/,
   } as const;
 
   /**
@@ -206,13 +201,15 @@ export class TestCoverageAnalyzerConfiguration {
         // matched a URL in a comment, a JSDoc link and an import path, so a spec
         // that makes no network request at all was told to mock its HTTP calls —
         // a message that sends the reader looking for code that is not there.
-        checker: (content: string) =>
-          TestCoverageAnalyzerConfiguration.HTTP_CALL_PATTERN.test(content) &&
-          !content.includes('mock') &&
-          !content.includes('stub'),
+        // Read from the code (#429): a `fetch(` inside a detector's fixture
+        // string is the input of a test, not a request it makes.
+        checker: (code: string) =>
+          TestCoverageAnalyzerConfiguration.HTTP_CALL_PATTERN.test(code) &&
+          !TestNetworkClients.hasTestDouble(code),
         message:
           TestCoverageAnalyzerConfiguration.MOCKING_ISSUE_MESSAGES
             .UNMOCKED_HTTP_CALLS,
+        readsCode: true,
       },
       {
         checker: (content: string): boolean => {
@@ -329,7 +326,7 @@ export class TestCoverageAnalyzerConfiguration {
     NO_EDGE_CASES_SUGGESTION:
       'Add tests for edge cases like null, undefined, empty values',
     DEPENDENCIES_WITHOUT_MOCKS_VIOLATION:
-      'Dependencies found but no mocking detected in {fileName}',
+      'Dependencies found but no mocking detected in {fileName} ({clients})',
     DEPENDENCIES_WITHOUT_MOCKS_SUGGESTION:
       'Consider using mocks for external dependencies',
   } as const;
@@ -370,15 +367,6 @@ export class TestCoverageAnalyzerConfiguration {
     // ...then the body: a file that asserts throwing, or exercises
     // null/undefined/NaN, is testing edge cases whatever its titles say.
     return Object.values(this.EDGE_CASE_BODY_PATTERNS).some(pattern =>
-      pattern.test(content)
-    );
-  }
-
-  /**
-   * Check if content has dependencies
-   */
-  static hasDependencies(content: string): boolean {
-    return Object.values(this.DEPENDENCY_PATTERNS).some(pattern =>
       pattern.test(content)
     );
   }

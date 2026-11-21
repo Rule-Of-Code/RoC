@@ -1,4 +1,7 @@
-import { TestCoverageAnalyzerValidationPatterns } from './test-coverage-analyzer-validation-patterns';
+import {
+  type CodeReading,
+  TestCoverageAnalyzerValidationPatterns,
+} from './test-coverage-analyzer-validation-patterns';
 
 /**
  * Test Coverage Analyzer
@@ -8,21 +11,24 @@ import { TestCoverageAnalyzerValidationPatterns } from './test-coverage-analyzer
 export class TestCoverageAnalyzer {
   static analyzeCoverage(
     content: string,
-    file: string
+    file: string,
+    reading?: CodeReading | null
   ): {
     violations: string[];
     suggestions: string[];
     coverageScore: number;
   } {
+    // Without `reading` the file is read here, with this machine's parser.
     return TestCoverageAnalyzerValidationPatterns.analyzeCoverage(
       content,
-      file
+      file,
+      reading
     );
   }
 
   static analyzeCoverageAndEdgeCases(content: string): {
     testsEdgeCases: boolean;
-    hasDependencies: boolean;
+    unmockedClients: string[];
     usesMocks: boolean;
     mockingIssues: string[];
     edgeCaseRecommendations: string[];

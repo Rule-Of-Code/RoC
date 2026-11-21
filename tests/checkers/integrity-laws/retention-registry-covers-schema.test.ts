@@ -157,7 +157,7 @@ describe('RetentionRegistryCoversSchemaLaw (#202)', () => {
 describe('Retention Registry Covers Schema card and selection', () => {
   const law = card('Retention Registry Covers Schema');
 
-  it('is opt-in', () => {
+  it('is off by default: a project must opt in to run it', () => {
     expect(law.defaultEnabled).toBe(false);
   });
 

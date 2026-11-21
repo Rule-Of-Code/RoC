@@ -13,7 +13,6 @@
 import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { CheckerUtils } from '../../utils/checker-utils';
-import { ConfigFileUtils } from '../../utils/config-file-utils';
 import { FileUtils } from '../../utils/file-utils';
 import { markJudgedNothing } from '../../utils/judged-nothing';
 import { PathOperations } from '../../utils/path-operations';
@@ -77,8 +76,13 @@ export class ZeroToleranceStrictLaw extends CodeQualityLawBase {
     if (!FileUtils.fileExistsSync(tsconfigPath)) {
       violations.push('TypeScript configuration file missing');
     } else {
-      const tsconfigContent = FileUtils.readFileContentSync(tsconfigPath);
-      if (tsconfigContent && !this.hasStrictTypeScriptConfig(tsconfigContent)) {
+      // Read from the file, its `extends` chain merged. A text search for
+      // "strict" and "true" passed `"strict": false, "sourceMap": true`, and
+      // the parse behind it never read a tsconfig (#486).
+      const verdict = this.strictTypeScriptConfig(tsconfigPath);
+      if (verdict.notRead !== undefined) {
+        violations.push(verdict.notRead);
+      } else if (!verdict.strict) {
         violations.push('TypeScript strict mode not enabled');
       }
     }
@@ -246,38 +250,5 @@ export class ZeroToleranceStrictLaw extends CodeQualityLawBase {
     };
     visit(source);
     return count;
-  }
-
-  protected static hasStrictTypeScriptConfig(tsConfigContent: string): boolean {
-    try {
-      // Simple check: does the file contain "strict": true
-      // This handles both direct settings and extended configs
-      if (
-        tsConfigContent.includes('"strict"') &&
-        tsConfigContent.includes('true')
-      ) {
-        return true;
-      }
-
-      const config = ConfigFileUtils.loadConfig(tsConfigContent) as {
-        compilerOptions?: {
-          strict?: boolean;
-          noImplicitAny?: boolean;
-          strictNullChecks?: boolean;
-        };
-      };
-
-      const { compilerOptions } = config;
-      if (!compilerOptions || typeof compilerOptions !== 'object') {
-        return false;
-      }
-
-      return !!(
-        compilerOptions.strict ??
-        (compilerOptions.noImplicitAny && compilerOptions.strictNullChecks)
-      );
-    } catch {
-      return false;
-    }
   }
 }

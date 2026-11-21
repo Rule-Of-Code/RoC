@@ -53,10 +53,13 @@ describe('code duplication compares code, not what is left after eating it', () 
     '};',
   ].join('\n');
 
+  /** Over the floor: five lines and fifty tokens of the same body. */
   const REAL_DUPLICATE = [
     'export function calculateTotalWithTax(items, rate) {',
     '  const sum = items.reduce((a, b) => a + b.price, 0);',
-    '  return sum * (1 + rate);',
+    '  const discount = items.length > 10 ? sum * 0.05 : 0;',
+    '  const taxed = (sum - discount) * (1 + rate);',
+    '  return Math.round(taxed * 100) / 100;',
     '}',
   ].join('\n');
 

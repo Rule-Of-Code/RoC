@@ -330,8 +330,12 @@ export interface RuleOfCodeConfig {
       maxFileLines?: number;
       /** Maximum dependencies per module */
       maxDependencies?: number;
-      /** Minimum code block size for duplication detection */
+      /** Minimum size, in characters, of a function body compared for duplication. Default: 50. */
       minDuplicationBlockSize?: number;
+      /** Minimum lines of code in a function body compared for duplication. Default: 5. */
+      minDuplicationLines?: number;
+      /** Minimum tokens in a function body compared for duplication. Default: 50. */
+      minDuplicationTokens?: number;
       /** Minimum comment ratio percentage (0-100) */
       minCommentRatioPercent?: number;
       /** Minimum file size (lines) to require comment ratio */

@@ -6,13 +6,25 @@
 import type { RuleOfCodeConfig } from '../../config/types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils';
+import { markJudgedNothing } from '../../utils/judged-nothing';
 import { PathOperations } from '../../utils/path-operations';
+import {
+  loadTypeScript,
+  parserUnavailable,
+} from '../../utils/react/tsx-source';
 import { CodeQualityLawBase } from './code-quality-law-base';
+import { numericLiterals } from './magic-number-names';
+import { readSource } from './source-view';
 
 export class MagicNumberPreventionLaw extends CodeQualityLawBase {
   static check(context: LawCheckContext): LawResult {
     const violations: string[] = [];
     const suggestions: string[] = [];
+
+    // Literals are read from the parse (#424): without it the files are not
+    // read — said so, never scanned as text instead.
+    const unread = this.unreadWithoutParser(context);
+    if (unread) return unread;
 
     // Check for magic number detection configuration
     const configAnalysis = this.checkMagicNumberConfig(context.projectRoot);
@@ -88,7 +100,7 @@ export class MagicNumberPreventionLaw extends CodeQualityLawBase {
     for (const file of codeFiles) {
       try {
         const content = FileUtils.readFile(file);
-        const magicNumbers = this.findMagicNumbers(content);
+        const magicNumbers = this.findMagicNumbers(content, file, projectRoot);
 
         if (magicNumbers.length > 0) {
           magicNumberFiles++;
@@ -119,196 +131,92 @@ export class MagicNumberPreventionLaw extends CodeQualityLawBase {
     return { violations, suggestions };
   }
 
-  private static findMagicNumbers(content: string): string[] {
-    const magicNumbers: string[] = [];
+  /**
+   * The law's result when there are files to read and no parser to read
+   * them with: failed, judged nothing, naming what was not read.
+   */
+  private static unreadWithoutParser(
+    context: LawCheckContext
+  ): LawResult | null {
+    if (loadTypeScript(context.projectRoot)) return null;
+    const files = this.findCodeFilesForAnalysis(context.projectRoot, context);
+    if (files.length === 0) return null;
+    return markJudgedNothing({
+      passed: false,
+      message: 'Magic numbers not checked',
+      violations: [
+        `${parserUnavailable(context.projectRoot, `the ${files.length} code file(s)`)} — Magic Number Prevention judged nothing`,
+      ],
+      suggestions: [],
+      score: 0,
+      fixable: false,
+      config: context.config,
+    });
+  }
 
-    // Ignore common acceptable numbers
-    const acceptableNumbers = new Set([
-      '0',
-      '1',
-      '-1',
-      '2',
-      '10',
-      '100',
-      '1000',
-    ]);
-
-    // Strip comments first — a "magic number" is a numeric LITERAL in code logic,
-    // not a number that happens to appear in a `// … 400 …` comment or JSDoc. The
-    // old scan ran over raw text and flagged comment digits as violations.
-    const code = this.blankStringLiterals(this.stripComments(content));
-
-    // Find numeric literals that aren't in the acceptable list. Match a full
-    // literal INCLUDING a decimal, so `0.25` is one number, not the fraction
-    // `25`. Splitting the decimal both misreported the value and broke the
-    // named-constant exemption below — the `0.` left of `25` hid the `= ` anchor,
-    // so `const SEAL_THRESHOLD = 0.25` was flagged as a magic number.
-    const numberRegex = /\b\d+\.\d+\b|\b\d{2,}\b/g;
-    let match;
-
-    while ((match = numberRegex.exec(code)) !== null) {
-      const number = match[0];
-      if (acceptableNumbers.has(number)) {
-        continue;
-      }
-
-      // Named-constant declaration: is THIS literal the RHS of
-      // `const/let/var/readonly NAME = `? Anchored to the text immediately before
-      // the number on its own line, so (a) a long SCREAMING_CASE name can't push
-      // the keyword out of a fixed window, and (b) a declaration elsewhere on the
-      // line can't exempt an unrelated inline literal. Giving a literal a name IS
-      // the fix for a magic number, so never flag the literal in its own decl.
-      //
-      // An OBJECT PROPERTY names a number exactly as a declaration does.
-      // `{ curves: 44 }` is the thing this law asks for — a number with a name
-      // attached — and reporting it left no way to comply: the fix had already
-      // been applied. One consumer's source carried the comment "Every ratio is
-      // named: the engraving is maths, not magic" directly above an object the
-      // law reported in full.
-      const lineStart = code.lastIndexOf('\n', match.index) + 1;
-      const leftOfNumber = code.substring(lineStart, match.index);
-      if (
-        /\b(?:const|let|var|readonly)\s+[A-Za-z_$][\w$]*\s*=\s*-?$/.test(
-          leftOfNumber
-        ) ||
-        /[A-Za-z_$][\w$]*\s*:\s*-?$/.test(leftOfNumber) ||
-        /['"`][^'"`]*['"`]\s*:\s*-?$/.test(leftOfNumber)
-      ) {
-        continue;
-      }
-
-      // Other heuristics use a TIGHT window around the literal so loose tokens
-      // elsewhere on the line — e.g. "exPORT" matching /port.*\d+/i, a stray "ms" —
-      // cannot falsely exempt an unrelated number.
-      const context = code.substring(
-        Math.max(0, match.index - 10),
-        match.index + number.length + 10
-      );
-      if (!this.isAcceptableContext(context, number)) {
-        magicNumbers.push(number);
-      }
-    }
-
+  /**
+   * The unnamed numeric literals in one file's code.
+   *
+   * A literal is a node of the parse, so a digit inside a string, a template
+   * text, a regex or a comment is never one, and one inside a template
+   * substitution (`${x.slice(0, 57)}`) is. A literal the code already names
+   * is not reported — see magic-number-names.ts.
+   */
+  private static findMagicNumbers(
+    content: string,
+    fileName = 'file.ts',
+    projectRoot = process.cwd()
+  ): string[] {
+    const ts = loadTypeScript(projectRoot);
+    if (!ts) throw new Error(parserUnavailable(projectRoot, fileName));
+    const { source, code } = readSource(ts, content, fileName);
+    const magicNumbers = numericLiterals(ts, source)
+      .filter(site => !site.named && this.isCandidate(site.text))
+      .filter(site => !this.namedByText(code, site.start, site.text))
+      .map(site => site.text);
     return Array.from(new Set(magicNumbers));
   }
 
   /**
-   * Replace the CONTENTS of every string and template literal with spaces.
-   *
-   * A number inside quoted text is data or prose — a label, a caption, a
-   * captured CLI transcript, an id like `'01'`. It can never be replaced by a
-   * named constant, so it can never be actioned, and reporting it asks for a
-   * change that cannot be made. Comments were already stripped for the same
-   * reason; strings were not, and they are where most of the noise lived: one
-   * consumer measured 217 findings, of which 153 were inside string literals
-   * and none was a magic number.
-   *
-   * Lengths are preserved so every index the caller computed still points where
-   * it did — the line start, the left context and the ±10 window all depend on
-   * that. Escapes are honoured so a `\'` does not close the literal early, and
-   * an unterminated quote stops at the end of its line rather than blanking the
-   * rest of the file.
+   * A literal worth asking about: a decimal, or an integer of two or more
+   * digits, that is not one of the everyday values.
    */
-  private static blankStringLiterals(code: string): string {
-    const out = code.split('');
-    let index = 0;
-    let prev = '';
-
-    while (index < out.length) {
-      const ch = out[index] as string;
-
-      // A REGEX literal is skipped whole, never blanked and never treated as a
-      // string. `/['"]/` contains a quote, and reading that quote as the start
-      // of a string blanked everything after it until the next one — silently
-      // hiding real findings in the rest of the file.
-      if (ch === '/' && this.startsRegex(prev)) {
-        index = this.skipRegexLiteral(out, index) + 1;
-        prev = '/';
-        continue;
-      }
-
-      if (this.isQuote(ch)) {
-        index = this.blankOneLiteral(out, index, ch) + 1;
-        prev = ch;
-        continue;
-      }
-
-      if (!/\s/.test(ch)) prev = ch;
-      index += 1;
-    }
-
-    return out.join('');
+  private static isCandidate(text: string): boolean {
+    const acceptableNumbers = new Set(['0', '1', '2', '10', '100', '1000']);
+    return /^(?:\d+\.\d+|\d{2,})$/.test(text) && !acceptableNumbers.has(text);
   }
 
   /**
-   * Could a `/` here open a regex rather than divide?
+   * The text-shaped exemptions, read on the code around the literal (strings
+   * and comments already blanked).
    *
-   * Division follows a value — an identifier, a number, or a closing bracket.
-   * Anything else (an operator, an opening bracket, a comma, nothing at all)
-   * means a regex. Comments are already gone by this point, so `//` and `/*`
-   * are not in play.
+   * Named-constant declaration or object property directly to the left, on
+   * the literal's own line — anchored so a declaration elsewhere on the line
+   * cannot exempt an unrelated literal. Then a TIGHT window around the
+   * literal for units, versions, ports and times, so loose tokens elsewhere
+   * on the line cannot.
    */
-  private static startsRegex(prev: string): boolean {
-    if (prev === '') return true;
-    return !/[\w$)\]]/.test(prev);
-  }
-
-  /** Index of the regex literal's closing `/`, honouring classes and escapes. */
-  private static skipRegexLiteral(out: string[], start: number): number {
-    let cursor = start + 1;
-    let inClass = false;
-
-    while (cursor < out.length) {
-      const current = out[cursor];
-      if (current === '\\') {
-        cursor += 2;
-        continue;
-      }
-      // Inside `[...]` a slash is literal and does not close the regex.
-      if (current === '[') inClass = true;
-      else if (current === ']') inClass = false;
-      else if (current === '/' && !inClass) break;
-      // An unterminated regex is not a regex — most likely a stray slash.
-      else if (current === '\n') return start;
-      cursor += 1;
-    }
-
-    return cursor;
-  }
-
-  private static isQuote(ch: string | undefined): boolean {
-    return ch === "'" || ch === '"' || ch === '`';
-  }
-
-  /**
-   * Blank the body of the literal opening at `start`, returning the index of
-   * its closing quote (or of the character that ended it).
-   */
-  private static blankOneLiteral(
-    out: string[],
+  private static namedByText(
+    code: string,
     start: number,
-    quote: string
-  ): number {
-    let cursor = start + 1;
-
-    while (cursor < out.length) {
-      const current = out[cursor];
-      if (current === '\\') {
-        cursor += 2;
-        continue;
-      }
-      if (current === quote) break;
-      // A quote that never closes is a quote on one line — most often an
-      // apostrophe in prose. Stop there rather than blanking what follows.
-      if (current === '\n' && quote !== '`') break;
-      out[cursor] = ' ';
-      cursor += 1;
+    number: string
+  ): boolean {
+    const lineStart = code.lastIndexOf('\n', start) + 1;
+    const leftOfNumber = code.substring(lineStart, start);
+    if (
+      /\b(?:const|let|var|readonly)\s+[A-Za-z_$][\w$]*\s*=\s*-?$/.test(
+        leftOfNumber
+      ) ||
+      /[A-Za-z_$][\w$]*\s*:\s*-?$/.test(leftOfNumber)
+    ) {
+      return true;
     }
-
-    return cursor;
+    const context = code.substring(
+      Math.max(0, start - 10),
+      start + number.length + 10
+    );
+    return this.isAcceptableContext(context, number);
   }
-
-  // stripComments() is inherited from CodeQualityLawBase (shared by TS-safety laws).
 
   private static isAcceptableContext(
     context: string,

@@ -7,9 +7,32 @@
  */
 import { NextHeavyLibInClientGraphLaw as Law } from '../../../src/checkers/next-laws/next-heavy-lib-in-client-graph';
 import { ctx, removeProjects } from '../toolkit-fixture';
-import { nextApp, nextCtx, PAGE } from './next-fixture';
+import { nextApp, nextCtx as bareCtx, PAGE } from './next-fixture';
 
 afterAll(removeProjects);
+
+/** Stand-ins for the packages the fixtures import, installed as in a real project. */
+const INSTALLED: Record<string, string> = Object.fromEntries(
+  [
+    ['next', 'dynamic.js'],
+    ['react', 'index.js'],
+    ['moment', 'index.js'],
+    ['chart.js', 'auto.js'],
+    ['lodash', 'debounce.js'],
+    ['big-lib', 'index.js'],
+  ].flatMap(([name, file]) => [
+    [
+      `node_modules/${name}/package.json`,
+      JSON.stringify({ name, version: '1.0.0', main: 'index.js' }),
+    ],
+    [`node_modules/${name}/${file}`, 'module.exports = {};'],
+  ])
+);
+
+const nextCtx = (
+  files: Record<string, string>,
+  thresholds?: Record<string, unknown>
+) => bareCtx({ ...INSTALLED, ...files }, thresholds);
 
 const CLOCK =
   "'use client';\nimport { format } from '@/lib/dates';\nexport function Clock() { return <span>{format()}</span>; }";

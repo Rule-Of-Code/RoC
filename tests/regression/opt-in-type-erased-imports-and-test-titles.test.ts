@@ -473,12 +473,12 @@ describe('#316: every import graph drops an import used only as a type', () => {
     writeFiles(root, {
       'tsconfig.json': '{ "compilerOptions": { "jsx": "preserve", ',
     });
-    // Heavy Lib's resolver names the broken config on the kept edge; it never passes.
+    // The one Next graph names the broken config (#287 point g) and keeps
+    // the edge; Heavy Lib never passes.
     expect(heavy(root)).toEqual(
       expect.arrayContaining([
-        expect.stringContaining(
-          'app/List.tsx:3: tsconfig.json: could not be parsed'
-        ),
+        expect.stringContaining('tsconfig.json: could not be parsed'),
+        expect.stringContaining("app/List.tsx:3: imports 'moment'"),
       ])
     );
     expect(leakage(root)).toEqual([
@@ -491,8 +491,13 @@ describe('#316: every import graph drops an import used only as a type', () => {
       'src/lib/db.ts':
         "import 'server-only';\nimport { Pool } from 'pg';\nexport interface Row { id: number }\nexport const pool = new Pool();\n",
     });
+    // Before #287 the server laws' graph dropped the broken config in
+    // silence; now it is named, as in every other Next graph law.
     expect(NextServerOnlyBoundaryLaw.check(nextCtx(server)).violations).toEqual(
-      [expect.stringContaining("src/lib/db.ts:2: imports 'pg'")]
+      [
+        expect.stringContaining("src/lib/db.ts:2: imports 'pg'"),
+        expect.stringContaining('tsconfig.json: could not be parsed'),
+      ]
     );
   });
 });

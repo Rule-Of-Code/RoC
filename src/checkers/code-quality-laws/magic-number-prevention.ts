@@ -52,9 +52,11 @@ export class MagicNumberPreventionLaw extends CodeQualityLawBase {
     const violations: string[] = [];
     const suggestions: string[] = [];
 
-    const eslintConfig = this.findESLintConfig(projectRoot);
-    if (eslintConfig) {
-      const rules = eslintConfig.rules ?? {};
+    const eslint = this.readESLintConfig(projectRoot);
+    if (eslint?.notRead !== undefined) {
+      violations.push(eslint.notRead);
+    } else if (eslint) {
+      const rules = eslint.config.rules ?? {};
       if (
         !(rules as Record<string, unknown>)['no-magic-numbers'] &&
         !(rules as Record<string, unknown>)[

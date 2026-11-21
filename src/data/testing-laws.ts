@@ -342,7 +342,7 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'checkPerformanceTestRequirements',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article VII.7.9: Performance testing missing',
-    remediation: 'Add PerformanceTestUtils for critical application flows',
+    remediation: 'Add performance tests for critical application flows',
   },
 
   {

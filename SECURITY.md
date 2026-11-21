@@ -52,3 +52,8 @@ repository in an isolated environment (a container or a disposable machine).
 
 The only supported channel for a security report is the private advisory
 described above, under **Reporting Security Vulnerabilities**.
+
+---
+
+<!-- roc-footer -->
+**Document Version:** the git history of this file &middot; **Last Updated:** 2026-11-21 &middot; **Status:** Active &middot; **Investment Rating:** needs-review

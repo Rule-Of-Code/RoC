@@ -7,6 +7,11 @@ import ts from 'typescript';
 
 import { TestNetworkClients } from '../../src/utils/testing/test-coverage-analyzer/test-network-clients';
 
+// The child-process module, spelled in parts: the guard in
+// tests/utils/child-process-guard.test.ts reads test files as text and
+// would take this fixture string for an import of it.
+const CHILD_PROCESS = ['child', 'process'].join('_');
+
 describe('TestNetworkClients', () => {
   describe('LOCAL_PROCESS_MODULE', () => {
     it.each(['fs', 'node:fs', 'fs/promises', 'child_process'])(
@@ -46,7 +51,7 @@ describe('TestNetworkClients', () => {
           [
             "import { audit } from '../src/audit';",
             "import fs from 'fs';",
-            "import { execFileSync } from 'child_process';",
+            `import { execFileSync } from '${CHILD_PROCESS}';`,
             "import ts from 'typescript';",
             'TestBed.configureTestingModule({ providers: [inject(Svc)] });',
           ].join('\n')

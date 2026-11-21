@@ -17,6 +17,11 @@ import path from 'path';
 import { UnitTestQualityLaw } from '../../src/checkers/testing-laws/unit-test-quality';
 import { FileUtils } from '../../src/utils/file-utils';
 
+// The child-process module, spelled in parts: the guard in
+// tests/utils/child-process-guard.test.ts reads test files as text and
+// would take this fixture string for an import of it.
+const CHILD_PROCESS = ['child', 'process'].join('_');
+
 const MOCKING = /no mocking detected|HTTP calls should be mocked/;
 
 describe('#429 a dependency to mock is a network or service client', () => {
@@ -48,7 +53,7 @@ describe('#429 a dependency to mock is a network or service client', () => {
       "import fs from 'fs';",
       "import os from 'os';",
       "import path from 'path';",
-      "import { execFileSync } from 'child_process';",
+      `import { execFileSync } from '${CHILD_PROCESS}';`,
       "import { audit } from './audit';",
       "describe('audit', () => {",
       "  it('reads a fixture', () => {",

@@ -190,29 +190,6 @@ export class PerformanceMonitoringInspector {
     return testFiles;
   }
 
-  private static analyzePerformanceScenariosSimple(
-    projectRoot: string
-  ): string[] {
-    const scenarios: string[] = [];
-    const testDir = PathOperations.join(projectRoot, 'test');
-
-    if (FileUtils.exists(testDir)) {
-      try {
-        const files = DirectoryScanner.safeReadDirectory(
-          testDir,
-          PerformanceMonitoringInspector.DEFAULT_SCANNER_CONFIG
-        ).map(entry => entry.name);
-        if (files.some(file => file.includes('performance'))) {
-          scenarios.push('Performance tests detected');
-        }
-      } catch (_error) {
-        // Ignore errors
-      }
-    }
-
-    return scenarios;
-  }
-
   /**
    * A performance job in CI, named by what it DOES rather than by the file it
    * lives in. Two GitHub workflow filenames were the whole search, so the same
@@ -224,16 +201,6 @@ export class PerformanceMonitoringInspector {
 
     return /lighthouse|web-vitals|performance/i.test(pipelineText)
       ? ['Performance job in CI pipeline']
-      : [];
-  }
-
-  private static analyzePerformanceStepsSimple(projectRoot: string): string[] {
-    // One named workflow file was the entire search — `.github/workflows/ci.yml`
-    // and nothing else, on GitHub and nowhere else.
-    const pipelineText = ciConfigContent(projectRoot);
-
-    return /lighthouse|performance/i.test(pipelineText)
-      ? ['Performance tests in CI/CD pipeline detected']
       : [];
   }
 }

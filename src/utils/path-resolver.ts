@@ -120,7 +120,7 @@ export class PathResolver {
 
     // Add all pathMappings variants
     if (this.config?.pathMappings) {
-      for (const [key, value] of Object.entries(this.config.pathMappings)) {
+      for (const value of Object.values(this.config.pathMappings)) {
         const patterns = Array.isArray(value) ? value : [value];
 
         for (const pattern of patterns) {

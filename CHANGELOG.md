@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Internal — the React readers are split below the complexity limits
+
+Code Complexity Control reported five files of `src/utils/react` on the
+self-audit: three too long (eslint-hooks-config, next-app-files,
+react-hooks-ast) and five with a function above complexity 10. They are
+split by what they read — the react-hooks plugin vocabulary
+(`eslint-hooks-vocabulary.ts`), a module's export and import bindings
+(`next-module-bindings.ts`), and the sources a React law reads with its
+inline reasons (`react-law-sources.ts`) — and the branching functions hand
+their sub-steps to named helpers. The old paths re-export every moved name,
+so no importer changed. No law reports anything different.
+
 ### Internal — this repository keeps MD Footer Template on
 
 MD Footer Template became opt-in in this release (#468). This repository does

@@ -187,22 +187,4 @@ export class UnitTestIsolationAnalyzerService {
   ): string[] {
     return TestFileDiscovery.findTestFiles(projectRoot, config);
   }
-
-  /**
-   * Find test files recursively
-   */
-  private static findTestFilesRecursively(
-    dir: string,
-    testFiles: string[],
-    config: RuleOfCodeConfig
-  ): void {
-    TestFileDiscovery.findTestFilesRecursively(dir, testFiles, config);
-  }
-
-  /**
-   * Check if filename is test file
-   */
-  private static isTestFile(filename: string): boolean {
-    return TestFileDiscovery.isTestFile(filename);
-  }
 }

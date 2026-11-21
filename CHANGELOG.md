@@ -180,6 +180,27 @@ replaced with `STR`, so two tables of different messages were the same code.
 | a copy inside a larger copy | reported again | reported once, with the larger copy |
 | no loadable `typescript` | compared as text | ".ts/.tsx file(s) were NOT read" — judged nothing |
 
+### 🐛 Fixed — Code Complexity Control measured text, not functions (#430)
+
+The law found function bodies by brace matching over the source with only the
+comments removed. An outer function was charged with every callback inside it;
+an `if`, `?` or `{` inside a string or regex was counted and used for brace
+matching; an expression-bodied arrow and a function returning an inline object
+type were never measured. Now every function is read from the TypeScript
+syntax tree and measured on its own body.
+
+| | before | after |
+|---|---|---|
+| function complexity | brace-matched text, callbacks added to the outer function, strings counted | each function's own body from the syntax tree; strings, regexes and comments are not code |
+| arrow with an expression body, inline object return type | never measured | measured |
+| `maxFileLines` (300) | every line, comments and blank lines included | lines of code only |
+| a data file (at most two functions) | held to `maxFileLines` | not held to it |
+| "too many functions" (> 20) | reported when the file had ≥ 10 decision points | reported only when a function in the file is over the complexity limit |
+| no loadable `typescript` | measured with the regex | ".ts/.tsx file(s) were NOT read" — judged nothing |
+
+The finding now reads "(N code lines, max 300)". The set of decision points is
+unchanged (`??` is still not one).
+
 ### 🐛 Fixed — a PARTIAL line said "passed" for laws that reported warnings
 
 The judged-nothing line said "The other laws passed" and the narrowed line

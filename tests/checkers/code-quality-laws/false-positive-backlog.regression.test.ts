@@ -116,7 +116,10 @@ describe('Code Complexity Control — accurate counting + configurable limit (#5
   it('honours a configurable maxFileLines threshold', () => {
     const root = fixture(
       'c.ts',
-      Array.from({ length: 40 }, (_, i) => `const x${i} = ${i};`).join('\n')
+      Array.from(
+        { length: 40 },
+        (_, i) => `function f${i}(): number { return ${i}; }`
+      ).join('\n')
     );
     const result = CodeComplexityControlLaw.check(
       ctx(root, { codeQuality: { maxFileLines: 20 } })

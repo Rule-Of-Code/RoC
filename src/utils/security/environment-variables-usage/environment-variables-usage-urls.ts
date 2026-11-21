@@ -146,3 +146,20 @@ export function findUrlLiterals(
   visit(source);
   return found;
 }
+
+/** The text of every string and template part of the file (quotes included). */
+export function stringLiteralTexts(
+  ts: typeof TS,
+  source: TS.SourceFile
+): string[] {
+  const found: string[] = [];
+  const visit = (node: TS.Node): void => {
+    if (isStringText(ts, node)) {
+      found.push(source.text.slice(node.getStart(source), node.getEnd()));
+      return;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return found;
+}

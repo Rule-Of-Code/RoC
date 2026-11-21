@@ -35,8 +35,10 @@ string or template it is written in; comments and JSX text are not values;
 loopback and the reserved example hosts (RFC 2606/6761: `example.com`,
 `*.test`, …) are not endpoints; a URL bound to a documentation name
 (`reference`, `DOCS_URL`, `helpLink`…) is a link for a reader. A missing
-example file is one Parity finding. Without a loadable `typescript` these two
-checks report the files as not read instead of judging them by text.
+example file is one Parity finding. A hardcoded database connection string
+(`mongodb://…`, `postgresql://…`) is looked for in the strings the code holds;
+a comment that names the schemes is not one. Without a loadable `typescript`
+these checks report the files as not read instead of judging them by text.
 
 This repository now commits `.env.example`: RuleOfCode reads `NODE_ENV` and
 `DEBUG` (logging), `ROC_*` / `RULEOFCODE_*` (configuration overrides) and the

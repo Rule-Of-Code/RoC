@@ -10,7 +10,10 @@ import { scanAndAnalyzeFiles } from '../file-scanning-helper';
 import { SecretManagementAnalyzer } from '../secret-management';
 import * as Config from './environment-variables-usage-configuration';
 import { findEnvReads } from './environment-variables-usage-reads';
-import { findUrlLiterals } from './environment-variables-usage-urls';
+import {
+  findUrlLiterals,
+  stringLiteralTexts,
+} from './environment-variables-usage-urls';
 
 // ============================================================================
 // Main Validation Entry Point
@@ -165,8 +168,16 @@ function checkForHardcodedValues(
 ): Config.EnvUsageCheckResult {
   const result = Config.createEmptyResult();
 
-  if (ts && source) checkHardcodedUrls(ts, source, filePath, result);
-  checkHardcodedDbConnections(content, filePath, result);
+  if (ts && source) {
+    checkHardcodedUrls(ts, source, filePath, result);
+    // A connection string is a value: looked for in the strings the code
+    // holds, not in a comment that names the schemes (#433).
+    checkHardcodedDbConnections(
+      stringLiteralTexts(ts, source).join('\n'),
+      filePath,
+      result
+    );
+  }
   checkHardcodedSecrets(content, filePath, result);
 
   return result;

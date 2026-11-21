@@ -231,3 +231,28 @@ describe('#433 without the parser, reads and URLs are not judged', () => {
     );
   });
 });
+
+describe('#433 a connection string is a value in a string', () => {
+  const dbFindings = (source: string): string[] => {
+    const dir = project({ 'src/db.ts': source });
+    made.push(dir);
+    return (
+      EnvironmentSecurityEnforcementLaw.check({ projectRoot: dir, config })
+        .violations ?? []
+    ).filter(v => v.includes('Hardcoded database connection string'));
+  };
+
+  it('a comment naming the schemes is not one', () => {
+    expect(
+      dbFindings(
+        '/** Holds a mongodb://, mysql:// or redis:// connection string. */\nexport const x = 1;\n'
+      )
+    ).toEqual([]);
+  });
+
+  it('a connection string in the code is one (control)', () => {
+    expect(
+      dbFindings('export const db = "mongodb://user:pass@db.internal/app";\n')
+    ).toHaveLength(1);
+  });
+});

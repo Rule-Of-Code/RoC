@@ -38,9 +38,16 @@ loopback and the reserved example hosts (RFC 2606/6761: `example.com`,
 example file is one Parity finding. Without a loadable `typescript` these two
 checks report the files as not read instead of judging them by text.
 
+This repository now commits `.env.example`: RuleOfCode reads `NODE_ENV` and
+`DEBUG` (logging), `ROC_*` / `RULEOFCODE_*` (configuration overrides) and the
+variables CI systems set. The file names them with empty values and says what
+each does; none is required or secret.
+
 Self-audit of this repository: Environment Security Enforcement 57 → 0
-findings; Environment Parity Standards 60 → 2 (no `.env.example`; no
-environment detection — unchanged).
+findings; Environment Parity Standards 60 → 1 ("No proper environment
+detection found" — another analyzer, unchanged: it looks for `process.env`
+only in five fixed main files, while this repository reads `NODE_ENV` in
+`src/utils/logging-utils.ts`).
 
 ### 🐛 Fixed — Test Data Management read an exact expected value as hardcoded test data (#439)
 

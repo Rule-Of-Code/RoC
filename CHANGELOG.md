@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Absolute Zero Tolerance judged text as code, and a CLI's output as debug logging (#424, #425)
+
+Every check ran a regex over the raw file, so a `console.log` in a message,
+`any` in a comment's prose, `TODO` in a string or in a sentence about the
+TODO law, and `eslint-disable` in a string were all findings. The checks now
+read the TypeScript parse.
+
+| | before | after |
+|---|---|---|
+| `console.*`, `: any`, empty `catch (e) {}` | anywhere in the text | in code only |
+| `as any` cast | not counted (the regex matched only `: any`) | counted with the `: any` annotations |
+| TODO/FIXME/XXX/HACK | any `//` line containing the word, any case | a tag in capitals at the start of a `//` comment |
+| `eslint-disable` | anywhere in the text | in comments only |
+| `unknown[]` | a strict-type violation | not a violation (the safe type for data of unknown shape) |
+| `constructor(...args: any[])` of a mixin | a violation | not counted (TypeScript requires it, TS2545) |
+| package with `bin` in package.json | every `console.*` counted | `console.log/info` is the command's output in the whole package; `console.warn` only in the command's entry modules (the source of each `bin` target, the directory named after it, a `commands/` beside it); elsewhere `warn`, and `debug/trace` everywhere, still count |
+| a logging module (`logger.*`, `logging*`, `log.*`) | its `console.*` counted | not counted |
+| no loadable `typescript` | text scanned | ".ts file(s) were NOT read" — judged nothing |
+
+Findings name the file relative to the project on Windows too (they carried
+the absolute path when the project root was written with backslashes).
+
 ### 🐛 Fixed — a committed PRE_DEPLOYMENT_CHECKLIST.md was reported missing when `includes` name only source (#476)
 
 Pre-Deployment Checklist looked the checklist up through the source scan,

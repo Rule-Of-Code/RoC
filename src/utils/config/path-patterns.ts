@@ -17,6 +17,9 @@
  * project file in any form; it is left as written, and the audit names it
  * (see `absolutePatternsIn`) instead of ignoring it in silence.
  */
+import fs from 'fs';
+import { minimatch } from 'minimatch';
+
 import type { RuleOfCodeConfig } from '../../config/types';
 import { PathOperations } from '../path-operations';
 
@@ -27,6 +30,44 @@ const isAbsolutePattern = (pattern: string): boolean =>
 const rootOf = (projectRoot: string): string =>
   PathOperations.normalize(projectRoot).replace(/\\/g, '/').replace(/\/+$/, '');
 
+const CLOSER_OF: Record<string, string> = { '[': ']', '{': '}', '(': ')' };
+
+/**
+ * `\` is both the Windows separator and the glob escape. A separator unless it
+ * escapes: always before a closing `]`, `}` or `)` (no path segment starts
+ * with one), before an opening `[`, `{` or `(` only when the matching closer
+ * is escaped later in the pattern, and before `!`, `+` or `@`. So
+ * `weird\[1\]/**` keeps its escapes (the literal directory `weird[1]`), while
+ * `vendor\**`, `vendor\lib.js` and `app\[slug]\page.tsx` are Windows paths.
+ */
+export function backslashesToSlashes(pattern: string): string {
+  let out = '';
+  for (let i = 0; i < pattern.length; i++) {
+    const char = pattern[i];
+    if (char !== '\\') {
+      out += char;
+      continue;
+    }
+    const next = pattern[i + 1] ?? '';
+    const closer = CLOSER_OF[next];
+    const escapes =
+      next === ']' ||
+      next === '}' ||
+      next === ')' ||
+      next === '!' ||
+      next === '+' ||
+      next === '@' ||
+      (closer !== undefined && pattern.includes(`\\${closer}`, i + 2));
+    if (escapes) {
+      out += `\\${next}`;
+      i++;
+    } else {
+      out += '/';
+    }
+  }
+  return out;
+}
+
 /** `pattern` in the one form; an absolute path outside the project as written. */
 export function normalizePathPattern(
   pattern: string,
@@ -34,7 +75,7 @@ export function normalizePathPattern(
 ): string {
   if (typeof pattern !== 'string') return pattern;
   const negated = pattern.startsWith('!');
-  let body = (negated ? pattern.slice(1) : pattern).replace(/\\/g, '/');
+  let body = backslashesToSlashes(negated ? pattern.slice(1) : pattern);
   if (isAbsolutePattern(body)) {
     const root = rootOf(projectRoot);
     const caseInsensitive = process.platform === 'win32';
@@ -145,3 +186,62 @@ export function absolutePatternsIn(
   }
   return found;
 }
+
+/** An unescaped glob character; a segment without one is a plain name. */
+const GLOB_MAGIC = /(?<!\\)[*?[\]{}()!+@]/;
+const unescapeSegment = (segment: string): string =>
+  segment.replace(/\\(.)/g, '$1');
+
+/**
+ * A literal name read as a character class. `[slug]` in a glob is a class of
+ * one character — it matches `s`, never the directory `[slug]` — so
+ * `app/[slug]/page.tsx` ignores `app/s/page.tsx` and not the Next route,
+ * in silence (#414). The glob semantics stay standard, for `/` and `\`
+ * alike; when a segment with a class names a directory or file that exists
+ * literally where the pattern points, the audit says so. The pattern is
+ * followed from the project root through its plain segments; a segment after
+ * a wildcard (`*`, `**`) cannot be located and is not judged.
+ * Returns [where it is written, the pattern, the segment, 'directory'|'file'].
+ */
+export function literalNamesReadAsClassesIn(
+  config: RuleOfCodeConfig,
+  projectRoot: string
+): Array<[string, string, string, 'directory' | 'file']> {
+  const found: Array<[string, string, string, 'directory' | 'file']> = [];
+  for (const [where, list] of patternListsOf(config)) {
+    if (!Array.isArray(list)) continue;
+    for (const pattern of list) {
+      if (typeof pattern !== 'string') continue;
+      for (const [segment, kind] of classesNamingLiterals(pattern, projectRoot))
+        found.push([where, pattern, segment, kind]);
+    }
+  }
+  return found;
+}
+
+/** The class segments of one pattern that name an existing path literally. */
+function classesNamingLiterals(
+  pattern: string,
+  projectRoot: string
+): Array<[string, 'directory' | 'file']> {
+  const found: Array<[string, 'directory' | 'file']> = [];
+  let dir = projectRoot;
+  for (const segment of pattern.replace(/^!/, '').split('/')) {
+    if (segment === '') continue;
+    const name = unescapeSegment(segment);
+    const hasClass = /(?<!\\)\[/.test(segment);
+    if (!hasClass && GLOB_MAGIC.test(segment)) break; // cannot be located
+    dir = PathOperations.join(dir, name);
+    if (!hasClass) continue;
+    const kind = kindOf(dir);
+    if (!kind) break;
+    if (!minimatch(name, segment, { dot: true })) found.push([segment, kind]);
+  }
+  return found;
+}
+
+const kindOf = (file: string): 'directory' | 'file' | undefined => {
+  const stat = fs.statSync(file, { throwIfNoEntry: false });
+  if (!stat) return undefined;
+  return stat.isDirectory() ? 'directory' : 'file';
+};

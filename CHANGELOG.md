@@ -18,6 +18,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 The Python branch is unchanged.
 
+### 🐛 Fixed — a PARTIAL line said "passed" for laws that reported warnings
+
+The judged-nothing line said "The other laws passed" and the narrowed line
+"The selected laws passed" while some of those laws had reported warnings (a
+run of this repository: 40 passed, 43 with warnings). When any law warned, the
+line now gives the counts from `stats`:
+
+```
+⚠️  PARTIAL — 1 law(s) judged nothing (…). 40 passed, 43 reported warnings (not blocking); no compliance verdict.
+⚠️  PARTIAL SCAN — 6 of 75 applicable laws ran (narrowed by laws.enabled). Of the selected laws 5 passed, 1 reported warnings (not blocking); no compliance verdict.
+```
+
+With no warnings the text is as before.
+
+### 🐛 Fixed — an escaped bracket in an ignore pattern stopped excluding (#414)
+
+The #414 normalisation turned every `\` into `/`, so `weird\[1\]/**` became
+`weird/[1/]/**` and excluded nothing, in silence. `\` is both the Windows
+separator and the glob escape; it is now read as an escape only where it
+cannot be a separator, and as `/` everywhere else:
+
+| `\` before | read as | example → normalised |
+| --- | --- | --- |
+| `]`, `}`, `)` (no path segment starts with one) | escape | `weird\[1\]/**` → unchanged |
+| `[`, `{`, `(` whose matching closer is escaped later | escape | `a\{b,c\}`, `x\(1\)` → unchanged |
+| `!`, `+`, `@` | escape | `\!keep` → unchanged |
+| anything else | separator | `vendor\**` → `vendor/**` · `vendor\lib.js` → `vendor/lib.js` · `app\[slug]\[id]\page.tsx` → `app/[slug]/[id]/page.tsx` |
+
+Glob semantics stay standard for `/` and `\` alike, so `app/[slug]/page.tsx`
+— written with either separator — is a character class: it excludes
+`app/s/page.tsx`, not the route `app/[slug]/page.tsx`. That was silent too.
+Now, when a class segment of an `ignores.*` or `includes.*` pattern names a
+directory or file that exists under that literal name where the pattern
+points, the audit says so:
+
+```
+⚠️  ignores.global: 'app/[slug]/page.tsx' — '[slug]' is a glob character class and does not match the directory '[slug]' — write \[slug\] for the literal name.
+```
+
+The pattern is followed from the project root through its plain segments; a
+class after a wildcard (`**/[slug]/**`) cannot be located and is not judged.
+Before: `weird\[1\]/**` excluded nothing, and `app/[slug]/…` excluded a
+different file without a word. After: the escape works, and the class is named.
+
 ### ⚠️ BREAKING — `compliance` and the victory art mean a clean pass; a law that judged nothing makes the run partial
 
 A run of this repository listed 46 laws with violations at warning level, one
@@ -54,6 +98,30 @@ The console lists the laws that judged nothing in their own block
 warnings. The exit code follows severity, as before. A consumer that keyed a
 pass on `verdict === 'compliance'` should accept `compliance-with-warnings`
 and `compliance-with-waivers` too, or read the lists.
+
+### 🐛 Fixed — five more laws gave a weaker answer, and no note, without `typescript` (#427)
+
+The rest of the class #427 found: when `typescript` could not be loaded, these
+laws fell back to a second-best reading and said nothing. Now each says what
+it did not read; with the parser nothing changes.
+
+| law | before, no `typescript` | after, no `typescript` |
+|---|---|---|
+| HTML Lang Declared | an unread `next.config` counted as "no i18n": **"no _document and no i18n in next.config"**, possibly false | "… the next.config file(s) were NOT read … whether i18n sets <html lang> was not judged" |
+| Accessibility Linting Enforcement | an ESLint config script it could not parse counted as "no jsx-a11y preset": **"rules missing"** | "<config>: … the ESLint config script(s) were NOT read … whether they enable the jsx-a11y preset was not judged" |
+| TypeScript Strict Mode | an `extends` chain not followed; the flags read from `tsconfig.json` alone, silently | the same check, plus "tsconfig.json extends …: … the inherited compiler options were NOT read … the strict flags were read from tsconfig.json alone" |
+| Inject Over Constructor DI | constructors counted by a regex | "… the N Angular file(s) were NOT read", no count; a file that does not parse is named as not read |
+| Test Documentation Requirements | test titles read by a regex | "… the N test file(s) were NOT read" — judged nothing |
+
+Two more corrections of the same notes:
+
+- A law that judged nothing is headlined by its own note. Its summary was
+  computed from defaults, so Test Isolation Enforcement read "poor
+  setup/teardown isolation" over files it had not read. The message of every
+  judged-nothing result is now the note that says so.
+- The note names the files that were not read: "the .ts file(s) were NOT read",
+  not ".tsx/.jsx" for every file (No Focused Tests on 714 `.ts` tests, and every
+  law that parses through the same reader).
 ### 🐛 Fixed — without `typescript`, two testing laws judged by a regex and said nothing (#427)
 
 `CodeText.codeOnly` (the code of a file, without its comments and strings) fell

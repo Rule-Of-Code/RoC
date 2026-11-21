@@ -22,8 +22,15 @@ found"), satisfied by `SECURITY.md` at the root, in `docs/` or in
 `security.md` / `docs/security.md` as before. The privacy-policy
 requirement is unchanged.
 
-Self-audit of this repository: Security Vulnerability Response 2 → 1 finding
-(the remaining one: no `PRIVACY.md` / `docs/privacy.md`).
+The privacy-policy clause is asked for only where users reach the code
+(#428): before, every project was told "Missing Privacy Policy
+documentation"; after, only one that declares a web surface, an HTTP API
+(Node or Python) or a mobile app (`REQUIRES_USER_SURFACE` in
+`production-subject-requirements.ts`). A command-line tool or a library has
+no users' data to declare.
+
+Self-audit of this repository: Security Vulnerability Response 2 → 0
+findings.
 
 ### 🐛 Fixed — Test Data Management read an exact expected value as hardcoded test data (#439)
 

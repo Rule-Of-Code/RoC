@@ -52,3 +52,44 @@ describe('#439 the security policy is one requirement, one finding', () => {
     }
   );
 });
+
+describe('#428 the privacy policy is asked for only where users reach the code', () => {
+  const privacyFinding = (
+    manifest: Record<string, unknown>
+  ): string | undefined => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-428-'));
+    made.push(dir);
+    fs.writeFileSync(
+      path.join(dir, 'package.json'),
+      JSON.stringify({ name: 'privacy-428', version: '1.0.0', ...manifest })
+    );
+    fs.writeFileSync(path.join(dir, 'SECURITY.md'), POLICY);
+    const { violations = [] } = SecurityVulnerabilityResponseLaw.check({
+      projectRoot: dir,
+      config: FileUtils.getMinimalDefaultConfig(),
+    });
+    return violations.find(v => v.includes('Privacy Policy'));
+  };
+
+  it('a command-line tool with no web surface, API or app is not asked', () => {
+    expect(
+      privacyFinding({
+        bin: { tool: 'dist/cli.js' },
+        dependencies: { commander: '^12.0.0' },
+      })
+    ).toBeUndefined();
+  });
+
+  it.each([
+    ['a web surface', { 'react-dom': '^18.0.0' }],
+    ['an HTTP API', { express: '^4.0.0' }],
+    ['a mobile app', { '@capacitor/core': '^6.0.0' }],
+  ])(
+    '%s without a privacy policy is still asked (control)',
+    (_kind, dependencies) => {
+      expect(privacyFinding({ dependencies })).toBe(
+        'Missing Privacy Policy documentation'
+      );
+    }
+  );
+});

@@ -13,14 +13,20 @@ import { DeadCodeEliminationLaw } from '../../src/checkers/code-quality-laws/dea
 import { MagicNumberPreventionLaw } from '../../src/checkers/code-quality-laws/magic-number-prevention';
 import { NamingConventionEnforcementLaw } from '../../src/checkers/code-quality-laws/naming-convention-enforcement';
 import { ZeroToleranceStrictLaw } from '../../src/checkers/code-quality-laws/zero-tolerance-strict';
+import { AutomationFirstLaw } from '../../src/checkers/sacred-laws/automation-first';
+import { ContinuousComplianceLaw } from '../../src/checkers/sacred-laws/continuous-compliance';
 import { ZeroToleranceLaw } from '../../src/checkers/sacred-laws/zero-tolerance';
+import { SecurityVulnerabilityResponseLaw } from '../../src/checkers/security-laws/security-vulnerability-response';
 import { TypeScriptChecker } from '../../src/checkers/typescript-checker';
+import { LicenseCompatibilityChecker } from '../../src/laws/security/dependency-scanning/license-checker';
 import type { RawConstitutionalLaw } from '../../src/types/law.types';
 import { readJsonManifest } from '../../src/utils/json-manifest';
+import { SecurityPolicyChecker } from '../../src/utils/security/security-policy-checker';
 import {
   INVALID,
   json,
   texts,
+  TYPE_ERROR,
   useTempProject,
 } from './foreign-json-486.helpers';
 
@@ -292,5 +298,98 @@ describe('Code quality laws reading the ESLint config', () => {
     expect(MagicNumberPreventionLaw.check(context()).violations).not.toContain(
       'ESLint magic numbers rule not configured'
     );
+  });
+});
+
+describe('Security Vulnerability Response (package.json)', () => {
+  const addAudit =
+    'Add npm audit script to package.json for regular vulnerability checks';
+
+  it('sees the audit script', () => {
+    write('package.json', json({ name: 'x', scripts: { audit: 'npm audit' } }));
+    expect(
+      texts(SecurityVulnerabilityResponseLaw.check(context()))
+    ).not.toContain(addAudit);
+  });
+
+  it('still suggests one when there is none', () => {
+    write('package.json', json({ name: 'x', scripts: { build: 'tsc' } }));
+    expect(texts(SecurityVulnerabilityResponseLaw.check(context()))).toContain(
+      addAudit
+    );
+  });
+
+  it('says NOT read for an invalid package.json', () => {
+    write('package.json', INVALID);
+    const violations = SecurityVulnerabilityResponseLaw.check(context())
+      .violations as string[];
+    expect(
+      violations.some(v =>
+        /^package\.json is not valid JSON .* — its scripts and dependencies were NOT read$/.test(
+          v
+        )
+      )
+    ).toBe(true);
+  });
+});
+
+describe.each([
+  ['Automation First Principle', AutomationFirstLaw],
+  ['Continuous Compliance Doctrine', ContinuousComplianceLaw],
+])('%s (invalid package.json)', (_title, law) => {
+  it('says NOT read, without a TypeError text', () => {
+    write('package.json', INVALID);
+    const result = law.check(context());
+    expect(texts(result).filter(t => TYPE_ERROR.test(t))).toEqual([]);
+    expect(
+      (result.violations as string[]).some(v =>
+        /^package\.json is not valid JSON .* — its scripts were NOT read$/.test(
+          v
+        )
+      )
+    ).toBe(true);
+  });
+});
+
+describe('SecurityPolicyChecker.checkAuditResolve (package.json)', () => {
+  it('sees the audit script', () => {
+    write('package.json', json({ name: 'x', scripts: { audit: 'npm audit' } }));
+    expect(
+      SecurityPolicyChecker.checkAuditResolve(project.root).violations
+    ).toEqual([]);
+  });
+
+  it('says NOT read for an invalid package.json', () => {
+    write('package.json', INVALID);
+    const { violations } = SecurityPolicyChecker.checkAuditResolve(
+      project.root
+    );
+    expect(violations).toHaveLength(1);
+    expect(violations[0]).toMatch(
+      /^package\.json is not valid JSON .* — its scripts were NOT read$/
+    );
+  });
+});
+
+describe('LicenseCompatibilityChecker (package.json)', () => {
+  const unspecified = 'Package license not specified in package.json';
+
+  it('sees the license field (it threw on null before)', () => {
+    write('package.json', json({ name: 'x', license: 'MIT' }));
+    expect(
+      LicenseCompatibilityChecker.checkLicenseCompatibility(context())
+    ).not.toContain(unspecified);
+  });
+
+  it('says NOT read for an invalid package.json', () => {
+    write('package.json', INVALID);
+    const violations =
+      LicenseCompatibilityChecker.checkLicenseCompatibility(context());
+    expect(violations).not.toContain(unspecified);
+    expect(
+      violations.some(v =>
+        /^package\.json .* its license was NOT read$/.test(v)
+      )
+    ).toBe(true);
   });
 });

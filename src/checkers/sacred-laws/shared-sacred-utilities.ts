@@ -1,7 +1,7 @@
 import type { RuleOfCodeConfig } from '../../config/types';
 import type { LawResult } from '../../types/law.types';
-import { ProjectTypeDetectorValidation } from '../../utils/config/project-type-detector/project-type-detector-validation';
 import { FileUtils } from '../../utils/file-utils';
+import { notReadNote, readJsonManifest } from '../../utils/json-manifest';
 import { PathOperations } from '../../utils/path-operations';
 import { BaseCheckerUtilities } from '../shared/base-checker-utilities';
 
@@ -105,15 +105,18 @@ export class SacredLawUtilities extends BaseCheckerUtilities {
 
     const packageJsonPath = PathOperations.join(projectRoot, 'package.json');
     if (FileUtils.exists(packageJsonPath)) {
+      // An unreadable package.json came back undefined, and reading its
+      // scripts put "Cannot read properties of undefined" in the findings
+      // (#486). It is said to be NOT read; its scripts are not judged.
+      const read = readJsonManifest(packageJsonPath);
+      if (read.notRead !== undefined) {
+        violations.push(
+          notReadNote('package.json', read.notRead, 'its scripts were')
+        );
+        return { violations, suggestions };
+      }
       try {
-        const packageJson = ProjectTypeDetectorValidation.getPackageJson(
-          projectRoot
-        ) as {
-          scripts?: Record<string, string>;
-          dependencies?: Record<string, string>;
-          devDependencies?: Record<string, string>;
-        };
-        const scripts = packageJson.scripts ?? {};
+        const scripts = (read.data.scripts ?? {}) as Record<string, string>;
 
         scriptChecker(scripts, violations, suggestions);
       } catch (error) {

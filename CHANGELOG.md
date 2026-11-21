@@ -21,6 +21,36 @@ line now gives the counts from `stats`:
 
 With no warnings the text is as before.
 
+### 🐛 Fixed — an escaped bracket in an ignore pattern stopped excluding (#414)
+
+The #414 normalisation turned every `\` into `/`, so `weird\[1\]/**` became
+`weird/[1/]/**` and excluded nothing, in silence. `\` is both the Windows
+separator and the glob escape; it is now read as an escape only where it
+cannot be a separator, and as `/` everywhere else:
+
+| `\` before | read as | example → normalised |
+| --- | --- | --- |
+| `]`, `}`, `)` (no path segment starts with one) | escape | `weird\[1\]/**` → unchanged |
+| `[`, `{`, `(` whose matching closer is escaped later | escape | `a\{b,c\}`, `x\(1\)` → unchanged |
+| `!`, `+`, `@` | escape | `\!keep` → unchanged |
+| anything else | separator | `vendor\**` → `vendor/**` · `vendor\lib.js` → `vendor/lib.js` · `app\[slug]\[id]\page.tsx` → `app/[slug]/[id]/page.tsx` |
+
+Glob semantics stay standard for `/` and `\` alike, so `app/[slug]/page.tsx`
+— written with either separator — is a character class: it excludes
+`app/s/page.tsx`, not the route `app/[slug]/page.tsx`. That was silent too.
+Now, when a class segment of an `ignores.*` or `includes.*` pattern names a
+directory or file that exists under that literal name where the pattern
+points, the audit says so:
+
+```
+⚠️  ignores.global: 'app/[slug]/page.tsx' — '[slug]' is a glob character class and does not match the directory '[slug]' — write \[slug\] for the literal name.
+```
+
+The pattern is followed from the project root through its plain segments; a
+class after a wildcard (`**/[slug]/**`) cannot be located and is not judged.
+Before: `weird\[1\]/**` excluded nothing, and `app/[slug]/…` excluded a
+different file without a word. After: the escape works, and the class is named.
+
 ### ⚠️ BREAKING — `compliance` and the victory art mean a clean pass; a law that judged nothing makes the run partial
 
 A run of this repository listed 46 laws with violations at warning level, one

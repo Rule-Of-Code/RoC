@@ -1520,7 +1520,7 @@ export class RuleOfCodeAuditor {
     // printed for it: "PARTIAL SCAN PASSED" and "never PASSED" were quoted
     // against each other.
     if (auditResult.passed && auditResult.scope?.partial) {
-      this.displayPartialVerdict(auditResult.scope, chalk);
+      this.displayPartialVerdict(auditResult, chalk);
       return;
     }
 
@@ -1538,12 +1538,31 @@ export class RuleOfCodeAuditor {
     }
   }
 
-  private displayPartialVerdict(scope: AuditScope, chalk: chalk.Chalk): void {
+  private displayPartialVerdict(
+    auditResult: AuditResult,
+    chalk: chalk.Chalk
+  ): void {
+    const scope = auditResult.scope as AuditScope;
+    const counted = RuleOfCodeAuditor.passedSentence(auditResult);
     if (scope.narrowedBy === undefined) {
-      this.displayJudgedNothingVerdict(scope, chalk);
+      this.displayJudgedNothingVerdict(scope, counted, chalk);
       return;
     }
-    this.displayNarrowedVerdict(scope, chalk);
+    this.displayNarrowedVerdict(scope, counted, chalk);
+  }
+
+  /**
+   * What the laws that ran did, in one clause: "passed" only when none of
+   * them reported warnings; otherwise the counts (stats.passedLaws and
+   * stats.warningLaws) — a law with warnings did not "pass".
+   */
+  static passedSentence(
+    auditResult: Pick<AuditResult, 'passedLaws' | 'warningLaws'>
+  ): string | null {
+    const warnings = auditResult.warningLaws ?? 0;
+    return warnings > 0
+      ? `${auditResult.passedLaws} passed, ${warnings} reported warnings (not blocking)`
+      : null;
   }
 
   /**
@@ -1552,12 +1571,14 @@ export class RuleOfCodeAuditor {
    */
   private displayJudgedNothingVerdict(
     scope: AuditScope,
+    counted: string | null,
     chalk: chalk.Chalk
   ): void {
     const judgedNothing = scope.judgedNothingLaws.length;
+    const others = counted ?? 'The other laws passed';
     console.log(
       chalk.yellowBright.bold(
-        `⚠️  PARTIAL — ${judgedNothing} law(s) judged nothing (${scope.judgedNothingLaws.map(l => l.law).join(', ')}). The other laws passed; no compliance verdict.`
+        `⚠️  PARTIAL — ${judgedNothing} law(s) judged nothing (${scope.judgedNothingLaws.map(l => l.law).join(', ')}). ${others}; no compliance verdict.`
       )
     );
     console.log(
@@ -1572,14 +1593,21 @@ export class RuleOfCodeAuditor {
     console.log('');
   }
 
-  private displayNarrowedVerdict(scope: AuditScope, chalk: chalk.Chalk): void {
+  private displayNarrowedVerdict(
+    scope: AuditScope,
+    counted: string | null,
+    chalk: chalk.Chalk
+  ): void {
     const { executedLaws, applicableLaws, narrowedBy } = scope;
     const waived = scope.waivedLaws?.length ?? 0;
     const why =
       waived > 0 ? `${narrowedBy}; ${waived} waived` : `${narrowedBy}`;
+    const selected = counted
+      ? `Of the selected laws ${counted}`
+      : 'The selected laws passed';
     console.log(
       chalk.yellowBright.bold(
-        `⚠️  PARTIAL SCAN — ${executedLaws} of ${applicableLaws} applicable laws ran (narrowed by ${why}). The selected laws passed; no compliance verdict.`
+        `⚠️  PARTIAL SCAN — ${executedLaws} of ${applicableLaws} applicable laws ran (narrowed by ${why}). ${selected}; no compliance verdict.`
       )
     );
     console.log(

@@ -229,6 +229,65 @@ describe('utils/angular/angular-bundle/angular-bundle-validation-patterns', () =
     });
   });
 
+  // The two checks below used to call methods that do not exist on
+  // PerformanceBudgetComplianceLaw (hidden behind an `as unknown as` cast):
+  // the TypeError was caught and the "missing" suggestion was always added,
+  // even to a project that declares its budgets.
+  describe('a project that declares its budgets', () => {
+    it('gets no budget suggestion when angular.json declares budgets', () => {
+      FileUtils.writeFile(
+        PathOperations.join(tempDir, 'angular.json'),
+        JSON.stringify({
+          projects: {
+            app: {
+              architect: {
+                build: {
+                  configurations: {
+                    production: {
+                      budgets: [
+                        {
+                          type: 'initial',
+                          maximumWarning: '500kb',
+                          maximumError: '1mb',
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+          },
+        })
+      );
+      const suggestions: string[] = [];
+
+      AngularBundleValidationPatterns.validatePerformanceBudgets(
+        tempDir,
+        suggestions
+      );
+
+      expect(suggestions).toEqual([]);
+    });
+
+    it('is told its webpack performance config was found, not that it is missing', () => {
+      FileUtils.writeFile(
+        PathOperations.join(tempDir, 'webpack.config.js'),
+        'module.exports = { performance: { maxAssetSize: 500000, maxEntrypointSize: 500000 } };'
+      );
+      const suggestions: string[] = [];
+
+      AngularBundleValidationPatterns.validateWebpackConfiguration(
+        tempDir,
+        suggestions
+      );
+
+      expect(suggestions).toHaveLength(1);
+      expect(suggestions[0]).toMatch(
+        /^Webpack performance configured in: webpack\.config/
+      );
+    });
+  });
+
   describe('validateSourceCodeOptimization', () => {
     it('should validate source code optimization patterns', () => {
       FileUtils.createDirectory(PathOperations.join(tempDir, 'src'));

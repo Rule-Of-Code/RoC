@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Error Handling Completeness reports dropped promises, not awaits; reads the package entry points (#438)
+
+Before: a file was flagged when `await w+` occurred more than four times per
+`try {` / `.catch(` in the raw text — so five awaits inside one try, or
+awaits whose rejection goes to the caller, were "async calls without proper
+error handling"; `.then(` was counted against `.catch(` file-wide, so a
+dropped chain passed when an unrelated `.catch(` was elsewhere; `.then(` and
+`fetch(` in strings, regexes and comments were code. The global handler was
+looked for only in fixed bootstrap file names, never in the source of the
+package's `bin` / `main`.
+
+After: an `await` is not a gap. A DROPPED promise is: a `.then` chain with
+no rejection handler (no `.catch`, no second `.then` argument), or a call
+to an async function or method declared in the same file, used as a
+statement — neither awaited, returned, `void`-ed nor caught. The finding
+names the lines. Code is read from the TypeScript parse (strings, regexes and
+comments removed) for this and for the HTTP / event-listener checks; without a
+loadable `typescript` the files are reported as not read. The global-handler
+check also reads what package.json `bin` and `main` name, from source
+(`dist|lib|build|out/x.js` → `src/x.ts`); the built file is not read.
+
+Self-audit of this repository: 33 findings → 0. The global handler is now
+found in `src/cli.ts` (the `bin`), by the existing name pattern
+`ErrorHandler` in `setupErrorHandlers()`.
+
 ### 🐛 Fixed — a committed PRE_DEPLOYMENT_CHECKLIST.md was reported missing when `includes` name only source (#476)
 
 Pre-Deployment Checklist looked the checklist up through the source scan,

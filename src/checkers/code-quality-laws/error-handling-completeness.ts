@@ -14,7 +14,14 @@ import { ProjectTypeDetector } from '../../utils/config/project-type-detector';
 import { NxWorkspace } from '../../utils/nx-workspace';
 import { PathOperations } from '../../utils/path-operations';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
+import {
+  loadTypeScript,
+  parserUnavailable,
+} from '../../utils/react/tsx-source';
 import { CodeQualityLawBase } from './code-quality-law-base';
+import { findFloatingPromises } from './floating-promises';
+import { packageEntrySources } from './package-entry-sources';
+import { readSource } from './source-view';
 
 export class ErrorHandlingCompletenessLaw extends CodeQualityLawBase {
   static check(context: LawCheckContext): LawResult {
@@ -65,10 +72,29 @@ export class ErrorHandlingCompletenessLaw extends CodeQualityLawBase {
     );
     let filesWithoutErrorHandling = 0;
 
+    // Read from the parse (#438): a `.then(` or `fetch(` in a message string,
+    // a regex or a comment is not code. Without the parser the files are not
+    // read — said so.
+    const ts = loadTypeScript(projectRoot);
+    if (!ts && codeFiles.length > 0) {
+      violations.push(
+        parserUnavailable(
+          projectRoot,
+          `the ${codeFiles.length} .ts/.js file(s)`
+        )
+      );
+      return { violations, suggestions };
+    }
+
     for (const file of codeFiles) {
       try {
         const content = FileUtils.readFile(file);
-        const errorHandlingIssues = this.analyzeFileErrorHandling(content);
+        if (!content || !ts) continue;
+        const errorHandlingIssues = this.analyzeFileErrorHandling(
+          ts,
+          content,
+          file
+        );
 
         if (errorHandlingIssues.violations.length > 0) {
           filesWithoutErrorHandling++;
@@ -103,44 +129,45 @@ export class ErrorHandlingCompletenessLaw extends CodeQualityLawBase {
     return { violations, suggestions };
   }
 
-  private static analyzeFileErrorHandling(content: string): {
+  /**
+   * One file's gaps. A promise that is dropped — a `.then` chain or a call to
+   * an async function of this file, used as a statement and neither awaited,
+   * returned, `void`-ed nor caught — is one (#438). An `await` is not: its
+   * rejection is thrown into the enclosing `try` or to the caller.
+   */
+  private static analyzeFileErrorHandling(
+    ts: NonNullable<ReturnType<typeof loadTypeScript>>,
+    content: string,
+    file: string
+  ): {
     violations: string[];
     suggestions: string[];
   } {
     const violations: string[] = [];
+    const { source, code } = readSource(ts, content, file);
 
-    // Check for unhandled async operations
-    const asyncCalls = content.match(/await\s+\w+/g) ?? [];
-    const tryBlocks = content.match(/try\s*{/g) ?? [];
-    const catchBlocks = content.match(/\.catch\(/g) ?? [];
-    const errorHandlers = tryBlocks.length + catchBlocks.length;
-
-    // Relaxed ratio: only flag if many async calls with no error handling, or very high ratio
-    if (asyncCalls.length > errorHandlers * 4 && asyncCalls.length > 3) {
-      violations.push('async calls without proper error handling');
+    const floating = findFloatingPromises(ts, source);
+    if (floating.length > 0) {
+      violations.push(
+        `${floating.length} promise(s) neither awaited, returned nor caught (line ${floating
+          .map(f => f.line)
+          .join(', ')})`
+      );
     }
 
-    // Check for unhandled Promise chains
-    // Exclude Angular lazy loading patterns (loadComponent/loadChildren with import().then())
-    const promiseChains = content.match(/\.then\(/g) ?? [];
-    const angularLazyLoads = content.match(/import\([^)]+\)\.then\(/g) ?? [];
-
-    // Only flag non-Angular lazy loading promise chains (use catchBlocks from line 113)
-    const nonFrameworkPromises = promiseChains.length - angularLazyLoads.length;
-    if (nonFrameworkPromises > catchBlocks.length && nonFrameworkPromises > 0) {
-      violations.push('Promise chains without .catch() handlers');
-    }
+    const tryBlocks = code.match(/try\s*{/g) ?? [];
+    const catchBlocks = code.match(/\.catch\(/g) ?? [];
 
     // Check for HTTP requests without error handling
     // More specific patterns to avoid false positives (FormBuilder.get, Map.get, provideHttpClient, etc.)
     // Exclude Angular config files which only provide HTTP client, not use it
     const isAngularConfig =
-      content.includes('ApplicationConfig') ||
-      content.includes('provideRouter') ||
-      content.includes('CapacitorConfig');
+      code.includes('ApplicationConfig') ||
+      code.includes('provideRouter') ||
+      code.includes('CapacitorConfig');
 
     const httpRequests =
-      content.match(/(fetch\(|axios\.|this\.http\.|\.httpClient\.)/g) ?? [];
+      code.match(/(fetch\(|axios\.|this\.http\.|\.httpClient\.)/g) ?? [];
     if (
       httpRequests.length > 0 &&
       tryBlocks.length === 0 &&
@@ -152,18 +179,15 @@ export class ErrorHandlingCompletenessLaw extends CodeQualityLawBase {
 
     // Check for event listeners without error handling
     // Exclude Angular provider functions (provideBrowserGlobalErrorListeners, etc)
-    const eventListeners = content.match(/addEventListener\(/g) ?? [];
+    const eventListeners = code.match(/addEventListener\(/g) ?? [];
     if (
       eventListeners.length > 0 &&
-      !content.includes('try') &&
-      !content.includes('catch') &&
+      !code.includes('try') &&
+      !code.includes('catch') &&
       !isAngularConfig // Don't flag Angular config files
     ) {
       violations.push('event handlers without error handling');
     }
-
-    // Removed overly strict unsafe property access checks - TypeScript handles this
-    // Optional chaining (?.) is a valid TypeScript pattern, not an error
 
     return { violations, suggestions: [] };
   }
@@ -189,8 +213,12 @@ export class ErrorHandlingCompletenessLaw extends CodeQualityLawBase {
       'index.js',
     ];
 
+    // ...and the package's own entry points: what `bin` and `main` in
+    // package.json name, read from source (#438). A CLI whose bin is
+    // dist/cli.js starts in src/cli.ts, which no fixed list names.
     const hasGlobalErrorHandling =
       this.checkFilesForErrorHandling(projectRoot, globalErrorFiles) ||
+      this.checkEntryPointsForErrorHandling(projectRoot) ||
       this.hasPythonGlobalErrorHandling(projectRoot);
 
     if (!hasGlobalErrorHandling) {
@@ -228,6 +256,18 @@ export class ErrorHandlingCompletenessLaw extends CodeQualityLawBase {
       }
     }
     return false;
+  }
+
+  private static checkEntryPointsForErrorHandling(
+    projectRoot: string
+  ): boolean {
+    return packageEntrySources(projectRoot).some(file => {
+      try {
+        return this.hasGlobalErrorHandlingPatterns(FileUtils.readFile(file));
+      } catch (_error) {
+        return false;
+      }
+    });
   }
 
   /**

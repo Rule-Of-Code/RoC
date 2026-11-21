@@ -349,13 +349,14 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'An unhandled await or a promise with no .catch is a 500 waiting for the one input you did not test. This law asks that the risky calls be guarded and the app carry a last-resort global handler, so a failure is logged, not silently swallowed.',
     satisfiedBy: {
       typescript:
-        'Wrap await/fetch/http calls in try/catch, add .catch() to promise chains, and register a global handler (ErrorHandler / ErrorBoundary / window.onerror).',
+        'Await, return or .catch() every promise you start (a statement like save(); or p.then(f); drops its rejection), guard fetch/http calls, and register a global handler (ErrorHandler / ErrorBoundary / window.onerror / process.on(unhandledRejection)) in an entry point — the fixed bootstrap files or what package.json bin/main name.',
       python:
         'Register a global handler (@app.errorhandler(Exception) / add_exception_handler) — recognised natively.',
     },
     detectionLimits: [
-      'Per-file guarding is counting heuristics/ratios over JS/TS only (no AST, matches in comments/strings); Python files are not analysed per-file.',
-      'Global-handler detection is a FIXED path allowlist — a bootstrap file placed elsewhere gets a false "no global error handling".',
+      'A dropped promise is recognised from syntax only (no type checker): a .then chain, or a call to an async function or method declared in the same file, used as a statement. A promise-returning function imported from another module and called as a statement is not seen.',
+      'HTTP and event-listener guarding is still a per-file text check, over code only (strings and comments removed); JS/TS only, Python files are not analysed per-file.',
+      'Global-handler detection reads a fixed list of bootstrap files plus the source of package.json bin/main (dist|lib|build|out → src); a bootstrap file elsewhere gets a false "no global error handling". The handler is recognised by name patterns, not by what it does.',
       'Python satisfies only the global-handler clause, not the per-call gaps.',
     ],
     emoji: '🚨',

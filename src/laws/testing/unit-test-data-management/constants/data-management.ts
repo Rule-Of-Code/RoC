@@ -50,11 +50,15 @@ export class UnitTestDataManagementConstants {
   // 3. Hardcoded Data Patterns
   // ============================================
 
+  // Data a test feeds in, not the value it expects back. An exact expected
+  // value in an assertion — `expect(r.lawName).toBe('angular-testing-
+  // excellence')` — is the assertion itself; a factory cannot produce what
+  // the code under test must return. A pattern that read every long string
+  // in `toBe(…)` as "hardcoded test data" (LONG_STRING_ASSERTION) is gone.
   static readonly HARDCODED_DATA_PATTERNS = {
     HARDCODED_ID_ARRAY:
       /const\s+\w+\s*=\s*\[\s*\{[^}]*id:\s*['"]\d+['"][^}]*\}/,
     MOCK_WITH_NUMBER: /\.mockReturnValue\(\s*\d{4,}\s*\)/,
-    LONG_STRING_ASSERTION: /expect\([^)]+\)\.toBe\(\s*['"][^'"]{20,}['"]\s*\)/,
   };
 
   // ============================================

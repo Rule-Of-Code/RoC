@@ -3,6 +3,7 @@
  * All TypeScript must be configured with strict settings
  */
 
+import { PARTLY_READ_TEXT } from '../../utils/judged-nothing';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { ProjectTypeDetector } from '../../utils/config/project-type-detector';
 import { SacredLawBase } from './sacred-law-base';
@@ -50,7 +51,7 @@ export class TypeScriptStrictLaw {
       const extendsFrom = (tsConfig as Record<string, unknown>).extends;
       if (extendsFrom !== undefined && !loadTypeScript(projectRoot)) {
         violations.push(
-          `tsconfig.json extends ${JSON.stringify(extendsFrom)}: ${parserUnavailable(projectRoot, 'the inherited compiler options')} — the strict flags were read from tsconfig.json alone`
+          `tsconfig.json extends ${JSON.stringify(extendsFrom)}: ${parserUnavailable(projectRoot, 'the inherited compiler options')} — the strict flags were read from tsconfig.json alone; ${PARTLY_READ_TEXT}`
         );
       }
     } else {

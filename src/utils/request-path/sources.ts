@@ -18,6 +18,7 @@ import { PythonLawBase } from '../../checkers/python-laws/python-law-base';
 import { CheckerUtils } from '../checker-utils';
 import type { ContainingFile } from '../law-requirements';
 import { FileUtils } from '../file-utils';
+import { PARTLY_READ_TEXT } from '../judged-nothing';
 import { PathOperations } from '../path-operations';
 import { loadTypeScript, parserUnavailable } from '../react/tsx-source';
 import type { ModuleModel, SourceLanguage } from './model';
@@ -195,8 +196,10 @@ export function sourcesFromFiles(
   if (scripts.length === 0) return sources;
   const ts = loadTypeScript(projectRoot);
   if (!ts) {
+    // The Python modules were read without it: then this note covers part.
+    const partly = sources.counts.python > 0 ? `; ${PARTLY_READ_TEXT}` : '';
     sources.unread.push(
-      `${scripts.length} TS/JS file(s): ${parserUnavailable(projectRoot)}`
+      `${scripts.length} TS/JS file(s): ${parserUnavailable(projectRoot)}${partly}`
     );
     return sources;
   }

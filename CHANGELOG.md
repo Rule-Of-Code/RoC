@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — a law that read none of its files was counted as a finding, not as judged nothing (#427)
+
+Without `typescript`, No Focused Tests, Guard Function Has Production Caller,
+Tsconfig Exclude Leaves Code Untyped and Independent Awaits Run Concurrently
+said their files were NOT read — but the note counted as an ordinary finding.
+The law was not in `scope.judgedNothingLaws`, so a run with them alone was
+`compliance-with-warnings`, while Test Isolation Enforcement in the same state
+made it `partial`.
+
+One rule now, for every law, in one place: a result whose every finding is a
+parser-unavailable note read none of its files — it judged nothing (failed,
+score 0; `failed` or `partial` by severity, as for any law that judged
+nothing). A law that also reads input without the parser and judged it says
+so in the note ("the rest of what this law reads was judged") and is not
+judged nothing; neither is a note beside a real finding, nor a file that did
+not parse.
+
+| law, no `typescript` | before | after |
+|---|---|---|
+| No Focused Tests · Guard Function Has Production Caller · Tsconfig Exclude Leaves Code Untyped · Independent Awaits (TS/JS only) | one finding: "… NOT read" | judged nothing |
+| TypeScript Strict Mode (extends) · HTML Lang Declared (next.config) · Accessibility Linting (config script) · Capacitor Plugin Stub (test configs) · Independent Awaits / cache laws with Python read | the note, a finding | the note, a finding, ending "the rest of what this law reads was judged" |
+
 ### 🐛 Fixed — a PARTIAL line said "passed" for laws that reported warnings
 
 The judged-nothing line said "The other laws passed" and the narrowed line

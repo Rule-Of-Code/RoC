@@ -15,6 +15,7 @@
  * imports it.
  */
 
+import { PARTLY_READ_TEXT } from '../../utils/judged-nothing';
 import { glob } from 'glob';
 import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
@@ -93,7 +94,7 @@ export class CapacitorPluginStubHasContractTestLaw extends LawBase {
     const configs = this.configFiles(context.projectRoot);
     if (!ts && configs.some(file => !file.endsWith('.json'))) {
       violations.push(
-        `test configs: ${parserUnavailable(context.projectRoot)} — module mappings in them were not read, so this law does not pass on them`
+        `test configs: ${parserUnavailable(context.projectRoot)} — module mappings in them were not read, so this law does not pass on them; ${PARTLY_READ_TEXT}`
       );
     }
     const unreadMappers: string[] = [];

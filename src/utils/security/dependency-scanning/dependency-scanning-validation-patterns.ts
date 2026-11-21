@@ -4,9 +4,9 @@
  */
 
 import type { RuleOfCodeConfig } from '../../../types/law.types';
-import { ConfigFileUtils } from '../../config-file-utils';
 import { DirectoryScanner } from '../../directory-scanner';
 import { FileUtils } from '../../file-utils';
+import { notReadNote, readJsonManifest } from '../../json-manifest';
 import { StringTemplateUtils } from '../../string-template-utils';
 import {
   DependencyScanningConfiguration as Config,
@@ -59,7 +59,21 @@ export class DependencyScanningValidationPatterns {
       return result;
     }
 
-    const packageJson = ConfigFileUtils.loadConfig(packageJsonPath);
+    // package.json read as package.json: RoC's own config loader returned
+    // null for it, so scripts and dependencies were never seen (#486).
+    const read = readJsonManifest(packageJsonPath);
+    if (read.notRead !== undefined) {
+      result.violations.push(
+        notReadNote(
+          'package.json',
+          read.notRead,
+          'its scripts and dependencies were'
+        )
+      );
+      this.checkCISecurityScanning(projectRoot, result.suggestions);
+      return result;
+    }
+    const packageJson = read.data;
 
     // Check for audit scripts
     const scripts = (packageJson?.scripts ?? {}) as Record<string, string>;
@@ -229,9 +243,13 @@ export class DependencyScanningValidationPatterns {
       Config.FILE_PATTERNS.PACKAGE_JSON
     );
 
-    if (FileUtils.exists(packageJsonPath)) {
-      const packageJson = ConfigFileUtils.loadConfig(packageJsonPath);
-      const dependencies = Config.extractDependenciesFromConfig(packageJson);
+    // An unreadable package.json is reported by the vulnerability-scanning
+    // step; its tools are not judged here.
+    const read = FileUtils.exists(packageJsonPath)
+      ? readJsonManifest(packageJsonPath)
+      : undefined;
+    if (read?.data) {
+      const dependencies = Config.extractDependenciesFromConfig(read.data);
 
       // Check for security-focused tools
       if (

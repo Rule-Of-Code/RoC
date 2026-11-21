@@ -22,7 +22,6 @@ import {
   hasCustomNpmRegistry,
   hasPattern,
   joinPath,
-  loadPackageJson,
   mergeResults,
   readFile,
   readFileContent,
@@ -431,43 +430,6 @@ describe('utils/security/security-shared-utils', () => {
       const result = getAllDependencies(null);
 
       expect(result).toEqual({});
-    });
-  });
-
-  describe('loadPackageJson', () => {
-    it('should load and parse JSON file', () => {
-      const jsonPath = PathOperations.join(tempDir, 'test.json');
-      FileUtils.writeFile(
-        jsonPath,
-        JSON.stringify({
-          name: 'loaded-package',
-          version: '2.0.0',
-        })
-      );
-
-      const result = loadPackageJson(jsonPath);
-
-      // loadPackageJson uses ConfigFileUtils.loadConfig which validates as RuleOfCodeConfig
-      // Regular package.json may not pass validation, so result could be null
-      // The function returns null for invalid config or parsing errors
-      expect(result === null || typeof result === 'object').toBe(true);
-    });
-
-    it('should return null for invalid JSON', () => {
-      const invalidPath = PathOperations.join(tempDir, 'invalid.json');
-      FileUtils.writeFile(invalidPath, 'not valid json');
-
-      const result = loadPackageJson(invalidPath);
-
-      expect(result).toBeNull();
-    });
-
-    it('should return null for non-existing file', () => {
-      const result = loadPackageJson(
-        PathOperations.join(tempDir, 'nonexistent.json')
-      );
-
-      expect(result).toBeNull();
     });
   });
 

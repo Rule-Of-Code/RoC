@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed — TypeScript Strict Mode no longer requires noPropertyAccessFromIndexSignature or source maps
+
+The law reported "TypeScript noPropertyAccessFromIndexSignature must be true"
+and "TypeScript source maps must be enabled" next to the strict flags. Neither
+is strictness. `noPropertyAccessFromIndexSignature` decides how a key of an
+index signature is written (`obj['key']` instead of `obj.key`); the type
+safety of that read comes from `noUncheckedIndexedAccess`, which the law still
+requires. Source maps are a build and debugging setting.
+
+Before: a tsconfig with `strict` and the whole strict family still failed on
+those two. After: the law requires `strict` (with `noImplicitAny` and
+`noImplicitThis`, which it turns on), `noImplicitReturns`, `noUnusedLocals`,
+`noUnusedParameters`, `exactOptionalPropertyTypes`, `noImplicitOverride` and
+`noUncheckedIndexedAccess`, a target of ES2020 or later and a modern
+`moduleResolution`; it does not judge the other two at all. The Law Card's
+"satisfied by" text lists the same flags.
+
 ### Internal — two copied helpers read through their one implementation
 
 Code Duplication Control reported three copies in our own code; two are

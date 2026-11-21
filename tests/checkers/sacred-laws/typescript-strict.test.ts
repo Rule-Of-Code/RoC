@@ -537,67 +537,53 @@ describe('TypeScriptStrictLaw', () => {
   // ============================================
   // validateSourceMaps()
   // ============================================
-  describe('validateSourceMaps()', () => {
-    it('should pass when sourceMap is true', async () => {
-      const tsconfig = {
-        compilerOptions: {
-          strict: true,
-          noImplicitAny: true,
-          strictNullChecks: true,
-          noImplicitReturns: true,
-          noUnusedLocals: true,
-          noUnusedParameters: true,
-          target: 'ES2020',
-          sourceMap: true,
-        },
-      };
-
+  // The law requires the strict family below; noPropertyAccessFromIndexSignature
+  // (a style choice about how an index signature is read) and source maps (a
+  // build setting) are not part of it.
+  describe('required flags', () => {
+    const REQUIRED = {
+      strict: true,
+      noImplicitReturns: true,
+      noUnusedLocals: true,
+      noUnusedParameters: true,
+      exactOptionalPropertyTypes: true,
+      noImplicitOverride: true,
+      noUncheckedIndexedAccess: true,
+      target: 'ES2020',
+      moduleResolution: 'node',
+    };
+    const judge = (compilerOptions: Record<string, unknown>): string[] => {
       FileUtils.writeFile(
         PathOperations.join(tempDir, 'tsconfig.json'),
-        JSON.stringify(tsconfig, null, 2)
+        JSON.stringify({ compilerOptions }, null, 2)
       );
+      return TypeScriptStrictLaw.check(createMockContext()).violations ?? [];
+    };
 
-      const ctx = createMockContext();
-      const result = await TypeScriptStrictLaw.check(ctx);
-
-      expect(
-        result.violations!.filter((v: string) =>
-          v.toLowerCase().includes('sourcemap')
-        ).length
-      ).toBe(0);
+    it('passes without noPropertyAccessFromIndexSignature and without source maps', () => {
+      expect(judge(REQUIRED)).toEqual([]);
     });
 
-    it('should suggest sourceMap when missing', async () => {
-      const tsconfig = {
-        compilerOptions: {
-          strict: true,
-          noImplicitAny: true,
-          strictNullChecks: true,
-          noImplicitReturns: true,
-          noUnusedLocals: true,
-          noUnusedParameters: true,
-          target: 'ES2020',
-        },
-      };
+    it('does not ask for noPropertyAccessFromIndexSignature when it is false', () => {
+      expect(
+        judge({ ...REQUIRED, noPropertyAccessFromIndexSignature: false })
+      ).toEqual([]);
+    });
 
-      FileUtils.writeFile(
-        PathOperations.join(tempDir, 'tsconfig.json'),
-        JSON.stringify(tsconfig, null, 2)
-      );
+    it('does not ask for source maps when sourceMap is false', () => {
+      expect(judge({ ...REQUIRED, sourceMap: false })).toEqual([]);
+    });
 
-      const ctx = createMockContext();
-      const result = await TypeScriptStrictLaw.check(ctx);
-
-      const hasSourceMapIssue =
-        result.violations!.some((v: string) =>
-          v.toLowerCase().includes('sourcemap')
-        ) ||
-        (result.suggestions &&
-          result.suggestions!.some((s: string) =>
-            s.toLowerCase().includes('sourcemap')
-          ));
-      // This may or may not be a required check - depends on implementation
-      expect(result).toBeDefined();
+    it.each([
+      'noImplicitReturns',
+      'noUnusedLocals',
+      'noUnusedParameters',
+      'exactOptionalPropertyTypes',
+      'noImplicitOverride',
+      'noUncheckedIndexedAccess',
+    ])('still requires %s', flag => {
+      const { [flag as keyof typeof REQUIRED]: _dropped, ...rest } = REQUIRED;
+      expect(judge(rest)).toEqual([`TypeScript ${flag} must be true`]);
     });
   });
 

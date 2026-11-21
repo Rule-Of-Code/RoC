@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Code Duplication Control compared text fragments, not functions (#432)
+
+A "block" started on any line containing `=>` or `function` and ran to the
+next balancing `}`, so it was the tail of whatever followed the last arrow —
+a type member, a call-site fragment, a one-line idiom — and every string was
+replaced with `STR`, so two tables of different messages were the same code.
+
+| | before | after |
+|---|---|---|
+| what is compared | text from a line with `=>`/`function` to the next `}` | the block body of every function, method and arrow, from the TypeScript parse |
+| strings | all normalised to `STR` | compared as written (numbers are still normalised) |
+| comments | stripped by regex | not tokens |
+| size floor | 50 characters | 5 lines and 50 tokens (`minDuplicationLines`, `minDuplicationTokens`); `minDuplicationBlockSize` still applies in characters |
+| a copy inside a larger copy | reported again | reported once, with the larger copy |
+| no loadable `typescript` | compared as text | ".ts/.tsx file(s) were NOT read" — judged nothing |
+
 ### ⚠️ BREAKING — `compliance` and the victory art mean a clean pass; a law that judged nothing makes the run partial
 
 A run of this repository listed 46 laws with violations at warning level, one

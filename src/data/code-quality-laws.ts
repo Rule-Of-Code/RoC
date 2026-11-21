@@ -314,7 +314,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Tool-presence dominates: a project without jscpd fails regardless of actual duplication.',
-      'Block extraction is naive brace-counting on function/=> lines; it matches only EXACT normalized bodies (a single differing identifier escapes) and can list the same file twice.',
+      'Compares the block bodies of functions, methods and arrows from the TypeScript parse (without a loadable `typescript` the files are NOT read and the law judges nothing); a body counts only at 5+ lines and 50+ tokens (thresholds.codeQuality.minDuplicationLines / minDuplicationTokens). It matches only EXACT token sequences — numbers are normalised, strings are not — so a single differing identifier escapes; a copy inside a larger copy is reported once, and the same file can be listed twice.',
       'TS/JS only; no Python.',
     ],
     emoji: '📋',

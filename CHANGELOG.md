@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Internal — Capacitor readers and checkers split below the complexity limits
+
+Code Complexity Control reported, on the self-audit, two files of
+`src/utils/capacitor` as too long (capacitor-project, capacitor-sources) and
+four Capacitor checkers with a function above complexity 10. Running
+`cap config --json` and reading what it prints moves to `capacitor-cli.ts`,
+the shared syntax helpers to `capacitor-ast.ts` (both re-exported where
+importers expect them), and the branching functions hand their sub-steps to
+named helpers. No law reports anything different.
+
 ### Internal — eslint is a direct devDependency
 
 `npm run lint` runs `eslint .`, but `eslint` was only installed as a peer of

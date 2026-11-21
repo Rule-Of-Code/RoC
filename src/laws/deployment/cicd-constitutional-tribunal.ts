@@ -138,12 +138,12 @@ export class CicdConstitutionalTribunalLaw {
       score -= thresholds.noSecurityScanningDeduction;
     }
 
-    // 5. Check for PerformanceTestUtils integration (suggestions only, not violations)
+    // 5. Check for performance testing in the pipeline (suggestions only, not violations)
     const performanceTesting =
       PerformanceAnalysisService.analyzePerformanceTesting(projectRoot);
     if (performanceTesting.hasPerformanceIssues) {
       suggestions.push(
-        'Consider adding PerformanceTestUtils to CI/CD pipeline'
+        'Consider adding performance tests to the CI/CD pipeline'
       );
       performanceTesting.recommendations.forEach(rec => {
         suggestions.push(rec);

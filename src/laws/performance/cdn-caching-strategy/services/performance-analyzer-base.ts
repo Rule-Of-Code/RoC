@@ -102,7 +102,11 @@ export class PerformanceAnalyzerBase {
       const targets = projectJson.targets ?? projectJson.architect;
       if (!targets) continue;
 
-      const normalized = { architect: targets } as unknown as AngularProject;
+      // Same JSON boundary as the angular.json branch above: the file is read
+      // as untyped JSON and its targets take the shape Angular gives them.
+      const normalized: AngularProject = {
+        architect: targets as AngularProject['architect'],
+      };
       const projectName = String(
         projectJson.name ?? PathOperations.getDirectory(configPath)
       );

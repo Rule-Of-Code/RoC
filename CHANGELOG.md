@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🧹 Removed — a second, dead result printer that said "All constitutional laws passed!"
+
+`AuditResultProcessor.displayResults` printed `✅ All constitutional laws
+passed!` whenever `passed` was true — warnings, waivers or a law that judged
+nothing included — and knew nothing of the verdict. No command called it;
+only its own tests did. It is removed with its private helpers and those
+tests, so the one printer left is the audit's own, which follows the verdict.
+It was not exported from the package entry point.
+
 ### ⚠️ BREAKING — `compliance` and the victory art mean a clean pass; a law that judged nothing makes the run partial
 
 A run of this repository listed 46 laws with violations at warning level, one

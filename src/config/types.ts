@@ -238,11 +238,11 @@ export interface RuleOfCodeConfig {
         /** How many recent commits to measure when no baseline is set. Default: 10. */
         maxCommits?: number;
         /**
-         * Paths whose LINES are not counted, as regular-expression sources.
-         * Replaces the built-in list of lockfiles (package-lock.json, yarn.lock,
-         * poetry.lock, go.sum, Cargo.lock and the rest) rather than adding to
-         * it. Their file count still applies — the exemption is for content
-         * nobody reviews, not for the size of the change.
+         * Generated paths, as regular-expression sources: neither their lines
+         * nor the files count toward the commit size. Added to the built-in
+         * list (package-lock.json, yarn.lock, poetry.lock, go.sum, Cargo.lock
+         * and the other lockfiles, asciinema .cast recordings) — e.g. the
+         * captured output of a demo recording script.
          */
         generatedFiles?: string[];
       };

@@ -3,9 +3,11 @@
  *
  * Comprehensive tests for markdown footer template validation
  */
+import { ALL_ENHANCED_CONSTITUTIONAL_LAWS } from '../../../src/data/enhanced-laws';
 import { MdFooterTemplateLaw } from '../../../src/laws/documentation/md-footer-template';
 import type { LawCheckContext, RuleOfCodeConfig } from '../../../src/types';
 import { FileUtils } from '../../../src/utils/file-utils';
+import { runsWithoutAllowlist } from '../../../src/utils/law-identity';
 import { PathOperations } from '../../../src/utils/path-operations';
 
 describe('MdFooterTemplateLaw', () => {
@@ -92,17 +94,50 @@ describe('MdFooterTemplateLaw', () => {
     });
   });
 
-  describe('empty project handling', () => {
-    it('should fail for empty project with no markdown files', async () => {
+  /**
+   * #436: no Markdown to judge is not a finding about the documentation.
+   * The law says nothing was judged — and why — instead of claiming the
+   * project has no Markdown files.
+   */
+  describe('nothing to judge', () => {
+    it('a project without Markdown: nothing was judged', async () => {
       const result = await MdFooterTemplateLaw.check(mockContext);
       expect(result.passed).toBe(false);
-      expect(result.violations).toContain('No markdown files found in project');
+      expect(result.judgedNothing).toBe(true);
+      expect(result.score).toBe(0);
+      expect(result.violations).toEqual([
+        'No Markdown file in the project — nothing was judged',
+      ]);
     });
 
-    it('should suggest creating documentation', async () => {
-      const result = await MdFooterTemplateLaw.check(mockContext);
-      expect(result.suggestions).toContain(
-        'Create documentation with proper MD files'
+    it('includes that list only code: the Markdown exists, nothing was judged', async () => {
+      FileUtils.writeFile(PathOperations.join(tempDir, 'README.md'), '# R');
+      FileUtils.writeFile(PathOperations.join(tempDir, 'docs', 'a.md'), '# A');
+      const result = await MdFooterTemplateLaw.check({
+        ...mockContext,
+        config: { ...mockConfig, includes: { global: ['src/**/*.ts'] } },
+      });
+      expect(result.judgedNothing).toBe(true);
+      expect(result.violations).toEqual([
+        '2 Markdown file(s) exist, but the configured includes / ignores select none of them — nothing was judged',
+      ]);
+      expect(result.violations).not.toContain(
+        'No markdown files found in project'
+      );
+    });
+
+    it('the same Markdown, selected by includes, is judged', async () => {
+      FileUtils.writeFile(PathOperations.join(tempDir, 'README.md'), '# R');
+      const result = await MdFooterTemplateLaw.check({
+        ...mockContext,
+        config: {
+          ...mockConfig,
+          includes: { global: ['src/**/*.ts', '**/*.md'] },
+        },
+      });
+      expect(result.judgedNothing).toBeUndefined();
+      expect(result.violations).toContain(
+        '1/1 markdown files missing constitutional footers'
       );
     });
   });
@@ -530,9 +565,9 @@ Document Version: 1.0
   });
 
   describe('message generation', () => {
-    it('should generate failure message for no markdown files', async () => {
+    it('should generate a nothing-judged message for no markdown files', async () => {
       const result = await MdFooterTemplateLaw.check(mockContext);
-      expect(result.message).toContain('No markdown files');
+      expect(result.message).toContain('nothing was judged');
     });
 
     it('should generate success message when fully compliant', async () => {
@@ -576,5 +611,30 @@ Investment Rating: 🏆 10/10 SUPREME EXCELLENCE
       const result = await MdFooterTemplateLaw.check(mockContext);
       expect(result).toBeDefined();
     });
+  });
+});
+
+/** The footer is a house convention: it runs where a project enables it. */
+describe('MD Footer Template is opt-in', () => {
+  const card = ALL_ENHANCED_CONSTITUTIONAL_LAWS.find(
+    l => l.title === 'MD Footer Template (MANDATORY)'
+  );
+  const identity = {
+    name: card?.title,
+    id: card?.id,
+    defaultEnabled: card?.defaultEnabled,
+  };
+
+  it('does not run by default', () => {
+    expect(card?.defaultEnabled).toBe(false);
+    expect(runsWithoutAllowlist(identity, {})).toBe(false);
+  });
+
+  it('runs once laws.severity gives it a severity', () => {
+    expect(
+      runsWithoutAllowlist(identity, {
+        'MD Footer Template (MANDATORY)': 'warning',
+      })
+    ).toBe(true);
   });
 });

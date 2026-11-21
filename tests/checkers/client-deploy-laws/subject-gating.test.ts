@@ -175,7 +175,17 @@ describe('the engine does not count a law whose subject is absent', () => {
     );
     expect(without.selected).not.toContain(DEPLOY.title);
     expect(withDeploy.selected).toContain(DEPLOY.title);
-    expect(withDeploy.applicable).toBe(without.applicable + 1);
+    // A deploy target also selects the laws about a product that runs for
+    // users (#428), and nothing else.
+    const RUNTIME = [
+      'Performance Monitoring Standards',
+      'Incident Response Protocol',
+      'Launch Readiness Checklist',
+    ];
+    expect(
+      withDeploy.selected.filter(name => !without.selected.includes(name))
+    ).toEqual(expect.arrayContaining([DEPLOY.title, ...RUNTIME]));
+    expect(withDeploy.applicable).toBe(without.applicable + 1 + RUNTIME.length);
   });
 
   it('Primary Locale Font Preloaded: out of the selection and of scope.applicableLaws without a split font', async () => {

@@ -7,6 +7,77 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Test Data Management read an exact expected value as hardcoded test data (#439)
+
+Any string of 20 or more characters inside `expect(…).toBe(…)` matched the
+"hardcoded test data" pattern, so `expect(result.lawName).toBe('angular-testing-excellence')`
+was reported as test data to replace with a factory. The value a test expects
+back is the assertion itself; no factory can produce it.
+
+Before: a file was "hardcoded test data" if it held an inline array of records
+with string ids, a `mockReturnValue` of a 4+ digit number, or any long exact
+string in `toBe(…)`. After: the first two only; an expected value is not data.
+
+Self-audit of this repository: Test Data Management "Found hardcoded test data"
+— before 102 files (101 of them for a long expected string), after 1 (a
+detector test whose fixture strings hold the two remaining patterns).
+
+### 🐛 Fixed — Absolute Zero Tolerance judged text as code, and a CLI's output as debug logging (#424, #425)
+
+Every check ran a regex over the raw file, so a `console.log` in a message,
+`any` in a comment's prose, `TODO` in a string or in a sentence about the
+TODO law, and `eslint-disable` in a string were all findings. The checks now
+read the TypeScript parse.
+
+| | before | after |
+|---|---|---|
+| `console.*`, `: any`, empty `catch (e) {}` | anywhere in the text | in code only |
+| `as any` cast | not counted (the regex matched only `: any`) | counted with the `: any` annotations |
+| TODO/FIXME/XXX/HACK | any `//` line containing the word, any case | a tag in capitals at the start of a `//` comment |
+| `eslint-disable` | anywhere in the text | in comments only |
+| `unknown[]` | a strict-type violation | not a violation (the safe type for data of unknown shape) |
+| `constructor(...args: any[])` of a mixin | a violation | not counted (TypeScript requires it, TS2545) |
+| package with `bin` in package.json | every `console.*` counted | `console.log/info` is the command's output in the whole package; `console.warn` only in the command's entry modules (the source of each `bin` target, the directory named after it, a `commands/` beside it); elsewhere `warn`, and `debug/trace` everywhere, still count |
+| a logging module (`logger.*`, `logging*`, `log.*`) | its `console.*` counted | not counted |
+| no loadable `typescript` | text scanned | ".ts file(s) were NOT read" — judged nothing |
+
+Findings name the file relative to the project on Windows too (they carried
+the absolute path when the project root was written with backslashes).
+
+### 🐛 Fixed — Magic Number Prevention reported numbers that are already named, and missed some that are not (#431)
+
+The law scanned text: a regex literal was skipped but not blanked, so
+`{0,300}` was a magic number; a name was accepted only in `const X = N` or
+`key: N` on the same line; and whole template literals were blanked, so
+`${text.slice(0, 57)}` was never seen. Literals are now read from the
+TypeScript parse.
+
+| | before | after |
+|---|---|---|
+| digits in a regex literal | reported | not code |
+| `config.x ?? 50` (also with `??` on the line before) | reported | named by the left side |
+| parameter / destructuring default `before = 50` | reported | named |
+| `MAX_AGE = 24 * 60 * 60 * 1000`, `SIZES = [16, 32]` | later factors / elements reported | named |
+| `const CODES = new Set([401, 403])`, a class field `= new Map([...])` | elements reported | named by the const / field |
+| a Set/Map built anywhere else (parameter default, object property, argument) | elements reported | still reported |
+| `parseInt(s, 16)` | reported | the radix is not a magic number |
+| `${t.slice(0, 57)}` inside a template | never seen | reported |
+| no loadable `typescript` | scanned as text | "code file(s) were NOT read" — judged nothing |
+
+Score deductions, unnamed length limits and other unnamed literals in code
+are reported as before.
+
+### 🐛 Fixed — Centralized Logging counted a CLI's output, strings and the logging module itself (#424, #425)
+
+| | before | after |
+|---|---|---|
+| `console.log(` inside a string | a call | not code |
+| package with `bin` in package.json | every `console.*` counted | `console.log/info` is the command's output in the whole package; `console.warn/error` only in the command's entry modules (the source of each `bin` target, the directory named after it, a `commands/` beside it); elsewhere `warn/error`, and `debug/trace` everywhere, still count |
+| where console is allowed | files named `logger.service.ts` and `main.ts` | also any logging module: `logger.*`, `logging*`, `log.*` |
+| no loadable `typescript` | text scanned | ".ts file(s) were NOT read" — judged nothing |
+
+The Python branch is unchanged.
+
 ### ⚠️ BREAKING — Code Documentation Standards judges each exported class and function, not ratios (#439)
 
 The law asked for JSDoc but measured something else: a comment-to-code ratio
@@ -66,6 +137,140 @@ follows — candidate, build and tests, security, GO from QA and the site on the
 untagged candidate, tag, publish by the founder, and rollback by
 `npm deprecate` and a new patch.
 
+### Changed — Commit Size Control does not count generated files at all
+
+Generated files count neither lines nor files; asciinema `.cast` recordings
+join the built-in lockfile list, and `thresholds.git.commitSize.generatedFiles`
+now ADDS to that list instead of replacing it. Test files count like any
+other code. This repository declares its demo captures and recorded goldens
+as generated, and CONTRIBUTING states the atomic-commit policy.
+
+Self-audit of this repository: Commit Size Control — before 2 findings (4 of the last 10 commits oversized; no atomic-commit policy), after 1 (2 of the last 10: two hand-written commits of 534 and 597 lines, tests included; they leave the window as new commits land).
+### ⚠️ BREAKING — laws about a running product run only where there is one; MD Footer Template is opt-in
+
+Five laws had no `requires` and judged every TypeScript project; a CLI tool or
+a library was asked for a CDN, an APM, an incident runbook, a launch checklist
+and an Nx workspace. They are now gated by shared, exported requirements
+(`src/utils/production-subject-requirements.ts`, `REQUIRES_NX_OR_ANGULAR` in
+`src/utils/framework-requirements.ts`). **A project that does not meet the
+condition no longer runs the law, and nothing is printed about it** — except
+when its config names the law in `laws.severity` or `laws.notApplicable`, which
+prints one ℹ️ line saying the law is requirement-gated (#428).
+
+| law | not selected without | lawId |
+|---|---|---|
+| CDN and Caching Strategy | `REQUIRES_WEB_SURFACE`: a browser framework (`react-dom`, `@angular/core`, `vue`, `svelte`, `next`, `nuxt`, `astro`, `lit` …), a web build or hosting config (angular.json, next.config.*, firebase.json, vercel.json, netlify.toml, wrangler.toml, nginx.conf), or an HTML page outside test trees | `performance_664dd2d3` |
+| Performance Monitoring Standards | `REQUIRES_PRODUCTION_SUBJECT`: a Node HTTP framework (`next`, `express`, `fastify`, `koa`, `hono`, `@nestjs/core`, `@hapi/hapi`), a Python one (fastapi, flask, django, starlette, aiohttp …), a web surface, a mobile app shell (`react-native`, `expo`, `@capacitor/core`, `@nativescript/core`), or a deploy target (Dockerfile, Procfile, compose, app.yaml, fly.toml, render.yaml, firebase.json, vercel.json, netlify.toml, wrangler.*, serverless.yml, Chart.yaml, a serverless deploy command) | `performance_351f896e` |
+| Incident Response Protocol | `REQUIRES_PRODUCTION_SUBJECT` | `docs_cd2817cb` |
+| Launch Readiness Checklist | `REQUIRES_PRODUCTION_SUBJECT` | `deployment_b1c8dba1` |
+| NX Commands Only Policy | `REQUIRES_NX_OR_ANGULAR`: nx.json, `nx` / `@nx/workspace` / `@nrwl/workspace`, or `@angular/core` (an Angular project without Nx is still asked to use Nx) | `quality_f66318df` |
+
+Pre-Deployment Checklist (MANDATORY) (`deployment_37c13d47`) asks its
+authentication, benchmarking, health-check and production-logging clauses only
+where `REQUIRES_PRODUCTION_SUBJECT` holds; the checklist, build, test and
+security-scan clauses are asked everywhere.
+
+**MD Footer Template (MANDATORY) is opt-in** (#436). A project that wants it
+turns it on with `laws.severity: { "MD Footer Template (MANDATORY)": "warning" }`
+(or its lawId `docs_5ef46de8`), or lists it in `laws.enabled`. Without that the
+law does not run, and nothing is printed. MD Footer Footer Consistency stays on
+by default.
+
+Laws selected per release-canary profile, before → after, and what leaves:
+
+| profile | before → after | no longer selected |
+|---|---|---|
+| python | 97 → 92 | CDN, Performance Monitoring, Incident Response, Launch Readiness (no production subject); MD Footer (opt-in) |
+| angular | 120 → 119 | MD Footer (opt-in) |
+| ngrx | 131 → 130 | MD Footer (opt-in) |
+| ionic | 150 → 149 | MD Footer (opt-in) |
+| react | 134 → 132 | NX Commands Only (no Nx, no Angular); MD Footer (opt-in) |
+| node | 77 → 71 | CDN, Performance Monitoring, Incident Response, Launch Readiness (no production subject); NX Commands Only (no Nx, no Angular); MD Footer (opt-in) |
+
+Fast mode core before → after: unchanged, except that Launch Readiness
+Checklist enters it where `REQUIRES_PRODUCTION_SUBJECT` holds (its own gated
+group's 20% share), and the laws above leave it where they are no longer
+selected. A CRITICAL `error` law that every project selects (no stack, no
+`requires`) is now protected from the quota, so CI/CD Constitutional Tribunal
+stays in the core: the share of the ungated universal group shrank with the
+laws that moved to their subject, and it would have cut it as a side effect.
+
+Self-audit of this repository, before → after: CDN and Caching Strategy 5
+findings, Performance Monitoring Standards 3, Incident Response Protocol 3,
+Launch Readiness Checklist 1, NX Commands Only Policy 1 → not selected;
+Pre-Deployment Checklist 4 → 2.
+
+### Changed — MD Footer Template is opt-in, and says when it judged nothing (#436)
+
+The footer is a house convention, so the law is opt-in (`defaultEnabled:
+false`): turn it on with a severity in `laws.severity` or in `laws.enabled`.
+When no Markdown file is left to read — none in the project, or
+`includes.global` that lists only code — it reports that nothing was judged
+(and which case), never "No markdown files found in project". This
+repository's config no longer enables it.
+
+Self-audit of this repository: MD Footer Template — before 1 finding ("No markdown files found in project"), after not selected (opt-in, not enabled).
+### Fixed — a checklist clause defers to an owning law the audit would not select (#428)
+
+Pre-Deployment Checklist consults the law that owns each runtime concern.
+That law was run even when the audit would not select it for the project
+(its `stack` or `requires` unmet), so it inspected an absent subject, failed,
+and the clause was reported. An owning law the audit would not select now
+answers "satisfied", like a written `notApplicable`.
+
+Self-audit of this repository: no change — the four owning laws are selected here, so they still run (measured).
+### Fixed — Async Cache Single-Flight reads a check as a one-key get / has (#437)
+
+The selection pattern matched `constants.set(` as `s.set(` (no left boundary
+on the back-reference). In TS/JS a check is now a `get` / `has` with the key
+as its only argument (the Map signature), so a file-backed API such as
+`Cache.get(root, key, mode)` is not judged as an in-memory map.
+
+Self-audit of this repository: Async Cache Single-Flight — before 1 finding (`src/core/auditing/audit-engine.ts`, a file-backed `AuditCache.get(…)` / `.set(…)`), after pass: 3 files read, 0 async check-then-store sites.
+### Fixed — the audit run from git hooks and CI counts as running it (#434)
+
+Constitutional Supremacy, Continuous Compliance and Pull Request Workflow
+read one place each (package scripts, a `ruleofcode` dependency, scripts
+named `precommit` / `prepush`). One shared probe, `auditInvocations`, now
+reads package scripts, committed git hooks (`.husky`, `.githooks`, lefthook,
+pre-commit, simple-git-hooks) and CI steps; comments, `echo` lines and step
+titles do not count.
+
+| law (self-audit of this repository) | before | after |
+|---|---|---|
+| Constitutional Supremacy Doctrine | 1 finding (no enforcement script) | pass (.husky/pre-commit, .husky/pre-push run the audit) |
+| Continuous Compliance Doctrine | 1 finding (no enforcement tool) | pass |
+| Pull Request Workflow Standards | 1 finding (missing precommit, prepush) | pass |
+### Fixed — Pre-PR Quality Gates: GitHub and GitLab keep branch protection server-side (#435)
+
+A github.com or gitlab.com remote is now a server-side protection host, as
+bitbucket.org and Azure DevOps already were (inferred from the host, not
+verified). The message is built from the violations; it printed "Missing "
+with an empty list when branch protection was the only one.
+
+Self-audit of this repository: Pre-PR Quality Gates — before 1 finding ("Missing branch protection configuration", message "Missing "), after pass (github.com remote).
+### Changed — Strategic Document Updates: a CHANGELOG and an issue tracker are a status record
+
+The status clause is met by a PROJECT_STATUS / STATUS / ROADMAP file, or by
+a CHANGELOG together with an issue tracker (`bugs` in package.json, an Issues
+URL in pyproject.toml, GitHub or GitLab issue templates). A project with
+neither is asked, as before.
+
+Self-audit of this repository: Strategic Document Updates — before 1 finding ("Missing PROJECT_STATUS.md file"), after pass (CHANGELOG.md + `bugs` in package.json + .github/ISSUE_TEMPLATE).
+### Changed — Constitutional Compliance Headers: a repository-level license is enough
+
+A LICENSE file at the root together with the `license` field in package.json
+states the terms for every file; the law passes and says so. Without both,
+the per-file headers, template and automation are judged as before.
+
+Self-audit of this repository: Constitutional Compliance Headers — before 4 findings, after pass (LICENSE + package.json license MIT).
+### Fixed — Pre-Deployment Checklist reads the dependency scan from the command
+
+The security-scan clause read only script names (`audit`, `security`,
+`snyk` …). It now also reads what package scripts and CI steps run (npm /
+yarn / pnpm audit, pip-audit, safety check, snyk test).
+
+Self-audit of this repository: Pre-Deployment Checklist — before 4 findings, after 3 ("Security vulnerability scanning not configured" is gone: `security-audit` runs `npm audit`, and so does the CI step).
 ### 🐛 Fixed — an Angular CLI project was told to add webpack limits it cannot write (#449)
 
 Once the budget suggestion read angular.json correctly (#449), the two

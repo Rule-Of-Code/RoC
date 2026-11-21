@@ -358,7 +358,8 @@ export function process(data: any): any {
       expect(anyViolation).toBeDefined();
     });
 
-    it('should detect unknown[] type', () => {
+    /** unknown[] is the safe type for data of unknown shape: not a violation. */
+    it('does not report unknown[]', () => {
       FileUtils.writeFile(
         PathOperations.join(tempDir, 'src', 'unknown-array.ts'),
         `
@@ -372,7 +373,7 @@ export function process(data: unknown[]): void {
         v =>
           v.includes('unknown-array.ts') && v.includes('Strict type violations')
       );
-      expect(unknownViolation).toBeDefined();
+      expect(unknownViolation).toBeUndefined();
     });
 
     it('should pass for properly typed code', () => {

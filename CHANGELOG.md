@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — the audit run from git hooks and CI counts as running it (#434)
+
+Constitutional Supremacy, Continuous Compliance and Pull Request Workflow
+read one place each (package scripts, a `ruleofcode` dependency, scripts
+named `precommit` / `prepush`). One shared probe, `auditInvocations`, now
+reads package scripts, committed git hooks (`.husky`, `.githooks`, lefthook,
+pre-commit, simple-git-hooks) and CI steps; comments, `echo` lines and step
+titles do not count.
+
+| law (self-audit of this repository) | before | after |
+|---|---|---|
+| Constitutional Supremacy Doctrine | 1 finding (no enforcement script) | pass (.husky/pre-commit, .husky/pre-push run the audit) |
+| Continuous Compliance Doctrine | 1 finding (no enforcement tool) | pass |
+| Pull Request Workflow Standards | 1 finding (missing precommit, prepush) | pass |
+
 ### ⚠️ BREAKING — `compliance` and the victory art mean a clean pass; a law that judged nothing makes the run partial
 
 A run of this repository listed 46 laws with violations at warning level, one

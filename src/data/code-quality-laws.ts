@@ -459,6 +459,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
         'Give every http.get/post/etc. a type parameter: http.get<User>(url), backed by a runtime validator at the boundary.',
     },
     detectionLimits: [
+      'Reads the code of the TypeScript parse — `http.get(` in a string or a comment is not a call; without a loadable `typescript` the files are NOT read and the law judges nothing.',
       'The receiver identifier must literally contain "http" — this.api.get() and client.post() are false negatives, while a Map named httpMap.get() is a false positive.',
       'Detection works by the ABSENCE of a `<T>` between the verb and `(`; fetch() is not covered.',
       'Regex, no AST; TypeScript, not Angular-gated.',

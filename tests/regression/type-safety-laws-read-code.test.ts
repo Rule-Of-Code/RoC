@@ -4,14 +4,16 @@ import * as path from 'path';
 
 import { NoDoubleCastLaw } from '../../src/checkers/code-quality-laws/no-double-cast';
 import { NoExplicitAnyNonNullLaw } from '../../src/checkers/code-quality-laws/no-explicit-any-non-null';
+import { TypedHttpBoundariesLaw } from '../../src/checkers/code-quality-laws/typed-http-boundaries';
 import { FileUtils } from '../../src/utils';
 import type { LawResult } from '../../src/types/law.types';
 import * as tsxSource from '../../src/utils/react/tsx-source';
 
 /**
- * No Explicit Any / Non-Null and No Double Cast judge code, not text (#424).
+ * No Explicit Any / Non-Null, No Double Cast and Typed HTTP Boundaries judge
+ * code, not text (#424).
  *
- * Both stripped comments only. A string holding `'AWS::Serverless::Function'`
+ * All three stripped comments only. A string holding `'AWS::Serverless::Function'`
  * was a weak `: Function` type, a law's prose "as unknown as" was a double
  * cast, and `{ keys: Object.keys(x) }` was a weak `: Object` type.
  */
@@ -107,11 +109,37 @@ describe('the type-safety laws read code (#424)', () => {
     });
   });
 
-  it('both say the files were not read without the parser', () => {
+  describe('Typed HTTP Boundaries', () => {
+    it('does not report a call written in a string', () => {
+      write(
+        'src/subject.ts',
+        "export const RULE = 'Requires a generic on http.get(url) calls';\n"
+      );
+
+      expect(run(TypedHttpBoundariesLaw)).toEqual([]);
+    });
+
+    it('still reports an untyped call in code', () => {
+      write(
+        'src/subject.ts',
+        'export const load = (http: { get: (u: string) => unknown }) => http.get("/x");\n'
+      );
+
+      expect(run(TypedHttpBoundariesLaw)).toEqual([
+        expect.stringContaining('Untyped HttpClient call(s) in src/subject.ts'),
+      ]);
+    });
+  });
+
+  it('all three say the files were not read without the parser', () => {
     write('src/a.ts', 'export const a = 1;\n');
     const spy = jest.spyOn(tsxSource, 'loadTypeScript').mockReturnValue(null);
     try {
-      for (const law of [NoExplicitAnyNonNullLaw, NoDoubleCastLaw]) {
+      for (const law of [
+        NoExplicitAnyNonNullLaw,
+        NoDoubleCastLaw,
+        TypedHttpBoundariesLaw,
+      ]) {
         expect(run(law)[0]).toMatch(
           /the 1 \.ts file\(s\) were NOT read.*judged nothing/
         );

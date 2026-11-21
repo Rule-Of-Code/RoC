@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Internal — `noImplicitOverride` is on
+
+This repository's `tsconfig.json` now sets `noImplicitOverride: true`,
+one of the flags TypeScript Strict Mode (SACRED LAW) asks for. Every member that
+replaces a base-class member says so with `override` (11 in `src/`, 3 in a test
+subclass). No behaviour changes.
+
 ### Internal — this repository keeps MD Footer Template on
 
 MD Footer Template became opt-in in this release (#468). This repository does

@@ -17,6 +17,7 @@
  * nested function starts its own count and adds nothing to the one around it.
  */
 import type * as TS from 'typescript';
+import { readSource, type SourceView } from './source-view';
 
 /** The measurements of one file. */
 export interface FileComplexity {
@@ -96,66 +97,25 @@ function measureFunctions(
   return { scores, conditionals };
 }
 
-/** Every literal whose text is data, not code: strings, templates, regexes, JSX text. */
-function isLiteral(ts: typeof TS, node: TS.Node): boolean {
-  return (
-    ts.isStringLiteral(node) ||
-    ts.isNoSubstitutionTemplateLiteral(node) ||
-    ts.isTemplateHead(node) ||
-    ts.isTemplateMiddle(node) ||
-    ts.isTemplateTail(node) ||
-    ts.isRegularExpressionLiteral(node) ||
-    ts.isJsxText(node)
-  );
-}
-
-/** Start/end offsets of every literal in the file. */
-function literalRanges(
-  ts: typeof TS,
-  source: TS.SourceFile
-): Array<[number, number]> {
-  const ranges: Array<[number, number]> = [];
-  const visit = (node: TS.Node): void => {
-    if (isLiteral(ts, node)) {
-      ranges.push([node.getStart(source), node.getEnd()]);
-      return;
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(source);
-  return ranges;
-}
-
-/** Turn `[start, end)` to spaces, line breaks kept. */
-function blankRange(chars: string[], start: number, end: number): void {
-  for (let i = start; i < end; i++) if (chars[i] !== '\n') chars[i] = ' ';
-}
-
 /**
  * Lines that hold code. A line that is blank or only a comment is not one
  * (ESLint `max-lines` with skipBlankLines and skipComments); a line inside a
  * multi-line string or template is, because the literal is part of the code.
- * The parsed literals are blanked BEFORE comments are looked for, so a `//`
- * inside a string or a regex cannot open a comment.
+ * The comments come from the shared source view, which finds them only after
+ * the parsed literals are blanked — a `//` in a string cannot open one.
  */
-function countCodeLines(ts: typeof TS, source: TS.SourceFile): number {
-  const codeLines = new Set<number>();
-  const chars = source.text.split('');
-  for (const [start, end] of literalRanges(ts, source)) {
-    const first = source.getLineAndCharacterOfPosition(start).line;
-    const last = source.getLineAndCharacterOfPosition(end).line;
-    for (let line = first; line <= last; line++) codeLines.add(line);
-    blankRange(chars, start, end);
+function countCodeLines(view: SourceView): number {
+  const chars = view.source.text.split('');
+  for (const comment of view.comments) {
+    const end = comment.start + comment.text.length;
+    for (let i = comment.start; i < end; i++) {
+      if (chars[i] !== '\n') chars[i] = ' ';
+    }
   }
-  const withoutComments = chars
+  return chars
     .join('')
-    .replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, comment =>
-      comment.replace(/[^\n]/g, ' ')
-    );
-  withoutComments.split('\n').forEach((text, line) => {
-    if (text.trim() !== '') codeLines.add(line);
-  });
-  return codeLines.size;
+    .split('\n')
+    .filter(line => line.trim() !== '').length;
 }
 
 /** Measure one file. `fileName` decides how it is parsed (.tsx/.jsx read JSX). */
@@ -164,15 +124,10 @@ export function measureFileComplexity(
   content: string,
   fileName: string
 ): FileComplexity {
-  const source = ts.createSourceFile(
-    fileName,
-    content,
-    ts.ScriptTarget.Latest,
-    true
-  );
-  const { scores, conditionals } = measureFunctions(ts, source);
+  const view = readSource(ts, content, fileName);
+  const { scores, conditionals } = measureFunctions(ts, view.source);
   return {
-    codeLines: countCodeLines(ts, source),
+    codeLines: countCodeLines(view),
     functions: scores.length,
     conditionals,
     worstFunction: scores.length > 0 ? Math.max(...scores) : 0,

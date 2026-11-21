@@ -5,7 +5,7 @@
  * And the message is built from the violations: a run whose only violation
  * was branch protection printed "Missing " with an empty list.
  */
-import { execFileSync } from 'child_process';
+import { execFileSync } from '../../src/utils/child-process';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';

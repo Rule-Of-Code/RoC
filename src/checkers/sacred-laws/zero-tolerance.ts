@@ -36,12 +36,26 @@ export class ZeroToleranceLaw {
       violations,
       'Zero Tolerance Doctrine',
       'SACRED_LAW',
-      [
-        'Enable TypeScript strict mode',
-        'Configure ESLint',
-        'Fix all errors and warnings',
-      ]
+      this.suggestionsFor(violations)
     );
+  }
+
+  /**
+   * The advice that answers a finding of this run, and only that. The list was
+   * fixed, so a tsconfig the law could not read got "Enable TypeScript strict
+   * mode" next to "tsconfig.json … NOT read" (#506, QA on #503).
+   */
+  private static suggestionsFor(violations: string[]): string[] {
+    const has = (text: string): boolean => violations.includes(text);
+    const advice: Array<[boolean, string]> = [
+      [
+        has('TypeScript strict mode not enabled') ||
+          has('TypeScript noImplicitAny not enabled'),
+        'Enable TypeScript strict mode',
+      ],
+      [has('ESLint configuration not found'), 'Configure ESLint'],
+    ];
+    return advice.filter(([applies]) => applies).map(([, text]) => text);
   }
 
   /** The ESLint config files, flat and legacy, that configure a project. */

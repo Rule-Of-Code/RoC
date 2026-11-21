@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Zero Tolerance advice follows the findings of the run (#506)
+
+Zero Tolerance Doctrine and Absolute Zero Tolerance Doctrine gave the same
+fixed advice on every failing run. A `tsconfig.json` the law could not read,
+reported as NOT read since #486, still got "Enable TypeScript strict mode",
+which is advice about a file the law never judged, and a project with no console
+call was told to remove console statements. Each piece of advice now comes with
+the finding it answers: strict mode only for a tsconfig that was read and has
+`strict` or `noImplicitAny` off (or none at all), console only for console
+findings, ESLint only for disabled rules (Absolute Zero Tolerance) or a missing
+config (Zero Tolerance). The generic "Fix all errors and warnings" is no longer
+given.
+
 ### Internal — eslint is a direct devDependency
 
 `npm run lint` runs `eslint .`, but `eslint` was only installed as a peer of

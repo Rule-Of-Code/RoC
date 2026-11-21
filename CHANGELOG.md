@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — a committed PRE_DEPLOYMENT_CHECKLIST.md was reported missing when `includes` name only source (#476)
+
+Pre-Deployment Checklist looked the checklist up through the source scan,
+which applies `includes.global`. A project whose includes name only its
+source (this repository: `src/**/*.ts`, `scripts/**/*.js`, `tests/**/*.ts`)
+was told "PRE_DEPLOYMENT_CHECKLIST.md missing" with the file committed at its
+root. A file of that name anywhere (`docs/…`) counted as found and was then
+read from the root, where it is not.
+
+Before: found only when the includes cover the root `.md`, or anywhere by
+name. After: the root `PRE_DEPLOYMENT_CHECKLIST.md`, whatever the includes
+say; `ignores.global` can still leave it out. What it must cover is unchanged
+(build & tests, security, rollback / recovery).
+
+This repository now commits its checklist: the release process it actually
+follows — candidate, build and tests, security, GO from QA and the site on the
+untagged candidate, tag, publish by the founder, and rollback by
+`npm deprecate` and a new patch.
+
 ### 🐛 Fixed — an Angular CLI project was told to add webpack limits it cannot write (#449)
 
 Once the budget suggestion read angular.json correctly (#449), the two

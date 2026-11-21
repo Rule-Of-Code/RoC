@@ -7,11 +7,6 @@ import { SignalConfigurationBase } from '../signal-configuration-base';
 
 export class AngularReactiveFormsConfiguration extends SignalConfigurationBase {
   /**
-   * Config alias for cleaner internal references (RULE 2 pattern)
-   */
-  private static readonly Config = AngularReactiveFormsConfiguration;
-
-  /**
    * Reactive forms detection patterns
    */
   static readonly REACTIVE_FORMS_PATTERNS = {

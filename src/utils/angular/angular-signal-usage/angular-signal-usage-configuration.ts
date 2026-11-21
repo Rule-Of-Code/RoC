@@ -7,11 +7,6 @@ import { SignalConfigurationBase } from '../signal-configuration-base';
  */
 export class AngularSignalUsageConfiguration extends SignalConfigurationBase {
   /**
-   * Config alias for cleaner internal references (RULE 2 pattern)
-   */
-  private static readonly Config = AngularSignalUsageConfiguration;
-
-  /**
    * Angular file extensions for signal usage analysis
    * Eliminates hardcoded extension arrays
    */

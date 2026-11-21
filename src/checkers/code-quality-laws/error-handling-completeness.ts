@@ -20,6 +20,7 @@ import {
 } from '../../utils/react/tsx-source';
 import { CodeQualityLawBase } from './code-quality-law-base';
 import { findFloatingPromises } from './floating-promises';
+import { registersGlobalHandler, wrapsCliParse } from './global-error-handlers';
 import { packageEntrySources } from './package-entry-sources';
 import { readSource } from './source-view';
 
@@ -198,6 +199,10 @@ export class ErrorHandlingCompletenessLaw extends CodeQualityLawBase {
   } {
     const violations: string[] = [];
     const suggestions: string[] = [];
+    // The handler is recognised in the parse (#438); without the parser the
+    // files were already reported as not read.
+    const ts = loadTypeScript(projectRoot);
+    if (!ts) return { violations, suggestions };
 
     // Canonical, root-relative entry points. Each is resolved across the
     // workspace (root AND every monorepo app), so an Nx app at
@@ -217,8 +222,8 @@ export class ErrorHandlingCompletenessLaw extends CodeQualityLawBase {
     // package.json name, read from source (#438). A CLI whose bin is
     // dist/cli.js starts in src/cli.ts, which no fixed list names.
     const hasGlobalErrorHandling =
-      this.checkFilesForErrorHandling(projectRoot, globalErrorFiles) ||
-      this.checkEntryPointsForErrorHandling(projectRoot) ||
+      this.checkFilesForErrorHandling(ts, projectRoot, globalErrorFiles) ||
+      this.checkEntryPointsForErrorHandling(ts, projectRoot) ||
       this.hasPythonGlobalErrorHandling(projectRoot);
 
     if (!hasGlobalErrorHandling) {
@@ -235,6 +240,7 @@ export class ErrorHandlingCompletenessLaw extends CodeQualityLawBase {
   }
 
   private static checkFilesForErrorHandling(
+    ts: NonNullable<ReturnType<typeof loadTypeScript>>,
     projectRoot: string,
     files: string[]
   ): boolean {
@@ -246,10 +252,12 @@ export class ErrorHandlingCompletenessLaw extends CodeQualityLawBase {
         errorFile
       )) {
         try {
-          const content = FileUtils.readFile(fullPath);
-          if (this.hasGlobalErrorHandlingPatterns(content)) {
-            return true;
-          }
+          const { source } = readSource(
+            ts,
+            FileUtils.readFile(fullPath),
+            fullPath
+          );
+          if (registersGlobalHandler(ts, source)) return true;
         } catch (_error) {
           // Continue if file can't be read
         }
@@ -258,12 +266,19 @@ export class ErrorHandlingCompletenessLaw extends CodeQualityLawBase {
     return false;
   }
 
+  /**
+   * The source of package.json bin/main: a registered handler, or — the
+   * entry of a command-line program — `parse()` / `parseAsync()` inside a
+   * try with a catch.
+   */
   private static checkEntryPointsForErrorHandling(
+    ts: NonNullable<ReturnType<typeof loadTypeScript>>,
     projectRoot: string
   ): boolean {
     return packageEntrySources(projectRoot).some(file => {
       try {
-        return this.hasGlobalErrorHandlingPatterns(FileUtils.readFile(file));
+        const { source } = readSource(ts, FileUtils.readFile(file), file);
+        return registersGlobalHandler(ts, source) || wrapsCliParse(ts, source);
       } catch (_error) {
         return false;
       }
@@ -282,23 +297,6 @@ export class ErrorHandlingCompletenessLaw extends CodeQualityLawBase {
       PythonSatisfaction.isPython(projectRoot) &&
       PythonSatisfaction.hasGlobalErrorHandler(projectRoot)
     );
-  }
-
-  private static hasGlobalErrorHandlingPatterns(content: string): boolean {
-    const globalErrorPatterns = [
-      'unhandledRejection',
-      'uncaughtException',
-      'ErrorBoundary',
-      'GlobalErrorHandler',
-      'window.onerror',
-      'process.on',
-      'ErrorHandler',
-      'errorHandlerInterceptor', // Angular HTTP error interceptor
-      'provideHttpClient', // Angular with interceptors
-      'provideBrowserGlobalErrorListeners', // Angular 20 default provider
-    ];
-
-    return globalErrorPatterns.some(pattern => content.includes(pattern));
   }
 
   private static checkErrorMonitoring(projectRoot: string): {

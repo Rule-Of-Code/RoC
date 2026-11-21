@@ -28,9 +28,21 @@ loadable `typescript` the files are reported as not read. The global-handler
 check also reads what package.json `bin` and `main` name, from source
 (`dist|lib|build|out/x.js` → `src/x.ts`); the built file is not read.
 
-Self-audit of this repository: 33 findings → 0. The global handler is now
-found in `src/cli.ts` (the `bin`), by the existing name pattern
-`ErrorHandler` in `setupErrorHandlers()`.
+The global handler is recognised in the code, not by name. Before: the text
+`ErrorHandler`, `process.on`, `ErrorBoundary`, `unhandledRejection`… anywhere
+in an entry file — a function named `setupErrorHandlers`, `process.on('SIGINT')`
+or the word in a comment counted. After: `process.on/once('unhandledRejection'
+| 'uncaughtException', …)`, `window.onerror = …`,
+`window.addEventListener('error' | 'unhandledrejection', …)`, or a framework
+handler as an identifier in code (Angular `ErrorHandler`, a name ending in
+`ErrorBoundary` / `GlobalErrorHandler`, `errorHandlerInterceptor`,
+`provideHttpClient`, `provideBrowserGlobalErrorListeners`). In the package's
+`bin` entry, `parse()` / `parseAsync()` inside a `try` with a `catch` also
+counts: for a command-line program that, with a catch in each action, is its
+global handling (maintainer decision for 8.0.0).
+
+Self-audit of this repository: 33 findings → 0. The global handler is found
+in `src/cli.ts` (the `bin`): `program.parse()` inside a try with a catch.
 
 ### 🐛 Fixed — Test Data Management read an exact expected value as hardcoded test data (#439)
 

@@ -187,3 +187,59 @@ describe('#438 the global handler is looked for in the package entry points', ()
     ).toContain('No global error handling configured');
   });
 });
+
+describe('#438 the global handler is recognised in the code, not by name', () => {
+  const NO_HANDLER = 'No global error handling configured';
+  const cli = (source: string): string[] =>
+    run({ 'src/cli.ts': source }, { bin: { tool: 'dist/cli.js' } });
+
+  it('a function named setupErrorHandlers with no try and no handler is not one', () => {
+    expect(
+      cli(
+        [
+          'export function setupErrorHandlers(): void {',
+          "  process.stdout.on('error', () => undefined);",
+          '}',
+          'setupErrorHandlers();',
+          "process.on('SIGINT', () => process.exit(130));",
+          '// unhandledRejection is handled elsewhere',
+          '',
+        ].join('\n')
+      )
+    ).toContain(NO_HANDLER);
+  });
+
+  it('parseAsync inside a try with a catch, in the bin entry, is one', () => {
+    expect(
+      cli(
+        [
+          'declare const program: { parseAsync(): Promise<void> };',
+          'async function main(): Promise<void> {',
+          '  try {',
+          '    await program.parseAsync();',
+          '  } catch (err) {',
+          '    process.stderr.write(String(err));',
+          '    process.exitCode = 1;',
+          '  }',
+          '}',
+          'void main();',
+          '',
+        ].join('\n')
+      )
+    ).not.toContain(NO_HANDLER);
+  });
+
+  it("process.on('unhandledRejection') in the bin entry is one", () => {
+    expect(
+      cli(
+        [
+          "process.on('unhandledRejection', reason => {",
+          '  process.stderr.write(String(reason));',
+          '  process.exit(1);',
+          '});',
+          '',
+        ].join('\n')
+      )
+    ).not.toContain(NO_HANDLER);
+  });
+});

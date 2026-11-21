@@ -5,7 +5,7 @@
 
 import type { LawRequirement } from '../../../types/enhanced-law.types';
 import { DOC_FILES } from '../../file-constants';
-import { REQUIRES_USER_SURFACE } from '../../production-subject-requirements';
+import { REQUIRES_PRODUCTION_SUBJECT } from '../../production-subject-requirements';
 import * as SharedUtils from '../security-shared-utils';
 export type { SecurityCheckResult as DocumentationCheckResult } from '../security-shared-utils';
 
@@ -34,8 +34,9 @@ export const REQUIRED_DOCS: readonly RequiredDocConfig[] = [
     description: 'data handling and privacy practices',
     // A privacy policy tells USERS what happens to their data. A CLI tool or
     // a library has no users' data to declare; asked only where users reach
-    // the code — a web surface, an HTTP API, a mobile app.
-    requires: REQUIRES_USER_SURFACE,
+    // the code — a service, a web surface, a mobile app or a deploy target
+    // (the shared #428 requirement).
+    requires: REQUIRES_PRODUCTION_SUBJECT,
   },
 ] as const;
 

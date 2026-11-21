@@ -93,3 +93,21 @@ describe('#428 the privacy policy is asked for only where users reach the code',
     }
   );
 });
+
+describe('#428 a deployed service is still asked for a privacy policy', () => {
+  it('a Procfile web process (bare node, no framework dependency)', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-428p-'));
+    made.push(dir);
+    fs.writeFileSync(
+      path.join(dir, 'package.json'),
+      JSON.stringify({ name: 'svc-428', version: '1.0.0' })
+    );
+    fs.writeFileSync(path.join(dir, 'Procfile'), 'web: node server.js\n');
+    fs.writeFileSync(path.join(dir, 'SECURITY.md'), POLICY);
+    const { violations = [] } = SecurityVulnerabilityResponseLaw.check({
+      projectRoot: dir,
+      config: FileUtils.getMinimalDefaultConfig(),
+    });
+    expect(violations).toContain('Missing Privacy Policy documentation');
+  });
+});

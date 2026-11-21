@@ -24,8 +24,9 @@ requirement is unchanged.
 
 The privacy-policy clause is asked for only where users reach the code
 (#428): before, every project was told "Missing Privacy Policy
-documentation"; after, only one that declares a web surface, an HTTP API
-(Node or Python) or a mobile app (`REQUIRES_USER_SURFACE` in
+documentation"; after, only one that declares a Node or Python HTTP
+service, a web surface, a mobile app or a deploy target
+(`REQUIRES_PRODUCTION_SUBJECT` in
 `production-subject-requirements.ts`). A command-line tool or a library has
 no users' data to declare.
 

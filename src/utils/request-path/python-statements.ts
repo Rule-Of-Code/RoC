@@ -12,8 +12,8 @@ import type {
   StatementModel,
 } from './model';
 import { chainPrefixes, matchingClose } from './expr-text';
-import { iterationAwait, pythonAwaits, renderPython } from './python-expr';
-import { pythonCalls } from './python-calls';
+import { renderPython } from './python-expr';
+import { iterationAwait, pythonAwaits, pythonCalls } from './python-calls';
 import {
   type Comprehension,
   pythonComprehensions,

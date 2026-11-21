@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Centralized Logging counted a CLI's output, strings and the logging module itself (#424, #425)
+
+| | before | after |
+|---|---|---|
+| `console.log(` inside a string | a call | not code |
+| package with `bin` in package.json | every `console.*` counted | `console.log/info/warn` is the command's output; `error/debug/trace` still count |
+| where console is allowed | files named `logger.service.ts` and `main.ts` | also any logging module: `logger.*`, `logging*`, `log.*` |
+| no loadable `typescript` | text scanned | ".ts file(s) were NOT read" — judged nothing |
+
+The Python branch is unchanged.
+
 ### ⚠️ BREAKING — `compliance` and the victory art mean a clean pass; a law that judged nothing makes the run partial
 
 A run of this repository listed 46 laws with violations at warning level, one

@@ -528,12 +528,13 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'A console.log in production is a log nobody collects and a leak nobody audits — scattered logging means no levels, no correlation, no off switch. A logging boundary is where you decide, once, what gets recorded and where.',
     satisfiedBy: {
       typescript:
-        'Log through a logger service, not console.*; keep console out of application code.',
+        "Log through a logger service, not console.*; keep console out of application code. A logging module (logger.*, logging*, log.*) and main.ts may use console; in a package that declares `bin`, console.log/info/warn is the command's output.",
       python:
         'Log through the logging module / a logger, not print() — recognised natively (scripts, __main__, cli.py are exempt).',
     },
     detectionLimits: [
-      'TS side matches inside string literals (comments stripped, strings not) and only the six named console methods; an aliased console is missed.',
+      'TS side reads console calls from the TypeScript parse (not in strings or comments; without a loadable `typescript` the .ts files are NOT read) and only the six named console methods; an aliased console is missed.',
+      'In a package whose nearest package.json declares `bin`, console.log/info/warn are not counted anywhere in it — library code in such a package that bypasses its logger with them is not told apart from output; console.error/debug/trace still count.',
       'Python side is comment- and string-clean and exempts scripts/tools/__main__/cli.py/manage.py.',
       'Dual-stack (TypeScript and Python); not Angular-gated.',
     ],

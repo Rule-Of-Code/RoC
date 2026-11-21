@@ -21,7 +21,10 @@ import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { CheckerUtils } from '../../utils/checker-utils';
 import { FileUtils } from '../../utils/file-utils';
-import { markJudgedNothing } from '../../utils/judged-nothing';
+import {
+  markJudgedNothing,
+  PARTLY_READ_TEXT,
+} from '../../utils/judged-nothing';
 import { declaredDependencies } from '../../utils/law-requirements';
 import { PathOperations } from '../../utils/path-operations';
 import { ReactProject } from '../../utils/react/react-project';
@@ -210,7 +213,7 @@ export class AccessibilityLintingEnforcementLaw extends AccessibilityLawBase {
     if (scripts.length === 0) return false;
     const ts = loadTypeScript(context.projectRoot);
     if (!ts)
-      return `${scripts.map(c => PathOperations.getRelative(context.projectRoot, c.file)).join(', ')}: ${parserUnavailable(context.projectRoot, 'the ESLint config script(s)')} — whether they enable the jsx-a11y preset was not judged`;
+      return `${scripts.map(c => PathOperations.getRelative(context.projectRoot, c.file)).join(', ')}: ${parserUnavailable(context.projectRoot, 'the ESLint config script(s)')} — whether they enable the jsx-a11y preset was not judged; ${PARTLY_READ_TEXT}`;
     return scripts.some(config => this.scriptUsesPreset(ts, config));
   }
 

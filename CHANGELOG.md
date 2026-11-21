@@ -104,6 +104,45 @@ pattern+option pairs over 914,208 tests), audit JSON byte-identical in 7/7.
 workflows: v4 targets Node 20, which GitHub now forces onto Node 24 with a
 warning on each job that uses them.
 
+### 🐛 Fixed — a law that read none of its files was counted as a finding, not as judged nothing (#427)
+
+Without `typescript`, No Focused Tests, Guard Function Has Production Caller,
+Tsconfig Exclude Leaves Code Untyped and Independent Awaits Run Concurrently
+said their files were NOT read — but the note counted as an ordinary finding.
+The law was not in `scope.judgedNothingLaws`, so a run with them alone was
+`compliance-with-warnings`, while Test Isolation Enforcement in the same state
+made it `partial`.
+
+One rule now, for every law, in one place: a result whose every finding is a
+parser-unavailable note read none of its files — it judged nothing (failed,
+score 0; `failed` or `partial` by severity, as for any law that judged
+nothing). A law that also reads input without the parser and judged it says
+so in the note ("the rest of what this law reads was judged") and is not
+judged nothing; neither is a note beside a real finding, nor a file that did
+not parse.
+
+| law, no `typescript` | before | after |
+|---|---|---|
+| No Focused Tests · Guard Function Has Production Caller · Tsconfig Exclude Leaves Code Untyped · Independent Awaits (TS/JS only) | one finding: "… NOT read" | judged nothing |
+| HTML Lang Declared (next.config) · Accessibility Linting (config script) · Capacitor Plugin Stub (test configs) · Independent Awaits / cache laws with Python read | the note, a finding | the note, a finding, ending "the rest of what this law reads was judged" |
+
+Two more corrections, found by QA on the same fixtures:
+
+- **TypeScript Strict Mode reads the `extends` chain without `typescript`.**
+  Before: tsconfig.json alone — a project whose strict flags live in its base
+  config got 14 "must be enabled" findings, all false, and no note (QA
+  p478-tsstrict-extends). After: the chain is read as JSONC — relative paths
+  and packages in `node_modules`, an `extends` array with later entries over
+  earlier ones — and `target`, `moduleResolution` and `sourceMap` are judged
+  as inherited too. A link that cannot be read is named ("… which could not
+  be read — the inherited compiler options were NOT read …"), and a flag the
+  files that were read leave unset is not judged; one set to `false` still is.
+- **A not-read note names the files it means.** The default wording of the
+  parser-unavailable note said "the .tsx/.jsx files" whatever was not read;
+  the request-path reader (Independent Awaits, the cache laws) said it of
+  `.ts` files (QA p478-awaits-py-ts). It now names their extensions, and the
+  default is neutral ("the files this law parses").
+
 ### 🐛 Fixed — Dead Code Elimination judged words as dead code (#424)
 
 | | before | after |

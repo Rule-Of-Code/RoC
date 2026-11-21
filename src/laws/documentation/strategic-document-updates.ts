@@ -1,5 +1,6 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils/file-utils';
+import { hasIssueTracker } from '../../utils/issue-tracker';
 import { PathOperations } from '../../utils/path-operations';
 // Interfaces for strategic document analysis
 interface DocumentAnalysis {
@@ -68,10 +69,19 @@ export class StrategicDocumentUpdatesLaw {
       score -= 10;
     }
 
-    // 2. Check for PROJECT_STATUS.md
+    // 2. Check for PROJECT_STATUS.md — or the same record kept elsewhere: a
+    // CHANGELOG says where the project has been, an issue tracker where it is
+    // going. A project that keeps both is not asked for a third document
+    // restating them, which is the one that rots first.
     const projectStatusAnalysis =
       this.analyzeProjectStatusDocument(projectRoot);
-    if (!projectStatusAnalysis.hasProjectStatus) {
+    const changelogAnalysis = this.analyzeChangelogDocument(projectRoot);
+    const hasStatusRecord = this.hasStatusRecord(
+      projectRoot,
+      projectStatusAnalysis.hasProjectStatus,
+      changelogAnalysis.hasChangelog
+    );
+    if (!hasStatusRecord) {
       violations.push('Missing PROJECT_STATUS.md file');
       suggestions.push(
         'Create PROJECT_STATUS.md to track project milestones and current status'
@@ -80,7 +90,6 @@ export class StrategicDocumentUpdatesLaw {
     }
 
     // 3. Check for CHANGELOG.md
-    const changelogAnalysis = this.analyzeChangelogDocument(projectRoot);
     if (!changelogAnalysis.hasChangelog) {
       violations.push('Missing CHANGELOG.md file');
       suggestions.push(
@@ -130,7 +139,7 @@ export class StrategicDocumentUpdatesLaw {
         } as DocumentAnalysis,
         {
           ...projectStatusAnalysis,
-          hasDocument: projectStatusAnalysis.hasProjectStatus,
+          hasDocument: hasStatusRecord,
           violations: [],
           suggestions: [],
         } as DocumentAnalysis,
@@ -148,6 +157,15 @@ export class StrategicDocumentUpdatesLaw {
       fixable: true,
       config: context.config,
     });
+  }
+
+  /** A status file, or a CHANGELOG together with an issue tracker. */
+  private static hasStatusRecord(
+    projectRoot: string,
+    hasStatusFile: boolean,
+    hasChangelog: boolean
+  ): boolean {
+    return hasStatusFile || (hasChangelog && hasIssueTracker(projectRoot));
   }
 
   private static analyzeReadmeDocument(projectRoot: string): ReadmeAnalysis {

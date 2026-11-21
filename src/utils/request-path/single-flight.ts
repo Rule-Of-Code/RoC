@@ -22,6 +22,12 @@
  *   `add_done_callback` that removes it again.
  *
  * A container created inside the function is a local value, not a cache.
+ *
+ * In TS/JS a check is a call of `get` / `has` on the container with one
+ * argument, the key: the signature of Map, WeakMap, Set and the in-memory
+ * cache libraries. A call with more arguments is another API that uses the
+ * name (a class whose static `get(root, hash, mode)` reads a file), not a
+ * keyed container that concurrent callers share (#437).
  */
 
 import type { FunctionModel, ModuleModel, StatementModel } from './model';
@@ -119,12 +125,21 @@ function checksOf(
   before: number
 ): StatementModel[] {
   const name = escapeRe(container);
-  const check =
+  const pythonCheck = new RegExp(
+    String.raw`(?<![\w.])${name}\.get\(|(?<![\w.])${name}\s*\[|\bin\s+${name}(?![\w.])`
+  );
+  // TS/JS: a call of get / has on the container with the key alone (#437).
+  const checks = (s: StatementModel): boolean =>
     module.language === 'python'
-      ? new RegExp(
-          String.raw`(?<![\w.])${name}\.get\(|(?<![\w.])${name}\s*\[|\bin\s+${name}(?![\w.])`
-        )
-      : new RegExp(String.raw`(?<![\w$.])${name}\.(?:get|has)\(`);
+      ? pythonCheck.test(s.text)
+      : fn.calls.some(
+          call =>
+            call.receiver === container &&
+            (call.method === 'get' || call.method === 'has') &&
+            call.args.length === 1 &&
+            call.line >= s.line &&
+            call.line <= s.endLine
+        );
   return fn.blocks
     .flat()
     .filter(
@@ -132,7 +147,7 @@ function checksOf(
         s.line > after &&
         s.line < before &&
         !/^(?:async\s+)?for\b/.test(s.text) &&
-        check.test(s.text)
+        checks(s)
     )
     .sort((a, b) => a.line - b.line);
 }

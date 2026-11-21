@@ -49,6 +49,11 @@ const PY_ASYNC = String.raw`(?:\bawait\b|\bensure_future\b|\bcreate_task\b|\bFut
 /** TS/JS: an await, or a promise made between the check and the store, or stored. */
 const TS_ASYNC = String.raw`(?:\bawait\b|\.then\s*\(|\.catch\s*\(|\.finally\s*\(|\bnew\s+Promise\b|\bPromise\.\w)`;
 const PY_STORE = String.raw`^\s*\1\s*\[[^\]\n]+\]\s*=(?!=)`;
+/**
+ * A container name starts here, not inside a longer name: without it the
+ * back-reference to `s` matched the tail of `constants.set(` (#437).
+ */
+const TS_NAME_START = String.raw`(?<![\w$.])`;
 
 /** A check of a name, then — with something async between them, or on the store — a store into the same name. */
 const pythonCheckThenStore = (check: string): string =>
@@ -63,7 +68,9 @@ const pythonCheckThenStore = (check: string): string =>
 export const ASYNC_CACHE_FILES: readonly FileContaining[] = [
   {
     files: ['**/*.py'],
-    pattern: pythonCheckThenStore(String.raw`([A-Za-z_][\w.]*)\.get\(`),
+    pattern: pythonCheckThenStore(
+      String.raw`(?<![\w.])([A-Za-z_][\w.]*)\.get\(`
+    ),
     exclude: PY_TESTS,
   },
   {
@@ -73,7 +80,7 @@ export const ASYNC_CACHE_FILES: readonly FileContaining[] = [
   },
   {
     files: ['**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}'],
-    pattern: String.raw`${FILE_START}[\s\S]*?([A-Za-z_$][\w$.]*)\.(?:get|has)\((?:[\s\S]${REACH}?${TS_ASYNC}[\s\S]${REACH}?\1\.set\(|[\s\S]${REACH}?\1\.set\([^\n]*${TS_ASYNC})`,
+    pattern: String.raw`${FILE_START}[\s\S]*?${TS_NAME_START}([A-Za-z_$][\w$.]*)\.(?:get|has)\((?:[\s\S]${REACH}?${TS_ASYNC}[\s\S]${REACH}?${TS_NAME_START}\1\.set\(|[\s\S]${REACH}?${TS_NAME_START}\1\.set\([^\n]*${TS_ASYNC})`,
     exclude: TS_TESTS,
   },
 ];

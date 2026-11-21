@@ -5,6 +5,10 @@
 
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
+import {
+  REQUIRES_PRODUCTION_SUBJECT,
+  REQUIRES_WEB_SURFACE,
+} from '../utils/production-subject-requirements';
 
 export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
   {
@@ -229,7 +233,9 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'RUM, Core Web Vitals and a Lighthouse budget are checked only for a browser-facing project; a backend has no page and is judged on APM/metrics/alerting instead.',
       'Presence, not proof: it verifies a monitoring/alerting integration is wired in, not that an alert would actually fire when the service degrades.',
+      'Selected only where something runs for users: a Node or Python HTTP framework, a web surface (a browser framework, a web build or hosting config, an HTML page), a mobile app shell, or a deploy target (container, PaaS, hosting or serverless config). A CLI tool or a library declares none and does not select it; a server on bare node:http with no deploy config is not recognised.',
     ],
+    requires: REQUIRES_PRODUCTION_SUBJECT,
     emoji: '🔍',
     description:
       'Comprehensive monitoring of application performance with automated alerts',
@@ -339,10 +345,12 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
         'Serve assets via a CDN (firebase hosting headers / deployUrl), set cache-control headers, add a service worker, and enable HTTP/2.',
     },
     detectionLimits: [
-      'Correctly N/A for a pure backend (it gates on web assets first) — but its CDN check matches a bare "assets" or "cdn" anywhere in an env file, a trivially-satisfied false pass.',
+      'Selected only for a web surface: a browser framework dependency (@angular/core, react-dom, vue, svelte, next, nuxt, astro, lit …), a web build or hosting config (angular.json, next.config.*, firebase.json, vercel.json, netlify.toml, wrangler.toml, nginx.conf), or an HTML page of the project outside test trees. A pure backend, a CLI tool or a library is not selected.',
+      'Its CDN check matches a bare "assets" or "cdn" anywhere in an env file, a trivially-satisfied false pass.',
       'All detection is config-file presence; no runtime CDN/edge verification.',
       'TS/JS + web config only.',
     ],
+    requires: REQUIRES_WEB_SURFACE,
     emoji: '🚀',
     description: 'Implement proper CDN and caching strategies',
     priority: 'MEDIUM',

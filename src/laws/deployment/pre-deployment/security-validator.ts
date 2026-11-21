@@ -5,6 +5,9 @@ import { CheckerUtils } from '../../../utils/checker-utils';
 import { FileSystemOperations } from '../../../utils/file-system-operations';
 
 import { PathOperations } from '../../../utils/path-operations';
+import { runsDependencyScan } from '../../../utils/compliance-scripts';
+import { ciConfigContent } from '../../../utils/project-discovery';
+import { commandText } from '../../../utils/ci-command-text';
 /**
  * Security Validation Checker
  * Validates security scanning and vulnerability checks
@@ -52,6 +55,13 @@ export class SecurityValidationChecker {
       const scriptResult = this.extractSecurityScripts(packageJsonPath);
       securityScripts.push(...scriptResult.securityScripts);
       ({ npmAuditConfigured, snykConfigured } = scriptResult);
+    }
+
+    // The command, not the name: `"security-audit": "npm audit"` scans the
+    // dependencies whatever the script is called, and so does a CI step that
+    // runs a scanner. Only the names audit / security / snyk were read.
+    if (!npmAuditConfigured && this.runsScannerSomewhere(projectRoot)) {
+      npmAuditConfigured = true;
     }
 
     // Check for Snyk configuration
@@ -231,6 +241,23 @@ export class SecurityValidationChecker {
     }
 
     return { securityScripts, npmAuditConfigured, snykConfigured };
+  }
+
+  /** A package script or a CI step runs a dependency scanner. */
+  private runsScannerSomewhere(projectRoot: string): boolean {
+    const manifest = PathOperations.join(projectRoot, 'package.json');
+    const scripts = FileUtils.exists(manifest)
+      ? ((
+          FileSystemOperations.readJsonFile(manifest, {}) as {
+            scripts?: Record<string, unknown>;
+          }
+        ).scripts ?? {})
+      : {};
+    return (
+      Object.values(scripts).some(
+        command => typeof command === 'string' && runsDependencyScan(command)
+      ) || runsDependencyScan(commandText(ciConfigContent(projectRoot)))
+    );
   }
 
   private processSecurityScript(

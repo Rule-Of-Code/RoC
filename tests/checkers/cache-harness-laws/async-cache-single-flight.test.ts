@@ -433,3 +433,76 @@ export function getProfile(id: string) {
     });
   });
 });
+
+/**
+ * #437: the gate's back-reference had no left boundary, so `s.get(` …
+ * `constants.set(` selected a file as one container; and a class whose
+ * static get(root, key, mode) / set(root, key, value, mode) read and write
+ * a file was judged as a keyed container. A check is get / has with the
+ * key alone; the in-memory Map shape is still judged exactly as before.
+ */
+describe('#437 what is a keyed container', () => {
+  const TWO_NAMES = `const rows = new Map<string, unknown>();
+const constants = new Map<string, unknown>();
+
+export async function load(id: string) {
+  const hit = rows.get(id);
+  const value = await fetchRow(id);
+  constants.set(id, value);
+  return hit ?? value;
+}
+`;
+
+  it('a check of one name and a store into a longer name ending in it select nothing', () => {
+    expect(
+      lawRequirementsMet(LAW?.requires, project({ 'src/load.ts': TWO_NAMES }))
+    ).toBe(false);
+  });
+
+  it('the same name checked and stored still selects the law', () => {
+    expect(
+      lawRequirementsMet(
+        LAW?.requires,
+        project({
+          'src/load.ts': TWO_NAMES.replace(
+            'constants.set(id, value)',
+            'rows.set(id, value)'
+          ),
+        })
+      )
+    ).toBe(true);
+  });
+
+  const FILE_CACHE = `import { DiskCache } from './disk-cache';
+
+export async function audit(root: string, key: string, mode: string) {
+  const cached = DiskCache.get(root, key, mode);
+  if (cached) return cached;
+  const result = await runAudit(root);
+  DiskCache.set(root, result, key, mode);
+  return result;
+}
+`;
+
+  it('a get(root, key, mode) / set(root, value, key, mode) API is not a keyed container: read, not reported', () => {
+    const result = run({ 'src/audit.ts': FILE_CACHE });
+    expect(result.violations).toEqual([]);
+    expect(result.judgedNothing).toBeUndefined();
+    expect(result.message).toMatch(/nothing to judge/);
+  });
+
+  it('red control: the Map shape in the same function is still reported', () => {
+    const map = FILE_CACHE.replace(
+      "import { DiskCache } from './disk-cache';",
+      'const DiskCache = new Map<string, unknown>();'
+    )
+      .replace('DiskCache.get(root, key, mode)', 'DiskCache.get(key)')
+      .replace(
+        'DiskCache.set(root, result, key, mode)',
+        'DiskCache.set(key, result)'
+      );
+    expect(run({ 'src/audit.ts': map }).violations).toEqual([
+      expect.stringMatching(/^src\/audit\.ts:7: audit checks DiskCache/),
+    ]);
+  });
+});

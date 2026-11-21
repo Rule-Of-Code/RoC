@@ -17,6 +17,7 @@ import {
 import { AsyncTestAnalyzer } from '../../utils/testing/async-test-analyzer';
 import {
   TestCoverageAnalyzer,
+  TestFileReading,
   TestNetworkClients,
 } from '../../utils/testing/test-coverage-analyzer';
 import { TestStructureAnalyzer } from '../../utils/testing/test-structure-analyzer';
@@ -55,7 +56,7 @@ export class UnitTestQualityLaw extends TestingLawBase {
     );
     if (!ts) {
       violations.push(
-        `${parserUnavailable(context.projectRoot, `the async and mocking patterns of the ${testFiles.length} test file(s)`)}`
+        `${parserUnavailable(context.projectRoot, `the async, mocking and edge-case patterns of the ${testFiles.length} test file(s)`)}`
       );
     }
     violations.push(...qualityAnalysis.violations);
@@ -108,6 +109,8 @@ export class UnitTestQualityLaw extends TestingLawBase {
     let totalTests = 0;
     let qualityScore = 0;
     let filesWithoutTests = 0;
+    // One answer per project: does its Jest/Vitest config reset mocks?
+    const runnerResetsMocks = TestFileReading.runnerResetsMocks(projectRoot);
 
     for (const file of testFiles) {
       // Findings name the file from the project root, as the twins do — not
@@ -138,8 +141,9 @@ export class UnitTestQualityLaw extends TestingLawBase {
         suggestions.push(...asyncSuggestions);
 
         // Coverage analysis
-        // The mocking checks read the same code and the clients the file
-        // loads, from its syntax tree (#429); without the parser, not at all.
+        // The mocking and edge-case checks read the same code, and what the
+        // file loads and calls, from its syntax tree (#429); without the
+        // parser, not at all.
         const coverageAnalysis = TestCoverageAnalyzer.analyzeCoverage(
           content,
           shown,
@@ -147,6 +151,12 @@ export class UnitTestQualityLaw extends TestingLawBase {
             ? {
                 code,
                 networkClients: TestNetworkClients.imported(ts, content, file),
+                callsWithInput: TestFileReading.callsWithInput(
+                  ts,
+                  content,
+                  file
+                ),
+                runnerResetsMocks,
               }
             : null
         );

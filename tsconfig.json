@@ -5,6 +5,7 @@
     "lib": ["ES2020"],
     "types": ["node"],
     "downlevelIteration": true,
+    "noUnusedLocals": true,
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": true,

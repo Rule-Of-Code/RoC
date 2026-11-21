@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Internal — `noUnusedLocals` is on
+
+This repository's `tsconfig.json` now sets `noUnusedLocals: true`, one of the
+flags TypeScript Strict Mode (SACRED LAW) asks for. The 82 declarations it found
+are gone: unused imports, private helpers no code calls (a second copy of a
+test-file finder in two services, four project-type checks, an "old" README
+assessor, five performance helpers whose callers had moved on), `Config`
+aliases nothing read, and locals computed and dropped. Exported code is not
+touched here.
+
+Three of them were not plain dead code:
+
+- The engine filtered the laws to run inline, while the tests asserted on a
+  private `getLawsToAudit()` that only they called. The engine now calls it, so
+  the tests check the selection the audit really runs.
+- `PathOperations.findWorkspaceRoot` walked the parent directories, built a
+  path per marker file, looked at none of them and returned its argument. It now
+  just returns its argument and says so; `ConfigFileUtils.findWorkspaceRoot` is
+  the one that searches.
+- `RuleOfCodeAuditor` stored the `suggestExceptions` option and never read it,
+  so `audit --suggest-exceptions` changes nothing. The field is gone; the
+  constructor keeps the positional parameter because the constructor is public.
+
 ### Internal — eslint is a direct devDependency
 
 `npm run lint` runs `eslint .`, but `eslint` was only installed as a peer of

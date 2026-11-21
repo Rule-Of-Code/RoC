@@ -2,6 +2,11 @@ import { PathOperations } from '../../../../utils/path-operations';
 import { inspectLighthouseGate } from '../../../../utils/lighthouse-gate';
 import type { LighthouseCheckResult } from '../constants/types';
 
+/**
+ * The Lighthouse check of Core Web Vitals Compliance: passes only when a
+ * Lighthouse config is actually run by a script or CI (the shared
+ * `inspectLighthouseGate` reader), not when a config file merely exists.
+ */
 export class LighthouseAnalyzerService {
   /**
    * A configuration file that nothing runs is not a Lighthouse gate.

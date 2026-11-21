@@ -9,6 +9,13 @@ import type {
   PerformanceBudgetsResult,
 } from '../constants/types';
 
+/**
+ * Lists where a project declares performance budgets: `budgets` in an
+ * angular.json production configuration (or, without one, anywhere in the Nx
+ * project.json build config), `performance` with `maxAssetSize` in
+ * webpack.config.js, and toolchain-neutral budgets that something runs
+ * (size-limit, Lighthouse assertions) via PerformanceBudgetGates.
+ */
 export class PerformanceBudgetsAnalyzerService {
   static analyze(
     projectRoot: string,

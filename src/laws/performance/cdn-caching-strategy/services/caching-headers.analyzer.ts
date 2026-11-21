@@ -3,6 +3,11 @@ import { CdnCachingStrategyFileDiscoveryConstants as FileDiscovery } from '../co
 import type { CachingHeadersResult, HeaderConfig } from '../constants/types';
 import { PerformanceAnalyzerBase } from './performance-analyzer-base';
 
+/**
+ * Answers whether browser caching headers are configured: a firebase.json
+ * hosting `headers` entry declaring Cache-Control, ETag or Expires, or one of
+ * those names in a root .htaccess, nginx.conf, server.js or apache.conf.
+ */
 export class CachingHeadersAnalyzerService extends PerformanceAnalyzerBase {
   static analyze(projectRoot: string): CachingHeadersResult {
     return {

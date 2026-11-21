@@ -10,6 +10,12 @@ import type { ResourceHintsResult } from '../constants/types';
 /** Built output is scanned too, but never more of it than this. */
 const MAX_BUILT_DOCUMENTS = 20;
 
+/**
+ * Finds resource hints (preload, prefetch, dns-prefetch, preconnect) in
+ * src/index.html, in built index.html files (`dist/` and every declared
+ * `outputPath`, at most 20), and in React/Next source (JSX `<link>`,
+ * next/font, react-dom preload calls).
+ */
 export class ResourceHintsAnalyzerService {
   /**
    * Resource hints are read from the BUILD OUTPUT as well as from source.

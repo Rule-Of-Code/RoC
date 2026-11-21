@@ -2,6 +2,14 @@ import type { RuleOfCodeConfig } from '../../../../config/types';
 import { PathOperations } from '../../../../utils/path-operations';
 import { PathResolver } from '../../../../utils/path-resolver';
 
+/**
+ * Where the CDN and Caching Strategy analyzers look: the config file names
+ * (firebase.json, angular.json, nginx.conf, .htaccess, server.js, apache.conf,
+ * webpack configs), env files, service-worker files and ngsw configs, and
+ * helpers that resolve them against the project root. The app entry files
+ * come from `pathMappings` when the config has them, otherwise from the
+ * Angular defaults (src/main.ts, app.component.ts, app.config.ts).
+ */
 export class CdnCachingStrategyFileDiscoveryConstants {
   static readonly CONFIG_FILES = {
     FIREBASE_JSON: 'firebase.json',

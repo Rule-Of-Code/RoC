@@ -1,8 +1,12 @@
 /**
- * Tests for CodeDocumentationLaw
+ * Tests for CodeDocumentationLaw.
  *
- * Comprehensive tests for code documentation validation
+ * The law judges exported classes and functions: each needs a JSDoc block, and
+ * a JSDoc block at the top of the file documents the file's only exported
+ * class/function. Real files in a temp directory, parsed with the TypeScript
+ * this repository compiles with.
  */
+import path from 'path';
 import { CodeDocumentationLaw } from '../../../src/checkers/code-quality-laws/code-documentation';
 import type { LawCheckContext, RuleOfCodeConfig } from '../../../src/types';
 import { FileUtils } from '../../../src/utils/file-utils';
@@ -49,6 +53,13 @@ describe('CodeDocumentationLaw', () => {
     FileUtils.deleteDirectory(tempDir);
   });
 
+  /** Write `content` to src/<name> and return the law's violations. */
+  const judge = (name: string, content: string): string[] => {
+    FileUtils.createDirectory(PathOperations.join(tempDir, 'src'));
+    FileUtils.writeFile(PathOperations.join(tempDir, 'src', name), content);
+    return CodeDocumentationLaw.check(mockContext).violations ?? [];
+  };
+
   describe('check()', () => {
     it('should return a LawResult object', () => {
       const result = CodeDocumentationLaw.check(mockContext);
@@ -89,312 +100,367 @@ describe('CodeDocumentationLaw', () => {
     });
   });
 
-  describe('class documentation analysis', () => {
-    beforeEach(() => {
-      FileUtils.createDirectory(PathOperations.join(tempDir, 'src'));
+  describe('exported classes', () => {
+    it('an exported class without JSDoc is a finding, at its file and line', () => {
+      const violations = judge(
+        'services.ts',
+        [
+          "import { x } from './x';",
+          '',
+          '/** Keeps the users. */',
+          'export class UserService {}',
+          '',
+          'export class OrderService {',
+          '  getOrders(): number[] {',
+          '    return [];',
+          '  }',
+          '}',
+        ].join('\n')
+      );
+      expect(violations).toEqual([
+        expect.stringMatching(
+          /^src\/services\.ts:6: exported class OrderService has no JSDoc/
+        ),
+      ]);
     });
 
-    it('should detect undocumented classes', () => {
-      const undocumentedClass = `
-export class UserService {
-  private users: User[] = [];
-
-  getUsers(): User[] {
-    return this.users;
-  }
-}
-
-export class ProductService {
-  private products: Product[] = [];
-
-  getProducts(): Product[] {
-    return this.products;
-  }
-}
-
-export class OrderService {
-  private orders: Order[] = [];
-
-  getOrders(): Order[] {
-    return this.orders;
-  }
-}
-
-export class CartService {
-  private items: CartItem[] = [];
-
-  getItems(): CartItem[] {
-    return this.items;
-  }
-}
-
-export class PaymentService {
-  private payments: Payment[] = [];
-
-  getPayments(): Payment[] {
-    return this.payments;
-  }
-}
-`;
-      FileUtils.writeFile(
-        PathOperations.join(tempDir, 'src', 'services.ts'),
-        undocumentedClass
-      );
-      const result = CodeDocumentationLaw.check(mockContext);
-      const classDocViolation = result.violations?.find(v =>
-        v.includes('Class documentation coverage')
-      );
-      expect(classDocViolation).toBeDefined();
+    it('an exported class with JSDoc is clean', () => {
+      expect(
+        judge(
+          'user.service.ts',
+          [
+            "import { x } from './x';",
+            '/** Reads and caches the users of one tenant. */',
+            'export class UserService {',
+            '  getUsers(): string[] {',
+            '    return [];',
+            '  }',
+            '}',
+            '/** Writes the users of one tenant. */',
+            'export abstract class UserWriter {}',
+          ].join('\n')
+        )
+      ).toEqual([]);
     });
 
-    it('should pass for well-documented classes', () => {
-      const documentedClass = `
-/**
- * User service for managing user operations
- */
-export class UserService {
-  private users: User[] = [];
-
-  /**
-   * Get all users
-   */
-  getUsers(): User[] {
-    return this.users;
-  }
-}
-`;
-      FileUtils.writeFile(
-        PathOperations.join(tempDir, 'src', 'user.service.ts'),
-        documentedClass
+    it('JSDoc above the decorators documents the class; JSDoc below them does not', () => {
+      const violations = judge(
+        'decorated.ts',
+        [
+          "import { Injectable } from '@angular/core';",
+          '/** Above the decorator. */',
+          "@Injectable({ providedIn: 'root' })",
+          'export class Above {}',
+          '',
+          '@Injectable()',
+          '/** Below the decorator. */',
+          'export class Below {}',
+        ].join('\n')
       );
-      const result = CodeDocumentationLaw.check(mockContext);
-      // Should not have specific file violations
-      const fileViolation = result.violations?.find(v =>
-        v.includes('user.service.ts')
-      );
-      expect(fileViolation).toBeUndefined();
-    });
-  });
-
-  describe('comment ratio analysis', () => {
-    beforeEach(() => {
-      FileUtils.createDirectory(PathOperations.join(tempDir, 'src'));
+      expect(violations).toEqual([
+        expect.stringMatching(/^src\/decorated\.ts:6: exported class Below /),
+      ]);
     });
 
-    it('should detect low comment ratio in large files', () => {
-      // Create a file with many code lines but few comments
-      const codeLines = Array(60)
-        .fill(null)
-        .map((_, i) => `const value${i} = ${i};`)
-        .join('\n');
-      FileUtils.writeFile(
-        PathOperations.join(tempDir, 'src', 'no-comments.ts'),
-        codeLines
+    it('an empty JSDoc block is not documentation', () => {
+      const violations = judge(
+        'empty-doc.ts',
+        ["import { x } from './x';", '/** */', 'export class Empty {}'].join(
+          '\n'
+        )
       );
-      const result = CodeDocumentationLaw.check(mockContext);
-      const commentViolation = result.violations?.find(v =>
-        v.includes('Low comment ratio')
-      );
-      expect(commentViolation).toBeDefined();
+      expect(violations).toEqual([
+        expect.stringMatching(/exported class Empty has no JSDoc/),
+      ]);
     });
 
-    it('should pass for files with adequate comments', () => {
-      const wellCommentedCode = `
-// User management module
-// Handles all user-related operations
-// Version: 1.0.0
-
-/**
- * User interface
- */
-interface User {
-  id: string;
-  name: string;
-}
-
-// User storage
-const users: User[] = [];
-
-// Get user by ID
-function getUser(id: string): User | undefined {
-  // Find user in array
-  return users.find(u => u.id === id);
-}
-
-// Add new user
-function addUser(user: User): void {
-  // Validate user
-  if (!user.id) throw new Error('Invalid user');
-  // Add to storage
-  users.push(user);
-}
-`;
-      FileUtils.writeFile(
-        PathOperations.join(tempDir, 'src', 'commented.ts'),
-        wellCommentedCode
-      );
-      const result = CodeDocumentationLaw.check(mockContext);
-      const commentViolation = result.violations?.find(
-        v => v.includes('Low comment ratio') && v.includes('commented.ts')
-      );
-      expect(commentViolation).toBeUndefined();
+    it('a class named in a template string is not a class', () => {
+      expect(
+        judge(
+          'template.ts',
+          [
+            '/** Emits a class as text. */',
+            'export const template = (): string => `',
+            'export class Generated {}',
+            '`;',
+          ].join('\n')
+        )
+      ).toEqual([]);
     });
   });
 
-  describe('README detection', () => {
-    beforeEach(() => {
-      FileUtils.createDirectory(PathOperations.join(tempDir, 'src', 'app'));
+  describe('the file header', () => {
+    it("a JSDoc block at the top of the file documents the file's only exported class", () => {
+      expect(
+        judge(
+          'only-class.ts',
+          [
+            '/**',
+            ' * The one service of this file: reads the users.',
+            ' */',
+            '',
+            "import { x } from './x';",
+            '',
+            'const helper = (): number => 1;',
+            '',
+            'export class OnlyService {}',
+          ].join('\n')
+        )
+      ).toEqual([]);
     });
 
-    it('should detect missing README in app directories', () => {
-      FileUtils.writeFile(
-        PathOperations.join(tempDir, 'src', 'app', 'component.ts'),
-        'export class Component {}'
-      );
-      const result = CodeDocumentationLaw.check(mockContext);
-      const readmeViolation = result.violations?.find(v =>
-        v.includes('Missing README.md')
-      );
-      expect(readmeViolation).toBeDefined();
+    it("documents the file's only exported function", () => {
+      expect(
+        judge(
+          'only-function.ts',
+          [
+            '#!/usr/bin/env node',
+            '/** Prints the version. */',
+            "import { x } from './x';",
+            'export function main(): void {}',
+            'export interface Options { a: string }',
+            'export const VERSION = 1;',
+          ].join('\n')
+        )
+      ).toEqual([]);
     });
 
-    it('should pass when README exists', () => {
-      FileUtils.writeFile(
-        PathOperations.join(tempDir, 'src', 'app', 'component.ts'),
-        'export class Component {}'
+    it('does not document a file with two exported classes/functions', () => {
+      const violations = judge(
+        'two.ts',
+        [
+          '/** Two services. */',
+          "import { x } from './x';",
+          'export class First {}',
+          'export function second(): void {}',
+        ].join('\n')
       );
-      FileUtils.writeFile(
-        PathOperations.join(tempDir, 'src', 'app', 'README.md'),
-        '# App Component\n\nDocumentation here.'
+      expect(violations).toEqual([
+        expect.stringMatching(/^src\/two\.ts:3: exported class First /),
+        expect.stringMatching(/^src\/two\.ts:4: exported function second /),
+      ]);
+    });
+
+    it('a // comment at the top of the file is not a header', () => {
+      const violations = judge(
+        'line-comment.ts',
+        [
+          '// The one service.',
+          "import { x } from './x';",
+          'export class OnlyService {}',
+        ].join('\n')
       );
-      const result = CodeDocumentationLaw.check(mockContext);
-      const readmeViolation = result.violations?.find(
-        v => v.includes('Missing README.md') && v.includes('src/app')
-      );
-      expect(readmeViolation).toBeUndefined();
+      expect(violations).toEqual([
+        expect.stringMatching(
+          /exported class OnlyService has no JSDoc .*the file’s only exported class\/function/
+        ),
+      ]);
     });
   });
 
-  describe('function documentation analysis', () => {
-    beforeEach(() => {
-      FileUtils.createDirectory(PathOperations.join(tempDir, 'src'));
+  describe('exported functions', () => {
+    it('an exported function without JSDoc is a finding — declarations, arrows, function expressions and default exports', () => {
+      const violations = judge(
+        'utils.ts',
+        [
+          "import { x } from './x';",
+          'export function processData(data: unknown): void {}',
+          'export async function fetchData(url: string): Promise<void> {}',
+          'export const formatDate = (date: Date): string => date.toISOString();',
+          'export const parse = function (s: string): number { return +s; };',
+          'export default function (): void {}',
+        ].join('\n')
+      );
+      expect(violations).toEqual([
+        expect.stringMatching(
+          /^src\/utils\.ts:2: exported function processData /
+        ),
+        expect.stringMatching(
+          /^src\/utils\.ts:3: exported function fetchData /
+        ),
+        expect.stringMatching(
+          /^src\/utils\.ts:4: exported function formatDate /
+        ),
+        expect.stringMatching(/^src\/utils\.ts:5: exported function parse /),
+        expect.stringMatching(/^src\/utils\.ts:6: exported function default /),
+      ]);
     });
 
-    it('should detect low function documentation coverage', () => {
-      const undocumentedFunctions = `
-export function processData(data: any): void {
-  console.log(data);
-}
-
-export function calculateTotal(items: number[]): number {
-  return items.reduce((a, b) => a + b, 0);
-}
-
-export function validateInput(input: string): boolean {
-  return input.length > 0;
-}
-
-export const formatDate = (date: Date): string => {
-  return date.toISOString();
-};
-
-export async function fetchData(url: string): Promise<any> {
-  return fetch(url);
-}
-`;
-      FileUtils.writeFile(
-        PathOperations.join(tempDir, 'src', 'utils.ts'),
-        undocumentedFunctions
-      );
-      const result = CodeDocumentationLaw.check(mockContext);
-      const functionDocViolation = result.violations?.find(v =>
-        v.includes('Function documentation coverage')
-      );
-      expect(functionDocViolation).toBeDefined();
+    it('an exported function with JSDoc is clean; overloads are one function', () => {
+      expect(
+        judge(
+          'documented-utils.ts',
+          [
+            "import { x } from './x';",
+            '/** Sums the numbers. */',
+            'export function total(items: number[]): number {',
+            '  return items.reduce((a, b) => a + b, 0);',
+            '}',
+            '/** Reads a number from a string or passes one through. */',
+            'export function read(s: string): number;',
+            'export function read(n: number): number;',
+            'export function read(v: string | number): number {',
+            '  return +v;',
+            '}',
+            '/** Formats a date as ISO 8601. */',
+            'export const formatDate = (date: Date): string => date.toISOString();',
+          ].join('\n')
+        )
+      ).toEqual([]);
     });
 
-    it('should pass for well-documented functions', () => {
-      const documentedFunctions = `
-/**
- * Process data and log to console
- * @param data - The data to process
- */
-export function processData(data: any): void {
-  console.log(data);
-}
+    it('a local function named in export { … } or export default is exported', () => {
+      const violations = judge(
+        'export-list.ts',
+        [
+          "import { x } from './x';",
+          'function listed(): void {}',
+          'const renamed = (): void => {};',
+          'function byDefault(): void {}',
+          'export { listed, renamed as alias };',
+          'export default byDefault;',
+        ].join('\n')
+      );
+      expect(violations).toEqual([
+        expect.stringMatching(/:2: exported function listed /),
+        expect.stringMatching(/:3: exported function renamed /),
+        expect.stringMatching(/:4: exported function byDefault /),
+      ]);
+    });
+  });
 
-/**
- * Calculate the total of numbers
- * @param items - Array of numbers
- * @returns The sum of all numbers
- */
-export function calculateTotal(items: number[]): number {
-  return items.reduce((a, b) => a + b, 0);
-}
-`;
+  describe('what is not judged', () => {
+    it('a function or class the file does not export is not judged', () => {
+      expect(
+        judge(
+          'internal.ts',
+          [
+            "import { x } from './x';",
+            'function helper(): number { return 1; }',
+            'const other = (): number => 2;',
+            'class Internal {',
+            '  run(): void {}',
+            '}',
+            'export const VALUE = helper() + other() + new Internal().constructor.length;',
+          ].join('\n')
+        )
+      ).toEqual([]);
+    });
+
+    it('methods, interfaces, types, enums and non-function constants are not judged', () => {
+      expect(
+        judge(
+          'not-judged.ts',
+          [
+            "import { x } from './x';",
+            '/** Documented class; its methods are not judged. */',
+            'export class Svc {',
+            '  public doA(): void {}',
+            '  private doB(): number { return 1; }',
+            '}',
+            'export interface Shape { a: string }',
+            'export type Id = string;',
+            'export enum Mode { A, B }',
+            'export const LIMIT = 10;',
+            'export const handler = wrap(() => 1);',
+          ].join('\n')
+        )
+      ).toEqual([]);
+    });
+
+    it('.d.ts files are not judged', () => {
+      expect(judge('types.d.ts', 'export declare class Ambient {}\n')).toEqual(
+        []
+      );
+    });
+  });
+
+  describe('paths in the messages', () => {
+    const undocumented = "import { x } from './x';\nexport class Bare {}\n";
+
+    it('are relative with forward slashes when the root is written with the platform separator', () => {
+      FileUtils.createDirectory(PathOperations.join(tempDir, 'src', 'deep'));
       FileUtils.writeFile(
-        PathOperations.join(tempDir, 'src', 'documented-utils.ts'),
-        documentedFunctions
+        PathOperations.join(tempDir, 'src', 'deep', 'bare.ts'),
+        undocumented
       );
-      const result = CodeDocumentationLaw.check(mockContext);
-      // Should not have documentation violation for this file
-      const fileViolation = result.violations?.find(v =>
-        v.includes('documented-utils.ts')
+      // path.resolve writes the root as the OS does: backslashes on Windows,
+      // which is what process.cwd() gives the CLI there.
+      const nativeRoot = path.resolve(tempDir);
+      const violations =
+        CodeDocumentationLaw.check({ ...mockContext, projectRoot: nativeRoot })
+          .violations ?? [];
+      expect(violations).toEqual([
+        expect.stringMatching(/^src\/deep\/bare\.ts:2: exported class Bare /),
+      ]);
+    });
+
+    it('are relative with forward slashes when the root is written with forward slashes (POSIX style)', () => {
+      FileUtils.createDirectory(PathOperations.join(tempDir, 'src', 'deep'));
+      FileUtils.writeFile(
+        PathOperations.join(tempDir, 'src', 'deep', 'bare.ts'),
+        undocumented
       );
-      expect(fileViolation).toBeUndefined();
+      const forwardRoot = path.resolve(tempDir).split(path.sep).join('/');
+      const violations =
+        CodeDocumentationLaw.check({ ...mockContext, projectRoot: forwardRoot })
+          .violations ?? [];
+      expect(violations).toEqual([
+        expect.stringMatching(/^src\/deep\/bare\.ts:2: exported class Bare /),
+      ]);
     });
   });
 
   describe('error handling', () => {
     it('should handle unreadable files gracefully', () => {
-      // Create a valid directory structure but corrupt file
       FileUtils.createDirectory(PathOperations.join(tempDir, 'src'));
-      // The law should handle any file read errors gracefully
       const result = CodeDocumentationLaw.check(mockContext);
       expect(result).toBeDefined();
       expect(typeof result.passed).toBe('boolean');
     });
 
     it('should return error result on analysis failure', () => {
-      // Test with invalid project root
       const invalidContext = {
         ...mockContext,
         projectRoot: '/nonexistent/path',
       };
       const result = CodeDocumentationLaw.check(invalidContext);
       expect(result).toBeDefined();
-      // Should handle gracefully
       expect(typeof result.passed).toBe('boolean');
+    });
+
+    it('a file that does not parse is named as not read, never passed', () => {
+      const violations = judge(
+        'broken.ts',
+        'export class Broken {\n  method( {\n'
+      );
+      expect(violations).toEqual([
+        expect.stringMatching(
+          /^src\/broken\.ts: could not be parsed .*NOT read/
+        ),
+      ]);
     });
   });
 
   describe('score calculation', () => {
     it('should return 100 when no violations', () => {
       const result = CodeDocumentationLaw.check(mockContext);
-      if (result.passed) {
-        expect(result.score).toBe(100);
-      }
+      expect(result.passed).toBe(true);
+      expect(result.score).toBe(100);
     });
 
     it('should deduct points for violations', () => {
-      FileUtils.createDirectory(PathOperations.join(tempDir, 'src'));
       const undocumented = Array(10)
         .fill(null)
         .map((_, i) => `export function func${i}() { return ${i}; }`)
         .join('\n');
-      FileUtils.writeFile(
-        PathOperations.join(tempDir, 'src', 'undocumented.ts'),
-        undocumented
-      );
-      const result = CodeDocumentationLaw.check(mockContext);
-      if (result.violations && result.violations.length > 0) {
-        expect(result.score).toBeLessThan(100);
-      }
+      const violations = judge('undocumented.ts', undocumented);
+      expect(violations).toHaveLength(10);
+      expect(CodeDocumentationLaw.check(mockContext).score).toBe(50);
     });
 
     it('should not go below minimum score', () => {
       FileUtils.createDirectory(PathOperations.join(tempDir, 'src'));
-      // Create many files to generate many violations
       for (let i = 0; i < 10; i++) {
         const undocumented = Array(100)
           .fill(null)
@@ -406,23 +472,20 @@ export function calculateTotal(items: number[]): number {
         );
       }
       const result = CodeDocumentationLaw.check(mockContext);
-      expect(result.score).toBeGreaterThanOrEqual(0);
+      expect(result.score).toBe(0);
     });
   });
 
   describe('suggestions', () => {
-    it('should include JSDoc suggestion when violations exist', () => {
-      FileUtils.createDirectory(PathOperations.join(tempDir, 'src'));
-      FileUtils.writeFile(
-        PathOperations.join(tempDir, 'src', 'undocumented.ts'),
-        'export class Test {}'
-      );
+    it('should include the JSDoc suggestion when violations exist', () => {
+      judge('undocumented.ts', 'export class Test {}');
       const result = CodeDocumentationLaw.check(mockContext);
-      if (!result.passed) {
-        expect(result.suggestions).toContain(
-          'Add JSDoc comments to classes and functions'
-        );
-      }
+      expect(result.passed).toBe(false);
+      expect(result.suggestions).toEqual([
+        expect.stringMatching(
+          /^Add a JSDoc \/\*\* \*\/ block above each exported class and function/
+        ),
+      ]);
     });
   });
 });

@@ -3,6 +3,13 @@ import { CdnCachingStrategyFileDiscoveryConstants as FileDiscovery } from '../co
 import type { Http2OptimizationResult } from '../constants/types';
 import { PerformanceAnalyzerBase } from './performance-analyzer-base';
 
+/**
+ * Answers whether delivery is set up for HTTP/2. Any of: a firebase.json
+ * hosting header entry declaring `Link` (preload/push), an http2/push/Link
+ * keyword in a root server config, an Angular production build that does not
+ * turn `namedChunks` off, or a webpack config with `splitChunks` and
+ * `maxSize`.
+ */
 export class Http2OptimizationAnalyzerService extends PerformanceAnalyzerBase {
   static analyze(projectRoot: string): Http2OptimizationResult {
     return {

@@ -112,6 +112,7 @@ export interface HooksConfigEvidence {
   unread: string[];
 }
 
+/** Evidence before any config file is read: no preset, no rules, nothing unread. */
 export function emptyEvidence(): HooksConfigEvidence {
   return {
     preset: null,
@@ -128,6 +129,12 @@ interface ParsedConfig {
   root: TS.Node;
 }
 
+/**
+ * Accumulates, across one or more ESLint config files, what they say about
+ * eslint-plugin-react-hooks: the preset used, rules enabled and disabled,
+ * unknown non-relative imports and files it could not read. `read` parses a
+ * config and follows its relative imports, each file once.
+ */
 export class EslintHooksConfigReader {
   private readonly visited = new Set<string>();
   private readonly presets: Set<string>;

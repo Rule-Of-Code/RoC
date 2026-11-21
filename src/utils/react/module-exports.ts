@@ -37,6 +37,7 @@ const hasModifier = (
     m => m.kind === kind
   );
 
+/** True for an arrow function, a function declaration or a function expression. */
 export function isFunctionLike(
   ts: TypeScriptModule,
   node: TS.Node
@@ -48,6 +49,7 @@ export function isFunctionLike(
   );
 }
 
+/** True when the function is declared with the `async` modifier. */
 export function isAsync(ts: TypeScriptModule, fn: FunctionLike): boolean {
   return hasModifier(ts, fn, ts.SyntaxKind.AsyncKeyword);
 }
@@ -105,6 +107,13 @@ function classify(
   return { fn: null, call: null };
 }
 
+/**
+ * Every value export of the file, in source order, each with what it is bound
+ * to: the function written in this file, the call that builds it, or the
+ * module a re-export comes from (`*` for `export *`). A name exported from a
+ * local (`export { handler as POST }`, `export default handler`) is resolved
+ * to that top-level binding; type-only exports are left out.
+ */
 export function moduleExports(source: TsxSource): ModuleExport[] {
   const locals = localBindings(source);
   return source.sourceFile.statements.flatMap(statement =>

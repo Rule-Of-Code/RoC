@@ -94,6 +94,13 @@ export function htmlSanitizers(context: LawCheckContext): string[] {
   ];
 }
 
+/**
+ * XSS Prevention Policy: one violation per DOM sink in .ts/.tsx/.jsx/.html
+ * files (comments blanked first): innerHTML/outerHTML assignment,
+ * insertAdjacentHTML, document.write, bypassSecurityTrust*, the [innerHTML]
+ * binding, unless a sanitizer is called in the same statement; `eval` is
+ * always reported.
+ */
 export class XSSPreventionLaw {
   static check(context: LawCheckContext): LawResult {
     const violations: string[] = [];

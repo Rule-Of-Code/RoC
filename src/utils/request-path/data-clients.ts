@@ -265,6 +265,11 @@ export interface ProjectClients {
   labels: string[];
 }
 
+/**
+ * The registry's data clients the project declares: a package in any
+ * workspace package.json selects the client's Node API, a distribution in a
+ * Python manifest its Python API.
+ */
 export function declaredClients(projectRoot: string): ProjectClients {
   const npm = declaredDependencies(projectRoot);
   const python = declaredPythonDependencies(projectRoot);

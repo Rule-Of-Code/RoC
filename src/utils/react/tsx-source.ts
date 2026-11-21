@@ -100,6 +100,11 @@ export interface ImportInfo {
   line: number;
 }
 
+/**
+ * One file parsed with `ts.createSourceFile` (TSX, JS or TS by extension,
+ * without type-checking), with the reads the laws share: node lines, parse
+ * errors, names used as values, directives, imports and JSX elements.
+ */
 export class TsxSource {
   readonly sourceFile: TS.SourceFile;
 

@@ -65,3 +65,8 @@ runs: run `npx husky` before your first commit.
   pass. If the only way to satisfy a law is to lie, the law is buggy — report it.
 - Inventing a `rationale`, `satisfiedBy` or `detectionLimits` claim that is not true
   of the real code. Plausible and false is the exact failure this tool exists to kill.
+
+---
+
+<!-- roc-footer -->
+**Document Version:** the git history of this file &middot; **Last Updated:** 2026-11-21 &middot; **Status:** Active &middot; **Investment Rating:** needs-review

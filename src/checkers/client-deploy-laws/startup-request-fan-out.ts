@@ -58,6 +58,14 @@ function listed(request: StartupRequest): string {
     : `${request.label} (${request.at})`;
 }
 
+/**
+ * Startup Request Fan-Out: reports each Angular component that starts more
+ * HTTP requests from its opening hooks (constructor, ngOnInit,
+ * ionViewWillEnter), directly or through one service method, than
+ * `thresholds.performance.maxStartupRequests` allows (default 4), listing
+ * every request. An invalid threshold is a finding; no component file or no
+ * `typescript` means the law judged nothing.
+ */
 export class StartupRequestFanOutLaw extends LawBase {
   static readonly LAW_NAME = 'Startup Request Fan-Out';
 

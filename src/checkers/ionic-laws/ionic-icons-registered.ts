@@ -44,6 +44,13 @@ export function ioniconsKebab(name: string): string {
   return name.replace(/([a-z0-9]|(?=[A-Z]))([A-Z0-9])/g, '$1-$2').toLowerCase();
 }
 
+/**
+ * Ionic Icons Registered: in a project that imports
+ * `@ionic/angular/standalone`, reports each literal `<ion-icon>` name (name,
+ * ios, md, icon) that no `addIcons` call registers, matching names the way
+ * ionicons does (lower-cased, camelCase keys also registered in kebab-case).
+ * Other projects are out of scope.
+ */
 export class IonicIconsRegisteredLaw extends LawBase {
   static readonly LAW_NAME = 'Ionic Icons Registered';
 

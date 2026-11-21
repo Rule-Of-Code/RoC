@@ -395,6 +395,15 @@ import type {
   RuleOfCodeConfig,
 } from '../types/law.types';
 
+/**
+ * The registry of every law RoC runs. It maps each law card's
+ * `checkFunction` to the class that implements it (LAW_CLASS_MAPPING), turns
+ * the cards into runnable laws with a `check(projectRoot, config)` that sets
+ * the law's ignore context, and decides which laws a config enables: identity
+ * keys (name, slug, id, legacyId), unambiguous waiver keys for
+ * `laws.notApplicable`, categories, stack applicability and the Pareto core.
+ * A law with no implementation fails as a wiring bug unless it is MANUAL.
+ */
 export class ModularLawsRegistry {
   private static instance?: ModularLawsRegistry;
 

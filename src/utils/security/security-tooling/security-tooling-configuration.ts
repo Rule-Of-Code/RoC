@@ -149,18 +149,31 @@ export const RECOMMENDATIONS = [
 // Helper Functions
 // ============================================================================
 
+/**
+ * How many of the SECURITY_TOOLS packages (snyk, @snyk/cli, audit-ci,
+ * npm-audit-resolver, retire, nsp, eslint-plugin-security, helmet, cors)
+ * are keys of `deps` with a non-empty version.
+ */
 export function countInstalledSecurityTools(
   deps: Record<string, string>
 ): number {
   return Object.keys(SECURITY_TOOLS).filter(tool => deps[tool]).length;
 }
 
+/**
+ * Whether `scripts` has a non-empty script named security, audit,
+ * vulnerability, security-check or audit-check.
+ */
 export function hasSecurityScriptByName(
   scripts: Record<string, string>
 ): boolean {
   return SECURITY_SCRIPT_NAMES.some(name => scripts[name]);
 }
 
+/**
+ * Whether any script command contains `audit`, `snyk` or `retire`
+ * (case-sensitive substring), whatever the script is called.
+ */
 export function hasSecurityScriptByKeyword(
   scripts: Record<string, string>
 ): boolean {
@@ -171,34 +184,55 @@ export function hasSecurityScriptByKeyword(
   );
 }
 
+/**
+ * Whether `.snyk`, `snyk.json`, `.snyk.yml` or `.snyk.yaml` exists at
+ * the project root.
+ */
 export function checkSnykConfig(projectRoot: string): boolean {
   return checkFilesExist(projectRoot, SNYK_CONFIG_FILES);
 }
 
+/**
+ * Whether `.nsprc`, `retire.json`, `audit-resolve.json` or `.auditignore`
+ * exists at the project root.
+ */
 export function checkVulnDbConfig(projectRoot: string): boolean {
   return checkFilesExist(projectRoot, VULN_DB_CONFIG_FILES);
 }
 
+/**
+ * Whether a SECURITY.md exists at the root, under `docs/` or under
+ * `.github/`.
+ */
 export function checkSecurityDocumentation(projectRoot: string): boolean {
   return checkFilesExist(projectRoot, SECURITY_DOC_FILES);
 }
 
+/**
+ * The path of the project's `.github` directory, or null when it is absent.
+ */
 export function checkGitHubDir(projectRoot: string): string | null {
   const githubDir = joinPath(projectRoot, DIRECTORY_NAMES.GITHUB);
   return exists(githubDir) ? githubDir : null;
 }
 
+/** Whether `dependabot.yml` or `dependabot.yaml` exists in `githubDir`. */
 export function checkDependabotConfig(githubDir: string): boolean {
   return DEPENDABOT_CONFIG_FILES.some(file =>
     exists(joinPath(githubDir, file))
   );
 }
 
+/** The path of `githubDir/workflows`, or null when it is absent. */
 export function getWorkflowsDir(githubDir: string): string | null {
   const workflowsDir = joinPath(githubDir, DIRECTORY_NAMES.WORKFLOWS);
   return exists(workflowsDir) ? workflowsDir : null;
 }
 
+/**
+ * Whether a workflow file name contains `security` or `audit`
+ * (case-sensitive; the file's content is not read).
+ */
 export function isSecurityWorkflow(filename: string): boolean {
   return filename.includes('security') || filename.includes('audit');
 }

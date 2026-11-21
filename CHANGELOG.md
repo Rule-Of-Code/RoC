@@ -40,7 +40,7 @@ Removed: the supply-chain risk analyzer (`src/utils/security/supply-chain-risk/`
 called them; they were exported from `src/utils/index.ts` and
 `src/utils/security/index.ts`, not from the package entry point.
 
-Self-audit of this repository (develop 8b5a6ff → this branch): verdict compliance-with-warnings → compliance-with-warnings, 25 → 25 laws failed, 0 waived, score 82 → 82, findings 1249 → 1248. This repository is configured by `eslint.config.mjs` and package.json is valid, so no law changes its verdict; Absolute Zero Tolerance keeps 41 findings (one `unknown[]` moved with the tsconfig chain to `src/utils/tsconfig-chain.ts`), Code Documentation Standards goes 82 → 81.
+Self-audit of this repository (develop 63690ed → this branch merged with it): verdict compliance-with-warnings → compliance-with-warnings, 0 waived, score 84 → 84, findings 1095 → 1094. This repository is configured by `eslint.config.mjs` and its package.json and tsconfig.json are valid, so no law that reads them changes. The one difference is Commit Size Control (1 → 0): this branch's commits are each under 500 lines and 10 files and move two larger develop commits out of its last-10 window — a window effect, not a fix.
 
 ### 🐛 Fixed — Test Data Management read an exact expected value as hardcoded test data (#439)
 

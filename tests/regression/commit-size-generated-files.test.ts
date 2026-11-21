@@ -94,9 +94,9 @@ describe('commit size measures authored change, not generated lines', () => {
   });
 
   /**
-   * The red controls. The exemption is for content nobody reads, not for the
-   * size of a change — hand-written code is still measured, and a commit
-   * touching many generated files is still oversized by file count.
+   * The red controls. The exemption is for generated content, not for the
+   * size of a change — hand-written code is still measured, alone or next to
+   * a lockfile.
    */
   it('still reports an oversized change to hand-written code', () => {
     write('src/big.ts', generatedContent(600, 'c'));
@@ -106,14 +106,37 @@ describe('commit size measures authored change, not generated lines', () => {
     expect(sizeFindings().length).toBeGreaterThan(0);
   });
 
-  it('still counts generated files toward the FILE limit', () => {
+  /**
+   * 8.0.0: generated files are not counted at all — neither their lines nor
+   * the files. Twelve regenerated lockfiles are one authored change (the
+   * bump), and a recording's captured output is written by the recorder.
+   */
+  it('does not count generated files toward the FILE limit either', () => {
     for (let i = 0; i < 12; i += 1) {
       write(`pkg-${i}/package-lock.json`, generatedContent(20, `d${i}`));
     }
     git('git add -A');
     git('git commit -qm "chore(deps): twelve lockfiles at once"');
 
+    expect(sizeFindings()).toEqual([]);
+  });
+
+  it('still counts twelve hand-written files toward the FILE limit', () => {
+    for (let i = 0; i < 12; i += 1) {
+      write(`src/m${i}.ts`, `export const m${i} = ${i};\n`);
+    }
+    git('git add -A');
+    git('git commit -qm "feat: twelve modules at once"');
+
     expect(sizeFindings().length).toBeGreaterThan(0);
+  });
+
+  it('an asciinema recording is generated', () => {
+    write('docs/demo.cast', generatedContent(600, 'cast'));
+    git('git add -A');
+    git('git commit -qm "docs: record the demo"');
+
+    expect(sizeFindings()).toEqual([]);
   });
 
   it('still reports authored lines in a commit that also carries a lockfile', () => {
@@ -189,5 +212,23 @@ describe('commit size measures authored change, not generated lines', () => {
     // And it is the declared list doing the exempting: with the built-in one,
     // a `.generated.ts` file is just a large hand-written change.
     expect(sizeFindings().length).toBeGreaterThan(0);
+  });
+
+  it('a declared list adds to the built-in one: a lockfile stays generated', () => {
+    write('captures/run-1.stdout', generatedContent(600, 'j'));
+    write('package-lock.json', generatedContent(600, 'k'));
+    git('git add -A');
+    git('git commit -qm "docs: capture a run, with a dependency bump"');
+
+    const config = FileUtils.getMinimalDefaultConfig();
+    config.thresholds = {
+      ...config.thresholds,
+      git: {
+        ...config.thresholds?.git,
+        commitSize: { generatedFiles: ['^captures/'] },
+      },
+    };
+
+    expect(sizeFindings(config)).toEqual([]);
   });
 });

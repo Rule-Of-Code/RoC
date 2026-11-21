@@ -168,8 +168,11 @@ export class CommitSizeControlLaw extends GitLawBase {
    * levers left were to raise the limit for every commit — losing the law
    * everywhere to accommodate one file — or to leave the dependency unpatched.
    *
-   * Their LINES are excluded; their presence is not. A commit touching thirty
-   * generated files is still thirty files, and still oversized by file count.
+   * They are not counted at all, neither their lines nor the files: a
+   * commit's size is the authored change a reviewer reads. A recording of a
+   * terminal session (asciinema .cast) is written by the recorder, not by a
+   * person, like a lockfile. A project declares its own generated paths in
+   * thresholds.git.commitSize.generatedFiles; they are added to this list.
    */
   private static readonly GENERATED_FILES = [
     /(^|\/)package-lock\.json$/,
@@ -188,6 +191,7 @@ export class CommitSizeControlLaw extends GitLawBase {
     /(^|\/)pubspec\.lock$/,
     /(^|\/)gradle\.lockfile$/,
     /(^|\/)mix\.lock$/,
+    /\.cast$/,
   ];
 
   /** Is this path a generated file whose lines nobody reads? */
@@ -196,10 +200,11 @@ export class CommitSizeControlLaw extends GitLawBase {
     config: RuleOfCodeConfig
   ): boolean {
     const normalized = filePath.replace(/\\/g, '/');
-    const declared = config.thresholds?.git?.commitSize?.generatedFiles;
-    const patterns = declared?.length
-      ? declared.map(p => new RegExp(p))
-      : this.GENERATED_FILES;
+    const declared = config.thresholds?.git?.commitSize?.generatedFiles ?? [];
+    const patterns = [
+      ...this.GENERATED_FILES,
+      ...declared.map(p => new RegExp(p)),
+    ];
 
     return patterns.some(pattern => pattern.test(normalized));
   }
@@ -231,8 +236,8 @@ export class CommitSizeControlLaw extends GitLawBase {
         const filePath = pathParts.join('\t').trim();
         if (!filePath) continue;
 
-        files += 1;
         if (this.isGeneratedFile(filePath, config)) continue;
+        files += 1;
         lines += (Number(added) || 0) + (Number(deleted) || 0);
       }
 

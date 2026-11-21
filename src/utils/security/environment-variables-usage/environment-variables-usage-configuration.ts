@@ -127,10 +127,12 @@ export const BEST_PRACTICES = {
 
 import { mergeSecurityResults } from '../result-merging-helper';
 
+/** A result with no violations and no suggestions. */
 export function createEmptyResult(): EnvUsageCheckResult {
   return { violations: [], suggestions: [] };
 }
 
+/** Concatenates the violations and suggestions of `results`, in order. */
 export function mergeResults(
   ...results: EnvUsageCheckResult[]
 ): EnvUsageCheckResult {
@@ -144,6 +146,7 @@ export const { hasPattern, hasAnyPattern, hasAnyRegexPattern } =
 // Message formatting delegated to StringTemplateUtils
 export const formatMessage = StringTemplateUtils.formatNamedTemplate;
 
+/** Reads `filePath` as text; '' when it cannot be read. */
 export function safeReadFile(filePath: string): string {
   try {
     return FileUtils.readFile(filePath);
@@ -152,38 +155,61 @@ export function safeReadFile(filePath: string): string {
   }
 }
 
+/**
+ * Whether `content` mentions `required`, `validate`, `schema`, `joi`, `zod`
+ * or `yup` anywhere (case-sensitive substring, not an import check).
+ */
 export function hasValidationLibrary(content: string): boolean {
   return hasAnyPattern(content, VALIDATION_LIBRARIES);
 }
 
+/** Whether `content` contains `production` or `development`. */
 export function hasEnvironmentIndicators(content: string): boolean {
   return hasAnyPattern(content, ENVIRONMENT_INDICATORS);
 }
 
+/** Whether `content` contains the text `NODE_ENV`. */
 export function hasNodeEnv(content: string): boolean {
   return hasPattern(content, NODE_ENV);
 }
 
+/** Whether `content` contains the text `process.env`. */
 export function hasProcessEnv(content: string): boolean {
   return hasPattern(content, PROCESS_ENV);
 }
 
+/** How many times `process.env.` occurs in `content`. */
 export function countEnvUsage(content: string): number {
   return (content.match(PROCESS_ENV_COUNT_PATTERN) ?? []).length;
 }
 
+/**
+ * True when `content` reads `process.env.PORT` and never mentions
+ * `parseInt` — the port would stay a string.
+ */
 export function needsPortParsing(content: string): boolean {
   return hasPattern(content, PORT_ENV_VAR) && !hasPattern(content, PARSE_INT);
 }
 
+/** Whether `content` has `const { … } = process.env`. */
 export function hasDestructuring(content: string): boolean {
   return PROCESS_ENV_DESTRUCTURING.test(content);
 }
 
+/**
+ * Whether `content` holds a mongodb://, mysql://, postgresql:// or
+ * redis:// connection string. The patterns are global regexes, so each
+ * test advances their `lastIndex` between calls.
+ */
 export function matchesAnyDbPattern(content: string): boolean {
   return hasAnyRegexPattern(content, DB_CONNECTION_PATTERNS);
 }
 
+/**
+ * Whether `content` has a quoted `api_key`, `token` or `secret` key
+ * assigned a quoted value of 20+ characters (case-insensitive). The
+ * patterns are global regexes, so each test advances their `lastIndex`.
+ */
 export function matchesAnySecretPattern(content: string): boolean {
   return hasAnyRegexPattern(content, SECRET_PATTERNS);
 }

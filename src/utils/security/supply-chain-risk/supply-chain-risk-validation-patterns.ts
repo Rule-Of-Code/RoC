@@ -10,6 +10,10 @@ import * as Config from './supply-chain-risk-configuration';
 // Suspicious Package Detection
 // ============================================================================
 
+/**
+ * The dependency names that look like typosquats or throwaway packages
+ * (see isSuspiciousPackageName): their count and the first 3 of them.
+ */
 export function detectSuspiciousPackages(
   dependencies: Record<string, string>
 ): { count: number; examples: string[] } {
@@ -22,6 +26,10 @@ export function detectSuspiciousPackages(
   };
 }
 
+/**
+ * One violation "Found N packages with suspicious names" with up to 3
+ * examples to review; the score drops 5 per suspicious package.
+ */
 export function analyzeSuspiciousPackages(
   dependencies: Record<string, string>
 ): Config.RiskAnalysisResult {
@@ -47,6 +55,10 @@ export function analyzeSuspiciousPackages(
 // Risky Package Detection
 // ============================================================================
 
+/**
+ * The dependencies on the high-risk list, as `name@version`: their
+ * count and the first 3 of them.
+ */
 export function detectRiskyPackages(dependencies: Record<string, string>): {
   count: number;
   examples: string[];
@@ -65,6 +77,10 @@ export function detectRiskyPackages(dependencies: Record<string, string>): {
   };
 }
 
+/**
+ * One violation "Found N high-risk packages" with up to 3 examples to
+ * review; the score drops 8 per risky package.
+ */
 export function analyzeRiskyPackages(
   dependencies: Record<string, string>
 ): Config.RiskAnalysisResult {
@@ -89,6 +105,12 @@ export function analyzeRiskyPackages(
 // Install Script Detection
 // ============================================================================
 
+/**
+ * Reads `node_modules/<packageName>/package.json` and, when the package
+ * has a pre/post install or uninstall script, appends a suggestion to
+ * review it to `suggestions`. Silent when the package is not installed
+ * or its package.json cannot be loaded.
+ */
 export function checkPackageInstallScripts(
   packageName: string,
   projectRoot: string,
@@ -116,6 +138,11 @@ export function checkPackageInstallScripts(
 // Package Integrity
 // ============================================================================
 
+/**
+ * Counts the entries of a lockfile's `packages` map (the project's own
+ * '' entry excluded) and how many carry an `integrity` hash; both 0
+ * when there is no `packages` map (a lockfile v1).
+ */
 export function countPackageIntegrity(packageLock: Record<string, unknown>): {
   packagesWithIntegrity: number;
   totalPackages: number;
@@ -140,6 +167,11 @@ export function countPackageIntegrity(packageLock: Record<string, unknown>): {
   return { packagesWithIntegrity, totalPackages };
 }
 
+/**
+ * Judges package-lock.json: absent passes; unparseable is a violation
+ * (score 85); under 80% of packages with an integrity hash is a
+ * violation (score 90) with a suggestion to regenerate the lockfile.
+ */
 export function checkPackageLockIntegrity(
   projectRoot: string
 ): Config.RiskAnalysisResult {
@@ -182,6 +214,10 @@ export function checkPackageLockIntegrity(
 // NPM Registry Security
 // ============================================================================
 
+/**
+ * A suggestion to review `.npmrc` when it sets a `registry=` that does
+ * not mention npmjs.org; never a violation.
+ */
 export function checkNpmrcSecurity(
   projectRoot: string
 ): Config.RiskAnalysisResult {
@@ -198,6 +234,12 @@ export function checkNpmrcSecurity(
 // Main Analysis Function
 // ============================================================================
 
+/**
+ * Runs every supply-chain check on the dependencies of `packageJson`:
+ * suspicious and risky names, install scripts of installed packages,
+ * lockfile integrity and the npm registry. Scored by the lowest single
+ * score; a project with no dependencies passes with 100.
+ */
 export function performSupplyChainAnalysis(
   packageJson: unknown,
   projectRoot: string

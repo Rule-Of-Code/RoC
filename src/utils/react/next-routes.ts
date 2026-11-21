@@ -50,6 +50,12 @@ export interface NextRoute {
   segments: RouteSegment[];
 }
 
+/**
+ * The router directories Next uses for `app`: `app/` over `src/app/`,
+ * `pages/` over `src/pages/`, and the convention directory (where proxy,
+ * middleware and instrumentation live) as the parent of the pages directory,
+ * else of the app directory.
+ */
 export function routerLayout(app: NextApp): RouterLayout {
   const pick = (name: string): string | null => {
     for (const dir of [name, `src/${name}`]) {
@@ -84,6 +90,7 @@ export function specialFileName(file: string): string | null {
   return match ? (match[1] ?? null) : null;
 }
 
+/** Classifies one directory name: `[[...x]]` optional catch-all, `[...x]` catch-all, `[x]` dynamic, else static. */
 export function segmentOf(text: string): RouteSegment {
   if (/^\[\[\.\.\.[^\]]+\]\]$/.test(text))
     return { kind: 'optionalCatchAll', text };
@@ -123,6 +130,7 @@ export function appRouteSegments(
   return segments;
 }
 
+/** The URL path of the segments as written, e.g. `/api/users/[id]`; `/` for none. */
 export function routePath(segments: readonly RouteSegment[]): string {
   return `/${segments.map(segment => segment.text).join('/')}`;
 }

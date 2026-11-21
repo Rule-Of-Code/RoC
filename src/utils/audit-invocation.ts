@@ -57,7 +57,6 @@ function read(file: string): string {
   }
 }
 
-/** Every git hook the project commits: hook files, hook configs, package.json. */
 /** Hook files in a hook directory (.husky/pre-commit, .githooks/pre-push). */
 function hookDirectoryFiles(projectRoot: string): CommittedHook[] {
   return HOOK_DIRS.flatMap(dir => {
@@ -105,6 +104,7 @@ function simpleGitHooks(projectRoot: string): CommittedHook[] {
     .map(([hook, commands]) => ({ where: 'simple-git-hooks', hook, commands }));
 }
 
+/** Every git hook the project commits: hook files, hook configs, package.json. */
 export function committedHooks(projectRoot: string): CommittedHook[] {
   return [
     ...hookDirectoryFiles(projectRoot),

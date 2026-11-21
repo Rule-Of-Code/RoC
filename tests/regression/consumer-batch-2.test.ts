@@ -250,58 +250,31 @@ describe('consumer batch 2', () => {
    * Every prose line of a JSDoc block begins with `*`, which is neither `//`
    * nor `/*`, so the per-line classifier counted it as code. A file with two
    * full doc blocks measured 3.6% commented where the honest figure was 38%.
+   *
+   * Since #439 the law no longer measures a comment ratio at all: it asks for
+   * the JSDoc block itself, so the reporter's file is documented as written.
    */
-  describe('comment ratio counts a JSDoc block as comment', () => {
-    const jsdocFile = [
-      '/**',
-      ' * The launch page.',
-      ' * Explains what it coordinates.',
-      ' */',
-      'export class LaunchPage {',
-      '  readonly ready = true;',
-      '}',
-    ].join('\n');
+  describe('a JSDoc block documents the class it sits on', () => {
+    it('the reporter file — a documented class — has no finding', () => {
+      write(
+        'src/launch.page.ts',
+        [
+          '/**',
+          ' * The launch page.',
+          ' * Explains what it coordinates.',
+          ' */',
+          'export class LaunchPage {',
+          '  readonly ready = true;',
+          '}',
+        ].join('\n')
+      );
 
-    it('counts continuation lines as comments, not code', () => {
-      const counted = (
-        CodeDocumentationLaw as unknown as {
-          countLines: (c: string) => {
-            codeLines: number;
-            commentLines: number;
-          };
-        }
-      ).countLines(jsdocFile);
+      const result = CodeDocumentationLaw.check({
+        projectRoot: root,
+        config: config(),
+      });
 
-      expect(counted.commentLines).toBe(4);
-      expect(counted.codeLines).toBe(3);
-    });
-
-    it('still counts ordinary code as code', () => {
-      const counted = (
-        CodeDocumentationLaw as unknown as {
-          countLines: (c: string) => {
-            codeLines: number;
-            commentLines: number;
-          };
-        }
-      ).countLines('const a = 1;\nconst b = 2;\n// one comment\n');
-
-      expect(counted.codeLines).toBe(2);
-      expect(counted.commentLines).toBe(1);
-    });
-
-    it('closes the block on the same line for /* … */', () => {
-      const counted = (
-        CodeDocumentationLaw as unknown as {
-          countLines: (c: string) => {
-            codeLines: number;
-            commentLines: number;
-          };
-        }
-      ).countLines('/* inline */\nconst a = 1;\n');
-
-      expect(counted.commentLines).toBe(1);
-      expect(counted.codeLines).toBe(1);
+      expect(result.violations).toEqual([]);
     });
   });
 

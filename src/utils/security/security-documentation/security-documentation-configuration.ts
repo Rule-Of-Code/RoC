@@ -178,10 +178,16 @@ export const {
   readFileContent,
 } = SharedUtils;
 
+/** Whether the text mentions `security` or `vulnerability` anywhere, in any case. */
 export function hasSecuritySection(content: string): boolean {
   return hasAnyPattern(content.toLowerCase(), SECURITY_TERMS);
 }
 
+/**
+ * package.json `description` and `keywords` lower-cased into one
+ * space-separated string, searched for signs that the project handles
+ * sensitive data (healthcare, payment, personal, …).
+ */
 export function getPackageJsonSearchText(packageJson: {
   description?: string;
   keywords?: string[];

@@ -49,6 +49,21 @@ detection found" — another analyzer, unchanged: it looks for `process.env`
 only in five fixed main files, while this repository reads `NODE_ENV` in
 `src/utils/logging-utils.ts`).
 
+### Internal — this repository keeps MD Footer Template on
+
+MD Footer Template became opt-in in this release (#468). This repository does
+not drop a law from its own config to reach a clean self-audit, so it turns it
+on again, at the severity it ran at before (`"MD Footer Template (MANDATORY)":
+"warning"`). Its includes name only source (`src/**/*.ts`, `scripts/**/*.js`,
+`tests/**/*.ts`), which select no Markdown file; `includes.byRule` gives this
+law `**/*.md`, or it would judge nothing.
+
+Every tracked Markdown file now ends with the footer the law asks for. The
+values are facts, not claims: the version points at the file's git history,
+and the rating is a status word — `reviewed` only where the file was checked
+against the code or the process that day, `current` for the CHANGELOG,
+`needs-review` everywhere else.
+
 ### 🐛 Fixed — Test Data Management read an exact expected value as hardcoded test data (#439)
 
 Any string of 20 or more characters inside `expect(…).toBe(…)` matched the
@@ -120,6 +135,46 @@ are reported as before.
 
 The Python branch is unchanged.
 
+### ⚠️ BREAKING — Code Documentation Standards judges each exported class and function, not ratios (#439)
+
+The law asked for JSDoc but measured something else: a comment-to-code ratio
+per file, a README in every `src/app` / `src/lib` directory, and two coverage
+percentages over regex counts of classes and of every function and method.
+It could pass a file of undocumented exports and fail a well-documented one
+for being short on `//` lines. In the self-audit of this repository 81 of its
+82 findings were "Low comment ratio"; the one coverage finding (classes,
+50.4%) did not count a JSDoc block at the top of a file for the file's only
+exported class (97.5% when counted). Its messages also carried absolute paths
+on Windows: the root (`D:\…`) was stripped from file paths written `D:/…`.
+
+Before: comment ratio, README presence, class coverage ≥ 80 %, function and
+method coverage ≥ 60 %. After: one rule, one finding per declaration —
+`src/x.ts:12: exported class X has no JSDoc`:
+
+- every exported class and exported function (a function declaration, or a
+  `const`/`let`/`var` initialised with an arrow or function expression;
+  `export default`, and a local declaration named in `export { … }`) needs a
+  non-empty JSDoc block above it — above its decorators, where the compiler,
+  IDEs and TypeDoc read it;
+- a JSDoc block at the top of the file documents the file's only exported
+  class/function;
+- methods, interfaces, types, enums, non-function constants, non-exported
+  code and `.d.ts` files are not judged.
+
+The files are read with the project's own `typescript`, not a regex (an
+`export class` in a template string is no longer a class); without it they
+are reported as not read, and a file that does not parse is named. Paths in
+the messages are relative, with forward slashes, on every platform.
+`ignores.byRule` keyed by this law now applies.
+
+`thresholds.codeQuality.minCommentRatioPercent`, `minFileSizeForComments`,
+`thresholds.documentation.minClassDocumentationPercent` and
+`minFunctionDocumentationPercent` are no longer read (marked deprecated in the
+config types).
+
+Self-audit of this repository: 82 findings before → 171 after (40 classes,
+131 functions, in 68 files).
+
 ### 🐛 Fixed — a committed PRE_DEPLOYMENT_CHECKLIST.md was reported missing when `includes` name only source (#476)
 
 Pre-Deployment Checklist looked the checklist up through the source scan,
@@ -177,6 +232,12 @@ turns it on with `laws.severity: { "MD Footer Template (MANDATORY)": "warning" }
 (or its lawId `docs_5ef46de8`), or lists it in `laws.enabled`. Without that the
 law does not run, and nothing is printed. MD Footer Footer Consistency stays on
 by default.
+
+If `includes.global` does not select Markdown (it names only source, e.g.
+`src/**/*.ts`), the law finds no file to judge and says so ("N Markdown file(s)
+exist, but the configured includes / ignores select none of them — nothing was
+judged"), which makes the run partial. Give it the Markdown files with
+`includes.byRule: { "md-footer-template-mandatory": ["**/*.md"] }`.
 
 Laws selected per release-canary profile, before → after, and what leaves:
 
@@ -3769,3 +3830,8 @@ _Changelog entries prior to v7.11.0 predate the public release and are not inclu
 Earlier history kept for verification: [7.8.1 → 7.9.1, the hook modes that narrowed
 the law set](docs/history/7.8.1-7.9.1-hooks-narrowed.md) (122 → 27 laws), copied unchanged
 from the private repository.
+
+---
+
+<!-- roc-footer -->
+**Document Version:** the git history of this file &middot; **Last Updated:** 2026-11-21 &middot; **Status:** Active &middot; **Investment Rating:** current

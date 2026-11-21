@@ -1,6 +1,12 @@
 import { PathOperations } from '../../../../utils/path-operations';
 import { NxWorkspace } from '../../../../utils/nx-workspace';
 
+/**
+ * Where the Core Web Vitals Compliance analyzers look: Lighthouse config
+ * names, routing-file and service-worker globs, and helpers that resolve
+ * index.html, the web app manifest (every location Angular and Nx put it),
+ * nginx.conf, angular.json and webpack.config.js against the project root.
+ */
 export class CoreWebVitalsFileDiscoveryConstants {
   static readonly CONFIG_FILES = {
     LIGHTHOUSE_CONFIG: 'lighthouse.config.js',

@@ -140,32 +140,3 @@ export function numericLiterals(
   visit(source);
   return sites;
 }
-
-/**
- * The file with every string, template and regex literal and every comment
- * turned to spaces — same length, so an offset from the parse points at the
- * same place. What is left is code, for a look at the text around a literal.
- */
-export function codeView(ts: typeof TS, source: TS.SourceFile): string {
-  const chars = source.text.split('');
-  const visit = (node: TS.Node): void => {
-    if (
-      ts.isStringLiteral(node) ||
-      ts.isNoSubstitutionTemplateLiteral(node) ||
-      ts.isTemplateLiteralToken(node) ||
-      ts.isRegularExpressionLiteral(node)
-    ) {
-      for (let i = node.getStart(source); i < node.getEnd(); i++) {
-        if (chars[i] !== '\n') chars[i] = ' ';
-      }
-      return;
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(source);
-  return chars
-    .join('')
-    .replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, comment =>
-      comment.replace(/[^\n]/g, ' ')
-    );
-}

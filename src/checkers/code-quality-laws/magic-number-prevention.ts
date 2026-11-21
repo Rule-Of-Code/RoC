@@ -13,7 +13,8 @@ import {
   parserUnavailable,
 } from '../../utils/react/tsx-source';
 import { CodeQualityLawBase } from './code-quality-law-base';
-import { codeView, numericLiterals } from './magic-number-names';
+import { numericLiterals } from './magic-number-names';
+import { readSource } from './source-view';
 
 export class MagicNumberPreventionLaw extends CodeQualityLawBase {
   static check(context: LawCheckContext): LawResult {
@@ -168,13 +169,7 @@ export class MagicNumberPreventionLaw extends CodeQualityLawBase {
   ): string[] {
     const ts = loadTypeScript(projectRoot);
     if (!ts) throw new Error(parserUnavailable(projectRoot, fileName));
-    const source = ts.createSourceFile(
-      fileName,
-      content,
-      ts.ScriptTarget.Latest,
-      true
-    );
-    const code = codeView(ts, source);
+    const { source, code } = readSource(ts, content, fileName);
     const magicNumbers = numericLiterals(ts, source)
       .filter(site => !site.named && this.isCandidate(site.text))
       .filter(site => !this.namedByText(code, site.start, site.text))

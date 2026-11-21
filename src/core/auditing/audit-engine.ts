@@ -37,7 +37,10 @@ import type {
   WaivedLaw,
 } from './audit-types';
 import { AuditResultProcessor } from './result-processor';
-import { absolutePatternsIn } from '../../utils/config/path-patterns';
+import {
+  absolutePatternsIn,
+  literalNamesReadAsClassesIn,
+} from '../../utils/config/path-patterns';
 
 // Force chalk to use colors in all environments
 chalk.level = 1;
@@ -862,6 +865,16 @@ export class RuleOfCodeAuditor {
     for (const [where, pattern] of absolutePatternsIn(this.config)) {
       console.warn(
         `⚠️  ${where}: '${pattern}' is an absolute path outside the project (${this.projectRoot}) — it matches nothing. Write it relative to the project root.`
+      );
+    }
+    for (const [where, pattern, segment, kind] of literalNamesReadAsClassesIn(
+      this.config,
+      this.projectRoot
+    )) {
+      const name = segment.replace(/\\(.)/g, '$1');
+      const literal = name.replace(/[[\]{}()*?!+@]/g, ch => `\\${ch}`);
+      console.warn(
+        `⚠️  ${where}: '${pattern}' — '${segment}' is a glob character class and does not match the ${kind} '${name}' — write ${literal} for the literal name.`
       );
     }
   }

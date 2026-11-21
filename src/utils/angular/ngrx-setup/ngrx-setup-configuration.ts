@@ -76,14 +76,19 @@ export class NgRxSetupConfiguration {
    * Core coordination methods - delegate to specialized classes
    */
   static getAppModulePath = NgRxPathOperations.getAppModulePath;
-  static getAppConfigPath = NgRxPathOperations.getAppConfigPath;
-  static getSourcePath = NgRxPathOperations.getSourcePath;
+  static getAppConfigPath =
+    NgRxPathOperations.getAppConfigPath.bind(NgRxPathOperations);
+  static getSourcePath =
+    NgRxPathOperations.getSourcePath.bind(NgRxPathOperations);
   static getPackageJsonData = NgRxDependencyAnalyzer.getPackageJsonData;
   static getAllProjectDependencies =
     NgRxDependencyAnalyzer.getAllProjectDependencies;
   static checkDevToolsDependencyInstalled =
-    NgRxDependencyAnalyzer.checkDevToolsDependencyInstalled;
-  static checkDevToolsConfigured = NgRxDevToolsChecker.checkDevToolsConfigured;
+    NgRxDependencyAnalyzer.checkDevToolsDependencyInstalled.bind(
+      NgRxDependencyAnalyzer
+    );
+  static checkDevToolsConfigured =
+    NgRxDevToolsChecker.checkDevToolsConfigured.bind(NgRxDevToolsChecker);
   static analyzeDependencies(packageJson: Record<string, unknown>) {
     return NgRxDependencyAnalyzer.analyzeDependencies(packageJson);
   }

@@ -123,9 +123,11 @@ describe('utils/angular/ngrx-setup/ngrx-setup-configuration', () => {
         );
       });
 
+      // Same result as the owner, called on the owner (#511): the alias used
+      // to be the bare method, so `this` was NgRxSetupConfiguration.
       it('should delegate getSourcePath to NgRxPathOperations', () => {
-        expect(NgRxSetupConfiguration.getSourcePath).toBe(
-          NgRxPathOperations.getSourcePath
+        expect(NgRxSetupConfiguration.getSourcePath(process.cwd())).toBe(
+          NgRxPathOperations.getSourcePath(process.cwd())
         );
       });
 
@@ -142,15 +144,17 @@ describe('utils/angular/ngrx-setup/ngrx-setup-configuration', () => {
       });
 
       it('should delegate checkDevToolsDependencyInstalled to NgRxDependencyAnalyzer', () => {
-        expect(NgRxSetupConfiguration.checkDevToolsDependencyInstalled).toBe(
-          NgRxDependencyAnalyzer.checkDevToolsDependencyInstalled
+        expect(
+          NgRxSetupConfiguration.checkDevToolsDependencyInstalled(process.cwd())
+        ).toBe(
+          NgRxDependencyAnalyzer.checkDevToolsDependencyInstalled(process.cwd())
         );
       });
 
       it('should delegate checkDevToolsConfigured to NgRxDevToolsChecker', () => {
-        expect(NgRxSetupConfiguration.checkDevToolsConfigured).toBe(
-          NgRxDevToolsChecker.checkDevToolsConfigured
-        );
+        expect(
+          NgRxSetupConfiguration.checkDevToolsConfigured(process.cwd())
+        ).toBe(NgRxDevToolsChecker.checkDevToolsConfigured(process.cwd()));
       });
 
       it('should delegate analyzeDependencies to NgRxDependencyAnalyzer', () => {

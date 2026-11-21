@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — NgRx Selectors Memoization Mandate reported "Check failed" on NgRx projects with an app.module.ts (#511)
+
+`NgRxSetupConfiguration` copied `checkDevToolsDependencyInstalled` and
+`checkDevToolsConfigured` from other classes as bare static fields. Called
+through it, `this` was `NgRxSetupConfiguration`, which has neither
+`getDependencyKeys` nor `readConfigFile`, so the check threw
+`this.getDependencyKeys is not a function` and the law reported
+`❌ Check failed` instead of judging the project. The aliases are now bound to
+the class that owns the method. Five more aliases of the same kind, with no
+caller yet, are bound the same way (`getAppConfigPath`, `getSourcePath`,
+`NgRxSetupValidation.getSetupAnalysisSummary`, `FileUtils.getFilesInWorkspace`,
+`FileUtils.resolve`). `FileUtils.getFilesInWorkspace` returned an empty list
+after logging the swallowed TypeError. Four unit tests asserted that the alias
+*was* the owner's function, which is exactly the bug; they now compare results.
+
 ### Internal — eslint is a direct devDependency
 
 `npm run lint` runs `eslint .`, but `eslint` was only installed as a peer of

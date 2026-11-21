@@ -50,6 +50,12 @@ function resolveLawClass(lawName: string): SyncLawClass | null {
   return ModularLawsRegistry.LAW_CLASS_MAPPING[law.checkFunction] ?? null;
 }
 
+/**
+ * Runs the law titled `lawName` against `context` and resolves true when it
+ * passes, or when the project waives that concern. Resolves false when the
+ * law is unknown, throws, or is already being consulted further up the call
+ * stack (a cycle).
+ */
 export async function owningLawSatisfied(
   context: LawCheckContext,
   lawName: string

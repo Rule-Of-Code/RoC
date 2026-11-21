@@ -47,6 +47,11 @@ interface Frame {
 const NOT_ELEMENT_RULES =
   /^@(?:-[\w]+-)?(?:keyframes|font-face|page|property|counter-style)\b/i;
 
+/**
+ * Reads CSS, SCSS or Less text into rules (selector, declarations, lines),
+ * with nested selectors joined to their parent and comments blanked, and
+ * picks class names out of a selector list.
+ */
 export class CssRules {
   /** Every rule with at least one declaration, in source order. */
   static parse(text: string, file = '', firstLine = 1): CssRule[] {

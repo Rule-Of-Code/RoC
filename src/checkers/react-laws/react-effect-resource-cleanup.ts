@@ -59,6 +59,12 @@ export function startedResource(
   return null;
 }
 
+/**
+ * React Effect Resource Cleanup: reports each effect whose setup starts an
+ * interval, an animation frame, a listener, a subscription, a WebSocket /
+ * EventSource or an `*Observer` and returns no cleanup function. A
+ * `// roc-allow-effect-without-cleanup: <reason>` above the effect accepts it.
+ */
 export class ReactEffectResourceCleanupLaw extends LawBase {
   static readonly LAW_NAME = 'React Effect Resource Cleanup';
 

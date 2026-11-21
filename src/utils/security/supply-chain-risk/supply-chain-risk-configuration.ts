@@ -126,16 +126,26 @@ export const INTEGRITY_THRESHOLD = 0.8;
 // Helper Functions
 // ============================================================================
 
+/**
+ * Whether a package name matches SUSPICIOUS_PATTERNS: a typo of react,
+ * express or lodash (`reac7`, `expres5`, `lodas4`), a run of 8+ digits,
+ * 1-3 letters followed by 5+ digits, or test/temp package (any case).
+ */
 export function isSuspiciousPackageName(name: string): boolean {
   return SUSPICIOUS_PATTERNS.some(pattern => pattern.test(name));
 }
 
+/**
+ * Whether the name is exactly one of eval, serialize-javascript,
+ * node-fetch-npm, request or bower.
+ */
 export function isRiskyPackage(packageName: string): boolean {
   return RISKY_PACKAGES.includes(
     packageName as (typeof RISKY_PACKAGES)[number]
   );
 }
 
+/** `<projectRoot>/node_modules/<packageName>`. */
 export function getNodeModulesPackagePath(
   projectRoot: string,
   packageName: string
@@ -143,26 +153,37 @@ export function getNodeModulesPackagePath(
   return joinPath(projectRoot, DIRECTORY_NAMES.NODE_MODULES, packageName);
 }
 
+/** The `package.json` path inside a package directory. */
 export function getPackageJsonPath(packagePath: string): string {
   return joinPath(packagePath, CONFIG_FILES.PACKAGE_JSON);
 }
 
+/**
+ * Whether `scripts` defines a non-empty preinstall, postinstall,
+ * preuninstall or postuninstall script.
+ */
 export function hasRiskyInstallScripts(
   scripts: Record<string, string>
 ): boolean {
   return RISKY_INSTALL_SCRIPTS.some(script => scripts[script]);
 }
 
+/** `<projectRoot>/package-lock.json`. */
 export function getPackageLockPath(projectRoot: string): string {
   return joinPath(projectRoot, CONFIG_FILES.PACKAGE_LOCK_JSON);
 }
 
+/** Whether a package-lock entry is an object with an `integrity` key. */
 export function hasIntegrity(pkgInfo: unknown): boolean {
   return (
     typeof pkgInfo === 'object' && pkgInfo !== null && 'integrity' in pkgInfo
   );
 }
 
+/**
+ * Whether a package-lock `packages` entry counts as a dependency: an
+ * object under a non-empty path (the '' entry is the project itself).
+ */
 export function shouldCountPackage(pkgPath: string, pkgInfo: unknown): boolean {
   return pkgPath !== '' && typeof pkgInfo === 'object' && pkgInfo !== null;
 }

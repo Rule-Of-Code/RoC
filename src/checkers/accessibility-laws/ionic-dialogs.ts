@@ -61,6 +61,15 @@ export function templateKey(file: string): string {
 
 const ION_MODAL = 'ion-modal';
 
+/**
+ * Finds the component templates that ion-modal presents, for Modal Dialog
+ * Accessibility: components passed to `ModalController.create({ component })`
+ * and components whose selector is nested in an `<ion-modal>` template, each
+ * with whether that presentation keeps the focus trap. Only non-test .ts
+ * files mentioning `templateUrl` or `ModalController` are parsed; without
+ * `typescript`, or for a file that does not parse, the result says what was
+ * not read.
+ */
 export class IonicDialogReader {
   /**
    * Read the project's component sources and templates for ion-modal

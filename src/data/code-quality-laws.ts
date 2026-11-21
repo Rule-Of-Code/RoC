@@ -134,12 +134,14 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Undocumented public code is a maze with no signs — the next engineer reverse-engineers what a docstring could have told them in a sentence. This law asks that classes and functions carry the why the code itself cannot.',
     satisfiedBy: {
       typescript:
-        'Put a JSDoc /** */ block before >=80% of exported classes and >=60% of functions/methods; keep a >=10% comment ratio in files over 50 lines; add a README in src/app or src/lib dirs.',
+        'Put a non-empty JSDoc /** */ block above every exported class and exported function (a function declaration, or a const/let/var initialised with an arrow or function expression), above its decorators. A file whose only exported class/function it is may carry the block at the top of the file instead.',
     },
     detectionLimits: [
-      'Regex counting of classes/functions (no AST); the comment-ratio counts any // or /* line regardless of what it actually says.',
-      'The README check fires only under src/app or src/lib paths; an empty project scores 100.',
-      'TS only — no Python (no export class / JSDoc to count).',
+      'Judges presence, not content: any non-empty JSDoc block satisfies it, however little it says.',
+      'Only top-level declarations: methods, interfaces, types, enums, non-function constants, namespace members and non-exported code are not judged; a function wrapped in a call (export const f = wrap(() => …)) is not seen as a function.',
+      'A re-export (export { a } from …) is judged in the module that declares it, not where it is re-exported; .d.ts files are not judged.',
+      "Reads .ts/.tsx with the project's own typescript; without it the files are reported as not read, and a file that does not parse is named as not read.",
+      'TS only — no Python (Public Docstrings judges Python).',
     ],
     emoji: '📝',
     description:

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Internal — two accessibility checkers below the complexity limit
+
+Code Complexity Control reported Disclosure Control ARIA State and Form
+Control Labeling (complexity 11 each) on the self-audit. The first hands
+the onClick handler test to `callsWithBoolean`, the second the slot checks
+of an Ionic control to `slotNames`. No law reports anything different.
+
 ### Internal — eslint is a direct devDependency
 
 `npm run lint` runs `eslint .`, but `eslint` was only installed as a peer of

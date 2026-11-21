@@ -3,6 +3,8 @@ import type { RuleOfCodeConfig } from '../../../config/types';
 import { PerformanceBudgetComplianceAnalyzerService } from '../../../laws/performance/performance-budget-compliance/services';
 import { ProjectTypeDetector } from '../../config/project-type-detector';
 import { ANGULAR_CONSTANTS } from '../../constants';
+import { FileSystemOperations } from '../../file-system-operations';
+import { PathOperations } from '../../path-operations';
 import { AngularBundleConfiguration } from './angular-bundle-configuration';
 
 /**
@@ -115,6 +117,10 @@ export class AngularBundleValidationPatterns {
     projectRoot: string,
     suggestions: string[]
   ): void {
+    // An Angular CLI project has no webpack config of its own: the CLI owns
+    // it and the budgets live in angular.json. Telling it to add maxAssetSize
+    // "in webpack configuration" is advice it cannot follow (#449, QA matrix).
+    if (!this.hasOwnWebpackConfig(projectRoot)) return;
     try {
       const webpackAnalysis =
         PerformanceBudgetComplianceAnalyzerService.analyzeWebpackBudgets(
@@ -141,6 +147,40 @@ export class AngularBundleValidationPatterns {
       const message = this.Config.VALIDATION_MESSAGES.WEBPACK_CONFIG_MISSING();
       suggestions.push(message.suggestionMessage);
     }
+  }
+
+  /** Custom builders that hand the project its own webpack config. */
+  private static readonly CUSTOM_WEBPACK_BUILDERS = [
+    '@angular-builders/custom-webpack',
+    'ngx-build-plus',
+    'customWebpackConfig',
+  ];
+
+  /**
+   * Whether the project has a webpack config it writes itself: a
+   * webpack.config.* / webpack.prod.* at the root or under config/, or an
+   * angular.json build through a custom-webpack builder.
+   */
+  static hasOwnWebpackConfig(projectRoot: string): boolean {
+    for (const dir of ['', 'config']) {
+      const where = dir ? PathOperations.join(projectRoot, dir) : projectRoot;
+      const names = FileSystemOperations.exists(where)
+        ? FileSystemOperations.readDirectory(where).map(entry => entry.name)
+        : [];
+      if (
+        names.some(name => /^webpack\.(?:config|prod)\.[cm]?[jt]s$/.test(name))
+      )
+        return true;
+    }
+    const angularJson = PathOperations.join(projectRoot, 'angular.json');
+    if (!FileSystemOperations.exists(angularJson)) return false;
+    let text: string;
+    try {
+      text = FileSystemOperations.readFileSync(angularJson);
+    } catch {
+      return false;
+    }
+    return this.CUSTOM_WEBPACK_BUILDERS.some(token => text.includes(token));
   }
 
   /**

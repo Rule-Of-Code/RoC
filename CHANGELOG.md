@@ -52,6 +52,17 @@ TypeScript parse.
 Score deductions, unnamed length limits and other unnamed literals in code
 are reported as before.
 
+### 🐛 Fixed — Centralized Logging counted a CLI's output, strings and the logging module itself (#424, #425)
+
+| | before | after |
+|---|---|---|
+| `console.log(` inside a string | a call | not code |
+| package with `bin` in package.json | every `console.*` counted | `console.log/info` is the command's output in the whole package; `console.warn/error` only in the command's entry modules (the source of each `bin` target, the directory named after it, a `commands/` beside it); elsewhere `warn/error`, and `debug/trace` everywhere, still count |
+| where console is allowed | files named `logger.service.ts` and `main.ts` | also any logging module: `logger.*`, `logging*`, `log.*` |
+| no loadable `typescript` | text scanned | ".ts file(s) were NOT read" — judged nothing |
+
+The Python branch is unchanged.
+
 ### 🐛 Fixed — a committed PRE_DEPLOYMENT_CHECKLIST.md was reported missing when `includes` name only source (#476)
 
 Pre-Deployment Checklist looked the checklist up through the source scan,

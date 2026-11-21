@@ -146,6 +146,13 @@ URL in pyproject.toml, GitHub or GitLab issue templates). A project with
 neither is asked, as before.
 
 Self-audit of this repository: Strategic Document Updates — before 1 finding ("Missing PROJECT_STATUS.md file"), after pass (CHANGELOG.md + `bugs` in package.json + .github/ISSUE_TEMPLATE).
+### Changed — Constitutional Compliance Headers: a repository-level license is enough
+
+A LICENSE file at the root together with the `license` field in package.json
+states the terms for every file; the law passes and says so. Without both,
+the per-file headers, template and automation are judged as before.
+
+Self-audit of this repository: Constitutional Compliance Headers — before 4 findings, after pass (LICENSE + package.json license MIT).
 ### 🐛 Fixed — an Angular CLI project was told to add webpack limits it cannot write (#449)
 
 Once the budget suggestion read angular.json correctly (#449), the two

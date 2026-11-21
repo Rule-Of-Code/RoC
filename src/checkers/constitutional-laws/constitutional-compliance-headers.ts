@@ -8,9 +8,64 @@ import {
   HeaderAutomationAnalyzer,
   HeaderConfigurationAnalyzer,
 } from '../../utils/constitutional';
+import { FileUtils } from '../../utils/file-utils';
+import { PathOperations } from '../../utils/path-operations';
+
+/** License texts a repository keeps at its root. */
+const LICENSE_FILES = [
+  'LICENSE',
+  'LICENSE.md',
+  'LICENSE.txt',
+  'LICENCE',
+  'LICENCE.md',
+  'LICENCE.txt',
+  'COPYING',
+  'COPYING.md',
+];
 
 export class ConstitutionalComplianceHeadersLaw {
+  /**
+   * The license and terms stated once for the whole repository: a license
+   * text at the root AND the license named in package.json, which npm and
+   * every dependency scanner read. That is where a package's terms live; a
+   * header repeating them in every file adds nothing a reader or a tool
+   * uses, and has to be kept in step by hand.
+   */
+  private static repositoryLicense(projectRoot: string): string | null {
+    const text = LICENSE_FILES.find(name =>
+      FileUtils.exists(PathOperations.join(projectRoot, name))
+    );
+    if (!text) return null;
+    const manifest = PathOperations.join(projectRoot, 'package.json');
+    if (!FileUtils.exists(manifest)) return null;
+    try {
+      const { license } = JSON.parse(FileUtils.readFile(manifest)) as {
+        license?: unknown;
+      };
+      return typeof license === 'string' && license.trim() !== ''
+        ? `${text} + package.json license (${license.trim()})`
+        : null;
+    } catch {
+      return null;
+    }
+  }
+
   static check(context: LawCheckContext): LawResult {
+    const declared = this.repositoryLicense(context.projectRoot);
+    if (declared) {
+      const message = `Constitutional Compliance Headers: license declared for the whole repository — ${declared}; per-file headers are not required`;
+      return {
+        passed: true,
+        lawName: 'Constitutional Compliance Headers',
+        message,
+        details: [message],
+        violations: [],
+        suggestions: [],
+        score: 100,
+        config: context.config,
+      };
+    }
+
     const violations: string[] = [];
     const suggestions: string[] = [];
 
@@ -35,6 +90,11 @@ export class ConstitutionalComplianceHeadersLaw {
     );
     violations.push(...automationAnalysis.violations);
     suggestions.push(...automationAnalysis.suggestions);
+    if (violations.length > 0) {
+      suggestions.push(
+        'Or state the terms once for the repository: a LICENSE file at the root and the license field in package.json'
+      );
+    }
 
     return {
       passed: violations.length === 0,

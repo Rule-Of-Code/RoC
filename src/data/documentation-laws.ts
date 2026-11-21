@@ -5,6 +5,7 @@
 
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
+import { REQUIRES_PRODUCTION_SUBJECT } from '../utils/production-subject-requirements';
 
 export const DOCUMENTATION_LAWS: EnhancedConstitutionalLaw[] = [
   // NEW REAL LAWS WITH IMPLEMENTATIONS!
@@ -98,7 +99,8 @@ export const DOCUMENTATION_LAWS: EnhancedConstitutionalLaw[] = [
         'End each Markdown file with the footer block after a horizontal rule: Document Version, Last Updated, Status, and a Rating line. The rating accepts any scale you declare — N/10, a letter grade, or a status word such as reviewed / needs-review / superseded.',
     },
     detectionLimits: [
-      'It globs every **/*.md and bypasses the configured ignore paths, so vendored or generated Markdown is graded too.',
+      'Opt-in (defaultEnabled: false): the footer is a house convention of the projects that adopt it, not a property every repository must have. Turn it on with a severity in laws.severity (e.g. "MD Footer Template (MANDATORY)": "warning") or by listing it in laws.enabled.',
+      'It globs **/*.md (not node_modules, dist, .nx) and keeps what the configured includes / ignores select. When that leaves no file — no Markdown at all, or includes that list only code — it says nothing was judged, never that the project has no documentation.',
       'A single ordinary Markdown file without the bespoke footer raises a violation and fails the whole law — the check is all-or-nothing across every file it globs.',
       'The rating is checked for being present and readable, never for being TRUE — nothing verifies that anyone reviewed the document or that the grade matches its state.',
     ],
@@ -108,7 +110,8 @@ export const DOCUMENTATION_LAWS: EnhancedConstitutionalLaw[] = [
     priority: 'MEDIUM',
     category: 'DOCUMENTATION',
     automation: 'CONFIGURABLE',
-    defaultEnabled: true,
+    // Opt-in: a house convention, enabled by the projects that adopt it.
+    defaultEnabled: false,
     defaultSeverity: 'warning',
     checkFunction: 'checkMDFooterTemplate',
     violationMessage:
@@ -240,12 +243,12 @@ export const DOCUMENTATION_LAWS: EnhancedConstitutionalLaw[] = [
       'Strategic docs — README, status, changelog — rot silently; a stale roadmap misleads worse than none. This law checks the key docs exist and looks fresh.',
     satisfiedBy: {
       typescript:
-        'Keep README, a status/roadmap file and a CHANGELOG present and recently touched, with versions consistent across package.json, README and CHANGELOG.',
+        'Keep a README and a CHANGELOG present and recently touched, with versions consistent across package.json, README and CHANGELOG, and say where the project is going: an issue tracker (a bugs URL in package.json, issue templates) or a status/roadmap file.',
       python:
         'The doc-presence checks are stack-neutral; the freshness signal is file mtime, which a fresh clone resets.',
     },
     detectionLimits: [
-      'Only a missing README, status/roadmap file or CHANGELOG can fail it; a "basic" README, a stale mtime and a version mismatch are advisory and never fail the law.',
+      'Only a missing README, CHANGELOG or status record can fail it; a "basic" README, a stale mtime and a version mismatch are advisory and never fail the law. The status record is a PROJECT_STATUS / STATUS / ROADMAP file, or a CHANGELOG together with an issue tracker: a bugs URL in package.json, an Issues / Bug Tracker URL in pyproject.toml, or issue templates (.github/ISSUE_TEMPLATE, .gitlab/issue_templates). Whether the tracker is used is not read.',
       'Freshness is judged by file modification time under 30 days, which a git clone resets and an old checkout inflates, independent of the actual content.',
       'Document quality is a count of heading keywords, not an assessment of what the doc says.',
     ],
@@ -361,8 +364,9 @@ export const DOCUMENTATION_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Only the missing runbook, escalation and communication checks can fail it; the roles and RTO/SLA findings are advisory and affect neither the verdict nor the score.',
       'Satisfaction is file presence plus keyword matching in the doc text; it never verifies the described procedures are real or current.',
-      'It applies to every project including a Python CLI or library that may have no incident surface at all, with no gating.',
+      'Selected only where something runs for users and can have an incident: a Node or Python HTTP framework, a web surface, a mobile app shell, or a deploy target. A CLI tool or a library does not select it.',
     ],
+    requires: REQUIRES_PRODUCTION_SUBJECT,
     emoji: '🔔',
     description:
       'Clear documentation and procedures for incident response and escalation',

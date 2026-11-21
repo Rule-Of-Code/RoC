@@ -96,11 +96,7 @@ export class PrePrQualityGatesLaw {
 
     return {
       passed: violations.length === 0,
-      message: this.generateMessage(
-        violations.length,
-        preCommitHooks,
-        prTemplates
-      ),
+      message: this.generateMessage(violations),
       details: [...violations, ...suggestions],
       violations,
       suggestions,
@@ -228,8 +224,9 @@ export class PrePrQualityGatesLaw {
       }
     }
 
-    // On Bitbucket (and on GitHub without the settings app), branch protection
-    // is configured SERVER-SIDE: there is no file in the repository to read, and
+    // On Bitbucket, Azure, GitHub and GitLab, branch protection is configured
+    // SERVER-SIDE (rulesets, protected branches): there is no file in the
+    // repository to read — a settings-app YAML is optional — and
     // no file the team can add to satisfy us. Reporting "missing branch
     // protection" there is reporting the limits of our vision as a fact about
     // their repo — and the only way to silence it is to commit a decorative
@@ -263,7 +260,9 @@ export class PrePrQualityGatesLaw {
     // went unrecognised — the same commit in the same repository passed from
     // one directory and failed from another.
     return resolveRemoteUrls(projectRoot).some(url =>
-      /bitbucket\.org|dev\.azure\.com|visualstudio\.com/i.test(url)
+      /bitbucket\.org|dev\.azure\.com|visualstudio\.com|github\.com|gitlab\.com/i.test(
+        url
+      )
     );
   }
 
@@ -384,20 +383,15 @@ export class PrePrQualityGatesLaw {
     return statusCheckPatterns.some(pattern => pattern.test(content));
   }
 
-  private static generateMessage(
-    violationCount: number,
-    preCommitHooks: PreCommitHooksAnalysis,
-    prTemplates: PRTemplateAnalysis
-  ): string {
-    if (violationCount === 0) {
+  /**
+   * Built from the violations themselves. It listed only two of the four
+   * kinds, so a run whose one violation was branch protection printed
+   * "Missing " with an empty list (#435).
+   */
+  private static generateMessage(violations: readonly string[]): string {
+    if (violations.length === 0) {
       return '✅ Pre-PR Quality Gates: Comprehensive PR validation configured';
     }
-
-    const missingItems = [];
-    if (!preCommitHooks.hasPreCommitHooks)
-      missingItems.push('Pre-commit hooks');
-    if (!prTemplates.hasPRTemplate) missingItems.push('PR templates');
-
-    return `⚠️ Pre-PR Quality Gates: Missing ${missingItems.join(', ')}`;
+    return `⚠️ Pre-PR Quality Gates: ${violations.join('; ')}`;
   }
 }

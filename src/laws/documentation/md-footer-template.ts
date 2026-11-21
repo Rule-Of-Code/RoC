@@ -1,6 +1,7 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileFilterUtils } from '../../utils/file-filter-utils';
 import { FileUtils } from '../../utils/file-utils';
+import { markJudgedNothing } from '../../utils/judged-nothing';
 import { PathOperations } from '../../utils/path-operations';
 /**
  * MD Footer Template Law
@@ -25,22 +26,12 @@ export class MdFooterTemplateLaw {
     const { projectRoot, config } = context;
 
     // 1. Find all markdown files in the project
-    const markdownFiles = this.findMarkdownFiles(projectRoot, config);
+    const { found, selected: markdownFiles } = this.findMarkdownFiles(
+      projectRoot,
+      config
+    );
     if (markdownFiles.length === 0) {
-      violations.push('No markdown files found in project');
-      suggestions.push('Create documentation with proper MD files');
-      score -= 20;
-
-      return Promise.resolve({
-        passed: false,
-        score,
-        message: 'No markdown files to validate',
-        details: [...violations, ...suggestions],
-        violations,
-        suggestions,
-        fixable: true,
-        config: context.config,
-      });
+      return this.nothingJudged(context, found.length);
     }
 
     // 2. Check footer compliance for each markdown file
@@ -130,10 +121,41 @@ export class MdFooterTemplateLaw {
     });
   }
 
+  /**
+   * No Markdown file to judge. That is not a finding about the project's
+   * documentation: a project without Markdown has nothing for a footer law
+   * to read, and one whose `includes` / `ignores` leave its Markdown out has
+   * told the audit not to read it (#436). Either way nothing was judged, and
+   * the result says which, instead of "no markdown files found in project".
+   */
+  private static nothingJudged(
+    context: LawCheckContext,
+    foundCount: number
+  ): LawResult {
+    const violation =
+      foundCount === 0
+        ? 'No Markdown file in the project — nothing was judged'
+        : `${foundCount} Markdown file(s) exist, but the configured includes / ignores select none of them — nothing was judged`;
+    const suggestion =
+      foundCount === 0
+        ? 'Leave this opt-in law off, or enable it once the project has Markdown documentation'
+        : 'Add the Markdown files to includes.global (for example "**/*.md"), or leave this opt-in law off';
+    return markJudgedNothing({
+      passed: false,
+      score: 0,
+      message: violation,
+      details: [violation, suggestion],
+      violations: [violation],
+      suggestions: [suggestion],
+      fixable: true,
+      config: context.config,
+    });
+  }
+
   private static findMarkdownFiles(
     projectRoot: string,
     config: LawCheckContext['config']
-  ): string[] {
+  ): { found: string[]; selected: string[] } {
     const { glob } = require('glob');
 
     const found: string[] = glob.sync('**/*.md', {
@@ -147,7 +169,7 @@ export class MdFooterTemplateLaw {
     // whose `includes` / `ignores` meant nothing, and the files it caught were
     // the ones nobody wrote: a README scaffolded into `ios/` by Capacitor is
     // not documentation a project can be asked to footer.
-    return found.filter(
+    const selected = found.filter(
       file =>
         !FileFilterUtils.shouldIgnoreFile(
           PathOperations.getRelative(projectRoot, file),
@@ -156,6 +178,7 @@ export class MdFooterTemplateLaw {
           true
         )
     );
+    return { found, selected };
   }
 
   private static analyzeFooterCompliance(markdownFiles: string[]): {

@@ -49,6 +49,17 @@ describe('PreDeploymentChecklistLaw', () => {
     FileUtils.deleteDirectory(tempDir);
   });
 
+  /**
+   * A deploy target: the project runs for users, so the runtime clauses
+   * (auth, benchmarking, health, logging) are asked at all (#428).
+   */
+  const runsForUsers = (): void => {
+    FileUtils.writeFile(
+      PathOperations.join(tempDir, 'Procfile'),
+      'web: node server.js\n'
+    );
+  };
+
   describe('check()', () => {
     it('should return a LawResult object', async () => {
       const result = await PreDeploymentChecklistLaw.check(mockContext);
@@ -238,6 +249,7 @@ describe('PreDeploymentChecklistLaw', () => {
 
   describe('with authentication setup', () => {
     it('should report missing authentication', async () => {
+      runsForUsers();
       const result = await PreDeploymentChecklistLaw.check(mockContext);
       expect(result.violations).toContain(
         'Authentication/authorization setup not detected'
@@ -283,6 +295,7 @@ describe('PreDeploymentChecklistLaw', () => {
 
   describe('with performance benchmarking', () => {
     it('should report missing performance benchmarking', async () => {
+      runsForUsers();
       const result = await PreDeploymentChecklistLaw.check(mockContext);
       expect(result.violations).toContain(
         'Performance benchmarking not configured'
@@ -306,6 +319,7 @@ describe('PreDeploymentChecklistLaw', () => {
     });
 
     it('should detect lighthouse config', async () => {
+      runsForUsers();
       FileUtils.writeFile(
         PathOperations.join(tempDir, 'lighthouse.config.js'),
         'module.exports = { extends: "lighthouse:default" };'
@@ -349,6 +363,7 @@ describe('PreDeploymentChecklistLaw', () => {
     });
 
     it('reports missing logging when the owning law does not pass', async () => {
+      runsForUsers();
       FileUtils.createDirectory(PathOperations.join(tempDir, 'src'));
       FileUtils.writeFile(
         PathOperations.join(tempDir, 'src', 'thing.ts'),

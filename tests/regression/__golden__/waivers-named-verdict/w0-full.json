@@ -6,15 +6,15 @@
     "source": "detected"
   },
   "scope": {
-    "executedLaws": 77,
-    "selectedLaws": 77,
-    "applicableLaws": 77,
+    "executedLaws": 71,
+    "selectedLaws": 71,
+    "applicableLaws": 71,
     "partial": false
   },
   "stats": {
-    "executedLaws": 79,
-    "totalLaws": 79,
-    "passedLaws": 79,
+    "executedLaws": 73,
+    "totalLaws": 73,
+    "passedLaws": 73,
     "failedLaws": 0,
     "warningLaws": 0,
     "score": 100
@@ -126,19 +126,6 @@
     },
     {
       "id": "law-8",
-      "lawId": "quality_f66318df",
-      "legacyId": 11,
-      "lawTitle": "NX Commands Only Policy",
-      "passed": true,
-      "score": 100,
-      "violations": [],
-      "suggestions": [],
-      "message": "stub pass",
-      "severity": "error",
-      "lawName": "nx-commands-only-policy"
-    },
-    {
-      "id": "law-9",
       "lawId": "quality_573039e0",
       "legacyId": 13,
       "lawTitle": "Code Documentation Standards",
@@ -151,7 +138,7 @@
       "lawName": "code-documentation-standards"
     },
     {
-      "id": "law-10",
+      "id": "law-9",
       "lawId": "quality_d5646828",
       "legacyId": 14,
       "lawTitle": "Code Complexity Control",
@@ -164,7 +151,7 @@
       "lawName": "code-complexity-control"
     },
     {
-      "id": "law-11",
+      "id": "law-10",
       "lawId": "quality_6551f690",
       "legacyId": 15,
       "lawTitle": "Naming Convention Enforcement",
@@ -177,7 +164,7 @@
       "lawName": "naming-convention-enforcement"
     },
     {
-      "id": "law-12",
+      "id": "law-11",
       "lawId": "quality_af1eb631",
       "legacyId": 16,
       "lawTitle": "Dead Code Elimination",
@@ -190,7 +177,7 @@
       "lawName": "dead-code-elimination"
     },
     {
-      "id": "law-13",
+      "id": "law-12",
       "lawId": "quality_4c69ae20",
       "legacyId": 17,
       "lawTitle": "Magic Number Prevention",
@@ -203,7 +190,7 @@
       "lawName": "magic-number-prevention"
     },
     {
-      "id": "law-14",
+      "id": "law-13",
       "lawId": "quality_70abf16c",
       "legacyId": 18,
       "lawTitle": "Code Duplication Control",
@@ -216,7 +203,7 @@
       "lawName": "code-duplication-control"
     },
     {
-      "id": "law-15",
+      "id": "law-14",
       "lawId": "quality_1b5411c4",
       "legacyId": 19,
       "lawTitle": "Error Handling Completeness",
@@ -229,7 +216,7 @@
       "lawName": "error-handling-completeness"
     },
     {
-      "id": "law-16",
+      "id": "law-15",
       "lawId": "quality_c7a73cec",
       "legacyId": 20,
       "lawTitle": "No Explicit Any / Non-Null Assertion",
@@ -242,7 +229,7 @@
       "lawName": "no-explicit-any-/-non-null-assertion"
     },
     {
-      "id": "law-17",
+      "id": "law-16",
       "lawId": "quality_64679b89",
       "legacyId": 21,
       "lawTitle": "No Double Cast",
@@ -255,7 +242,7 @@
       "lawName": "no-double-cast"
     },
     {
-      "id": "law-18",
+      "id": "law-17",
       "lawId": "quality_be5c4bfe",
       "legacyId": 22,
       "lawTitle": "Typed HTTP Boundaries",
@@ -268,7 +255,7 @@
       "lawName": "typed-http-boundaries"
     },
     {
-      "id": "law-19",
+      "id": "law-18",
       "lawId": "quality_27f11fd5",
       "legacyId": 23,
       "lawTitle": "Prefer Union Over Enum",
@@ -281,7 +268,7 @@
       "lawName": "prefer-union-over-enum"
     },
     {
-      "id": "law-20",
+      "id": "law-19",
       "lawId": "quality_3fd5e3f8",
       "legacyId": 24,
       "lawTitle": "Centralized Logging",
@@ -294,7 +281,7 @@
       "lawName": "centralized-logging"
     },
     {
-      "id": "law-21",
+      "id": "law-20",
       "lawId": "git_458f5bac",
       "legacyId": 20,
       "lawTitle": "Branch Governance Standards",
@@ -307,7 +294,7 @@
       "lawName": "branch-governance-standards"
     },
     {
-      "id": "law-22",
+      "id": "law-21",
       "lawId": "git_6519fd51",
       "legacyId": 21,
       "lawTitle": "Commit Message Standards",
@@ -320,7 +307,7 @@
       "lawName": "commit-message-standards"
     },
     {
-      "id": "law-23",
+      "id": "law-22",
       "lawId": "git_1c9ac4e4",
       "legacyId": 30,
       "lawTitle": "Commit Description Standards",
@@ -333,7 +320,7 @@
       "lawName": "commit-description-standards"
     },
     {
-      "id": "law-24",
+      "id": "law-23",
       "lawId": "git_6c542555",
       "legacyId": 22,
       "lawTitle": "Pull Request Workflow Standards",
@@ -346,7 +333,7 @@
       "lawName": "pull-request-workflow-standards"
     },
     {
-      "id": "law-25",
+      "id": "law-24",
       "lawId": "git_94f598d6",
       "legacyId": 881,
       "lawTitle": "Git Ignore Standards",
@@ -359,7 +346,7 @@
       "lawName": "git-ignore-standards"
     },
     {
-      "id": "law-26",
+      "id": "law-25",
       "lawId": "git_ab6fb137",
       "legacyId": 882,
       "lawTitle": "Git Hooks Standards",
@@ -372,7 +359,7 @@
       "lawName": "git-hooks-standards"
     },
     {
-      "id": "law-27",
+      "id": "law-26",
       "lawId": "git_c16353da",
       "legacyId": 883,
       "lawTitle": "Branch Protection Standards",
@@ -385,7 +372,7 @@
       "lawName": "branch-protection-standards"
     },
     {
-      "id": "law-28",
+      "id": "law-27",
       "lawId": "git_2be193b3",
       "legacyId": 23,
       "lawTitle": "Git History Integrity",
@@ -398,7 +385,7 @@
       "lawName": "git-history-integrity"
     },
     {
-      "id": "law-29",
+      "id": "law-28",
       "lawId": "git_b4842d5a",
       "legacyId": 24,
       "lawTitle": "Feature Branch Protection",
@@ -411,7 +398,7 @@
       "lawName": "feature-branch-protection"
     },
     {
-      "id": "law-30",
+      "id": "law-29",
       "lawId": "git_b152182d",
       "legacyId": 25,
       "lawTitle": "Commit Size Control",
@@ -424,7 +411,7 @@
       "lawName": "commit-size-control"
     },
     {
-      "id": "law-31",
+      "id": "law-30",
       "lawId": "git_cb3d5489",
       "legacyId": 26,
       "lawTitle": "Merge Conflict Prevention",
@@ -437,7 +424,7 @@
       "lawName": "merge-conflict-prevention"
     },
     {
-      "id": "law-32",
+      "id": "law-31",
       "lawId": "git_8a590c30",
       "legacyId": 27,
       "lawTitle": "Release Tag Standards",
@@ -450,7 +437,7 @@
       "lawName": "release-tag-standards"
     },
     {
-      "id": "law-33",
+      "id": "law-32",
       "lawId": "git_e15663c0",
       "legacyId": 28,
       "lawTitle": "Code Review Quality",
@@ -463,7 +450,7 @@
       "lawName": "code-review-quality"
     },
     {
-      "id": "law-34",
+      "id": "law-33",
       "lawId": "git_2d640cb5",
       "legacyId": 29,
       "lawTitle": "Git Hook Compliance",
@@ -476,7 +463,7 @@
       "lawName": "git-hook-compliance"
     },
     {
-      "id": "law-35",
+      "id": "law-34",
       "lawId": "git_e70368d4",
       "legacyId": 88,
       "lawTitle": "Semantic Versioning Standards",
@@ -489,7 +476,7 @@
       "lawName": "semantic-versioning-standards"
     },
     {
-      "id": "law-36",
+      "id": "law-35",
       "lawId": "angular_4557c2ba",
       "legacyId": 30,
       "lawTitle": "Constitutional Compliance Headers",
@@ -502,7 +489,7 @@
       "lawName": "constitutional-compliance-headers"
     },
     {
-      "id": "law-37",
+      "id": "law-36",
       "lawId": "security_e77aba29",
       "legacyId": 40,
       "lawTitle": "Environment Variables Policy",
@@ -515,7 +502,7 @@
       "lawName": "environment-variables-policy"
     },
     {
-      "id": "law-38",
+      "id": "law-37",
       "lawId": "security_dc098b35",
       "legacyId": 41,
       "lawTitle": "Environment Security Enforcement",
@@ -528,7 +515,7 @@
       "lawName": "environment-security-enforcement"
     },
     {
-      "id": "law-39",
+      "id": "law-38",
       "lawId": "security_6b4b4f19",
       "legacyId": 42,
       "lawTitle": "Security Vulnerability Response",
@@ -541,7 +528,7 @@
       "lawName": "security-vulnerability-response"
     },
     {
-      "id": "law-40",
+      "id": "law-39",
       "lawId": "security_ba20d0da",
       "legacyId": 45,
       "lawTitle": "Data Encryption Standards",
@@ -554,7 +541,7 @@
       "lawName": "data-encryption-standards"
     },
     {
-      "id": "law-41",
+      "id": "law-40",
       "lawId": "security_db5e3ca1",
       "legacyId": 46,
       "lawTitle": "Authentication Security",
@@ -567,7 +554,7 @@
       "lawName": "authentication-security"
     },
     {
-      "id": "law-42",
+      "id": "law-41",
       "lawId": "security_0e026da8",
       "legacyId": 49,
       "lawTitle": "API Security Testing Requirements",
@@ -580,7 +567,7 @@
       "lawName": "api-security-testing-requirements"
     },
     {
-      "id": "law-43",
+      "id": "law-42",
       "lawId": "security_a8d3e1aa",
       "legacyId": 60,
       "lawTitle": "API Security Standards",
@@ -593,7 +580,7 @@
       "lawName": "api-security-standards"
     },
     {
-      "id": "law-44",
+      "id": "law-43",
       "lawId": "security_a0bcc52d",
       "legacyId": 61,
       "lawTitle": "Dependency Security Scanning",
@@ -606,7 +593,7 @@
       "lawName": "dependency-security-scanning"
     },
     {
-      "id": "law-45",
+      "id": "law-44",
       "lawId": "security_27fd7fd7",
       "legacyId": 60,
       "lawTitle": "Comprehensive Security Testing Requirements",
@@ -619,20 +606,7 @@
       "lawName": "comprehensive-security-testing-requirements"
     },
     {
-      "id": "law-46",
-      "lawId": "performance_351f896e",
-      "legacyId": 55,
-      "lawTitle": "Performance Monitoring Standards",
-      "passed": true,
-      "score": 100,
-      "violations": [],
-      "suggestions": [],
-      "message": "stub pass",
-      "severity": "error",
-      "lawName": "performance-monitoring-standards"
-    },
-    {
-      "id": "law-47",
+      "id": "law-45",
       "lawId": "performance_0f6e2c27",
       "legacyId": 56,
       "lawTitle": "Memory Leak Prevention",
@@ -645,7 +619,7 @@
       "lawName": "memory-leak-prevention"
     },
     {
-      "id": "law-48",
+      "id": "law-46",
       "lawId": "performance_015917d8",
       "legacyId": 57,
       "lawTitle": "Database Query Optimization",
@@ -658,20 +632,7 @@
       "lawName": "database-query-optimization"
     },
     {
-      "id": "law-49",
-      "lawId": "performance_664dd2d3",
-      "legacyId": 58,
-      "lawTitle": "CDN and Caching Strategy",
-      "passed": true,
-      "score": 100,
-      "violations": [],
-      "suggestions": [],
-      "message": "stub pass",
-      "severity": "warning",
-      "lawName": "cdn-and-caching-strategy"
-    },
-    {
-      "id": "law-50",
+      "id": "law-47",
       "lawId": "testing_557c4854",
       "legacyId": 60,
       "lawTitle": "Test Coverage Constitutional Standard",
@@ -684,7 +645,7 @@
       "lawName": "test-coverage-constitutional-standard"
     },
     {
-      "id": "law-51",
+      "id": "law-48",
       "lawId": "testing_476ee197",
       "legacyId": 61,
       "lawTitle": "E2E Testing Standards",
@@ -697,7 +658,7 @@
       "lawName": "e2e-testing-standards"
     },
     {
-      "id": "law-52",
+      "id": "law-49",
       "lawId": "testing_21073589",
       "legacyId": 62,
       "lawTitle": "Unit Test Quality Standards",
@@ -710,7 +671,7 @@
       "lawName": "unit-test-quality-standards"
     },
     {
-      "id": "law-53",
+      "id": "law-50",
       "lawId": "testing_fe80f055",
       "legacyId": 65,
       "lawTitle": "Test Data Management",
@@ -723,7 +684,7 @@
       "lawName": "test-data-management"
     },
     {
-      "id": "law-54",
+      "id": "law-51",
       "lawId": "testing_307d2a4f",
       "legacyId": 66,
       "lawTitle": "Test Isolation Enforcement",
@@ -736,7 +697,7 @@
       "lawName": "test-isolation-enforcement"
     },
     {
-      "id": "law-55",
+      "id": "law-52",
       "lawId": "testing_fc963968",
       "legacyId": 67,
       "lawTitle": "API Testing Standards",
@@ -749,7 +710,7 @@
       "lawName": "api-testing-standards"
     },
     {
-      "id": "law-56",
+      "id": "law-53",
       "lawId": "testing_0bd3e1f5",
       "legacyId": 69,
       "lawTitle": "Test Documentation Requirements",
@@ -762,7 +723,7 @@
       "lawName": "test-documentation-requirements"
     },
     {
-      "id": "law-57",
+      "id": "law-54",
       "lawId": "testing_11a2e367",
       "legacyId": 70,
       "lawTitle": "Jest Unit Test 100% Coverage Mandate",
@@ -775,7 +736,7 @@
       "lawName": "jest-unit-test-100%-coverage-mandate"
     },
     {
-      "id": "law-58",
+      "id": "law-55",
       "lawId": "deployment_37c13d47",
       "legacyId": 71,
       "lawTitle": "Pre-Deployment Checklist (MANDATORY)",
@@ -788,7 +749,7 @@
       "lawName": "pre-deployment-checklist-(mandatory)"
     },
     {
-      "id": "law-59",
+      "id": "law-56",
       "lawId": "deployment_2dfc084c",
       "legacyId": 72,
       "lawTitle": "CI/CD Constitutional Tribunal",
@@ -801,20 +762,7 @@
       "lawName": "ci/cd-constitutional-tribunal"
     },
     {
-      "id": "law-60",
-      "lawId": "deployment_b1c8dba1",
-      "legacyId": 73,
-      "lawTitle": "Launch Readiness Checklist",
-      "passed": true,
-      "score": 100,
-      "violations": [],
-      "suggestions": [],
-      "message": "stub pass",
-      "severity": "error",
-      "lawName": "launch-readiness-checklist"
-    },
-    {
-      "id": "law-61",
+      "id": "law-57",
       "lawId": "deployment_12c23cce",
       "legacyId": 74,
       "lawTitle": "Pre-PR Quality Gates",
@@ -827,7 +775,7 @@
       "lawName": "pre-pr-quality-gates"
     },
     {
-      "id": "law-62",
+      "id": "law-58",
       "lawId": "deployment_01dbde1f",
       "legacyId": 75,
       "lawTitle": "Automated Code Quality Gates",
@@ -840,7 +788,7 @@
       "lawName": "automated-code-quality-gates"
     },
     {
-      "id": "law-63",
+      "id": "law-59",
       "lawId": "deployment_b3f26bd6",
       "legacyId": 78,
       "lawTitle": "Environment Parity Standards",
@@ -853,7 +801,7 @@
       "lawName": "environment-parity-standards"
     },
     {
-      "id": "law-64",
+      "id": "law-60",
       "lawId": "deployment_666d10d7",
       "legacyId": 79,
       "lawTitle": "Health Check Monitoring",
@@ -866,7 +814,7 @@
       "lawName": "health-check-monitoring"
     },
     {
-      "id": "law-65",
+      "id": "law-61",
       "lawId": "docs_90594915",
       "legacyId": 884,
       "lawTitle": "Documentation Standards",
@@ -879,7 +827,7 @@
       "lawName": "documentation-standards"
     },
     {
-      "id": "law-66",
+      "id": "law-62",
       "lawId": "docs_3275e142",
       "legacyId": 885,
       "lawTitle": "Project Structure Standards",
@@ -892,20 +840,7 @@
       "lawName": "project-structure-standards"
     },
     {
-      "id": "law-67",
-      "lawId": "docs_5ef46de8",
-      "legacyId": 80,
-      "lawTitle": "MD Footer Template (MANDATORY)",
-      "passed": true,
-      "score": 100,
-      "violations": [],
-      "suggestions": [],
-      "message": "stub pass",
-      "severity": "warning",
-      "lawName": "md-footer-template-(mandatory)"
-    },
-    {
-      "id": "law-68",
+      "id": "law-63",
       "lawId": "docs_baf8f0af",
       "legacyId": 81,
       "lawTitle": "TODO Management Constitutional Requirements",
@@ -918,7 +853,7 @@
       "lawName": "todo-management-constitutional-requirements"
     },
     {
-      "id": "law-69",
+      "id": "law-64",
       "lawId": "docs_ad613f2f",
       "legacyId": 82,
       "lawTitle": "TODO Management Standards",
@@ -931,7 +866,7 @@
       "lawName": "todo-management-standards"
     },
     {
-      "id": "law-70",
+      "id": "law-65",
       "lawId": "docs_42b0ad34",
       "legacyId": 83,
       "lawTitle": "MD Footer Footer Consistency",
@@ -944,7 +879,7 @@
       "lawName": "md-footer-footer-consistency"
     },
     {
-      "id": "law-71",
+      "id": "law-66",
       "lawId": "docs_ad314474",
       "legacyId": 84,
       "lawTitle": "Strategic Document Updates",
@@ -957,20 +892,7 @@
       "lawName": "strategic-document-updates"
     },
     {
-      "id": "law-72",
-      "lawId": "docs_cd2817cb",
-      "legacyId": 87,
-      "lawTitle": "Incident Response Protocol",
-      "passed": true,
-      "score": 100,
-      "violations": [],
-      "suggestions": [],
-      "message": "stub pass",
-      "severity": "error",
-      "lawName": "incident-response-protocol"
-    },
-    {
-      "id": "law-73",
+      "id": "law-67",
       "lawId": "meta_59c6436e",
       "legacyId": 226,
       "lawTitle": "Audit Liveness Assertion",
@@ -983,7 +905,7 @@
       "severity": "error"
     },
     {
-      "id": "law-74",
+      "id": "law-68",
       "lawId": "meta_5ef1482c",
       "legacyId": 227,
       "lawTitle": "Config Integrity Guard",
@@ -996,7 +918,7 @@
       "severity": "error"
     },
     {
-      "id": "law-75",
+      "id": "law-69",
       "lawId": "meta_381a664d",
       "legacyId": 232,
       "lawTitle": "Golden Fixture Immutability",
@@ -1009,7 +931,7 @@
       "lawName": "golden-fixture-immutability"
     },
     {
-      "id": "law-76",
+      "id": "law-70",
       "lawId": "integrity_77931c4a",
       "legacyId": 593,
       "lawTitle": "Guard Function Has Production Caller",
@@ -1022,7 +944,7 @@
       "lawName": "guard-function-has-production-caller"
     },
     {
-      "id": "law-77",
+      "id": "law-71",
       "lawId": "integrity_f6e5dfa9",
       "legacyId": 594,
       "lawTitle": "Tsconfig Exclude Leaves Code Untyped",
@@ -1035,7 +957,7 @@
       "lawName": "tsconfig-exclude-leaves-code-untyped"
     },
     {
-      "id": "law-78",
+      "id": "law-72",
       "lawId": "measurement_be445ad1",
       "legacyId": 891,
       "lawTitle": "Test Server Loopback Address Match",

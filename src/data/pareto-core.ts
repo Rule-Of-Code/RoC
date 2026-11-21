@@ -29,8 +29,11 @@
  *    registry order.
  * 3. Take the top {@link PARETO_CORE_RATIO} of the group's candidates,
  *    rounded (a gate with one or two laws gets none by quota).
- * 4. The protected tier is never cut by that quota: every SACRED law, and
- *    every CRITICAL SECURITY law at `error`, is a core law.
+ * 4. The protected tier is never cut by that quota: every SACRED law,
+ *    every CRITICAL SECURITY law at `error`, and every CRITICAL `error`
+ *    law that every project selects (no stack, no `requires`) is a core
+ *    law — the last so that gating other laws to their subject cannot
+ *    push a universal critical check out of the core (#428).
  *
  * Why the protected tier stops there. The ungated typescript laws hold
  * seven CRITICAL `error` laws and their quota is three: the four SACRED
@@ -117,10 +120,34 @@ function tierOf(law: CoreFields): number {
   return law.category === 'SECURITY' && law.defaultSeverity === 'error' ? 1 : 0;
 }
 
+/**
+ * A CRITICAL `error` law that every project selects: no stack, no
+ * `requires`. A quota is a share of a group, so it moves whenever laws
+ * leave the group — gated to their subject, or made opt-in — and the law
+ * at its edge falls out of the core of every project as a side effect,
+ * not by a decision about that law. Gating CDN, monitoring, incident and
+ * launch laws to their subject (#428) took CI/CD Constitutional Tribunal
+ * out of every fast run that way. A critical, blocking check that applies
+ * to every project is not the edge of a share; it is always in the core.
+ * Derived from the law's own fields, like the rest of the rule — no list —
+ * and it adds nothing a stack scope's quota did not already hold except
+ * the law such a move would cut.
+ */
+function isUniversalCritical(law: CoreFields): boolean {
+  return (
+    law.stack === undefined &&
+    law.requires === undefined &&
+    law.priority === 'CRITICAL' &&
+    law.defaultSeverity === 'error'
+  );
+}
+
 /** Step 4: a law the quota never cuts. */
 function isProtected(law: CoreFields): boolean {
   return (
-    tierOf(law) === 2 || (tierOf(law) === 1 && law.priority === 'CRITICAL')
+    tierOf(law) === 2 ||
+    (tierOf(law) === 1 && law.priority === 'CRITICAL') ||
+    isUniversalCritical(law)
   );
 }
 

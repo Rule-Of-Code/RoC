@@ -7,6 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ⚠️ BREAKING — Node 20 or later (#21)
+
+`engines.node` is now `>=20` (was `>=16.0.0`). The old floor was already
+untrue: a runtime dependency in 7.29.1's lockfile (`@inquirer/external-editor`)
+declares `>=18`, and CI ran Node 20 only. Node 20 is now the floor because it
+is the oldest line that both `glob` 14 (`18 || 20 || >=22`) and `minimatch` 11
+(`20 || >=22`) support.
+
+CI runs the whole gate (build, lint, format, jest, release canary, self-audit)
+on Node 20, the declared floor, and on Node 26, the Active LTS line on
+2026-11-21 (nodejs.org/dist/index.json; nodejs/Release `schedule.json`: v26
+Active LTS since 2026-10-28). The required check `Constitutional gate` is now
+a job that is green only when every Node version is. A test reads
+package.json, the CI matrix and the lockfile, and fails when the lowest CI
+version is not the declared floor, a CI step pins its own Node version, or a
+runtime dependency declares an `engines.node` that refuses the floor.
+
+### ⬆️ Dependencies — `glob` 10.5.0 → 14.0.6, `minimatch` 9.0.9 → 11.0.9 (#21)
+
+No source change was needed: what RoC uses (`glob`, `globSync`, `sync`,
+`glob.sync`; `minimatch(path, pattern, options)`; glob options `cwd`,
+`ignore`, `absolute`, `dot`, `nodir`, `maxDepth`) behaves the same.
+`npm audit --omit=dev` goes from two moderate advisories (GHSA-3g3m-2fjr-6pw4,
+glob 9.0.0–14.0.1; GHSA-g3hv-75wg-m249, minimatch 7.0.0–11.0.0) to none. The
+ranges start at the measured versions (`^14.0.6`, `^11.0.9`): `^14` alone
+would admit 14.0.0, which is inside the advisory. 17 runtime packages leave
+the tree and 2 come in (`@isaacs/nonrecursive-glob-match`, a newer
+`balanced-match`).
+
+Measured on Windows, so that a different file set cannot hide behind an
+unchanged verdict (173 projects: 165 Next.js fixtures, the `_ng-outside`
+fixture, saas-starter, commerce, create-t3-turbo, three read-only festrr
+clones, and RoC's own develop tree; the audit cache off):
+
+| what | result |
+|---|---|
+| every `glob`/`minimatch` call of `audit --json` recorded under 10.5.0 + 9.0.9 and under 14.0.6 + 11.0.9, same build | identical in 173/173 projects: 16,260 distinct glob calls (pattern, options, sorted result), 21,128 minimatch pattern+option pairs over 1,232,214 distinct (pattern, path) tests, and the same call counts |
+| `audit --json` of develop's build vs this branch's build | byte-identical in 173/173 (no field stripped), same exit code in 173/173 |
+| 307 glob-like literals (274 from `src`, 33 from the projects' configs) × 10,065 paths × 4 option sets, minimatch 9.0.9 vs 11.0.9 | 0 of 12,359,820 disagree |
+| escaped forms from #451 (`weird\[1\]/**`, `a\{b,c\}`, `x\(1\)`, `\!keep`, …): minimatch, and glob `ignore` on a real tree | 0 of 780, 0 of 15 |
+| read-only clones, `git status --porcelain` before and after every run | empty, unchanged |
+
+The full set was measured on develop 1d24269. After develop gained #451
+(a minimatch call for escaped brackets in config patterns), both
+comparisons were run again on 9a2386b for the seven projects that are not
+fixtures: call logs identical in 7/7 (478 glob calls, 856 minimatch
+pattern+option pairs over 914,208 tests), audit JSON byte-identical in 7/7.
+
 ### 🔧 CI — `actions/checkout` and `actions/setup-node` v4 → v7 (#21)
 
 `actions/checkout` and `actions/setup-node` go from v4 to v7 in both

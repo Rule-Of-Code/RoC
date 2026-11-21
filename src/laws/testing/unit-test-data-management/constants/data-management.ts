@@ -193,13 +193,23 @@ export class UnitTestDataManagementConstants {
   }
 
   /**
-   * Check if content has shared mutable state
+   * Whether the CODE of a test file shares mutable state. Comments and the
+   * contents of strings and templates are not code: a note saying why a
+   * `window.x =` was removed, or a fixture string holding `window.x = 1`
+   * that a detector's test hands in, is not the assignment (#513). Read
+   * with the parser (CodeText.codeOnly), as Test Isolation Enforcement reads
+   * its patterns; the law reports its files as not read without one (#427).
    */
-  static hasSharedMutableState(content: string): boolean {
-    // Prose is not code: a comment saying why a `window.x =` was removed must
-    // not be read as the assignment itself.
-    const code = CodeText.stripComments(content);
-    return Object.values(this.SHARED_STATE_PATTERNS).some(pattern =>
+  static hasSharedMutableState(
+    content: string,
+    fileName?: string,
+    projectRoot?: string
+  ): boolean {
+    const patterns = Object.values(this.SHARED_STATE_PATTERNS);
+    // Parse only a file whose text could hold a match at all.
+    if (!patterns.some(pattern => pattern.test(content))) return false;
+    const code = CodeText.codeOnly(content, fileName, projectRoot);
+    return patterns.some(pattern =>
       PatternMatchingUtils.hasRegexPattern(code, pattern)
     );
   }

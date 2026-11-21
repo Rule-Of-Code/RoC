@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Test Data Management read shared state inside strings as code (#513)
+
+A test that hands a detector source code as a fixture string was reported for
+the fixture's code: ``'<Script>{`window.x = 1`}</Script>'``, or a template
+holding `window.onerror = …`, as shared mutable state — and, without a
+beforeEach/afterEach, as state nothing resets. The check stripped comments
+only.
+
+Shared state is now matched on the file with comments and string contents
+removed by the TypeScript parser (`CodeText.codeOnly`), as Test Isolation
+Enforcement already reads the same kind of pattern. A real top-level
+`window.x = 1`, `global.y = …` or module-scope `let` is still reported.
+Without a loadable `typescript` the law already says its files were not read
+(#427). Hardcoded test data written inside fixture strings is #426.
+
 ### Internal — two copied helpers read through their one implementation
 
 Code Duplication Control reported three copies in our own code; two are

@@ -330,8 +330,12 @@ export interface RuleOfCodeConfig {
       maxFileLines?: number;
       /** Maximum dependencies per module */
       maxDependencies?: number;
-      /** Minimum code block size for duplication detection */
+      /** Minimum size, in characters, of a function body compared for duplication. Default: 50. */
       minDuplicationBlockSize?: number;
+      /** Minimum lines of code in a function body compared for duplication. Default: 5. */
+      minDuplicationLines?: number;
+      /** Minimum tokens in a function body compared for duplication. Default: 50. */
+      minDuplicationTokens?: number;
       /**
        * @deprecated Not read since 8.0.0: Code Documentation Standards no longer
        * judges the comment ratio (it judges JSDoc on exported classes and functions).

@@ -70,7 +70,6 @@ export * from './security/security-documentation';
 export { SecurityPolicyChecker } from './security/security-policy-checker';
 export * from './security/security-shared-utils';
 export * from './security/security-tooling';
-export * from './security/supply-chain-risk';
 export * from './security/vulnerability-management';
 
 // Testing exports

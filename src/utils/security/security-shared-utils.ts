@@ -4,7 +4,6 @@
  * RULE 2: Centralized utilities to eliminate duplication
  */
 
-import { ConfigFileUtils } from '../config-file-utils';
 import { ProjectTypeDetector } from '../config/project-type-detector/project-type-detector';
 import { CONFIG_FILES, DIRECTORY_NAMES, DOC_FILES } from '../file-constants';
 import { FileUtils } from '../file-utils';
@@ -124,21 +123,6 @@ export function readFileContent(projectRoot: string, file: string): string {
 
 export const { getPackageJson } = ProjectTypeDetector;
 export const { getAllDependencies } = ProjectTypeDetector;
-
-/**
- * Reads a JSON file through ConfigFileUtils.loadConfig. That loader returns the
- * object only when it looks like a RuleOfCode config (it has an `ignores`,
- * `includes` or `laws` key); for any other JSON — an ordinary package.json
- * or package-lock.json included — and for a missing or unreadable file the
- * result is null.
- */
-export function loadPackageJson(path: string): Record<string, unknown> | null {
-  try {
-    return ConfigFileUtils.loadConfig(path);
-  } catch {
-    return null;
-  }
-}
 
 // ============================================================================
 // NPM Registry Utilities

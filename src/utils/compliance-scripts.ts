@@ -24,9 +24,9 @@
  */
 const RUNS_AUDIT = /\b(?:ruleofcode|roc)\b[^&|]*\baudit\b/i;
 
-/** Other compliance runners a project may gate on instead. */
+/** Other compliance runners a project may gate on instead: dependency scanners. */
 const RUNS_OTHER_COMPLIANCE = [
-  /\bnpm\s+audit\b/i,
+  /\b(?:npm|yarn|pnpm)\s+audit\b/i,
   /\bpip-audit\b/i,
   /\bsafety\s+check\b/i,
   /\bsnyk\s+(?:test|monitor)\b/i,
@@ -67,6 +67,17 @@ export function runsComplianceCheck(
   return Object.values(scripts).some(command =>
     RUNS_OTHER_COMPLIANCE.some(pattern => pattern.test(String(command)))
   );
+}
+
+/**
+ * Does this command text run a dependency scanner (npm / yarn / pnpm audit,
+ * pip-audit, safety check, snyk test)? Read line by line, so a scanner named
+ * on one line and an unrelated word on another are not joined.
+ */
+export function runsDependencyScan(text: string): boolean {
+  return text
+    .split(/\r?\n/)
+    .some(line => RUNS_OTHER_COMPLIANCE.some(pattern => pattern.test(line)));
 }
 
 /**

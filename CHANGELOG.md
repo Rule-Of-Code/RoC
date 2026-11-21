@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — Pre-PR Quality Gates: GitHub and GitLab keep branch protection server-side (#435)
+
+A github.com or gitlab.com remote is now a server-side protection host, as
+bitbucket.org and Azure DevOps already were (inferred from the host, not
+verified). The message is built from the violations; it printed "Missing "
+with an empty list when branch protection was the only one.
+
+Self-audit of this repository: Pre-PR Quality Gates — before 1 finding ("Missing branch protection configuration", message "Missing "), after pass (github.com remote).
+
 ### ⚠️ BREAKING — `compliance` and the victory art mean a clean pass; a law that judged nothing makes the run partial
 
 A run of this repository listed 46 laws with violations at warning level, one

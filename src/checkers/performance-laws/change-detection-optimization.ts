@@ -75,7 +75,7 @@ export class ChangeDetectionOptimizationLaw {
     return analyzer(componentFiles);
   }
 
-  private static analyzeComponents(
+  static analyzeComponents(
     projectRoot: string,
     config: RuleOfCodeConfig
   ): { violations: string[]; suggestions: string[] } {
@@ -214,7 +214,7 @@ export class ChangeDetectionOptimizationLaw {
     }
   }
 
-  private static analyzeTrackByUsage(
+  static analyzeTrackByUsage(
     projectRoot: string,
     config: RuleOfCodeConfig
   ): { violations: string[]; suggestions: string[] } {
@@ -240,7 +240,7 @@ export class ChangeDetectionOptimizationLaw {
     return { violations, suggestions };
   }
 
-  private static analyzeObservableUsage(
+  static analyzeObservableUsage(
     projectRoot: string,
     config: RuleOfCodeConfig
   ): { violations: string[]; suggestions: string[] } {

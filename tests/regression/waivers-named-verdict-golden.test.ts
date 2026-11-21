@@ -17,6 +17,8 @@
  *            `scope.waivedLaws` (empty), `scope.liveness` — and the message of
  *            the Audit Liveness result, which now names the floor instead of
  *            "compliance verified".
+ *   8.0.0    `scope.warningLaws` and `scope.judgedNothingLaws` (empty here) and
+ *            `stats.judgedNothingLaws` (0): the lists behind the verdict.
  * Everything else must be byte-for-byte what it was, the victory art included.
  *
  * Record (only ever from code that predates the change being guarded):
@@ -111,8 +113,15 @@ describe('#350 golden: a W = 0 project is unchanged in every mode', () => {
         applicableBeforeWaivers,
         waivedLaws,
         liveness: livenessJson,
+        // 8.0.0: the laws that warned and that judged nothing, by name
+        warningLaws: scopeWarnings,
+        judgedNothingLaws: scopeJudgedNothing,
         ...scope
       } = rest.scope;
+      expect(scopeWarnings).toEqual([]);
+      expect(scopeJudgedNothing).toEqual([]);
+      const { judgedNothingLaws: statsJudgedNothing, ...stats } = rest.stats;
+      expect(statsJudgedNothing).toBe(0);
       expect(applicableBeforeWaivers).toBe(scope.applicableLaws);
       expect(waivedLaws).toEqual([]);
       expect(livenessJson.applicableLaws).toBe(79);
@@ -123,7 +132,7 @@ describe('#350 golden: a W = 0 project is unchanged in every mode', () => {
         `Audit Liveness Assertion: ${scope.selectedLaws} laws selected — ${liveness}`
       );
       livenessResult.message = 'Audit Liveness Assertion compliance verified';
-      expect({ ...rest, scope }).toEqual(
+      expect({ ...rest, scope, stats }).toEqual(
         JSON.parse(fs.readFileSync(jsonFile, 'utf8'))
       );
     },

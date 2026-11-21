@@ -51,6 +51,11 @@ export function canonicalPath(file: string): string {
   }
 }
 
+/**
+ * Reads which project files a set of test files imports directly, resolving
+ * each import from its test file with the nearest tsconfig/jsconfig (see the
+ * file comment for what counts as an import).
+ */
 export class TestImportReader {
   private readonly optionsByDirectory = new Map<string, TS.CompilerOptions>();
   private readonly optionsByConfig = new Map<string, TS.CompilerOptions>();

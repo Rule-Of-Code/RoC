@@ -151,6 +151,12 @@ turns it on with `laws.severity: { "MD Footer Template (MANDATORY)": "warning" }
 law does not run, and nothing is printed. MD Footer Footer Consistency stays on
 by default.
 
+If `includes.global` does not select Markdown (it names only source, e.g.
+`src/**/*.ts`), the law finds no file to judge and says so ("N Markdown file(s)
+exist, but the configured includes / ignores select none of them — nothing was
+judged"), which makes the run partial. Give it the Markdown files with
+`includes.byRule: { "md-footer-template-mandatory": ["**/*.md"] }`.
+
 Laws selected per release-canary profile, before → after, and what leaves:
 
 | profile | before → after | no longer selected |

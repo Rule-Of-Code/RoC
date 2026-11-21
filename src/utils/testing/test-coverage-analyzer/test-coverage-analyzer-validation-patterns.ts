@@ -2,6 +2,7 @@ import { CodeText } from '../../code-text';
 import { FileUtils } from '../../file-utils';
 import { loadTypeScript } from '../../react/tsx-source';
 import { TestCoverageAnalyzerConfiguration } from './test-coverage-analyzer-configuration';
+import { TestNetworkClients } from './test-network-clients';
 
 /** A test file's code (comments and literals blanked) and the clients it loads. */
 export interface CodeReading {
@@ -76,7 +77,7 @@ export class TestCoverageAnalyzerValidationPatterns {
     const testsEdgeCases =
       TestCoverageAnalyzerConfiguration.testsEdgeCases(content);
     const unmockedClients =
-      reading && !TestCoverageAnalyzerConfiguration.hasTestDouble(reading.code)
+      reading && !TestNetworkClients.hasTestDouble(reading.code)
         ? reading.networkClients
         : [];
     const usesMocks = TestCoverageAnalyzerConfiguration.usesMocks(content);
@@ -106,11 +107,7 @@ export class TestCoverageAnalyzerValidationPatterns {
     if (!ts) return null;
     return {
       code: CodeText.codeOnly(content, fileName),
-      networkClients: TestCoverageAnalyzerConfiguration.networkClientsImported(
-        ts,
-        content,
-        fileName
-      ),
+      networkClients: TestNetworkClients.imported(ts, content, fileName),
     };
   }
 

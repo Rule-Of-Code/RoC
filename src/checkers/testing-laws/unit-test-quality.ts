@@ -17,7 +17,7 @@ import {
 import { AsyncTestAnalyzer } from '../../utils/testing/async-test-analyzer';
 import {
   TestCoverageAnalyzer,
-  TestCoverageAnalyzerConfiguration,
+  TestNetworkClients,
 } from '../../utils/testing/test-coverage-analyzer';
 import { TestStructureAnalyzer } from '../../utils/testing/test-structure-analyzer';
 import { TestingLawBase } from './testing-law-base';
@@ -146,12 +146,7 @@ export class UnitTestQualityLaw extends TestingLawBase {
           ts
             ? {
                 code,
-                networkClients:
-                  TestCoverageAnalyzerConfiguration.networkClientsImported(
-                    ts,
-                    content,
-                    file
-                  ),
+                networkClients: TestNetworkClients.imported(ts, content, file),
               }
             : null
         );

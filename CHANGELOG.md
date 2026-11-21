@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed — Constitutional Compliance Headers: a repository-level license is enough
+
+A LICENSE file at the root together with the `license` field in package.json
+states the terms for every file; the law passes and says so. Without both,
+the per-file headers, template and automation are judged as before.
+
+Self-audit of this repository: Constitutional Compliance Headers — before 4 findings, after pass (LICENSE + package.json license MIT).
+
 ### ⚠️ BREAKING — `compliance` and the victory art mean a clean pass; a law that judged nothing makes the run partial
 
 A run of this repository listed 46 laws with violations at warning level, one

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Internal — the Next law checkers are split below the complexity limits
+
+Code Complexity Control reported seven checkers of `src/checkers/next-laws`
+on the self-audit: each had a function above complexity 10, and Next Client
+Props Serializable was also too long. Why a prop cannot cross to a Client
+Component is now read in `client-prop-problems.ts`, and the branching
+functions (the client IP boundary, the route handler guards, the inline
+full-reload reason, the script target, the reference test, the empty client
+graph) hand their sub-steps to named helpers. No law reports anything
+different.
+
 ### Internal — eslint is a direct devDependency
 
 `npm run lint` runs `eslint .`, but `eslint` was only installed as a peer of

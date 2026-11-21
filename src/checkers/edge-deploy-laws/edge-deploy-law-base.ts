@@ -22,6 +22,7 @@ export interface Tally {
   judged: number;
 }
 
+/** An empty tally, for a law to count into while it reads its files. */
 export const newTally = (): Tally => ({ findings: [], notes: [], judged: 0 });
 
 export interface Conclusion {
@@ -41,6 +42,13 @@ export interface Conclusion {
   parserUnavailable?: boolean;
 }
 
+/**
+ * Base of the edge and deploy-security laws (hosting rewrite region, job
+ * definition dumps, proxy origin host, test-build Firebase config, worker
+ * public URLs). `conclude` turns a law's tally into its LawResult by the rule
+ * in this file's header: sorted findings, notes attached, counts in `metrics`,
+ * and judged nothing only when no file was read or the parser was missing.
+ */
 export abstract class EdgeDeployLawBase extends LawBase {
   protected static conclude(
     context: LawCheckContext,

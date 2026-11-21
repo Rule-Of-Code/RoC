@@ -52,6 +52,13 @@ export function parseErrors(
   });
 }
 
+/**
+ * The JSX the accessibility laws judge, and questions they ask of it. `read`
+ * parses every non-test .tsx/.jsx file and lists a file with parse errors as
+ * not read; the other helpers answer whether an element is a DOM element or
+ * has an attribute, its literal attribute value, the tags around it, and
+ * whether a file calls a given method.
+ */
 export class JsxSources {
   /** Every non-test `.tsx`/`.jsx` file, parsed; what could not be read is in `unread`. */
   static read(context: LawCheckContext): ReadJsx {

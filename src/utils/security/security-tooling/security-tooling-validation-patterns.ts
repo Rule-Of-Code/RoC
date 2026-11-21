@@ -11,6 +11,11 @@ import * as Config from './security-tooling-configuration';
 // Security Tools Analysis
 // ============================================================================
 
+/**
+ * Counts the security packages among the dependencies of `packageJson`:
+ * none is a violation ("No dedicated security tools found", score 80);
+ * exactly one is a suggestion to add more (score 95).
+ */
 export function analyzeSecurityTools(
   packageJson: unknown
 ): Config.ToolingAnalysisResult {
@@ -38,6 +43,11 @@ export function analyzeSecurityTools(
 // Security Scripts Analysis
 // ============================================================================
 
+/**
+ * A violation ("No security-related npm scripts found", score 90) when
+ * no script is named like a security check and no script command runs
+ * audit, snyk or retire.
+ */
 export function analyzeSecurityScripts(
   packageJson: unknown
 ): Config.ToolingAnalysisResult {
@@ -64,6 +74,13 @@ export function analyzeSecurityScripts(
 // Vulnerability Database Analysis
 // ============================================================================
 
+/**
+ * Looks for a Snyk config, an audit/retire config, and GitHub security
+ * (a Dependabot config, or a workflow whose file name contains security
+ * or audit). None of the three is a violation (score -25); missing GitHub
+ * security or both config kinds only lowers the score with a suggestion.
+ * A missing SECURITY.md (root, docs/ or .github/) is a suggestion (-5).
+ */
 export function analyzeVulnerabilityDatabases(
   projectRoot: string
 ): Config.ToolingAnalysisResult {
@@ -149,6 +166,11 @@ function evaluateVulnerabilityIntegration(
 // Main Analysis Function
 // ============================================================================
 
+/**
+ * Runs the tools, scripts and vulnerability-database checks and returns
+ * their violations and suggestions together, scored by the LOWEST of
+ * the three scores (not their sum).
+ */
 export function performSecurityToolingAnalysis(
   packageJson: unknown,
   projectRoot: string

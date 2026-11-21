@@ -173,6 +173,7 @@ function containerPolicy(
     : null;
 }
 
+/** The part after the last dot of a dotted name: `self.cache.get` gives `get`. */
 export const lastSegment = (name: string): string =>
   name.split('.').pop() ?? name;
 

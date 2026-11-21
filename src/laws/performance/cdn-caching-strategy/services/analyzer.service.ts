@@ -6,6 +6,11 @@ import { CdnAnalyzerService } from './cdn.analyzer';
 import { Http2OptimizationAnalyzerService } from './http2-optimization.analyzer';
 import { ServiceWorkerAnalyzerService } from './service-worker.analyzer';
 
+/**
+ * Runs the five CDN and Caching Strategy checks on one project and returns
+ * their answers together: CDN configured, asset filenames hashed, caching
+ * headers set, a service worker present, and HTTP/2-friendly delivery.
+ */
 export class CdnCachingStrategyAnalyzerService {
   static async analyze(
     projectRoot: string,

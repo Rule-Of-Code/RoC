@@ -335,6 +335,11 @@ export function scanDuplicateReads(
   return { duplicates: kept, keyedReads };
 }
 
+/**
+ * The finding for one document read more than once while serving a handler:
+ * reported at the first read, listing every read site (and the call that
+ * reached it), with the fix — read once and pass it down, or cache per request.
+ */
 export function describeDuplicateRead(dup: DuplicateRead): string {
   const first = dup.sites[0] as ReadSite;
   const listed = dup.sites

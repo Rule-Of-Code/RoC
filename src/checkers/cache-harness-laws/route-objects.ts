@@ -116,6 +116,11 @@ function parentRoute(
     : null;
 }
 
+/**
+ * A route path in the one spelling routes are compared in: empty segments
+ * (leading, trailing and doubled slashes) dropped and every `:name` parameter
+ * written `:param`, so `/users/:id/` and `users/:userId` are the same route.
+ */
 export function normalisePath(path: string): string {
   return path
     .split('/')

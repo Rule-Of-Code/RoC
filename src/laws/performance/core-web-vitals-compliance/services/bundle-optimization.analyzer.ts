@@ -10,6 +10,13 @@ import {
 import { CoreWebVitalsPerformanceChecksConstants as Checks } from '../constants/performance-checks';
 import type { BundleOptimizationResult } from '../constants/types';
 
+/**
+ * Lists the bundle optimizations a project has; one is enough. Counted: a
+ * Next/Vite production build that is not told to skip minification, a dynamic
+ * import in React source, an Angular routing file using `loadChildren` or
+ * `import(`, or the word `optimization` anywhere in the angular.json /
+ * project.json build config.
+ */
 export class BundleOptimizationAnalyzerService {
   static analyze(
     projectRoot: string,

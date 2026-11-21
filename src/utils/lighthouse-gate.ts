@@ -80,6 +80,13 @@ function findConfigs(projectRoot: string): {
   return { names, content };
 }
 
+/**
+ * Reports whether the project has a Lighthouse config at one of the
+ * conventional paths, whether anything runs Lighthouse (a package script, a
+ * declared dependency, or a CI command — comments and step names do not
+ * count), and whether the config declares a performance threshold. The
+ * places it found Lighthouse wired are listed in `evidence`.
+ */
 export function inspectLighthouseGate(
   projectRoot: string,
   config?: RuleOfCodeConfig

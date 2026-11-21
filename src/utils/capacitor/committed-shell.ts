@@ -33,6 +33,12 @@ export type CommittedRead =
   /** Tracked, but its content could not be read from the index. */
   | { state: 'unreadable' };
 
+/**
+ * Reads native-shell files as the commit holds them: from the git index when
+ * the project is a work tree, from the disk when it is not (or when built with
+ * `onDisk`). `read` says why a file was not read — absent, untracked
+ * (and whether git-ignored) or unreadable — instead of returning nothing.
+ */
 export class CommittedShell {
   private constructor(
     private readonly projectRoot: string,

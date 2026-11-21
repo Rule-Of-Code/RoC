@@ -124,6 +124,14 @@ function stops(ts: TypeScriptModule, branch: TS.Node): boolean {
   return found;
 }
 
+/**
+ * Resolves the imports of a Next app's files for No Test-Only Leakage, with
+ * the app's tsconfig (paths, baseUrl). `edges` lists the project files a
+ * source loads through runtime imports, re-exports, `import()` and
+ * `require()`, each marked gated when it is used only under a `process.env`
+ * condition; packages, .d.ts files and files outside the project are not
+ * edges.
+ */
 export class ImportGraph {
   private readonly options: TS.CompilerOptions;
   private readonly compiled: CompiledImports;

@@ -127,10 +127,12 @@ import {
   mergeConfigResults,
 } from '../shared-configuration-base';
 
+/** An env-file result with no violations and no suggestions. */
 export function createEmptyResult(): EnvCheckResult {
   return createEmptyConfigResult();
 }
 
+/** Concatenates the violations and the suggestions of all results, in argument order. */
 export function mergeResults(...results: EnvCheckResult[]): EnvCheckResult {
   return mergeConfigResults(...results);
 }
@@ -142,14 +144,17 @@ export const { hasPattern, hasAnyPattern, hasAnyRegexPattern } =
 // Message formatting delegated to StringTemplateUtils
 export const formatMessage = StringTemplateUtils.formatNamedTemplate;
 
+/** The path of `envFile` (a name such as `.env.local`) under the project root. */
 export function getEnvFilePath(projectRoot: string, envFile: string): string {
   return PathOperations.join(projectRoot, envFile);
 }
 
+/** Whether `envFile` exists under the project root. */
 export function envFileExists(projectRoot: string, envFile: string): boolean {
   return FileUtils.exists(getEnvFilePath(projectRoot, envFile));
 }
 
+/** The file's UTF-8 text, or '' when it does not exist or cannot be read (never throws). */
 export function safeReadFile(filePath: string): string {
   try {
     return FileUtils.readFile(filePath);
@@ -158,27 +163,41 @@ export function safeReadFile(filePath: string): string {
   }
 }
 
+/**
+ * Whether a `KEY=value` line carries a placeholder rather than a real value:
+ * the value starts with your_, change_me, placeholder, example or xxx (any
+ * case), or is only asterisks, `...` or `<something>`.
+ */
 export function isPlaceholderValue(line: string): boolean {
   return hasAnyRegexPattern(line, PLACEHOLDER_PATTERNS);
 }
 
+/**
+ * Whether the text names, case-insensitively and as a plain substring, any of
+ * SENSITIVE_KEYWORDS (password, secret, key, token, auth, credential,
+ * private, cert, ssl, database, db_, api_key).
+ */
 export function containsSensitiveData(content: string): boolean {
   return hasAnyPattern(content.toLowerCase(), SENSITIVE_KEYWORDS);
 }
 
+/** Whether the line is blank or, after trimming, starts with `#`. */
 export function isCommentOrEmpty(line: string): boolean {
   const trimmed = line.trim();
   return !trimmed || trimmed.startsWith(COMMENT_PREFIX);
 }
 
+/** Whether the name is UPPER_SNAKE_CASE: A–Z or `_` first, then A–Z, 0–9 or `_`. */
 export function isValidVarName(key: string): boolean {
   return VALID_VAR_NAME_PATTERN.test(key);
 }
 
+/** Whether the line contains ` = ` (a space on both sides of the equals sign). */
 export function hasSpacesAroundEquals(line: string): boolean {
   return hasPattern(line, SPACES_AROUND_EQUALS);
 }
 
+/** Whether the value opens with a double or single quote and does not end with the same quote. */
 export function hasUnmatchedQuotes(value: string): boolean {
   const startsWithDouble = value.startsWith(DOUBLE_QUOTE);
   const endsWithDouble = value.endsWith(DOUBLE_QUOTE);
@@ -191,6 +210,7 @@ export function hasUnmatchedQuotes(value: string): boolean {
   );
 }
 
+/** The content split into lines on LF or CRLF. */
 export function splitLines(content: string): string[] {
   // Split on real newlines. This was `split('\\n')` — the two-character string
   // backslash-n — so a whole .env was treated as ONE line: every violation was
@@ -199,10 +219,15 @@ export function splitLines(content: string): string[] {
   return content.split(/\r?\n/);
 }
 
+/** Whether the line ends with `=`, i.e. a variable is declared with no value. */
 export function hasEmptyValue(line: string): boolean {
   return hasPattern(line, '=') && line.endsWith('=');
 }
 
+/**
+ * Splits a trimmed line at its first `=` into key and value (the value keeps
+ * any further `=`); null when the line has no `=`.
+ */
 export function parseEnvLine(
   line: string
 ): { key: string; value: string } | null {

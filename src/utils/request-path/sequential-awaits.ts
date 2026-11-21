@@ -266,6 +266,11 @@ export function scanSequentialAwaits(
   return { runs, asyncFunctions };
 }
 
+/**
+ * The finding for one run of independent awaits in a row, listing each call
+ * and line, with the fix for its language: `Promise.all` or `asyncio.gather`,
+ * or the `roc: sequential-ok` marker with a reason.
+ */
 export function describeSequentialRun(run: SequentialRun): string {
   const listed = run.calls
     .map(c => `${c.callee}() (line ${c.line})`)

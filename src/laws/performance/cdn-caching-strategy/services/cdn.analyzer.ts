@@ -5,6 +5,13 @@ import { CdnCachingStrategyFileDiscoveryConstants as FileDiscovery } from '../co
 import type { AngularProject, CdnCheckResult } from '../constants/types';
 import { PerformanceAnalyzerBase } from './performance-analyzer-base';
 
+/**
+ * Answers whether static assets are served through a CDN. Any of: firebase.json
+ * hosting with a `headers` key, an angular.json project whose build options set
+ * `deployUrl` or `baseHref`, or an env file (environment.prod.ts, .env,
+ * .env.production) mentioning a CDN provider, "cdn" or "assets". The env-file
+ * match is a plain case-insensitive substring test, so it is loose.
+ */
 export class CdnAnalyzerService extends PerformanceAnalyzerBase {
   static analyze(projectRoot: string): CdnCheckResult {
     return {

@@ -139,10 +139,12 @@ export const BEST_PRACTICES = {
 
 import { mergeSecurityResults } from '../result-merging-helper';
 
+/** A result with no violations and no suggestions. */
 export function createEmptyResult(): EnvUsageCheckResult {
   return { violations: [], suggestions: [] };
 }
 
+/** Concatenates the violations and suggestions of `results`, in order. */
 export function mergeResults(
   ...results: EnvUsageCheckResult[]
 ): EnvUsageCheckResult {
@@ -156,6 +158,7 @@ export const { hasPattern, hasAnyPattern, hasAnyRegexPattern } =
 // Message formatting delegated to StringTemplateUtils
 export const formatMessage = StringTemplateUtils.formatNamedTemplate;
 
+/** Reads `filePath` as text; '' when it cannot be read. */
 export function safeReadFile(filePath: string): string {
   try {
     return FileUtils.readFile(filePath);
@@ -164,10 +167,16 @@ export function safeReadFile(filePath: string): string {
   }
 }
 
+/** `process.env.API_KEY` → `API_KEY`: drops the first `process.env.`. */
 export function extractEnvVarName(match: string): string {
   return match.replace(PROCESS_ENV_PREFIX, '');
 }
 
+/**
+ * The text around the FIRST occurrence of `match` in `content`: `before`
+ * characters before it and up to `after` characters from its start
+ * (the match included), clamped to the content; '' when it is absent.
+ */
 export function getContextAround(
   content: string,
   match: string,
@@ -182,59 +191,96 @@ export function getContextAround(
   return content.substring(contextStart, contextEnd);
 }
 
+/**
+ * Whether `context` contains `||`, `??`, `? ` or the word `default`
+ * (case-sensitive substring) — read as a fallback for the variable.
+ */
 export function hasFallbackValue(context: string): boolean {
   return hasAnyPattern(context, FALLBACK_INDICATORS);
 }
 
+/**
+ * Whether `content` mentions `required`, `validate`, `schema`, `joi`, `zod`
+ * or `yup` anywhere (case-sensitive substring, not an import check).
+ */
 export function hasValidationLibrary(content: string): boolean {
   return hasAnyPattern(content, VALIDATION_LIBRARIES);
 }
 
+/** Whether `content` contains `production` or `development`. */
 export function hasEnvironmentIndicators(content: string): boolean {
   return hasAnyPattern(content, ENVIRONMENT_INDICATORS);
 }
 
+/** Whether `content` contains the text `NODE_ENV`. */
 export function hasNodeEnv(content: string): boolean {
   return hasPattern(content, NODE_ENV);
 }
 
+/** Whether `content` contains the text `process.env`. */
 export function hasProcessEnv(content: string): boolean {
   return hasPattern(content, PROCESS_ENV);
 }
 
+/** How many times `process.env.` occurs in `content`. */
 export function countEnvUsage(content: string): number {
   return (content.match(PROCESS_ENV_COUNT_PATTERN) ?? []).length;
 }
 
+/**
+ * True when `content` reads `process.env.PORT` and never mentions
+ * `parseInt` — the port would stay a string.
+ */
 export function needsPortParsing(content: string): boolean {
   return hasPattern(content, PORT_ENV_VAR) && !hasPattern(content, PARSE_INT);
 }
 
+/** Whether `content` has `const { … } = process.env`. */
 export function hasDestructuring(content: string): boolean {
   return PROCESS_ENV_DESTRUCTURING.test(content);
 }
 
+/** Whether `url` contains `localhost` or `127.0.0.1`. */
 export function isLocalUrl(url: string): boolean {
   return hasAnyPattern(url, LOCAL_HOST_INDICATORS);
 }
 
+/**
+ * Whether `content` holds a mongodb://, mysql://, postgresql:// or
+ * redis:// connection string. The patterns are global regexes, so each
+ * test advances their `lastIndex` between calls.
+ */
 export function matchesAnyDbPattern(content: string): boolean {
   return hasAnyRegexPattern(content, DB_CONNECTION_PATTERNS);
 }
 
+/**
+ * Whether `content` has a quoted `api_key`, `token` or `secret` key
+ * assigned a quoted value of 20+ characters (case-insensitive). The
+ * patterns are global regexes, so each test advances their `lastIndex`.
+ */
 export function matchesAnySecretPattern(content: string): boolean {
   return hasAnyRegexPattern(content, SECRET_PATTERNS);
 }
 
+/**
+ * Every `process.env.NAME` in `content` whose NAME is upper-case
+ * (`[A-Z_][A-Z0-9_]*`), as written, duplicates included.
+ */
 export function findAllEnvMatches(content: string): string[] {
   const matches = content.match(PROCESS_ENV_PATTERN);
   return matches ?? [];
 }
 
+/**
+ * Every http(s) URL in `content`, from three patterns (bare host, single-
+ * and double-quoted), so one quoted URL can appear more than once.
+ */
 export function findUrlMatches(content: string): string[] {
   return URL_PATTERNS.flatMap(pattern => content.match(pattern) ?? []);
 }
 
+/** `urls` without those pointing at localhost or 127.0.0.1. */
 export function filterNonLocalUrls(urls: string[]): string[] {
   return urls.filter(url => !isLocalUrl(url));
 }

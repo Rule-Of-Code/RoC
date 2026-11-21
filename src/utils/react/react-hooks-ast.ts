@@ -281,6 +281,11 @@ export interface CallTarget {
   receiver: TS.Expression | null;
 }
 
+/**
+ * The name a call invokes and its receiver, with `as`/parentheses/`!`
+ * around the callee stripped; null when the callee is neither an identifier
+ * nor a property access (`obj[key]()`, `(cond ? a : b)()`).
+ */
 export function callTarget(
   ts: TypeScriptModule,
   call: TS.CallExpression

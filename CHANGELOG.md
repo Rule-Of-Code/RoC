@@ -14,6 +14,16 @@ one of the flags TypeScript Strict Mode (SACRED LAW) asks for. Every member that
 replaces a base-class member says so with `override` (11 in `src/`, 3 in a test
 subclass). No behaviour changes.
 
+### Internal — eslint is a direct devDependency
+
+`npm run lint` runs `eslint .`, but `eslint` was only installed as a peer of
+`@typescript-eslint/parser` and `eslint-plugin-sonarjs`, never named in
+`devDependencies`. Investment-Grade Quality ("Quality tool missing: eslint")
+and Professional Excellence ("Missing eslint for Code linting") reported that
+on the self-audit, and they were right. `eslint` `^9.39.5` — the version
+already in the lockfile — is now a devDependency; the lockfile changes only
+by dropping the `peer` flag from eslint and its dependencies.
+
 ### Internal — this repository keeps MD Footer Template on
 
 MD Footer Template became opt-in in this release (#468). This repository does

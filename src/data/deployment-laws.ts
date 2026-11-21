@@ -43,7 +43,7 @@ export const DEPLOYMENT_LAWS: EnhancedConstitutionalLaw[] = [
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article XVII.17.1: Pre-deployment checklist incomplete',
     remediation:
-      'Complete all pre-deployment checks: build, test, security, PerformanceTestUtils analysis',
+      'Complete all pre-deployment checks: build, test, security, performance analysis',
   },
 
   {

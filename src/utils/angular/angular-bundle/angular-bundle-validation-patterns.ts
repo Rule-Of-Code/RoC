@@ -1,6 +1,6 @@
 import { ChangeDetectionOptimizationLaw } from '../../../checkers/performance-laws/change-detection-optimization';
 import type { RuleOfCodeConfig } from '../../../config/types';
-import { PerformanceBudgetComplianceLaw } from '../../../laws/performance/performance-budget-compliance';
+import { PerformanceBudgetComplianceAnalyzerService } from '../../../laws/performance/performance-budget-compliance/services';
 import { ProjectTypeDetector } from '../../config/project-type-detector';
 import { ANGULAR_CONSTANTS } from '../../constants';
 import { AngularBundleConfiguration } from './angular-bundle-configuration';
@@ -90,13 +90,10 @@ export class AngularBundleValidationPatterns {
     suggestions: string[]
   ): void {
     try {
-      // Using type assertion as temporary solution for private method access
-      const law = PerformanceBudgetComplianceLaw as unknown as {
-        checkAngularPerformanceBudgets: (projectRoot: string) => {
-          configured: boolean;
-        };
-      };
-      const budgetAnalysis = law.checkAngularPerformanceBudgets(projectRoot);
+      const budgetAnalysis =
+        PerformanceBudgetComplianceAnalyzerService.analyzeAngularBudgets(
+          projectRoot
+        );
 
       if (!budgetAnalysis.configured) {
         const message =
@@ -119,14 +116,10 @@ export class AngularBundleValidationPatterns {
     suggestions: string[]
   ): void {
     try {
-      // Using type assertion as temporary solution for private method access
-      const law = PerformanceBudgetComplianceLaw as unknown as {
-        checkWebpackPerformanceConfig: (projectRoot: string) => {
-          configured: boolean;
-          configs: string[];
-        };
-      };
-      const webpackAnalysis = law.checkWebpackPerformanceConfig(projectRoot);
+      const webpackAnalysis =
+        PerformanceBudgetComplianceAnalyzerService.analyzeWebpackBudgets(
+          projectRoot
+        );
 
       if (!webpackAnalysis.configured) {
         const configMessage =
@@ -161,22 +154,7 @@ export class AngularBundleValidationPatterns {
     suggestions: string[]
   ): void {
     try {
-      // Using type assertions as temporary solution for private method access
-      const law = ChangeDetectionOptimizationLaw as unknown as {
-        analyzeComponents: (
-          projectRoot: string,
-          config: RuleOfCodeConfig
-        ) => { violations: string[]; suggestions: string[] };
-        analyzeTrackByUsage: (
-          projectRoot: string,
-          config: RuleOfCodeConfig
-        ) => { violations: string[]; suggestions: string[] };
-        analyzeObservableUsage: (
-          projectRoot: string,
-          config: RuleOfCodeConfig
-        ) => { violations: string[]; suggestions: string[] };
-      };
-
+      const law = ChangeDetectionOptimizationLaw;
       const componentAnalysis = law.analyzeComponents(projectRoot, config);
       violations.push(...componentAnalysis.violations);
       suggestions.push(...componentAnalysis.suggestions);

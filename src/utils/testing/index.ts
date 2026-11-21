@@ -18,10 +18,8 @@ export {
 export { CoverageConfigurationInspector } from './coverage-configuration-inspector';
 export { FileSystemSearcher } from './file-system-searcher';
 export { LoadTestingChecker } from './load-testing-checker';
-export { PerformanceBenchmarkHelper } from './performance-benchmark-helper';
 export { PerformanceMonitoringInspector } from './performance-monitoring-inspector';
 export { PerformanceTestFileScanner } from './performance-test-file-scanner';
-export { PerformanceTestUtils } from './performance-test-utils';
 export { TestConfigurationInspector } from './test-configuration-inspector';
 export {
   TestCoverageAnalyzer,

@@ -6,16 +6,16 @@
     "source": "detected"
   },
   "scope": {
-    "executedLaws": 17,
-    "selectedLaws": 17,
-    "applicableLaws": 77,
+    "executedLaws": 16,
+    "selectedLaws": 16,
+    "applicableLaws": 72,
     "narrowedBy": "paretoMode",
     "partial": true
   },
   "stats": {
-    "executedLaws": 19,
-    "totalLaws": 19,
-    "passedLaws": 19,
+    "executedLaws": 18,
+    "totalLaws": 18,
+    "passedLaws": 18,
     "failedLaws": 0,
     "warningLaws": 0,
     "score": 100
@@ -231,19 +231,6 @@
     },
     {
       "id": "law-16",
-      "lawId": "deployment_2dfc084c",
-      "legacyId": 72,
-      "lawTitle": "CI/CD Constitutional Tribunal",
-      "passed": true,
-      "score": 100,
-      "violations": [],
-      "suggestions": [],
-      "message": "stub pass",
-      "severity": "error",
-      "lawName": "ci/cd-constitutional-tribunal"
-    },
-    {
-      "id": "law-17",
       "lawId": "meta_59c6436e",
       "legacyId": 226,
       "lawTitle": "Audit Liveness Assertion",
@@ -256,7 +243,7 @@
       "severity": "error"
     },
     {
-      "id": "law-18",
+      "id": "law-17",
       "lawId": "meta_5ef1482c",
       "legacyId": 227,
       "lawTitle": "Config Integrity Guard",

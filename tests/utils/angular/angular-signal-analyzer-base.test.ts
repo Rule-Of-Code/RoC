@@ -1,19 +1,23 @@
 /**
  * @fileoverview Tests for angular-signal-analyzer-base.ts
- * @description Tests for Angular Signal Analyzer Base class
+ * @description The Angular analyzer base, on real projects: commonCheck
+ * finds the files with the subclass's extensions under src/ and hands each
+ * to analyzeFile. A small concrete subclass records what it is given; no
+ * helper of the code under test is replaced.
  */
+
+import path from 'path';
 
 import type { RuleOfCodeConfig } from '../../../src/config/types';
 import { AngularSignalAnalyzerBase } from '../../../src/utils/angular/angular-signal-base/angular-signal-analyzer-base';
-import { CheckerUtils } from '../../../src/utils/checker-utils';
 import { FileUtils } from '../../../src/utils/file-utils';
-import { PathOperations } from '../../../src/utils/path-operations';
+import { project, removeProjects } from '../../checkers/toolkit-fixture';
 
-// Concrete test implementation of abstract base class
-class TestSignalAnalyzer extends AngularSignalAnalyzerBase {
-  public analyzedFiles: string[] = [];
-  public capturedViolations: string[][] = [];
-  public capturedSuggestions: string[][] = [];
+afterAll(removeProjects);
+
+/** Records every file it is asked to analyze, and reports each once. */
+class RecordingAnalyzer extends AngularSignalAnalyzerBase {
+  readonly analyzed: string[] = [];
 
   protected getFileExtensions(): string[] {
     return ['.component.ts', '.service.ts'];
@@ -21,19 +25,16 @@ class TestSignalAnalyzer extends AngularSignalAnalyzerBase {
 
   protected analyzeFile(
     filePath: string,
-    projectRoot: string,
+    _projectRoot: string,
     violations: string[],
     suggestions: string[]
   ): void {
-    this.analyzedFiles.push(filePath);
-    this.capturedViolations.push([...violations]);
-    this.capturedSuggestions.push([...suggestions]);
-    // Simulate adding a violation
-    violations.push(`Analyzed: ${filePath}`);
+    this.analyzed.push(filePath);
+    violations.push(`analyzed ${path.basename(filePath)}`);
+    suggestions.push(`seen ${violations.length}`);
   }
 
-  // Expose protected method for testing
-  public runCommonCheck(
+  run(
     projectRoot: string,
     config: RuleOfCodeConfig
   ): { violations: string[]; suggestions: string[] } {
@@ -41,189 +42,70 @@ class TestSignalAnalyzer extends AngularSignalAnalyzerBase {
   }
 }
 
+const config = FileUtils.getMinimalDefaultConfig();
+
+/** Run the analyzer on a project made of `files`. */
+const run = (files: Record<string, string>) => {
+  const root = project(files);
+  const analyzer = new RecordingAnalyzer();
+  const result = analyzer.run(root, config);
+  const analyzed = analyzer.analyzed
+    .map(file => path.relative(root, file).replace(/\\/g, '/'))
+    .sort();
+  return { result, analyzed };
+};
+
 describe('utils/angular/angular-signal-base/angular-signal-analyzer-base', () => {
-  const mockConfig = {
-    projectRoot: '/test/project',
-    verbose: false,
-    excludePatterns: ['node_modules', 'dist'],
-    includePatterns: ['**/*.ts'],
-  } as unknown as RuleOfCodeConfig;
-
-  describe('AngularSignalAnalyzerBase', () => {
-    describe('getFileExtensions', () => {
-      it('should be implemented by concrete subclass', () => {
-        const analyzer = new TestSignalAnalyzer();
-        const extensions = analyzer['getFileExtensions']();
-
-        expect(extensions).toEqual(['.component.ts', '.service.ts']);
+  describe('AngularSignalAnalyzerBase.commonCheck', () => {
+    it('analyzes every file with one of the extensions, once', () => {
+      const { result, analyzed } = run({
+        'src/app/app.component.ts': 'export class A {}',
+        'src/app/user.service.ts': 'export class U {}',
+        'src/app/user.model.ts': 'export interface M {}',
       });
+
+      expect(analyzed).toEqual([
+        'src/app/app.component.ts',
+        'src/app/user.service.ts',
+      ]);
+      expect(result.violations.sort()).toEqual([
+        'analyzed app.component.ts',
+        'analyzed user.service.ts',
+      ]);
     });
 
-    describe('analyzeFile', () => {
-      it('should be called for each discovered file', () => {
-        const analyzer = new TestSignalAnalyzer();
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
-
-        existsSpy.mockReturnValue(true);
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
-        );
-        findFilesSpy.mockReturnValue([
-          '/test/project/src/app.component.ts',
-          '/test/project/src/user.service.ts',
-        ]);
-
-        const result = analyzer.runCommonCheck('/test/project', mockConfig);
-
-        expect(analyzer.analyzedFiles).toHaveLength(2);
-        expect(analyzer.analyzedFiles).toContain(
-          '/test/project/src/app.component.ts'
-        );
-        expect(analyzer.analyzedFiles).toContain(
-          '/test/project/src/user.service.ts'
-        );
-        expect(result.violations).toHaveLength(2);
-
-        existsSpy.mockRestore();
-        findFilesSpy.mockRestore();
-        joinSpy.mockRestore();
+    it('gives every file the same violations and suggestions arrays', () => {
+      const { result } = run({
+        'src/a.component.ts': 'export class A {}',
+        'src/b.component.ts': 'export class B {}',
       });
 
-      it('should receive violations and suggestions arrays', () => {
-        const analyzer = new TestSignalAnalyzer();
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
-
-        existsSpy.mockReturnValue(true);
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
-        );
-        findFilesSpy.mockReturnValue(['/test/project/src/app.component.ts']);
-
-        analyzer.runCommonCheck('/test/project', mockConfig);
-
-        expect(analyzer.capturedViolations).toHaveLength(1);
-        expect(analyzer.capturedSuggestions).toHaveLength(1);
-
-        existsSpy.mockRestore();
-        findFilesSpy.mockRestore();
-        joinSpy.mockRestore();
-      });
+      expect(result.suggestions.sort()).toEqual(['seen 1', 'seen 2']);
     });
 
-    describe('commonCheck', () => {
-      it('should return empty results when src directory does not exist', () => {
-        const analyzer = new TestSignalAnalyzer();
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-
-        existsSpy.mockReturnValue(false);
-
-        const result = analyzer.runCommonCheck('/test/project', mockConfig);
-
-        expect(result.violations).toHaveLength(0);
-        expect(result.suggestions).toHaveLength(0);
-        expect(analyzer.analyzedFiles).toHaveLength(0);
-
-        existsSpy.mockRestore();
+    it('returns nothing, and analyzes nothing, without a src directory', () => {
+      const { result, analyzed } = run({
+        'lib/app.component.ts': 'export class A {}',
       });
 
-      it('should return empty results when no files found', () => {
-        const analyzer = new TestSignalAnalyzer();
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
+      expect(analyzed).toEqual([]);
+      expect(result).toEqual({ violations: [], suggestions: [] });
+    });
 
-        existsSpy.mockReturnValue(true);
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
-        );
-        findFilesSpy.mockReturnValue([]);
+    it('returns nothing when src holds no file with the extensions', () => {
+      const { result, analyzed } = run({ 'src/main.ts': 'bootstrap();' });
 
-        const result = analyzer.runCommonCheck('/test/project', mockConfig);
+      expect(analyzed).toEqual([]);
+      expect(result).toEqual({ violations: [], suggestions: [] });
+    });
 
-        expect(result.violations).toHaveLength(0);
-        expect(result.suggestions).toHaveLength(0);
-        expect(analyzer.analyzedFiles).toHaveLength(0);
-
-        existsSpy.mockRestore();
-        findFilesSpy.mockRestore();
-        joinSpy.mockRestore();
+    it('does not analyze a file under node_modules', () => {
+      const { analyzed } = run({
+        'src/app.component.ts': 'export class A {}',
+        'src/node_modules/x/x.component.ts': 'export class X {}',
       });
 
-      it('should process all discovered files', () => {
-        const analyzer = new TestSignalAnalyzer();
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
-
-        existsSpy.mockReturnValue(true);
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
-        );
-        findFilesSpy.mockReturnValue([
-          '/test/project/src/file1.component.ts',
-          '/test/project/src/file2.service.ts',
-          '/test/project/src/file3.component.ts',
-        ]);
-
-        const result = analyzer.runCommonCheck('/test/project', mockConfig);
-
-        expect(analyzer.analyzedFiles).toHaveLength(3);
-        expect(result.violations).toHaveLength(3);
-
-        existsSpy.mockRestore();
-        findFilesSpy.mockRestore();
-        joinSpy.mockRestore();
-      });
-
-      it('should use correct file extensions from getFileExtensions', () => {
-        const analyzer = new TestSignalAnalyzer();
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
-
-        existsSpy.mockReturnValue(true);
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
-        );
-        findFilesSpy.mockReturnValue([]);
-
-        analyzer.runCommonCheck('/test/project', mockConfig);
-
-        expect(findFilesSpy).toHaveBeenCalledWith(
-          expect.any(String),
-          ['.component.ts', '.service.ts'],
-          mockConfig
-        );
-
-        existsSpy.mockRestore();
-        findFilesSpy.mockRestore();
-        joinSpy.mockRestore();
-      });
-
-      it('should join project root with src directory', () => {
-        const analyzer = new TestSignalAnalyzer();
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
-
-        existsSpy.mockReturnValue(true);
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
-        );
-        findFilesSpy.mockReturnValue([]);
-
-        analyzer.runCommonCheck('/test/project', mockConfig);
-
-        expect(joinSpy).toHaveBeenCalledWith('/test/project', 'src');
-
-        existsSpy.mockRestore();
-        findFilesSpy.mockRestore();
-        joinSpy.mockRestore();
-      });
+      expect(analyzed).toEqual(['src/app.component.ts']);
     });
   });
 });

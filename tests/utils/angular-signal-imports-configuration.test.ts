@@ -288,6 +288,25 @@ describe('utils/angular/angular-signal-imports/angular-signal-imports-configurat
     });
   });
 
+  describe('a template with no placeholder', () => {
+    it('comes back unchanged from every builder', () => {
+      const plain = 'Signals are imported correctly';
+      expect(
+        AngularSignalImportsConfiguration.buildFileNameMessage(plain, 'a.ts')
+      ).toBe(plain);
+      expect(
+        AngularSignalImportsConfiguration.buildSignalMessage(
+          plain,
+          'computed',
+          'a.ts'
+        )
+      ).toBe(plain);
+      expect(
+        AngularSignalImportsConfiguration.buildVersionMessage(plain, '17', '')
+      ).toBe(plain);
+    });
+  });
+
   describe('buildSignalMessage', () => {
     it('should replace signal and fileName placeholders', () => {
       const result = AngularSignalImportsConfiguration.buildSignalMessage(

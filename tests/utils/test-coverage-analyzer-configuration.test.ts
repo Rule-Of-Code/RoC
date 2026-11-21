@@ -175,40 +175,6 @@ describe('TestCoverageAnalyzerConfiguration', () => {
     });
   });
 
-  describe('DEPENDENCY_PATTERNS', () => {
-    it('should have IMPORT_STATEMENT pattern', () => {
-      expect(
-        TestCoverageAnalyzerConfiguration.DEPENDENCY_PATTERNS.IMPORT_STATEMENT.test(
-          'import x from "y"'
-        )
-      ).toBe(true);
-    });
-
-    it('should have REQUIRE_CALL pattern', () => {
-      expect(
-        TestCoverageAnalyzerConfiguration.DEPENDENCY_PATTERNS.REQUIRE_CALL.test(
-          'require("module")'
-        )
-      ).toBe(true);
-    });
-
-    it('should have INJECT_FUNCTION pattern', () => {
-      expect(
-        TestCoverageAnalyzerConfiguration.DEPENDENCY_PATTERNS.INJECT_FUNCTION.test(
-          'inject(Service)'
-        )
-      ).toBe(true);
-    });
-
-    it('should have TEST_BED pattern', () => {
-      expect(
-        TestCoverageAnalyzerConfiguration.DEPENDENCY_PATTERNS.TEST_BED.test(
-          'TestBed.configureTestingModule'
-        )
-      ).toBe(true);
-    });
-  });
-
   describe('MOCK_PATTERNS', () => {
     it('should have JEST_FN pattern', () => {
       expect(
@@ -566,7 +532,9 @@ describe('TestCoverageAnalyzerConfiguration', () => {
       expect(
         TestCoverageAnalyzerConfiguration.COVERAGE_MESSAGES
           .DEPENDENCIES_WITHOUT_MOCKS_VIOLATION
-      ).toBe('Dependencies found but no mocking detected in {fileName}');
+      ).toBe(
+        'Dependencies found but no mocking detected in {fileName} ({clients})'
+      );
     });
 
     it('should have DEPENDENCIES_WITHOUT_MOCKS_SUGGESTION message', () => {
@@ -596,36 +564,6 @@ describe('TestCoverageAnalyzerConfiguration', () => {
     it('should return false when no edge case patterns', () => {
       const content = 'it("should work") { expect(true).toBe(true); }';
       expect(TestCoverageAnalyzerConfiguration.testsEdgeCases(content)).toBe(
-        false
-      );
-    });
-  });
-
-  describe('hasDependencies', () => {
-    it('should return true for import statement', () => {
-      const content = 'import { Service } from "./service"';
-      expect(TestCoverageAnalyzerConfiguration.hasDependencies(content)).toBe(
-        true
-      );
-    });
-
-    it('should return true for require call', () => {
-      const content = 'const module = require("module")';
-      expect(TestCoverageAnalyzerConfiguration.hasDependencies(content)).toBe(
-        true
-      );
-    });
-
-    it('should return true for TestBed', () => {
-      const content = 'TestBed.configureTestingModule({})';
-      expect(TestCoverageAnalyzerConfiguration.hasDependencies(content)).toBe(
-        true
-      );
-    });
-
-    it('should return false for no dependencies', () => {
-      const content = 'const x = 1;';
-      expect(TestCoverageAnalyzerConfiguration.hasDependencies(content)).toBe(
         false
       );
     });

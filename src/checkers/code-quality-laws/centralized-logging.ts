@@ -12,12 +12,26 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { PathOperations } from '../../utils/path-operations';
 import { FileUtils } from '../../utils/file-utils';
+import {
+  loadTypeScript,
+  parserUnavailable,
+} from '../../utils/react/tsx-source';
 import { PythonLawBase } from '../python-laws/python-law-base';
+import { CliPackages } from './cli-packages';
 import { CodeQualityLawBase } from './code-quality-law-base';
+import { readSource } from './source-view';
 
 export class CentralizedLoggingLaw extends CodeQualityLawBase {
-  private static readonly CONSOLE =
-    /\bconsole\s*\.\s*(log|debug|info|warn|error|trace)\s*\(/g;
+  // The console methods this law counts. In a package that declares a
+  // `bin`, CliPackages takes the command's output out of the list.
+  private static readonly METHODS = [
+    'log',
+    'debug',
+    'info',
+    'warn',
+    'error',
+    'trace',
+  ];
   private static readonly ALLOWED =
     /(?:^|[\\/])(?:logger\.service\.ts|main\.ts)$/;
   // Python branch (arch proposal №12): print() in source is the console.* of
@@ -28,20 +42,48 @@ export class CentralizedLoggingLaw extends CodeQualityLawBase {
   private static readonly PY_TEST =
     /(^|[\\/])tests?[\\/]|(^|[\\/])test_[^\\/]*\.py$|_test\.py$|(^|[\\/])conftest\.py$/i;
 
-  /** The JS/TS branch — direct console.* outside the logger service. */
+  /**
+   * The JS/TS branch — direct console.* in CODE outside the logging module.
+   *
+   * Calls are read from the parse (#424): `console.log(` in a message string
+   * or a comment is not a call. In a package that declares a `bin`,
+   * console.log/info are how the command talks to its user — its output, not
+   * logging that bypasses a logger (#425) — and in the command's entry
+   * modules warn/error are too. Library code's warn/error, and debug/trace
+   * everywhere, are counted. The list comes from CliPackages, shared with
+   * Absolute Zero Tolerance. A logging module (logger.*, logging*, log.*) and the
+   * bootstrap (main.ts) are where console output is meant to live.
+   */
   private static collectConsoleViolations(
     context: LawCheckContext,
     violations: string[]
   ): void {
     const { projectRoot } = context;
-    for (const file of this.findTypeScriptFiles(projectRoot, context)) {
+    const files = this.findTypeScriptFiles(projectRoot, context);
+    const ts = loadTypeScript(projectRoot);
+    if (!ts) {
+      if (files.length > 0) {
+        violations.push(
+          `${parserUnavailable(projectRoot, `the ${files.length} .ts file(s)`)} — Centralized Logging judged nothing for them`
+        );
+      }
+      return;
+    }
+    const cli = new CliPackages(projectRoot);
+    for (const file of files) {
       const normalized = file.replace(/\\/g, '/');
-      if (this.ALLOWED.test(normalized)) continue;
-
+      if (this.ALLOWED.test(normalized) || CliPackages.isLoggingModule(file)) {
+        continue;
+      }
       const content = FileUtils.readFileContentSync(file);
       if (!content) continue;
-      const code = this.stripComments(content);
-      const matches = code.match(this.CONSOLE);
+      const methods = cli.countedConsoleMethods(file, this.METHODS);
+      if (methods.length === 0) continue;
+      const pattern = new RegExp(
+        `\\bconsole\\s*\\.\\s*(${methods.join('|')})\\s*\\(`,
+        'g'
+      );
+      const matches = readSource(ts, content, file).code.match(pattern);
       if (matches && matches.length > 0) {
         violations.push(
           `${PathOperations.getRelative(projectRoot, file)}: ${

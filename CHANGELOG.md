@@ -108,6 +108,14 @@ and the clause was reported. An owning law the audit would not select now
 answers "satisfied", like a written `notApplicable`.
 
 Self-audit of this repository: no change — the four owning laws are selected here, so they still run (measured).
+### Fixed — Async Cache Single-Flight reads a check as a one-key get / has (#437)
+
+The selection pattern matched `constants.set(` as `s.set(` (no left boundary
+on the back-reference). In TS/JS a check is now a `get` / `has` with the key
+as its only argument (the Map signature), so a file-backed API such as
+`Cache.get(root, key, mode)` is not judged as an in-memory map.
+
+Self-audit of this repository: Async Cache Single-Flight — before 1 finding (`src/core/auditing/audit-engine.ts`, a file-backed `AuditCache.get(…)` / `.set(…)`), after pass: 3 files read, 0 async check-then-store sites.
 ### 🐛 Fixed — an Angular CLI project was told to add webpack limits it cannot write (#449)
 
 Once the budget suggestion read angular.json correctly (#449), the two

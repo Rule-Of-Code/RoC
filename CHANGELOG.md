@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Internal — `exactOptionalPropertyTypes` is on
+
+This repository's `tsconfig.json` now sets `exactOptionalPropertyTypes: true`,
+one of the flags TypeScript Strict Mode (SACRED LAW) asks for. With it, an
+optional property `x?: T` no longer accepts an explicit `undefined`; the code
+passed one in 33 places in `src/` and 12 in the tests.
+
+Every place the code really hands over `undefined` (a law with no `stack`, a
+CLI flag that was not given, a config whose `includes` is cleared for a
+security scan, a law result without a name) now says so in the type:
+`x?: T | undefined`. One cast that let `undefined` through is narrowed instead
+(`NonNullable<…>`), and three test fixtures stop passing an `undefined` that
+meant nothing. Types only; no runtime code changes.
+
 ### Internal — eslint is a direct devDependency
 
 `npm run lint` runs `eslint .`, but `eslint` was only installed as a peer of

@@ -15,6 +15,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+    "exactOptionalPropertyTypes": true,
     "declaration": true,
     "declarationMap": false,
     "sourceMap": false,

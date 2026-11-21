@@ -48,7 +48,7 @@ describe('loadTypeScript', () => {
 
   it('names the project and the fix when it cannot', () => {
     expect(parserUnavailable('/p')).toMatch(
-      /could not load the 'typescript' package from \/p — the \.tsx\/\.jsx files were NOT read/
+      /could not load the 'typescript' package from \/p — the files this law parses were NOT read/
     );
   });
 });

@@ -3,15 +3,26 @@
  * All TypeScript must be configured with strict settings
  */
 
+import fs from 'fs';
+import path from 'path';
+
 import { PARTLY_READ_TEXT } from '../../utils/judged-nothing';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { ProjectTypeDetector } from '../../utils/config/project-type-detector';
+import { FileSystemOperations } from '../../utils/file-system-operations';
 import { SacredLawBase } from './sacred-law-base';
 import { PathOperations } from '../../utils/path-operations';
-import {
-  loadTypeScript,
-  parserUnavailable,
-} from '../../utils/react/tsx-source';
+import { loadTypeScript } from '../../utils/react/tsx-source';
+
+const TSCONFIG = 'tsconfig.json';
+
+const isFile = (file: string): boolean => {
+  try {
+    return fs.statSync(file).isFile();
+  } catch {
+    return false;
+  }
+};
 
 export class TypeScriptStrictLaw {
   private static readonly STRICT_CHECKS = {
@@ -43,15 +54,17 @@ export class TypeScriptStrictLaw {
 
     const tsConfig = ProjectTypeDetector.getTypeScriptConfig(projectRoot);
     if (tsConfig) {
-      const compilerOptions = ((tsConfig as Record<string, unknown>)
-        .compilerOptions ?? {}) as Record<string, unknown>;
-      this.validateCompilerOptions(compilerOptions, violations, projectRoot);
-      // Without the parser the extends chain is not followed: the flags above
-      // were read from tsconfig.json alone. Say so (#427).
-      const extendsFrom = (tsConfig as Record<string, unknown>).extends;
-      if (extendsFrom !== undefined && !loadTypeScript(projectRoot)) {
+      // The extends chain read as JSONC, merged base → child — with or without
+      // the compiler. Without typescript the law used to read tsconfig.json
+      // alone and report every flag set in the base as "must be enabled":
+      // false findings, and no note (#427, QA p478-tsstrict-extends).
+      const chain = this.extendsChain(
+        PathOperations.join(projectRoot, TSCONFIG)
+      );
+      this.validateCompilerOptions(chain, violations, projectRoot);
+      if (chain.unread.length > 0) {
         violations.push(
-          `tsconfig.json extends ${JSON.stringify(extendsFrom)}: ${parserUnavailable(projectRoot, 'the inherited compiler options')} — the strict flags were read from tsconfig.json alone; ${PARTLY_READ_TEXT}`
+          `tsconfig.json extends ${chain.unread.map(e => JSON.stringify(e)).join(', ')}, which could not be read — the inherited compiler options were NOT read, and a flag not set in the files that were read is not judged; ${PARTLY_READ_TEXT}`
         );
       }
     } else {
@@ -99,7 +112,7 @@ export class TypeScriptStrictLaw {
   ): Record<string, unknown> | null {
     const ts = loadTypeScript(projectRoot);
     if (!ts) return null;
-    const file = PathOperations.join(projectRoot, 'tsconfig.json');
+    const file = PathOperations.join(projectRoot, TSCONFIG);
     const read = ts.readConfigFile(file, ts.sys.readFile);
     if (read.error) return null;
     const host = { ...ts.sys, readDirectory: (): string[] => [] };
@@ -113,18 +126,78 @@ export class TypeScriptStrictLaw {
     return parsed.options as Record<string, unknown>;
   }
 
+  /**
+   * The compiler options of `file` with its `extends` chain merged (base
+   * first, later entries of an `extends` array over earlier ones, the file's
+   * own options last), read as JSONC. `unread` names every link that could
+   * not be found or parsed: options it may set are unknown.
+   */
+  private static extendsChain(
+    file: string,
+    seen: Set<string> = new Set()
+  ): { options: Record<string, unknown>; unread: string[] } {
+    const config = FileSystemOperations.readJsoncFile(file) as Record<
+      string,
+      unknown
+    >;
+    seen.add(file);
+    let options: Record<string, unknown> = {};
+    const unread: string[] = [];
+    const links = ([] as unknown[]).concat(config.extends ?? []);
+    for (const link of links) {
+      if (typeof link !== 'string') continue;
+      const base = this.resolveExtends(path.dirname(file), link);
+      if (!base || seen.has(base)) {
+        if (!base) unread.push(link);
+        continue;
+      }
+      try {
+        const inherited = this.extendsChain(base, seen);
+        options = { ...options, ...inherited.options };
+        unread.push(...inherited.unread);
+      } catch {
+        unread.push(link);
+      }
+    }
+    const own = (config.compilerOptions ?? {}) as Record<string, unknown>;
+    return { options: { ...options, ...own }, unread };
+  }
+
+  /** An `extends` entry as a file: a relative path, or a package in node_modules. */
+  private static resolveExtends(dir: string, link: string): string | null {
+    const candidates = (base: string): string[] =>
+      base.endsWith('.json')
+        ? [base]
+        : [base, `${base}.json`, path.join(base, TSCONFIG)];
+    if (link.startsWith('.') || path.isAbsolute(link)) {
+      return candidates(path.resolve(dir, link)).find(isFile) ?? null;
+    }
+    for (let at = dir; ; at = path.dirname(at)) {
+      const found = candidates(path.join(at, 'node_modules', link)).find(
+        isFile
+      );
+      if (found) return found;
+      if (path.dirname(at) === at) return null;
+    }
+  }
+
   private static validateCompilerOptions(
-    compilerOptions: Record<string, unknown>,
+    chain: { options: Record<string, unknown>; unread: string[] },
     violations: string[],
     projectRoot: string
   ): void {
+    const compilerOptions = chain.options;
     // The flags as the compiler resolves them — `extends` followed (an Nx
     // tsconfig.base.json, @tsconfig/strictest) — or, without a loadable
-    // typescript, as written.
+    // typescript, as the JSONC chain sets them.
     const flags = this.resolvedFlags(projectRoot) ?? compilerOptions;
+    // A link of the chain that was not read may set any flag the read files
+    // leave unset: such a flag is not judged (the note says so).
+    const unknown = (flag: string): boolean =>
+      chain.unread.length > 0 && compilerOptions[flag] === undefined;
 
     // Strict mode checks
-    if (flags.strict !== true) {
+    if (flags.strict !== true && !unknown('strict')) {
       violations.push('TypeScript strict mode must be enabled');
     }
 
@@ -137,14 +210,19 @@ export class TypeScriptStrictLaw {
         this.IMPLIED_BY_STRICT.has(check) &&
         flags.strict === true &&
         flags[check] !== false;
-      if (flags[check] !== required && !impliedByStrict) {
+      if (flags[check] !== required && !impliedByStrict && !unknown(check)) {
         violations.push(`TypeScript ${check} must be ${required}`);
       }
     }
 
-    this.validateTargetVersion(compilerOptions, violations);
-    this.validateModuleResolution(compilerOptions, violations);
-    this.validateSourceMaps(compilerOptions, violations);
+    // target / moduleResolution / sourceMap as the chain sets them (strings,
+    // unlike the compiler's resolved enums) — inherited ones included.
+    if (!unknown('target'))
+      this.validateTargetVersion(compilerOptions, violations);
+    if (!unknown('moduleResolution'))
+      this.validateModuleResolution(compilerOptions, violations);
+    if (!unknown('sourceMap') || compilerOptions.inlineSourceMap !== undefined)
+      this.validateSourceMaps(compilerOptions, violations);
   }
 
   private static validateTargetVersion(

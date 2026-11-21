@@ -42,7 +42,24 @@ not parse.
 | law, no `typescript` | before | after |
 |---|---|---|
 | No Focused Tests · Guard Function Has Production Caller · Tsconfig Exclude Leaves Code Untyped · Independent Awaits (TS/JS only) | one finding: "… NOT read" | judged nothing |
-| TypeScript Strict Mode (extends) · HTML Lang Declared (next.config) · Accessibility Linting (config script) · Capacitor Plugin Stub (test configs) · Independent Awaits / cache laws with Python read | the note, a finding | the note, a finding, ending "the rest of what this law reads was judged" |
+| HTML Lang Declared (next.config) · Accessibility Linting (config script) · Capacitor Plugin Stub (test configs) · Independent Awaits / cache laws with Python read | the note, a finding | the note, a finding, ending "the rest of what this law reads was judged" |
+
+Two more corrections, found by QA on the same fixtures:
+
+- **TypeScript Strict Mode reads the `extends` chain without `typescript`.**
+  Before: tsconfig.json alone — a project whose strict flags live in its base
+  config got 14 "must be enabled" findings, all false, and no note (QA
+  p478-tsstrict-extends). After: the chain is read as JSONC — relative paths
+  and packages in `node_modules`, an `extends` array with later entries over
+  earlier ones — and `target`, `moduleResolution` and `sourceMap` are judged
+  as inherited too. A link that cannot be read is named ("… which could not
+  be read — the inherited compiler options were NOT read …"), and a flag the
+  files that were read leave unset is not judged; one set to `false` still is.
+- **A not-read note names the files it means.** The default wording of the
+  parser-unavailable note said "the .tsx/.jsx files" whatever was not read;
+  the request-path reader (Independent Awaits, the cache laws) said it of
+  `.ts` files (QA p478-awaits-py-ts). It now names their extensions, and the
+  default is neutral ("the files this law parses").
 
 ### 🐛 Fixed — a PARTIAL line said "passed" for laws that reported warnings
 

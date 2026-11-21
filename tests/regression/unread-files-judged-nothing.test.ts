@@ -116,19 +116,20 @@ describe('a law that read none of its files judged nothing', () => {
 });
 
 describe('a law that read part of its input did not judge nothing', () => {
-  it('TypeScript Strict Mode with an extends chain: the own flags were read', () => {
+  it('TypeScript Strict Mode with an extends link it cannot read: the own flags were read', () => {
     const dir = project({
       'package.json': MANIFEST,
-      'tsconfig.base.json': JSON.stringify({
-        compilerOptions: { strict: true },
-      }),
       'tsconfig.json': JSON.stringify({
-        extends: './tsconfig.base.json',
+        extends: './not-here.json',
         compilerOptions: { strict: true },
       }),
     });
     const result = audited(c => TypeScriptStrictLaw.check(c), dir);
-    expect(result.violations?.join('\n')).toContain(PARTLY_READ_TEXT);
+    const text = result.violations?.join('\n') ?? '';
+    expect(text).toContain(
+      'tsconfig.json extends "./not-here.json", which could not be read'
+    );
+    expect(text).toContain(PARTLY_READ_TEXT);
     expect(result.judgedNothing).toBeUndefined();
   });
 
@@ -148,6 +149,24 @@ describe('a law that read part of its input did not judge nothing', () => {
     expect(text).toContain(NOT_READ);
     expect(text).toContain(PARTLY_READ_TEXT);
     expect(result.judgedNothing).toBeUndefined();
+  });
+});
+
+// QA p478-awaits-py-ts: the request-path reader said "the .tsx/.jsx files
+// were NOT read" of .ts files — the default wording of parserUnavailable.
+describe('a not-read note names the extensions that were not read', () => {
+  it('Independent Awaits on .ts only: ".ts", not ".tsx/.jsx"', () => {
+    const dir = project({
+      'package.json': MANIFEST,
+      'src/load.ts':
+        'export async function load(a: () => Promise<number>) {\n  return await a();\n}\n',
+    });
+    const text = (
+      audited(c => IndependentAwaitsRunConcurrentlyLaw.check(c), dir)
+        .violations ?? []
+    ).join('\n');
+    expect(text).toContain('the .ts file(s) were NOT read');
+    expect(text).not.toContain('.tsx/.jsx');
   });
 });
 

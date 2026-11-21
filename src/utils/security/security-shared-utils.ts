@@ -4,7 +4,6 @@
  * RULE 2: Centralized utilities to eliminate duplication
  */
 
-import { ConfigFileUtils } from '../config-file-utils';
 import { ProjectTypeDetector } from '../config/project-type-detector/project-type-detector';
 import { CONFIG_FILES, DIRECTORY_NAMES, DOC_FILES } from '../file-constants';
 import { FileUtils } from '../file-utils';
@@ -108,14 +107,6 @@ export function readFileContent(projectRoot: string, file: string): string {
 
 export const { getPackageJson } = ProjectTypeDetector;
 export const { getAllDependencies } = ProjectTypeDetector;
-
-export function loadPackageJson(path: string): Record<string, unknown> | null {
-  try {
-    return ConfigFileUtils.loadConfig(path);
-  } catch {
-    return null;
-  }
-}
 
 // ============================================================================
 // NPM Registry Utilities

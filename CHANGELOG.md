@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Internal — the request-path readers are split below the complexity limits
+
+Code Complexity Control reported six files of `src/utils/request-path` on
+the self-audit: four too long (python-model, python-expr, read-caches,
+data-clients) and five with a function above complexity 10. The Python
+reader is now one file per step — def-use (`python-def-use.ts`), the
+statement walk (`python-statements.ts`), calls and awaits
+(`python-calls.ts`), comprehensions (`python-comprehensions.ts`) — the data
+client registry is its own file (`data-client-registry.ts`), and cache
+policies and stores are read in `cache-policy.ts` and `cache-stores.ts`.
+The old paths re-export every name their importers use, so no importer
+outside the module changed. No law reports anything different.
+
 ### Internal — this repository keeps MD Footer Template on
 
 MD Footer Template became opt-in in this release (#468). This repository does

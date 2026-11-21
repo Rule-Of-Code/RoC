@@ -16,6 +16,21 @@ other code. This repository declares its demo captures and recorded goldens
 as generated, and CONTRIBUTING states the atomic-commit policy.
 
 Self-audit of this repository: Commit Size Control — before 2 findings (4 of the last 10 commits oversized; no atomic-commit policy), after 1 (2 of the last 10: two hand-written commits of 534 and 597 lines, tests included; they leave the window as new commits land).
+### 🐛 Fixed — an Angular CLI project was told to add webpack limits it cannot write (#449)
+
+Once the budget suggestion read angular.json correctly (#449), the two
+Angular/Ionic projects of the QA matrix were told "Add maxAssetSize and
+maxEntrypointSize in webpack configuration". An Angular CLI project has no
+webpack config of its own — the CLI owns it, and the budgets live in
+angular.json — so the advice could not be followed. The law still passed; only
+the suggestion was wrong.
+
+Before: the webpack suggestions were given to every Angular project without a
+webpack config. After: only to a project that has one — a
+`webpack.config.*` / `webpack.prod.*` at the root or under `config/`, or an
+angular.json build through `@angular-builders/custom-webpack`, `ngx-build-plus`
+or `customWebpackConfig`.
+
 ### 🐛 Fixed — a PARTIAL line said "passed" for laws that reported warnings
 
 The judged-nothing line said "The other laws passed" and the narrowed line

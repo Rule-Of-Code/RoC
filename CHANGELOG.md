@@ -152,6 +152,18 @@ Two more corrections, found by QA on the same fixtures:
 | "unreachable code after return" | a line starting with `return` (also `returnValue = …`) followed by a line at the same indent | a statement after a `return` in the same block (not a hoisted function or a type) |
 | no loadable `typescript` | text scanned | "code file(s) were NOT read" — judged nothing |
 
+### 🐛 Fixed — No Explicit Any / Non-Null, No Double Cast and Typed HTTP Boundaries read strings as code (#424)
+
+| | before | after |
+|---|---|---|
+| No Explicit Any: `'AWS::Serverless::Function'`, `'value: any'`, `'run it! now'` in strings | weak type / `any` / non-null | not code |
+| No Explicit Any: `{ keys: Object.keys(x) }` | a weak `: Object` type | a value, not a type |
+| No Double Cast: "as unknown as" in a string (a law's prose) | a double cast | not code |
+| Typed HTTP Boundaries: `http.get(` in a string (a law's prose) | an untyped call | not code |
+| either law, no loadable `typescript` | text scanned | ".ts file(s) were NOT read" — judged nothing |
+
+Real annotations, casts and non-null assertions in code are reported as before.
+
 ### 🐛 Fixed — a PARTIAL line said "passed" for laws that reported warnings
 
 The judged-nothing line said "The other laws passed" and the narrowed line

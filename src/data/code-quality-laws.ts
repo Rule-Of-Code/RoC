@@ -386,7 +386,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
         'Replace any with a real type or unknown + narrowing; replace `x!` with a guard or optional chaining.',
     },
     detectionLimits: [
-      'Regex, strings NOT stripped — `"as any"` or `x!` inside a string literal is flagged; `: Object` / `: Function` fire on user types named Object/Function.',
+      'Regex over the code of the TypeScript parse — strings, templates, regexes and comments are not read (without a loadable `typescript` the files are NOT read and the law judges nothing); `: Object` / `: Function` fire on user types named Object/Function, but not on a value after a colon (`Object.keys(`, `Function(`).',
       'The empty-object `{}` type is deliberately not detected; the per-file collapse hides the true count.',
       'TypeScript; not Angular-gated; no Python.',
     ],
@@ -424,7 +424,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Matches only the literal `as unknown as` form — an angle-bracket cast, `as any as`, or laundering through a variable is missed.',
-      'Strings not stripped — a double-cast inside a string literal is flagged.',
+      'Reads the code of the TypeScript parse — the words in a string or a comment are not a cast; without a loadable `typescript` the files are NOT read and the law judges nothing.',
       'TypeScript; no gate, no Python.',
     ],
     stack: 'typescript',
@@ -459,6 +459,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
         'Give every http.get/post/etc. a type parameter: http.get<User>(url), backed by a runtime validator at the boundary.',
     },
     detectionLimits: [
+      'Reads the code of the TypeScript parse — `http.get(` in a string or a comment is not a call; without a loadable `typescript` the files are NOT read and the law judges nothing.',
       'The receiver identifier must literally contain "http" — this.api.get() and client.post() are false negatives, while a Map named httpMap.get() is a false positive.',
       'Detection works by the ABSENCE of a `<T>` between the verb and `(`; fetch() is not covered.',
       'Regex, no AST; TypeScript, not Angular-gated.',

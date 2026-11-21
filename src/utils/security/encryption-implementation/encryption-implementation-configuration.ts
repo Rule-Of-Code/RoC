@@ -174,12 +174,14 @@ export const RECOMMENDATIONS = [
 // Helper Functions
 // ============================================================================
 
+/** An encryption result with no violations and no suggestions. */
 export function createEmptyResult(): EncryptionCheckResult {
   return { violations: [], suggestions: [] };
 }
 
 import { mergeSecurityResults } from '../result-merging-helper';
 
+/** Concatenates the violations and the suggestions of all results, in argument order. */
 export function mergeResults(
   ...results: EncryptionCheckResult[]
 ): EncryptionCheckResult {
@@ -190,14 +192,21 @@ export function mergeResults(
 export const { hasPattern, hasAnyPattern, hasAllPatterns, hasAnyRegexPattern } =
   PatternMatchingUtils;
 
+/**
+ * Whether the text contains, case-insensitively, any of SENSITIVE_DATA_KEYWORDS
+ * (password, token, secret, key, auth) as a plain substring — so `keyboard`
+ * or `author` count too.
+ */
 export function hasSensitiveDataKeyword(content: string): boolean {
   return hasAnyPattern(content.toLowerCase(), SENSITIVE_DATA_KEYWORDS);
 }
 
+/** Whether the text contains `Math.random` anywhere (comments and strings included). */
 export function hasInsecureRandom(content: string): boolean {
   return hasPattern(content, INSECURE_RANDOM_PATTERN);
 }
 
+/** The file's UTF-8 text, or '' when it does not exist or cannot be read (never throws). */
 export function safeReadFile(filePath: string): string {
   try {
     return FileUtils.readFile(filePath);

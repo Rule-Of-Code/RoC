@@ -80,3 +80,8 @@ release consumers may already have installed.
       step 1: a branch from `master` for a hotfix, or from `develop`.
 - [ ] The issue that caused it gets a regression test that fails on the
       broken version and passes on the fix.
+
+---
+
+<!-- roc-footer -->
+**Document Version:** the git history of this file &middot; **Last Updated:** 2026-11-21 &middot; **Status:** Active &middot; **Investment Rating:** reviewed

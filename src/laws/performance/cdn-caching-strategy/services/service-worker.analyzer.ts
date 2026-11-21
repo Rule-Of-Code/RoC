@@ -6,6 +6,12 @@ import { CdnCachingStrategyFileDiscoveryConstants as FileDiscovery } from '../co
 import type { ServiceWorkerResult } from '../constants/types';
 import { PerformanceAnalyzerBase } from './performance-analyzer-base';
 
+/**
+ * Answers whether the app has a service worker: angular.json naming
+ * `serviceWorker` or `@angular/service-worker`, a sw.js / service-worker.js
+ * under src/ or public/, an ngsw-config.json, or an app entry file that
+ * registers one (serviceWorker, registerSW, SwUpdate).
+ */
 export class ServiceWorkerAnalyzerService extends PerformanceAnalyzerBase {
   static async analyze(
     projectRoot: string,

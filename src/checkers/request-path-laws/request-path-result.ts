@@ -17,6 +17,7 @@ import { ONE_OFF_SCRIPT_LOCATIONS } from '../../utils/request-path/one-off-scrip
 import type { ProjectSources } from '../../utils/request-path/sources';
 import { LawBase } from '../law-base';
 
+/** How many source files a request-path law read: Python plus TS/JS. */
 export function filesRead(sources: ProjectSources): number {
   return sources.counts.python + sources.counts.typescript;
 }
@@ -43,6 +44,12 @@ export interface RequestPathVerdict {
   notSeen: string;
 }
 
+/**
+ * The LawResult of a request-path law: judged nothing only when no source
+ * file could be read (with the reason); otherwise the unread notes and the
+ * findings, and a pass whose message says how many files were read, what was
+ * compared and what the law does not see. File counts go in `metrics`.
+ */
 export function requestPathResult(verdict: RequestPathVerdict): LawResult {
   const {
     lawName,

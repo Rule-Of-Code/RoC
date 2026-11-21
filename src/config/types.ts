@@ -336,9 +336,12 @@ export interface RuleOfCodeConfig {
       minDuplicationLines?: number;
       /** Minimum tokens in a function body compared for duplication. Default: 50. */
       minDuplicationTokens?: number;
-      /** Minimum comment ratio percentage (0-100) */
+      /**
+       * @deprecated Not read since 8.0.0: Code Documentation Standards no longer
+       * judges the comment ratio (it judges JSDoc on exported classes and functions).
+       */
       minCommentRatioPercent?: number;
-      /** Minimum file size (lines) to require comment ratio */
+      /** @deprecated Not read since 8.0.0 — see minCommentRatioPercent. */
       minFileSizeForComments?: number;
     };
     typescript?: {
@@ -857,9 +860,12 @@ export interface RuleOfCodeConfig {
       maxTodoContentLength?: number;
       /** Minimum setup/teardown documentation length */
       minSetupDocumentationLength?: number;
-      /** Minimum class documentation coverage percentage (0-100) */
+      /**
+       * @deprecated Not read since 8.0.0: Code Documentation Standards reports
+       * each undocumented exported class and function instead of a coverage ratio.
+       */
       minClassDocumentationPercent?: number;
-      /** Minimum function documentation coverage percentage (0-100) */
+      /** @deprecated Not read since 8.0.0 — see minClassDocumentationPercent. */
       minFunctionDocumentationPercent?: number;
       standards?: {
         /** Score deduction per documentation violation */

@@ -200,6 +200,14 @@ export function isListedModule(
   });
 }
 
+/**
+ * The project's first-party module graph, built with its own TypeScript:
+ * parses files on demand (cached), lists the imports of each that bring code
+ * in, resolves them under bundler resolution with the nearest tsconfig or
+ * jsconfig, and walks from entry files with the stop and edge rules a law
+ * passes. Files, imports and configs it could not read or resolve are kept
+ * (`unread`, the walk's result) so a law reports them instead of passing.
+ */
 export class NextModuleGraph {
   /** Files that could not be read or parsed, as messages. */
   readonly unread: string[] = [];

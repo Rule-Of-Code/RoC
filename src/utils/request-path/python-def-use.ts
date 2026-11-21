@@ -20,13 +20,19 @@ function assignmentOperators(
   const out: Array<{ at: number; augmented: boolean }> = [];
   for (let i = 0; i < text.length; i++) {
     if (text[i] !== '=' || depths[i] !== 0) continue;
+    if (isComparison(text, i)) continue;
     const prev = text[i - 1] ?? '';
-    if (text[i + 1] === '=' || prev === '=' || prev === '!' || prev === ':')
-      continue;
-    if ((prev === '<' || prev === '>') && text[i - 2] !== prev) continue;
     out.push({ at: i, augmented: '+-*/%@&|^<>'.includes(prev) });
   }
   return out;
+}
+
+/** Is the `=` at `i` part of `==`, `!=`, `:=`, `<=` or `>=` rather than an assignment? */
+function isComparison(text: string, i: number): boolean {
+  const prev = text[i - 1] ?? '';
+  if (text[i + 1] === '=' || prev === '=' || prev === '!' || prev === ':')
+    return true;
+  return (prev === '<' || prev === '>') && text[i - 2] !== prev;
 }
 
 /** Strip a depth-0 annotation (`x: int`) from an assignment target. */

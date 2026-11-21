@@ -1,4 +1,9 @@
-/** One Python function body → its statements and loops (see model.ts). */
+/**
+ * One Python function body → its statements (see model.ts): per statement
+ * the outermost awaits, the names it binds and reads, and every call; per
+ * loop in the same function (`for`, `async for`, `while`, and the element of
+ * a comprehension) the awaited calls that run once per iteration.
+ */
 
 import type {
   AwaitSite,
@@ -116,6 +121,83 @@ function comprehensionAwaits(
   }
 }
 
+/** Is `at` inside a part of a comprehension that runs once per element? */
+function inPerElement(comps: readonly Comprehension[], at: number): boolean {
+  return comps.some(c => c.perElement.some(([s, e]) => at >= s && at < e));
+}
+
+/**
+ * A `while` condition runs once per iteration, but binds no item: what it
+ * awaits is a poll or a retry, never one read per item.
+ */
+function whileLoopOf(node: PyNode): Loop | null {
+  return node.keyword === 'while'
+    ? {
+        line: node.line,
+        kind: 'while',
+        targets: [],
+        statements: [],
+        awaits: [],
+      }
+    : null;
+}
+
+/**
+ * Record a statement's awaits on the loop they run in: the `while` the
+ * statement heads, else the loop around it; and per comprehension element.
+ */
+function recordStatementAwaits(
+  node: PyNode,
+  awaits: Array<AwaitSite & { start: number; end: number }>,
+  comps: readonly Comprehension[],
+  state: WalkState
+): void {
+  const whileLoop = whileLoopOf(node);
+  const ownLoop = whileLoop ?? state.loops[state.loops.length - 1];
+  for (const site of awaits) {
+    if (!inPerElement(comps, site.start)) pushLoopAwait(state, ownLoop, site);
+  }
+  if (whileLoop) finishLoop(whileLoop);
+  comprehensionAwaits(comps, node.line, awaits, state);
+}
+
+/** `[d async for d in q.stream()]` awaits every step of the stream. */
+function comprehensionIterations(
+  comps: readonly Comprehension[],
+  awaits: Array<AwaitSite & { start: number; end: number }>,
+  line: number,
+  literals: readonly PyLiteral[]
+): AwaitSite[] {
+  return comps
+    .filter(
+      c =>
+        c.asyncIterable &&
+        !inPerElement(comps, c.start) &&
+        !awaits.some(a => a.start < c.start && c.end <= a.end)
+    )
+    .map(c => iterationAwait(c.asyncIterable as string, line, literals));
+}
+
+/** An `async for` header awaits each step of its iterable, in the loop around it. */
+function recordAsyncForAwait(node: PyNode, state: WalkState): void {
+  if (node.keyword !== 'async for') return;
+  const iterable = /\s+in\s+(.*)$/.exec(node.header)?.[1];
+  if (iterable)
+    pushLoopAwait(
+      state,
+      state.loops[state.loops.length - 1],
+      iterationAwait(iterable, node.line, state.literals)
+    );
+}
+
+/** A `with` / `async with` that opens a transaction. */
+function isTransactionScope(node: PyNode, text: string): boolean {
+  return (
+    (node.keyword === 'with' || node.keyword === 'async with') &&
+    TRANSACTION_SCOPE.test(text)
+  );
+}
+
 /** Analyse one statement and record its awaits, calls and names on the function. */
 function statementOf(node: PyNode, state: WalkState): StatementModel {
   const { literals, fn } = state;
@@ -125,52 +207,16 @@ function statementOf(node: PyNode, state: WalkState): StatementModel {
   const defUse = simple
     ? simpleDefUse(text, literals)
     : { ...headerDefUse(node, literals), mutable: [] };
-  const outer = state.loops[state.loops.length - 1];
-  // A `while` condition runs once per iteration, but binds no item: what it
-  // awaits is a poll or a retry, never one read per item.
-  const whileLoop: Loop | null =
-    node.keyword === 'while'
-      ? {
-          line: node.line,
-          kind: 'while',
-          targets: [],
-          statements: [],
-          awaits: [],
-        }
-      : null;
-  const ownLoop = whileLoop ?? outer;
   const comps = pythonComprehensions(text);
-  const perElement = (at: number): boolean =>
-    comps.some(c => c.perElement.some(([s, e]) => at >= s && at < e));
-  for (const site of awaits) {
-    if (!perElement(site.start)) pushLoopAwait(state, ownLoop, site);
-  }
-  if (whileLoop) finishLoop(whileLoop);
-  comprehensionAwaits(comps, node.line, awaits, state);
-  // `[d async for d in q.stream()]` awaits every step of the stream.
-  const iterations = comps
-    .filter(
-      c =>
-        c.asyncIterable &&
-        !perElement(c.start) &&
-        !awaits.some(a => a.start < c.start && c.end <= a.end)
-    )
-    .map(c => iterationAwait(c.asyncIterable as string, node.line, literals));
-  if (node.keyword === 'async for') {
-    const iterable = /\s+in\s+(.*)$/.exec(node.header)?.[1];
-    if (iterable)
-      pushLoopAwait(
-        state,
-        outer,
-        iterationAwait(iterable, node.line, literals)
-      );
-  }
-  if (
-    (node.keyword === 'with' || node.keyword === 'async with') &&
-    TRANSACTION_SCOPE.test(text)
-  ) {
-    fn.transactional = true;
-  }
+  recordStatementAwaits(node, awaits, comps, state);
+  const iterations = comprehensionIterations(
+    comps,
+    awaits,
+    node.line,
+    literals
+  );
+  recordAsyncForAwait(node, state);
+  if (isTransactionScope(node, text)) fn.transactional = true;
   fn.calls.push(...pythonCalls(text, node.line, literals));
   count(fn, defUse.used);
   return {
@@ -199,36 +245,55 @@ export function walkBlock(nodes: readonly PyNode[], state: WalkState): void {
   state.fn.blocks.push(block);
   for (const node of nodes) {
     if (node.keyword === '@') continue;
-    if (
-      node.keyword !== null &&
-      (FUNCTION_KEYWORDS.has(node.keyword) || node.keyword === 'class')
-    ) {
-      block.push({
-        line: node.line,
-        endLine: node.endLine,
-        simple: false,
-        awaits: [],
-        bound: [],
-        used: [],
-        mutableBindings: [],
-        text: node.text,
-      });
+    if (isDefinition(node)) {
+      block.push(definitionStatement(node));
       continue;
     }
     const statement = statementOf(node, state);
     block.push(statement);
     state.loops.forEach(loop => loop.statements.push(statement));
     if (node.children.length === 0) continue;
-    const loop =
-      node.keyword !== null && LOOP_KEYWORDS.has(node.keyword)
-        ? newLoop(node, statement, state)
-        : null;
-    if (loop) state.loops.push(loop);
-    walkBlock(node.children, state);
-    if (loop) {
-      state.loops.pop();
-      finishLoop(loop);
-    }
+    walkBody(node, statement, state);
+  }
+}
+
+/** A `def`, `async def` or `class`: its body runs elsewhere, not here. */
+function isDefinition(node: PyNode): boolean {
+  return (
+    node.keyword !== null &&
+    (FUNCTION_KEYWORDS.has(node.keyword) || node.keyword === 'class')
+  );
+}
+
+/** A definition as a statement of the block around it: no awaits, no names. */
+function definitionStatement(node: PyNode): StatementModel {
+  return {
+    line: node.line,
+    endLine: node.endLine,
+    simple: false,
+    awaits: [],
+    bound: [],
+    used: [],
+    mutableBindings: [],
+    text: node.text,
+  };
+}
+
+/** Walk a compound statement's body, inside the loop the statement opens. */
+function walkBody(
+  node: PyNode,
+  statement: StatementModel,
+  state: WalkState
+): void {
+  const loop =
+    node.keyword !== null && LOOP_KEYWORDS.has(node.keyword)
+      ? newLoop(node, statement, state)
+      : null;
+  if (loop) state.loops.push(loop);
+  walkBlock(node.children, state);
+  if (loop) {
+    state.loops.pop();
+    finishLoop(loop);
   }
 }
 

@@ -4,7 +4,6 @@
  * RULE 2: Extracted from main service to improve separation of concerns
  */
 
-import { ConfigFileUtils } from '../../config-file-utils';
 import { DOMReferencesAnalyzer } from '../dom-references';
 import { EventListenersAnalyzer } from '../event-listeners';
 import { LifecycleAnalyzer } from '../lifecycle';
@@ -24,12 +23,7 @@ export class PerformanceAnalysisRunnersService {
   ): void {
     if (!include) return;
 
-    // RULE 1: Use Configuration's minimal config instead of hardcoded object
-    // Note: LifecycleAnalyzer works with config, using a minimal config object
-    const lifecycleResult = LifecycleAnalyzer.checkLifecycleManagement(
-      '',
-      ConfigFileUtils.getMinimalDefaultConfig()
-    );
+    const lifecycleResult = LifecycleAnalyzer.checkLifecycleManagement('');
 
     // RULE 2: Use helper method instead of duplicated processing logic
     PerformanceAnalysisHelpersService.processAnalysisResult(

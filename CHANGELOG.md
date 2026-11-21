@@ -22,7 +22,7 @@ read the TypeScript parse.
 | `eslint-disable` | anywhere in the text | in comments only |
 | `unknown[]` | a strict-type violation | not a violation (the safe type for data of unknown shape) |
 | `constructor(...args: any[])` of a mixin | a violation | not counted (TypeScript requires it, TS2545) |
-| package with `bin` in package.json | every `console.*` counted | `console.log/info/warn/error` is the command's output; `debug/trace` still count |
+| package with `bin` in package.json | every `console.*` counted | `console.log/info` is the command's output in the whole package; `console.warn` only in the command's entry modules (the source of each `bin` target, the directory named after it, a `commands/` beside it); elsewhere `warn`, and `debug/trace` everywhere, still count |
 | a logging module (`logger.*`, `logging*`, `log.*`) | its `console.*` counted | not counted |
 | no loadable `typescript` | text scanned | ".ts file(s) were NOT read" — judged nothing |
 

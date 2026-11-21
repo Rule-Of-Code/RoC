@@ -5,8 +5,9 @@
  * Every per-file check reads the CODE of the file, or its COMMENTS, from the
  * TypeScript parse (#424): a `console.log` in a message string, `: any` in a
  * comment's prose or `TODO` in a regex is not code. In a package that
- * declares a `bin`, `console.log/info/warn` is the program's output, not a
- * debug statement (#425).
+ * declares a `bin`, `console.log/info` is the program's output, and so is
+ * `console.warn` in the command's entry modules — not a debug statement
+ * (#425).
  */
 
 import type * as TS from 'typescript';
@@ -130,11 +131,12 @@ export class ZeroToleranceStrictLaw extends CodeQualityLawBase {
   }
 
   /**
-   * `console.*` in code. In a package that declares a `bin`, log, info
-   * and warn are what the command prints — its output; debug and trace are
-   * still counted (the rule lives in CliPackages, shared with Centralized
-   * Logging; this law never counted error). A logging module (logger.*, logging*, log.*) is where console
-   * output is supposed to live.
+   * `console.*` in code. In a package that declares a `bin`, log and info
+   * are what the command prints — its output; in the command's entry modules
+   * warn is too. Library code's warn, and debug and trace everywhere, are
+   * counted. The rule lives in CliPackages, shared with Centralized Logging;
+   * this law has no error check. A logging module (logger.*, logging*,
+   * log.*) is where console output is supposed to live.
    */
   private static consoleCalls(
     view: SourceView,

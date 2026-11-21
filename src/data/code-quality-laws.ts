@@ -22,12 +22,12 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Zero tolerance means the build has no acceptable number of console.logs, TODOs, `any`s or empty catches — because "we will clean it up later" is the comment on every line that shipped a bug. The bar is zero, so there is no line to argue about.',
     satisfiedBy: {
       typescript:
-        "Enable strict in tsconfig and keep zero console.*, TODO/FIXME tags, `: any` annotations and `as any` casts, eslint-disable and empty catch blocks across non-test .ts. In a package that declares `bin`, console.log/info/warn/error is the command's output; console.debug/trace still count.",
+        "Enable strict in tsconfig and keep zero console.*, TODO/FIXME tags, `: any` annotations and `as any` casts, eslint-disable and empty catch blocks across non-test .ts. In a package that declares `bin`, console.log/info is the command's output, and console.warn too in the command's entry modules (what `bin` points to, and its command directory); console.debug/trace still count.",
     },
     detectionLimits: [
       'The strict check is a SUBSTRING test: `"strict"` plus any `true` in the tsconfig passes — even `"strict": false` next to `"esModuleInterop": true`.',
       'Reads the code and the comments from the TypeScript parse: console, `: any` annotations, `as any` casts and empty catch in code only, TODO tags (capitals, at the start of a // comment) and eslint-disable in comments only; without a loadable `typescript` the files are NOT read and the law judges nothing. Only the ROOT tsconfig is read.',
-      'In a package whose nearest package.json declares `bin`, console.log/info/warn are not counted anywhere in it (error never was) — a stray log in such a package is not told apart from output. A logging module (logger.*, logging*, log.*) is not counted.',
+      'In a package whose nearest package.json declares `bin`, console.log/info are not counted anywhere in it — a stray log in such a package is not told apart from output; console.warn is not counted in the entry modules derived from `bin` (the source of each bin target, the directory named after it and a commands/ directory beside it), and is counted in the rest. A logging module (logger.*, logging*, log.*) is not counted.',
       'TS/Angular only; a Python project has no tsconfig and cannot pass.',
     ],
     stack: 'typescript',

@@ -13,7 +13,9 @@ import * as tsxSource from '../../src/utils/react/tsx-source';
  * The checks ran regexes over the raw file: a `console.log` in a message, an
  * `any` in a comment's prose, a `TODO` in a regex or in a sentence about the
  * TODO law, an `eslint-disable` in a string — all were findings. In a package
- * that declares a `bin`, console.log/info/warn/error are the command's output. `unknown[]`
+ * that declares a `bin`, console.log/info are the command's output, and in the
+ * command's entry modules (what `bin` points to, and its command directory)
+ * console.warn/error are too. `unknown[]`
  * was reported as a strict-type violation, and so was the `any[]` rest
  * parameter TypeScript requires of a mixin constructor.
  */
@@ -146,14 +148,34 @@ describe('Absolute Zero Tolerance reads code (#424, #425)', () => {
       expect(findingsFor('report.ts')).toEqual([]);
     });
 
-    /** warn and error, on stderr, are the command's output as well. */
-    it('does not count warn and error in a library file of the package', () => {
+    /**
+     * Library code the command calls is not the command: a warning written
+     * there bypasses whatever reports to the user, and is counted.
+     */
+    it('counts warn in a library file of the package', () => {
       write(
         'src/utils/cache.ts',
-        "export function save(ok: boolean) {\n  if (!ok) console.warn('cache write failed');\n  if (!ok) console.error('cache lost');\n}\n"
+        "export function save(ok: boolean) {\n  console.log('saved');\n  if (!ok) console.warn('[DEBUG] cache write failed');\n}\n"
       );
 
-      expect(findingsFor('utils/cache.ts')).toEqual([]);
+      expect(findingsFor('utils/cache.ts')).toEqual([
+        'Console statements found in src/utils/cache.ts: 1 occurrences',
+      ]);
+    });
+
+    /** dist/cli.js is built from src/cli.ts; its commands live in src/cli/. */
+    it('does not count warn in the entry module and its commands', () => {
+      write(
+        'src/cli.ts',
+        "export function main() {\n  console.warn('deprecated flag');\n}\n"
+      );
+      write(
+        'src/cli/audit.ts',
+        "export function audit(ok: boolean) {\n  if (!ok) console.warn('audit failed');\n}\n"
+      );
+
+      expect(findingsFor('cli.ts')).toEqual([]);
+      expect(findingsFor('cli/audit.ts')).toEqual([]);
     });
 
     it('still counts debug and trace', () => {

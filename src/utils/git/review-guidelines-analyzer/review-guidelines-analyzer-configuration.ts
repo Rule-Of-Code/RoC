@@ -90,10 +90,7 @@ export class ReviewGuidelinesAnalyzerConfiguration {
    * RULE 1: Uses centralized StringTemplateUtils instead of duplicate logic
    */
   static buildMessage(templateKey: string, ...args: string[]): string {
-    const messages = this.SUGGESTION_MESSAGES as unknown as Record<
-      string,
-      string
-    >;
+    const messages: Readonly<Record<string, string>> = this.SUGGESTION_MESSAGES;
     const template = messages[templateKey] ?? '';
     return StringTemplateUtils.formatTemplate(template, ...args);
   }

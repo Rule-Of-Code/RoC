@@ -7,7 +7,10 @@ import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { ProjectTypeDetector } from '../../utils/config/project-type-detector';
 import { SacredLawBase } from './sacred-law-base';
 import { PathOperations } from '../../utils/path-operations';
-import { loadTypeScript } from '../../utils/react/tsx-source';
+import {
+  loadTypeScript,
+  parserUnavailable,
+} from '../../utils/react/tsx-source';
 
 export class TypeScriptStrictLaw {
   private static readonly STRICT_CHECKS = {
@@ -42,6 +45,14 @@ export class TypeScriptStrictLaw {
       const compilerOptions = ((tsConfig as Record<string, unknown>)
         .compilerOptions ?? {}) as Record<string, unknown>;
       this.validateCompilerOptions(compilerOptions, violations, projectRoot);
+      // Without the parser the extends chain is not followed: the flags above
+      // were read from tsconfig.json alone. Say so (#427).
+      const extendsFrom = (tsConfig as Record<string, unknown>).extends;
+      if (extendsFrom !== undefined && !loadTypeScript(projectRoot)) {
+        violations.push(
+          `tsconfig.json extends ${JSON.stringify(extendsFrom)}: ${parserUnavailable(projectRoot, 'the inherited compiler options')} — the strict flags were read from tsconfig.json alone`
+        );
+      }
     } else {
       // The file EXISTS (checked above) but did not parse. Fail closed: a strict
       // gate that cannot read the config it governs must not report compliance —

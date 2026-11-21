@@ -99,7 +99,8 @@ export const DOCUMENTATION_LAWS: EnhancedConstitutionalLaw[] = [
         'End each Markdown file with the footer block after a horizontal rule: Document Version, Last Updated, Status, and a Rating line. The rating accepts any scale you declare — N/10, a letter grade, or a status word such as reviewed / needs-review / superseded.',
     },
     detectionLimits: [
-      'It globs every **/*.md and bypasses the configured ignore paths, so vendored or generated Markdown is graded too.',
+      'Opt-in (defaultEnabled: false): the footer is a house convention of the projects that adopt it, not a property every repository must have. Turn it on with a severity in laws.severity (e.g. "MD Footer Template (MANDATORY)": "warning") or by listing it in laws.enabled.',
+      'It globs **/*.md (not node_modules, dist, .nx) and keeps what the configured includes / ignores select. When that leaves no file — no Markdown at all, or includes that list only code — it says nothing was judged, never that the project has no documentation.',
       'A single ordinary Markdown file without the bespoke footer raises a violation and fails the whole law — the check is all-or-nothing across every file it globs.',
       'The rating is checked for being present and readable, never for being TRUE — nothing verifies that anyone reviewed the document or that the grade matches its state.',
     ],
@@ -109,7 +110,8 @@ export const DOCUMENTATION_LAWS: EnhancedConstitutionalLaw[] = [
     priority: 'MEDIUM',
     category: 'DOCUMENTATION',
     automation: 'CONFIGURABLE',
-    defaultEnabled: true,
+    // Opt-in: a house convention, enabled by the projects that adopt it.
+    defaultEnabled: false,
     defaultSeverity: 'warning',
     checkFunction: 'checkMDFooterTemplate',
     violationMessage:

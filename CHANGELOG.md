@@ -89,6 +89,16 @@ findings, Performance Monitoring Standards 3, Incident Response Protocol 3,
 Launch Readiness Checklist 1, NX Commands Only Policy 1 → not selected;
 Pre-Deployment Checklist 4 → 2.
 
+### Changed — MD Footer Template is opt-in, and says when it judged nothing (#436)
+
+The footer is a house convention, so the law is opt-in (`defaultEnabled:
+false`): turn it on with a severity in `laws.severity` or in `laws.enabled`.
+When no Markdown file is left to read — none in the project, or
+`includes.global` that lists only code — it reports that nothing was judged
+(and which case), never "No markdown files found in project". This
+repository's config no longer enables it.
+
+Self-audit of this repository: MD Footer Template — before 1 finding ("No markdown files found in project"), after not selected (opt-in, not enabled).
 ### 🐛 Fixed — an Angular CLI project was told to add webpack limits it cannot write (#449)
 
 Once the budget suggestion read angular.json correctly (#449), the two

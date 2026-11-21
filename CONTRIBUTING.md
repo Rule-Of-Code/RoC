@@ -63,6 +63,10 @@ Conventional Commits: `type(scope): summary`
 - subject ≤ **72** characters
 - a blank line between subject and body; body lines wrap at **72**
 - the body says **why**, not what — the diff already says what
+- atomic commits: **one change per commit**, small enough to review and to revert on
+  its own (Commit Size Control: at most 10 files and 500 changed lines; generated
+  files — lockfiles, recordings, the captured output under `docs/demo/out*/`, the
+  recorded goldens under `tests/regression/__golden__/` — do not count; tests do)
 - 🔴 **no `Co-Authored-By` trailer.** Some tooling adds one automatically; strip it
   before committing. A regression test fails the build on any commit that carries
   one, and the eight historical exceptions it names are frozen — the list only ever

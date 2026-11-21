@@ -26,6 +26,15 @@ follows — candidate, build and tests, security, GO from QA and the site on the
 untagged candidate, tag, publish by the founder, and rollback by
 `npm deprecate` and a new patch.
 
+### Changed — Commit Size Control does not count generated files at all
+
+Generated files count neither lines nor files; asciinema `.cast` recordings
+join the built-in lockfile list, and `thresholds.git.commitSize.generatedFiles`
+now ADDS to that list instead of replacing it. Test files count like any
+other code. This repository declares its demo captures and recorded goldens
+as generated, and CONTRIBUTING states the atomic-commit policy.
+
+Self-audit of this repository: Commit Size Control — before 2 findings (4 of the last 10 commits oversized; no atomic-commit policy), after 1 (2 of the last 10: two hand-written commits of 534 and 597 lines, tests included; they leave the window as new commits land).
 ### 🐛 Fixed — an Angular CLI project was told to add webpack limits it cannot write (#449)
 
 Once the budget suggestion read angular.json correctly (#449), the two

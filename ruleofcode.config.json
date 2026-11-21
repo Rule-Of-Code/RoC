@@ -77,6 +77,17 @@
     },
     "notApplicable": {}
   },
+  "thresholds": {
+    "git": {
+      "commitSize": {
+        "generatedFiles": [
+          "^docs/demo/out[^/]*/",
+          "^docs/demo/[^/]*[.]gif$",
+          "^tests/regression/__golden__/"
+        ]
+      }
+    }
+  },
   "failOnWarnings": false,
   "hooks": {
     "preCommit": true,

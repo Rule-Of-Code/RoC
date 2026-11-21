@@ -1,5 +1,4 @@
 import type { RuleOfCodeConfig } from '../../../config/types';
-import { FileUtils } from '../../../utils/file-utils';
 import { SecurityCheckerBase } from './security-checker-base';
 /**
  * Authorization Patterns Checker
@@ -67,14 +66,7 @@ export class AuthorizationChecker extends SecurityCheckerBase {
       /@Roles/,
     ];
 
-    return codeFiles.some(file => {
-      try {
-        const content = FileUtils.readFile(file);
-        return rbacPatterns.some(pattern => pattern.test(content));
-      } catch (_error) {
-        return false;
-      }
-    });
+    return this.anyFileMatchesCode(codeFiles, rbacPatterns);
   }
 
   private static hasAuthorizationGuards(codeFiles: string[]): boolean {
@@ -91,14 +83,7 @@ export class AuthorizationChecker extends SecurityCheckerBase {
       /@Guard/,
     ];
 
-    return codeFiles.some(file => {
-      try {
-        const content = FileUtils.readFile(file);
-        return guardPatterns.some(pattern => pattern.test(content));
-      } catch (_error) {
-        return false;
-      }
-    });
+    return this.anyFileMatchesCode(codeFiles, guardPatterns);
   }
 
   private static hasPermissionSystem(codeFiles: string[]): boolean {
@@ -115,14 +100,7 @@ export class AuthorizationChecker extends SecurityCheckerBase {
       /can.*action/i,
     ];
 
-    return codeFiles.some(file => {
-      try {
-        const content = FileUtils.readFile(file);
-        return permissionPatterns.some(pattern => pattern.test(content));
-      } catch (_error) {
-        return false;
-      }
-    });
+    return this.anyFileMatchesCode(codeFiles, permissionPatterns);
   }
 
   private static hasResourceLevelAuth(codeFiles: string[]): boolean {
@@ -138,13 +116,6 @@ export class AuthorizationChecker extends SecurityCheckerBase {
       /ACL/,
     ];
 
-    return codeFiles.some(file => {
-      try {
-        const content = FileUtils.readFile(file);
-        return resourceAuthPatterns.some(pattern => pattern.test(content));
-      } catch (_error) {
-        return false;
-      }
-    });
+    return this.anyFileMatchesCode(codeFiles, resourceAuthPatterns);
   }
 }

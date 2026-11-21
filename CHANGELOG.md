@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — detectors judged their own pattern tables, the law registry's prose and their fixture strings as code (#426)
+
+A project that contains detectors (this one, or any project with lint or
+security tooling) was judged by its data. The general rule now, for every
+project: a pattern counts where it **starts in code** — not inside a string,
+template, regex or comment — and a string counts only where the code **hands
+it to an API**. Files are read from the TypeScript parse (`src/utils/security/code-view.ts`);
+an import's module name (`from 'firebase/auth'`, `require('md5')`) is code.
+Without a loadable `typescript` the files are reported as not read.
+
+- **Data Encryption Standards.** Before: `\bMD5\b` and the other weak
+  algorithms anywhere outside comments (`WEAK_ALGORITHMS = ['MD5', …]`, law
+  prose); `password = "…"` inside a string or regex; `'http://'` anywhere in
+  a file without `localhost`; `Math.random`, `btoa(`, `hash` + `password` in
+  strings. After: a weak algorithm is an identifier in code (`CryptoJS.MD5`,
+  `md5(…)`) or a one-token string passed to a crypto API or bound to a
+  crypto name (`createHash('md5')`, `{ algorithm: 'des-ede3' }`,
+  `const HASH_ALGO = 'sha1'`); a hardcoded secret is an assignment written in
+  code; an HTTP connection is a string that is an `http://host` URL (the
+  file-level `localhost` exemption is unchanged); `Math.random()`, `btoa(`,
+  `localStorage.setItem` and password hashing are calls in code. The 777
+  file-mode check reads code plus the strings handed to a file-mode API.
+- **Authentication Security** (all three checkers: authentication,
+  authorization, session). Before: every pattern on the raw file, so
+  `/md5.*password/` in the checker's own table was "Insecure password
+  handling detected", and `/AuthService/`, `/refreshToken/` and similar
+  table entries satisfied "has an auth service" / "has token management".
+  After: patterns match from code. A project whose only auth "evidence" was
+  such text is now told it has none.
+- **Test Data Management** (hardcoded test data). Before: the patterns
+  matched fixture strings — a detector's own test keeping
+  `const users = [{ id: '1' }]` as an input string was "hardcoded test data".
+  After: a pattern counts where it starts in the test's code.
+
+Self-audit of this repository: Data Encryption Standards 28 → 1 (`const KEY =
+'thresholds.next.guardExemptions'`, a real assignment the secret pattern
+matches); Authentication Security 1 → 2 (the "insecure password" finding is
+gone; "No proper token management" and "No resource-level authorization",
+which passed only on the checkers' own patterns, now fire — a CLI with no
+authentication); Test Data Management: the detector's own test
+(`tests/laws/testing/unit-test-data-management-constants.test.ts`) is no
+longer among the hardcoded-data files.
+
 ### 🐛 Fixed — a committed PRE_DEPLOYMENT_CHECKLIST.md was reported missing when `includes` name only source (#476)
 
 Pre-Deployment Checklist looked the checklist up through the source scan,

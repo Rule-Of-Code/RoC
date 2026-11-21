@@ -46,6 +46,16 @@ export const BASE64_FUNCTIONS = ['btoa(', 'atob('] as const;
 // ============================================================================
 
 export const INSECURE_HTTP_PATTERN = 'http://';
+/** A string that is an http:// URL with a host (#426). */
+export const INSECURE_HTTP_URL = /^http:\/\/[a-z0-9[]/i;
+
+/**
+ * A call, property or variable whose name says it takes an algorithm name:
+ * createHash, createHmac, createCipheriv, subtle.digest, `algorithm:`,
+ * `HASH_ALGO`, createSign / sign / verify (#426).
+ */
+export const CRYPTO_API_NAME =
+  /hash|hmac|cipher|crypt|digest|algorithm|algo|^(?:create)?(?:sign|verify)$/i;
 export const LOCALHOST_PATTERN = 'localhost';
 
 export const API_CALL_PATTERNS = ['XMLHttpRequest', 'fetch('] as const;
@@ -174,13 +184,6 @@ export const { hasPattern, hasAnyPattern, hasAllPatterns, hasAnyRegexPattern } =
 
 export function hasSensitiveDataKeyword(content: string): boolean {
   return hasAnyPattern(content.toLowerCase(), SENSITIVE_DATA_KEYWORDS);
-}
-
-export function hasInsecureHttp(content: string): boolean {
-  return (
-    hasPattern(content, INSECURE_HTTP_PATTERN) &&
-    !hasPattern(content, LOCALHOST_PATTERN)
-  );
 }
 
 export function hasInsecureRandom(content: string): boolean {

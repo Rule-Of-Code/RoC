@@ -50,7 +50,12 @@ export class UnitTestDataManagementAnalyzerService {
           missingSetupFiles.push(relative);
         }
 
-        if (UnitTestDataManagementConstants.hasHardcodedTestData(content)) {
+        if (
+          UnitTestDataManagementConstants.hasHardcodedTestData(
+            content,
+            testFile
+          )
+        ) {
           hardcodedDataFiles.push(relative);
         }
 

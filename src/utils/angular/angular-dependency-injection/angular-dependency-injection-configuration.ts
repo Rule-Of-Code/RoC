@@ -201,7 +201,7 @@ export class AngularDependencyInjectionConfiguration {
     hasImports: boolean;
     hasOptionalDeps: boolean;
     importCount: number;
-    constructorBlock?: string;
+    constructorBlock?: string | undefined;
     dependencyCount: number;
   } {
     const fileName = filePath.split('/').pop() ?? filePath;

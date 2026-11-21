@@ -43,6 +43,18 @@ export function loadTypeScript(projectRoot: string): TypeScriptModule | null {
   return ts;
 }
 
+/**
+ * An array a TypeScript node carries under a name the typings do not declare:
+ * `parseDiagnostics` on a SourceFile (internal, present since TS 1.x) or
+ * `decorators` on a node (public before TS 4.8, removed after). The audited
+ * project may load any TypeScript version, so the value is checked at run time
+ * instead of asserted: anything but an array reads as none.
+ */
+export function internalArray<T>(node: object, name: string): readonly T[] {
+  const value: unknown = Reflect.get(node, name);
+  return Array.isArray(value) ? value : [];
+}
+
 /** The message a law gives when it needed the parser and could not load it. */
 export function parserUnavailable(
   projectRoot: string,
@@ -131,12 +143,10 @@ export class TsxSource {
    * (`parseDiagnostics` is internal, present since TS 1.x.)
    */
   parseErrors(): string[] {
-    const diagnostics =
-      (
-        this.sourceFile as unknown as {
-          parseDiagnostics?: readonly TS.Diagnostic[];
-        }
-      ).parseDiagnostics ?? [];
+    const diagnostics = internalArray<TS.Diagnostic>(
+      this.sourceFile,
+      'parseDiagnostics'
+    );
     return diagnostics.map(diagnostic => {
       const line =
         diagnostic.start === undefined

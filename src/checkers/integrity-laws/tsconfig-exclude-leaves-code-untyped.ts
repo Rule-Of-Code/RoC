@@ -32,6 +32,7 @@ import {
 } from '../../utils/integrity/tracked-files';
 import {
   loadTypeScript,
+  parserUnavailable,
   type TypeScriptModule,
 } from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';
@@ -103,7 +104,7 @@ export class TsconfigExcludeLeavesCodeUntypedLaw extends LawBase {
     const ts = loadTypeScript(root);
     if (!ts)
       return [
-        `could not load the 'typescript' package from ${root} — no tsconfig was resolved`,
+        `${parserUnavailable(root, 'the tsconfig*.json files')} — no tsconfig was resolved`,
       ];
     const listed = trackedFiles(root, [
       '*tsconfig*.json',

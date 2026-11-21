@@ -10,6 +10,7 @@
  * i18n locale when `i18n` is configured.
  */
 
+import { PARTLY_READ_TEXT } from '../../utils/judged-nothing';
 import * as fs from 'fs';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { PathOperations } from '../../utils/path-operations';
@@ -189,7 +190,7 @@ export class HtmlLangDeclaredLaw extends LawBase {
 
   /** A finding whose answer hangs on a next.config the parser could not read. */
   private static i18nNotRead(context: LawCheckContext, where: string): string {
-    return `${where}: ${parserUnavailable(context.projectRoot, 'the next.config file(s)')} — whether i18n sets <html lang> was not judged`;
+    return `${where}: ${parserUnavailable(context.projectRoot, 'the next.config file(s)')} — whether i18n sets <html lang> was not judged; ${PARTLY_READ_TEXT}`;
   }
 
   /**

@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ⚠️ BREAKING — Code Documentation Standards judges each exported class and function, not ratios (#439)
+
+The law asked for JSDoc but measured something else: a comment-to-code ratio
+per file, a README in every `src/app` / `src/lib` directory, and two coverage
+percentages over regex counts of classes and of every function and method.
+It could pass a file of undocumented exports and fail a well-documented one
+for being short on `//` lines. In the self-audit of this repository 81 of its
+82 findings were "Low comment ratio"; the one coverage finding (classes,
+50.4%) did not count a JSDoc block at the top of a file for the file's only
+exported class (97.5% when counted). Its messages also carried absolute paths
+on Windows: the root (`D:\…`) was stripped from file paths written `D:/…`.
+
+Before: comment ratio, README presence, class coverage ≥ 80 %, function and
+method coverage ≥ 60 %. After: one rule, one finding per declaration —
+`src/x.ts:12: exported class X has no JSDoc`:
+
+- every exported class and exported function (a function declaration, or a
+  `const`/`let`/`var` initialised with an arrow or function expression;
+  `export default`, and a local declaration named in `export { … }`) needs a
+  non-empty JSDoc block above it — above its decorators, where the compiler,
+  IDEs and TypeDoc read it;
+- a JSDoc block at the top of the file documents the file's only exported
+  class/function;
+- methods, interfaces, types, enums, non-function constants, non-exported
+  code and `.d.ts` files are not judged.
+
+The files are read with the project's own `typescript`, not a regex (an
+`export class` in a template string is no longer a class); without it they
+are reported as not read, and a file that does not parse is named. Paths in
+the messages are relative, with forward slashes, on every platform.
+`ignores.byRule` keyed by this law now applies.
+
+`thresholds.codeQuality.minCommentRatioPercent`, `minFileSizeForComments`,
+`thresholds.documentation.minClassDocumentationPercent` and
+`minFunctionDocumentationPercent` are no longer read (marked deprecated in the
+config types).
+
+Self-audit of this repository: 82 findings before → 171 after (40 classes,
+131 functions, in 68 files).
+
 ### 🐛 Fixed — a committed PRE_DEPLOYMENT_CHECKLIST.md was reported missing when `includes` name only source (#476)
 
 Pre-Deployment Checklist looked the checklist up through the source scan,

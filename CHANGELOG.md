@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Internal — this repository keeps MD Footer Template on
+
+MD Footer Template became opt-in in this release (#468). This repository does
+not drop a law from its own config to reach a clean self-audit, so it turns it
+on again, at the severity it ran at before (`"MD Footer Template (MANDATORY)":
+"warning"`). Its includes name only source (`src/**/*.ts`, `scripts/**/*.js`,
+`tests/**/*.ts`), which select no Markdown file; `includes.byRule` gives this
+law `**/*.md`, or it would judge nothing.
+
+Every tracked Markdown file now ends with the footer the law asks for. The
+values are facts, not claims: the version points at the file's git history,
+and the rating is a status word — `reviewed` only where the file was checked
+against the code or the process that day, `current` for the CHANGELOG,
+`needs-review` everywhere else.
+
 ### 🐛 Fixed — Test Data Management read an exact expected value as hardcoded test data (#439)
 
 Any string of 20 or more characters inside `expect(…).toBe(…)` matched the
@@ -3727,3 +3742,8 @@ _Changelog entries prior to v7.11.0 predate the public release and are not inclu
 Earlier history kept for verification: [7.8.1 → 7.9.1, the hook modes that narrowed
 the law set](docs/history/7.8.1-7.9.1-hooks-narrowed.md) (122 → 27 laws), copied unchanged
 from the private repository.
+
+---
+
+<!-- roc-footer -->
+**Document Version:** the git history of this file &middot; **Last Updated:** 2026-11-21 &middot; **Status:** Active &middot; **Investment Rating:** current

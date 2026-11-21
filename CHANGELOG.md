@@ -201,6 +201,22 @@ syntax tree and measured on its own body.
 The finding now reads "(N code lines, max 300)". The set of decision points is
 unchanged (`??` is still not one).
 
+### 🐛 Fixed — Unit Test Quality read the async code a test keeps in strings (#424)
+
+The async analysis of every test file ran over the raw text, so a test that
+holds the code it feeds a detector as a string was told its promise chains
+have no `.catch()`, could use async/await, mix `done()` with async, or use
+`setTimeout` without fake timers.
+
+| | before | after |
+|---|---|---|
+| `.then(`, `setTimeout(`, `done()`, `await` in a string or comment | an async finding | not code |
+| the same in code | a finding | a finding |
+| no loadable `typescript` | text scanned | "the async patterns of the N test file(s) were NOT read" |
+
+The other Unit Test Quality checks (mocking, edge cases, HTTP calls) are
+unchanged.
+
 ### 🐛 Fixed — a PARTIAL line said "passed" for laws that reported warnings
 
 The judged-nothing line said "The other laws passed" and the narrowed line

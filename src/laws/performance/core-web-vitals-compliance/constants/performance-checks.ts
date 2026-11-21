@@ -1,3 +1,10 @@
+/**
+ * What Core Web Vitals Compliance says and searches for: the score deduction
+ * and violation/suggestion text for each of its six checks (Lighthouse,
+ * budgets, bundle, caching, images, resource hints), and the literal strings
+ * the analyzers look for in routing files, build configs, server configs,
+ * index.html and component files.
+ */
 export class CoreWebVitalsPerformanceChecksConstants {
   static readonly SCORE_DEDUCTIONS = {
     LIGHTHOUSE_NOT_CONFIGURED: 25,

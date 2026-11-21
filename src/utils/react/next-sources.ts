@@ -37,6 +37,11 @@ export function hasDirective(
   return source.directives().includes(directive);
 }
 
+/**
+ * Builds the shared NextSources of a workspace (apps, scanned React files,
+ * their parses, unread files, App and Pages Router files) and answers
+ * whether any app has a router directory.
+ */
 export class NextSourcesLoader {
   /** Scan, parse and classify the workspace's React source for the Next laws. */
   static load(

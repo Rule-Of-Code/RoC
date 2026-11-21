@@ -16,6 +16,12 @@ export interface CreateTestResultOptions<T = unknown> {
   messageGenerator: (violations: string[], analysisData: T) => string;
 }
 
+/**
+ * Result helpers for the testing laws under src/laws/testing (API Testing
+ * Standards, Performance Test Requirements): build a LawResult whose
+ * `passed` follows the violations, not the score; build the error result;
+ * and record one violation with its suggestion and score deduction.
+ */
 export class TestingLawUtilities {
   /**
    * Creates standard test result with common structure

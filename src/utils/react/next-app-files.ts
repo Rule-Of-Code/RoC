@@ -75,6 +75,12 @@ function inside(from: string, file: string): string | null {
   return rel;
 }
 
+/**
+ * Lists and classifies the App Router and Pages Router files of the
+ * project's Next apps (special file kind, route segment, served URL), walks a
+ * segment's ancestors, and gives the result or message a law returns when
+ * the router directory it judges does not exist.
+ */
 export class NextAppFiles {
   /**
    * Classify `file` against an App Router directory: null when the file is not

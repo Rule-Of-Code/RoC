@@ -150,10 +150,12 @@ import {
   mergeConfigResults,
 } from '../shared-configuration-base';
 
+/** A secret-management result with no violations and no suggestions. */
 export function createEmptyResult(): SecretCheckResult {
   return createEmptyConfigResult();
 }
 
+/** Concatenates the violations and the suggestions of all results, in argument order. */
 export function mergeResults(
   ...results: SecretCheckResult[]
 ): SecretCheckResult {
@@ -164,22 +166,33 @@ export function mergeResults(
 export const { hasPattern, hasAnyPattern } = PatternMatchingUtils;
 
 // Path operations re-exported for consistent usage
+/** `file` joined under `projectRoot` with PathOperations.join. */
 export const joinPath = (projectRoot: string, file: string) =>
   PathOperations.join(projectRoot, file);
 export const { exists } = FileUtils;
 
+/**
+ * Whether one of SECRET_MANAGEMENT_FILES (vault.json, secrets.yaml/.yml,
+ * .secrets, docker-secret.yml, k8s-secrets.yaml) exists at the project root.
+ */
 export function hasAnySecretManagementFile(projectRoot: string): boolean {
   return SECRET_MANAGEMENT_FILES.some(file =>
     exists(joinPath(projectRoot, file))
   );
 }
 
+/**
+ * Whether a secret-scanning config exists at the project root: .gitleaks.toml,
+ * .trufflerc, detect-secrets.json or .pre-commit-config.yaml (the last counts
+ * whatever hooks it configures).
+ */
 export function hasAnySecretScanningConfig(projectRoot: string): boolean {
   return SECRET_SCANNING_CONFIGS.some(config =>
     exists(joinPath(projectRoot, config))
   );
 }
 
+/** The file's UTF-8 text, or '' when it does not exist or cannot be read (never throws). */
 export function safeReadFile(filePath: string): string {
   try {
     return FileUtils.readFile(filePath);
@@ -188,6 +201,11 @@ export function safeReadFile(filePath: string): string {
   }
 }
 
+/**
+ * The root package.json `dependencies` and `devDependencies` merged into one
+ * name → version map (devDependencies win on a clash); {} when the file is
+ * missing or cannot be parsed.
+ */
 export function getPackageJsonDependencies(
   projectRoot: string
 ): Record<string, string> {
@@ -198,23 +216,32 @@ export function getPackageJsonDependencies(
   }
 }
 
+/**
+ * Whether package.json depends (dependencies or devDependencies) on one of the
+ * package names in SECRET_LIBRARIES, matched exactly — a scoped package such
+ * as `@aws-sdk/client-secrets-manager` does not count.
+ */
 export function hasAnySecretLibrary(projectRoot: string): boolean {
   const dependencies = getPackageJsonDependencies(projectRoot);
   return SECRET_LIBRARIES.some(lib => lib in dependencies);
 }
 
+/** The path of `.github/workflows` under the project root. */
 export function getGithubWorkflowsPath(projectRoot: string): string {
   return joinPath(projectRoot, GITHUB_WORKFLOWS_DIR);
 }
 
+/** Whether a workflow file's text contains `secret` or `security` (case-sensitive substring). */
 export function hasSecurityWorkflowIndicators(content: string): boolean {
   return hasAnyPattern(content, SECURITY_WORKFLOW_INDICATORS);
 }
 
+/** Whether the text contains `rotation` or `rotate` (case-sensitive substring). */
 export function hasRotationIndicators(content: string): boolean {
   return hasAnyPattern(content, ROTATION_INDICATORS);
 }
 
+/** Whether the text contains `expir`, `ttl` or `refresh` (case-sensitive substring). */
 export function hasExpirationIndicators(content: string): boolean {
   return hasAnyPattern(content, EXPIRATION_INDICATORS);
 }
@@ -222,6 +249,12 @@ export function hasExpirationIndicators(content: string): boolean {
 export const DEFAULT_SCAN_CONFIG = FileUtils.getMinimalDefaultConfig();
 
 // Scan config for recursive file discovery
+/**
+ * A standalone audit config for DirectoryScanner whose includes are one
+ * recursive glob per entry of `extensions` (any file ending in it), with no
+ * ignores, sequential and uncached — used to list the source files read for
+ * secrets.
+ */
 export function createScanConfig(
   extensions: string[]
 ): ReturnType<typeof FileUtils.getDefaultConfig> {

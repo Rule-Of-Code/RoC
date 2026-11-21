@@ -7,6 +7,12 @@ import type { BundlerReport } from '../../../../utils/react/web-bundler-config';
 import { CoreWebVitalsPerformanceChecksConstants as Checks } from '../constants/performance-checks';
 import type { ImageOptimizationResult } from '../constants/types';
 
+/**
+ * Lists the image optimizations a project has; one is enough. Counted: a
+ * next/image `<Image>` in a Next app whose optimizer is on, a lazy `<Image>` or
+ * `<img loading="lazy">` in React source, any .webp file in the scanned tree,
+ * or an Angular component using `loading="lazy"` or IntersectionObserver.
+ */
 export class ImageOptimizationAnalyzerService {
   static analyze(
     projectRoot: string,

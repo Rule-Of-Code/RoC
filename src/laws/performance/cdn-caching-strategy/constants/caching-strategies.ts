@@ -1,3 +1,9 @@
+/**
+ * What the CDN and Caching Strategy analyzers look for and what the law says:
+ * the score deduction and the violation/suggestion text for each of its five
+ * checks (CDN, asset optimization, caching headers, service worker, HTTP/2),
+ * and the keywords each check searches config files for.
+ */
 export class CdnCachingStrategyCachingStrategiesConstants {
   static readonly SCORE_DEDUCTIONS = {
     CDN_NOT_CONFIGURED: 30,

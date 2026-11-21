@@ -104,8 +104,14 @@ export interface ModuleImport {
   line: number;
   /** The import statement, or the call for `import()` / `require()`. */
   node: TS.Node;
-  /** True for `import('x')` and `require('x')`. */
-  call: boolean;
+  /** A kept static import or re-export, a `require('x')`, or an `import('x')`. */
+  kind: 'static' | 'require' | 'import';
+}
+
+/** Which calls are edges: `require()` is bundled in the same chunk, `import()` is a chunk of its own. */
+export interface CallEdges {
+  require: boolean;
+  dynamicImport: boolean;
 }
 
 export type Resolution =
@@ -150,8 +156,10 @@ export interface WalkOptions {
    * `'outside'` (default): it is not in the result at all.
    */
   boundary?: 'module' | 'outside';
-  /** Follow `import()` and `require()` as edges (default true). */
-  calls?: boolean;
+  /** Follow `require()` as an edge (default true). */
+  require?: boolean;
+  /** Follow `import()` as an edge (default true). */
+  dynamicImport?: boolean;
   /** An import of `file` that Next strips from the bundle being walked. */
   skip?: (file: string, source: TsxSource, item: ModuleImport) => boolean;
 }
@@ -281,10 +289,13 @@ export class NextModuleGraph {
   /**
    * Every import that brings code in: the static imports and `export … from`
    * the compiler keeps (see CompiledImports — an import used only as a type
-   * is erased, so it is no edge), side-effect imports, and — unless `calls`
-   * is false — `import('x')` / `require('x')` with a literal name.
+   * is erased, so it is no edge), side-effect imports, and — as `calls`
+   * asks — `require('x')` and `import('x')` with a literal name.
    */
-  importsOf(source: TsxSource, calls = true): ModuleImport[] {
+  importsOf(
+    source: TsxSource,
+    calls: CallEdges = { require: true, dynamicImport: true }
+  ): ModuleImport[] {
     const ts = this.ts;
     const found: ModuleImport[] = [];
     for (const statement of source.sourceFile.statements) {
@@ -294,10 +305,10 @@ export class NextModuleGraph {
           specifier: module,
           line: source.lineOf(statement),
           node: statement,
-          call: false,
+          kind: 'static',
         });
     }
-    if (!calls) return found;
+    if (!calls.require && !calls.dynamicImport) return found;
     source.walk(node => {
       if (!ts.isCallExpression(node)) return;
       const [first] = node.arguments;
@@ -306,12 +317,15 @@ export class NextModuleGraph {
         node.expression.kind === ts.SyntaxKind.ImportKeyword;
       const requireCall =
         ts.isIdentifier(node.expression) && node.expression.text === 'require';
-      if (dynamicImport || requireCall)
+      if (
+        (dynamicImport && calls.dynamicImport) ||
+        (requireCall && calls.require)
+      )
         found.push({
           specifier: first.text,
           line: source.lineOf(node),
           node,
-          call: true,
+          kind: dynamicImport ? 'import' : 'require',
         });
     });
     return found;
@@ -484,7 +498,10 @@ export class NextModuleGraph {
   walk(entries: readonly string[], options: WalkOptions = {}): WalkResult {
     const stop = options.stop ?? (() => false);
     const keepBoundary = options.boundary === 'module';
-    const calls = options.calls ?? true;
+    const calls: CallEdges = {
+      require: options.require ?? true,
+      dynamicImport: options.dynamicImport ?? true,
+    };
     const modules = new Map<string, Visit>();
     const unresolved: Unresolved[] = [];
     const configs = new Set<string>();

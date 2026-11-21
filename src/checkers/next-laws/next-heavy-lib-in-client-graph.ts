@@ -51,11 +51,16 @@ export class NextHeavyLibInClientGraphLaw extends LawBase {
   static readonly LAW_NAME = 'Next Heavy Lib In Client Graph';
 
   /**
-   * First-load JavaScript is what this law weighs: `import()` and
-   * `require()` are not edges here (a lazy chunk is fetched when needed),
-   * and a `'use server'` module is a node without edges.
+   * First-load JavaScript is what this law weighs: `require()` is bundled in
+   * the same chunk, so it is an edge; `import()` is a chunk fetched when
+   * needed — the remedy this law recommends — so it is not. A `'use server'`
+   * module is a node without edges.
    */
-  static readonly GRAPH: GraphChoice = { calls: false, boundary: 'module' };
+  static readonly GRAPH: GraphChoice = {
+    require: true,
+    dynamicImport: false,
+    boundary: 'module',
+  };
 
   static check(context: LawCheckContext): LawResult {
     const { graph, unread } = readProject(context);

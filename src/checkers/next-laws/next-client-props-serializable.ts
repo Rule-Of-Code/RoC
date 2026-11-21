@@ -75,10 +75,16 @@ export class NextClientPropsSerializableLaw extends LawBase {
   static readonly LAW_NAME = 'Next Client Props Serializable';
 
   /**
-   * Static imports only, and a `'use client'` module is a node without edges:
-   * the law needs to know which imported components are client ones.
+   * Every import that renders: `require()` and `import()` are edges too (a
+   * Server Component loaded through either still passes its props across the
+   * boundary). A `'use client'` module is a node without edges: the law needs
+   * to know which imported components are client ones.
    */
-  static readonly GRAPH: GraphChoice = { calls: false, boundary: 'module' };
+  static readonly GRAPH: GraphChoice = {
+    require: true,
+    dynamicImport: true,
+    boundary: 'module',
+  };
 
   static check(context: LawCheckContext): LawResult {
     const { graph, unread } = readProject(context);

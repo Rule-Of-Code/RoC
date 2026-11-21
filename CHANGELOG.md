@@ -133,13 +133,15 @@ code. There is now one graph (`next-module-graph.ts`, entries in
 do; what cannot be read is reported as not read (the law is partial), never
 passed in silence.
 
-What differs between the laws is a parameter of the walk, and each law keeps
-the choice it had: Heavy Lib and Client Props follow static imports only and
-keep a boundary module as a node without edges; the other three also follow
-`import()` / `require()` and leave a boundary module out.
+What differs between the laws is a parameter of the walk: which calls are
+edges (point a, below) and whether a boundary module is part of the result
+(Heavy Lib and Client Props keep it as a node without edges, as before; the
+other three leave it out, as before).
 
-| # | shape | before | after (every graph law) |
+| # | shape | before | after |
 |---|---|---|---|
+| a | `require('x')` (the bundler puts it in the same chunk) | an edge only for Client Env, Server Only, Public Env | an edge for every graph law |
+| a | `import('x')` (a chunk of its own) | an edge only for Client Env, Server Only, Public Env | also for Client Props (a Server Component loaded that way still passes its props across the boundary); still not for Heavy Lib (a lazy chunk is not first-load JavaScript — it is the remedy that law recommends) |
 | b | workspace package linked through `node_modules` | Heavy Lib, Client Props: a package, not walked — its code was never judged | walked as first-party code |
 | c | `paths` in `jsconfig.json` (no tsconfig) | Heavy Lib, Client Props: `@/x` taken for a package, nothing walked, nothing said | read |
 | d | bare package that is not installed | Heavy Lib, Client Props: a package, silent (Heavy Lib still matched the name) | not read; Heavy Lib still names a heavy one |

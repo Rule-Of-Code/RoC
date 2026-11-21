@@ -519,21 +519,47 @@ describe('#287 contract: one import, one conclusion for the client and the serve
   });
 });
 
-describe('#287 parameters of the one graph: each law keeps its choice', () => {
-  it("a: import() and require() are edges for the laws that read the code, not for Heavy Lib's first-load weight", () => {
+describe('#287 parameters of the one graph: edges as the bundler makes them', () => {
+  const REQUIRE_WIDGET =
+    "'use client';\n\nconst { pick } = require('@/lib/helper');\n\nexport function Widget() {\n  return <span>{pick()}</span>;\n}\n";
+  const IMPORT_WIDGET =
+    "'use client';\n\nexport async function load() {\n  const { pick } = await import('@/lib/helper');\n  return pick();\n}\n";
+  const REQUIRE_PAGE =
+    "const { Panel } = require('@/lib/panel');\n\nexport default function Home() {\n  return <main><Panel /></main>;\n}\n";
+  const IMPORT_PAGE =
+    "export default async function Home() {\n  const { Panel } = await import('@/lib/panel');\n  return <main><Panel /></main>;\n}\n";
+
+  it('a: require() is bundled in the same chunk — an edge for every law', () => {
     const v = judge(
       app('@/lib/helper', '@/lib/panel', {
-        'components/widget.tsx':
-          "'use client';\n\nexport async function load() {\n  const { pick } = await import('@/lib/helper');\n  return pick();\n}\n",
+        'components/widget.tsx': REQUIRE_WIDGET,
+        'app/page.tsx': REQUIRE_PAGE,
       })
     );
-    expect(has(v.heavy, /lib\/helper\.ts/)).toBe(false);
-    expect(has(v.env, /^lib\/helper\.ts:\d+: process\.env\.API_SECRET/)).toBe(
-      true
+    expect(conclusions(v, 'lib/helper.ts', 'lib/panel.tsx')).toEqual({
+      heavyReadsHelper: true,
+      envReadsHelper: true,
+      serverOnlyReadsHelper: true,
+      propsReadsPanel: true,
+      serverOnlyReadsPanel: true,
+    });
+  });
+
+  it('a: import() is a lazy chunk — not first-load weight for Heavy Lib, still props crossing the boundary for Client Props', () => {
+    const v = judge(
+      app('@/lib/helper', '@/lib/panel', {
+        'components/widget.tsx': IMPORT_WIDGET,
+        'app/page.tsx': IMPORT_PAGE,
+      })
     );
-    expect(
-      has(v.serverOnly, /^lib\/helper\.ts:2: imports 'fs', and is bundled/)
-    ).toBe(true);
+    expect(conclusions(v, 'lib/helper.ts', 'lib/panel.tsx')).toEqual({
+      heavyReadsHelper: false,
+      envReadsHelper: true,
+      serverOnlyReadsHelper: true,
+      propsReadsPanel: true,
+      serverOnlyReadsPanel: true,
+    });
+    expect(has(v.heavy, /lib\/helper\.ts/)).toBe(false);
   });
 
   it("stop: a client walk stops at a 'use server' module, a server walk at a 'use client' one", () => {

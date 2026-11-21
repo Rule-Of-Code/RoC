@@ -72,21 +72,27 @@ const DATA_FUNCTIONS = new Set([
 ]);
 
 /**
- * The choices a law makes on the one graph (#287): whether `import()` and
- * `require()` are edges, and whether a boundary module is in the result.
+ * The choices a law makes on the one graph (#287): which calls are edges,
+ * and whether a boundary module is in the result.
  */
 export interface GraphChoice {
+  /** Follow `require()`: the bundler puts the module in the same chunk. */
+  require: boolean;
   /**
-   * Follow `import()` / `require()`. A lazy chunk is still browser code, but
-   * it is not first-load JavaScript.
+   * Follow `import()`: a chunk of its own, loaded on demand — still browser
+   * code, and still rendered on the server, but not first-load JavaScript.
    */
-  calls: boolean;
+  dynamicImport: boolean;
   /** `'module'`: a boundary module is in the result, without edges; `'outside'`: it is not. */
   boundary: 'module' | 'outside';
 }
 
 /** What the laws that read the code itself choose: every import that runs, boundaries left out. */
-export const EVERY_IMPORT: GraphChoice = { calls: true, boundary: 'outside' };
+export const EVERY_IMPORT: GraphChoice = {
+  require: true,
+  dynamicImport: true,
+  boundary: 'outside',
+};
 
 export interface ClientWalk extends WalkResult {
   /** The Pages Router pages among the entries: their data functions are not client code. */
@@ -269,7 +275,7 @@ function collectAppEntries(dir: string, files: string[]): void {
 
 /** An import of a page that Next strips from its client bundle. */
 function strippedFromClient(source: TsxSource, item: ModuleImport): boolean {
-  if (!item.call) return usedOnlyByDataFunctions(source, item.node);
+  if (item.kind === 'static') return usedOnlyByDataFunctions(source, item.node);
   return dataFunctionNodes(source).some(
     data => item.node.pos >= data.pos && item.node.end <= data.end
   );

@@ -19,6 +19,16 @@ One of them says more than the others: `PerformanceAnalysisService` took a
 `projectRoot` and never read it, so its result never depended on the project.
 The parameter is removed, so the signature now says what the code does.
 
+### Internal — eslint is a direct devDependency
+
+`npm run lint` runs `eslint .`, but `eslint` was only installed as a peer of
+`@typescript-eslint/parser` and `eslint-plugin-sonarjs`, never named in
+`devDependencies`. Investment-Grade Quality ("Quality tool missing: eslint")
+and Professional Excellence ("Missing eslint for Code linting") reported that
+on the self-audit, and they were right. `eslint` `^9.39.5` — the version
+already in the lockfile — is now a devDependency; the lockfile changes only
+by dropping the `peer` flag from eslint and its dependencies.
+
 ### Internal — this repository keeps MD Footer Template on
 
 MD Footer Template became opt-in in this release (#468). This repository does

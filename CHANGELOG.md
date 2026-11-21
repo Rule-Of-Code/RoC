@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Internal — two copied helpers read through their one implementation
+
+Code Duplication Control reported three copies in our own code; two are
+removed here. `GlobUtils` carried its own `createTypePattern`,
+`createMultiExtensionPattern`, `getStandardPatterns` and `getFilePatterns`,
+line for line the functions of `file-patterns`; it now delegates to them, and
+its unused `createTypePattern` is gone. `commit-scope` carried its own
+`execSync` wrapper for git; it now reads through
+`GitLawBase.executeGitCommand` (made public for it), with the same result:
+trimmed stdout, or null when git fails or prints nothing. No output changes.
+
+A test title in Retention Registry Covers Schema ("is opt-in") was below Test
+Documentation Requirements' minimum length; it now says what it checks.
+
 ### Internal — eslint is a direct devDependency
 
 `npm run lint` runs `eslint .`, but `eslint` was only installed as a peer of

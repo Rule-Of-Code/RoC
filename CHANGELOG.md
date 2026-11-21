@@ -153,6 +153,13 @@ states the terms for every file; the law passes and says so. Without both,
 the per-file headers, template and automation are judged as before.
 
 Self-audit of this repository: Constitutional Compliance Headers — before 4 findings, after pass (LICENSE + package.json license MIT).
+### Fixed — Pre-Deployment Checklist reads the dependency scan from the command
+
+The security-scan clause read only script names (`audit`, `security`,
+`snyk` …). It now also reads what package scripts and CI steps run (npm /
+yarn / pnpm audit, pip-audit, safety check, snyk test).
+
+Self-audit of this repository: Pre-Deployment Checklist — before 4 findings, after 3 ("Security vulnerability scanning not configured" is gone: `security-audit` runs `npm audit`, and so does the CI step).
 ### 🐛 Fixed — an Angular CLI project was told to add webpack limits it cannot write (#449)
 
 Once the budget suggestion read angular.json correctly (#449), the two

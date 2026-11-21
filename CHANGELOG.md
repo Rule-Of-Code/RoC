@@ -138,6 +138,14 @@ verified). The message is built from the violations; it printed "Missing "
 with an empty list when branch protection was the only one.
 
 Self-audit of this repository: Pre-PR Quality Gates — before 1 finding ("Missing branch protection configuration", message "Missing "), after pass (github.com remote).
+### Changed — Strategic Document Updates: a CHANGELOG and an issue tracker are a status record
+
+The status clause is met by a PROJECT_STATUS / STATUS / ROADMAP file, or by
+a CHANGELOG together with an issue tracker (`bugs` in package.json, an Issues
+URL in pyproject.toml, GitHub or GitLab issue templates). A project with
+neither is asked, as before.
+
+Self-audit of this repository: Strategic Document Updates — before 1 finding ("Missing PROJECT_STATUS.md file"), after pass (CHANGELOG.md + `bugs` in package.json + .github/ISSUE_TEMPLATE).
 ### 🐛 Fixed — an Angular CLI project was told to add webpack limits it cannot write (#449)
 
 Once the budget suggestion read angular.json correctly (#449), the two

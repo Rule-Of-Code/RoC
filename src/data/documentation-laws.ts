@@ -243,12 +243,12 @@ export const DOCUMENTATION_LAWS: EnhancedConstitutionalLaw[] = [
       'Strategic docs — README, status, changelog — rot silently; a stale roadmap misleads worse than none. This law checks the key docs exist and looks fresh.',
     satisfiedBy: {
       typescript:
-        'Keep README, a status/roadmap file and a CHANGELOG present and recently touched, with versions consistent across package.json, README and CHANGELOG.',
+        'Keep a README and a CHANGELOG present and recently touched, with versions consistent across package.json, README and CHANGELOG, and say where the project is going: an issue tracker (a bugs URL in package.json, issue templates) or a status/roadmap file.',
       python:
         'The doc-presence checks are stack-neutral; the freshness signal is file mtime, which a fresh clone resets.',
     },
     detectionLimits: [
-      'Only a missing README, status/roadmap file or CHANGELOG can fail it; a "basic" README, a stale mtime and a version mismatch are advisory and never fail the law.',
+      'Only a missing README, CHANGELOG or status record can fail it; a "basic" README, a stale mtime and a version mismatch are advisory and never fail the law. The status record is a PROJECT_STATUS / STATUS / ROADMAP file, or a CHANGELOG together with an issue tracker: a bugs URL in package.json, an Issues / Bug Tracker URL in pyproject.toml, or issue templates (.github/ISSUE_TEMPLATE, .gitlab/issue_templates). Whether the tracker is used is not read.',
       'Freshness is judged by file modification time under 30 days, which a git clone resets and an old checkout inflates, independent of the actual content.',
       'Document quality is a count of heading keywords, not an assessment of what the doc says.',
     ],

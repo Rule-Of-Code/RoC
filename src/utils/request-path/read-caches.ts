@@ -31,6 +31,14 @@ import {
   type ProjectClients,
 } from './data-clients';
 import { containerPolicy, decoratorPolicy, type Policy } from './cache-policy';
+import {
+  type Binding,
+  containerBindings,
+  escapeRe,
+  functionText,
+  lastSegment,
+  storesInto,
+} from './cache-stores';
 import type { ModuleGraph } from './module-graph';
 import type {
   CallSite,
@@ -40,6 +48,7 @@ import type {
 } from './model';
 
 export { decoratorPolicy } from './cache-policy';
+export { functionText, lastSegment, storesInto } from './cache-stores';
 
 export interface CacheFill {
   fn: FunctionModel;
@@ -73,79 +82,6 @@ export interface CacheSite {
 
 const CLOCK =
   /\b(?:time\.(?:monotonic|time|perf_counter)|monotonic|loop\.time|datetime\.(?:now|utcnow)|Date\.now|performance\.now)\s*\(|expir|\bttl\b/i;
-
-/** The part after the last dot of a dotted name: `self.cache.get` gives `get`. */
-export const lastSegment = (name: string): string =>
-  name.split('.').pop() ?? name;
-
-const escapeRe = (text: string): string =>
-  text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-/** The raw source of a function (comments included). */
-export function functionText(module: ModuleModel, fn: FunctionModel): string {
-  return module.lines.slice(fn.line - 1, fn.endLine).join('\n');
-}
-
-interface Binding {
-  name: string;
-  expr: string;
-  line: number;
-}
-
-const PY_MODULE_BINDING = /^([A-Za-z_]\w*)\s*(?::[^=\n]+)?=(?!=)\s*(.+?)\s*$/;
-const PY_ATTRIBUTE_BINDING =
-  /^((?:self|cls)\.\w+|[\w.]*\bstate\.\w+)\s*(?::[^=]+)?=(?!=)\s*(.+)$/s;
-const TS_BINDING =
-  /^\s*(?:export\s+)?(?:(?:const|let|var)\s+|(?:(?:private|protected|public|readonly|static|declare)\s+)*(?:this\.)?)(#?[A-Za-z_$][\w$]*)\s*(?:!?:\s*[^=]+)?=\s*(new\s+(?:Map|LRUCache)\b.*)$/;
-
-/** The text from `start` of `lines[index]` to the end of its call: enough to read an options object. */
-function ctorText(
-  lines: readonly string[],
-  index: number,
-  start: string
-): string {
-  return (
-    [start, ...lines.slice(index + 1, index + 8)]
-      .join('\n')
-      .split(/\)\s*;?\s*$/m)[0] ?? start
-  );
-}
-
-function containerBindings(module: ModuleModel): Binding[] {
-  if (module.language === 'typescript') {
-    return module.lines.flatMap((text, index) => {
-      const m = TS_BINDING.exec(text);
-      return m
-        ? [
-            {
-              name: m[1] as string,
-              expr: ctorText(module.lines, index, m[2] as string),
-              line: index + 1,
-            },
-          ]
-        : [];
-    });
-  }
-  const top = module.lines.flatMap((text, index) => {
-    const m = /^\S/.test(text)
-      ? PY_MODULE_BINDING.exec(text.replace(/\s+#.*$/, ''))
-      : null;
-    return m
-      ? [{ name: m[1] as string, expr: m[2] as string, line: index + 1 }]
-      : [];
-  });
-  const attributes = module.functions.flatMap(fn =>
-    fn.blocks.flat().flatMap(statement => {
-      const m = statement.simple
-        ? PY_ATTRIBUTE_BINDING.exec(statement.text)
-        : null;
-      return m
-        ? [{ name: m[1] as string, expr: m[2] as string, line: statement.line }]
-        : [];
-    })
-  );
-  return [...top, ...attributes];
-}
 
 /** Lines of the function's database reads (awaited, or a sync registry read), with the calls. */
 function readCalls(fn: FunctionModel, apis: readonly ClientApi[]): CallSite[] {
@@ -208,66 +144,6 @@ function valueFromRead(
     }
   }
   return false;
-}
-
-interface Store {
-  fn: FunctionModel;
-  statement: StatementModel;
-  line: number;
-  key: string;
-  value: string;
-}
-
-/** `NAME[key] = value` (Python) or `NAME.set(key, value)` (TS/JS), with NAME as the last segment of the target. */
-export function storesInto(module: ModuleModel, name: string): Store[] {
-  const segment = escapeRe(lastSegment(name));
-  if (module.language === 'python') {
-    const target = new RegExp(
-      String.raw`^(?:[\w]+\.)*${segment}\s*\[(.+)\]\s*=(?!=)\s*(.+)$`,
-      's'
-    );
-    return module.functions.flatMap(fn =>
-      fn.blocks.flat().flatMap(statement => {
-        const m = statement.simple ? target.exec(statement.text) : null;
-        return m
-          ? [
-              {
-                fn,
-                statement,
-                line: statement.line,
-                key: (m[1] as string).trim(),
-                value: (m[2] as string).trim(),
-              },
-            ]
-          : [];
-      })
-    );
-  }
-  return module.functions.flatMap(fn =>
-    fn.calls
-      .filter(
-        call =>
-          call.method === 'set' &&
-          call.args.length >= 2 &&
-          lastSegment(call.receiver) === lastSegment(name)
-      )
-      .flatMap(call => {
-        const statement = fn.blocks
-          .flat()
-          .find(s => call.line >= s.line && call.line <= s.endLine);
-        return statement
-          ? [
-              {
-                fn,
-                statement,
-                line: call.line,
-                key: call.args[0]?.text ?? '',
-                value: call.args[1]?.text ?? '',
-              },
-            ]
-          : [];
-      })
-  );
 }
 
 /** Functions of the module whose source mentions the container's last name segment. */

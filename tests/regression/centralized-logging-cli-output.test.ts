@@ -8,8 +8,10 @@ import * as tsxSource from '../../src/utils/react/tsx-source';
 
 /**
  * Centralized Logging reads console calls from the code (#424), and in a
- * package that declares a `bin` the command's console.log/info/warn/error are its
- * output, not logging that bypasses a logger (#425).
+ * package that declares a `bin` the command's console.log/info are its output,
+ * and in its entry modules (what `bin` points to, and the command directory)
+ * console.warn/error are as well — output, not logging that bypasses a
+ * logger (#425).
  *
  * The TypeScript branch stripped comments only, so `console.log(` in a
  * message string was a call; it allowed console output only in files named
@@ -95,11 +97,30 @@ describe('Centralized Logging: code only, and a CLI prints (#424, #425)', () => 
       expect(findings()).toEqual([]);
     });
 
-    /** warn and error, on stderr, are the command's output as well. */
-    it('does not count warn and error in a library file of the package', () => {
+    /**
+     * Library code the command calls is not the command: an error written
+     * there bypasses whatever reports to the user, and is counted.
+     */
+    it('counts warn and error in a library file of the package', () => {
       write(
-        'src/utils/cache.ts',
-        "export function save(ok: boolean): void {\n  if (!ok) console.warn('cache write failed');\n  if (!ok) console.error('cache lost');\n}\n"
+        'src/utils/discovery.ts',
+        "export function find(n: number): void {\n  console.log('found', n);\n  console.error('[DEBUG] scanned', n);\n  console.warn('slow scan');\n}\n"
+      );
+
+      expect(findings()).toEqual([
+        'src/utils/discovery.ts: 2 direct console.* call(s) — route logging through the logger service.',
+      ]);
+    });
+
+    /** dist/cli.js is built from src/cli.ts; its commands live in src/cli/. */
+    it('does not count warn and error in the entry module and its commands', () => {
+      write(
+        'src/cli.ts',
+        "export function main(): void {\n  console.error('unknown command');\n}\n"
+      );
+      write(
+        'src/cli/audit-command.ts',
+        "export function audit(ok: boolean): void {\n  if (!ok) console.error('Audit failed');\n  console.warn('deprecated flag');\n}\n"
       );
 
       expect(findings()).toEqual([]);

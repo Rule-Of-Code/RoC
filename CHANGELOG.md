@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | | before | after |
 |---|---|---|
 | `console.log(` inside a string | a call | not code |
-| package with `bin` in package.json | every `console.*` counted | `console.log/info/warn/error` is the command's output; `debug/trace` still count |
+| package with `bin` in package.json | every `console.*` counted | `console.log/info` is the command's output in the whole package; `console.warn/error` only in the command's entry modules (the source of each `bin` target, the directory named after it, a `commands/` beside it); elsewhere `warn/error`, and `debug/trace` everywhere, still count |
 | where console is allowed | files named `logger.service.ts` and `main.ts` | also any logging module: `logger.*`, `logging*`, `log.*` |
 | no loadable `typescript` | text scanned | ".ts file(s) were NOT read" — judged nothing |
 

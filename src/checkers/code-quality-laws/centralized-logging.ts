@@ -47,9 +47,10 @@ export class CentralizedLoggingLaw extends CodeQualityLawBase {
    *
    * Calls are read from the parse (#424): `console.log(` in a message string
    * or a comment is not a call. In a package that declares a `bin`,
-   * console.log/info/warn/error are how the command talks to its user — its
-   * output, not logging that bypasses a logger (#425) — so there only debug
-   * and trace are counted. The list comes from CliPackages, shared with
+   * console.log/info are how the command talks to its user — its output, not
+   * logging that bypasses a logger (#425) — and in the command's entry
+   * modules warn/error are too. Library code's warn/error, and debug/trace
+   * everywhere, are counted. The list comes from CliPackages, shared with
    * Absolute Zero Tolerance. A logging module (logger.*, logging*, log.*) and the
    * bootstrap (main.ts) are where console output is meant to live.
    */

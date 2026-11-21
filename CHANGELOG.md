@@ -7,34 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed — laws about a running product are selected only where there is one (#428)
+### ⚠️ BREAKING — laws about a running product run only where there is one; MD Footer Template is opt-in
 
-CDN and Caching Strategy, Performance Monitoring Standards, Incident
-Response Protocol, Launch Readiness Checklist and NX Commands Only Policy
-declared no `requires` and judged every TypeScript project; a CLI tool or a
-library was asked for a CDN, an APM, an incident runbook, a launch checklist
-and an Nx workspace. They are now gated by shared, exported requirements in
-`src/utils/production-subject-requirements.ts` — `REQUIRES_WEB_SURFACE`
-(CDN), `REQUIRES_PRODUCTION_SUBJECT` (a Node or Python HTTP framework, a web
-surface, a mobile app shell or a deploy target: monitoring, incident
-response, launch readiness) — and `REQUIRES_NX_OR_ANGULAR` (NX Commands
-Only). `REQUIRES_NODE_HTTP_SERVER` moves there and is exported. Pre-Deployment
-Checklist asks its authentication, benchmarking, health-check and
-production-logging clauses only where `REQUIRES_PRODUCTION_SUBJECT` holds.
+Five laws had no `requires` and judged every TypeScript project; a CLI tool or
+a library was asked for a CDN, an APM, an incident runbook, a launch checklist
+and an Nx workspace. They are now gated by shared, exported requirements
+(`src/utils/production-subject-requirements.ts`, `REQUIRES_NX_OR_ANGULAR` in
+`src/utils/framework-requirements.ts`). **A project that does not meet the
+condition no longer runs the law, and nothing is printed about it** — except
+when its config names the law in `laws.severity` or `laws.notApplicable`, which
+prints one ℹ️ line saying the law is requirement-gated (#428).
 
-| law (self-audit of this repository) | before | after |
+| law | not selected without | lawId |
 |---|---|---|
-| CDN and Caching Strategy | 5 findings | not selected (no web surface) |
-| Performance Monitoring Standards | 3 findings | not selected |
-| Incident Response Protocol | 3 findings | not selected |
-| Launch Readiness Checklist | 1 finding | not selected |
-| NX Commands Only Policy | 1 finding | not selected (no Nx, no Angular) |
-| Pre-Deployment Checklist (MANDATORY) | 4 findings | 2 (benchmarking and production logging are not asked) |
+| CDN and Caching Strategy | `REQUIRES_WEB_SURFACE`: a browser framework (`react-dom`, `@angular/core`, `vue`, `svelte`, `next`, `nuxt`, `astro`, `lit` …), a web build or hosting config (angular.json, next.config.*, firebase.json, vercel.json, netlify.toml, wrangler.toml, nginx.conf), or an HTML page outside test trees | `performance_664dd2d3` |
+| Performance Monitoring Standards | `REQUIRES_PRODUCTION_SUBJECT`: a Node HTTP framework (`next`, `express`, `fastify`, `koa`, `hono`, `@nestjs/core`, `@hapi/hapi`), a Python one (fastapi, flask, django, starlette, aiohttp …), a web surface, a mobile app shell (`react-native`, `expo`, `@capacitor/core`, `@nativescript/core`), or a deploy target (Dockerfile, Procfile, compose, app.yaml, fly.toml, render.yaml, firebase.json, vercel.json, netlify.toml, wrangler.*, serverless.yml, Chart.yaml, a serverless deploy command) | `performance_351f896e` |
+| Incident Response Protocol | `REQUIRES_PRODUCTION_SUBJECT` | `docs_cd2817cb` |
+| Launch Readiness Checklist | `REQUIRES_PRODUCTION_SUBJECT` | `deployment_b1c8dba1` |
+| NX Commands Only Policy | `REQUIRES_NX_OR_ANGULAR`: nx.json, `nx` / `@nx/workspace` / `@nrwl/workspace`, or `@angular/core` (an Angular project without Nx is still asked to use Nx) | `quality_f66318df` |
 
-Fast mode: the Pareto quota of the ungated universal group is taken over a
-group five laws smaller, so CI/CD Constitutional Tribunal leaves the fast
-core; Launch Readiness Checklist enters it for projects that declare a
-production subject.
+Pre-Deployment Checklist (MANDATORY) (`deployment_37c13d47`) asks its
+authentication, benchmarking, health-check and production-logging clauses only
+where `REQUIRES_PRODUCTION_SUBJECT` holds; the checklist, build, test and
+security-scan clauses are asked everywhere.
+
+**MD Footer Template (MANDATORY) is opt-in** (#436). A project that wants it
+turns it on with `laws.severity: { "MD Footer Template (MANDATORY)": "warning" }`
+(or its lawId `docs_5ef46de8`), or lists it in `laws.enabled`. Without that the
+law does not run, and nothing is printed. MD Footer Footer Consistency stays on
+by default.
+
+Laws selected per release-canary profile, before → after, and what leaves:
+
+| profile | before → after | no longer selected |
+|---|---|---|
+| python | 97 → 92 | CDN, Performance Monitoring, Incident Response, Launch Readiness (no production subject); MD Footer (opt-in) |
+| angular | 120 → 119 | MD Footer (opt-in) |
+| ngrx | 131 → 130 | MD Footer (opt-in) |
+| ionic | 150 → 149 | MD Footer (opt-in) |
+| react | 134 → 132 | NX Commands Only (no Nx, no Angular); MD Footer (opt-in) |
+| node | 77 → 71 | CDN, Performance Monitoring, Incident Response, Launch Readiness (no production subject); NX Commands Only (no Nx, no Angular); MD Footer (opt-in) |
+
+Fast mode core before → after: unchanged, except that Launch Readiness
+Checklist enters it where `REQUIRES_PRODUCTION_SUBJECT` holds (its own gated
+group's 20% share), and the laws above leave it where they are no longer
+selected. A CRITICAL `error` law that every project selects (no stack, no
+`requires`) is now protected from the quota, so CI/CD Constitutional Tribunal
+stays in the core: the share of the ungated universal group shrank with the
+laws that moved to their subject, and it would have cut it as a side effect.
+
+Self-audit of this repository, before → after: CDN and Caching Strategy 5
+findings, Performance Monitoring Standards 3, Incident Response Protocol 3,
+Launch Readiness Checklist 1, NX Commands Only Policy 1 → not selected;
+Pre-Deployment Checklist 4 → 2.
+
 ### 🐛 Fixed — an Angular CLI project was told to add webpack limits it cannot write (#449)
 
 Once the budget suggestion read angular.json correctly (#449), the two

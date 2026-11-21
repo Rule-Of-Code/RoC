@@ -12,6 +12,7 @@ import type * as TS from 'typescript';
 import type { LawCheckContext } from '../../types/law.types';
 import { ReactProject } from '../../utils/react/react-project';
 import {
+  internalArray,
   jsxAttribute,
   type JsxElementInfo,
   type TsxSource,
@@ -38,9 +39,10 @@ export function parseErrors(
   ts: TypeScriptModule,
   sourceFile: TS.SourceFile
 ): string[] {
-  const diagnostics =
-    (sourceFile as unknown as { parseDiagnostics?: readonly TS.Diagnostic[] })
-      .parseDiagnostics ?? [];
+  const diagnostics = internalArray<TS.Diagnostic>(
+    sourceFile,
+    'parseDiagnostics'
+  );
   return diagnostics.map(diagnostic => {
     const line =
       diagnostic.start === undefined

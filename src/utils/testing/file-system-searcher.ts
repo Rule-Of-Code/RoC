@@ -10,13 +10,6 @@ import { PathOperations } from '../path-operations';
  */
 export class FileSystemSearcher {
   /**
-   * Default config for DirectoryScanner operations
-   * RULE 1: Centralized configuration
-   */
-  private static readonly DEFAULT_CONFIG = {
-    minSeverity: 'error',
-  } as unknown as RuleOfCodeConfig;
-  /**
    * Recursively search for files matching predicate
    * RULE 1: Direct public method (previously had unnecessary wrapper)
    * RULE 2: Eliminates duplicate search logic across three methods

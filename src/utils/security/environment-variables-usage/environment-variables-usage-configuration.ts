@@ -20,11 +20,7 @@ export interface EnvUsageCheckResult {
 // Process.env Patterns
 // ============================================================================
 
-export const PROCESS_ENV_PATTERN = /process\.env\.([A-Z_][A-Z0-9_]*)/g;
-export const PROCESS_ENV_PREFIX = 'process.env.';
 export const PROCESS_ENV_DESTRUCTURING = /const\s+{[^}]+}\s*=\s*process\.env/;
-
-export const FALLBACK_INDICATORS = ['||', '??', '? ', 'default'] as const;
 
 export const PORT_ENV_VAR = 'process.env.PORT';
 export const PARSE_INT = 'parseInt';
@@ -53,14 +49,6 @@ export const PROCESS_ENV_COUNT_PATTERN = /process\.env\./g;
 // ============================================================================
 // Hardcoded Value Patterns
 // ============================================================================
-
-export const URL_PATTERNS = [
-  /https?:\/\/[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
-  /'https?:\/\/[^']+'/g,
-  /"https?:\/\/[^"]+"/g,
-] as const;
-
-export const LOCAL_HOST_INDICATORS = ['localhost', '127.0.0.1'] as const;
 
 export const DB_CONNECTION_PATTERNS = [
   /mongodb:\/\/[^\s'"]+/g,
@@ -167,38 +155,6 @@ export function safeReadFile(filePath: string): string {
   }
 }
 
-/** `process.env.API_KEY` → `API_KEY`: drops the first `process.env.`. */
-export function extractEnvVarName(match: string): string {
-  return match.replace(PROCESS_ENV_PREFIX, '');
-}
-
-/**
- * The text around the FIRST occurrence of `match` in `content`: `before`
- * characters before it and up to `after` characters from its start
- * (the match included), clamped to the content; '' when it is absent.
- */
-export function getContextAround(
-  content: string,
-  match: string,
-  before = 50,
-  after = 100
-): string {
-  const matchIndex = content.indexOf(match);
-  if (matchIndex === -1) return '';
-
-  const contextStart = Math.max(0, matchIndex - before);
-  const contextEnd = Math.min(content.length, matchIndex + after);
-  return content.substring(contextStart, contextEnd);
-}
-
-/**
- * Whether `context` contains `||`, `??`, `? ` or the word `default`
- * (case-sensitive substring) — read as a fallback for the variable.
- */
-export function hasFallbackValue(context: string): boolean {
-  return hasAnyPattern(context, FALLBACK_INDICATORS);
-}
-
 /**
  * Whether `content` mentions `required`, `validate`, `schema`, `joi`, `zod`
  * or `yup` anywhere (case-sensitive substring, not an import check).
@@ -240,11 +196,6 @@ export function hasDestructuring(content: string): boolean {
   return PROCESS_ENV_DESTRUCTURING.test(content);
 }
 
-/** Whether `url` contains `localhost` or `127.0.0.1`. */
-export function isLocalUrl(url: string): boolean {
-  return hasAnyPattern(url, LOCAL_HOST_INDICATORS);
-}
-
 /**
  * Whether `content` holds a mongodb://, mysql://, postgresql:// or
  * redis:// connection string. The patterns are global regexes, so each
@@ -261,26 +212,4 @@ export function matchesAnyDbPattern(content: string): boolean {
  */
 export function matchesAnySecretPattern(content: string): boolean {
   return hasAnyRegexPattern(content, SECRET_PATTERNS);
-}
-
-/**
- * Every `process.env.NAME` in `content` whose NAME is upper-case
- * (`[A-Z_][A-Z0-9_]*`), as written, duplicates included.
- */
-export function findAllEnvMatches(content: string): string[] {
-  const matches = content.match(PROCESS_ENV_PATTERN);
-  return matches ?? [];
-}
-
-/**
- * Every http(s) URL in `content`, from three patterns (bare host, single-
- * and double-quoted), so one quoted URL can appear more than once.
- */
-export function findUrlMatches(content: string): string[] {
-  return URL_PATTERNS.flatMap(pattern => content.match(pattern) ?? []);
-}
-
-/** `urls` without those pointing at localhost or 127.0.0.1. */
-export function filterNonLocalUrls(urls: string[]): string[] {
-  return urls.filter(url => !isLocalUrl(url));
 }

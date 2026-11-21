@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — environment-variable usage judges each `process.env` read where it stands; a URL is reported once (#433)
+
+The usage analyzer shared by Environment Security Enforcement and Environment
+Parity Standards read the file as text.
+
+Before: every `process.env.X` of a file was judged by a 150-character window
+around the FIRST occurrence of that text, and `||`, `??`, `? ` or the word
+`default` anywhere in it counted as a fallback — so a second read without one
+passed, and `if (!name) return` after `const name = process.env.X` did not.
+`process.env.X` in law prose, a message string or a comment was a read; the
+branch variables a CI system sets were "used without fallback". Three
+overlapping URL regexes reported one quoted URL twice (bare host and full
+string), in comments too, including `example.com` samples and documentation
+links. Environment Parity reported a missing `.env.example` twice.
+
+After: reads come from the TypeScript parse, each at its own offset. A read
+is handled when it is the left of `??`/`||`, either side of `&&`, compared,
+negated, `typeof`, a condition, or the object of `?.` — directly, through
+`Number()`/`parseInt()`/parentheses, through a variable it is stored in and
+that is checked in the same function, or when the same function checks
+another read of that variable. Writes (`process.env.X = …`) are not reads.
+Variables set by GitHub Actions, GitLab, Bitbucket, CircleCI, Travis,
+Buildkite, Azure Pipelines and Jenkins (`GITHUB_*`, `CI_*`, `CI`,
+`BRANCH_NAME`, …) are not asked for a fallback. A URL is taken once from the
+string or template it is written in; comments and JSX text are not values;
+loopback and the reserved example hosts (RFC 2606/6761: `example.com`,
+`*.test`, …) are not endpoints; a URL bound to a documentation name
+(`reference`, `DOCS_URL`, `helpLink`…) is a link for a reader. A missing
+example file is one Parity finding. A hardcoded database connection string
+(`mongodb://…`, `postgresql://…`) is looked for in the strings the code holds;
+a comment that names the schemes is not one. Without a loadable `typescript`
+these checks report the files as not read instead of judging them by text.
+
+This repository now commits `.env.example`: RuleOfCode reads `NODE_ENV` and
+`DEBUG` (logging), `ROC_*` / `RULEOFCODE_*` (configuration overrides) and the
+variables CI systems set. The file names them with empty values and says what
+each does; none is required or secret.
+
+Self-audit of this repository: Environment Security Enforcement 57 → 0
+findings; Environment Parity Standards 60 → 1 ("No proper environment
+detection found" — another analyzer, unchanged: it looks for `process.env`
+only in five fixed main files, while this repository reads `NODE_ENV` in
+`src/utils/logging-utils.ts`).
+
 ### Internal — two copied helpers read through their one implementation
 
 Code Duplication Control reported three copies in our own code; two are

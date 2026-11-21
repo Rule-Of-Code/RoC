@@ -167,14 +167,32 @@ What you may see:
   bundles for the browser: rule 1 reports it, as it reports any client module.
 
 Measured on the #287 fixture set (165 fixtures, 29 verdicts that 7.29.1 got
-wrong on purpose): 26 now give the verdict Next's behaviour calls for. The
-other 3 are point a, kept as each law had it: Heavy Lib does not follow a
-`require()`, and Client Props follows neither `require()` nor a page's
-`await import()`. On three installed public Next apps (`nextjs/saas-starter`,
+wrong on purpose; `develop` before this change is identical to the 7.28.1
+baseline on every fixture): all 29 now give the verdict Next's behaviour calls
+for (judge287: FIXED 29, STILL 0, CHANGED-OK 12, OTHER-LAWS 22).
+
+Three verdicts the old fixtures expected change, each as decided
+(judge287 REGRESSION 3; the fixtures are being updated):
+
+- `nc-heavy-neutral-require`: Heavy Lib now names `moment` that a client
+  module loads with `require()` (point a; the case recorded the old limit);
+- `ng-pages-router`: the helper a Pages Router page bundles is reported by
+  Server Only rule 1, not rule 2 (point 11);
+- `nc-heavy-green-subpath`: `lodash/max`, not installed in the fixture, is
+  reported as not read (point d).
+
+Fourteen verdicts on four cases whose expectation was 7.29.1's own behaviour
+changed and were reviewed against the rule (judge287 REVIEW 14): a relative
+import that leaves the root is not read (`ng-outside-root`, point zh), a
+`.glsl` import is an asset (`ng-asset-glsl`, point 9), and an unreadable
+tsconfig is named by every graph law (`ng-extends-missing`,
+`ng-tsconfig-broken-relative`, point g).
+
+On three installed public Next apps (`nextjs/saas-starter`,
 `vercel/commerce`, `t3-oss/create-t3-turbo`) no verdict and no message
-changed; in create-t3-turbo the Heavy Lib walk now reaches 16 modules instead
-of 12 and the Client Props walk 26 instead of 11, the difference being
-workspace-package code.
+changed before point a; in create-t3-turbo the Heavy Lib walk now reaches 16
+modules instead of 12 and the Client Props walk 26 instead of 11, the
+difference being workspace-package code.
 
 ### 🐛 Fixed — without `typescript`, two testing laws judged by a regex and said nothing (#427)
 

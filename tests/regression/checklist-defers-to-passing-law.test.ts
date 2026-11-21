@@ -43,6 +43,9 @@ describe('a checklist clause defers to the law that owns its concern', () => {
   beforeEach(() => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-defer-'));
     write('package.json', '{"name":"site","version":"1.0.0"}');
+    // A deploy target: the site runs for users, so the logging clause is
+    // asked at all (#428).
+    write('Procfile', 'web: node server.js\n');
     write(
       'PRE_DEPLOYMENT_CHECKLIST.md',
       [

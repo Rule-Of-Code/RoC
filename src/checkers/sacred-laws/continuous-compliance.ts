@@ -12,6 +12,7 @@ import { CheckerUtils } from '../../utils/checker-utils';
 import { ProjectTypeDetectorValidation } from '../../utils/config/project-type-detector/project-type-detector-validation';
 import { hasRuleOfCodeConfig } from '../../utils/config/roc-config-presence';
 import { dependenciesIncludeRuleOfCode } from '../../utils/ruleofcode-package';
+import { auditInvocations } from '../../utils/audit-invocation';
 import { PathOperations } from '../../utils/path-operations';
 import { SacredLawUtilities } from './shared-sacred-utilities';
 import {
@@ -115,13 +116,17 @@ export class ContinuousComplianceLaw {
     violations: string[];
     suggestions: string[];
   } {
+    // The audit run from a committed hook or a CI step is compliance
+    // automation too, and the tool it runs IS the enforcement tool, whether
+    // it is a dependency or fetched by npx (#434).
+    const invoked = auditInvocations(projectRoot).length > 0;
     return SacredLawUtilities.checkPackageScripts(
       projectRoot,
       (scripts, violations, suggestions) => {
         // The COMMAND, not the key — the same shared reader the sibling law
         // uses, so the two cannot disagree about the same package.json. This
         // matched six script NAMES and read the value of none of them.
-        if (!runsComplianceCheck(scripts)) {
+        if (!runsComplianceCheck(scripts) && !invoked) {
           violations.push('No automated compliance checking scripts');
           suggestions.push(complianceScriptSuggestion());
         }
@@ -134,7 +139,7 @@ export class ContinuousComplianceLaw {
         // Check for constitutional enforcement
         const deps =
           ProjectTypeDetectorValidation.getProjectDependencies(projectRoot);
-        if (!dependenciesIncludeRuleOfCode(deps)) {
+        if (!dependenciesIncludeRuleOfCode(deps) && !invoked) {
           violations.push('No constitutional law enforcement tools detected');
           suggestions.push(
             'Install RuleOfCode for automated FileHeaderComplianceAnalyzer constitutional compliance'

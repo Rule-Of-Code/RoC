@@ -1,4 +1,3 @@
-import type { RuleOfCodeConfig } from '../../../config/types';
 import { LifecycleConfiguration } from './lifecycle-configuration';
 import { LifecycleValidationPatterns } from './lifecycle-validation-patterns';
 
@@ -12,11 +11,7 @@ export class LifecycleAnalyzer {
    * Check for proper lifecycle management
    * RULE 1: 100% coverage - delegates to ValidationPatterns
    */
-  // TODO (Sprint 10): Use config to customize lifecycle hook detection patterns based on project requirements
-  static checkLifecycleManagement(
-    content: string,
-    _config: RuleOfCodeConfig
-  ): {
+  static checkLifecycleManagement(content: string): {
     violations: string[];
     suggestions: string[];
   } {

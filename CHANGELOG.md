@@ -21,6 +21,19 @@ titles do not count.
 | Constitutional Supremacy Doctrine | 1 finding (no enforcement script) | pass (.husky/pre-commit, .husky/pre-push run the audit) |
 | Continuous Compliance Doctrine | 1 finding (no enforcement tool) | pass |
 | Pull Request Workflow Standards | 1 finding (missing precommit, prepush) | pass |
+### 🐛 Fixed — a PARTIAL line said "passed" for laws that reported warnings
+
+The judged-nothing line said "The other laws passed" and the narrowed line
+"The selected laws passed" while some of those laws had reported warnings (a
+run of this repository: 40 passed, 43 with warnings). When any law warned, the
+line now gives the counts from `stats`:
+
+```
+⚠️  PARTIAL — 1 law(s) judged nothing (…). 40 passed, 43 reported warnings (not blocking); no compliance verdict.
+⚠️  PARTIAL SCAN — 6 of 75 applicable laws ran (narrowed by laws.enabled). Of the selected laws 5 passed, 1 reported warnings (not blocking); no compliance verdict.
+```
+
+With no warnings the text is as before.
 
 ### ⚠️ BREAKING — `compliance` and the victory art mean a clean pass; a law that judged nothing makes the run partial
 

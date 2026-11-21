@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Internal — two code-quality checkers below the complexity limit
+
+Code Complexity Control reported Observable Cleanup (complexity 13, twice)
+and Prefer Union Over Enum (12) on the self-audit. Observable Cleanup now
+reads its cleanup patterns from a table and its per-file findings in
+`fileFindings`; Prefer Union Over Enum names `isJustified`. No law reports
+anything different.
+
 ### Internal — eslint is a direct devDependency
 
 `npm run lint` runs `eslint .`, but `eslint` was only installed as a peer of

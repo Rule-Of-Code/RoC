@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Magic Number Prevention reported numbers that are already named, and missed some that are not (#431)
+
+The law scanned text: a regex literal was skipped but not blanked, so
+`{0,300}` was a magic number; a name was accepted only in `const X = N` or
+`key: N` on the same line; and whole template literals were blanked, so
+`${text.slice(0, 57)}` was never seen. Literals are now read from the
+TypeScript parse.
+
+| | before | after |
+|---|---|---|
+| digits in a regex literal | reported | not code |
+| `config.x ?? 50` (also with `??` on the line before) | reported | named by the left side |
+| parameter / destructuring default `before = 50` | reported | named |
+| `MAX_AGE = 24 * 60 * 60 * 1000`, `SIZES = [16, 32]` | later factors / elements reported | named |
+| `const CODES = new Set([401, 403])`, a class field `= new Map([...])` | elements reported | named by the const / field |
+| a Set/Map built anywhere else (parameter default, object property, argument) | elements reported | still reported |
+| `parseInt(s, 16)` | reported | the radix is not a magic number |
+| `${t.slice(0, 57)}` inside a template | never seen | reported |
+| no loadable `typescript` | scanned as text | "code file(s) were NOT read" — judged nothing |
+
+Score deductions, unnamed length limits and other unnamed literals in code
+are reported as before.
+
 ### 🐛 Fixed — a committed PRE_DEPLOYMENT_CHECKLIST.md was reported missing when `includes` name only source (#476)
 
 Pre-Deployment Checklist looked the checklist up through the source scan,

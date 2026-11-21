@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ⚠️ BREAKING — `compliance` and the victory art mean a clean pass; a law that judged nothing makes the run partial
+
+A run of this repository listed 46 laws with violations at warning level, one
+of them a law that judged nothing, then printed `CONSTITUTIONAL COMPLIANCE:
+PASSED` and the victory art, and its JSON verdict was `compliance`. On screen
+that is the unearned pass this tool exists to refuse.
+
+Now `compliance` — and the art — is only the clean pass: no law failed, was
+waived, reported warnings or judged nothing. The verdict is the first that
+holds: `refused` > `failed` > `partial` > `compliance-with-waivers` >
+`compliance-with-warnings` > `compliance`. One value; no information is lost,
+because every list is in `scope`.
+
+| run | verdict before | verdict after | console before | console after | exit |
+|---|---|---|---|---|---|
+| all laws passed, nothing waived | compliance | compliance | PASSED + art | PASSED + art | 0 |
+| ≥1 law reported warnings, nothing waived | compliance | **compliance-with-warnings** | PASSED + art | **PASSED WITH WARNINGS — N law(s) reported warnings (not blocking)**, no art | 0 |
+| ≥1 waiver (with or without warnings) | compliance-with-waivers | compliance-with-waivers | PASSED WITH WAIVERS, no art | unchanged | 0 |
+| ≥1 law judged nothing, at warning/info severity | compliance (counted as a warning) | **partial** | PASSED + art | **PARTIAL — N law(s) judged nothing (…)**, no compliance verdict | 0 |
+| ≥1 law judged nothing, at error severity | failed | failed | FAILED | FAILED | 1 |
+| narrowed (allowlist, Pareto, categories) | partial | partial | PARTIAL SCAN | unchanged | 0 |
+
+New JSON fields:
+
+- `scope.warningLaws` — `[{ law, lawId }]`, the laws that reported warnings,
+  sorted by `law`; its length is `stats.warningLaws`.
+- `scope.judgedNothingLaws` — `[{ law, lawId }]`, the laws that found nothing to
+  judge (`results[].judgedNothing: true`), sorted. They are never counted
+  among the warnings, and they make `scope.partial` true.
+- `stats.judgedNothingLaws` — their number.
+
+The console lists the laws that judged nothing in their own block
+(`◌ JUDGED NOTHING`) and counts them on their own summary line, apart from the
+warnings. The exit code follows severity, as before. A consumer that keyed a
+pass on `verdict === 'compliance'` should accept `compliance-with-warnings`
+and `compliance-with-waivers` too, or read the lists.
 ### 🐛 Fixed — without `typescript`, two testing laws judged by a regex and said nothing (#427)
 
 `CodeText.codeOnly` (the code of a file, without its comments and strings) fell

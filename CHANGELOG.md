@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — Async Cache Single-Flight reads a check as a one-key get / has (#437)
+
+The selection pattern matched `constants.set(` as `s.set(` (no left boundary
+on the back-reference). In TS/JS a check is now a `get` / `has` with the key
+as its only argument (the Map signature), so a file-backed API such as
+`Cache.get(root, key, mode)` is not judged as an in-memory map.
+
+Self-audit of this repository: Async Cache Single-Flight — before 1 finding (`src/core/auditing/audit-engine.ts`, a file-backed `AuditCache.get(…)` / `.set(…)`), after pass: 3 files read, 0 async check-then-store sites.
+
 ### ⚠️ BREAKING — `compliance` and the victory art mean a clean pass; a law that judged nothing makes the run partial
 
 A run of this repository listed 46 laws with violations at warning level, one

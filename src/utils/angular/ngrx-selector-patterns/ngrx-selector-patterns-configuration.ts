@@ -109,14 +109,13 @@ export class NgRxSelectorPatternsConfiguration extends AngularConfigurationBase 
     return FileSystemOperations.exists(srcPath) ? srcPath : null;
   }
 
-  static getSelectorAnalysisConfig(_config: RuleOfCodeConfig): {
+  static getSelectorAnalysisConfig(): {
     checkNamingConventions: boolean;
     checkMemoization: boolean;
     checkParameterUsage: boolean;
     checkReusability: boolean;
     checkPropsSelectors: boolean;
     enableAdvancedPatterns: boolean;
-    // TODO (Sprint 10): Use config to customize selector patterns based on project-specific naming conventions
   } {
     return this.Config.SELECTOR_ANALYSIS_CONFIG;
   }
@@ -261,8 +260,7 @@ export class NgRxSelectorPatternsConfiguration extends AngularConfigurationBase 
   /**
    * Get file reading configuration (RULE 2: Caching)
    */
-  // TODO (Sprint 10): Use config to customize file reading settings for better caching performance
-  static getFileReadingConfig(_config: RuleOfCodeConfig): {
+  static getFileReadingConfig(): {
     encoding: string;
     fallbackToEmpty: boolean;
     skipEmptyFiles: boolean;

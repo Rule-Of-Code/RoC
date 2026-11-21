@@ -269,9 +269,7 @@ describe('utils/angular/ngrx-selector-patterns/ngrx-selector-patterns-configurat
     describe('getSelectorAnalysisConfig', () => {
       it('should return selector analysis configuration', () => {
         const result =
-          NgRxSelectorPatternsConfiguration.getSelectorAnalysisConfig(
-            mockConfig
-          );
+          NgRxSelectorPatternsConfiguration.getSelectorAnalysisConfig();
 
         expect(result).toBe(
           NgRxSelectorPatternsConfiguration.SELECTOR_ANALYSIS_CONFIG
@@ -280,9 +278,7 @@ describe('utils/angular/ngrx-selector-patterns/ngrx-selector-patterns-configurat
 
       it('should include all analysis options', () => {
         const result =
-          NgRxSelectorPatternsConfiguration.getSelectorAnalysisConfig(
-            mockConfig
-          );
+          NgRxSelectorPatternsConfiguration.getSelectorAnalysisConfig();
 
         expect(result.checkNamingConventions).toBeDefined();
         expect(result.checkMemoization).toBeDefined();
@@ -540,8 +536,7 @@ describe('utils/angular/ngrx-selector-patterns/ngrx-selector-patterns-configurat
 
     describe('getFileReadingConfig', () => {
       it('should return file reading configuration', () => {
-        const result =
-          NgRxSelectorPatternsConfiguration.getFileReadingConfig(mockConfig);
+        const result = NgRxSelectorPatternsConfiguration.getFileReadingConfig();
 
         expect(result.encoding).toBeDefined();
         expect(result.fallbackToEmpty).toBeDefined();
@@ -549,8 +544,7 @@ describe('utils/angular/ngrx-selector-patterns/ngrx-selector-patterns-configurat
       });
 
       it('should have skipEmptyFiles enabled', () => {
-        const result =
-          NgRxSelectorPatternsConfiguration.getFileReadingConfig(mockConfig);
+        const result = NgRxSelectorPatternsConfiguration.getFileReadingConfig();
 
         expect(result.skipEmptyFiles).toBe(true);
       });

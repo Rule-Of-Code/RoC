@@ -123,10 +123,10 @@ export class UnitTestQualityLaw extends TestingLawBase {
         const structSuggestions = this.extractSuggestions(structureAnalysis);
         suggestions.push(...structSuggestions);
 
-        // Async test analysis, on the CODE of the file (#424): a `.then(`,
-        // a `setTimeout(` or a `done()` inside a fixture string is the
-        // input of a test, not what the test does. Without the parser the
-        // patterns are not read (said once, by the caller).
+        // Async test analysis, on the CODE of the file (#424): a promise
+        // chain, a timer or a done callback written inside a fixture string
+        // is the input of a test, not what the test does. Without the
+        // parser the patterns are not read (said once, by the caller).
         const asyncAnalysis = AsyncTestAnalyzer.analyzeAsyncPatterns(
           ts ? CodeText.codeOnly(content, file, projectRoot) : ''
         );

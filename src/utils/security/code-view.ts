@@ -24,6 +24,7 @@
  * the same place in the file.
  */
 import type * as TS from 'typescript';
+import { readSource } from '../../checkers/code-quality-laws/source-view';
 
 /** The views of one file. */
 export interface CodeView {
@@ -41,20 +42,21 @@ type Range = { start: number; end: number };
 /** One token: an algorithm name, a mode, an identifier-like value. */
 const API_TOKEN = /^[\w.:/+-]+$/;
 
-function isLiteralText(ts: typeof TS, node: TS.Node): boolean {
-  return (
-    ts.isStringLiteral(node) ||
-    ts.isNoSubstitutionTemplateLiteral(node) ||
-    ts.isTemplateHead(node) ||
-    ts.isTemplateMiddle(node) ||
-    ts.isTemplateTail(node) ||
-    ts.isRegularExpressionLiteral(node) ||
-    ts.isJsxText(node)
-  );
+/** A string, template part, regex or JSX text token (not a number). */
+function isTextToken(ts: typeof TS, node: TS.Node): boolean {
+  const k = ts.SyntaxKind;
+  const inRange =
+    node.kind >= k.FirstLiteralToken && node.kind <= k.LastTemplateToken;
+  return inRange && !ts.isNumericLiteral(node) && !ts.isBigIntLiteral(node);
 }
 
-function blank(chars: string[], start: number, end: number): void {
-  for (let i = start; i < end; i++) if (chars[i] !== '\n') chars[i] = ' ';
+/** `require('x')` / `import('x')`. */
+function isModuleCall(ts: typeof TS, call: TS.CallExpression): boolean {
+  const callee = call.expression;
+  return (
+    callee.kind === ts.SyntaxKind.ImportKeyword ||
+    (ts.isIdentifier(callee) && callee.text === 'require')
+  );
 }
 
 /**
@@ -63,17 +65,15 @@ function blank(chars: string[], start: number, end: number): void {
  * uses, so they stay in `code` and are not literals.
  */
 function isModuleSpecifier(ts: typeof TS, node: TS.Node): boolean {
-  if (!ts.isStringLiteral(node) || !node.parent) return false;
   const parent = node.parent;
+  if (!ts.isStringLiteral(node) || !parent) return false;
   if (ts.isImportDeclaration(parent) || ts.isExportDeclaration(parent))
     return parent.moduleSpecifier === node;
   if (ts.isExternalModuleReference(parent)) return true;
   return (
     ts.isCallExpression(parent) &&
     parent.arguments[0] === node &&
-    (parent.expression.kind === ts.SyntaxKind.ImportKeyword ||
-      (ts.isIdentifier(parent.expression) &&
-        parent.expression.text === 'require'))
+    isModuleCall(ts, parent)
   );
 }
 
@@ -84,27 +84,58 @@ function calleeName(ts: typeof TS, expression: TS.Expression): string | null {
   return null;
 }
 
-/** The name a value is bound to: property, variable, parameter or `x.name =`. */
-function bindingName(ts: typeof TS, node: TS.Node): string | null {
+/** The name a declaration binds its initializer to: property, variable, parameter, field. */
+function declaredName(ts: typeof TS, node: TS.Node): string | null {
   const parent = node.parent;
-  if (!parent) return null;
-  if (
+  const declares =
+    !!parent &&
     (ts.isPropertyAssignment(parent) ||
       ts.isVariableDeclaration(parent) ||
       ts.isParameter(parent) ||
       ts.isPropertyDeclaration(parent)) &&
-    parent.initializer === node &&
-    parent.name &&
-    (ts.isIdentifier(parent.name) || ts.isStringLiteral(parent.name))
-  )
-    return parent.name.text;
+    parent.initializer === node;
+  if (!declares) return null;
+  const name = parent.name;
+  return ts.isIdentifier(name) || ts.isStringLiteral(name) ? name.text : null;
+}
+
+/** The target of `x.name = <node>`. */
+function assignedName(ts: typeof TS, node: TS.Node): string | null {
+  const parent = node.parent;
   if (
-    ts.isBinaryExpression(parent) &&
-    parent.right === node &&
-    parent.operatorToken.kind === ts.SyntaxKind.EqualsToken
+    !parent ||
+    !ts.isBinaryExpression(parent) ||
+    parent.right !== node ||
+    parent.operatorToken.kind !== ts.SyntaxKind.EqualsToken
   )
-    return calleeName(ts, parent.left);
-  return null;
+    return null;
+  return calleeName(ts, parent.left);
+}
+
+/** The callee a string is an argument of, if any. */
+function argumentOf(ts: typeof TS, node: TS.Node): string | null | undefined {
+  const parent = node.parent;
+  const isArgument =
+    !!parent &&
+    (ts.isCallExpression(parent) || ts.isNewExpression(parent)) &&
+    !!parent.arguments?.some(arg => arg === node);
+  return isArgument ? calleeName(ts, parent.expression) : undefined;
+}
+
+/** Does the code hand this string to an API whose name matches? */
+function handedTo(ts: typeof TS, node: TS.Node, name: RegExp): boolean {
+  const callee = argumentOf(ts, node);
+  if (callee !== undefined) return !!callee && name.test(callee);
+  const bound = declaredName(ts, node) ?? assignedName(ts, node);
+  return !!bound && name.test(bound);
+}
+
+/** `content` with `[start, end)` ranges turned into spaces, line breaks kept. */
+function blanked(content: string, ranges: Range[]): string {
+  const chars = content.split('');
+  for (const { start, end } of ranges)
+    for (let i = start; i < end; i++) if (chars[i] !== '\n') chars[i] = ' ';
+  return chars.join('');
 }
 
 /** Read a file through the parser. `fileName` decides TS/TSX/JS parsing. */
@@ -113,17 +144,20 @@ export function readCodeView(
   content: string,
   fileName: string
 ): CodeView {
-  const source = ts.createSourceFile(
-    fileName,
-    content,
-    ts.ScriptTarget.Latest,
-    true
-  );
+  // The shared source view blanks every literal and comment; module names
+  // are put back, since an import is code.
+  const view = readSource(ts, content, fileName);
+  const { source } = view;
   const literals: Range[] = [];
   const strings: TS.StringLiteralLike[] = [];
+  const code = view.code.split('');
   const visit = (node: TS.Node): void => {
-    if (isModuleSpecifier(ts, node)) return;
-    if (isLiteralText(ts, node)) {
+    if (isModuleSpecifier(ts, node)) {
+      for (let i = node.getStart(source); i < node.getEnd(); i++)
+        code[i] = content[i] ?? ' ';
+      return;
+    }
+    if (isTextToken(ts, node)) {
       literals.push({ start: node.getStart(source), end: node.getEnd() });
       if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node))
         strings.push(node);
@@ -133,34 +167,15 @@ export function readCodeView(
   };
   visit(source);
 
-  const code = content.split('');
-  for (const { start, end } of literals) blank(code, start, end);
-  // With every literal blanked, a `//` or `/*` left opens a comment.
-  const commentless = content.split('');
-  for (const match of code.join('').matchAll(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g)) {
-    const start = match.index ?? 0;
-    blank(code, start, start + match[0].length);
-    blank(commentless, start, start + match[0].length);
-  }
-
+  const commentless = blanked(
+    content,
+    view.comments.map(c => ({ start: c.start, end: c.start + c.text.length }))
+  );
   const inLiteral = (offset: number): boolean =>
     literals.some(({ start, end }) => offset >= start && offset < end);
-
   const apiStrings = (name: RegExp): string[] =>
     strings
-      .filter(node => {
-        const parent = node.parent;
-        if (
-          parent &&
-          (ts.isCallExpression(parent) || ts.isNewExpression(parent)) &&
-          parent.arguments?.includes(node)
-        ) {
-          const callee = calleeName(ts, parent.expression);
-          return !!callee && name.test(callee);
-        }
-        const bound = bindingName(ts, node);
-        return !!bound && name.test(bound);
-      })
+      .filter(node => handedTo(ts, node, name))
       .map(node => node.text)
       // A value an API takes is one token ('md5', 'des-ede3-cbc', '777');
       // a sentence bound to WEAK_HASH_MESSAGE is a message about one.
@@ -169,7 +184,7 @@ export function readCodeView(
   return {
     source,
     code: code.join(''),
-    commentless: commentless.join(''),
+    commentless,
     strings: strings.map(node => node.text),
     inLiteral,
     apiStrings,

@@ -156,3 +156,8 @@ bypass it.
 ## Language
 
 Code, comments and `CHANGELOG.md` are in English.
+
+---
+
+<!-- roc-footer -->
+**Document Version:** the git history of this file &middot; **Last Updated:** 2026-11-21 &middot; **Status:** Active &middot; **Investment Rating:** needs-review

@@ -109,3 +109,8 @@ character of the art in the recorded output, or the integrity in
 `5fdb790400a507b15f2a9fe3a8fdd0447aa5e14c`
 (author `demo <demo@example.com>`, `2026-11-19T12:00:00Z`,
 `feat: add the demo app`).
+
+---
+
+<!-- roc-footer -->
+**Document Version:** the git history of this file &middot; **Last Updated:** 2026-11-21 &middot; **Status:** Active &middot; **Investment Rating:** needs-review

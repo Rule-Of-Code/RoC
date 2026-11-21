@@ -100,8 +100,10 @@ export class CodeComplexityControlLaw extends CodeQualityLawBase {
 
       // Check for ESLint complexity rules
       if (devDependencies.eslint) {
-        const eslintConfig = this.findESLintConfig(projectRoot);
-        if (eslintConfig && !this.hasComplexityRules(eslintConfig)) {
+        const eslint = this.readESLintConfig(projectRoot);
+        if (eslint?.notRead !== undefined) {
+          violations.push(eslint.notRead);
+        } else if (eslint && !this.hasComplexityRules(eslint.config)) {
           violations.push('ESLint complexity rules not configured');
           suggestions.push(
             'Configure ESLint complexity rules (complexity, max-lines, max-depth)'

@@ -1,5 +1,11 @@
 import { CodeText } from '../../../../utils/code-text';
+import { PathOperations } from '../../../../utils/path-operations';
 import { PatternMatchingUtils } from '../../../../utils/pattern-matching-utils';
+import { loadTypeScript } from '../../../../utils/react/tsx-source';
+import {
+  matchesFromCode,
+  readCodeView,
+} from '../../../../utils/security/code-view';
 import { FixtureIsolation } from '../../../../utils/testing/fixture-isolation';
 
 /**
@@ -184,12 +190,23 @@ export class UnitTestDataManagementConstants {
   }
 
   /**
-   * Check if content has hardcoded test data
+   * Check if content has hardcoded test data.
+   *
+   * A pattern counts where it starts in code (#426): `const users = [{ id:
+   * '1' }]` written inside a fixture string — a detector's own test keeps
+   * its inputs that way — is text, not data the test uses. The law runs
+   * only with the parser (it reports the files as not read without one);
+   * a direct caller without it gets the raw-text answer.
    */
-  static hasHardcodedTestData(content: string): boolean {
-    return Object.values(this.HARDCODED_DATA_PATTERNS).some(pattern =>
-      PatternMatchingUtils.hasRegexPattern(content, pattern)
-    );
+  static hasHardcodedTestData(content: string, fileName = 'file.ts'): boolean {
+    const patterns = Object.values(this.HARDCODED_DATA_PATTERNS);
+    const ts = loadTypeScript(PathOperations.getDirectory(fileName));
+    if (!ts)
+      return patterns.some(pattern =>
+        PatternMatchingUtils.hasRegexPattern(content, pattern)
+      );
+    const view = readCodeView(ts, content, fileName);
+    return patterns.some(pattern => matchesFromCode(view, pattern));
   }
 
   /**
@@ -212,10 +229,11 @@ export class UnitTestDataManagementConstants {
   }
 
   /** As UnitTestIsolationConstants.resourcesUsed, over this law's table. */
-  static resourcesUsed(content: string): string[] {
+  static resourcesUsed(content: string, fileName?: string): string[] {
     return FixtureIsolation.resourcesUsed(
       content,
-      this.EXTERNAL_RESOURCE_PATTERNS
+      this.EXTERNAL_RESOURCE_PATTERNS,
+      fileName
     );
   }
 

@@ -9,6 +9,7 @@ import { PatternMatchingUtils } from '../../utils/pattern-matching-utils';
 import { PathOperations } from '../../utils/path-operations';
 import type { TodoAnalysisResult } from './todo-analysis-result';
 import { TodoAnalysisResultBuilder } from './todo-analysis-result';
+import { todoScannableText } from './todo-scannable-text';
 /**
  * TODO Management Constitutional Requirements Law
  *
@@ -366,7 +367,7 @@ export class TodoManagementLaw {
     // string (e.g. an example of what a TODO looks like) is text, not a real
     // TODO; scanning raw source counted it. Newlines are preserved so line
     // numbers stay accurate.
-    const scannable = this.blankStringLiterals(content);
+    const scannable = todoScannableText(content, file);
     const lines = scannable.split('\n');
 
     for (let i = 0; i < lines.length; i++) {
@@ -390,18 +391,6 @@ export class TodoManagementLaw {
       /#\s*TODO/gi,
     ];
     return PatternMatchingUtils.hasAnyRegexPattern(line, todoPatterns);
-  }
-
-  /**
-   * Blank string/template-literal CONTENTS, keeping comments and newlines, so a
-   * TODO marker that only appears inside a string (a captured or display string
-   * showing what a TODO looks like) is not counted as a real TODO.
-   */
-  private static blankStringLiterals(content: string): string {
-    return content.replace(
-      /'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"|`(?:\\.|[^`\\])*`/g,
-      match => match.replace(/[^\n]/g, ' ')
-    );
   }
 
   /**

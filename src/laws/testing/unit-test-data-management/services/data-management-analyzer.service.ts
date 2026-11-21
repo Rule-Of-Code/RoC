@@ -50,7 +50,12 @@ export class UnitTestDataManagementAnalyzerService {
           missingSetupFiles.push(relative);
         }
 
-        if (UnitTestDataManagementConstants.hasHardcodedTestData(content)) {
+        if (
+          UnitTestDataManagementConstants.hasHardcodedTestData(
+            content,
+            testFile
+          )
+        ) {
           hardcodedDataFiles.push(relative);
         }
 
@@ -115,7 +120,10 @@ export class UnitTestDataManagementAnalyzerService {
     for (const testFile of this.findTestFiles(projectRoot, config)) {
       try {
         const content = FileUtils.readFile(testFile, { encoding: 'utf8' });
-        const used = UnitTestDataManagementConstants.resourcesUsed(content);
+        const used = UnitTestDataManagementConstants.resourcesUsed(
+          content,
+          testFile
+        );
         if (
           used.length > 0 &&
           !UnitTestDataManagementConstants.hasResourceCleanup(content)

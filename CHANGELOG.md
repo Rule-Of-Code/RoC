@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — No Explicit Any / Non-Null and No Double Cast read strings as code (#424)
+
+| | before | after |
+|---|---|---|
+| No Explicit Any: `'AWS::Serverless::Function'`, `'value: any'`, `'run it! now'` in strings | weak type / `any` / non-null | not code |
+| No Explicit Any: `{ keys: Object.keys(x) }` | a weak `: Object` type | a value, not a type |
+| No Double Cast: "as unknown as" in a string (a law's prose) | a double cast | not code |
+| either law, no loadable `typescript` | text scanned | ".ts file(s) were NOT read" — judged nothing |
+
+Real annotations, casts and non-null assertions in code are reported as before.
+
 ### ⚠️ BREAKING — `compliance` and the victory art mean a clean pass; a law that judged nothing makes the run partial
 
 A run of this repository listed 46 laws with violations at warning level, one

@@ -6,15 +6,15 @@
     "source": "detected"
   },
   "scope": {
-    "executedLaws": 77,
-    "selectedLaws": 77,
-    "applicableLaws": 77,
+    "executedLaws": 76,
+    "selectedLaws": 76,
+    "applicableLaws": 76,
     "partial": false
   },
   "stats": {
-    "executedLaws": 79,
-    "totalLaws": 79,
-    "passedLaws": 79,
+    "executedLaws": 78,
+    "totalLaws": 78,
+    "passedLaws": 78,
     "failedLaws": 0,
     "warningLaws": 0,
     "score": 100
@@ -893,19 +893,6 @@
     },
     {
       "id": "law-67",
-      "lawId": "docs_5ef46de8",
-      "legacyId": 80,
-      "lawTitle": "MD Footer Template (MANDATORY)",
-      "passed": true,
-      "score": 100,
-      "violations": [],
-      "suggestions": [],
-      "message": "stub pass",
-      "severity": "warning",
-      "lawName": "md-footer-template-(mandatory)"
-    },
-    {
-      "id": "law-68",
       "lawId": "docs_baf8f0af",
       "legacyId": 81,
       "lawTitle": "TODO Management Constitutional Requirements",
@@ -918,7 +905,7 @@
       "lawName": "todo-management-constitutional-requirements"
     },
     {
-      "id": "law-69",
+      "id": "law-68",
       "lawId": "docs_ad613f2f",
       "legacyId": 82,
       "lawTitle": "TODO Management Standards",
@@ -931,7 +918,7 @@
       "lawName": "todo-management-standards"
     },
     {
-      "id": "law-70",
+      "id": "law-69",
       "lawId": "docs_42b0ad34",
       "legacyId": 83,
       "lawTitle": "MD Footer Footer Consistency",
@@ -944,7 +931,7 @@
       "lawName": "md-footer-footer-consistency"
     },
     {
-      "id": "law-71",
+      "id": "law-70",
       "lawId": "docs_ad314474",
       "legacyId": 84,
       "lawTitle": "Strategic Document Updates",
@@ -957,7 +944,7 @@
       "lawName": "strategic-document-updates"
     },
     {
-      "id": "law-72",
+      "id": "law-71",
       "lawId": "docs_cd2817cb",
       "legacyId": 87,
       "lawTitle": "Incident Response Protocol",
@@ -970,7 +957,7 @@
       "lawName": "incident-response-protocol"
     },
     {
-      "id": "law-73",
+      "id": "law-72",
       "lawId": "meta_59c6436e",
       "legacyId": 226,
       "lawTitle": "Audit Liveness Assertion",
@@ -983,7 +970,7 @@
       "severity": "error"
     },
     {
-      "id": "law-74",
+      "id": "law-73",
       "lawId": "meta_5ef1482c",
       "legacyId": 227,
       "lawTitle": "Config Integrity Guard",
@@ -996,7 +983,7 @@
       "severity": "error"
     },
     {
-      "id": "law-75",
+      "id": "law-74",
       "lawId": "meta_381a664d",
       "legacyId": 232,
       "lawTitle": "Golden Fixture Immutability",
@@ -1009,7 +996,7 @@
       "lawName": "golden-fixture-immutability"
     },
     {
-      "id": "law-76",
+      "id": "law-75",
       "lawId": "integrity_77931c4a",
       "legacyId": 593,
       "lawTitle": "Guard Function Has Production Caller",
@@ -1022,7 +1009,7 @@
       "lawName": "guard-function-has-production-caller"
     },
     {
-      "id": "law-77",
+      "id": "law-76",
       "lawId": "integrity_f6e5dfa9",
       "legacyId": 594,
       "lawTitle": "Tsconfig Exclude Leaves Code Untyped",
@@ -1035,7 +1022,7 @@
       "lawName": "tsconfig-exclude-leaves-code-untyped"
     },
     {
-      "id": "law-78",
+      "id": "law-77",
       "lawId": "measurement_be445ad1",
       "legacyId": 891,
       "lawTitle": "Test Server Loopback Address Match",

@@ -20,6 +20,9 @@ import { TypeScriptStrictLaw } from '../../src/checkers/sacred-laws/typescript-s
 import { ConfigLoader } from '../../src/config/loader';
 import { TestDocumentationRequirementsLaw } from '../../src/laws/testing/test-documentation-requirements';
 import * as tsxSource from '../../src/utils/react/tsx-source';
+import { NoFocusedTestsLaw } from '../../src/checkers/testing-laws/no-focused-tests';
+import { TestIsolationEnforcementLaw } from '../../src/laws/testing/test-isolation-enforcement';
+import { markJudgedNothing } from '../../src/utils/judged-nothing';
 
 jest.mock('../../src/utils/react/tsx-source', () => {
   const actual = jest.requireActual('../../src/utils/react/tsx-source');
@@ -232,5 +235,57 @@ describe('Test Documentation Requirements: titles are not read by a regex', () =
     );
     expect(result.judgedNothing).not.toBe(true);
     expect(text).not.toContain(NOT_READ);
+  });
+});
+
+describe('a judged-nothing result headlines its own note, not a computed summary', () => {
+  it('markJudgedNothing takes the message from the not-judged note', () => {
+    const marked = markJudgedNothing({
+      message: '⚠️ Test Isolation issues: poor setup/teardown isolation',
+      violations: ['the 3 test file(s) were NOT read'],
+    });
+    expect(marked.message).toBe('the 3 test file(s) were NOT read');
+  });
+
+  it('a message that already says so is kept', () => {
+    const marked = markJudgedNothing({
+      message: 'X: nothing was judged',
+      violations: ['the 3 test file(s) were NOT read'],
+    });
+    expect(marked.message).toBe('X: nothing was judged');
+  });
+
+  it('Test Isolation without typescript: no "poor isolation" headline', () => {
+    const dir = project({
+      'package.json': JSON.stringify({ name: 'lib' }),
+      'src/sum.ts':
+        'export const sum = (a: number, b: number): number => a + b;\n',
+      'src/sum.test.ts':
+        "import { sum } from './sum';\nit('adds', () => expect(sum(1, 2)).toBe(3));\n",
+    });
+    dirs.push(dir);
+    loadTypeScript.mockReturnValue(null);
+    const result = TestIsolationEnforcementLaw.check({
+      projectRoot: dir,
+      config: ConfigLoader.load(dir),
+    }) as { message: string };
+    expect(result.message).toContain('were NOT read');
+    expect(result.message).not.toContain('poor setup/teardown isolation');
+  });
+});
+
+describe('a not-read note names the files that were not read', () => {
+  it('No Focused Tests on .ts tests: ".ts", not ".tsx/.jsx"', () => {
+    const dir = project({
+      'package.json': JSON.stringify({ name: 'lib' }),
+      'src/sum.ts':
+        'export const sum = (a: number, b: number): number => a + b;\n',
+      'src/sum.test.ts': "it('adds', () => expect(1 + 2).toBe(3));\n",
+    });
+    dirs.push(dir);
+    loadTypeScript.mockReturnValue(null);
+    const { text } = run(c => NoFocusedTestsLaw.check(c as never), dir);
+    expect(text).toContain('the .ts file(s) were NOT read');
+    expect(text).not.toContain('.tsx/.jsx');
   });
 });

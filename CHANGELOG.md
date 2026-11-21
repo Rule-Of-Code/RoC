@@ -21,6 +21,16 @@ it did not read; with the parser nothing changes.
 | Inject Over Constructor DI | constructors counted by a regex | "… the N Angular file(s) were NOT read", no count; a file that does not parse is named as not read |
 | Test Documentation Requirements | test titles read by a regex | "… the N test file(s) were NOT read" — judged nothing |
 
+Two more corrections of the same notes:
+
+- A law that judged nothing is headlined by its own note. Its summary was
+  computed from defaults, so Test Isolation Enforcement read "poor
+  setup/teardown isolation" over files it had not read. The message of every
+  judged-nothing result is now the note that says so.
+- The note names the files that were not read: "the .ts file(s) were NOT read",
+  not ".tsx/.jsx" for every file (No Focused Tests on 714 `.ts` tests, and every
+  law that parses through the same reader).
+
 ### 🐛 Fixed — without `typescript`, two testing laws judged by a regex and said nothing (#427)
 
 `CodeText.codeOnly` (the code of a file, without its comments and strings) fell

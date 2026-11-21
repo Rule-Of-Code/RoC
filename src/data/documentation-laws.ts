@@ -5,6 +5,7 @@
 
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
+import { REQUIRES_PRODUCTION_SUBJECT } from '../utils/production-subject-requirements';
 
 export const DOCUMENTATION_LAWS: EnhancedConstitutionalLaw[] = [
   // NEW REAL LAWS WITH IMPLEMENTATIONS!
@@ -361,8 +362,9 @@ export const DOCUMENTATION_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Only the missing runbook, escalation and communication checks can fail it; the roles and RTO/SLA findings are advisory and affect neither the verdict nor the score.',
       'Satisfaction is file presence plus keyword matching in the doc text; it never verifies the described procedures are real or current.',
-      'It applies to every project including a Python CLI or library that may have no incident surface at all, with no gating.',
+      'Selected only where something runs for users and can have an incident: a Node or Python HTTP framework, a web surface, a mobile app shell, or a deploy target. A CLI tool or a library does not select it.',
     ],
+    requires: REQUIRES_PRODUCTION_SUBJECT,
     emoji: '🔔',
     description:
       'Clear documentation and procedures for incident response and escalation',

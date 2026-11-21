@@ -31,3 +31,17 @@ export const REQUIRES_REACT: LawRequirement = { anyDependency: ['react'] };
 
 /** Next.js: the App Router, Server Components, route handlers, `next/*`. */
 export const REQUIRES_NEXT: LawRequirement = { anyDependency: ['next'] };
+
+/**
+ * An Nx workspace (nx.json, or the nx package), or an Angular project — the
+ * Angular CLI workspace is the one Nx replaces, so the law keeps asking an
+ * Angular project to drive it through Nx. A plain TypeScript, React or Node
+ * project without Nx has no `ng`/`nx` commands to choose between.
+ */
+export const REQUIRES_NX_OR_ANGULAR: LawRequirement = {
+  anyOf: [
+    { anyFile: ['nx.json'] },
+    { anyDependency: ['nx', '@nx/workspace', '@nrwl/workspace'] },
+    REQUIRES_ANGULAR,
+  ],
+};

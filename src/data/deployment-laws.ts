@@ -5,6 +5,7 @@
 
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
+import { REQUIRES_PRODUCTION_SUBJECT } from '../utils/production-subject-requirements';
 
 export const DEPLOYMENT_LAWS: EnhancedConstitutionalLaw[] = [
   {
@@ -102,7 +103,9 @@ export const DEPLOYMENT_LAWS: EnhancedConstitutionalLaw[] = [
       'File presence, not content — an EMPTY file named LAUNCH_CHECKLIST.md satisfies it; the boxes and approvals in the title are never verified.',
       'The testing check is Node-biased (package.json test scripts, JS coverage artifacts) — a pytest project with no package.json fails it.',
       'The performance-benchmark check is effectively inert (it delegates to a no-op service).',
+      'Selected only where something is launched: a Node or Python HTTP framework, a web surface, a mobile app shell, or a deploy target (container, PaaS, hosting or serverless config). A CLI tool or a library published to a registry does not select it.',
     ],
+    requires: REQUIRES_PRODUCTION_SUBJECT,
     emoji: '🎯',
     description:
       'Comprehensive launch checklist must be completed before production deployment',

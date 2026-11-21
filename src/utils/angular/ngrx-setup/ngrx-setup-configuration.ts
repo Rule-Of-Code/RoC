@@ -48,10 +48,9 @@ export class NgRxSetupConfiguration {
    * RULE 2: Optimized with cached template access
    */
   static buildMessage(templateKey: string, ...args: string[]): string {
-    const messages = this.VALIDATION_MESSAGES as unknown as Record<
-      string,
-      string | ((...params: string[]) => string)
-    >;
+    const messages: Readonly<
+      Record<string, string | ((...params: string[]) => string)>
+    > = this.VALIDATION_MESSAGES;
     const template = messages[templateKey];
 
     // RULE 2: Cache type check result

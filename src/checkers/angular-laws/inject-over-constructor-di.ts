@@ -9,7 +9,11 @@
 import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils/file-utils';
-import { loadTypeScript, TsxSource } from '../../utils/react/tsx-source';
+import {
+  internalArray,
+  loadTypeScript,
+  TsxSource,
+} from '../../utils/react/tsx-source';
 import { PathOperations } from '../../utils/path-operations';
 import { AngularLawBase } from './angular-law-base';
 import { AngularComponentFiles } from '../../utils/angular-component-files';
@@ -102,9 +106,7 @@ export class InjectOverConstructorDiLaw extends AngularLawBase {
     };
     const decoratorsOf = (node: TS.ClassDeclaration): readonly TS.Decorator[] =>
       (ts.canHaveDecorators?.(node) ? ts.getDecorators?.(node) : undefined) ??
-      (node as unknown as { decorators?: readonly TS.Decorator[] })
-        .decorators ??
-      [];
+      internalArray<TS.Decorator>(node, 'decorators');
     const PARAMETER_PROPERTY = new Set([
       ts.SyntaxKind.PublicKeyword,
       ts.SyntaxKind.PrivateKeyword,

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Internal — Ionic readers and checkers split below the complexity limits
+
+Code Complexity Control reported, on the self-audit, `angular-components.ts`
+and Ionic View Hooks Only On Pages as too long, and four Ionic files with a
+function above complexity 10. A component decorator's selectors, host keys,
+template and styles are now read in `angular-component-meta.ts`, how a
+hook class is referred to in `ionic-hook-uses.ts` (both re-exported or
+imported where they were used), and the branching functions hand their
+sub-steps to named helpers or tables. No law reports anything different.
+
 ### Internal — eslint is a direct devDependency
 
 `npm run lint` runs `eslint .`, but `eslint` was only installed as a peer of

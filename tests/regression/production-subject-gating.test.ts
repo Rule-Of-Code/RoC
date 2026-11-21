@@ -12,6 +12,8 @@ import * as os from 'os';
 import * as path from 'path';
 
 import { ALL_ENHANCED_CONSTITUTIONAL_LAWS } from '../../src/data/enhanced-laws';
+import { PreDeploymentChecklistLaw } from '../../src/laws/deployment/pre-deployment-checklist';
+import { FileUtils } from '../../src/utils';
 import { lawRequirementsMet } from '../../src/utils/law-requirements';
 
 const CDN = 'CDN and Caching Strategy';
@@ -148,5 +150,34 @@ describe('#428 NX Commands Only Policy needs an Nx or Angular workspace', () => 
     ],
   ])('%s selects it', (_label, extra) => {
     expect(nxSelected({ ...CLI_BASE, ...extra })).toBe(true);
+  });
+});
+
+describe('#428 Pre-Deployment Checklist asks its runtime clauses only where something runs', () => {
+  const RUNTIME_CLAUSES =
+    /Authentication\/authorization|Performance benchmarking|Health checks not configured|Logging not properly configured/;
+
+  const runtimeFindings = async (
+    files: Record<string, string>
+  ): Promise<string[]> => {
+    const result = await PreDeploymentChecklistLaw.check({
+      projectRoot: project(files),
+      config: FileUtils.getMinimalDefaultConfig(),
+    });
+    return (result.violations ?? []).filter(v => RUNTIME_CLAUSES.test(v));
+  };
+
+  it('a CLI / library is not asked for auth, benchmarks, health checks or production logging', async () => {
+    expect(await runtimeFindings(CLI_BASE)).toEqual([]);
+  });
+
+  it('an unguarded Express service still is', async () => {
+    const found = await runtimeFindings({
+      ...CLI_BASE,
+      'package.json': pkg({ express: '5.1.0' }),
+      'src/server.ts':
+        "import express from 'express';\nconst app = express();\napp.listen(3000);\n",
+    });
+    expect(found.length).toBeGreaterThan(0);
   });
 });

@@ -23,10 +23,14 @@ import {
 
 const ALL = ModularLawsRegistry.getAll();
 
-/** An opt-in law a TypeScript fixture would otherwise run: no requirement, no other stack. */
+/**
+ * An opt-in law a TypeScript fixture would otherwise run: no requirement, no
+ * other stack, and `error` by default, so its failure decides the exit code.
+ */
 const OPT_IN = ALL.find(
   l =>
     l.defaultEnabled === false &&
+    l.severity === 'error' &&
     !l.alwaysEnabled &&
     !l.requires &&
     (!l.stack || l.stack === 'typescript')

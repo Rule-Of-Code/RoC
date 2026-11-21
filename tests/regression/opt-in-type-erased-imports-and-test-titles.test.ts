@@ -47,6 +47,8 @@ const OPT_IN = [
   'Next Route JS Budget',
   // 7.28.0: its five paths measured 0 of 42 correct on real code (#390).
   'Error Handling Standards',
+  // 8.0.0: a house convention, enabled by the projects that adopt it (#436).
+  'MD Footer Template (MANDATORY)',
 ];
 
 describe('opt-in laws (defaultEnabled: false) are not run by default', () => {

@@ -5,6 +5,19 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 🐛 Fixed — Test Coverage Constitutional Standard took `domain.ts` for an entry point (#539)
+
+The law does not ask a test of an entry point or a barrel (`index.ts`,
+`main.ts`, `polyfills.ts`), but the patterns matched the end of any file
+name: `domain.ts` ("…main.ts"), `remain.ts` and `app-index.ts` were never
+asked for a test. The patterns now match the file name itself.
+
+This **adds** "source files lack corresponding test files" counts in
+projects with such names: +N source files without a test (measured in the
+PR).
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

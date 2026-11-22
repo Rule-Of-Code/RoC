@@ -5,6 +5,25 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 🐛 Fixed — API Testing Standards recognises an API test by what its code drives (#551)
+
+API tests were recognised only by file name (`api.spec.ts`, `*.api.ts`,
+`request.spec.ts`, …). An Angular HTTP layer tested in
+`user.repository.spec.ts` with `HttpTestingController`, or a server tested
+with `supertest` in `server.spec.ts`, was "No API test files found".
+
+A test file whose syntax tree drives an HTTP test harness (an import of
+`supertest`, `nock`, `msw`, `fetch-mock` or `@angular/common/http/testing`,
+or `HttpTestingController` / `provideHttpClientTesting` / `setupServer(` /
+`nock(` in its code) is now an API test; the name patterns stay one way in.
+A harness named in a comment or a fixture string is not one.
+
+Once found, those files are judged for HTTP method and error-scenario
+coverage, so a project can trade "No API test files found" for findings
+about what its API tests cover: +N findings (measured in the PR).
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

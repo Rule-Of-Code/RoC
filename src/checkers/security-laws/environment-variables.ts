@@ -5,6 +5,7 @@
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils/file-utils';
+import { PatternMatchingUtils } from '../../utils/pattern-matching-utils';
 import { readPublishableFiles } from '../../utils/git/git-layout';
 import { PathOperations } from '../../utils/path-operations';
 import { SecretManagementAnalyzer } from '../../utils/security/secret-management';
@@ -119,7 +120,7 @@ export class EnvironmentVariablesLaw {
     placeholderPatterns: RegExp[]
   ): boolean {
     return matches.some(match =>
-      placeholderPatterns.some(ph => ph.test(match))
+      PatternMatchingUtils.hasAnyRegexPattern(match, placeholderPatterns)
     );
   }
 }

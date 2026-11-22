@@ -7,6 +7,271 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed — TypeScript Strict Mode no longer requires noPropertyAccessFromIndexSignature or source maps
+
+The law reported "TypeScript noPropertyAccessFromIndexSignature must be true"
+and "TypeScript source maps must be enabled" next to the strict flags. Neither
+is strictness. `noPropertyAccessFromIndexSignature` decides how a key of an
+index signature is written (`obj['key']` instead of `obj.key`); the type
+safety of that read comes from `noUncheckedIndexedAccess`, which the law still
+requires. Source maps are a build and debugging setting.
+
+Before: a tsconfig with `strict` and the whole strict family still failed on
+those two. After: the law requires `strict` (with `noImplicitAny` and
+`noImplicitThis`, which it turns on), `noImplicitReturns`, `noUnusedLocals`,
+`noUnusedParameters`, `exactOptionalPropertyTypes`, `noImplicitOverride` and
+`noUncheckedIndexedAccess`, a target of ES2020 or later and a modern
+`moduleResolution`; it does not judge the other two at all. The Law Card's
+"satisfied by" text lists the same flags.
+
+### 🐛 Fixed — Test Data Management read shared state inside strings as code (#513)
+
+A test that hands a detector source code as a fixture string was reported for
+the fixture's code: ``'<Script>{`window.x = 1`}</Script>'``, or a template
+holding `window.onerror = …`, as shared mutable state — and, without a
+beforeEach/afterEach, as state nothing resets. The check stripped comments
+only.
+
+Shared state is now matched on the file with comments and string contents
+removed by the TypeScript parser (`CodeText.codeOnly`), as Test Isolation
+Enforcement already reads the same kind of pattern. A real top-level
+`window.x = 1`, `global.y = …` or module-scope `let` is still reported.
+Without a loadable `typescript` the law already says its files were not read
+(#427). Hardcoded test data written inside fixture strings is #426.
+
+### 🐛 Fixed — detectors judged their own pattern tables, the law registry's prose and their fixture strings as code (#426)
+
+A project that contains detectors (this one, or any project with lint or
+security tooling) was judged by its data. The general rule now, for every
+project: a pattern counts where it **starts in code** — not inside a string,
+template, regex or comment — and a string counts only where the code **hands
+it to an API**. Files are read from the TypeScript parse (`src/utils/security/code-view.ts`);
+an import's module name (`from 'firebase/auth'`, `require('md5')`) is code.
+Without a loadable `typescript` the files are reported as not read.
+
+- **Data Encryption Standards.** Before: `\bMD5\b` and the other weak
+  algorithms anywhere outside comments (`WEAK_ALGORITHMS = ['MD5', …]`, law
+  prose); `password = "…"` inside a string or regex; `'http://'` anywhere in
+  a file without `localhost`; `Math.random`, `btoa(`, `hash` + `password` in
+  strings. After: a weak algorithm is an identifier in code (`CryptoJS.MD5`,
+  `md5(…)`) or a one-token string passed to a crypto API or bound to a
+  crypto name (`createHash('md5')`, `{ algorithm: 'des-ede3' }`,
+  `const HASH_ALGO = 'sha1'`); a hardcoded secret is an assignment written in
+  code; an HTTP connection is a string that is an `http://host` URL (the
+  file-level `localhost` exemption is unchanged); `Math.random()`, `btoa(`,
+  `localStorage.setItem` and password hashing are calls in code. The 777
+  file-mode check reads code plus the strings handed to a file-mode API.
+- **Authentication Security** (all three checkers: authentication,
+  authorization, session). Before: every pattern on the raw file, so
+  `/md5.*password/` in the checker's own table was "Insecure password
+  handling detected", and `/AuthService/`, `/refreshToken/` and similar
+  table entries satisfied "has an auth service" / "has token management".
+  After: patterns match from code. A project whose only auth "evidence" was
+  such text is now told it has none.
+- **Test Data Management** (hardcoded test data). Before: the patterns
+  matched fixture strings — a detector's own test keeping
+  `const users = [{ id: '1' }]` as an input string was "hardcoded test data".
+  After: a pattern counts where it starts in the test's code.
+- **Test Data Management and Test Isolation Enforcement** (external
+  resources without cleanup). Before: every test file was parsed as TSX, so
+  in a `.ts` test a generic arrow (`<T>(x: T) => …`) read as a JSX tag, the
+  parser lost its place and fixture strings after it (`'setInterval(…)'`)
+  were "code". After: each test is parsed by its own file name.
+- **TODO Management Constitutional Requirements.** Before: every file —
+  Markdown, HTML, CSS included — went through the JS string blanker, which
+  pairs `'`, `"` and backticks as JS does; in Markdown an apostrophe opened a
+  "string", so whether a `` `// TODO` `` example in a CHANGELOG line counted
+  depended on the prose above it (this repository's CHANGELOG had one).
+  After: the blanker runs on JS/TS only; in Markdown, fenced code blocks and
+  inline code are examples and are blanked, prose and `<!-- TODO -->`
+  comments are read as written; HTML and CSS are read as written.
+
+A secret match whose value is a dotted property path (`KEY =
+'thresholds.next.guardExemptions'`, a config key or a message id) is a name,
+not a secret.
+
+**Authentication Security is selected only where something runs for
+users** (#428): a Node or Python HTTP service, a web surface, a mobile app
+or a deploy target (`REQUIRES_PRODUCTION_SUBJECT`, the shared requirement
+the other #428 laws use). A
+command-line tool or a library has nobody to sign in; before, it was judged
+for an auth service, token storage and route guards it cannot have.
+Consequences: the stack templates advertise one applicable law fewer
+(python 94 → 93, frontend 97 → 96, node 73 → 72). Applicable laws per
+release-canary profile:
+
+| profile | before | after | |
+|---|---|---|---|
+| python | 92 | 91 | loses Authentication Security (no production subject) |
+| node | 71 | 70 | loses Authentication Security (no production subject) |
+| angular | 119 | 119 | web surface: keeps it |
+| ngrx | 130 | 130 | web surface: keeps it |
+| ionic | 149 | 149 | web surface: keeps it |
+| react | 132 | 132 | web surface: keeps it |
+
+**Fast core: in a gate group the quota counts only the unprotected laws.**
+Gating Authentication Security (a protected core law) into the production-
+subject group made it take that group's one quota slot, and Launch
+Readiness Checklist (CRITICAL, `error`) left the fast core. Now, in a group
+with a `requires` gate, the share is of its unprotected laws and taken from
+them; the protected set and ungated groups are unchanged. Fast core per
+profile (core laws / selected, develop → after):
+
+| profile | develop | after | enters | leaves |
+|---|---|---|---|---|
+| python | 19/92 (20.7%) | 18/91 (19.8%) | — | Authentication Security (not selected) |
+| node | 17/71 (23.9%) | 16/70 (22.9%) | — | Authentication Security (not selected) |
+| angular | 27/119 (22.7%) | 27/119 (22.7%) | — | — |
+| ngrx | 29/130 (22.3%) | 29/130 (22.3%) | — | — |
+| ionic | 33/149 (22.1%) | 35/149 (23.5%) | Capacitor Plugin Platform Declarations, Capacitor Sync Artefacts Match Dependencies | — |
+| react | 29/132 (22.0%) | 32/132 (24.2%) | Next Client Env Public Only, Next Public Env Is Build Time, React Effect Resource Cleanup | — |
+
+Authentication Security and Launch Readiness Checklist are both in the fast
+core of every profile with a production subject; no CRITICAL `error` law
+that was in the core and is still selected leaves it.
+
+Self-audit of this repository: Data Encryption Standards 28 → 0;
+Authentication Security 1 finding → not selected (a CLI); Test Data
+Management 3 → 2 (the detector's own test,
+`tests/laws/testing/unit-test-data-management-constants.test.ts`, is no
+longer a hardcoded-data file); TODO Management Constitutional Requirements
+2 → 0 (the one "TODO" it counted was a `` `// TODO` `` example in
+CHANGELOG.md).
+
+### 🐛 Fixed — Security Vulnerability Response asks for the security policy once (#439)
+
+Before: two analyzers of the law looked for the security policy, each with
+its own file list. A project without one got three findings — "No security
+policy documentation found", "Missing Security Policy documentation" (root or
+`.github/` only) and "Missing Security Documentation documentation" (the
+same `SECURITY.md` in `docs/`) — and a project with `SECURITY.md` at the
+root was still told the `docs/` one was missing.
+
+After: one requirement, one finding ("No security policy documentation
+found"), satisfied by `SECURITY.md` at the root, in `docs/` or in
+`.github/` (the places GitHub reads it from), or `SECURITY.txt` /
+`security.md` / `docs/security.md` as before. The privacy-policy
+requirement is unchanged.
+
+The privacy-policy clause is asked for only where users reach the code
+(#428): before, every project was told "Missing Privacy Policy
+documentation"; after, only one that declares a Node or Python HTTP
+service, a web surface, a mobile app or a deploy target
+(`REQUIRES_PRODUCTION_SUBJECT` in
+`production-subject-requirements.ts`). A command-line tool or a library has
+no users' data to declare.
+
+Self-audit of this repository: Security Vulnerability Response 2 → 0
+findings.
+
+### 🐛 Fixed — Error Handling Completeness reports dropped promises, not awaits; reads the package entry points (#438)
+
+Before: a file was flagged when `await \w+` occurred more than four times per
+`try {` / `.catch(` in the raw text — so five awaits inside one try, or
+awaits whose rejection goes to the caller, were "async calls without proper
+error handling"; `.then(` was counted against `.catch(` file-wide, so a
+dropped chain passed when an unrelated `.catch(` was elsewhere; `.then(` and
+`fetch(` in strings, regexes and comments were code. The global handler was
+looked for only in fixed bootstrap file names, never in the source of the
+package's `bin` / `main`.
+
+After: an `await` is not a gap. A DROPPED promise is: a `.then` chain with
+no rejection handler (no `.catch`, no second `.then` argument), or a call
+to an async function or method declared in the same file, used as a
+statement — neither awaited, returned, `void`-ed nor caught. The finding
+names the lines. Code is read from the TypeScript parse (strings, regexes and
+comments removed) for this and for the HTTP / event-listener checks; without a
+loadable `typescript` the files are reported as not read. The global-handler
+check also reads what package.json `bin` and `main` name, from source
+(`dist|lib|build|out/x.js` → `src/x.ts`); the built file is not read.
+
+The global handler is recognised in the code, not by name. Before: the text
+`ErrorHandler`, `process.on`, `ErrorBoundary`, `unhandledRejection`… anywhere
+in an entry file — a function named `setupErrorHandlers`, `process.on('SIGINT')`
+or the word in a comment counted. After: `process.on/once('unhandledRejection'
+| 'uncaughtException', …)`, `window.onerror = …`,
+`window.addEventListener('error' | 'unhandledrejection', …)`, or a framework
+handler as an identifier in code (Angular `ErrorHandler`, a name ending in
+`ErrorBoundary` / `GlobalErrorHandler`, `errorHandlerInterceptor`,
+`provideHttpClient`, `provideBrowserGlobalErrorListeners`). In the package's
+`bin` entry, `parse()` / `parseAsync()` inside a `try` with a `catch` also
+counts: for a command-line program that, with a catch in each action, is its
+global handling (maintainer decision for 8.0.0).
+
+Self-audit of this repository: 33 findings → 0. The global handler is found
+in `src/cli.ts` (the `bin`): `program.parse()` inside a try with a catch.
+
+### 🐛 Fixed — a secret or connection string in a second file was missed: `hasAnyRegexPattern` carried `lastIndex` (#487)
+
+`PatternMatchingUtils.hasAnyRegexPattern` ran `.test()` on the patterns as
+given. The database-URL and secret tables of the environment-variable usage
+analyzer (Environment Security Enforcement, Environment Parity Standards) and
+the hard-coded secret table of Data Encryption Standards are global (`/g`,
+`/gi`) module constants, so a match left `lastIndex` past it and the next
+call — on the next file — searched from there.
+
+Before: the same hard-coded `mongodb://…` URL in two files was reported for
+the first file only; the same text tested three times answered true, false,
+true. The tables are shared by Environment Security Enforcement and
+Environment Parity Standards, so the state also carried from one law to the
+other: on three identical files one law reported `a` and `c`, the other `b`.
+After: every call starts at the beginning of the text and leaves the
+pattern at `lastIndex` 0, so the answer depends on the text and the patterns
+only, for every caller of `hasAnyRegexPattern`.
+
+The same holds for every other `/g` regex in `src` that reached `.test()`:
+`PatternMatchingUtils.hasRegexPattern` resets `lastIndex` too, and the
+direct `.test()` calls on global constants go through the two helpers —
+Environment Variables Policy's placeholder table (two placeholders in one
+file: the second was reported as a secret), the event-listener, timer and
+DOM-reference analyzers, the NgRx selector `parameters` check and the TODO
+line check. Before: the same text asked twice could answer true, then
+false. After: the same answer every time.
+
+### 🐛 Fixed — environment-variable usage judges each `process.env` read where it stands; a URL is reported once (#433)
+
+The usage analyzer shared by Environment Security Enforcement and Environment
+Parity Standards read the file as text.
+
+Before: every `process.env.X` of a file was judged by a 150-character window
+around the FIRST occurrence of that text, and `||`, `??`, `? ` or the word
+`default` anywhere in it counted as a fallback — so a second read without one
+passed, and `if (!name) return` after `const name = process.env.X` did not.
+`process.env.X` in law prose, a message string or a comment was a read; the
+branch variables a CI system sets were "used without fallback". Three
+overlapping URL regexes reported one quoted URL twice (bare host and full
+string), in comments too, including `example.com` samples and documentation
+links. Environment Parity reported a missing `.env.example` twice.
+
+After: reads come from the TypeScript parse, each at its own offset. A read
+is handled when it is the left of `??`/`||`, either side of `&&`, compared,
+negated, `typeof`, a condition, or the object of `?.` — directly, through
+`Number()`/`parseInt()`/parentheses, through a variable it is stored in and
+that is checked in the same function, or when the same function checks
+another read of that variable. Writes (`process.env.X = …`) are not reads.
+Variables set by GitHub Actions, GitLab, Bitbucket, CircleCI, Travis,
+Buildkite, Azure Pipelines and Jenkins (`GITHUB_*`, `CI_*`, `CI`,
+`BRANCH_NAME`, …) are not asked for a fallback. A URL is taken once from the
+string or template it is written in; comments and JSX text are not values;
+loopback and the reserved example hosts (RFC 2606/6761: `example.com`,
+`*.test`, …) are not endpoints; a URL bound to a documentation name
+(`reference`, `DOCS_URL`, `helpLink`…) is a link for a reader. A missing
+example file is one Parity finding. A hardcoded database connection string
+(`mongodb://…`, `postgresql://…`) is looked for in the strings the code holds;
+a comment that names the schemes is not one. Without a loadable `typescript`
+these checks report the files as not read instead of judging them by text.
+
+This repository now commits `.env.example`: RuleOfCode reads `NODE_ENV` and
+`DEBUG` (logging), `ROC_*` / `RULEOFCODE_*` (configuration overrides) and the
+variables CI systems set. The file names them with empty values and says what
+each does; none is required or secret.
+
+Self-audit of this repository: Environment Security Enforcement 57 → 0
+findings; Environment Parity Standards 60 → 1 ("No proper environment
+detection found" — another analyzer, unchanged: it looks for `process.env`
+only in five fixed main files, while this repository reads `NODE_ENV` in
+`src/utils/logging-utils.ts`).
+
 ### Internal — dead code removed
 
 Fifteen source files that nothing reaches: no importer in `src`, `tests`,
@@ -117,6 +382,43 @@ Self-audit of this repository: Unit Test Quality — before 634 findings, 500
 fs/path/os/child_process, 5 adding a package that is not a client, none
 loading a network client) and 18 "HTTP calls" (all in fixture strings);
 after 116, none of either.
+
+### 🐛 Fixed — Zero Tolerance advice follows the findings of the run (#506)
+
+Zero Tolerance Doctrine and Absolute Zero Tolerance Doctrine gave the same
+fixed advice on every failing run. A `tsconfig.json` the law could not read,
+reported as NOT read since #486, still got "Enable TypeScript strict mode",
+which is advice about a file the law never judged, and a project with no console
+call was told to remove console statements. Each piece of advice now comes with
+the finding it answers: strict mode only for a tsconfig that was read and has
+`strict` or `noImplicitAny` off (or none at all), console only for console
+findings, ESLint only for disabled rules (Absolute Zero Tolerance) or a missing
+config (Zero Tolerance). The generic "Fix all errors and warnings" is no longer
+given.
+
+### 🐛 Fixed — NgRx Selectors Memoization Mandate reported "Check failed" on NgRx projects with an app.module.ts (#511)
+
+`NgRxSetupConfiguration` copied `checkDevToolsDependencyInstalled` and
+`checkDevToolsConfigured` from other classes as bare static fields. Called
+through it, `this` was `NgRxSetupConfiguration`, which has neither
+`getDependencyKeys` nor `readConfigFile`, so the check threw
+`this.getDependencyKeys is not a function` and the law reported
+`❌ Check failed` instead of judging the project. The aliases are now bound to
+the class that owns the method. Five more aliases of the same kind, with no
+caller yet, are bound the same way (`getAppConfigPath`, `getSourcePath`,
+`NgRxSetupValidation.getSetupAnalysisSummary`, `FileUtils.getFilesInWorkspace`,
+`FileUtils.resolve`). `FileUtils.getFilesInWorkspace` returned an empty list
+after logging the swallowed TypeError. Four unit tests asserted that the alias
+*was* the owner's function, which is exactly the bug; they now compare results.
+
+The TypeError hid a second fault behind it. `containsNgRxPattern` looked up
+the pattern type's own value (`'storeModule'`) as an `APP_MODULE_PATTERNS` key
+that does not exist, so it never found `StoreModule.forRoot`,
+`EffectsModule.forRoot` or `StoreDevtoolsModule`. Every NgModule NgRx project
+would have been told `StoreModule.forRoot should be configured in
+app.module.ts` while importing it. Each pattern type now names the entry it
+looks for. Three unit tests asserted the wrong `false` ("mapping mismatch");
+they now expect the pattern to be found.
 
 ### Internal — eslint is a direct devDependency
 

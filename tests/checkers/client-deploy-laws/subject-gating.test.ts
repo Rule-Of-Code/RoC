@@ -181,6 +181,7 @@ describe('the engine does not count a law whose subject is absent', () => {
       'Performance Monitoring Standards',
       'Incident Response Protocol',
       'Launch Readiness Checklist',
+      'Authentication Security',
     ];
     expect(
       withDeploy.selected.filter(name => !without.selected.includes(name))

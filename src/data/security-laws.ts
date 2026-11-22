@@ -362,7 +362,7 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
         'Commit uv.lock / poetry.lock; run pip-audit (or safety) in pre-commit and CI, against the locked set — not just top-level requirements.',
     },
     detectionLimits: [
-      'Checks that the graph is LOCKED and a scanner is wired INTO THE GATE — Node reads package-lock + npm/yarn/pnpm audit; Python reads uv.lock/poetry.lock/Pipfile.lock/pdm.lock + pip-audit/safety.',
+      'Checks that the graph is LOCKED and a scanner is wired INTO THE GATE — Node reads package-lock.json/yarn.lock/pnpm-lock.yaml and looks for npm/yarn/pnpm audit, snyk, osv-scanner, trivy or grype in package.json, pyproject.toml, .pre-commit-config.yaml, Makefile, tox.ini, noxfile.py, bitbucket-pipelines.yml or .gitlab-ci.yml (GitHub Actions workflows are not read), or a Dependabot/Renovate config — a legacy .npmrc/.auditrc/audit.json/security-audit.json file also counts; Python reads uv.lock/poetry.lock/Pipfile.lock/pdm.lock + pip-audit/safety.',
       'It does NOT run the scanner and cannot see a vulnerability the scanner would find — a scanner outside the gate is not a scanner, and one that is present but never run is invisible to this law.',
     ],
     emoji: '🔍',

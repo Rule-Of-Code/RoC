@@ -5,6 +5,36 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 🐛 Fixed — Dependency Security Scanning no longer reports vulnerabilities no audit found (#545)
+
+The law ran no audit, but counted:
+
+- one **moderate** vulnerability for every dependency written as an exact
+  0.x version (`"0.3.2"`, but not `"^0.3.2"`), so exact pinning, the safer
+  practice, was penalised;
+- **critical** / **high** from two hard-coded tables (lodash, moment, axios)
+  matched against the declared range text, not the installed version;
+
+and reported the result as "NPM audit passed" / "NPM audit failed".
+
+All of it is removed. The law judges what its detection limits always said:
+the dependency graph is locked, and a scanner runs in the gate. The
+vulnerabilities of the locked graph are measured by that scanner; every
+result now says so in a note (in the message and the details, not as a
+violation and not as "judged nothing").
+
+A wildcard range is now read as a range: `*`, `x`, `latest`, an empty range
+or a wildcard component (`1.x`, `1.2.*`). The letter x or a `*` in a spec
+with a protocol (`file:../ext`, `npm:x-lib@1.0.0`, `workspace:*`) is no
+longer a wildcard.
+
+The law's first detection limit now names what is actually read: three
+lockfiles, the scanners and the files they are looked for in (GitHub
+Actions workflows are not read), and the legacy audit config files that
+also count.
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

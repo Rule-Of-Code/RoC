@@ -28,7 +28,10 @@
  *    of the stack, a gated one to the projects of one toolkit), then
  *    registry order.
  * 3. Take the top {@link PARETO_CORE_RATIO} of the group's candidates,
- *    rounded (a gate with one or two laws gets none by quota).
+ *    rounded (a gate with one or two laws gets none by quota). In a gate
+ *    group (a `requires`) the share is of its unprotected laws and taken
+ *    from them, so a protected law gated into the group does not take the
+ *    slot another law held (#428).
  * 4. The protected tier is never cut by that quota: every SACRED law,
  *    every CRITICAL SECURITY law at `error`, and every CRITICAL `error`
  *    law that every project selects (no stack, no `requires`) is a core
@@ -176,8 +179,15 @@ export function paretoCoreIds(laws: readonly CoreFields[]): Set<string> {
   });
   const core = new Set<string>();
   for (const group of groups.values()) {
-    const quota = Math.round(PARETO_CORE_RATIO * group.length);
-    for (const { law } of [...group].sort(byRank).slice(0, quota))
+    // In a gate group the quota is a share of its unprotected laws, taken
+    // from them: a protected law is in the core anyway, and gating one into
+    // a group (Authentication Security, #428) must not take the slot of the
+    // law that held it (Launch Readiness Checklist). Ungated groups keep the
+    // share of the whole group.
+    const gated = group[0]?.law.requires !== undefined;
+    const pool = gated ? group.filter(({ law }) => !isProtected(law)) : group;
+    const quota = Math.round(PARETO_CORE_RATIO * pool.length);
+    for (const { law } of [...pool].sort(byRank).slice(0, quota))
       core.add(law.id);
     for (const { law } of group) if (isProtected(law)) core.add(law.id);
   }

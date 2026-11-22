@@ -14,6 +14,11 @@ import { readTsconfigChain } from '../../utils/tsconfig-chain';
 const TSCONFIG = 'tsconfig.json';
 
 export class TypeScriptStrictLaw {
+  // The flags this law requires. noPropertyAccessFromIndexSignature and
+  // sourceMap are not among them: the first is a style choice about how an
+  // index signature is read (`obj['key']` vs `obj.key`), not a type-safety
+  // guarantee — noUncheckedIndexedAccess is the one that makes the read
+  // honest — and source maps are a build/debugging setting, not strictness.
   private static readonly STRICT_CHECKS = {
     noImplicitAny: true,
     noImplicitReturns: true,
@@ -22,7 +27,6 @@ export class TypeScriptStrictLaw {
     noUnusedParameters: true,
     exactOptionalPropertyTypes: true,
     noImplicitOverride: true,
-    noPropertyAccessFromIndexSignature: true,
     noUncheckedIndexedAccess: true,
   };
 
@@ -80,7 +84,6 @@ export class TypeScriptStrictLaw {
         'Enable strict mode in tsconfig.json',
         'Configure all strict compiler options',
         'Set target to ES2020 or higher',
-        'Enable source maps for debugging',
       ]
     );
   }
@@ -155,14 +158,12 @@ export class TypeScriptStrictLaw {
       }
     }
 
-    // target / moduleResolution / sourceMap as the chain sets them (strings,
-    // unlike the compiler's resolved enums) — inherited ones included.
+    // target / moduleResolution as the chain sets them (strings, unlike the
+    // compiler's resolved enums) — inherited ones included.
     if (!unknown('target'))
       this.validateTargetVersion(compilerOptions, violations);
     if (!unknown('moduleResolution'))
       this.validateModuleResolution(compilerOptions, violations);
-    if (!unknown('sourceMap') || compilerOptions.inlineSourceMap !== undefined)
-      this.validateSourceMaps(compilerOptions, violations);
   }
 
   private static validateTargetVersion(
@@ -194,15 +195,6 @@ export class TypeScriptStrictLaw {
       violations.push(
         `TypeScript moduleResolution must be one of: ${MODERN_RESOLUTIONS.join(', ')}`
       );
-    }
-  }
-
-  private static validateSourceMaps(
-    compilerOptions: Record<string, unknown>,
-    violations: string[]
-  ): void {
-    if (!compilerOptions.sourceMap && !compilerOptions.inlineSourceMap) {
-      violations.push('TypeScript source maps must be enabled');
     }
   }
 }

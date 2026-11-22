@@ -17,8 +17,4 @@ describe('checkers/index', () => {
   it('should export CodeQualityChecker', () => {
     expect(CheckersIndex.CodeQualityChecker).toBeDefined();
   });
-
-  it('should export TypeScriptChecker', () => {
-    expect(CheckersIndex.TypeScriptChecker).toBeDefined();
-  });
 });

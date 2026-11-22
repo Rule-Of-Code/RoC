@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed — TypeScript Strict Mode no longer requires noPropertyAccessFromIndexSignature or source maps
+
+The law reported "TypeScript noPropertyAccessFromIndexSignature must be true"
+and "TypeScript source maps must be enabled" next to the strict flags. Neither
+is strictness. `noPropertyAccessFromIndexSignature` decides how a key of an
+index signature is written (`obj['key']` instead of `obj.key`); the type
+safety of that read comes from `noUncheckedIndexedAccess`, which the law still
+requires. Source maps are a build and debugging setting.
+
+Before: a tsconfig with `strict` and the whole strict family still failed on
+those two. After: the law requires `strict` (with `noImplicitAny` and
+`noImplicitThis`, which it turns on), `noImplicitReturns`, `noUnusedLocals`,
+`noUnusedParameters`, `exactOptionalPropertyTypes`, `noImplicitOverride` and
+`noUncheckedIndexedAccess`, a target of ES2020 or later and a modern
+`moduleResolution`; it does not judge the other two at all. The Law Card's
+"satisfied by" text lists the same flags.
+
 ### 🐛 Fixed — Test Data Management read shared state inside strings as code (#513)
 
 A test that hands a detector source code as a fixture string was reported for
@@ -336,6 +353,43 @@ Self-audit of this repository: Unit Test Quality — before 634 findings, 500
 fs/path/os/child_process, 5 adding a package that is not a client, none
 loading a network client) and 18 "HTTP calls" (all in fixture strings);
 after 116, none of either.
+
+### 🐛 Fixed — Zero Tolerance advice follows the findings of the run (#506)
+
+Zero Tolerance Doctrine and Absolute Zero Tolerance Doctrine gave the same
+fixed advice on every failing run. A `tsconfig.json` the law could not read,
+reported as NOT read since #486, still got "Enable TypeScript strict mode",
+which is advice about a file the law never judged, and a project with no console
+call was told to remove console statements. Each piece of advice now comes with
+the finding it answers: strict mode only for a tsconfig that was read and has
+`strict` or `noImplicitAny` off (or none at all), console only for console
+findings, ESLint only for disabled rules (Absolute Zero Tolerance) or a missing
+config (Zero Tolerance). The generic "Fix all errors and warnings" is no longer
+given.
+
+### 🐛 Fixed — NgRx Selectors Memoization Mandate reported "Check failed" on NgRx projects with an app.module.ts (#511)
+
+`NgRxSetupConfiguration` copied `checkDevToolsDependencyInstalled` and
+`checkDevToolsConfigured` from other classes as bare static fields. Called
+through it, `this` was `NgRxSetupConfiguration`, which has neither
+`getDependencyKeys` nor `readConfigFile`, so the check threw
+`this.getDependencyKeys is not a function` and the law reported
+`❌ Check failed` instead of judging the project. The aliases are now bound to
+the class that owns the method. Five more aliases of the same kind, with no
+caller yet, are bound the same way (`getAppConfigPath`, `getSourcePath`,
+`NgRxSetupValidation.getSetupAnalysisSummary`, `FileUtils.getFilesInWorkspace`,
+`FileUtils.resolve`). `FileUtils.getFilesInWorkspace` returned an empty list
+after logging the swallowed TypeError. Four unit tests asserted that the alias
+*was* the owner's function, which is exactly the bug; they now compare results.
+
+The TypeError hid a second fault behind it. `containsNgRxPattern` looked up
+the pattern type's own value (`'storeModule'`) as an `APP_MODULE_PATTERNS` key
+that does not exist, so it never found `StoreModule.forRoot`,
+`EffectsModule.forRoot` or `StoreDevtoolsModule`. Every NgModule NgRx project
+would have been told `StoreModule.forRoot should be configured in
+app.module.ts` while importing it. Each pattern type now names the entry it
+looks for. Three unit tests asserted the wrong `false` ("mapping mismatch");
+they now expect the pattern to be found.
 
 ### Internal — eslint is a direct devDependency
 

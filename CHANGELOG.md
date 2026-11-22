@@ -24,6 +24,10 @@ syntax of the file's language (`//` and `/* */` in JS/TS/SCSS, `/* */` in
 CSS, `<!-- -->` in HTML and Markdown), on any line of a block comment. The
 files are the ones git tracks; outside a git repository the disk is read.
 
+The `#todo` reading of HTML is a regression of this release (#426 stopped
+blanking strings in HTML). The CSS `#todo-list` id, the missed second line of
+a block comment and the gitignored files were wrong before 8.0.0 as well.
+
 ### Changed — TypeScript Strict Mode no longer requires noPropertyAccessFromIndexSignature or source maps
 
 The law reported "TypeScript noPropertyAccessFromIndexSignature must be true"

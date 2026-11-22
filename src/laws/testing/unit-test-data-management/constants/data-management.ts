@@ -1,5 +1,11 @@
 import { CodeText } from '../../../../utils/code-text';
+import { PathOperations } from '../../../../utils/path-operations';
 import { PatternMatchingUtils } from '../../../../utils/pattern-matching-utils';
+import { loadTypeScript } from '../../../../utils/react/tsx-source';
+import {
+  matchesFromCode,
+  readCodeView,
+} from '../../../../utils/security/code-view';
 import { FixtureIsolation } from '../../../../utils/testing/fixture-isolation';
 
 /**
@@ -184,22 +190,43 @@ export class UnitTestDataManagementConstants {
   }
 
   /**
-   * Check if content has hardcoded test data
+   * Check if content has hardcoded test data.
+   *
+   * A pattern counts where it starts in code (#426): `const users = [{ id:
+   * '1' }]` written inside a fixture string — a detector's own test keeps
+   * its inputs that way — is text, not data the test uses. The law runs
+   * only with the parser (it reports the files as not read without one);
+   * a direct caller without it gets the raw-text answer.
    */
-  static hasHardcodedTestData(content: string): boolean {
-    return Object.values(this.HARDCODED_DATA_PATTERNS).some(pattern =>
-      PatternMatchingUtils.hasRegexPattern(content, pattern)
-    );
+  static hasHardcodedTestData(content: string, fileName = 'file.ts'): boolean {
+    const patterns = Object.values(this.HARDCODED_DATA_PATTERNS);
+    const ts = loadTypeScript(PathOperations.getDirectory(fileName));
+    if (!ts)
+      return patterns.some(pattern =>
+        PatternMatchingUtils.hasRegexPattern(content, pattern)
+      );
+    const view = readCodeView(ts, content, fileName);
+    return patterns.some(pattern => matchesFromCode(view, pattern));
   }
 
   /**
-   * Check if content has shared mutable state
+   * Whether the CODE of a test file shares mutable state. Comments and the
+   * contents of strings and templates are not code: a note saying why a
+   * `window.x =` was removed, or a fixture string holding `window.x = 1`
+   * that a detector's test hands in, is not the assignment (#513). Read
+   * with the parser (CodeText.codeOnly), as Test Isolation Enforcement reads
+   * its patterns; the law reports its files as not read without one (#427).
    */
-  static hasSharedMutableState(content: string): boolean {
-    // Prose is not code: a comment saying why a `window.x =` was removed must
-    // not be read as the assignment itself.
-    const code = CodeText.stripComments(content);
-    return Object.values(this.SHARED_STATE_PATTERNS).some(pattern =>
+  static hasSharedMutableState(
+    content: string,
+    fileName?: string,
+    projectRoot?: string
+  ): boolean {
+    const patterns = Object.values(this.SHARED_STATE_PATTERNS);
+    // Parse only a file whose text could hold a match at all.
+    if (!patterns.some(pattern => pattern.test(content))) return false;
+    const code = CodeText.codeOnly(content, fileName, projectRoot);
+    return patterns.some(pattern =>
       PatternMatchingUtils.hasRegexPattern(code, pattern)
     );
   }
@@ -212,10 +239,11 @@ export class UnitTestDataManagementConstants {
   }
 
   /** As UnitTestIsolationConstants.resourcesUsed, over this law's table. */
-  static resourcesUsed(content: string): string[] {
+  static resourcesUsed(content: string, fileName?: string): string[] {
     return FixtureIsolation.resourcesUsed(
       content,
-      this.EXTERNAL_RESOURCE_PATTERNS
+      this.EXTERNAL_RESOURCE_PATTERNS,
+      fileName
     );
   }
 

@@ -92,7 +92,7 @@ export const SACRED_LAWS: EnhancedConstitutionalLaw[] = [
       'TypeScript without strict is JavaScript with extra syntax. The guarantees people assume they are getting — no implicit any, checked indexes, no unused code — exist only when strict and its family are on. Half-strict is a promise the compiler does not keep.',
     satisfiedBy: {
       typescript:
-        'In tsconfig.json set strict:true and the full strict family (noUnusedLocals, noUncheckedIndexedAccess, exactOptionalPropertyTypes, noImplicitOverride…), a modern target, moduleResolution and source maps.',
+        'In tsconfig.json set strict:true plus noImplicitReturns, noUnusedLocals, noUnusedParameters, exactOptionalPropertyTypes, noImplicitOverride and noUncheckedIndexedAccess, a target of ES2020 or later, and a modern moduleResolution (node, node16, nodenext or bundler). noPropertyAccessFromIndexSignature and source maps are not required.',
     },
     detectionLimits: [
       'Reads compiler flags from the root tsconfig.json only — settings inherited via "extends" are not resolved and read as missing.',

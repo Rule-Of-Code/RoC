@@ -6,7 +6,6 @@
 export { AngularChecker } from './angular-checker';
 export { BaseChecker } from './base-checker';
 export { CodeQualityChecker } from './code-quality-checker';
-export { TypeScriptChecker } from './typescript-checker';
 
 // Export modular law modules
 export * from './angular-laws';

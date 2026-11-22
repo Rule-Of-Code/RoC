@@ -1,4 +1,4 @@
-[36m🏛️  RuleOfCode v7.29.1 — constitutional audit[39m
+[36m🏛️  RuleOfCode v8.0.1 — constitutional audit[39m
 [92m🏛️  FULL MODE — the whole applicable law set will run.[39m
 [90m   The executed count is reported below, after config selection.[39m
 [90m[39m
@@ -11,7 +11,7 @@
 [90m   Run 'npx ruleofcode reinstall-hooks' to install them[39m
 
 [33m⚖️  Executing constitutional checks...[39m
-🔍 Processing 77 laws (parallel: true)
+🔍 Processing 72 laws (parallel: true)
 
 
 [36m════════════════════════════════════════════════════════════[39m
@@ -20,15 +20,16 @@
 
 [1m📊 AUDIT SUMMARY:[22m
 [90m────────────────────────────────────────────────────────────[39m
-[36mTotal Laws Checked:[39m [1m[37m77[39m[22m
-[90m  of which count for the liveness floor:[39m [37m75[39m [90m(+2 always-on meta-gates — set laws.minLawsChecked against 75)[39m
-[90m  Audit Liveness:[39m [37mfloor 20 — default 25% of 77 stack-applicable laws (meta-gates included, counted before waivers)[39m
+[36mTotal Laws Checked:[39m [1m[37m72[39m[22m
+[90m  of which count for the liveness floor:[39m [37m70[39m [90m(+2 always-on meta-gates — set laws.minLawsChecked against 70)[39m
+[90m  Audit Liveness:[39m [37mfloor 18 — default 25% of 72 stack-applicable laws (meta-gates included, counted before waivers)[39m
 
-[32m✓ Passed:[39m [1m[32m28[39m[22m
-[31m✗ Failed:[39m [1m[31m34[39m[22m
-[33m⚠ Warnings:[39m [1m[33m15[39m[22m [90m(reported, not blocking)[39m
-[33mScore:[39m [1m[33m70%[39m[22m [90m(Pass Rate: 36%)[39m
-[90mExecution time:[39m [37m7084ms[39m
+[32m✓ Passed:[39m [1m[32m30[39m[22m
+[31m✗ Failed:[39m [1m[31m29[39m[22m
+[33m⚠ Warnings:[39m [1m[33m12[39m[22m [90m(reported, not blocking)[39m
+[35m◌ Judged nothing:[39m [1m[35m1[39m[22m [90m(did not pass)[39m
+[33mScore:[39m [1m[33m75%[39m[22m [90m(Pass Rate: 42%)[39m
+[90mExecution time:[39m [37m5703ms[39m
 
 [31m[1m❌ FAILED CONSTITUTIONAL LAWS:[22m[39m
 [90m────────────────────────────────────────────────────────────[39m
@@ -40,32 +41,29 @@
    [36m💡 What the law is asking for:[39m
    [90m•[39m [2mEnable TypeScript strict mode[22m
    [90m•[39m [2mConfigure ESLint[22m
-   [90m•[39m [2mFix all errors and warnings[22m
 
-[31m[1m2.[22m[39m [37m[1mInvestment-Grade Quality (SACRED LAW)[22m[39m [31m[4 violations][39m[90m (Score: 60/100)[39m
+[31m[1m2.[22m[39m [37m[1mInvestment-Grade Quality (SACRED LAW)[22m[39m [31m[3 violations][39m[90m (Score: 70/100)[39m
    [90m•[39m [2mTesting framework not configured for 10/10 quality metrics[22m
    [90m•[39m [2mQuality tool missing: eslint[22m
    [90m•[39m [2mQuality tool missing: prettier[22m
-   [90m•[39m [2mQuality tool missing: typescript[22m
 
    [36m💡 What the law is asking for:[39m
    [90m•[39m [2mConfigure testing framework[22m
    [90m•[39m [2mSetup TypeScript[22m
    [90m•[39m [2mImplement quality metrics monitoring[22m
 
-[31m[1m3.[22m[39m [37m[1mTypeScript Strict Mode (SACRED LAW)[22m[39m [31m[9 violations][39m[90m (Score: 10/100)[39m
+[31m[1m3.[22m[39m [37m[1mTypeScript Strict Mode (SACRED LAW)[22m[39m [31m[7 violations][39m[90m (Score: 30/100)[39m
    [90m•[39m [2mTypeScript noImplicitReturns must be true[22m
    [90m•[39m [2mTypeScript noUnusedLocals must be true[22m
    [90m•[39m [2mTypeScript noUnusedParameters must be true[22m
    [90m•[39m [2mTypeScript exactOptionalPropertyTypes must be true[22m
    [90m•[39m [2mTypeScript noImplicitOverride must be true[22m
-   [33m... and 4 more violations[39m
+   [33m... and 2 more violations[39m
 
    [36m💡 What the law is asking for:[39m
    [90m•[39m [2mEnable strict mode in tsconfig.json[22m
    [90m•[39m [2mConfigure all strict compiler options[22m
    [90m•[39m [2mSet target to ES2020 or higher[22m
-   [33m... and 1 more — run with --verbose for all, or --export json for the full result[39m
 
 [31m[1m4.[22m[39m [37m[1mConstitutional Supremacy Doctrine[22m[39m [31m[1 violations][39m[90m (Score: 80/100)[39m
    [90m•[39m [2mNo constitutional law enforcement scripts[22m
@@ -76,18 +74,17 @@
    [90m•[39m [2mInstall RuleOfCode (the ruleofcode package) for constitutional enforcement[22m
    [33m... and 2 more — run with --verbose for all, or --export json for the full result[39m
 
-[31m[1m5.[22m[39m [37m[1mProfessional Excellence Mandate[22m[39m [31m[5 violations][39m[90m (Score: 25/100)[39m
+[31m[1m5.[22m[39m [37m[1mProfessional Excellence Mandate[22m[39m [31m[4 violations][39m[90m (Score: 40/100)[39m
    [90m•[39m [2mMissing eslint for Code linting[22m
    [90m•[39m [2mMissing prettier for Code formatting[22m
-   [90m•[39m [2mMissing typescript for Type safety[22m
    [90m•[39m [2mMissing eslint.config.mjs[22m
    [90m•[39m [2mMissing .prettierrc[22m
 
    [36m💡 What the law is asking for:[39m
    [90m•[39m [2mInstall eslint for professional Code linting[22m
    [90m•[39m [2mInstall prettier for professional Code formatting[22m
-   [90m•[39m [2mInstall typescript for professional Type safety[22m
-   [33m... and 12 more — run with --verbose for all, or --export json for the full result[39m
+   [90m•[39m [2mConsider adding husky for enhanced enhanced quality control[22m
+   [33m... and 11 more — run with --verbose for all, or --export json for the full result[39m
 
 [31m[1m6.[22m[39m [37m[1mAutomation First Principle[22m[39m [31m[5 violations][39m[90m (Score: 50/100)[39m
    [90m•[39m [2mNo CI/CD automation detected. Declare pathMappings.cicdConfig if your CI config lives at a non-standard path.[22m
@@ -112,22 +109,13 @@
    [90m•[39m [2mInstall RuleOfCode for automated FileHeaderComplianceAnalyzer constitutional compliance[22m
    [33m... and 2 more — run with --verbose for all, or --export json for the full result[39m
 
-[31m[1m8.[22m[39m [37m[1mNX Commands Only Policy[22m[39m [31m[1 violations][39m[90m (Score: 90/100)[39m
-   [90m•[39m [2mnx.json configuration file missing - Nx workspace required[22m
+[31m[1m8.[22m[39m [37m[1mCode Documentation Standards[22m[39m [31m[1 violations][39m[90m (Score: 95/100)[39m
+   [90m•[39m [2msrc/index.ts:1: exported function add has no JSDoc — add a /** */ block above it that says what it is for (or at the top of the file: it is the file’s only exported class/function)[22m
 
    [36m💡 What the law is asking for:[39m
-   [90m•[39m [2mReplace ng commands with nx commands[22m
-   [90m•[39m [2mUpdate package.json scripts to use nx[22m
-   [90m•[39m [2mUpdate documentation to show nx usage[22m
-   [33m... and 1 more — run with --verbose for all, or --export json for the full result[39m
+   [90m•[39m [2mAdd a JSDoc /** */ block above each exported class and function that says what it is for (a file whose only export it is may carry the block at the top of the file instead)[22m
 
-[31m[1m9.[22m[39m [37m[1mCode Documentation Standards[22m[39m [31m[1 violations][39m[90m (Score: 95/100)[39m
-   [90m•[39m [2mFunction documentation coverage is 0.0% (should be >60%)[22m
-
-   [36m💡 What the law is asking for:[39m
-   [90m•[39m [2mAdd JSDoc comments to classes and functions[22m
-
-[31m[1m10.[22m[39m [37m[1mError Handling Completeness[22m[39m [31m[1 violations][39m[90m (Score: 95/100)[39m
+[31m[1m9.[22m[39m [37m[1mError Handling Completeness[22m[39m [31m[1 violations][39m[90m (Score: 95/100)[39m
    [90m•[39m [2mNo global error handling configured[22m
 
    [36m💡 What the law is asking for:[39m
@@ -136,7 +124,7 @@
    [90m•[39m [2mConsider adding error monitoring service (Sentry, Bugsnag, Rollbar)[22m
    [33m... and 1 more — run with --verbose for all, or --export json for the full result[39m
 
-[31m[1m11.[22m[39m [37m[1mGit Ignore Standards[22m[39m [31m[3 violations][39m[90m (Score: 70/100)[39m
+[31m[1m10.[22m[39m [37m[1mGit Ignore Standards[22m[39m [31m[3 violations][39m[90m (Score: 70/100)[39m
    [90m•[39m [2mMissing .gitignore entry: .env[22m
    [90m•[39m [2mMissing .gitignore entry: *.log[22m
    [90m•[39m [2mMissing .gitignore entry: .DS_Store[22m
@@ -151,7 +139,7 @@
    [90m•[39m [2mAdd *.log to .gitignore (Log files)[22m
    [90m•[39m [2mAdd .DS_Store to .gitignore (macOS system files)[22m
 
-[31m[1m12.[22m[39m [37m[1mFeature Branch Protection[22m[39m [31m[1 violations][39m[90m (Score: 90/100)[39m
+[31m[1m11.[22m[39m [37m[1mFeature Branch Protection[22m[39m [31m[1 violations][39m[90m (Score: 90/100)[39m
    [90m•[39m [2mCodeNamingAnalyzer: No branch naming conventions documented[22m
 
    [36m💡 What the law is asking for:[39m
@@ -160,7 +148,7 @@
    [90m•[39m [2mDocument branch protection rules and required status checks[22m
    [33m... and 1 more — run with --verbose for all, or --export json for the full result[39m
 
-[31m[1m13.[22m[39m [37m[1mRelease Tag Standards[22m[39m [31m[1 violations][39m[90m (Score: 90/100)[39m
+[31m[1m12.[22m[39m [37m[1mRelease Tag Standards[22m[39m [31m[1 violations][39m[90m (Score: 90/100)[39m
    [90m•[39m [2mNo release documentation found[22m
 
    [36m💡 What the law is asking for:[39m
@@ -169,7 +157,7 @@
    [90m•[39m [2mConsider using release automation tools: semantic-release, standard-version[22m
    [33m... and 2 more — run with --verbose for all, or --export json for the full result[39m
 
-[31m[1m14.[22m[39m [37m[1mCode Review Quality[22m[39m [31m[4 violations][39m[90m (Score: 60/100)[39m
+[31m[1m13.[22m[39m [37m[1mCode Review Quality[22m[39m [31m[4 violations][39m[90m (Score: 60/100)[39m
    [90m•[39m [2mNo code review guidelines found[22m
    [90m•[39m [2mNo Pull Request template found[22m
    [90m•[39m [2mNo linting tools found[22m
@@ -181,7 +169,7 @@
    [90m•[39m [2mCreate a review checklist for consistent code reviews[22m
    [33m... and 18 more — run with --verbose for all, or --export json for the full result[39m
 
-[31m[1m15.[22m[39m [37m[1mEnvironment Security Enforcement[22m[39m [31m[1 violations][39m[90m (Score: 90/100)[39m
+[31m[1m14.[22m[39m [37m[1mEnvironment Security Enforcement[22m[39m [31m[1 violations][39m[90m (Score: 90/100)[39m
    [90m•[39m [2m.gitignore should include .env files[22m
 
    [36m💡 What the law is asking for:[39m
@@ -190,34 +178,16 @@
    [90m•[39m [2mImplement secret rotation mechanisms[22m
    [33m... and 27 more — run with --verbose for all, or --export json for the full result[39m
 
-[31m[1m16.[22m[39m [37m[1mSecurity Vulnerability Response[22m[39m [31m[5 violations][39m[90m (Score: 50/100)[39m
+[31m[1m15.[22m[39m [37m[1mSecurity Vulnerability Response[22m[39m [31m[1 violations][39m[90m (Score: 90/100)[39m
    [90m•[39m [2mNo security policy documentation found[22m
-   [90m•[39m [2mNo lock file found - dependencies may be inconsistent[22m
-   [90m•[39m [2mMissing Security Policy documentation[22m
-   [90m•[39m [2mMissing Security Documentation documentation[22m
-   [90m•[39m [2mMissing Privacy Policy documentation[22m
 
    [36m💡 What the law is asking for:[39m
    [90m•[39m [2mCreate SECURITY.md with vulnerability reporting procedures[22m
    [90m•[39m [2mConsider setting up GitHub security features[22m
    [90m•[39m [2mEnable Dependabot and security advisories[22m
-   [33m... and 47 more — run with --verbose for all, or --export json for the full result[39m
+   [33m... and 43 more — run with --verbose for all, or --export json for the full result[39m
 
-[31m[1m17.[22m[39m [37m[1mAuthentication Security[22m[39m [31m[9 violations][39m[90m (Score: 0/100)[39m
-   [90m•[39m [2mNo authentication service implementation found[22m
-   [90m•[39m [2mNo proper token management implementation found[22m
-   [90m•[39m [2mNo Role-Based Access Control (RBAC) implementation found[22m
-   [90m•[39m [2mNo authorization guards or middleware found[22m
-   [90m•[39m [2mNo permission-based access control found[22m
-   [33m... and 4 more violations[39m
-
-   [36m💡 What the law is asking for:[39m
-   [90m•[39m [2mImplement a dedicated authentication service (AuthService, AuthManager)[22m
-   [90m•[39m [2mImplement secure token storage and management[22m
-   [90m•[39m [2mConsider implementing OAuth2/SSO for enhanced security[22m
-   [33m... and 8 more — run with --verbose for all, or --export json for the full result[39m
-
-[31m[1m18.[22m[39m [37m[1mAPI Security Testing Requirements[22m[39m [31m[6 violations][39m[90m (Score: 0/100)[39m
+[31m[1m16.[22m[39m [37m[1mAPI Security Testing Requirements[22m[39m [31m[6 violations][39m[90m (Score: 0/100)[39m
    [90m•[39m [2mStatic Application Security Testing (SAST) not configured[22m
    [90m•[39m [2mDependency vulnerability scanning not automated[22m
    [90m•[39m [2mNo dedicated security test cases found[22m
@@ -231,7 +201,7 @@
    [90m•[39m [2mImplement security-focused unit and integration tests[22m
    [33m... and 3 more — run with --verbose for all, or --export json for the full result[39m
 
-[31m[1m19.[22m[39m [37m[1mAPI Security Standards[22m[39m [31m[1 violations][39m[90m (Score: 85/100)[39m
+[31m[1m17.[22m[39m [37m[1mAPI Security Standards[22m[39m [31m[1 violations][39m[90m (Score: 85/100)[39m
    [90m•[39m [2mNo authentication service implementation found[22m
 
    [36m💡 What the law is asking for:[39m
@@ -240,18 +210,13 @@
    [90m•[39m [2mAdd rate limiting to prevent API abuse[22m
    [33m... and 5 more — run with --verbose for all, or --export json for the full result[39m
 
-[31m[1m20.[22m[39m [37m[1mDependency Security Scanning[22m[39m [31m[3 violations][39m[90m (Score: 70/100)[39m
-   [90m•[39m [2mMissing lock file (package-lock.json, yarn.lock, etc.)[22m
+[31m[1m18.[22m[39m [37m[1mDependency Security Scanning[22m[39m [31m[1 violations][39m[90m (Score: 90/100)[39m
    [90m•[39m [2mSecurity audit configuration missing[22m
-   [90m•[39m [2mNo lock file found - package-lock.json, yarn.lock, or pnpm-lock.yaml required[22m
 
    [36m💡 What the law is asking for:[39m
-   [90m•[39m [2mFix: Missing lock file (package-lock.json, yarn.lock, etc.)[22m
    [90m•[39m [2mFix: Security audit configuration missing[22m
-   [90m•[39m [2mAdd a lock file to ensure reproducible builds[22m
-   [33m... and 1 more — run with --verbose for all, or --export json for the full result[39m
 
-[31m[1m21.[22m[39m [37m[1mComprehensive Security Testing Requirements[22m[39m [31m[6 violations][39m[90m (Score: 0/100)[39m
+[31m[1m19.[22m[39m [37m[1mComprehensive Security Testing Requirements[22m[39m [31m[6 violations][39m[90m (Score: 0/100)[39m
    [90m•[39m [2mStatic Application Security Testing (SAST) not configured[22m
    [90m•[39m [2mDependency vulnerability scanning not automated[22m
    [90m•[39m [2mNo dedicated security test cases found[22m
@@ -265,17 +230,7 @@
    [90m•[39m [2mImplement security-focused unit and integration tests[22m
    [33m... and 3 more — run with --verbose for all, or --export json for the full result[39m
 
-[31m[1m22.[22m[39m [37m[1mPerformance Monitoring Standards[22m[39m [31m[3 violations][39m[90m (Score: 55/100)[39m
-   [90m•[39m [2mNo performance monitoring tools configured[22m
-   [90m•[39m [2mPerformance error tracking not configured[22m
-   [90m•[39m [2mPerformance alerts not configured[22m
-
-   [36m💡 What the law is asking for:[39m
-   [90m•[39m [2mIntegrate service performance monitoring (Prometheus, OpenTelemetry, Sentry, Datadog)[22m
-   [90m•[39m [2mConfigure error/latency tracking (Sentry, OpenTelemetry) for the service[22m
-   [90m•[39m [2mDefine alerting rules (Prometheus rules / Alertmanager / Grafana) for latency and error-rate degradation[22m
-
-[31m[1m23.[22m[39m [37m[1mTest Coverage Constitutional Standard[22m[39m [31m[4 violations][39m[90m (Score: 40/100)[39m
+[31m[1m20.[22m[39m [37m[1mTest Coverage Constitutional Standard[22m[39m [31m[4 violations][39m[90m (Score: 40/100)[39m
    [90m•[39m [2mNo Jest configuration found[22m
    [90m•[39m [2mNo test script found in package.json[22m
    [90m•[39m [2mNo testing framework dependencies found[22m
@@ -287,16 +242,16 @@
    [90m•[39m [2mInstall testing framework (Jest, Mocha, Jasmine, etc.)[22m
    [33m... and 4 more — run with --verbose for all, or --export json for the full result[39m
 
-[31m[1m24.[22m[39m [37m[1mUnit Test Quality Standards[22m[39m [31m[1 violations][39m[90m (Score: 0/100)[39m
+[31m[1m21.[22m[39m [37m[1mUnit Test Quality Standards[22m[39m [31m[1 violations][39m[90m (Score: 0/100)[39m
    [90m•[39m [2mNo test files found[22m
 
    [36m💡 What the law is asking for:[39m
    [90m•[39m [2mCreate unit tests for your application[22m
 
-[31m[1m25.[22m[39m [37m[1mTest Isolation Enforcement[22m[39m [31m[1 violations][39m[90m (Score: 0/100)[39m
+[31m[1m22.[22m[39m [37m[1mTest Isolation Enforcement[22m[39m [31m[1 violations][39m[90m (Score: 0/100)[39m
    [90m•[39m [2mTest Isolation Enforcement: no JS/TS test file found under src, apps, libs, test, tests, e2e after the project's ignores — nothing was judged. If tests exist, keep them out of ignores.global (ignores.tests hides them from source scans only); if the project has none, that is the finding[22m
 
-[31m[1m26.[22m[39m [37m[1mAPI Testing Standards[22m[39m [31m[2 violations][39m[90m (Score: 35/100)[39m
+[31m[1m23.[22m[39m [37m[1mAPI Testing Standards[22m[39m [31m[2 violations][39m[90m (Score: 35/100)[39m
    [90m•[39m [2mNo API test files found[22m
    [90m•[39m [2mNo API testing framework configured[22m
 
@@ -305,7 +260,7 @@
    [90m•[39m [2mInstall API testing framework (supertest, jest, cypress)[22m
    [90m•[39m [2mConsider implementing API mocking with tools like MSW or nock[22m
 
-[31m[1m27.[22m[39m [37m[1mJest Unit Test 100% Coverage Mandate[22m[39m [31m[2 violations][39m[90m (Score: 60/100)[39m
+[31m[1m24.[22m[39m [37m[1mJest Unit Test 100% Coverage Mandate[22m[39m [31m[2 violations][39m[90m (Score: 60/100)[39m
    [90m•[39m [2mJest not configured or installed[22m
    [90m•[39m [2m100% coverage thresholds not configured[22m
 
@@ -314,21 +269,19 @@
    [90m•[39m [2mSet Jest coverage thresholds to 100% for all metrics[22m
    [90m•[39m [2mRun tests with coverage to generate coverage reports[22m
 
-[31m[1m28.[22m[39m [37m[1mPre-Deployment Checklist (MANDATORY)[22m[39m [31m[6 violations][39m[90m (Score: 0/100)[39m
+[31m[1m25.[22m[39m [37m[1mPre-Deployment Checklist (MANDATORY)[22m[39m [31m[4 violations][39m[90m (Score: 0/100)[39m
    [90m•[39m [2mPRE_DEPLOYMENT_CHECKLIST.md missing - CRITICAL violation[22m
    [90m•[39m [2mBuild validation not properly configured[22m
    [90m•[39m [2mTesting setup incomplete or no test files found[22m
    [90m•[39m [2mSecurity vulnerability scanning not configured[22m
-   [90m•[39m [2mAuthentication/authorization setup not detected[22m
-   [33m... and 1 more violations[39m
 
    [36m💡 What the law is asking for:[39m
    [90m•[39m [2mCreate comprehensive PRE_DEPLOYMENT_CHECKLIST.md with validation steps[22m
    [90m•[39m [2mSet up proper build scripts and configuration validation[22m
    [90m•[39m [2mConfigure test scripts and create comprehensive tests[22m
-   [33m... and 3 more — run with --verbose for all, or --export json for the full result[39m
+   [33m... and 1 more — run with --verbose for all, or --export json for the full result[39m
 
-[31m[1m29.[22m[39m [37m[1mCI/CD Constitutional Tribunal[22m[39m [31m[4 violations][39m[90m (Score: 5/100)[39m
+[31m[1m26.[22m[39m [37m[1mCI/CD Constitutional Tribunal[22m[39m [31m[4 violations][39m[90m (Score: 5/100)[39m
    [90m•[39m [2mNo CI/CD pipeline configuration found[22m
    [90m•[39m [2mCI/CD pipeline missing constitutional compliance validation[22m
    [90m•[39m [2mCI/CD pipeline missing quality gates[22m
@@ -340,17 +293,7 @@
    [90m•[39m [2mImplement quality gates for code coverage, linting, and tests[22m
    [33m... and 3 more — run with --verbose for all, or --export json for the full result[39m
 
-[31m[1m30.[22m[39m [37m[1mLaunch Readiness Checklist[22m[39m [31m[2 violations][39m[90m (Score: 20/100)[39m
-   [90m•[39m [2mMissing launch readiness checklist document[22m
-   [90m•[39m [2mMissing testing completeness indicators[22m
-
-   [36m💡 What the law is asking for:[39m
-   [90m•[39m [2mCreate LAUNCH_CHECKLIST.md with comprehensive deployment requirements[22m
-   [90m•[39m [2mDocument testing completion status and coverage metrics[22m
-   [90m•[39m [2mComplete security review and document findings[22m
-   [33m... and 1 more — run with --verbose for all, or --export json for the full result[39m
-
-[31m[1m31.[22m[39m [37m[1mPre-PR Quality Gates[22m[39m [31m[4 violations][39m[90m (Score: 0/100)[39m
+[31m[1m27.[22m[39m [37m[1mPre-PR Quality Gates[22m[39m [31m[4 violations][39m[90m (Score: 0/100)[39m
    [90m•[39m [2mMissing pre-commit hooks for quality validation[22m
    [90m•[39m [2mMissing pull request templates[22m
    [90m•[39m [2mMissing branch protection configuration[22m
@@ -362,7 +305,7 @@
    [90m•[39m [2mConfigure branch protection rules with required status checks[22m
    [33m... and 3 more — run with --verbose for all, or --export json for the full result[39m
 
-[31m[1m32.[22m[39m [37m[1mAutomated Code Quality Gates[22m[39m [31m[5 violations][39m[90m (Score: 15/100)[39m
+[31m[1m28.[22m[39m [37m[1mAutomated Code Quality Gates[22m[39m [31m[5 violations][39m[90m (Score: 15/100)[39m
    [90m•[39m [2mMissing automated linting quality gates[22m
    [90m•[39m [2mMissing automated code formatting gates[22m
    [90m•[39m [2mMissing test coverage quality gates[22m
@@ -375,7 +318,7 @@
    [90m•[39m [2mConfigure minimum test coverage thresholds in CI/CD[22m
    [33m... and 2 more — run with --verbose for all, or --export json for the full result[39m
 
-[31m[1m33.[22m[39m [37m[1mDocumentation Standards[22m[39m [31m[4 violations][39m[90m (Score: 40/100)[39m
+[31m[1m29.[22m[39m [37m[1mDocumentation Standards[22m[39m [31m[4 violations][39m[90m (Score: 40/100)[39m
    [90m•[39m [2mMissing README.md[22m
    [90m•[39m [2mMissing CONTRIBUTING.md[22m
    [90m•[39m [2mMissing LICENSE[22m
@@ -385,17 +328,6 @@
    [90m•[39m [2mCreate README.md: Project overview and setup instructions[22m
    [90m•[39m [2mCreate CONTRIBUTING.md: Contribution guidelines[22m
    [90m•[39m [2mCreate LICENSE: Project license[22m
-   [33m... and 2 more — run with --verbose for all, or --export json for the full result[39m
-
-[31m[1m34.[22m[39m [37m[1mIncident Response Protocol[22m[39m [31m[3 violations][39m[90m (Score: 25/100)[39m
-   [90m•[39m [2mMissing incident response protocol documentation[22m
-   [90m•[39m [2mMissing incident escalation procedures[22m
-   [90m•[39m [2mMissing incident communication plans[22m
-
-   [36m💡 What the law is asking for:[39m
-   [90m•[39m [2mCreate comprehensive incident response plan documentation[22m
-   [90m•[39m [2mDocument clear escalation paths and decision criteria[22m
-   [90m•[39m [2mDocument communication templates and notification procedures[22m
    [33m... and 2 more — run with --verbose for all, or --export json for the full result[39m
 
 [33m[1m⚠️  WARNING LAWS (reported, not blocking):[22m[39m
@@ -425,7 +357,7 @@
    [90m•[39m [2mConfigure pre-commit hook: Run linting and tests before commit[22m
    [90m•[39m [2mConfigure commit-msg hook: Validate commit message format[22m
    [90m•[39m [2mConsider using pre-commit tools like Husky or pre-commit[22m
-   [33m... and 2 more — run with --verbose for all, or --export json for the full result[39m
+   [33m... and 1 more — run with --verbose for all, or --export json for the full result[39m
 
 [31m[1m4.[22m[39m [37m[1mGit History Integrity[22m[39m [31m[1 violations][39m[90m (Score: 90/100)[39m
    [90m•[39m [2mNo force-push protection found: no pre-push hook guarding force-push, and no declared policy naming "force push" or "rewrite history". Server-side branch protection cannot be read from a clone — declare the policy (CONTRIBUTING.md, docs/BRANCH_PROTECTION.md) so it is verifiable.[22m
@@ -472,25 +404,9 @@
    [90m•[39m [2mCreate a header template file (e.g., templates/file-header.txt) with standard compliance header[22m
    [90m•[39m [2mCreate CONSTITUTION.md or POLICIES.md to define compliance requirements[22m
    [90m•[39m [2mConsider adding a license/header management tool (e.g., license-header)[22m
-   [33m... and 3 more — run with --verbose for all, or --export json for the full result[39m
+   [33m... and 4 more — run with --verbose for all, or --export json for the full result[39m
 
-[31m[1m9.[22m[39m [37m[1mCDN and Caching Strategy[22m[39m [31m[5 violations][39m[90m (Score: 0/100)[39m
-   [90m•[39m [2mCDN configuration not implemented[22m
-   [90m•[39m [2mStatic asset optimization not configured[22m
-   [90m•[39m [2mBrowser caching headers not configured[22m
-   [90m•[39m [2mService worker caching not implemented[22m
-   [90m•[39m [2mHTTP/2 optimization not configured[22m
-
-   [36m💡 What the law is asking for:[39m
-   [90m•[39m [2mConfigure CDN for static assets (Firebase Hosting, Cloudflare, etc.)[22m
-   [90m•[39m [2mConfigure asset versioning, compression, and CDN paths[22m
-   [90m•[39m [2mConfigure Cache-Control, ETag, and Expires headers[22m
-   [33m... and 2 more — run with --verbose for all, or --export json for the full result[39m
-
-[31m[1m10.[22m[39m [37m[1mTest Data Management[22m[39m [31m[1 violations][39m[90m (Score: 0/100)[39m
-   [90m•[39m [2mTest Data Management: no JS/TS test file found under src, apps, libs, test, tests, e2e after the project's ignores — nothing was judged. If tests exist, keep them out of ignores.global (ignores.tests hides them from source scans only); if the project has none, that is the finding[22m
-
-[31m[1m11.[22m[39m [37m[1mTest Documentation Requirements[22m[39m [31m[1 violations][39m[90m (Score: 75/100)[39m
+[31m[1m9.[22m[39m [37m[1mTest Documentation Requirements[22m[39m [31m[1 violations][39m[90m (Score: 75/100)[39m
    [90m•[39m [2mMissing test documentation files (README, test guides)[22m
 
    [36m💡 What the law is asking for:[39m
@@ -498,21 +414,20 @@
    [90m•[39m [2mDocument test setup, configuration, and data requirements[22m
    [90m•[39m [2mDocument testing strategies, patterns, and best practices[22m
 
-[31m[1m12.[22m[39m [37m[1mEnvironment Parity Standards[22m[39m [31m[6 violations][39m[90m (Score: 40/100)[39m
+[31m[1m10.[22m[39m [37m[1mEnvironment Parity Standards[22m[39m [31m[5 violations][39m[90m (Score: 50/100)[39m
    [90m•[39m [2mNo environment contract declared — commit .env.example (or .env.template) listing every variable with placeholder values[22m
-   [90m•[39m [2m.env.example file not found[22m
    [90m•[39m [2m.gitignore should include .env files[22m
    [90m•[39m [2mNo build scripts found[22m
    [90m•[39m [2mNo test scripts found[22m
-   [33m... and 1 more violations[39m
+   [90m•[39m [2mNo proper environment detection found[22m
 
    [36m💡 What the law is asking for:[39m
    [90m•[39m [2mDeclare the variables in .env.example with placeholders. Do NOT commit .env.production: real values are injected at deploy time, and a checked-in production env file is a secret in your repository[22m
-   [90m•[39m [2mCreate .env.example file with all required environment variables[22m
    [90m•[39m [2mAdd .env* to .gitignore to prevent accidental commits[22m
-   [33m... and 18 more — run with --verbose for all, or --export json for the full result[39m
+   [90m•[39m [2mConsider using a secret management solution for production environments[22m
+   [33m... and 17 more — run with --verbose for all, or --export json for the full result[39m
 
-[31m[1m13.[22m[39m [37m[1mProject Structure Standards[22m[39m [31m[1 violations][39m[90m (Score: 88/100)[39m
+[31m[1m11.[22m[39m [37m[1mProject Structure Standards[22m[39m [31m[1 violations][39m[90m (Score: 88/100)[39m
    [90m•[39m [2mMissing scripts section in package.json[22m
 
    [36m💡 What the law is asking for:[39m
@@ -521,13 +436,7 @@
    [90m•[39m [2mConsider adding .eslintrc.js: ESLint configuration[22m
    [33m... and 2 more — run with --verbose for all, or --export json for the full result[39m
 
-[31m[1m14.[22m[39m [37m[1mMD Footer Template (MANDATORY)[22m[39m [31m[1 violations][39m[90m (Score: 80/100)[39m
-   [90m•[39m [2mNo markdown files found in project[22m
-
-   [36m💡 What the law is asking for:[39m
-   [90m•[39m [2mCreate documentation with proper MD files[22m
-
-[31m[1m15.[22m[39m [37m[1mStrategic Document Updates[22m[39m [31m[3 violations][39m[90m (Score: 25/100)[39m
+[31m[1m12.[22m[39m [37m[1mStrategic Document Updates[22m[39m [31m[3 violations][39m[90m (Score: 25/100)[39m
    [90m•[39m [2mMissing README.md file[22m
    [90m•[39m [2mMissing PROJECT_STATUS.md file[22m
    [90m•[39m [2mMissing CHANGELOG.md file[22m
@@ -537,9 +446,15 @@
    [90m•[39m [2mCreate PROJECT_STATUS.md to track project milestones and current status[22m
    [90m•[39m [2mCreate CHANGELOG.md to track version changes and releases[22m
 
+[35m[1m◌ JUDGED NOTHING — found nothing in this project to judge; they did not pass:[22m[39m
+[90m────────────────────────────────────────────────────────────[39m
+
+[31m[1m1.[22m[39m [37m[1mTest Data Management[22m[39m [31m[1 violations][39m[90m (Score: 0/100)[39m
+   [90m•[39m [2mTest Data Management: no JS/TS test file found under src, apps, libs, test, tests, e2e after the project's ignores — nothing was judged. If tests exist, keep them out of ignores.global (ignores.tests hides them from source scans only); if the project has none, that is the finding[22m
+
 [36m════════════════════════════════════════════════════════════[39m
 [31m[1m❌ CONSTITUTIONAL COMPLIANCE: FAILED[22m[39m
 [33m[39m
-[33m⚠️  34 laws failed. Please address the violations above.[39m
+[33m⚠️  29 laws failed. Please address the violations above.[39m
 [36m════════════════════════════════════════════════════════════[39m
 

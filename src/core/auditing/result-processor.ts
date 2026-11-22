@@ -174,7 +174,9 @@ export class AuditResultProcessor {
       passedLaws: result.passedLaws,
       failedLaws: result.failedLaws,
       warningLaws: result.warningLaws ?? 0,
-      judgedNothingLaws: result.scope?.judgedNothingLaws?.length ?? 0,
+      // the outcome, apart from failedLaws: the four counts sum to executedLaws
+      // (8.0.1); scope.judgedNothingLaws names every law that judged nothing
+      judgedNothingLaws: result.judgedNothingLaws ?? 0,
       score: result.score,
       duration: result.duration,
     };

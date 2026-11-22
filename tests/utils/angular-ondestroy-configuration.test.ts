@@ -20,13 +20,6 @@ describe('utils/angular/angular-ondestroy/angular-ondestroy-configuration', () =
     jest.restoreAllMocks();
   });
 
-  afterAll(async () => {
-    jest.clearAllMocks();
-    jest.clearAllTimers();
-    jest.restoreAllMocks();
-    await new Promise(resolve => setTimeout(resolve, 50));
-  });
-
   describe('ANGULAR_FILE_EXTENSIONS', () => {
     it('should contain component.ts extension', () => {
       expect(AngularOnDestroyConfiguration.ANGULAR_FILE_EXTENSIONS).toContain(

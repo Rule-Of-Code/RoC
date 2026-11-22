@@ -5,6 +5,25 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed — Semantic Versioning Standards reads the manifest a Python project releases from
+
+The law compared `package.json` with the latest git tag whenever a
+`package.json` existed. In a Python project that keeps `package.json` only for
+tooling (hooks, lint scripts), its `0.1.0` was reported as "behind the latest
+git tag" while `pyproject.toml` carried the released version. Without a
+`package.json`, the `pyproject.toml` version was format-checked but never
+compared with the tag, so a stale one passed (#546).
+
+Now a Python project whose `pyproject.toml` (`[project]` or `[tool.poetry]`) or
+`setup.cfg` (`[metadata]`) declares a version is judged by that version, also
+when a `package.json` exists, and it is compared with the latest tag. Every
+finding names the manifest it read (`pyproject.toml version (1.3.0) is behind
+the latest git tag (1.4.0)`). Other projects are judged by `package.json` as
+before. A Python project whose version is behind its tag now gets a finding it
+did not get before.
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

@@ -42,10 +42,11 @@ const GATED = [
 const OPT_IN = 'MD Footer Template (MANDATORY)';
 const ENTERS_BY_SUBJECT = 'Launch Readiness Checklist';
 // Authentication Security is gated on the same subject (#428) and is a
-// protected core law (CRITICAL SECURITY at error). Where both are selected
-// it ranks first in that gate group and holds the group's one quota slot,
-// so Launch Readiness no longer enters the core by subject.
-const HOLDS_SUBJECT_SLOT = 'Authentication Security';
+// protected core law; in a gate group the quota counts only unprotected
+// laws, so it does not take Launch Readiness's slot.
+const GATED_PROTECTED = 'Authentication Security';
+const PRODUCTION_SUBJECT_PROFILES = ['angular', 'ngrx', 'ionic', 'react'];
+const NO_SUBJECT_PROFILES = ['python', 'node'];
 
 const BEFORE: EnhancedConstitutionalLaw[] =
   ALL_ENHANCED_CONSTITUTIONAL_LAWS.map(law =>
@@ -113,13 +114,68 @@ describe('the fast-mode core survives gating (#428)', () => {
       const expected = new Set(
         [...before.core].filter(title => after.selected.has(title))
       );
-      if (after.selected.has(HOLDS_SUBJECT_SLOT))
-        expected.delete(ENTERS_BY_SUBJECT);
-      else if (after.selected.has(ENTERS_BY_SUBJECT))
+      if (after.selected.has(ENTERS_BY_SUBJECT))
         expected.add(ENTERS_BY_SUBJECT);
       expect([...after.core].sort()).toEqual([...expected].sort());
     }
   );
+
+  it.each(PRODUCTION_SUBJECT_PROFILES)(
+    '%s (production subject): Authentication Security and Launch Readiness are both in the core',
+    name => {
+      const stack = STACKS[name];
+      if (!stack) throw new Error(name);
+      const after = selection(
+        ALL_ENHANCED_CONSTITUTIONAL_LAWS,
+        fixture(stack.files),
+        stack.projectType
+      );
+      expect({
+        auth: after.core.has(GATED_PROTECTED),
+        launch: after.core.has(ENTERS_BY_SUBJECT),
+      }).toEqual({ auth: true, launch: true });
+    }
+  );
+
+  it.each(NO_SUBJECT_PROFILES)(
+    '%s (no production subject): Launch Readiness is not selected',
+    name => {
+      const stack = STACKS[name];
+      if (!stack) throw new Error(name);
+      const after = selection(
+        ALL_ENHANCED_CONSTITUTIONAL_LAWS,
+        fixture(stack.files),
+        stack.projectType
+      );
+      expect(after.selected.has(ENTERS_BY_SUBJECT)).toBe(false);
+    }
+  );
+
+  it('no CRITICAL error law that was core and is still selected leaves the core (every profile)', () => {
+    const criticalError = new Set(
+      ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(
+        law => law.priority === 'CRITICAL' && law.defaultSeverity === 'error'
+      ).map(law => law.title)
+    );
+    const left: string[] = [];
+    for (const [name, stack] of Object.entries(STACKS)) {
+      const root = fixture(stack.files);
+      const before = selection(BEFORE, root, stack.projectType);
+      const after = selection(
+        ALL_ENHANCED_CONSTITUTIONAL_LAWS,
+        root,
+        stack.projectType
+      );
+      for (const title of before.core)
+        if (
+          criticalError.has(title) &&
+          after.selected.has(title) &&
+          !after.core.has(title)
+        )
+          left.push(`${name}: ${title}`);
+    }
+    expect(left).toEqual([]);
+  });
 
   it('CI/CD Constitutional Tribunal is in the core of every profile', () => {
     for (const [name, stack] of Object.entries(STACKS)) {

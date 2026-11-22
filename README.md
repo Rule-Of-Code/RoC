@@ -85,7 +85,7 @@ IDE panel, a dashboard. It is versioned by `schemaVersion` (currently `2`).
 {
   "schemaVersion": 2,
   "tool": "ruleofcode",          // the package name this build was published under
-  "version": "7.29.1",
+  "version": "8.0.0",
   "registryTotal": 265,
   "satisfiedByStacks": {          // the mapping described below — read it, don't hardcode it
     "keys": ["typescript", "angular", "react", "python", "ionic", "capacitor"],

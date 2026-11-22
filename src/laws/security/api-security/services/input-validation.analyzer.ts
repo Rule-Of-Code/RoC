@@ -1,7 +1,10 @@
+import type * as TS from 'typescript';
 import { AngularComponentFiles } from '../../../../utils/angular-component-files';
 import type { RuleOfCodeConfig } from '../../../../types';
 import { CheckerUtils, FileUtils, PathOperations } from '../../../../utils';
+import { loadTypeScript } from '../../../../utils/react/tsx-source';
 import { InputValidationConstants } from '../constants';
+import { readApiCodeView } from './api-code-view';
 
 /**
  * InputValidationAnalyzer
@@ -10,7 +13,15 @@ import { InputValidationConstants } from '../constants';
  * Single Responsibility: Form validation and XSS prevention detection
  */
 export class InputValidationAnalyzer {
-  static analyze(projectRoot: string, config: RuleOfCodeConfig): string[] {
+  /**
+   * `ts` is the parser the HTTP services are read with; without it they are
+   * not judged (the coordinator says so once for the law).
+   */
+  static analyze(
+    projectRoot: string,
+    config: RuleOfCodeConfig,
+    ts: typeof TS | null = loadTypeScript(projectRoot)
+  ): string[] {
     const violations: string[] = [];
 
     // Search for component files
@@ -23,20 +34,6 @@ export class InputValidationAnalyzer {
     const componentFiles = allFiles.filter(f =>
       AngularComponentFiles.isComponentFile(f)
     );
-    // By @Injectable, not just the *.service.ts suffix — an Angular-20 suffix-less
-    // service (user.ts) is still checked for HTTP input validation.
-    const serviceFiles = allFiles.filter(f => {
-      if (f.includes('.service.ts')) {
-        return true;
-      }
-      try {
-        return /@Injectable\s*\(/.test(
-          FileUtils.readFile(f, { encoding: 'utf8' })
-        );
-      } catch (_error) {
-        return false;
-      }
-    });
 
     // Check component files for form validation
     for (const file of componentFiles) {
@@ -64,25 +61,46 @@ export class InputValidationAnalyzer {
       }
     }
 
-    // Check service files for HTTP validation
-    for (const file of serviceFiles) {
-      try {
-        const content = FileUtils.readFile(file, { encoding: 'utf8' });
-        const relativePath = PathOperations.getRelative(projectRoot, file);
-
-        if (
-          content.includes('HttpClient') &&
-          !InputValidationConstants.hasHttpValidation(content)
-        ) {
+    if (ts) {
+      for (const file of allFiles) {
+        if (this.isUnvalidatedHttpService(ts, file)) {
           violations.push(
-            `${relativePath}: HTTP requests without proper validation`
+            `${PathOperations.getRelative(projectRoot, file)}: HTTP requests without proper validation`
           );
         }
-      } catch (_error) {
-        // Continue
       }
     }
 
     return violations;
+  }
+
+  /**
+   * A service (`*.service.ts`, or an `@Injectable()` class — an Angular-20
+   * suffix-less `user.ts`) that uses HttpClient and does not check what it
+   * receives (#550). Read in code: a file that only lists '@Injectable()'
+   * and 'HttpClient' in its strings is no service, and the word "validate"
+   * in a comment checks nothing.
+   */
+  private static isUnvalidatedHttpService(
+    ts: typeof TS,
+    file: string
+  ): boolean {
+    let content: string;
+    try {
+      content = FileUtils.readFile(file, { encoding: 'utf8' });
+    } catch (_error) {
+      return false;
+    }
+    if (!content.includes('HttpClient')) return false;
+    const view = readApiCodeView(ts, file, content);
+    if (!view) return false;
+    const isService =
+      file.includes('.service.ts') ||
+      InputValidationConstants.isInjectable(view);
+    return (
+      isService &&
+      InputValidationConstants.usesHttpClient(view) &&
+      !InputValidationConstants.validatesResponses(view)
+    );
   }
 }

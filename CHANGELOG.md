@@ -5,6 +5,32 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 🐛 Fixed — API Security Standards reads servers and HTTP services as code (#550)
+
+- **CORS.** A file was "an Express server missing CORS configuration" when
+  its name contained `server`, `main` or `app` (which includes `mapper.ts`)
+  and its text matched `express` anywhere, without the word `cors`. The word
+  `expression` (`ts.isExpressionStatement`) and a law's prose about Express
+  were enough: five of the six such findings in this repository's own audit
+  came from `expression`. A server is now a file that imports `express` and
+  creates or starts the app, whatever it is called; CORS is configured when
+  the code (not a comment) uses `cors` or sets Access-Control-Allow-Origin.
+- **Input validation.** A service that uses `HttpClient` had to contain the
+  word `validate` somewhere, and a file whose strings merely listed
+  `'@Injectable()'` and `'HttpClient'` was judged as such a service. A
+  response now counts as validated by a schema library import (zod, yup,
+  joi, io-ts, valibot, superstruct, class-validator, ajv, runtypes, arktype,
+  typebox), a validator call, or a value typed `unknown` and narrowed
+  (`typeof x === …`, a type predicate). The word in a comment is not
+  validation.
+- Without the TypeScript parser these two checks read nothing, and the law
+  says the files were NOT read instead of judging them by words.
+
+Authentication by file name (`AUTH_FILES`) is not changed here; it moves to
+the content-based detector of #549.
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

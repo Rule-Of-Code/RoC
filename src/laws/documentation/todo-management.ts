@@ -4,12 +4,12 @@ import type {
   RuleOfCodeConfig,
 } from '../../types/law.types';
 import { CheckerUtils } from '../../utils/checker-utils';
+import { commentLines } from '../../utils/comment-text';
 import { FileUtils } from '../../utils/file-utils';
-import { PatternMatchingUtils } from '../../utils/pattern-matching-utils';
+import { trackedFiles } from '../../utils/integrity/tracked-files';
 import { PathOperations } from '../../utils/path-operations';
 import type { TodoAnalysisResult } from './todo-analysis-result';
 import { TodoAnalysisResultBuilder } from './todo-analysis-result';
-import { todoScannableText } from './todo-scannable-text';
 /**
  * TODO Management Constitutional Requirements Law
  *
@@ -111,7 +111,39 @@ export class TodoManagementLaw {
     });
   }
 
+  /**
+   * The files to look for TODO markers in: the ones git tracks, as CI checks
+   * them out. A gitignored file (generated output, a local scratch file) is
+   * nobody's pending task; walking the disk read them (RoC_web, 8.0.0 rc1).
+   * Outside a git repository nothing is ignored by git, so the disk is read.
+   */
   private static findSourceFiles(projectRoot: string): string[] {
+    const tracked = trackedFiles(
+      projectRoot,
+      this.SOURCE_EXTENSIONS.map(ext => `*${ext}`)
+    );
+    if (!tracked.ok) return this.findSourceFilesOnDisk(projectRoot);
+    return tracked.files.filter(
+      file =>
+        !PathOperations.getRelative(projectRoot, file)
+          .split(/[\\/]/)
+          .some(segment => this.shouldSkipDirectory(segment))
+    );
+  }
+
+  /** The file types this law looks for TODO markers in. */
+  private static readonly SOURCE_EXTENSIONS = [
+    '.ts',
+    '.js',
+    '.tsx',
+    '.jsx',
+    '.html',
+    '.scss',
+    '.css',
+    '.md',
+  ];
+
+  private static findSourceFilesOnDisk(projectRoot: string): string[] {
     const sourceFiles: string[] = [];
     const extensions = [
       '.ts',
@@ -362,35 +394,31 @@ export class TodoManagementLaw {
     config: RuleOfCodeConfig
   ): TodoAnalysisResult {
     const result = TodoAnalysisResultBuilder.createEmpty();
-    // Blank string/template-literal CONTENTS first (comments are KEPT — that is
-    // where a real TODO marker lives). A `// TODO` inside a display or captured
-    // string (e.g. an example of what a TODO looks like) is text, not a real
-    // TODO; scanning raw source counted it. Newlines are preserved so line
-    // numbers stay accurate.
-    const scannable = todoScannableText(content, file);
-    const lines = scannable.split('\n');
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      if (!line || !this.hasTodoComment(line)) continue;
-
-      this.processTodoLine(line, file, i + 1, config, result);
+    // A TODO is a marker at the start of a COMMENT, by the comment syntax of
+    // the file's language (the reader TODO Management Standards uses): `//`
+    // and `/* */` in JS/TS/SCSS, `/* */` in CSS, `<!-- -->` in HTML and
+    // Markdown. Text in a string, a JSON blob in a <script>, Markdown prose
+    // or a code span is not one; a marker on a later line of a block comment
+    // is (RoC_web, 8.0.0 rc1).
+    for (const comment of commentLines(file, content)) {
+      const marker = this.todoMarker(comment.text);
+      if (marker) {
+        this.processTodoLine(marker, file, comment.line, config, result);
+      }
     }
 
     return result;
   }
 
   /**
-   * Check if a line contains a TODO comment
+   * The TODO marker a comment line starts with — after the comment opener
+   * and a block comment's leading `*` — or null. Upper case, as a marker is
+   * written: "todo" in a comment is a word, and `#todo` was an anchor or a
+   * CSS id that a case-insensitive `#\s*TODO` read as a marker.
    */
-  private static hasTodoComment(line: string): boolean {
-    const todoPatterns = [
-      /\/\/\s*TODO/gi,
-      /<!--\s*TODO/gi,
-      /\/\*\s*TODO/gi,
-      /#\s*TODO/gi,
-    ];
-    return PatternMatchingUtils.hasAnyRegexPattern(line, todoPatterns);
+  private static todoMarker(commentText: string): string | null {
+    const text = commentText.replace(/^[\s*]+/, '');
+    return /^TODO\b/.test(text) ? text.trim() : null;
   }
 
   /**

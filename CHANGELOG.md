@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — TODO Management Constitutional Requirements reads TODO markers in comments of tracked files
+
+On a real Angular site the law reported three violations that were not
+there, and missed the one TODO that was:
+
+- a `"TODO (Sprint N)"` inside a JSON string in an HTML `<script>` was
+  counted, and so was any `#todo` (an anchor, a CSS id `#todo-list`): the
+  `#\s*TODO` pattern ignored case, and since #426 HTML and CSS were read as
+  written;
+- a TODO on the second line of a `/* … */` block comment was not counted;
+- gitignored generated files were read, because the law walked the disk.
+
+A TODO is now an upper-case `TODO` at the start of a comment, by the comment
+syntax of the file's language (`//` and `/* */` in JS/TS/SCSS, `/* */` in
+CSS, `<!-- -->` in HTML and Markdown), on any line of a block comment. The
+files are the ones git tracks; outside a git repository the disk is read.
+
 ### Changed — TypeScript Strict Mode no longer requires noPropertyAccessFromIndexSignature or source maps
 
 The law reported "TypeScript noPropertyAccessFromIndexSignature must be true"

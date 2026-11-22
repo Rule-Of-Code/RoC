@@ -10,6 +10,12 @@ import type { GlobOptions } from '../types/law.types';
 import { ConfigFileUtils } from './config-file-utils';
 import { DirectoryScanner } from './directory-scanner';
 import { FileFilterUtils } from './file-filter-utils';
+import {
+  createMultiExtensionPattern,
+  type FilePatterns,
+  getFilePatterns,
+  getStandardPatterns,
+} from './file-patterns';
 import { FileSystemOperations } from './file-system-operations';
 import { logError } from './logging-utils';
 import { PathOperations } from './path-operations';
@@ -29,76 +35,25 @@ export class GlobUtils {
   }
 
   /**
-   * Create glob patterns for specific file types
-   */
-  static createTypePattern(
-    type: 'config' | 'javascript' | 'markdown' | 'test' | 'typescript'
-  ): string[] {
-    const typeExtensions = {
-      typescript: ['ts', 'tsx'],
-      javascript: ['js', 'jsx'],
-      config: ['json', 'yaml', 'yml'],
-      test: ['test.*', 'spec.*'],
-      markdown: ['md', 'markdown'],
-    };
-
-    const extensions = typeExtensions[type];
-
-    if (type === 'test') {
-      // Special handling for test patterns
-      return [
-        `**/*.${extensions[0]}`,
-        `**/*.${extensions[1]}`,
-        '**/test/**',
-        '**/tests/**',
-      ];
-    }
-
-    return extensions.map(ext => `**/*.${ext}`);
-  }
-
-  /**
    * Create a glob pattern for multiple file extensions
    */
   static createMultiExtensionPattern(extensions: string[]): string {
-    if (extensions.length === 1) {
-      return `**/*.${extensions[0]}`;
-    }
-    return `**/*.{${extensions.join(',')}}`;
+    return createMultiExtensionPattern(extensions);
   }
 
   /**
    * Create standard glob patterns for common use cases
    */
-  static getStandardPatterns(): {
-    allFiles: string;
-    allDirectories: string;
-    allFilesAndDirectories: string;
-  } {
-    return {
-      allFiles: '**/*',
-      allDirectories: '**/',
-      allFilesAndDirectories: '**',
-    };
+  static getStandardPatterns(): ReturnType<typeof getStandardPatterns> {
+    return getStandardPatterns();
   }
 
   /**
-   * Get standard file patterns for different file types
+   * Get standard file patterns for different file types. One implementation,
+   * in file-patterns (which has no internal dependencies); this is its facade.
    */
-  static getFilePatterns(): {
-    typescript: string[];
-    javascript: string[];
-    config: string[];
-    test: string[];
-    markdown: string[];
-  } {
-    return {
-      typescript: this.createTypePattern('typescript'),
-      javascript: this.createTypePattern('javascript'),
-      config: this.createTypePattern('config'),
-      test: this.createTypePattern('test'),
-      markdown: this.createTypePattern('markdown'),
-    };
+  static getFilePatterns(): FilePatterns {
+    return getFilePatterns();
   }
 
   /**

@@ -254,10 +254,11 @@ export class UnitTestIsolationConstants {
    * code, not its comments, and without browser storage where the runner
    * isolates it (see FixtureIsolation.resourcesUsed).
    */
-  static resourcesUsed(content: string): string[] {
+  static resourcesUsed(content: string, fileName?: string): string[] {
     return FixtureIsolation.resourcesUsed(
       content,
-      this.EXTERNAL_RESOURCE_PATTERNS
+      this.EXTERNAL_RESOURCE_PATTERNS,
+      fileName
     );
   }
 

@@ -30,7 +30,7 @@ export class FileUtils {
 
   // === GLOB OPERATIONS DELEGATION ===
   static getGlobOptions = GlobUtils.getGlobOptions;
-  static getFilesInWorkspace = GlobUtils.getFilesInWorkspace;
+  static getFilesInWorkspace = GlobUtils.getFilesInWorkspace.bind(GlobUtils);
 
   // === FILE FILTERING DELEGATION ===
   static filterFilesByConfig = FileFilterUtils.filterFilesByConfig;
@@ -82,7 +82,7 @@ export class FileUtils {
   static normalizePath = PathOperations.normalize; // Legacy alias
   static join = path.join;
   static joinPaths = path.join; // Legacy alias
-  static resolve = PathOperations.resolve;
+  static resolve = PathOperations.resolve.bind(PathOperations);
   static isAbsolute = PathOperations.isAbsolute;
   static isAbsolutePath = PathOperations.isAbsolute; // Legacy alias
   static getRelative = path.relative;

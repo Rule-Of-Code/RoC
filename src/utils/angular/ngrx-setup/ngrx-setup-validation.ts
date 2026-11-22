@@ -133,7 +133,7 @@ export class NgRxSetupValidation {
    * Generate setup analysis summary - delegates to shared utility
    */
   static getSetupAnalysisSummary =
-    NgRxAnalysisUtilities.getSetupAnalysisSummary;
+    NgRxAnalysisUtilities.getSetupAnalysisSummary.bind(NgRxAnalysisUtilities);
 
   /**
    * Validate analysis prerequisites

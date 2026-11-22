@@ -224,7 +224,7 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '4.15',
     title: 'No Hostname Gating',
     rationale:
-      'A build that behaves differently because location.hostname says "demo" is a build you cannot trust in production — the code path that runs for real users was never the one you tested. Decide behaviour by injected configuration, not by the URL bar. (The class it guards against: a "graceful" paper-trading fallback that shipped under a LIVE label.)',
+      'A build that behaves differently because location.hostname says "demo" is a build you cannot trust in production — the code path that runs for real users was never the one you tested. Decide behaviour by injected configuration, not by the URL bar. (The class it guards against: a "graceful" demo fallback that shipped under the production label.)',
     satisfiedBy: {
       angular:
         'Branch on injected configuration / environment, never on location.hostname. Reading the hostname is fine; comparing it to decide behaviour is not.',

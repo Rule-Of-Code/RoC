@@ -83,26 +83,36 @@ export class AngularBundleValidationPatterns {
     }
   }
 
+  /** "<what> could not be read: <reason>" for an error the analyzer did not expect. */
+  private static notReadError(what: string, error: unknown): string {
+    const reason = error instanceof Error ? error.message : String(error);
+    return `${what} could not be read: ${reason}`;
+  }
+
   /**
-   * Validate performance budgets using specialized utility
-   * Meta-dogfooding: Delegates to specialized performance compliance law
+   * Validate performance budgets with the analyzer Performance Budget
+   * Compliance uses. "Missing" is said only of build configs that were read
+   * (#423): a config that could not be read, or an analyzer error, goes to
+   * `notRead` with its reason — budgets it may declare were not seen.
    */
   static validatePerformanceBudgets(
     projectRoot: string,
-    suggestions: string[]
+    suggestions: string[],
+    notRead: string[] = []
   ): void {
+    let budgetAnalysis: { configured: boolean; unreadable: string[] };
     try {
-      const budgetAnalysis =
+      budgetAnalysis =
         PerformanceBudgetComplianceAnalyzerService.analyzeAngularBudgets(
           projectRoot
         );
+    } catch (error) {
+      notRead.push(this.notReadError('performance budgets', error));
+      return;
+    }
 
-      if (!budgetAnalysis.configured) {
-        const message =
-          this.Config.VALIDATION_MESSAGES.PERFORMANCE_BUDGETS_MISSING();
-        suggestions.push(message.suggestionMessage);
-      }
-    } catch {
+    notRead.push(...budgetAnalysis.unreadable);
+    if (!budgetAnalysis.configured && budgetAnalysis.unreadable.length === 0) {
       const message =
         this.Config.VALIDATION_MESSAGES.PERFORMANCE_BUDGETS_MISSING();
       suggestions.push(message.suggestionMessage);
@@ -115,7 +125,8 @@ export class AngularBundleValidationPatterns {
    */
   static validateWebpackConfiguration(
     projectRoot: string,
-    suggestions: string[]
+    suggestions: string[],
+    notRead: string[] = []
   ): void {
     // An Angular CLI project has no webpack config of its own: the CLI owns
     // it and the budgets live in angular.json. Telling it to add maxAssetSize
@@ -143,9 +154,9 @@ export class AngularBundleValidationPatterns {
           );
         suggestions.push(configuredMessage.suggestionMessage);
       }
-    } catch {
-      const message = this.Config.VALIDATION_MESSAGES.WEBPACK_CONFIG_MISSING();
-      suggestions.push(message.suggestionMessage);
+    } catch (error) {
+      // Not "missing": the webpack config was not read (#423).
+      notRead.push(this.notReadError('webpack configuration', error));
     }
   }
 

@@ -50,8 +50,20 @@ export class PerformanceBudgetComplianceLaw {
       sizeLimit !== null ||
       lighthouse !== null;
 
+    // A build config that could not be read may declare the budgets: say it
+    // was not read, never "not configured" (#423).
+    const budgetsNotRead = angularBudgets.unreadable;
+
     // 1. A budget. An Angular project is pointed at its native mechanism.
-    if (!hasBudget) {
+    if (!hasBudget && budgetsNotRead.length > 0) {
+      violations.push(
+        `${budgetsNotRead.join('; ')} — the Angular budgets it may declare were NOT read`
+      );
+      suggestions.push(
+        'Fix the JSON syntax of the Angular build configuration'
+      );
+      score -= deduct('ANGULAR');
+    } else if (!hasBudget) {
       if (WorkspaceManifests.declares(projectRoot, '@angular/core')) {
         violations.push('Angular CLI performance budgets not configured');
         suggestions.push(
@@ -72,6 +84,7 @@ export class PerformanceBudgetComplianceLaw {
     // fail the build or the check when the bundle grows past the limit.
     const bundleMonitoring = analyzer.analyzeBundleSize(projectRoot);
     if (
+      budgetsNotRead.length === 0 &&
       !angularBudgets.configured &&
       !webpackPerformance.configured &&
       sizeLimit === null &&

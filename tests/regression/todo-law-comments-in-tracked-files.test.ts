@@ -6,7 +6,6 @@
  * HTML <script>, missed a TODO on the second line of a CSS block comment, and
  * read gitignored generated files. Each case is a real git repository.
  */
-import { execFileSync } from 'child_process';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -14,6 +13,7 @@ import * as path from 'path';
 import { TodoManagementLaw } from '../../src/laws/documentation/todo-management';
 import { TodoManagementStandardsLaw } from '../../src/laws/documentation/todo-management-standards';
 import type { LawCheckContext } from '../../src/types/law.types';
+import { execFileSync } from '../../src/utils/child-process';
 
 const dirs: string[] = [];
 afterAll(() => {

@@ -5,6 +5,22 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 🔧 Internal — one table of the places that name the current version
+
+A release has to move every place that names the current version: the README
+demo and its `laws --json` example, `docs/demo/README.md`, the demo
+recording and the git hooks. Two narrow tests held part of it; the rest was
+remembered by hand. `scripts/current-version-mentions.js` lists them (file,
+pattern, count), and `tests/regression/current-version-mentions.test.ts`
+checks each against package.json, with the file, the line and both versions
+on a failure, and fails when a marked place is reworded or removed.
+`node scripts/version-sweep.js --to=X.Y.Z [--dry-run]` rewrites the
+hand-written ones and nothing else; the release checklist
+(PRE_DEPLOYMENT_CHECKLIST.md, linked from CONTRIBUTING.md) has the step
+(#560).
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

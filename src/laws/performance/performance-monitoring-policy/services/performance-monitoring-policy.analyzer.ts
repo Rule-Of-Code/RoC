@@ -21,7 +21,7 @@ export class PerformanceMonitoringPolicyAnalyzerService {
   ): Promise<{
     realUserMonitoring: { hasRUM: boolean; tools: string[] };
     performanceBudget: { configured: boolean; budgetSources: string[] };
-    errorTracking: { hasTracking: boolean; tools: string[] };
+    errorTracking: { hasTracking: boolean; tools: string[]; unread: string[] };
     performanceAlerting: { hasAlerts: boolean; alertSources: string[] };
     coreWebVitals: { monitored: boolean; implementations: string[] };
     performanceDashboards: { hasDashboards: boolean; dashboardTypes: string[] };
@@ -41,7 +41,8 @@ export class PerformanceMonitoringPolicyAnalyzerService {
       ErrorTrackingPolicyAnalyzerService.checkErrorAndPerformanceTracking(
         projectRoot,
         config,
-        react
+        react,
+        lawId
       ),
       CoreWebVitalsPolicyAnalyzerService.checkCoreWebVitalsMonitoring(
         projectRoot,
@@ -70,7 +71,7 @@ export class PerformanceMonitoringPolicyAnalyzerService {
         PerformanceDashboardsPolicyAnalyzerService.checkPerformanceDashboards(
           projectRoot
         ),
-      unread: react.unread,
+      unread: [...react.unread, ...errorTracking.unread],
     };
   }
 }

@@ -5,6 +5,25 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed — Performance Monitoring Policy finds an ErrorHandler wherever it is registered
+
+The error-tracking check of Performance Monitoring Policy accepted an own
+Angular `ErrorHandler` only when the word stood in `src/app/app.module.ts` or
+`src/app/app.component.ts`. A standalone app registers it in `app.config.ts` or
+in the providers of `bootstrapApplication`, has no `app.module.ts`, and was told
+error tracking is "not configured" (#553).
+
+The law now reads the production sources (tests excluded) with the TypeScript
+parser and the detector Global Error Handlers uses: an `ErrorHandler` provider
+(`{ provide: ErrorHandler, useClass | useExisting | useFactory | useValue }`)
+wherever it is registered, a `provide…ErrorHandler()` helper, `window.onerror`,
+or a `window` / `process` error listener. An import of `ErrorHandler` or
+`provideHttpClient()` alone is not error tracking. Without the parser the files
+that may register a handler are reported as not read. Global Error Handlers
+also recognises a `provide…ErrorHandler()` helper call.
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

@@ -2,17 +2,26 @@
 /**
  * Records the Rule of Code README demos as asciicasts (v2), from REAL output.
  *
- *   node record.mjs [workdir]           the refusal demo  → demo.cast
- *   node record.mjs --pass [workdir]    the pass demo     → pass.cast
- *   node check.mjs [--pass]             holds a cast to the recorded output and the CLI
+ *   node record.mjs --tarball=<tgz> [workdir]  the refusal demo from the release
+ *                                              candidate's tarball → demo.cast
+ *   node record.mjs [workdir]                  the same from npm (after publish)
+ *   node record.mjs --install-only [--tarball=<tgz>]  only install the package
+ *   node record.mjs --pass [workdir]           the pass demo     → pass.cast
+ *   node check.mjs [--tarball=<tgz>] [--pass]  holds a cast to the package, the
+ *                                              recorded output and the CLI
  *
  * Two demos:
- *   refusal  ./fixture (a neutral TypeScript project, "demo-app") copied to
- *            <workdir> and committed once (fixed author and date); an allowlist
- *            run is PARTIAL, the full run FAILS.
- *   pass     this repository itself at tag v<VERSION>, cloned from GitHub with
- *            its full history into <workdir>; the full run PASSES with no waiver.
- *            `ruleofcode` there is the package installed from npm into
+ *   refusal  ruleofcode <VERSION>, installed with `npm install` into <PKG_DIR> —
+ *            from the release candidate's tarball before it is published (the
+ *            bytes that go to npm: PACKAGE_SHA1), or from npm after. ./fixture
+ *            (a neutral TypeScript project, "demo-app") is copied to <workdir>,
+ *            committed once (fixed author and date) and its dependencies
+ *            installed; an allowlist run is PARTIAL, the full run FAILS. On
+ *            screen: `ruleofcode audit …`, the command bash ran, with
+ *            <PKG_DIR>'s bin first on PATH.
+ *   pass     this repository itself at tag v<PASS_VERSION>, cloned from GitHub
+ *            with its full history into <workdir>; the full run PASSES with no
+ *            waiver. `ruleofcode` there is the package installed from npm into
  *            ./node_modules (npm ci, pinned with its integrity in
  *            package-lock.json): inside this repository `npx ruleofcode@…` runs
  *            the local project of the same name, not the published package.
@@ -29,8 +38,10 @@
  *   - Timing is NOT a fact: pauses are chosen so the summary and the verdict can
  *     be read, and the long lists scroll past quickly.
  *
- * To re-record for another version, change VERSION, the pin in package.json and
- * PASS_TAG_COMMIT, run the scripts, and look at the GIFs.
+ * To re-record the refusal demo for another release, set VERSION, pack the
+ * candidate, set PACKAGE_SHA1 to its sha1, run record.mjs and check.mjs with
+ * --tarball, and look at the GIF. The pass demo has its own PASS_VERSION, the
+ * pin in package.json and PASS_TAG_COMMIT.
  */
 import { spawnSync } from 'node:child_process';
 import { cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -38,14 +49,25 @@ import { delimiter, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-export const VERSION = '7.29.1';
-/** The commit tag v<VERSION> names; the pass demo refuses to record anything else. */
+/** The ruleofcode release the refusal demo (demo.gif, the README's) runs. */
+export const VERSION = '8.0.1';
+/**
+ * The sha1 of that release's tarball: the candidate's before publish, which is
+ * the file published, so `npm view ruleofcode@<VERSION> dist.shasum` after.
+ */
+export const PACKAGE_SHA1 = 'TBD';
+/** The ruleofcode release the pass demo (pass.gif) runs; package.json pins it. */
+export const PASS_VERSION = '7.29.1';
+/** The commit tag v<PASS_VERSION> names; the pass demo refuses to record anything else. */
 const PASS_TAG_COMMIT = 'a6a5a6cc4eebb7bbe304bd5732a3f895a9618e7f';
 const PASS_REPO = 'https://github.com/Rule-Of-Code/RoC.git';
 const TMP = process.platform === 'win32' ? 'd:/tmp' : '/tmp';
+/** Where the refusal demo's ruleofcode is installed. */
+export const PKG_DIR = `${TMP}/roc-demo-pkg`;
 
 export const DEMOS = {
   refusal: {
+    version: VERSION,
     work: `${TMP}/demo-app`,
     cast: 'demo.cast',
     out: 'out',
@@ -53,14 +75,12 @@ export const DEMOS = {
     rows: 32,
     steps: [
       { cmd: 'cat allowlist.json', cli: false },
-      {
-        cmd: `npx --yes ruleofcode@${VERSION} audit --mode=full --only-failures --config allowlist.json`,
-        cli: true,
-      },
-      { cmd: `npx --yes ruleofcode@${VERSION} audit --mode=full --only-failures`, cli: true },
+      { cmd: 'ruleofcode audit --mode=full --only-failures --config allowlist.json', cli: true },
+      { cmd: 'ruleofcode audit --mode=full --only-failures', cli: true },
     ],
   },
   pass: {
+    version: PASS_VERSION,
     work: `${TMP}/roc-self`,
     cast: 'pass.cast',
     out: 'out-pass',
@@ -76,11 +96,21 @@ export const DEMOS = {
   },
 };
 
-/** `--pass` selects the pass demo; the first other argument is the work directory. */
+/**
+ * `--pass` selects the pass demo; `--tarball=<tgz>` installs the refusal demo's
+ * package from that file instead of npm; the first argument that is not a flag
+ * is the work directory.
+ */
 export function selectDemo(argv) {
   const name = argv.includes('--pass') ? 'pass' : 'refusal';
   const workArg = argv.find((a) => !a.startsWith('--'));
-  return { name, ...DEMOS[name], work: workArg ?? DEMOS[name].work };
+  const tarball = argv.find((a) => a.startsWith('--tarball='))?.slice('--tarball='.length);
+  return { name, ...DEMOS[name], work: workArg ?? DEMOS[name].work, tarball };
+}
+
+/** The installed ruleofcode a demo runs: <PKG_DIR>'s for refusal, ./node_modules' for pass. */
+export function packageRoot(demo) {
+  return demo.name === 'pass' ? join(HERE, 'node_modules', 'ruleofcode') : join(PKG_DIR, 'node_modules', 'ruleofcode');
 }
 
 /** A line paused for at most this long is "quick" and may be batched. */
@@ -123,6 +153,27 @@ function setupRefusal(work) {
   ]) {
     mustRun(cmd, work, env);
   }
+  // The fixture is a real TypeScript project: its compiler is installed, as in
+  // any TS checkout, before anything is recorded (not shown on screen). Without
+  // it, the TS laws (8.0.0 and later) report the files as not read (#427),
+  // which is the environment talking, not the project. node_modules/ is
+  // gitignored, so the tree stays clean.
+  mustRun('npm ci --ignore-scripts --no-audit --no-fund', work);
+  const dirty = mustRun('git status --porcelain', work);
+  if (dirty) throw new Error(`the demo app is not clean after npm ci:\n${dirty}`);
+}
+
+/**
+ * Installs ruleofcode <VERSION> into <PKG_DIR>, as any project would: from the
+ * candidate's tarball, or from npm. No install script runs either way (the
+ * package has none for its consumers).
+ */
+function installRefusalPackage(tarball) {
+  rmSync(PKG_DIR, { recursive: true, force: true });
+  mkdirSync(PKG_DIR, { recursive: true });
+  writeFileSync(join(PKG_DIR, 'package.json'), '{ "name": "roc-demo-pkg", "private": true }\n');
+  const source = tarball ? `"${tarball}"` : `ruleofcode@${VERSION}`;
+  mustRun(`npm install --no-audit --no-fund --save-exact ${source}`, PKG_DIR);
 }
 
 function setupPass(work) {
@@ -130,9 +181,9 @@ function setupPass(work) {
   mkdirSync(dirname(work), { recursive: true });
   // Full history: the git laws read it, and a shallow clone would let them pass
   // on one commit.
-  mustRun(`git -c core.autocrlf=false clone -q --branch v${VERSION} ${PASS_REPO} "${work}"`, dirname(work));
+  mustRun(`git -c core.autocrlf=false clone -q --branch v${PASS_VERSION} ${PASS_REPO} "${work}"`, dirname(work));
   const head = mustRun('git rev-parse HEAD', work);
-  if (head !== PASS_TAG_COMMIT) throw new Error(`v${VERSION} is ${head}, expected ${PASS_TAG_COMMIT}`);
+  if (head !== PASS_TAG_COMMIT) throw new Error(`v${PASS_VERSION} is ${head}, expected ${PASS_TAG_COMMIT}`);
   const dirty = mustRun('git status --porcelain', work);
   if (dirty) throw new Error(`the clone is not clean:\n${dirty}`);
 }
@@ -197,12 +248,19 @@ export function cast(steps, outputs, cols, rows) {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const demo = selectDemo(process.argv.slice(2));
+  if (process.argv.includes('--install-only')) {
+    installRefusalPackage(demo.tarball);
+    console.log(`ruleofcode ${VERSION} installed into ${PKG_DIR} from ${demo.tarball ?? 'npm'}`);
+    process.exit(0);
+  }
   const env = {};
   if (demo.name === 'pass') {
     setupPass(demo.work);
     env.PATH = `${join(HERE, 'node_modules', '.bin')}${delimiter}${process.env.PATH}`;
   } else {
+    installRefusalPackage(demo.tarball);
     setupRefusal(demo.work);
+    env.PATH = `${join(PKG_DIR, 'node_modules', '.bin')}${delimiter}${process.env.PATH}`;
   }
   mkdirSync(join(HERE, demo.out), { recursive: true });
   const outputs = demo.steps.map((step, i) => {
@@ -214,5 +272,6 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     return r.stdout;
   });
   writeFileSync(join(HERE, demo.cast), cast(demo.steps, outputs, demo.cols, demo.rows));
-  console.log(`${demo.cast} written (${demo.cols}x${demo.rows}). Next: node check.mjs${demo.name === 'pass' ? ' --pass' : ''}, then agg (see README.md)`);
+  const next = demo.name === 'pass' ? ' --pass' : demo.tarball ? ` --tarball=${demo.tarball}` : '';
+  console.log(`${demo.cast} written (${demo.cols}x${demo.rows}). Next: node check.mjs${next}, then agg (see README.md)`);
 }

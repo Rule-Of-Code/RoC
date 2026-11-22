@@ -265,6 +265,11 @@ packed tarball installed as a consumer — the mandatory gate before every relea
 pre-push (full audit). The audit's exit code blocks the push only on error-severity
 violations — warning laws report without stopping the team.
 
+`reinstall-hooks` rewrites a hook only when it differs from what this version generates
+by its version stamp alone. A hook with lines of its own (a step you added, or an older
+template) is kept and named, and the command exits 1. `reinstall-hooks --force` replaces
+it and first saves the old file as `.husky/<hook>.bak`, printing the path.
+
 ### Audit cache (opt-in)
 
 `performance.cache: true` caches the audit result and creates `.ruleofcode-cache/` in the

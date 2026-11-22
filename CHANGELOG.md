@@ -5,6 +5,18 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 🐛 Fixed — reinstall-hooks keeps the lines a project added to a hook
+
+`reinstall-hooks` wrote every hook over with the template, with or without
+`--force`, and kept no copy: a step the project had added (a secret scan, a
+formatter, a repository-specific flag) was gone after the next upgrade.
+Now a hook that differs from the template by more than its version stamp is
+kept and named, and the command exits 1. With `--force` it is replaced, and
+the old file is first saved as `.husky/<hook>.bak`, whose path is printed
+(#556).
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

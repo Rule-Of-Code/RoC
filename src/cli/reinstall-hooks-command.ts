@@ -59,12 +59,22 @@ export async function executeReinstallHooksAction(
 
     console.log(chalk.cyanBright('\n🔧 Reinstalling hooks...\n'));
 
-    // Reinstall hooks
-    GitHooksInstaller.reinstall({
+    // Reinstall hooks. Without --force a hook with lines of its own is kept
+    // and named; with it, it is saved as <hook>.bak first (#556).
+    const written = GitHooksInstaller.reinstall({
       projectRoot,
       config,
-      force: true,
+      force: options.force === true,
     });
+    if (written.refused.length > 0) {
+      console.error(
+        chalk.red(
+          `\n❌ Not reinstalled: ${written.refused.join(', ')} — lines this version does not generate are kept. Run 'reinstall-hooks --force' to replace them; each is saved as <hook>.bak first.\n`
+        )
+      );
+      process.exitCode = 1;
+      return;
+    }
 
     // The scripts are rewritten; whether git runs them is a separate fact,
     // asked of the target repository itself (#372).

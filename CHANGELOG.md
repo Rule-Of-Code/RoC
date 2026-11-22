@@ -5,6 +5,21 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 🐛 Fixed — API Security and Environment Parity need something that runs for users
+
+API Security Standards (HTTPS, authentication, rate limiting, CORS, headers)
+and Environment Parity Standards (a `.env.example` contract for the
+environments a service is deployed to) were selected for every TypeScript
+project, and Environment Parity for every project. A CLI tool or a library has
+no endpoint and no deployed environment, so both reported findings that could
+not be fixed honestly. They now declare the same `requires` as the other laws
+about a running product (#428): a Node or Python HTTP framework, a web
+surface, a mobile app shell or a deploy target. A project with none of these
+no longer selects them; the number of laws such a project runs drops by two
+(#428).
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

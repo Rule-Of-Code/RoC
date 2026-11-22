@@ -93,7 +93,8 @@ describe('ErrorHandlingCompletenessLaw', () => {
       );
     });
 
-    it('should detect async calls without error handling', () => {
+    // #438: an await is not a gap — its rejection is thrown into the caller.
+    it('does not report awaits as missing error handling', () => {
       const codeWithoutHandling = `
 async function fetchData() {
   const data = await fetch('/api/data');
@@ -109,10 +110,12 @@ async function fetchData() {
         codeWithoutHandling
       );
       const result = ErrorHandlingCompletenessLaw.check(mockContext);
-      const asyncViolation = result.violations?.find(v =>
-        v.includes('async calls without proper error handling')
+      const asyncViolation = result.violations?.find(
+        v =>
+          v.includes('async calls without proper error handling') ||
+          v.includes('neither awaited, returned nor caught')
       );
-      expect(asyncViolation).toBeDefined();
+      expect(asyncViolation).toBeUndefined();
     });
 
     it('should pass for async with try-catch', () => {
@@ -164,8 +167,9 @@ function loadData() {
         promiseWithoutCatch
       );
       const result = ErrorHandlingCompletenessLaw.check(mockContext);
+      // #438: a chain used as a statement with no rejection handler.
       const promiseViolation = result.violations?.find(v =>
-        v.includes('Promise chains without .catch()')
+        v.includes('1 promise(s) neither awaited, returned nor caught (line 3)')
       );
       expect(promiseViolation).toBeDefined();
     });

@@ -6,9 +6,14 @@
 import type { RuleOfCodeConfig } from '../../../types/law.types';
 import { CheckerUtils } from '../../checker-utils';
 import { FileUtils } from '../../file-utils';
+import { loadTypeScript, parserUnavailable } from '../../react/tsx-source';
 import { StringTemplateUtils } from '../../string-template-utils';
 import type { DataStorageValidationResult } from './data-storage-security-configuration';
 import { DataStorageSecurityConfiguration as Config } from './data-storage-security-configuration';
+import { readCodeView } from '../code-view';
+
+/** Calls and options that take a file mode: chmod, mkdir, open, writeFile, `mode:`. */
+const FILE_MODE_API = /chmod|mkdir|open|writefile|createwritestream|^mode$/i;
 
 // File constants
 const ENV_FILE = '.env';
@@ -96,10 +101,25 @@ export class DataStorageSecurityValidationPatterns {
       config
     );
 
+    // Read through the parse (#426): `'777'` in a pattern table or
+    // `fs.writeFileSync` in a message is not a file written with mode 777.
+    // The code is judged, plus the strings handed to a file-mode API.
+    const ts = loadTypeScript(projectRoot);
+    if (!ts) {
+      if (files.length > 0)
+        violations.push(
+          parserUnavailable(projectRoot, `the ${files.length} .ts/.js file(s)`)
+        );
+      return;
+    }
     for (const file of files) {
       const content = safeReadFile(file);
       if (content) {
-        this.processFileStoragePatterns(content, file, violations, suggestions);
+        const view = readCodeView(ts, content, file);
+        const judged = [view.code, ...view.apiStrings(FILE_MODE_API)].join(
+          '\n'
+        );
+        this.processFileStoragePatterns(judged, file, violations, suggestions);
       }
     }
   }

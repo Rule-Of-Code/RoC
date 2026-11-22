@@ -5,6 +5,68 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [8.0.1] - 2026-11-22
+
+A summary-count fix, general examples in three law rationales, and the
+README demo. No law added or removed (265).
+
+### 🐛 Fixed — the summary counts add up to the laws checked
+
+A law that judged nothing at error severity is a failure: it is counted in
+`✗ Failed` and listed with the failed laws. 8.0.0 also counted it in
+`◌ Judged nothing`, so the four numbers of the summary added up to more than
+`Total Laws Checked` (the README demo: 30 + 29 + 12 + 3 = 74 for 72 laws).
+
+`◌ Judged nothing` now counts the laws that judged nothing at a non-blocking
+severity (warning or info): those that are not in `Failed`. Passed + Failed +
+Warnings + Judged nothing = Total Laws Checked.
+
+**JSON change:** `stats.judgedNothingLaws` counts the same laws as the
+console, not every law that judged nothing: `stats.passedLaws +
+stats.failedLaws + stats.warningLaws + stats.judgedNothingLaws =
+stats.executedLaws`. In the README demo it goes from 3 to 1. Every law that
+judged nothing, at any severity, is still named in `scope.judgedNothingLaws`,
+which is unchanged (and still makes the run `partial`). A consumer that read
+`stats.judgedNothingLaws` as "all laws that judged nothing" should read
+`scope.judgedNothingLaws.length`.
+
+### 📝 Changed — law texts give general examples
+
+The rationales of Performance Monitoring Standards, No Hostname Gating and
+Magic Number Prevention, a comment in `templates/recommended-python.config.json`
+and one suggestion of Side Effects in NgRx Effects told the story of one
+project. They now give general examples. Detection, severity and slugs are
+unchanged: `laws --json` differs from 8.0.0 only in those three `rationale`
+fields.
+
+### 🐛 Fixed — the README demo is the output of this release, and npm and GitHub show the same recording
+
+8.0.0 was published with the 7.29.1 recording in its README, captioned
+"Real output of ruleofcode 7.29.1". The image path was relative, so GitHub
+resolved it against the default branch: an npm page, whose README is frozen at
+publish time, would show whatever recording the branch holds later.
+
+- The refusal demo is recorded with ruleofcode 8.0.1: the release candidate's
+  tarball, installed with `npm install`, which is the file published to npm
+  (`PACKAGE_SHA1` in `docs/demo/record.mjs`). On screen the command is
+  `ruleofcode audit …`, the command that ran. The allowlist run is
+  `PARTIAL SCAN — 4 of 70 applicable laws ran`; the full run checks 72 laws,
+  30 pass, 29 fail, 12 warn, 1 judged nothing, `COMPLIANCE: FAILED`.
+- `docs/demo/check.mjs` holds the install to the tarball's sha1 before
+  publish (`--tarball=<tgz>`), and to npm's published shasum after.
+- The demo fixture's dependencies (`typescript`, locked) are installed before
+  recording, as in any TypeScript checkout; without them the TypeScript laws
+  report the files as not read (#427).
+- The image and the `docs/demo` link are absolute URLs pinned to the tag
+  `v8.0.1`, which does not move.
+- A regression test holds the caption, the alt text, `VERSION` in
+  `record.mjs`, the version the recorded output prints and package.json to
+  one version, the alt text's numbers to the recorded output, and the image
+  URL to the tag of the package version.
+- `pass.gif` stays the 7.29.1 recording, with its own pin, and is not shown in
+  the README.
+- Git hooks reinstalled at v8.0.1.
+
 ## [8.0.0] - 2026-11-22
 
 **A major release with six breaking changes.** Upgrading from 7.29.1:

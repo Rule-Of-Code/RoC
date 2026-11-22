@@ -8,9 +8,9 @@
 
 **Honest refusal.** An allowlist that runs four laws is not called compliance, and the full run fails.
 
-![ruleofcode 7.29.1: a four-law allowlist is reported as PARTIAL SCAN — 4 of 75 applicable laws ran, no compliance verdict; the full run checks 77 laws and fails.](docs/demo/demo.gif)
+![ruleofcode 8.0.1: a four-law allowlist is reported as PARTIAL SCAN — 4 of 70 applicable laws ran, no compliance verdict; the full run checks 72 laws and 29 fail.](https://raw.githubusercontent.com/Rule-Of-Code/RoC/v8.0.1/docs/demo/demo.gif)
 
-Real output of ruleofcode 7.29.1 from npm — reproduce with [docs/demo](docs/demo/README.md).
+Real output of ruleofcode 8.0.1 — the package published to npm. Reproduce with [docs/demo](https://github.com/Rule-Of-Code/RoC/blob/v8.0.1/docs/demo/README.md).
 
 **RoC is a constitutional-compliance CLI**: it audits a codebase against a catalog of
 laws, installs git hooks, and returns a single honest answer — pass or fail. RoC is a
@@ -85,7 +85,7 @@ IDE panel, a dashboard. It is versioned by `schemaVersion` (currently `2`).
 {
   "schemaVersion": 2,
   "tool": "ruleofcode",          // the package name this build was published under
-  "version": "8.0.0",
+  "version": "8.0.1",
   "registryTotal": 265,
   "satisfiedByStacks": {          // the mapping described below — read it, don't hardcode it
     "keys": ["typescript", "angular", "react", "python", "ionic", "capacitor"],

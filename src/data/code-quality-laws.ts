@@ -281,7 +281,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '2.8',
     title: 'Magic Number Prevention',
     rationale:
-      'A bare 0.05 in trading code could be a fee, a slippage cap, or a rounding epsilon — the reader cannot tell, and the next editor guesses wrong. A named constant carries the intent the literal hides, and makes a wrong value a visible one.',
+      'A bare 0.05 could be a fee, a discount, or a tolerance — the reader cannot tell, and the next editor guesses wrong. A named constant carries the intent the literal hides, and makes a wrong value a visible one.',
     satisfiedBy: {
       typescript:
         'const MAKER_FEE = 0.001; — not a bare 0.001 at the call site.',

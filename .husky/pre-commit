@@ -1,5 +1,5 @@
-# RuleOfCode v8.0.0 Constitutional Checkpoint (husky v9+ native hook)
-echo "🏛️ RuleOfCode v8.0.0 Constitutional Checkpoint"
+# RuleOfCode v8.0.1 Constitutional Checkpoint (husky v9+ native hook)
+echo "🏛️ RuleOfCode v8.0.1 Constitutional Checkpoint"
 
 # lint-staged only where the project configured it: init installs neither the
 # package nor a config, and husky runs this with sh -e, so an unconditional

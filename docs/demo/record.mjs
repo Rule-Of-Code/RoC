@@ -55,7 +55,7 @@ export const VERSION = '8.0.1';
  * The sha1 of that release's tarball: the candidate's before publish, which is
  * the file published, so `npm view ruleofcode@<VERSION> dist.shasum` after.
  */
-export const PACKAGE_SHA1 = 'TBD';
+export const PACKAGE_SHA1 = '5abd8c17157d8d4cd3a0f127b0baef5782afe006';
 /** The ruleofcode release the pass demo (pass.gif) runs; package.json pins it. */
 export const PASS_VERSION = '7.29.1';
 /** The commit tag v<PASS_VERSION> names; the pass demo refuses to record anything else. */

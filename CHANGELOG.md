@@ -65,11 +65,38 @@ the other #428 laws use). A
 command-line tool or a library has nobody to sign in; before, it was judged
 for an auth service, token storage and route guards it cannot have.
 Consequences: the stack templates advertise one applicable law fewer
-(python 94 → 93, frontend 97 → 96, node 73 → 72); in fast mode, where a
-project has a production subject, Authentication Security (a protected
-core law) now sits in that subject's gate group and holds its one quota
-slot, so Launch Readiness Checklist leaves the fast core of those
-profiles (it still runs in a full audit).
+(python 94 → 93, frontend 97 → 96, node 73 → 72). Applicable laws per
+release-canary profile:
+
+| profile | before | after | |
+|---|---|---|---|
+| python | 92 | 91 | loses Authentication Security (no production subject) |
+| node | 71 | 70 | loses Authentication Security (no production subject) |
+| angular | 119 | 119 | web surface: keeps it |
+| ngrx | 130 | 130 | web surface: keeps it |
+| ionic | 149 | 149 | web surface: keeps it |
+| react | 132 | 132 | web surface: keeps it |
+
+**Fast core: in a gate group the quota counts only the unprotected laws.**
+Gating Authentication Security (a protected core law) into the production-
+subject group made it take that group's one quota slot, and Launch
+Readiness Checklist (CRITICAL, `error`) left the fast core. Now, in a group
+with a `requires` gate, the share is of its unprotected laws and taken from
+them; the protected set and ungated groups are unchanged. Fast core per
+profile (core laws / selected, develop → after):
+
+| profile | develop | after | enters | leaves |
+|---|---|---|---|---|
+| python | 19/92 (20.7%) | 18/91 (19.8%) | — | Authentication Security (not selected) |
+| node | 17/71 (23.9%) | 16/70 (22.9%) | — | Authentication Security (not selected) |
+| angular | 27/119 (22.7%) | 27/119 (22.7%) | — | — |
+| ngrx | 29/130 (22.3%) | 29/130 (22.3%) | — | — |
+| ionic | 33/149 (22.1%) | 35/149 (23.5%) | Capacitor Plugin Platform Declarations, Capacitor Sync Artefacts Match Dependencies | — |
+| react | 29/132 (22.0%) | 32/132 (24.2%) | Next Client Env Public Only, Next Public Env Is Build Time, React Effect Resource Cleanup | — |
+
+Authentication Security and Launch Readiness Checklist are both in the fast
+core of every profile with a production subject; no CRITICAL `error` law
+that was in the core and is still selected leaves it.
 
 Self-audit of this repository: Data Encryption Standards 28 → 0;
 Authentication Security 1 finding → not selected (a CLI); Test Data

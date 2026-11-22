@@ -5,6 +5,25 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 🐛 Fixed — Performance Test Requirements recognises a spec that asserts a timing budget (#554)
+
+Performance tests were recognised only by file name (`*perf.test.ts`,
+`*benchmark.ts`, …) and critical flows only by words (`login`, `checkout`,
+…). An e2e spec that measures a flow and asserts a budget, such as
+`const ms = performance.now() - start; expect(ms).toBeLessThan(BUDGET_MS);`
+in `cold-start.e2e.spec.ts`, was "No performance test files found".
+
+A spec whose code reads `performance.now()` or `Date.now()` and asserts
+`toBeLessThan` / `toBeLessThanOrEqual` is now a performance test; the name
+patterns stay one way in. Beyond the issue's suggestion, such a budget in a
+spec that drives a browser or a device (`page.goto`, `cy.visit`,
+`browser.url`, `device.launchApp`) also counts as a critical-flow
+performance test: a cold start is as much a user flow as a login, and
+otherwise the finding would only have changed from "No performance test
+files found" to "Critical user flow performance tests not implemented".
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

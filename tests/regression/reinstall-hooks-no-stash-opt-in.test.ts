@@ -78,6 +78,15 @@ describe('#480 reinstall-hooks --no-stash (opt-in)', () => {
     expect(preCommit()).not.toMatch(WITH_STASH);
   });
 
+  it('--no-stash on an up-to-date hook, without --force: written, nothing kept back', async () => {
+    await executeReinstallHooksAction({ force: true }, dir);
+    await executeReinstallHooksAction({ stash: false } as never, dir);
+    expect(preCommit()).toMatch(NO_STASH);
+    expect(fs.existsSync(path.join(dir, '.husky', 'pre-commit.bak'))).toBe(
+      false
+    );
+  });
+
   it('a hook carrying the opt-in keeps it on the next reinstall, and is not outdated', async () => {
     await executeReinstallHooksAction(
       { force: true, stash: false } as never,

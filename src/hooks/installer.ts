@@ -23,6 +23,12 @@ export interface HooksInstallOptions {
    * hook is saved as `<hook>.bak` first.
    */
   keepEdited?: boolean;
+  /**
+   * Run lint-staged without its backup stash (#480). `undefined` keeps what
+   * the existing pre-commit hook does, so an opt-in survives the next
+   * reinstall.
+   */
+  lintStagedNoStash?: boolean;
 }
 
 /** What an install did to existing hooks it was asked to write over. */
@@ -35,6 +41,7 @@ export interface HooksWriteReport {
 
 interface WriteMode {
   force: boolean;
+  lintStagedNoStash: boolean;
   keepEdited: boolean;
   report: HooksWriteReport;
 }
@@ -71,7 +78,9 @@ export class GitHooksInstaller {
   static install(options: HooksInstallOptions): HooksWriteReport {
     const { projectRoot, config, force = false, keepEdited = false } = options;
     const report: HooksWriteReport = { refused: [], backups: [] };
-    const mode: WriteMode = { force, keepEdited, report };
+    const lintStagedNoStash =
+      options.lintStagedNoStash ?? this.hookRunsLintStagedNoStash(projectRoot);
+    const mode: WriteMode = { force, keepEdited, lintStagedNoStash, report };
 
     console.log(chalk.cyanBright('🔧 Installing RuleOfCode git hooks...'));
 
@@ -143,10 +152,51 @@ export class GitHooksInstaller {
     return true;
   }
 
-  /** The two hooks are the same apart from version stamps and line endings. */
+  /** The existing pre-commit hook runs `npx lint-staged --no-stash` (the #480 opt-in). */
+  private static hookRunsLintStagedNoStash(projectRoot: string): boolean {
+    const hookPath = PathOperations.join(
+      projectRoot,
+      this.HUSKY_DIR,
+      this.PRE_COMMIT_HOOK
+    );
+    if (!FileUtils.exists(hookPath)) return false;
+    return /^\s*npx lint-staged --no-stash\s*$/m.test(
+      FileUtils.readFile(hookPath)
+    );
+  }
+
+  /**
+   * The lint-staged call of the pre-commit hook. lint-staged saves a backup
+   * with `git stash` and restores it when a task fails; the stash list
+   * belongs to the repository, not the worktree, so with several worktrees
+   * committing at once one hook can restore another's backup. `--no-stash`
+   * avoids that, and loses the backup a task that rewrites files relies on:
+   * opt-in only (`reinstall-hooks --no-stash`).
+   */
+  private static lintStagedCall(noStash: boolean): string {
+    if (!noStash) return '  npx lint-staged';
+    return [
+      '  # Opt-in (reinstall-hooks --no-stash): no backup stash. The stash list',
+      '  # belongs to the repository, not the worktree, so with several worktrees',
+      "  # committing at once one hook could restore another worktree's backup.",
+      '  # Only safe when no lint-staged task rewrites files.',
+      '  npx lint-staged --no-stash',
+    ].join('\n');
+  }
+
+  /**
+   * The two hooks are the same apart from version stamps, line endings and
+   * the generated lint-staged call — with or without the #480 opt-in, which
+   * is this tool's own text, not a line of the project's.
+   */
   private static sameButVersion(a: string, b: string): boolean {
+    const optIn = this.lintStagedCall(true);
     const plain = (text: string): string =>
-      text.replace(/\r\n/g, '\n').replace(VERSION_STAMP, 'v*');
+      text
+        .replace(/\r\n/g, '\n')
+        .replace(VERSION_STAMP, 'v*')
+        .split(optIn)
+        .join(this.lintStagedCall(false));
     return plain(a) === plain(b);
   }
 
@@ -187,7 +237,7 @@ if [ "$roc_lint_staged" = 0 ] && node -e "process.exit(require('./package.json')
   roc_lint_staged=1
 fi
 if [ "$roc_lint_staged" = 1 ]; then
-  npx lint-staged
+${this.lintStagedCall(mode.lintStagedNoStash)}
 fi
 
 # Run constitutional audit on staged files

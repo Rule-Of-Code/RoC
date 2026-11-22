@@ -7,7 +7,7 @@
  *
  * `thresholds.python.exactEqualityIn` declares the modules where exact float
  * equality is CORRECT, not sloppy: money quantised by construction
- * (`pnl_usd = round(x, 2)`) has an exact invariant, and pytest.approx there
+ * (`total = round(x, 2)`) has an exact invariant, and pytest.approx there
  * would hide a one-cent regression. Declare the money modules — do not
  * silence the law globally.
  */

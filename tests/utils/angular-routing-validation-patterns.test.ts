@@ -30,13 +30,6 @@ describe('utils/angular/angular-routing/angular-routing-validation-patterns', ()
     jest.restoreAllMocks();
   });
 
-  afterAll(async () => {
-    jest.clearAllMocks();
-    jest.clearAllTimers();
-    jest.restoreAllMocks();
-    await new Promise(resolve => setTimeout(resolve, 50));
-  });
-
   describe('analyzeRoutingPatterns', () => {
     it('should detect lazy loading with loadChildren', () => {
       const patterns = AngularRoutingConfiguration.analyzeRoutingPatterns(

@@ -250,9 +250,11 @@ describe('utils/angular/ngrx-setup/ngrx-setup-validation', () => {
     });
 
     describe('getSetupAnalysisSummary', () => {
+      // Same summary as the owner, called on the owner (#511).
       it('should delegate to NgRxAnalysisUtilities.getSetupAnalysisSummary', () => {
-        expect(NgRxSetupValidation.getSetupAnalysisSummary).toBe(
-          NgRxAnalysisUtilities.getSetupAnalysisSummary
+        const results = { violations: ['v'], suggestions: ['s'] };
+        expect(NgRxSetupValidation.getSetupAnalysisSummary(results)).toEqual(
+          NgRxAnalysisUtilities.getSetupAnalysisSummary(results)
         );
       });
     });

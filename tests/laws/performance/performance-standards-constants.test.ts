@@ -203,7 +203,7 @@ describe('CoreWebVitalsConstants', () => {
 
     it('should have INTEGRATION_VIOLATION_MESSAGE', () => {
       expect(CoreWebVitalsConstants.INTEGRATION_VIOLATION_MESSAGE).toBe(
-        'Core Web Vitals library not integrated in main application files'
+        'web-vitals is declared but no metric is measured: no onLCP / onINP / onCLS (or v3 get*) call found in the sources'
       );
     });
 

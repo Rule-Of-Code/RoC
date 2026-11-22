@@ -5,6 +5,28 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed — Web Vitals monitoring is recognised by the measurement in the code
+
+Performance Standards, Performance Monitoring Policy and Performance
+Monitoring Standards each recognised Core Web Vitals monitoring through their
+own copy of the web-vitals v3 names (`getLCP`, `getCLS` …), read in a few fixed
+files (`main.ts`, `app.component.ts`), or through a declared `web-vitals`
+dependency. An app that measures LCP, CLS and INP itself with
+`PerformanceObserver` was told monitoring is "not implemented" by all three;
+web-vitals v4 (`onLCP` …) in a module of its own was not seen by Performance
+Monitoring Standards; and a `web-vitals` dependency that nothing calls passed
+the Core Web Vitals check of Performance Monitoring Policy (#553).
+
+The three laws now read one source: a measurement in the production sources
+(tests excluded) — a web-vitals call (v3 `get*` or v4 `on*`) or
+`useReportWebVitals` in a file that imports it, or a `PerformanceObserver` on
+`largest-contentful-paint`, `layout-shift`, `event` or `first-input`. The result
+names what was found and where. A declared `web-vitals` that nothing calls is
+reported as such. In a React/Next project, files the parser could not read are
+reported as not read and are not judged by the text scan.
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

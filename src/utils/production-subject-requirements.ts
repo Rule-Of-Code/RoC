@@ -13,9 +13,54 @@
  * never the name or path of a particular project.
  */
 
+import * as fs from 'fs';
 import type { LawRequirement } from '../types/enhanced-law.types';
 import { REQUIRES_SERVERLESS_DEPLOY } from './deployment/serverless-platforms';
 import { TEST_TREES } from './edge-deploy/gate-files';
+import { NxWorkspace } from './nx-workspace';
+
+const FIREBASE_JSON = 'firebase.json';
+
+/** What the firebase.json files of a project say about web hosting. */
+export interface FirebaseHosting {
+  /** A firebase.json (root or workspace project) parses and has a top-level `hosting`. */
+  hosting: boolean;
+  /** firebase.json files that could not be read or parsed, with the reason. */
+  unreadable: string[];
+}
+
+/**
+ * firebase.json configures several products; only its `hosting` key declares
+ * something a browser loads. `firestore`, `functions`, `storage` and
+ * `emulators` serve no page (#547). The file is parsed, not searched: the
+ * word "hosting" also appears under `emulators`.
+ */
+export function firebaseHosting(projectRoot: string): FirebaseHosting {
+  const unreadable: string[] = [];
+  let hosting = false;
+  for (const file of NxWorkspace.resolveSourceFiles(
+    projectRoot,
+    FIREBASE_JSON
+  )) {
+    try {
+      const parsed: unknown = JSON.parse(fs.readFileSync(file, 'utf8'));
+      if (
+        parsed !== null &&
+        typeof parsed === 'object' &&
+        !Array.isArray(parsed) &&
+        'hosting' in parsed
+      ) {
+        hosting = true;
+      }
+    } catch (error) {
+      const rel = file.slice(projectRoot.length).replace(/^[\\/]+/, '');
+      unreadable.push(
+        `${rel.replace(/\\/g, '/')}: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+  return { hosting, unreadable };
+}
 
 /**
  * A Node HTTP framework is declared, so something here answers HTTP. A
@@ -75,7 +120,7 @@ export const REQUIRES_DEPLOY_TARGET: LawRequirement = {
         'render.yaml',
         'railway.json',
         'railway.toml',
-        'firebase.json',
+        FIREBASE_JSON,
         'vercel.json',
         'netlify.toml',
         'wrangler.toml',
@@ -123,7 +168,7 @@ export const REQUIRES_WEB_SURFACE: LawRequirement = {
         'next.config.ts',
         'nuxt.config.ts',
         'nuxt.config.js',
-        'firebase.json',
+        FIREBASE_JSON,
         'netlify.toml',
         'vercel.json',
         'wrangler.toml',

@@ -346,6 +346,7 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Selected only for a web surface: a browser framework dependency (@angular/core, react-dom, vue, svelte, next, nuxt, astro, lit …), a web build or hosting config (angular.json, next.config.*, firebase.json, vercel.json, netlify.toml, wrangler.toml, nginx.conf), or an HTML page of the project outside test trees. A pure backend, a CLI tool or a library is not selected.',
+      'Without TS/JS sources or another web config, a firebase.json counts as a web surface only when it parses and has a top-level hosting key (Firestore, Functions or Storage alone serve no page); one that does not parse is reported as not read. The selector still selects the law on the presence of firebase.json.',
       'Its CDN check matches a bare "assets" or "cdn" anywhere in an env file, a trivially-satisfied false pass.',
       'All detection is config-file presence; no runtime CDN/edge verification.',
       'TS/JS + web config only.',

@@ -5,6 +5,22 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed — CDN and Caching Strategy: firebase.json is a web surface only with hosting
+
+A `firebase.json` switched the law on by its presence. It configures several
+products, and only its `hosting` key declares something a browser loads. A
+Python API whose `firebase.json` holds Firestore rules and indexes was asked
+for a CDN, caching headers and a service worker (#547).
+
+Without TypeScript/JavaScript sources or another web config, the law now
+counts `firebase.json` (at the root or in a workspace project) only when it
+parses and has a top-level `hosting` key; otherwise it is not applicable. A
+`firebase.json` that does not parse is reported as not read: the law judged
+nothing and does not pass. The `requires` selector still selects the law on
+the presence of `firebase.json`; that part follows separately.
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

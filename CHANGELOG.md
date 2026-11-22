@@ -5,7 +5,35 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [8.0.0] - 2026-11-22
+
+**A major release with six breaking changes.** Upgrading from 7.29.1:
+
+- **Node 20 or later** (#21).
+- **`compliance` and the victory art mean a clean pass**: no failed law, no
+  waiver, no warning, and no law that judged nothing. A law that read none of
+  its files makes the run `partial` instead of counting as a pass or a
+  finding (#427).
+- **Laws about a running product run only where there is one.** CDN and
+  Caching, Performance Monitoring, Incident Response, Launch Readiness and
+  Authentication Security need an HTTP service, a web surface, a mobile app or
+  a deploy target. NX Commands Only needs Nx or Angular. MD Footer Template is
+  opt-in. Laws selected per release-canary profile, 7.29.1 → 8.0.0: python
+  97 → 91, node 77 → 70, angular 120 → 119, angular + NgRx 131 → 130, ionic
+  150 → 149, react 134 → 132. In fast mode, gating no longer pushes a
+  CRITICAL `error` law out of the core.
+- **Code Documentation Standards judges each exported class and function**,
+  not ratios (#439).
+- **Test Coverage counts a file a test imports directly as covered**, not
+  only a file with a test of the same name.
+- **The Next laws walk one module graph, as Next sees the code**. What cannot
+  be read is reported as not read (#287).
+
+Also changed: TypeScript Strict Mode no longer requires
+`noPropertyAccessFromIndexSignature` or source maps. Many detectors now read
+code, not text in strings and comments (#424, #426), and judge only where
+they read (#427, #486). No law was added or removed (265). Each change has its
+own section below.
 
 ### 🐛 Fixed — TODO Management Constitutional Requirements reads TODO markers in comments of tracked files
 

@@ -7,7 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [8.0.1] - 2026-11-22
 
-A summary-count fix and the README demo. No law added or removed (265).
+A summary-count fix, general examples in three law rationales, and the
+README demo. No law added or removed (265).
 
 ### 🐛 Fixed — the summary counts add up to the laws checked
 
@@ -28,6 +29,15 @@ judged nothing, at any severity, is still named in `scope.judgedNothingLaws`,
 which is unchanged (and still makes the run `partial`). A consumer that read
 `stats.judgedNothingLaws` as "all laws that judged nothing" should read
 `scope.judgedNothingLaws.length`.
+
+### 📝 Changed — law texts give general examples
+
+The rationales of Performance Monitoring Standards, No Hostname Gating and
+Magic Number Prevention, a comment in `templates/recommended-python.config.json`
+and one suggestion of Side Effects in NgRx Effects told the story of one
+project. They now give general examples. Detection, severity and slugs are
+unchanged: `laws --json` differs from 8.0.0 only in those three `rationale`
+fields.
 
 ### 🐛 Fixed — the README demo is the output of this release, and npm and GitHub show the same recording
 

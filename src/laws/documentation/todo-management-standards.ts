@@ -4,6 +4,7 @@ import { ConfigFileUtils } from '../../utils/config-file-utils';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 import { commentLines } from '../../utils/comment-text';
+import { trackedFiles } from '../../utils/integrity/tracked-files';
 // Interfaces for TODO analysis
 interface TodoFormattingAnalysis {
   properlyFormattedCount: number;
@@ -186,18 +187,23 @@ export class TodoManagementStandardsLaw {
     todos: TODOComment[]
   ): void {
     try {
-      const allFiles = CheckerUtils.findFilesByExtension(
+      const extensions = [
+        ...CheckerUtils.getCommonExtensions().ALL_CODE,
+        '.html',
+        '.scss',
+        '.css',
+        '.md',
+        // Python is a stack RoC audits; its markers are `#` comments.
+        '.py',
+      ];
+      const allFiles = this.withoutGitignored(
         dirPath,
-        [
-          ...CheckerUtils.getCommonExtensions().ALL_CODE,
-          '.html',
-          '.scss',
-          '.css',
-          '.md',
-          // Python is a stack RoC audits; its markers are `#` comments.
-          '.py',
-        ],
-        ConfigFileUtils.getMinimalDefaultConfig()
+        CheckerUtils.findFilesByExtension(
+          dirPath,
+          extensions,
+          ConfigFileUtils.getMinimalDefaultConfig()
+        ),
+        extensions
       );
 
       for (const filePath of allFiles) {
@@ -209,6 +215,28 @@ export class TodoManagementStandardsLaw {
     } catch (_error) {
       // Skip directories that can't be read
     }
+  }
+
+  /**
+   * The files found on disk that git tracks. A gitignored file (generated
+   * output, a local scratch file) is nobody's pending task (RoC_web, 8.0.0
+   * rc1). Outside a git repository nothing is ignored by git, so every file
+   * found is kept.
+   */
+  private static withoutGitignored(
+    projectRoot: string,
+    files: string[],
+    extensions: readonly string[]
+  ): string[] {
+    const tracked = trackedFiles(
+      projectRoot,
+      extensions.map(ext => `*${ext}`)
+    );
+    if (!tracked.ok) return files;
+    const key = (file: string): string =>
+      PathOperations.resolve(file).replace(/\\/g, '/').toLowerCase();
+    const inIndex = new Set(tracked.files.map(key));
+    return files.filter(file => inIndex.has(key(file)));
   }
 
   private static isCodeFile(filename: string): boolean {

@@ -11,7 +11,7 @@ Project type: typescript (detected)
    Run 'npx ruleofcode reinstall-hooks' to install them
 
 ⚖️  Executing constitutional checks...
-🔍 Processing 19 laws (parallel: true)
+🔍 Processing 18 laws (parallel: true)
 
 
 ════════════════════════════════════════════════════════════
@@ -20,10 +20,10 @@ Project type: typescript (detected)
 
 📊 AUDIT SUMMARY:
 ────────────────────────────────────────────────────────────
-Total Laws Checked: 19
-  of which count for the liveness floor: 17 (+2 always-on meta-gates — set laws.minLawsChecked against 17)
+Total Laws Checked: 18
+  of which count for the liveness floor: 16 (+2 always-on meta-gates — set laws.minLawsChecked against 16)
 
-✓ Passed: 19
+✓ Passed: 18
 ✗ Failed: 0
 Score: 100% (Pass Rate: 100%)
 Execution time: <n>ms
@@ -43,16 +43,15 @@ Execution time: <n>ms
 10. Environment Security Enforcement (Score: 100/100)
 11. Security Vulnerability Response (Score: 100/100)
 12. Data Encryption Standards (Score: 100/100)
-13. Authentication Security (Score: 100/100)
-14. API Security Standards (Score: 100/100)
-15. Dependency Security Scanning (Score: 100/100)
-16. Pre-Deployment Checklist (MANDATORY) (Score: 100/100)
-17. CI/CD Constitutional Tribunal (Score: 100/100)
-18. Audit Liveness Assertion (Score: 100/100)
-19. Config Integrity Guard (Score: 100/100)
+13. API Security Standards (Score: 100/100)
+14. Dependency Security Scanning (Score: 100/100)
+15. Pre-Deployment Checklist (MANDATORY) (Score: 100/100)
+16. CI/CD Constitutional Tribunal (Score: 100/100)
+17. Audit Liveness Assertion (Score: 100/100)
+18. Config Integrity Guard (Score: 100/100)
 
 ════════════════════════════════════════════════════════════
-⚠️  PARTIAL SCAN — 17 of 71 applicable laws ran (narrowed by paretoMode). The selected laws passed; no compliance verdict.
+⚠️  PARTIAL SCAN — 16 of 70 applicable laws ran (narrowed by paretoMode). The selected laws passed; no compliance verdict.
    The laws that did not run cannot have passed.
    For a compliance verdict run the full set: paretoMode: false and no --mode=fast.
 ════════════════════════════════════════════════════════════

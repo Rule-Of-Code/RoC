@@ -6,15 +6,15 @@
     "source": "detected"
   },
   "scope": {
-    "executedLaws": 71,
-    "selectedLaws": 71,
-    "applicableLaws": 71,
+    "executedLaws": 70,
+    "selectedLaws": 70,
+    "applicableLaws": 70,
     "partial": false
   },
   "stats": {
-    "executedLaws": 73,
-    "totalLaws": 73,
-    "passedLaws": 73,
+    "executedLaws": 72,
+    "totalLaws": 72,
+    "passedLaws": 72,
     "failedLaws": 0,
     "warningLaws": 0,
     "score": 100
@@ -542,19 +542,6 @@
     },
     {
       "id": "law-40",
-      "lawId": "security_db5e3ca1",
-      "legacyId": 46,
-      "lawTitle": "Authentication Security",
-      "passed": true,
-      "score": 100,
-      "violations": [],
-      "suggestions": [],
-      "message": "stub pass",
-      "severity": "error",
-      "lawName": "authentication-security"
-    },
-    {
-      "id": "law-41",
       "lawId": "security_0e026da8",
       "legacyId": 49,
       "lawTitle": "API Security Testing Requirements",
@@ -567,7 +554,7 @@
       "lawName": "api-security-testing-requirements"
     },
     {
-      "id": "law-42",
+      "id": "law-41",
       "lawId": "security_a8d3e1aa",
       "legacyId": 60,
       "lawTitle": "API Security Standards",
@@ -580,7 +567,7 @@
       "lawName": "api-security-standards"
     },
     {
-      "id": "law-43",
+      "id": "law-42",
       "lawId": "security_a0bcc52d",
       "legacyId": 61,
       "lawTitle": "Dependency Security Scanning",
@@ -593,7 +580,7 @@
       "lawName": "dependency-security-scanning"
     },
     {
-      "id": "law-44",
+      "id": "law-43",
       "lawId": "security_27fd7fd7",
       "legacyId": 60,
       "lawTitle": "Comprehensive Security Testing Requirements",
@@ -606,7 +593,7 @@
       "lawName": "comprehensive-security-testing-requirements"
     },
     {
-      "id": "law-45",
+      "id": "law-44",
       "lawId": "performance_0f6e2c27",
       "legacyId": 56,
       "lawTitle": "Memory Leak Prevention",
@@ -619,7 +606,7 @@
       "lawName": "memory-leak-prevention"
     },
     {
-      "id": "law-46",
+      "id": "law-45",
       "lawId": "performance_015917d8",
       "legacyId": 57,
       "lawTitle": "Database Query Optimization",
@@ -632,7 +619,7 @@
       "lawName": "database-query-optimization"
     },
     {
-      "id": "law-47",
+      "id": "law-46",
       "lawId": "testing_557c4854",
       "legacyId": 60,
       "lawTitle": "Test Coverage Constitutional Standard",
@@ -645,7 +632,7 @@
       "lawName": "test-coverage-constitutional-standard"
     },
     {
-      "id": "law-48",
+      "id": "law-47",
       "lawId": "testing_476ee197",
       "legacyId": 61,
       "lawTitle": "E2E Testing Standards",
@@ -658,7 +645,7 @@
       "lawName": "e2e-testing-standards"
     },
     {
-      "id": "law-49",
+      "id": "law-48",
       "lawId": "testing_21073589",
       "legacyId": 62,
       "lawTitle": "Unit Test Quality Standards",
@@ -671,7 +658,7 @@
       "lawName": "unit-test-quality-standards"
     },
     {
-      "id": "law-50",
+      "id": "law-49",
       "lawId": "testing_fe80f055",
       "legacyId": 65,
       "lawTitle": "Test Data Management",
@@ -684,7 +671,7 @@
       "lawName": "test-data-management"
     },
     {
-      "id": "law-51",
+      "id": "law-50",
       "lawId": "testing_307d2a4f",
       "legacyId": 66,
       "lawTitle": "Test Isolation Enforcement",
@@ -697,7 +684,7 @@
       "lawName": "test-isolation-enforcement"
     },
     {
-      "id": "law-52",
+      "id": "law-51",
       "lawId": "testing_fc963968",
       "legacyId": 67,
       "lawTitle": "API Testing Standards",
@@ -710,7 +697,7 @@
       "lawName": "api-testing-standards"
     },
     {
-      "id": "law-53",
+      "id": "law-52",
       "lawId": "testing_0bd3e1f5",
       "legacyId": 69,
       "lawTitle": "Test Documentation Requirements",
@@ -723,7 +710,7 @@
       "lawName": "test-documentation-requirements"
     },
     {
-      "id": "law-54",
+      "id": "law-53",
       "lawId": "testing_11a2e367",
       "legacyId": 70,
       "lawTitle": "Jest Unit Test 100% Coverage Mandate",
@@ -736,7 +723,7 @@
       "lawName": "jest-unit-test-100%-coverage-mandate"
     },
     {
-      "id": "law-55",
+      "id": "law-54",
       "lawId": "deployment_37c13d47",
       "legacyId": 71,
       "lawTitle": "Pre-Deployment Checklist (MANDATORY)",
@@ -749,7 +736,7 @@
       "lawName": "pre-deployment-checklist-(mandatory)"
     },
     {
-      "id": "law-56",
+      "id": "law-55",
       "lawId": "deployment_2dfc084c",
       "legacyId": 72,
       "lawTitle": "CI/CD Constitutional Tribunal",
@@ -762,7 +749,7 @@
       "lawName": "ci/cd-constitutional-tribunal"
     },
     {
-      "id": "law-57",
+      "id": "law-56",
       "lawId": "deployment_12c23cce",
       "legacyId": 74,
       "lawTitle": "Pre-PR Quality Gates",
@@ -775,7 +762,7 @@
       "lawName": "pre-pr-quality-gates"
     },
     {
-      "id": "law-58",
+      "id": "law-57",
       "lawId": "deployment_01dbde1f",
       "legacyId": 75,
       "lawTitle": "Automated Code Quality Gates",
@@ -788,7 +775,7 @@
       "lawName": "automated-code-quality-gates"
     },
     {
-      "id": "law-59",
+      "id": "law-58",
       "lawId": "deployment_b3f26bd6",
       "legacyId": 78,
       "lawTitle": "Environment Parity Standards",
@@ -801,7 +788,7 @@
       "lawName": "environment-parity-standards"
     },
     {
-      "id": "law-60",
+      "id": "law-59",
       "lawId": "deployment_666d10d7",
       "legacyId": 79,
       "lawTitle": "Health Check Monitoring",
@@ -814,7 +801,7 @@
       "lawName": "health-check-monitoring"
     },
     {
-      "id": "law-61",
+      "id": "law-60",
       "lawId": "docs_90594915",
       "legacyId": 884,
       "lawTitle": "Documentation Standards",
@@ -827,7 +814,7 @@
       "lawName": "documentation-standards"
     },
     {
-      "id": "law-62",
+      "id": "law-61",
       "lawId": "docs_3275e142",
       "legacyId": 885,
       "lawTitle": "Project Structure Standards",
@@ -840,7 +827,7 @@
       "lawName": "project-structure-standards"
     },
     {
-      "id": "law-63",
+      "id": "law-62",
       "lawId": "docs_baf8f0af",
       "legacyId": 81,
       "lawTitle": "TODO Management Constitutional Requirements",
@@ -853,7 +840,7 @@
       "lawName": "todo-management-constitutional-requirements"
     },
     {
-      "id": "law-64",
+      "id": "law-63",
       "lawId": "docs_ad613f2f",
       "legacyId": 82,
       "lawTitle": "TODO Management Standards",
@@ -866,7 +853,7 @@
       "lawName": "todo-management-standards"
     },
     {
-      "id": "law-65",
+      "id": "law-64",
       "lawId": "docs_42b0ad34",
       "legacyId": 83,
       "lawTitle": "MD Footer Footer Consistency",
@@ -879,7 +866,7 @@
       "lawName": "md-footer-footer-consistency"
     },
     {
-      "id": "law-66",
+      "id": "law-65",
       "lawId": "docs_ad314474",
       "legacyId": 84,
       "lawTitle": "Strategic Document Updates",
@@ -892,7 +879,7 @@
       "lawName": "strategic-document-updates"
     },
     {
-      "id": "law-67",
+      "id": "law-66",
       "lawId": "meta_59c6436e",
       "legacyId": 226,
       "lawTitle": "Audit Liveness Assertion",
@@ -905,7 +892,7 @@
       "severity": "error"
     },
     {
-      "id": "law-68",
+      "id": "law-67",
       "lawId": "meta_5ef1482c",
       "legacyId": 227,
       "lawTitle": "Config Integrity Guard",
@@ -918,7 +905,7 @@
       "severity": "error"
     },
     {
-      "id": "law-69",
+      "id": "law-68",
       "lawId": "meta_381a664d",
       "legacyId": 232,
       "lawTitle": "Golden Fixture Immutability",
@@ -931,7 +918,7 @@
       "lawName": "golden-fixture-immutability"
     },
     {
-      "id": "law-70",
+      "id": "law-69",
       "lawId": "integrity_77931c4a",
       "legacyId": 593,
       "lawTitle": "Guard Function Has Production Caller",
@@ -944,7 +931,7 @@
       "lawName": "guard-function-has-production-caller"
     },
     {
-      "id": "law-71",
+      "id": "law-70",
       "lawId": "integrity_f6e5dfa9",
       "legacyId": 594,
       "lawTitle": "Tsconfig Exclude Leaves Code Untyped",
@@ -957,7 +944,7 @@
       "lawName": "tsconfig-exclude-leaves-code-untyped"
     },
     {
-      "id": "law-72",
+      "id": "law-71",
       "lawId": "measurement_be445ad1",
       "legacyId": 891,
       "lawTitle": "Test Server Loopback Address Match",

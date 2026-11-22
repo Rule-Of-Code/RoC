@@ -58,7 +58,7 @@ export class SideEffectsInNgrxEffectsLaw extends AngularLawBase {
       'Side Effects in NgRx Effects',
       'ANGULAR_LAW',
       [
-        'Move polling/long-lived streams into an NgRx Effect (see bot.effects.ts)',
+        'Move polling/long-lived streams into an NgRx Effect (e.g. polling.effects.ts)',
         'Dispatch an action instead of calling dispatch() inside subscribe()',
       ],
       context

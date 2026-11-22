@@ -471,11 +471,4 @@ describe('NgRxStateNormalizationPatternConstants', () => {
       ]);
     });
   });
-
-  afterAll(async () => {
-    jest.clearAllMocks();
-    jest.clearAllTimers();
-    jest.restoreAllMocks();
-    await new Promise(resolve => setTimeout(resolve, 50));
-  });
 });

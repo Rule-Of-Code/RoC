@@ -247,18 +247,24 @@ export class FormControlLabelingLaw extends AccessibilityLawBase {
     if (naming.ariaLabelledBy && TemplateMarkup.has(element, ARIA_LABELLEDBY))
       return true;
     if (naming.labelProperty && this.hasLabelProperty(element)) return true;
-    if (
-      naming.labelSlot &&
-      TemplateMarkup.descendants(element).some(
-        child => TemplateMarkup.staticValue(child, 'slot') === 'label'
-      )
-    ) {
-      return true;
-    }
-    if (naming.defaultSlot && this.hasDefaultSlotContent(element)) return true;
+    if (this.slotNames(element, naming)) return true;
     return (
       naming.wrappingLabel &&
       TemplateMarkup.ancestor(element, ['label']) !== null
+    );
+  }
+
+  /** A child in `slot="label"`, or content in the default slot, where the component reads it. */
+  private static slotNames(
+    element: MarkupElement,
+    naming: IonicNaming
+  ): boolean {
+    return (
+      (naming.labelSlot &&
+        TemplateMarkup.descendants(element).some(
+          child => TemplateMarkup.staticValue(child, 'slot') === 'label'
+        )) ||
+      (naming.defaultSlot && this.hasDefaultSlotContent(element))
     );
   }
 

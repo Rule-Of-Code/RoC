@@ -16,6 +16,7 @@
  * sets aria-expanded on its own header button (accordion.js:155).
  */
 
+import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import {
   jsxAttribute,
@@ -119,25 +120,33 @@ export class DisclosureControlAriaStateLaw extends AccessibilityLawBase {
       ) {
         continue;
       }
-      const initializer = property.initializer;
-      const handler =
-        initializer && ts.isJsxExpression(initializer)
-          ? initializer.expression
-          : undefined;
-      if (
-        !handler ||
-        !ts.isArrowFunction(handler) ||
-        !ts.isCallExpression(handler.body)
-      )
-        return false;
-      const args = handler.body.arguments;
-      return (
-        args.length === 1 &&
-        (args[0]?.kind === ts.SyntaxKind.TrueKeyword ||
-          args[0]?.kind === ts.SyntaxKind.FalseKeyword)
-      );
+      return this.callsWithBoolean(file, property.initializer);
     }
     return false;
+  }
+
+  /** `{() => set(true)}` / `{() => set(false)}`: an arrow that calls one function with a boolean literal. */
+  private static callsWithBoolean(
+    file: JsxFile,
+    initializer: TS.JsxAttributeValue | undefined
+  ): boolean {
+    const ts = file.source.ts;
+    const handler =
+      initializer && ts.isJsxExpression(initializer)
+        ? initializer.expression
+        : undefined;
+    if (
+      !handler ||
+      !ts.isArrowFunction(handler) ||
+      !ts.isCallExpression(handler.body)
+    )
+      return false;
+    const args = handler.body.arguments;
+    return (
+      args.length === 1 &&
+      (args[0]?.kind === ts.SyntaxKind.TrueKeyword ||
+        args[0]?.kind === ts.SyntaxKind.FalseKeyword)
+    );
   }
 
   /** Toggles without the state, and Ionic toggles whose state cannot follow. */

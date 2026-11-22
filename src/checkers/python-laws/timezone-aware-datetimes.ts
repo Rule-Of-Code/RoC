@@ -1,8 +1,8 @@
 /**
  * Timezone-Aware Datetimes
  * Naive datetime.now() / datetime.utcnow() / date.today() in source is the root
- * of a whole class of money bugs in trading systems (daily kill-switch latches,
- * trading-day boundaries, DST drift). Require tz-aware construction
+ * of a whole class of date bugs (daily boundaries computed in the wrong zone,
+ * jobs that run twice or never across a DST change). Require tz-aware construction
  * (datetime.now(UTC) / ZoneInfo). Tests are excluded — No Wall-Clock In Tests
  * covers them separately. No-AST honesty: aliased imports
  * (`from datetime import datetime as dt`) are only partially covered.

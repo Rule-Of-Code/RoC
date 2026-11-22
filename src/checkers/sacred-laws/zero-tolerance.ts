@@ -14,6 +14,10 @@ import { PathOperations } from '../../utils/path-operations';
 import { readTsconfigChain } from '../../utils/tsconfig-chain';
 import { SacredLawBase } from './sacred-law-base';
 
+/** The two tsconfig findings; the advice for them looks for the same text. */
+const STRICT_OFF = 'TypeScript strict mode not enabled';
+const NO_IMPLICIT_ANY_OFF = 'TypeScript noImplicitAny not enabled';
+
 export class ZeroToleranceLaw {
   static check(context: LawCheckContext): LawResult {
     const { projectRoot } = context;
@@ -36,12 +40,25 @@ export class ZeroToleranceLaw {
       violations,
       'Zero Tolerance Doctrine',
       'SACRED_LAW',
-      [
-        'Enable TypeScript strict mode',
-        'Configure ESLint',
-        'Fix all errors and warnings',
-      ]
+      this.suggestionsFor(violations)
     );
+  }
+
+  /**
+   * The advice that answers a finding of this run, and only that. The list was
+   * fixed, so a tsconfig the law could not read got "Enable TypeScript strict
+   * mode" next to "tsconfig.json … NOT read" (#506, QA on #503).
+   */
+  private static suggestionsFor(violations: string[]): string[] {
+    const has = (text: string): boolean => violations.includes(text);
+    const advice: Array<[boolean, string]> = [
+      [
+        has(STRICT_OFF) || has(NO_IMPLICIT_ANY_OFF),
+        'Enable TypeScript strict mode',
+      ],
+      [has('ESLint configuration not found'), 'Configure ESLint'],
+    ];
+    return advice.filter(([applies]) => applies).map(([, text]) => text);
   }
 
   /** The ESLint config files, flat and legacy, that configure a project. */
@@ -85,8 +102,8 @@ export class ZeroToleranceLaw {
   ): void {
     const tsConfigPath = PathOperations.join(projectRoot, 'tsconfig.json');
     if (!FileUtils.fileExistsSync(tsConfigPath)) {
-      violations.push('TypeScript strict mode not enabled');
-      violations.push('TypeScript noImplicitAny not enabled');
+      violations.push(STRICT_OFF);
+      violations.push(NO_IMPLICIT_ANY_OFF);
       return;
     }
     const chain = readTsconfigChain(tsConfigPath);
@@ -102,8 +119,8 @@ export class ZeroToleranceLaw {
     }
     const unknown: string[] = [];
     for (const [flag, finding] of [
-      ['strict', 'TypeScript strict mode not enabled'],
-      ['noImplicitAny', 'TypeScript noImplicitAny not enabled'],
+      ['strict', STRICT_OFF],
+      ['noImplicitAny', NO_IMPLICIT_ANY_OFF],
     ] as const) {
       if (chain.options[flag]) continue;
       if (chain.unread.length > 0 && chain.options[flag] === undefined) {

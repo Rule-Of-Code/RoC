@@ -78,8 +78,7 @@ export class AsyncTestAnalyzerConfiguration {
     },
     {
       checker: (content: string) =>
-        content.includes('setTimeout') &&
-        !content.includes('jest.useFakeTimers'),
+        AsyncTestAnalyzerConfiguration.waitsOnRealTimer(content),
       message:
         AsyncTestAnalyzerConfiguration.ISSUE_MESSAGES
           .SETTIMEOUT_WITHOUT_FAKE_TIMERS,
@@ -130,6 +129,32 @@ export class AsyncTestAnalyzerConfiguration {
    * Object literals are deliberately absent: `await { then() {} }` awaits a
    * thenable and is legitimate.
    */
+  /**
+   * A `setTimeout(` call, with the name its handle is kept in, if any.
+   * `jest.setTimeout(n)` is not one: it sets how long a test may run.
+   */
+  static readonly TIMER_CALL =
+    /(?:\b([A-Za-z_$][\w$]*)\s*=\s*)?(?<!\bjest\.)\bsetTimeout\s*\(/g;
+
+  /**
+   * Whether a test waits on a real timer (#429). Not a wait: `jest.setTimeout`
+   * (the test's time limit), a watchdog whose handle the file clears with
+   * `clearTimeout(handle)` (a guard on a real process, not a sleep), or any
+   * timer under fake timers (`jest.`, `vi.` or `sinon.useFakeTimers`). Read
+   * on the code of the file, so a timer in a fixture string is not one.
+   */
+  static waitsOnRealTimer(code: string): boolean {
+    if (/\buseFakeTimers\s*\(/.test(code)) return false;
+    for (const match of code.matchAll(this.TIMER_CALL)) {
+      const handle = match[1];
+      const cleared =
+        handle !== undefined &&
+        new RegExp(`\\bclearTimeout\\s*\\(\\s*${handle}\\s*\\)`).test(code);
+      if (!cleared) return true;
+    }
+    return false;
+  }
+
   static readonly AWAITED_LITERAL =
     /\bawait\s+(?:-?\d[\d_.]*\b|'[^']*'|"[^"]*"|true\b|false\b|null\b|undefined\b|\[)/;
 
@@ -154,8 +179,7 @@ export class AsyncTestAnalyzerConfiguration {
       },
       {
         checker: (content: string) =>
-          content.includes('setTimeout') &&
-          !content.includes('jest.useFakeTimers'),
+          AsyncTestAnalyzerConfiguration.waitsOnRealTimer(content),
         message:
           AsyncTestAnalyzerConfiguration.RECOMMENDATION_CONFIG.NO_FAKE_TIMERS,
       },

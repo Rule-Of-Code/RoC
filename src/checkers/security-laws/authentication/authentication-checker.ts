@@ -1,5 +1,4 @@
 import type { RuleOfCodeConfig } from '../../../config/types';
-import { FileUtils } from '../../../utils/file-utils';
 import { SecurityCheckerBase } from './security-checker-base';
 import { AuthenticationPatternValidators } from './shared-authentication-patterns';
 
@@ -77,14 +76,7 @@ export class AuthenticationChecker extends SecurityCheckerBase {
       /UserAuthentication/,
     ];
 
-    return codeFiles.some(file => {
-      try {
-        const content = FileUtils.readFile(file);
-        return authPatterns.some(pattern => pattern.test(content));
-      } catch (_error) {
-        return false;
-      }
-    });
+    return this.anyFileMatchesCode(codeFiles, authPatterns);
   }
 
   private static hasTokenManagement(codeFiles: string[]): boolean {
@@ -99,14 +91,7 @@ export class AuthenticationChecker extends SecurityCheckerBase {
       /accessToken/,
     ];
 
-    return codeFiles.some(file => {
-      try {
-        const content = FileUtils.readFile(file);
-        return tokenPatterns.some(pattern => pattern.test(content));
-      } catch (_error) {
-        return false;
-      }
-    });
+    return this.anyFileMatchesCode(codeFiles, tokenPatterns);
   }
 
   private static readonly SECURE_PASSWORD_PATTERNS = [
@@ -132,32 +117,17 @@ export class AuthenticationChecker extends SecurityCheckerBase {
     /plaintext.*password/i,
   ];
 
-  /** Does any file match any pattern? An unreadable file matches nothing. */
-  private static anyFileMatches(
-    codeFiles: string[],
-    patterns: readonly RegExp[]
-  ): boolean {
-    return codeFiles.some(file => {
-      try {
-        const content = FileUtils.readFile(file);
-        return patterns.some(pattern => pattern.test(content));
-      } catch (_error) {
-        return false;
-      }
-    });
-  }
-
   private static hasSecurePasswordHandling(codeFiles: string[]): boolean {
-    return this.anyFileMatches(codeFiles, this.SECURE_PASSWORD_PATTERNS);
+    return this.anyFileMatchesCode(codeFiles, this.SECURE_PASSWORD_PATTERNS);
   }
 
   private static hasInsecurePasswordHandling(codeFiles: string[]): boolean {
-    return this.anyFileMatches(codeFiles, this.INSECURE_PASSWORD_PATTERNS);
+    return this.anyFileMatchesCode(codeFiles, this.INSECURE_PASSWORD_PATTERNS);
   }
 
   /** The code handles passwords at all — the word as an identifier or key. */
   private static handlesPasswords(codeFiles: string[]): boolean {
-    return this.anyFileMatches(codeFiles, [/\bpassword\b/i]);
+    return this.anyFileMatchesCode(codeFiles, [/\bpassword\b/i]);
   }
 
   private static hasOAuthIntegration(codeFiles: string[]): boolean {
@@ -173,13 +143,6 @@ export class AuthenticationChecker extends SecurityCheckerBase {
       /firebase.*auth/i,
     ];
 
-    return codeFiles.some(file => {
-      try {
-        const content = FileUtils.readFile(file);
-        return oauthPatterns.some(pattern => pattern.test(content));
-      } catch (_error) {
-        return false;
-      }
-    });
+    return this.anyFileMatchesCode(codeFiles, oauthPatterns);
   }
 }

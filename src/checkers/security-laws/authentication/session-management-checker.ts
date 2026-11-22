@@ -1,5 +1,4 @@
 import type { RuleOfCodeConfig } from '../../../config/types';
-import { FileUtils } from '../../../utils/file-utils';
 import { SecurityCheckerBase } from './security-checker-base';
 import { AuthenticationPatternValidators } from './shared-authentication-patterns';
 
@@ -77,14 +76,7 @@ export class SessionManagementChecker extends SecurityCheckerBase {
       /getIdTokenResult/,
     ];
 
-    return codeFiles.some(file => {
-      try {
-        const content = FileUtils.readFile(file);
-        return sessionConfigPatterns.some(pattern => pattern.test(content));
-      } catch (_error) {
-        return false;
-      }
-    });
+    return this.anyFileMatchesCode(codeFiles, sessionConfigPatterns);
   }
 
   private static hasSessionTimeout(codeFiles: string[]): boolean {
@@ -99,14 +91,7 @@ export class SessionManagementChecker extends SecurityCheckerBase {
       /session.*duration/i,
     ];
 
-    return codeFiles.some(file => {
-      try {
-        const content = FileUtils.readFile(file);
-        return timeoutPatterns.some(pattern => pattern.test(content));
-      } catch (_error) {
-        return false;
-      }
-    });
+    return this.anyFileMatchesCode(codeFiles, timeoutPatterns);
   }
 
   private static hasSessionInvalidation(codeFiles: string[]): boolean {
@@ -126,14 +111,7 @@ export class SessionManagementChecker extends SecurityCheckerBase {
       /logout.*firebase/i,
     ];
 
-    return codeFiles.some(file => {
-      try {
-        const content = FileUtils.readFile(file);
-        return invalidationPatterns.some(pattern => pattern.test(content));
-      } catch (_error) {
-        return false;
-      }
-    });
+    return this.anyFileMatchesCode(codeFiles, invalidationPatterns);
   }
 
   private static hasConcurrentSessionHandling(codeFiles: string[]): boolean {
@@ -146,14 +124,7 @@ export class SessionManagementChecker extends SecurityCheckerBase {
       /active.*session.*count/i,
     ];
 
-    return codeFiles.some(file => {
-      try {
-        const content = FileUtils.readFile(file);
-        return concurrentPatterns.some(pattern => pattern.test(content));
-      } catch (_error) {
-        return false;
-      }
-    });
+    return this.anyFileMatchesCode(codeFiles, concurrentPatterns);
   }
 
   private static hasSecureSessionStorage(codeFiles: string[]): boolean {
@@ -173,21 +144,14 @@ export class SessionManagementChecker extends SecurityCheckerBase {
       /document\.cookie.*(?:password|token|secret)/i,
     ];
 
-    for (const file of codeFiles) {
-      try {
-        const content = FileUtils.readFile(file);
-
-        if (secureStoragePatterns.some(pattern => pattern.test(content))) {
-          hasSecureStorage = true;
-        }
-
-        if (insecureStoragePatterns.some(pattern => pattern.test(content))) {
-          hasInsecureStorage = true;
-        }
-      } catch (_error) {
-        // Continue checking other files
-      }
-    }
+    hasSecureStorage = this.anyFileMatchesCode(
+      codeFiles,
+      secureStoragePatterns
+    );
+    hasInsecureStorage = this.anyFileMatchesCode(
+      codeFiles,
+      insecureStoragePatterns
+    );
 
     return hasSecureStorage || !hasInsecureStorage;
   }

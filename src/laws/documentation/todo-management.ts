@@ -4,10 +4,13 @@ import type {
   RuleOfCodeConfig,
 } from '../../types/law.types';
 import { CheckerUtils } from '../../utils/checker-utils';
+import { commentLines } from '../../utils/comment-text';
 import { FileUtils } from '../../utils/file-utils';
+import { trackedFiles } from '../../utils/integrity/tracked-files';
 import { PathOperations } from '../../utils/path-operations';
 import type { TodoAnalysisResult } from './todo-analysis-result';
 import { TodoAnalysisResultBuilder } from './todo-analysis-result';
+import { todoCommentSource } from './todo-comment-source';
 /**
  * TODO Management Constitutional Requirements Law
  *
@@ -109,7 +112,39 @@ export class TodoManagementLaw {
     });
   }
 
+  /**
+   * The files to look for TODO markers in: the ones git tracks, as CI checks
+   * them out. A gitignored file (generated output, a local scratch file) is
+   * nobody's pending task; walking the disk read them (RoC_web, 8.0.0 rc1).
+   * Outside a git repository nothing is ignored by git, so the disk is read.
+   */
   private static findSourceFiles(projectRoot: string): string[] {
+    const tracked = trackedFiles(
+      projectRoot,
+      this.SOURCE_EXTENSIONS.map(ext => `*${ext}`)
+    );
+    if (!tracked.ok) return this.findSourceFilesOnDisk(projectRoot);
+    return tracked.files.filter(
+      file =>
+        !PathOperations.getRelative(projectRoot, file)
+          .split(/[\\/]/)
+          .some(segment => this.shouldSkipDirectory(segment))
+    );
+  }
+
+  /** The file types this law looks for TODO markers in. */
+  private static readonly SOURCE_EXTENSIONS = [
+    '.ts',
+    '.js',
+    '.tsx',
+    '.jsx',
+    '.html',
+    '.scss',
+    '.css',
+    '.md',
+  ];
+
+  private static findSourceFilesOnDisk(projectRoot: string): string[] {
     const sourceFiles: string[] = [];
     const extensions = [
       '.ts',
@@ -360,47 +395,50 @@ export class TodoManagementLaw {
     config: RuleOfCodeConfig
   ): TodoAnalysisResult {
     const result = TodoAnalysisResultBuilder.createEmpty();
-    // Blank string/template-literal CONTENTS first (comments are KEPT — that is
-    // where a real TODO marker lives). A `// TODO` inside a display or captured
-    // string (e.g. an example of what a TODO looks like) is text, not a real
-    // TODO; scanning raw source counted it. Newlines are preserved so line
-    // numbers stay accurate.
-    const scannable = this.blankStringLiterals(content);
-    const lines = scannable.split('\n');
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      if (!line || !this.hasTodoComment(line)) continue;
-
-      this.processTodoLine(line, file, i + 1, config, result);
+    // A TODO is a marker in a COMMENT, by the comment syntax of the file's
+    // language (the reader TODO Management Standards uses): `//` and `/* */`
+    // in JS/TS/SCSS, `/* */` in CSS, `<!-- -->` in HTML and Markdown. Strings
+    // and template literals in code, and code spans and blocks in Markdown,
+    // are blanked first: a `// TODO` there is text (RoC_web, QA on #541).
+    const source = todoCommentSource(content, file);
+    const lines = source.split(/\r?\n/);
+    for (const comment of commentLines(file, source)) {
+      const marker = this.todoMarker(
+        comment.text,
+        this.opensComment(lines[comment.line - 1] ?? '', comment.text)
+      );
+      if (marker) {
+        this.processTodoLine(marker, file, comment.line, config, result);
+      }
     }
 
     return result;
   }
 
-  /**
-   * Check if a line contains a TODO comment
-   */
-  private static hasTodoComment(line: string): boolean {
-    const todoPatterns = [
-      /\/\/\s*TODO/gi,
-      /<!--\s*TODO/gi,
-      /\/\*\s*TODO/gi,
-      /#\s*TODO/gi,
-    ];
-    return todoPatterns.some(pattern => pattern.test(line));
+  /** Whether the comment text on `line` follows its opener, not a block comment's earlier line. */
+  private static opensComment(line: string, commentText: string): boolean {
+    const at = line.indexOf(commentText);
+    const before = (at < 0 ? '' : line.slice(0, at)).trimEnd();
+    return /(?:\/\/|\/\*\*?|<!--)$/.test(before);
   }
 
   /**
-   * Blank string/template-literal CONTENTS, keeping comments and newlines, so a
-   * TODO marker that only appears inside a string (a captured or display string
-   * showing what a TODO looks like) is not counted as a real TODO.
+   * The TODO marker of a comment line, or null. Upper case, as a marker is
+   * written: "todo" is a word, and `#todo` an anchor or a CSS id that a
+   * case-insensitive `#\s*TODO` read as a marker.
+   *
+   * Right after `//`, `/*` or `<!--` the word TODO starts a marker. On a later
+   * line of a block comment it takes the tag form, `TODO:` or `TODO(…)`:
+   * prose such as " * TODO Management Standards Law" is not a task (arch on
+   * QA's #541 review).
    */
-  private static blankStringLiterals(content: string): string {
-    return content.replace(
-      /'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"|`(?:\\.|[^`\\])*`/g,
-      match => match.replace(/[^\n]/g, ' ')
-    );
+  private static todoMarker(
+    commentText: string,
+    firstLine: boolean
+  ): string | null {
+    const text = commentText.replace(/^[\s*]+/, '');
+    const marker = firstLine ? /^TODO\b/ : /^TODO\s*[:(]/;
+    return marker.test(text) ? text.trim() : null;
   }
 
   /**

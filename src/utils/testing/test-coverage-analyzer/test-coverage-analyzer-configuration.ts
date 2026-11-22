@@ -3,6 +3,9 @@
  * Centralized configuration for coverage patterns and validation (RULE 1: Single source of truth)
  * Eliminates hardcoded patterns and messages scattered across methods
  */
+import { TestEdgeCases } from './test-edge-cases';
+import { TestFileReading } from './test-file-reading';
+import { TestNetworkClients } from './test-network-clients';
 
 /**
  * Configuration for mocking issue detection (RULE 1: Single source of truth)
@@ -11,6 +14,13 @@
 interface MockingIssueDetectionConfig {
   checker: (content: string) => boolean;
   message: string;
+  /**
+   * The checker reads the file's CODE (CodeText.codeOnly), not its text: a
+   * request written inside a fixture string is not one the test makes.
+   */
+  readsCode?: true;
+  /** The check is answered by a runner that resets mocks between tests. */
+  excusedByMockReset?: true;
 }
 
 /**
@@ -32,78 +42,9 @@ export class TestCoverageAnalyzerConfiguration {
     /jest\.fn\(|mockImplementation|mockReturnValue/g;
   static readonly INTERNAL_MOCK_PATTERN = /jest\.mock\s*\(['"]\.\.\/.*?['"]\)/g;
 
-  /**
-   * Edge case detection patterns (RULE 1: Centralized pattern definitions)
-   * Note: Using /i flag only (not /gi) since these are used with .test()
-   * which has issues with global regex state
-   */
-  static readonly EDGE_CASE_PATTERNS = {
-    NULL_CHECK: /null/i,
-    UNDEFINED_CHECK: /undefined/i,
-    EMPTY_VALUE: /empty/i,
-    ZERO_VALUE: /zero/i,
-    NEGATIVE_VALUE: /negative/i,
-    BOUNDARY_VALUE: /boundary/i,
-    LIMIT_VALUE: /limit/i,
-    MAX_VALUE: /max/i,
-    MIN_VALUE: /min/i,
-    EDGE_CASE: /edge\s*case/i,
-    INVALID_VALUE: /invalid/i,
-    ERROR_CASE: /error/i,
-    EXCEPTION_CASE: /exception/i,
-
-    // The words an integration test uses for the same idea. A spec whose title
-    // says "and say so when unset" was counted as naming no edge case.
-    UNSET_VALUE: /\bunset\b/i,
-    MISSING_VALUE: /\bmissing\b/i,
-    NOT_FOUND: /not found|no such|\bnever\b/i,
-  } as const;
-
-  /**
-   * Edge-case signals in the test BODY — the assertions and inputs a real
-   * edge-case test uses. The old check read only it()/describe() TITLES, so a
-   * spec full of `.toThrow()`, null/undefined inputs and empty-collection
-   * assertions was scored as testing NO edge cases — punishing exactly the
-   * tests it should reward (a consumer's violations rose as they added genuine
-   * edge-case specs). These are matched against the whole file.
-   */
-  static readonly EDGE_CASE_BODY_PATTERNS = {
-    TO_THROW: /\.toThrow/,
-    REJECTS: /\.rejects\b/,
-    TO_BE_NULL: /\.toBeNull\b/,
-    TO_BE_UNDEFINED: /\.toBeUndefined\b/,
-    TO_BE_NAN: /\.toBeNaN\b/,
-    NULL_LITERAL: /\bnull\b/,
-    UNDEFINED_LITERAL: /\bundefined\b/,
-    NAN_LITERAL: /\bNaN\b/,
-    INFINITY_LITERAL: /\bInfinity\b/,
-
-    // ABSENCE, as a suite that drives a real page expresses it.
-    //
-    // Every pattern above names a JavaScript VALUE. An integration test has no
-    // `null` to assert on: its degenerate cases are a list that must be empty,
-    // a count that must not be zero, a route that must not be missing, a host
-    // that must not be reached. The vocabulary is different, not absent — one
-    // consumer had 11 of 13 reported files asserting exactly these, including
-    // files that exist for nothing else.
-    //
-    // Nobody writes `toHaveCount(0)` on a happy path.
-    EMPTY_LIST_MATCHER: /\.toEqual\(\s*\[\s*\]\s*\)/,
-    EMPTY_COUNT: /\.toHaveCount\(\s*0\s*\)/,
-    EMPTY_LENGTH: /\.toHaveLength\(\s*0\s*\)/,
-    NEGATED_MATCHER: /\.not\.to[A-Z]\w+/,
-  } as const;
-
-  /**
-   * Dependency detection patterns
-   * Note: Not using /g flag since these are used with .test()
-   */
-  static readonly DEPENDENCY_PATTERNS = {
-    IMPORT_STATEMENT: /import\s+.*from/,
-    REQUIRE_CALL: /require\s*\(/,
-    INJECT_FUNCTION: /inject\(/,
-    TEST_BED: /TestBed/,
-  } as const;
+  /** Edge-case vocabulary: titles and bodies (TestEdgeCases). */
+  static readonly EDGE_CASE_PATTERNS = TestEdgeCases.TITLE_PATTERNS;
+  static readonly EDGE_CASE_BODY_PATTERNS = TestEdgeCases.BODY_PATTERNS;
 
   /**
    * Mock detection patterns
@@ -124,7 +65,12 @@ export class TestCoverageAnalyzerConfiguration {
    * Test pattern detection
    */
   static readonly TEST_PATTERNS = {
-    IT_BLOCK: /it\s*\(/g,
+    // A test, as Jest, Vitest, Mocha and Playwright declare one: `it(`,
+    // `test(`, with a modifier (`it.only(`) or as a table (`it.each(` or a
+    // tagged `it.each` template, one block). `it\s*\(` counted `it.each` as
+    // no test and `submit(`, `wait(` or `split(` as tests (#429).
+    IT_BLOCK:
+      /\b(?:it|test)(?:\.(?:only|skip|concurrent|failing|todo))*(?:\s*\(|\.each\s*[(`])/g,
     IT_BLOCK_DESCRIPTION: /it\s*\(['"].*?['"]\)/g,
     DESCRIBE_BLOCK: /describe\(/,
     DESCRIBE_BLOCK_DESCRIPTION: /describe\s*\(['"].*?['"]\)/g,
@@ -176,14 +122,18 @@ export class TestCoverageAnalyzerConfiguration {
         // A suite that resets mocks the standard afterEach way — clearAllMocks /
         // resetAllMocks / restoreAllMocks — is doing cleanup; the old check only
         // recognised the per-mock `mockClear` and flagged the common global form.
-        checker: (content: string) =>
-          content.includes('jest.fn()') &&
+        // Read from the code, and not asked of a project whose runner resets
+        // mocks itself (`resetMocks`/`restoreMocks`/`clearMocks`) (#429).
+        checker: (code: string) =>
+          code.includes('jest.fn()') &&
           !/mockClear|clearAllMocks|resetAllMocks|restoreAllMocks|mockReset|mockRestore/.test(
-            content
+            code
           ),
         message:
           TestCoverageAnalyzerConfiguration.MOCKING_ISSUE_MESSAGES
             .MOCKS_WITHOUT_CLEANUP,
+        readsCode: true,
+        excusedByMockReset: true,
       },
       {
         checker: (content: string): boolean => {
@@ -206,13 +156,15 @@ export class TestCoverageAnalyzerConfiguration {
         // matched a URL in a comment, a JSDoc link and an import path, so a spec
         // that makes no network request at all was told to mock its HTTP calls —
         // a message that sends the reader looking for code that is not there.
-        checker: (content: string) =>
-          TestCoverageAnalyzerConfiguration.HTTP_CALL_PATTERN.test(content) &&
-          !content.includes('mock') &&
-          !content.includes('stub'),
+        // Read from the code (#429): a `fetch(` inside a detector's fixture
+        // string is the input of a test, not a request it makes.
+        checker: (code: string) =>
+          TestCoverageAnalyzerConfiguration.HTTP_CALL_PATTERN.test(code) &&
+          !TestNetworkClients.hasTestDouble(code),
         message:
           TestCoverageAnalyzerConfiguration.MOCKING_ISSUE_MESSAGES
             .UNMOCKED_HTTP_CALLS,
+        readsCode: true,
       },
       {
         checker: (content: string): boolean => {
@@ -329,7 +281,7 @@ export class TestCoverageAnalyzerConfiguration {
     NO_EDGE_CASES_SUGGESTION:
       'Add tests for edge cases like null, undefined, empty values',
     DEPENDENCIES_WITHOUT_MOCKS_VIOLATION:
-      'Dependencies found but no mocking detected in {fileName}',
+      'Dependencies found but no mocking detected in {fileName} ({clients})',
     DEPENDENCIES_WITHOUT_MOCKS_SUGGESTION:
       'Consider using mocks for external dependencies',
   } as const;
@@ -338,49 +290,7 @@ export class TestCoverageAnalyzerConfiguration {
    * Analyze if content tests edge cases using centralized patterns
    */
   static testsEdgeCases(content: string): boolean {
-    // Titles first — but capture the CANONICAL multiline form `it('title', () =>`.
-    // The old regex required the quoted title to be immediately followed by `)`,
-    // so it never matched a real test and always fell through to false.
-    //
-    // `test` is read as well as `it`. Playwright — and Jest, for anyone who
-    // prefers it — declares tests with `test(...)`, and only `test.describe(...)`
-    // survived a scan for `describe(`. A Playwright suite was therefore judged
-    // on its describe titles alone and every test name inside it was invisible:
-    // one consumer could read 24 titles out of 106, and a file written for
-    // nothing but empty states was reported as testing no edge cases.
-    //
-    // Modifiers are allowed (`it.only`, `test.skip`, `test.describe`) because
-    // the title follows them directly. The leading word boundary matters:
-    // without it, `submit(` matched on its final `it`.
-    const titles = [
-      ...content.matchAll(
-        /\b(?:it|test|describe)(?:\.\w+)*\s*\(\s*['"`]([^'"`]+)['"`]/g
-      ),
-    ]
-      .map(match => match[1])
-      .join(' ');
-    if (
-      Object.values(this.EDGE_CASE_PATTERNS).some(pattern =>
-        pattern.test(titles)
-      )
-    ) {
-      return true;
-    }
-
-    // ...then the body: a file that asserts throwing, or exercises
-    // null/undefined/NaN, is testing edge cases whatever its titles say.
-    return Object.values(this.EDGE_CASE_BODY_PATTERNS).some(pattern =>
-      pattern.test(content)
-    );
-  }
-
-  /**
-   * Check if content has dependencies
-   */
-  static hasDependencies(content: string): boolean {
-    return Object.values(this.DEPENDENCY_PATTERNS).some(pattern =>
-      pattern.test(content)
-    );
+    return TestEdgeCases.found(content);
   }
 
   /**
@@ -403,7 +313,10 @@ export class TestCoverageAnalyzerConfiguration {
    * Count mock patterns in content (RULE 1: Centralized helper)
    */
   static countMockPatterns(content: string): number {
-    return (content.match(this.MOCK_PATTERN_MULTIPLIER) ?? []).length;
+    return (
+      (content.match(this.MOCK_PATTERN_MULTIPLIER) ?? []).length -
+      TestFileReading.silencedOutputSetups(content)
+    );
   }
 
   /**

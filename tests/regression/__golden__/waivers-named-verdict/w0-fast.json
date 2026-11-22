@@ -6,16 +6,16 @@
     "source": "detected"
   },
   "scope": {
-    "executedLaws": 17,
-    "selectedLaws": 17,
-    "applicableLaws": 71,
+    "executedLaws": 16,
+    "selectedLaws": 16,
+    "applicableLaws": 70,
     "narrowedBy": "paretoMode",
     "partial": true
   },
   "stats": {
-    "executedLaws": 19,
-    "totalLaws": 19,
-    "passedLaws": 19,
+    "executedLaws": 18,
+    "totalLaws": 18,
+    "passedLaws": 18,
     "failedLaws": 0,
     "warningLaws": 0,
     "score": 100
@@ -179,19 +179,6 @@
     },
     {
       "id": "law-12",
-      "lawId": "security_db5e3ca1",
-      "legacyId": 46,
-      "lawTitle": "Authentication Security",
-      "passed": true,
-      "score": 100,
-      "violations": [],
-      "suggestions": [],
-      "message": "stub pass",
-      "severity": "error",
-      "lawName": "authentication-security"
-    },
-    {
-      "id": "law-13",
       "lawId": "security_a8d3e1aa",
       "legacyId": 60,
       "lawTitle": "API Security Standards",
@@ -204,7 +191,7 @@
       "lawName": "api-security-standards"
     },
     {
-      "id": "law-14",
+      "id": "law-13",
       "lawId": "security_a0bcc52d",
       "legacyId": 61,
       "lawTitle": "Dependency Security Scanning",
@@ -217,7 +204,7 @@
       "lawName": "dependency-security-scanning"
     },
     {
-      "id": "law-15",
+      "id": "law-14",
       "lawId": "deployment_37c13d47",
       "legacyId": 71,
       "lawTitle": "Pre-Deployment Checklist (MANDATORY)",
@@ -230,7 +217,7 @@
       "lawName": "pre-deployment-checklist-(mandatory)"
     },
     {
-      "id": "law-16",
+      "id": "law-15",
       "lawId": "deployment_2dfc084c",
       "legacyId": 72,
       "lawTitle": "CI/CD Constitutional Tribunal",
@@ -243,7 +230,7 @@
       "lawName": "ci/cd-constitutional-tribunal"
     },
     {
-      "id": "law-17",
+      "id": "law-16",
       "lawId": "meta_59c6436e",
       "legacyId": 226,
       "lawTitle": "Audit Liveness Assertion",
@@ -256,7 +243,7 @@
       "severity": "error"
     },
     {
-      "id": "law-18",
+      "id": "law-17",
       "lawId": "meta_5ef1482c",
       "legacyId": 227,
       "lawTitle": "Config Integrity Guard",

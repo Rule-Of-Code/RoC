@@ -59,13 +59,30 @@ export class ZeroToleranceStrictLaw extends CodeQualityLawBase {
       violations,
       'Zero Tolerance Strict Standards',
       'CODE_QUALITY_LAW',
-      [
-        'Enable TypeScript strict mode',
-        'Remove all console statements',
-        'Configure strict ESLint rules',
-      ],
+      this.suggestionsFor(violations),
       context
     );
+  }
+
+  /**
+   * The advice that answers a finding of this run, and only that. The list was
+   * fixed, so a tsconfig the law could not read got "Enable TypeScript strict
+   * mode" next to "tsconfig.json … NOT read" — advice about a file it never
+   * judged (#506, QA on #503).
+   */
+  private static suggestionsFor(violations: string[]): string[] {
+    const has = (text: string): boolean =>
+      violations.some(v => v.startsWith(text));
+    const advice: Array<[boolean, string]> = [
+      [
+        has('TypeScript strict mode not enabled') ||
+          has('TypeScript configuration file missing'),
+        'Enable TypeScript strict mode',
+      ],
+      [has('Console statements found in'), 'Remove all console statements'],
+      [has('ESLint rules disabled in'), 'Configure strict ESLint rules'],
+    ];
+    return advice.filter(([applies]) => applies).map(([, text]) => text);
   }
 
   private static checkTypeScriptConfig(

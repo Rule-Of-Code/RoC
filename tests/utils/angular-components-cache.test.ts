@@ -53,6 +53,14 @@ describe('AngularComponents.scan cache', () => {
     ).toEqual(['app-renamed-and-longer']);
   });
 
+  it('finds no component in a project without one', () => {
+    const root = project({
+      'package.json': manifest({ '@ionic/angular': '8' }),
+      'src/util.ts': 'export const one = 1;\n',
+    });
+    expect(AngularComponents.scan(ctx(root)).components).toEqual([]);
+  });
+
   it('gives each caller its own arrays', () => {
     const root = project({
       'package.json': manifest({ '@ionic/angular': '8' }),

@@ -46,5 +46,18 @@ describe('cli/commands', () => {
       const lawsCmd = program.commands.find(cmd => cmd.name() === 'laws');
       expect(lawsCmd).toBeDefined();
     });
+
+    it('refuses an unknown command instead of running one', () => {
+      const program = configureCommands(new Command())
+        .exitOverride()
+        .configureOutput({
+          writeErr: () => undefined,
+          writeOut: () => undefined,
+        });
+
+      expect(() =>
+        program.parse(['node', 'ruleofcode', 'no-such-command'])
+      ).toThrow(/unknown command/);
+    });
   });
 });

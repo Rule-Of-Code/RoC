@@ -50,6 +50,74 @@ trimmed stdout, or null when git fails or prints nothing. No output changes.
 A test title in Retention Registry Covers Schema ("is opt-in") was below Test
 Documentation Requirements' minimum length; it now says what it checks.
 
+### 🐛 Fixed — Unit Test Quality: edge cases, test counts, timers and mock cleanup (#429)
+
+Four more templates of the law judged text where a test says something
+else.
+
+- **No edge case testing.** Before: asked of every test file, answered by
+  words such as null, empty or invalid in a title, or a throw, null or
+  negated matcher in the body. A negative title (does NOT flag, ignores,
+  rejects, fails, without) and `toBe(false)` did not count, so a detector
+  suite made of exactly these was told it tests no edge case; a file of
+  export checks or constant tables, which has no input, was asked for one.
+  After: negative titles, `toBe(false)` and `toBeFalsy()` count; edge cases
+  are asked only of a test that calls the code it imports with an argument
+  (an imported function, a method of an imported binding, a class), read
+  from its syntax tree. A Node built-in, a type-only import and a value
+  method of an imported table (`LAWS.filter`) are not that call.
+- **Excessive mocking.** Before: tests were counted with `it\s*\(`, so
+  `it.each(` counted none and `submit(` or `split(` counted one. After:
+  `it(` and `test(`, with modifiers and `.each`, as words. A spy that only
+  silences the console or a standard stream is not counted as a double.
+- **setTimeout usage without fake timers.** Before: any `setTimeout` in the
+  code. After: not `jest.setTimeout(n)`, which sets the test time limit;
+  not a timer whose handle the file clears with `clearTimeout(handle)`, a
+  watchdog on a real process; any fake timers (`jest.`, `vi.` or
+  `sinon.useFakeTimers`) answer it.
+- **Mock functions without cleanup.** Before: read on the text of the file,
+  fixture strings included, and asked even where the runner resets mocks.
+  After: read on the code, and not asked when the root Jest or Vitest
+  config, or the `jest` key of package.json, sets `resetMocks`,
+  `restoreMocks`, `clearMocks` or `mockReset`.
+
+Without a loadable `typescript` the edge-case check is not read either, and
+the law says so with the async and mocking patterns.
+
+Self-audit of this repository: Unit Test Quality — before 116 findings (75
+edge case, 20 excessive mocking, 17 setTimeout, 4 cleanup), after 32 (4, 19,
+9, 0); what is left is debt in the tests themselves.
+
+### 🐛 Fixed — Unit Test Quality asked every test to mock the module it tests (#429)
+
+"Dependencies found but no mocking detected" fired for any test file with an
+`import … from`, a `require(`, `inject(` or `TestBed` and no mock word in it:
+a test of its own module, a test that builds a temp-dir fixture, a test that
+spawns the CLI it ships. "HTTP calls should be mocked in unit tests" fired on
+a `fetch(` or `http.get(` written inside a fixture string of a detector test.
+
+Before: a dependency was any import; a double was the word spy, stub, fake or
+sinon (or a jest mock call) anywhere in the text of the file, comments and strings
+included. After: a dependency is a network or service client the test loads,
+read from its syntax tree (`import`, `export … from`, `import x = require()`,
+`require()`, `import()`; type-only imports load nothing) — the clients Test
+Data Management names, without the filesystem and child processes, which a
+test may run for real on its own machine. A double is one in the code of the file:
+what Test Data Management recognises (jest and vi mocks, spies, sinon, msw,
+nock, the HTTP testing backend of Angular) or a hand-written one named mock, spy,
+stub or fake. The finding names the clients:
+`Dependencies found but no mocking detected in src/api.test.ts (axios)`.
+The HTTP check is the same rule over the code of the file, so a request inside a
+string or a comment is not one, and a double named only in a comment no
+longer excuses a real request. Without a loadable `typescript` the mocking
+checks are not read and the law says so, with the async patterns.
+
+Self-audit of this repository: Unit Test Quality — before 634 findings, 500
+"no mocking" (381 tests importing only the code under test, 114 adding only
+fs/path/os/child_process, 5 adding a package that is not a client, none
+loading a network client) and 18 "HTTP calls" (all in fixture strings);
+after 116, none of either.
+
 ### Internal — eslint is a direct devDependency
 
 `npm run lint` runs `eslint .`, but `eslint` was only installed as a peer of

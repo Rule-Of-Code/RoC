@@ -1,87 +1,26 @@
-import type { RuleOfCodeConfig } from '../../../../config/types';
-import { ProjectTypeDetectorValidation } from '../../../../utils';
-import { FileUtils } from '../../../../utils/file-utils';
-import { PathOperations } from '../../../../utils/path-operations';
-import { PathResolver } from '../../../../utils/path-resolver';
-import type { ReactPerformanceEvidence } from '../../../../utils/react/react-performance-source';
-import { CoreWebVitalsPolicyConstants } from '../constants/core-web-vitals-policy.constants';
+import {
+  BrowserMonitoringEvidence,
+  type VitalsMeasurement,
+} from '../../../../utils/performance/browser-monitoring-evidence';
 
 /**
  * Core Web Vitals Policy Analyzer Service
  *
  * Single Responsibility: Analyze Core Web Vitals monitoring configuration
+ *
+ * Monitored means measured in the code (#553): a web-vitals call (v3 or v4),
+ * Next's `useReportWebVitals`, or the project's own PerformanceObserver on
+ * the vitals' entry types — named in the result as what it is. A declared
+ * `web-vitals` dependency that nothing calls is not monitoring.
  */
 export class CoreWebVitalsPolicyAnalyzerService {
-  static async checkCoreWebVitalsMonitoring(
-    projectRoot: string,
-    config?: RuleOfCodeConfig,
-    react?: ReactPerformanceEvidence
-  ): Promise<{
+  static checkCoreWebVitalsMonitoring(measured: readonly VitalsMeasurement[]): {
     monitored: boolean;
     implementations: string[];
-  }> {
-    const implementations: string[] = [];
-
-    // React/Next: the reporting call anywhere in the parsed source - a Next
-    // app reports from a client component rendered by the root layout, not
-    // from main.ts or app.component.ts, which it does not have.
-    if (react && react.webVitalsReports.length > 0) {
-      implementations.push(
-        `Core Web Vitals reported: ${react.webVitalsReports[0]}`
-      );
-    }
-
-    // Check for web-vitals library usage
-    const allDeps =
-      ProjectTypeDetectorValidation.getProjectDependencies(projectRoot);
-
-    if (CoreWebVitalsPolicyConstants.hasWebVitalsLibrary(allDeps)) {
-      implementations.push('web-vitals library');
-    }
-
-    // Get TypeScript files using PathResolver
-    let tsFiles: string[];
-    if (config?.pathMappings) {
-      const resolver = PathResolver.create(config, projectRoot);
-      const [mainTsPaths, appComponentPaths] = await Promise.all([
-        resolver.getMainTsPaths(),
-        resolver.getAppComponentPaths(),
-      ]);
-      tsFiles = [
-        ...mainTsPaths,
-        PathOperations.join(projectRoot, 'src/index.ts'),
-        ...appComponentPaths,
-      ];
-    } else {
-      tsFiles = [
-        PathOperations.join(projectRoot, 'src/main.ts'),
-        PathOperations.join(projectRoot, 'src/index.ts'),
-        PathOperations.join(projectRoot, 'src/app/app.component.ts'),
-      ];
-    }
-
-    let hasCWVTracking = false;
-    for (const fullPath of tsFiles) {
-      try {
-        if (FileUtils.exists(fullPath)) {
-          const content = FileUtils.readFile(fullPath, { encoding: 'utf8' });
-          if (CoreWebVitalsPolicyConstants.hasCoreWebVitalsTracking(content)) {
-            hasCWVTracking = true;
-            break;
-          }
-        }
-      } catch {
-        // Ignore read errors
-      }
-    }
-
-    if (hasCWVTracking) {
-      implementations.push('Core Web Vitals tracking code');
-    }
-
-    return {
-      monitored: implementations.length > 0,
-      implementations,
-    };
+  } {
+    const implementations = measured.map(m =>
+      BrowserMonitoringEvidence.describe(m)
+    );
+    return { monitored: implementations.length > 0, implementations };
   }
 }

@@ -14,7 +14,8 @@ import { RealUserMonitoringAnalyzerService } from './real-user-monitoring.analyz
 export class PerformanceMonitoringAnalyzerService {
   static async analyzeMonitoring(
     projectRoot: string,
-    config?: RuleOfCodeConfig
+    config?: RuleOfCodeConfig,
+    lawId?: string
   ): Promise<{
     monitoringTools: { hasTools: boolean; tools: string[] };
     realUserMonitoring: { configured: boolean };
@@ -28,7 +29,8 @@ export class PerformanceMonitoringAnalyzerService {
     const [realUserMonitoring, errorTracking] = await Promise.all([
       RealUserMonitoringAnalyzerService.checkRealUserMonitoring(
         projectRoot,
-        config
+        config,
+        lawId
       ),
       ErrorTrackingAnalyzerService.checkPerformanceErrorTracking(
         projectRoot,

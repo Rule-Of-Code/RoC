@@ -10,7 +10,7 @@ export class CoreWebVitalsConstants {
     'Core Web Vitals monitoring not implemented';
 
   static readonly INTEGRATION_VIOLATION_MESSAGE =
-    'Core Web Vitals library not integrated in main application files';
+    'web-vitals is declared but no metric is measured: no onLCP / onINP / onCLS (or v3 get*) call found in the sources';
 
   static readonly VITALS_LIBRARY = 'web-vitals';
 

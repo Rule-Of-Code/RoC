@@ -5,6 +5,7 @@
 
 import type * as TS from 'typescript';
 import type { RuleOfCodeConfig } from '../../../types/law.types';
+import { PathOperations } from '../../path-operations';
 import { loadTypeScript, parserUnavailable } from '../../react/tsx-source';
 import { scanAndAnalyzeFiles } from '../file-scanning-helper';
 import { SecretManagementAnalyzer } from '../secret-management';
@@ -34,10 +35,13 @@ export function validateEnvironmentVariablesUsage(
       const source = ts
         ? ts.createSourceFile(file, content, ts.ScriptTarget.Latest, true)
         : null;
+      // A finding names the file as the project knows it (`src/lib/api.ts`),
+      // not where this machine keeps the checkout (#537).
+      const shown = PathOperations.getRelative(projectRoot, file);
       return Config.mergeResults(
-        analyzeProcessEnvUsage(ts, source, content, file),
+        analyzeProcessEnvUsage(ts, source, content, shown),
         checkEnvValidation(content),
-        checkForHardcodedValues(ts, source, content, file)
+        checkForHardcodedValues(ts, source, content, shown)
       );
     },
     () => Config.createEmptyResult(),

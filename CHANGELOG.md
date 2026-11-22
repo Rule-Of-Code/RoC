@@ -5,6 +5,30 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 🐛 Fixed — hardcoded-URL findings: identifiers, rendered links and the reported value (#537)
+
+Environment Security Enforcement and Environment Parity Standards (both read
+the same environment-variable usage analyzer) reported as "Hardcoded URL":
+
+- XML namespaces and the schema.org vocabulary (`http://www.w3.org/2000/svg`,
+  `https://schema.org/InStock`). They are identifiers that no environment
+  changes, and are no longer reported.
+- the value of a JSX `xmlns` or `href` attribute: a namespace, or a link the
+  page renders for its reader. A JSX `src`, a `location.href = '…'`
+  assignment and a URL the code fetches are still reported.
+
+The URL is now taken from the value of the string, escapes resolved, not from
+the source text: in a template, `https://api.example.io/v1\n\n${rest}` was
+reported with `\n\n${` attached.
+
+**Message change:** every finding of this analyzer (hardcoded URL, variable
+used without fallback, hardcoded connection string, hardcoded secret) names
+the file relative to the project (`src/lib/api.ts: …`). It named the absolute
+path of the checkout on the machine that ran the audit, so the same finding
+read differently on every machine and in CI.
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

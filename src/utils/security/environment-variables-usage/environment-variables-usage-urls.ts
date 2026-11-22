@@ -11,6 +11,7 @@ import type * as TS from 'typescript';
 /** One URL written in a string literal. */
 export interface UrlLiteral {
   url: string;
+  /** Where the string or template part that holds the URL starts. */
   start: number;
 }
 
@@ -23,6 +24,22 @@ const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1']);
 /** Names reserved for examples and tests (RFC 2606, RFC 6761), and their subdomains. */
 const RESERVED_HOST =
   /(?:^|\.)(?:example\.(?:com|net|org)|example|test|invalid|localhost)$/i;
+
+/**
+ * URLs that are identifiers, not endpoints (#537): XML namespaces
+ * (`http://www.w3.org/2000/svg`, `…/XML/1998/namespace`) and the schema.org
+ * vocabulary (`https://schema.org/InStock`). They name a meaning; no program
+ * connects to them and no environment changes them.
+ */
+const IDENTIFIER_URL =
+  /^https?:\/\/(?:(?:www\.)?schema\.org(?:[/?#]|$)|www\.w3\.org\/(?:\d{4}|XML)\/)/i;
+
+/**
+ * JSX attributes whose string is not configuration (#537): a namespace
+ * (`xmlns`, `xmlns:xlink`) and a link the page renders for its reader
+ * (`href`) — a repository, a documentation page.
+ */
+const NON_ENDPOINT_JSX_ATTRIBUTE = /^(?:xmlns(?::[\w-]+)?|href)$/i;
 
 /**
  * A URL bound to one of these names is a link for a reader — a manual page,
@@ -83,6 +100,28 @@ function isDocLink(ts: typeof TS, node: TS.Node): boolean {
   return !!name && nameWords(name).some(word => DOC_NAME_WORDS.has(word));
 }
 
+/** The JSX attribute a string is the value of (`href="…"`, `href={'…'}`). */
+function jsxAttributeName(
+  ts: typeof TS,
+  source: TS.SourceFile,
+  node: TS.Node
+): string | null {
+  let parent = unwrap(ts, node).parent;
+  if (parent && ts.isJsxExpression(parent)) parent = parent.parent;
+  return parent && ts.isJsxAttribute(parent)
+    ? parent.name.getText(source)
+    : null;
+}
+
+function isNonEndpointAttribute(
+  ts: typeof TS,
+  source: TS.SourceFile,
+  node: TS.Node
+): boolean {
+  const name = jsxAttributeName(ts, source, node);
+  return !!name && NON_ENDPOINT_JSX_ATTRIBUTE.test(name);
+}
+
 function hostOf(url: string): string {
   return (url.replace(/^https?:\/\//, '').split(/[/?#:]/)[0] ?? '').replace(
     /\.$/,
@@ -93,7 +132,11 @@ function hostOf(url: string): string {
 /** True for a URL whose host is loopback or a name reserved for examples. */
 export function isNonEndpointUrl(url: string): boolean {
   const host = hostOf(url).toLowerCase();
-  return LOOPBACK_HOSTS.has(host) || RESERVED_HOST.test(host);
+  return (
+    LOOPBACK_HOSTS.has(host) ||
+    RESERVED_HOST.test(host) ||
+    IDENTIFIER_URL.test(url)
+  );
 }
 
 /** A whole string (`'…'`, `` `…` ``) — the kind a name can be bound to. */
@@ -118,18 +161,24 @@ function urlsIn(
   node: TS.Node
 ): UrlLiteral[] {
   if (isWholeString(ts, node) && isDocLink(ts, node)) return [];
+  if (isNonEndpointAttribute(ts, source, node)) return [];
   const start = node.getStart(source);
-  const text = source.text.slice(start, node.getEnd());
+  // The value the program holds, escapes resolved — not the source text, in
+  // which an escape such as `\n` and the next `${` of a template read as
+  // part of the URL (#537).
+  const text = (node as TS.LiteralLikeNode).text;
   return [...text.matchAll(URL_IN_TEXT)]
     .filter(match => !isNonEndpointUrl(match[0]))
-    .map(match => ({ url: match[0], start: start + (match.index ?? 0) }));
+    .map(match => ({ url: match[0], start }));
 }
 
 /**
- * Every URL written in a string or template literal of the file, once, at
- * the offset it is written at. Comments and JSX text are prose, not values;
- * loopback and reserved example hosts are not endpoints; a URL bound to a
- * documentation name (`reference`, `DOCS_URL`) is a link for a reader.
+ * Every URL written in a string or template literal of the file, once, with
+ * the offset of the string it is written in. Comments and JSX text are prose,
+ * not values; loopback and reserved example hosts are not endpoints; a URL
+ * bound to a documentation name (`reference`, `DOCS_URL`) or rendered as a
+ * JSX `href` is a link for a reader; namespaces and schema.org terms are
+ * identifiers.
  */
 export function findUrlLiterals(
   ts: typeof TS,

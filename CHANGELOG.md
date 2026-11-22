@@ -442,6 +442,13 @@ the name alone decides, and the finding says the imports were NOT read. The
 "Low test coverage ratio" check is unchanged (test files per source file):
 counting covered files instead would fail projects that pass it today.
 
+### Internal — `noImplicitOverride` is on
+
+This repository's `tsconfig.json` now sets `noImplicitOverride: true`,
+one of the flags TypeScript Strict Mode (SACRED LAW) asks for. Every member that
+replaces a base-class member says so with `override` (11 in `src/`, 3 in a test
+subclass). No behaviour changes.
+
 ### Internal — two copied helpers read through their one implementation
 
 Code Duplication Control reported three copies in our own code; two are

@@ -95,7 +95,7 @@ export class NgRxSelectorPatternsConfiguration extends AngularConfigurationBase 
    * Build validation message with flexible placeholder support
    * RULE 1: Uses centralized StringTemplateUtils instead of duplicate logic
    */
-  static buildMessage(
+  static override buildMessage(
     messageTemplate: string,
     ...placeholders: string[]
   ): string {

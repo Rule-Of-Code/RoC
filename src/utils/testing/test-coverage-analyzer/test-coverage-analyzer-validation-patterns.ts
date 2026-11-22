@@ -1,5 +1,19 @@
+import { CodeText } from '../../code-text';
 import { FileUtils } from '../../file-utils';
+import { loadTypeScript } from '../../react/tsx-source';
 import { TestCoverageAnalyzerConfiguration } from './test-coverage-analyzer-configuration';
+import { TestFileReading } from './test-file-reading';
+import { TestNetworkClients } from './test-network-clients';
+
+/** A test file's code (comments and literals blanked) and what it reaches. */
+export interface CodeReading {
+  code: string;
+  networkClients: string[];
+  /** The test calls the code it imports with an argument (TestFileReading). */
+  callsWithInput: boolean;
+  /** The project's runner resets mocks between tests. */
+  runnerResetsMocks: boolean;
+}
 
 /**
  * Test Coverage Analyzer Validation Patterns
@@ -12,11 +26,20 @@ export class TestCoverageAnalyzerValidationPatterns {
    * RULE 2: Configuration-driven iteration replaces duplicate if-checks
    * Eliminates 4 separate if-blocks with single unified loop
    */
-  static detectMockingIssues(content: string): string[] {
+  static detectMockingIssues(
+    content: string,
+    reading: CodeReading | null = TestCoverageAnalyzerValidationPatterns.read(
+      content
+    )
+  ): string[] {
     const issues: string[] = [];
 
     for (const config of TestCoverageAnalyzerConfiguration.MOCKING_ISSUE_DETECTION_CONFIGS) {
-      if (config.checker(content)) {
+      // A check that reads code is not run on text when there is no code
+      // to read (no parser): the caller says the file was not read (#427).
+      const subject = config.readsCode ? (reading?.code ?? null) : content;
+      if (config.excusedByMockReset && reading?.runnerResetsMocks) continue;
+      if (subject !== null && config.checker(subject)) {
         issues.push(config.message);
       }
     }
@@ -45,28 +68,53 @@ export class TestCoverageAnalyzerValidationPatterns {
    * Analyze coverage and edge cases using centralized Configuration
    * RULE 2: Unified analysis method replaces multiple boolean checks
    */
-  static analyzeCoverageAndEdgeCases(content: string): {
+  static analyzeCoverageAndEdgeCases(
+    content: string,
+    reading: CodeReading | null = TestCoverageAnalyzerValidationPatterns.read(
+      content
+    )
+  ): {
     testsEdgeCases: boolean;
-    hasDependencies: boolean;
+    /** The network and service clients the test loads with no double in its code. */
+    unmockedClients: string[];
     usesMocks: boolean;
     mockingIssues: string[];
     edgeCaseRecommendations: string[];
   } {
     const testsEdgeCases =
       TestCoverageAnalyzerConfiguration.testsEdgeCases(content);
-    const hasDependencies =
-      TestCoverageAnalyzerConfiguration.hasDependencies(content);
+    const unmockedClients =
+      reading && !TestNetworkClients.hasTestDouble(reading.code)
+        ? reading.networkClients
+        : [];
     const usesMocks = TestCoverageAnalyzerConfiguration.usesMocks(content);
-    const mockingIssues = this.detectMockingIssues(content);
+    const mockingIssues = this.detectMockingIssues(content, reading);
     const edgeCaseRecommendations =
       this.generateEdgeCaseRecommendations(content);
 
     return {
       testsEdgeCases,
-      hasDependencies,
+      unmockedClients,
       usesMocks,
       mockingIssues,
       edgeCaseRecommendations,
+    };
+  }
+
+  /**
+   * What the mocking checks read of a file, with this machine's parser —
+   * for a direct caller; the law builds it once per file, with the
+   * project's parser, or passes null when there is none.
+   */
+  static read(content: string, fileName = 'file.ts'): CodeReading | null {
+    const root = process.cwd();
+    const ts = loadTypeScript(root);
+    if (!ts) return null;
+    return {
+      code: CodeText.codeOnly(content, fileName),
+      networkClients: TestNetworkClients.imported(ts, content, fileName),
+      callsWithInput: TestFileReading.callsWithInput(ts, content, fileName),
+      runnerResetsMocks: TestFileReading.runnerResetsMocks(root),
     };
   }
 
@@ -75,7 +123,11 @@ export class TestCoverageAnalyzerValidationPatterns {
    */
   static analyzeCoverage(
     content: string,
-    file: string
+    file: string,
+    reading: CodeReading | null = TestCoverageAnalyzerValidationPatterns.read(
+      content,
+      file
+    )
   ): {
     violations: string[];
     suggestions: string[];
@@ -84,12 +136,15 @@ export class TestCoverageAnalyzerValidationPatterns {
     const violations: string[] = [];
     const suggestions: string[] = [];
 
-    const coverageAndEdges = this.analyzeCoverageAndEdgeCases(content);
+    const coverageAndEdges = this.analyzeCoverageAndEdgeCases(content, reading);
 
     violations.push(...coverageAndEdges.mockingIssues);
     suggestions.push(...coverageAndEdges.edgeCaseRecommendations);
 
-    if (!coverageAndEdges.testsEdgeCases) {
+    // Edge cases are asked of a test that gives the code under test an
+    // input; a file of export checks or constant tables has none (#429).
+    // Without the parser this is not read, as the mocking checks.
+    if (reading?.callsWithInput && !coverageAndEdges.testsEdgeCases) {
       TestCoverageAnalyzerConfiguration.addViolationSuggestionPair(
         violations,
         suggestions,
@@ -102,14 +157,17 @@ export class TestCoverageAnalyzerValidationPatterns {
       );
     }
 
-    if (coverageAndEdges.hasDependencies && !coverageAndEdges.usesMocks) {
+    // A network or service client loaded with no double (#429). The module
+    // under test, the filesystem and a child process are not such a
+    // dependency; the finding names the clients.
+    if (coverageAndEdges.unmockedClients.length > 0) {
       TestCoverageAnalyzerConfiguration.addViolationSuggestionPair(
         violations,
         suggestions,
         TestCoverageAnalyzerConfiguration.COVERAGE_MESSAGES.DEPENDENCIES_WITHOUT_MOCKS_VIOLATION.replace(
           '{fileName}',
           file
-        ),
+        ).replace('{clients}', coverageAndEdges.unmockedClients.join(', ')),
         TestCoverageAnalyzerConfiguration.COVERAGE_MESSAGES
           .DEPENDENCIES_WITHOUT_MOCKS_SUGGESTION
       );

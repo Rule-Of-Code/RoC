@@ -13,7 +13,6 @@
 import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { CheckerUtils } from '../../utils/checker-utils';
-import { ConfigFileUtils } from '../../utils/config-file-utils';
 import { FileUtils } from '../../utils/file-utils';
 import { markJudgedNothing } from '../../utils/judged-nothing';
 import { PathOperations } from '../../utils/path-operations';
@@ -60,13 +59,30 @@ export class ZeroToleranceStrictLaw extends CodeQualityLawBase {
       violations,
       'Zero Tolerance Strict Standards',
       'CODE_QUALITY_LAW',
-      [
-        'Enable TypeScript strict mode',
-        'Remove all console statements',
-        'Configure strict ESLint rules',
-      ],
+      this.suggestionsFor(violations),
       context
     );
+  }
+
+  /**
+   * The advice that answers a finding of this run, and only that. The list was
+   * fixed, so a tsconfig the law could not read got "Enable TypeScript strict
+   * mode" next to "tsconfig.json … NOT read" — advice about a file it never
+   * judged (#506, QA on #503).
+   */
+  private static suggestionsFor(violations: string[]): string[] {
+    const has = (text: string): boolean =>
+      violations.some(v => v.startsWith(text));
+    const advice: Array<[boolean, string]> = [
+      [
+        has('TypeScript strict mode not enabled') ||
+          has('TypeScript configuration file missing'),
+        'Enable TypeScript strict mode',
+      ],
+      [has('Console statements found in'), 'Remove all console statements'],
+      [has('ESLint rules disabled in'), 'Configure strict ESLint rules'],
+    ];
+    return advice.filter(([applies]) => applies).map(([, text]) => text);
   }
 
   private static checkTypeScriptConfig(
@@ -77,8 +93,13 @@ export class ZeroToleranceStrictLaw extends CodeQualityLawBase {
     if (!FileUtils.fileExistsSync(tsconfigPath)) {
       violations.push('TypeScript configuration file missing');
     } else {
-      const tsconfigContent = FileUtils.readFileContentSync(tsconfigPath);
-      if (tsconfigContent && !this.hasStrictTypeScriptConfig(tsconfigContent)) {
+      // Read from the file, its `extends` chain merged. A text search for
+      // "strict" and "true" passed `"strict": false, "sourceMap": true`, and
+      // the parse behind it never read a tsconfig (#486).
+      const verdict = this.strictTypeScriptConfig(tsconfigPath);
+      if (verdict.notRead !== undefined) {
+        violations.push(verdict.notRead);
+      } else if (!verdict.strict) {
         violations.push('TypeScript strict mode not enabled');
       }
     }
@@ -246,38 +267,5 @@ export class ZeroToleranceStrictLaw extends CodeQualityLawBase {
     };
     visit(source);
     return count;
-  }
-
-  protected static hasStrictTypeScriptConfig(tsConfigContent: string): boolean {
-    try {
-      // Simple check: does the file contain "strict": true
-      // This handles both direct settings and extended configs
-      if (
-        tsConfigContent.includes('"strict"') &&
-        tsConfigContent.includes('true')
-      ) {
-        return true;
-      }
-
-      const config = ConfigFileUtils.loadConfig(tsConfigContent) as {
-        compilerOptions?: {
-          strict?: boolean;
-          noImplicitAny?: boolean;
-          strictNullChecks?: boolean;
-        };
-      };
-
-      const { compilerOptions } = config;
-      if (!compilerOptions || typeof compilerOptions !== 'object') {
-        return false;
-      }
-
-      return !!(
-        compilerOptions.strict ??
-        (compilerOptions.noImplicitAny && compilerOptions.strictNullChecks)
-      );
-    } catch {
-      return false;
-    }
   }
 }

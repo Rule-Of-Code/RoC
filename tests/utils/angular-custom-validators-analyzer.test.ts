@@ -32,13 +32,6 @@ describe('utils/angular/angular-custom-validators/angular-custom-validators-anal
     jest.restoreAllMocks();
   });
 
-  afterAll(async () => {
-    jest.clearAllMocks();
-    jest.clearAllTimers();
-    jest.restoreAllMocks();
-    await new Promise(resolve => setTimeout(resolve, 50));
-  });
-
   describe('checkCustomValidators', () => {
     it('should return empty results for empty project', () => {
       const result = AngularCustomValidatorsAnalyzer.checkCustomValidators(

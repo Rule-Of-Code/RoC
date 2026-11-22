@@ -90,9 +90,3 @@ export {
   SecurityToolingValidationPatterns,
   type ToolingAnalysisResult,
 } from './security-tooling';
-export {
-  SupplyChainRiskAnalyzer,
-  SupplyChainRiskConfiguration,
-  SupplyChainRiskValidationPatterns,
-  type RiskAnalysisResult,
-} from './supply-chain-risk';

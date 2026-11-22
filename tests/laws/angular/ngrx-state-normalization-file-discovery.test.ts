@@ -409,11 +409,4 @@ describe('NgRxStateNormalizationFileDiscoveryConstants', () => {
       ).toEqual(original);
     });
   });
-
-  afterAll(async () => {
-    jest.clearAllMocks();
-    jest.clearAllTimers();
-    jest.restoreAllMocks();
-    await new Promise(resolve => setTimeout(resolve, 50));
-  });
 });

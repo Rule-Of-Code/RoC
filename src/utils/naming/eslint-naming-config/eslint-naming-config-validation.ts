@@ -1,5 +1,9 @@
-import { ConfigFileUtils } from '../../config-file-utils';
 import { ESLINT_NAMING_CONVENTIONS } from '../../constants';
+import {
+  type ESLintConfigRead,
+  readESLintDataConfig,
+  readPackageJsonESLintConfig,
+} from '../../eslint-config-json';
 import { FileUtils } from '../../file-utils';
 import { PathOperations } from '../../path-operations';
 import { ESLintNamingConfigConfiguration } from './eslint-naming-config-configuration';
@@ -24,6 +28,10 @@ export class ESLintNamingConfigValidation {
 
     const eslintConfig =
       ESLintNamingConfigValidation.findESLintConfiguration(projectRoot);
+    if (eslintConfig?.notRead !== undefined) {
+      violations.push(eslintConfig.notRead);
+      return { violations, suggestions };
+    }
     if (!eslintConfig) {
       const messages = ESLintNamingConfigConfiguration.getViolationMessages({});
       const suggestionMessages =
@@ -35,7 +43,7 @@ export class ESLintNamingConfigValidation {
 
     try {
       ESLintNamingConfigValidation.validateNamingRules(
-        eslintConfig,
+        eslintConfig.config,
         violations,
         suggestions
       );
@@ -51,11 +59,10 @@ export class ESLintNamingConfigValidation {
   }
 
   /**
-   * Find ESLint configuration in project
+   * Find ESLint configuration in project: the first config file present, or
+   * the note saying it was found and not read.
    */
-  static findESLintConfiguration(
-    projectRoot: string
-  ): Record<string, unknown> | null {
+  static findESLintConfiguration(projectRoot: string): ESLintConfigRead | null {
     const configFiles = ESLintNamingConfigConfiguration.getESLintConfigFiles(
       {}
     );
@@ -79,7 +86,7 @@ export class ESLintNamingConfigValidation {
   private static loadESLintConfigFile(
     projectRoot: string,
     configFile: string
-  ): Record<string, unknown> | null {
+  ): ESLintConfigRead | null {
     const configPath = PathOperations.join(projectRoot, configFile);
     if (!FileUtils.exists(configPath)) {
       return null;
@@ -87,12 +94,20 @@ export class ESLintNamingConfigValidation {
 
     try {
       if (configFile === 'package.json') {
-        return ESLintNamingConfigValidation.loadPackageJsonESLintConfig(
-          configPath
+        return readPackageJsonESLintConfig(
+          configPath,
+          'its ESLint config (eslintConfig) was'
         );
       }
-      if (configFile.endsWith('.json')) {
-        return ConfigFileUtils.loadConfig(configPath);
+      // JSON and YAML configs were read with RoC's own config loader, which
+      // returns null for anything without ignores/includes/laws: a valid
+      // .eslintrc.json was "No ESLint configuration found" (#486).
+      if (/\.(?:json|ya?ml)$/.test(configFile)) {
+        return readESLintDataConfig(
+          configPath,
+          configFile,
+          'its naming rules were'
+        );
       }
       if (configFile.endsWith('.js') || configFile.endsWith('.mjs')) {
         // For flat config files (eslint.config.js/mjs), parse the content directly
@@ -106,45 +121,29 @@ export class ESLintNamingConfigValidation {
         if (hasNamingConvention) {
           // Return a mock config indicating naming rules exist
           return {
-            _configFile: configFile,
-            _isFlatConfig: true,
-            _hasNamingRules: true,
-            rules: {
-              '@typescript-eslint/naming-convention': 'error',
+            config: {
+              _configFile: configFile,
+              _isFlatConfig: true,
+              _hasNamingRules: true,
+              rules: {
+                '@typescript-eslint/naming-convention': 'error',
+              },
             },
           };
         }
 
         // Config file exists but no naming rules found
         return {
-          _configFile: configFile,
-          _isFlatConfig: true,
-          _hasNamingRules: false,
-          rules: {},
+          config: {
+            _configFile: configFile,
+            _isFlatConfig: true,
+            _hasNamingRules: false,
+            rules: {},
+          },
         };
       }
     } catch (_error) {
       // Continue to next config file
-    }
-
-    return null;
-  }
-
-  /**
-   * Load ESLint configuration from package.json
-   */
-  private static loadPackageJsonESLintConfig(
-    configPath: string
-  ): Record<string, unknown> | null {
-    const packageJson = ConfigFileUtils.loadConfig(configPath) as Record<
-      string,
-      unknown
-    > | null;
-
-    const eslintConfigKey =
-      ESLINT_NAMING_CONVENTIONS.PROPERTY_KEYS.ESLINT_CONFIG;
-    if (packageJson?.[eslintConfigKey]) {
-      return packageJson[eslintConfigKey] as Record<string, unknown>;
     }
 
     return null;

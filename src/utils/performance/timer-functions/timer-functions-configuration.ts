@@ -5,6 +5,7 @@
  */
 
 import { ANGULAR_CONSTANTS } from '../../angular-constants';
+import { PatternMatchingUtils } from '../../pattern-matching-utils';
 
 export class TimerFunctionsConfiguration {
   static readonly TIMER_PATTERNS = {
@@ -72,8 +73,14 @@ export class TimerFunctionsConfiguration {
     hasNgOnDestroy: boolean;
   } {
     return {
-      hasSetInterval: this.TIMER_PATTERNS.SET_INTERVAL.test(content),
-      hasSetTimeout: this.TIMER_PATTERNS.SET_TIMEOUT.test(content),
+      hasSetInterval: PatternMatchingUtils.hasRegexPattern(
+        content,
+        this.TIMER_PATTERNS.SET_INTERVAL
+      ),
+      hasSetTimeout: PatternMatchingUtils.hasRegexPattern(
+        content,
+        this.TIMER_PATTERNS.SET_TIMEOUT
+      ),
       hasClearInterval: content.includes(this.TIMER_PATTERNS.CLEAR_INTERVAL),
       hasClearTimeout: content.includes(this.TIMER_PATTERNS.CLEAR_TIMEOUT),
       hasNgOnDestroy: content.includes(ANGULAR_CONSTANTS.NG_ON_DESTROY),
@@ -138,10 +145,15 @@ export class TimerFunctionsConfiguration {
 
     return {
       canUseInterval:
-        this.TIMER_PATTERNS.SET_INTERVAL.test(content) && hasRxJSImport,
+        PatternMatchingUtils.hasRegexPattern(
+          content,
+          this.TIMER_PATTERNS.SET_INTERVAL
+        ) && hasRxJSImport,
       canUseDelay:
-        this.TIMER_PATTERNS.SET_TIMEOUT.test(content) &&
-        content.includes('delay'),
+        PatternMatchingUtils.hasRegexPattern(
+          content,
+          this.TIMER_PATTERNS.SET_TIMEOUT
+        ) && content.includes('delay'),
     };
   }
 

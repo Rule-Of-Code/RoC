@@ -189,7 +189,12 @@ export interface AuditStats {
   passedLaws: number;
   failedLaws: number;
   warningLaws?: number;
-  /** Laws that judged nothing (`scope.judgedNothingLaws`), counted apart from the warnings. */
+  /**
+   * Laws that judged nothing at a non-blocking severity, apart from the
+   * warnings and the failures: passed + failed + warning + judgedNothing =
+   * executedLaws. One at error severity is in failedLaws; `scope.judgedNothingLaws`
+   * names them all (8.0.1).
+   */
   judgedNothingLaws?: number;
   score: number;
   duration: number;

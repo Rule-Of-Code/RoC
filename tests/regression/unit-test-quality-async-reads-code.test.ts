@@ -24,7 +24,7 @@ describe('Unit Test Quality: async patterns from the code (#424)', () => {
   };
 
   const ASYNC_FINDINGS =
-    /Promise chains|setTimeout usage|Mixing async|Awaiting non-promise|async patterns/;
+    /Promise chains|setTimeout usage|Mixing async|Awaiting non-promise|async, mocking and edge-case patterns/;
 
   const asyncFindings = async (): Promise<string[]> => {
     const result = await UnitTestQualityLaw.check({
@@ -89,7 +89,7 @@ describe('Unit Test Quality: async patterns from the code (#424)', () => {
     try {
       expect(await asyncFindings()).toEqual([
         expect.stringMatching(
-          /the async patterns of the 1 test file\(s\) were NOT read/
+          /the async, mocking and edge-case patterns of the 1 test file\(s\) were NOT read/
         ),
       ]);
     } finally {

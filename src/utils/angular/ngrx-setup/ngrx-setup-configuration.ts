@@ -76,14 +76,19 @@ export class NgRxSetupConfiguration {
    * Core coordination methods - delegate to specialized classes
    */
   static getAppModulePath = NgRxPathOperations.getAppModulePath;
-  static getAppConfigPath = NgRxPathOperations.getAppConfigPath;
-  static getSourcePath = NgRxPathOperations.getSourcePath;
+  static getAppConfigPath =
+    NgRxPathOperations.getAppConfigPath.bind(NgRxPathOperations);
+  static getSourcePath =
+    NgRxPathOperations.getSourcePath.bind(NgRxPathOperations);
   static getPackageJsonData = NgRxDependencyAnalyzer.getPackageJsonData;
   static getAllProjectDependencies =
     NgRxDependencyAnalyzer.getAllProjectDependencies;
   static checkDevToolsDependencyInstalled =
-    NgRxDependencyAnalyzer.checkDevToolsDependencyInstalled;
-  static checkDevToolsConfigured = NgRxDevToolsChecker.checkDevToolsConfigured;
+    NgRxDependencyAnalyzer.checkDevToolsDependencyInstalled.bind(
+      NgRxDependencyAnalyzer
+    );
+  static checkDevToolsConfigured =
+    NgRxDevToolsChecker.checkDevToolsConfigured.bind(NgRxDevToolsChecker);
   static analyzeDependencies(packageJson: Record<string, unknown>) {
     return NgRxDependencyAnalyzer.analyzeDependencies(packageJson);
   }
@@ -95,15 +100,23 @@ export class NgRxSetupConfiguration {
    * Check if content contains specific NgRx patterns
    */
   static containsNgRxPattern(content: string, patternType: string): boolean {
-    const patterns = this.APP_MODULE_PATTERNS;
-    const patternMap = this.PATTERN_TYPES as Record<string, string>;
-    const mappedPattern = patternMap[patternType];
-    if (!mappedPattern) return false;
-    const actualPattern = patterns[
-      mappedPattern as keyof typeof patterns
-    ] as string;
-    return actualPattern ? content.includes(actualPattern) : false;
+    // A pattern type names the APP_MODULE_PATTERNS entry it looks for. The
+    // lookup used the type's own value ('storeModule') as that key, which no
+    // entry has, so the answer was always false and every NgModule project was
+    // told to add the StoreModule.forRoot it already imports (#511 — hidden
+    // until the TypeError in front of it was fixed).
+    const key = this.PATTERN_FOR_TYPE[patternType];
+    return key ? content.includes(this.APP_MODULE_PATTERNS[key]) : false;
   }
+
+  /** The APP_MODULE_PATTERNS entry each pattern type looks for. */
+  private static readonly PATTERN_FOR_TYPE: Readonly<
+    Record<string, keyof typeof NgRxSetupConfiguration.APP_MODULE_PATTERNS>
+  > = {
+    [NGRX_KEYWORDS.PATTERN_TYPES.STORE_MODULE]: 'storeModuleForRoot',
+    [NGRX_KEYWORDS.PATTERN_TYPES.EFFECTS_MODULE]: 'effectsModuleForRoot',
+    [NGRX_KEYWORDS.PATTERN_TYPES.DEVTOOLS_MODULE]: 'storeDevtoolsModule',
+  };
 
   /**
    * Check module standards (delegate to specialized validator)

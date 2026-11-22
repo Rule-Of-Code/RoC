@@ -2,11 +2,18 @@
 /**
  * Holds a demo cast to the facts. Exits 1 on any mismatch.
  *
- *   node check.mjs [projectdir]          the refusal demo (demo.cast, out/)
- *   node check.mjs --pass [projectdir]   the pass demo    (pass.cast, out-pass/)
+ *   node check.mjs --tarball=<tgz> [projectdir]  the refusal demo (demo.cast, out/),
+ *                                                before its release is published
+ *   node check.mjs [projectdir]                  the refusal demo, after
+ *   node check.mjs --pass [projectdir]           the pass demo    (pass.cast, out-pass/)
  *
- *   0. The installed ruleofcode is the published package: the version the demo
- *      runs, resolved from the registry, with the integrity npm reports for it.
+ *   0. The installed ruleofcode is the release the demo runs, byte for byte.
+ *      Refusal: version VERSION, installed into PKG_DIR (record.mjs). With
+ *      --tarball, that file's sha1 is PACKAGE_SHA1 and the install's lock
+ *      holds its sha512; without, npm reports PACKAGE_SHA1 as the published
+ *      shasum and the lock holds the published integrity, from the registry.
+ *      Pass: version PASS_VERSION from the registry, with the integrity npm
+ *      reports for it, as package-lock.json pins it.
  *   1. Each command typed on screen is exactly the command record.mjs ran.
  *   2. What follows it is exactly that step's recorded stdout (<out>/step-N.stdout),
  *      with "\n" sent as "\r\n" (a terminal's ONLCR) and nothing else changed.
@@ -21,44 +28,70 @@
  *      character for character and in order, inside one template literal of it.
  */
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { VERSION, selectDemo } from './record.mjs';
+import { PACKAGE_SHA1, PKG_DIR, packageRoot, selectDemo } from './record.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const demo = selectDemo(process.argv.slice(2));
 const STEPS = demo.steps;
 const require_ = (p) => JSON.parse(readFileSync(p, 'utf8'));
-const pkg = require_(join(HERE, 'node_modules/ruleofcode/package.json'));
+const PKG_ROOT = packageRoot(demo);
+const pkg = require_(join(PKG_ROOT, 'package.json'));
 let failures = 0;
 const fail = (msg) => {
   failures++;
   console.log(`✗ ${msg}`);
 };
 
-// --- 0: the published package ------------------------------------------------
+// --- 0: the package --------------------------------------------------------
+const VERSION = demo.version;
 if (pkg.version !== VERSION) fail(`installed ruleofcode is ${pkg.version}, the demo runs ${VERSION}`);
-const locked = require_(join(HERE, 'package-lock.json')).packages?.['node_modules/ruleofcode'] ?? {};
-const view = spawnSync('npm', ['view', `ruleofcode@${VERSION}`, 'dist.integrity', 'dist.shasum', '--json'], {
-  encoding: 'utf8',
-  shell: process.platform === 'win32',
-});
-let published = {};
-try {
-  published = JSON.parse(view.stdout);
-} catch {
-  /* reported below */
+const lockFile = demo.name === 'pass' ? join(HERE, 'package-lock.json') : join(PKG_DIR, 'package-lock.json');
+const locked = require_(lockFile).packages?.['node_modules/ruleofcode'] ?? {};
+const registryTarball = `https://registry.npmjs.org/ruleofcode/-/ruleofcode-${VERSION}.tgz`;
+
+/** What npm reports for the published release: { 'dist.integrity', 'dist.shasum' }, or {}. */
+function published() {
+  const view = spawnSync('npm', ['view', `ruleofcode@${VERSION}`, 'dist.integrity', 'dist.shasum', '--json'], {
+    encoding: 'utf8',
+    shell: process.platform === 'win32',
+  });
+  try {
+    return JSON.parse(view.stdout);
+  } catch {
+    return {};
+  }
 }
-const tarball = `https://registry.npmjs.org/ruleofcode/-/ruleofcode-${VERSION}.tgz`;
-if (locked.version !== VERSION || locked.resolved !== tarball) {
-  fail(`package-lock.json pins ruleofcode ${locked.version} from ${locked.resolved}, not ${VERSION} from the registry`);
-} else if (!published['dist.integrity']) {
-  fail(`npm view ruleofcode@${VERSION} gave no integrity (exit ${view.status}): the package cannot be checked`);
-} else if (locked.integrity !== published['dist.integrity']) {
-  fail(`package-lock.json integrity ${locked.integrity} is not the published ${published['dist.integrity']}`);
+
+if (demo.name === 'refusal' && demo.tarball) {
+  // Before publish: the candidate's file, and the install made from it.
+  const bytes = readFileSync(demo.tarball);
+  const sha1 = createHash('sha1').update(bytes).digest('hex');
+  const sha512 = `sha512-${createHash('sha512').update(bytes).digest('base64')}`;
+  if (sha1 !== PACKAGE_SHA1) fail(`${demo.tarball} has sha1 ${sha1}, not the candidate's PACKAGE_SHA1 ${PACKAGE_SHA1}`);
+  else if (locked.version !== VERSION || locked.integrity !== sha512) {
+    fail(`${lockFile} pins ruleofcode ${locked.version} with ${locked.integrity}, not ${VERSION} from that tarball (${sha512.slice(0, 19)}…)`);
+  } else {
+    console.log(`✓ ruleofcode ${VERSION} is the candidate's tarball (sha1 ${sha1}), installed from it`);
+  }
 } else {
-  console.log(`✓ ruleofcode ${VERSION} is the published package (integrity ${locked.integrity.slice(0, 19)}…, shasum ${published['dist.shasum']})`);
+  // From the registry: the refusal release must be the candidate that was
+  // recorded (PACKAGE_SHA1); the pass release is the one its lock pins.
+  const npm = published();
+  if (locked.version !== VERSION || locked.resolved !== registryTarball) {
+    fail(`${lockFile} pins ruleofcode ${locked.version} from ${locked.resolved}, not ${VERSION} from the registry`);
+  } else if (!npm['dist.integrity']) {
+    fail(`npm view ruleofcode@${VERSION} gave no integrity: the package cannot be checked (not published yet? use --tarball=<tgz>)`);
+  } else if (locked.integrity !== npm['dist.integrity']) {
+    fail(`${lockFile} integrity ${locked.integrity} is not the published ${npm['dist.integrity']}`);
+  } else if (demo.name === 'refusal' && npm['dist.shasum'] !== PACKAGE_SHA1) {
+    fail(`the published ruleofcode ${VERSION} has shasum ${npm['dist.shasum']}, not the recorded candidate's ${PACKAGE_SHA1}`);
+  } else {
+    console.log(`✓ ruleofcode ${VERSION} is the published package (integrity ${locked.integrity.slice(0, 19)}…, shasum ${npm['dist.shasum']})`);
+  }
 }
 
 // --- 1 + 2: the cast against the recorded stdout -------------------------------
@@ -82,7 +115,7 @@ STEPS.forEach((step, i) => {
 });
 
 // --- 3: every CLI line exists in the CLI ---------------------------------------
-const DIST_DIR = join(HERE, 'node_modules/ruleofcode/dist');
+const DIST_DIR = join(PKG_ROOT, 'dist');
 const DIST_FILES = readdirSync(DIST_DIR, { recursive: true })
   .filter((f) => String(f).endsWith('.js'))
   .map((f) => readFileSync(join(DIST_DIR, String(f)), 'utf8'));

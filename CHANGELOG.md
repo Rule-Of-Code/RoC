@@ -33,7 +33,8 @@ longer a wildcard.
 The law's first detection limit now names what is actually read: three
 lockfiles, the scanners and the files they are looked for in (GitHub
 Actions workflows are not read), and the legacy audit config files that
-also count.
+also count. The law's description no longer promises "audit integration"
+and "vulnerability detection"; its id (`security_a0bcc52d`) is unchanged.
 
 ## [8.0.1] - 2026-11-22
 

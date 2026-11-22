@@ -19,7 +19,9 @@ import path from 'path';
 import { NpmAuditChecker } from '../../src/checkers/dependency-scanning/npm-audit-checker';
 import { VulnerabilityChecker } from '../../src/checkers/dependency-scanning/vulnerability-checker';
 import { NpmAuditConstants } from '../../src/laws/dependency-scanning/npm-audit-checker/constants/npm-audit.constants';
+import { buildLawsJson } from '../../src/cli/laws-command';
 import { DependencySecurityScanningLaw } from '../../src/laws/security/dependency-security-scanning';
+import { ModularLawsRegistry } from '../../src/registry/modular-laws-registry';
 import * as childProcess from '../../src/utils/child-process';
 import { FileUtils } from '../../src/utils/file-utils';
 
@@ -203,5 +205,26 @@ describe('#545 a wildcard is a range, not the letter x', () => {
     '1.0.0 || *',
   ])('"%s" is a wildcard', range => {
     expect(NpmAuditConstants.isWildcardVersion(range)).toBe(true);
+  });
+});
+
+describe('#545 the law card describes the new behaviour, the id stays', () => {
+  const card = () =>
+    buildLawsJson(ModularLawsRegistry.getAll(), {}).laws.find(
+      law => law.name === 'Dependency Security Scanning'
+    );
+
+  it('the id in `laws --json` is the one 8.0.1 published', () => {
+    // `ruleofcode laws --json` of 8.0.1: configs and waivers name the law by
+    // this id; the description changed, the text the id comes from did not.
+    expect(card()?.id).toBe('security_a0bcc52d');
+  });
+
+  it('the description no longer promises audit integration or vulnerability detection', () => {
+    const description = card()?.description ?? '';
+    expect(description).not.toMatch(
+      /vulnerability detection|audit integration/i
+    );
+    expect(description).toMatch(/scanner runs in the gate/);
   });
 });

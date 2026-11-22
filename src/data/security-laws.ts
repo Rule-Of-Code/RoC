@@ -366,8 +366,10 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
       'It does NOT run the scanner and cannot see a vulnerability the scanner would find — a scanner outside the gate is not a scanner, and one that is present but never run is invisible to this law.',
     ],
     emoji: '🔍',
+    // The text the id is generated from (above) stays as it was: the id is
+    // the law's identity in configs and waivers (#545).
     description:
-      'Comprehensive DependencyVulnerabilityAnalyzer dependency security scanning including audit integration, vulnerability detection, LicenseCompatibilityChecker license checking',
+      'The dependency graph is locked and a dependency scanner runs in the gate; manifest hygiene (insecure protocols, wildcard ranges, pinning) and dependency licences. Vulnerabilities are measured by that scanner, not by this law.',
     priority: 'CRITICAL',
     category: 'SECURITY',
     automation: 'AUTOMATED',

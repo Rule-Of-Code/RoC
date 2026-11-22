@@ -17,8 +17,10 @@ no endpoint and no deployed environment, so both reported findings that could
 not be fixed honestly. They now declare the same `requires` as the other laws
 about a running product (#428): a Node or Python HTTP framework, a web
 surface, a mobile app shell or a deploy target. A project with none of these
-no longer selects them; the number of laws such a project runs drops by two
-(#428).
+no longer selects them (#428). The advertised applicable-law counts of the
+recommended config follow: python 93 → 92, frontend 96 → 94, node 72 → 70
+(the recommended floor is 90% of them). The W = 0 goldens are re-recorded:
+the two law lines, the renumbering and the counts, nothing else.
 
 ## [8.0.1] - 2026-11-22
 

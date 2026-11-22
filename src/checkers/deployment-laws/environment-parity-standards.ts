@@ -9,6 +9,7 @@ import {
   DeploymentEnvironmentAnalyzer,
   SecretsAnalyzer,
 } from '../../utils/deployment';
+import { EnvironmentFilesAnalyzerConfiguration } from '../../utils/deployment/environment-files-analyzer/environment-files-analyzer-configuration';
 
 export class EnvironmentParityStandardsLaw {
   static check(context: LawCheckContext): LawResult {
@@ -31,8 +32,28 @@ export class EnvironmentParityStandardsLaw {
     const envFileAnalysis = DeploymentEnvironmentAnalyzer.analyzeEnvFiles(
       context.projectRoot
     );
-    violations.push(...envFileAnalysis.violations);
-    suggestions.push(...envFileAnalysis.suggestions);
+    // A missing example file is one finding (#433): when the consistency
+    // check already said no contract is declared, ".env.example file not
+    // found" says the same thing again.
+    const contractMissing = consistencyAnalysis.violations.includes(
+      EnvironmentFilesAnalyzerConfiguration.CONSISTENCY_VALIDATION_PATTERNS
+        .insufficientFilesMessage
+    );
+    const noExample =
+      EnvironmentFilesAnalyzerConfiguration.ENV_ANALYSIS_MESSAGES.noExampleFile;
+    const createExample =
+      EnvironmentFilesAnalyzerConfiguration.ENV_ANALYSIS_MESSAGES
+        .createExampleFile;
+    violations.push(
+      ...envFileAnalysis.violations.filter(
+        v => !(contractMissing && v === noExample)
+      )
+    );
+    suggestions.push(
+      ...envFileAnalysis.suggestions.filter(
+        s => !(contractMissing && s === createExample)
+      )
+    );
 
     // Analyze secrets handling using specialized utility
     const secretsAnalysis = SecretsAnalyzer.analyzeSecretsHandling(

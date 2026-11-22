@@ -3,28 +3,22 @@
  * All TypeScript must be configured with strict settings
  */
 
-import fs from 'fs';
-import path from 'path';
-
 import { PARTLY_READ_TEXT } from '../../utils/judged-nothing';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { ProjectTypeDetector } from '../../utils/config/project-type-detector';
-import { FileSystemOperations } from '../../utils/file-system-operations';
 import { SacredLawBase } from './sacred-law-base';
 import { PathOperations } from '../../utils/path-operations';
 import { loadTypeScript } from '../../utils/react/tsx-source';
+import { readTsconfigChain } from '../../utils/tsconfig-chain';
 
 const TSCONFIG = 'tsconfig.json';
 
-const isFile = (file: string): boolean => {
-  try {
-    return fs.statSync(file).isFile();
-  } catch {
-    return false;
-  }
-};
-
 export class TypeScriptStrictLaw {
+  // The flags this law requires. noPropertyAccessFromIndexSignature and
+  // sourceMap are not among them: the first is a style choice about how an
+  // index signature is read (`obj['key']` vs `obj.key`), not a type-safety
+  // guarantee — noUncheckedIndexedAccess is the one that makes the read
+  // honest — and source maps are a build/debugging setting, not strictness.
   private static readonly STRICT_CHECKS = {
     noImplicitAny: true,
     noImplicitReturns: true,
@@ -33,7 +27,6 @@ export class TypeScriptStrictLaw {
     noUnusedParameters: true,
     exactOptionalPropertyTypes: true,
     noImplicitOverride: true,
-    noPropertyAccessFromIndexSignature: true,
     noUncheckedIndexedAccess: true,
   };
 
@@ -58,11 +51,17 @@ export class TypeScriptStrictLaw {
       // the compiler. Without typescript the law used to read tsconfig.json
       // alone and report every flag set in the base as "must be enabled":
       // false findings, and no note (#427, QA p478-tsstrict-extends).
-      const chain = this.extendsChain(
+      const chain = readTsconfigChain(
         PathOperations.join(projectRoot, TSCONFIG)
       );
-      this.validateCompilerOptions(chain, violations, projectRoot);
-      if (chain.unread.length > 0) {
+      if (chain.notRead !== undefined) {
+        violations.push(
+          'tsconfig.json exists but could not be parsed — strict settings cannot be verified'
+        );
+      } else {
+        this.validateCompilerOptions(chain, violations, projectRoot);
+      }
+      if (chain.notRead === undefined && chain.unread.length > 0) {
         violations.push(
           `tsconfig.json extends ${chain.unread.map(e => JSON.stringify(e)).join(', ')}, which could not be read — the inherited compiler options were NOT read, and a flag not set in the files that were read is not judged; ${PARTLY_READ_TEXT}`
         );
@@ -85,7 +84,6 @@ export class TypeScriptStrictLaw {
         'Enable strict mode in tsconfig.json',
         'Configure all strict compiler options',
         'Set target to ES2020 or higher',
-        'Enable source maps for debugging',
       ]
     );
   }
@@ -126,61 +124,6 @@ export class TypeScriptStrictLaw {
     return parsed.options as Record<string, unknown>;
   }
 
-  /**
-   * The compiler options of `file` with its `extends` chain merged (base
-   * first, later entries of an `extends` array over earlier ones, the file's
-   * own options last), read as JSONC. `unread` names every link that could
-   * not be found or parsed: options it may set are unknown.
-   */
-  private static extendsChain(
-    file: string,
-    seen: Set<string> = new Set()
-  ): { options: Record<string, unknown>; unread: string[] } {
-    const config = FileSystemOperations.readJsoncFile(file) as Record<
-      string,
-      unknown
-    >;
-    seen.add(file);
-    let options: Record<string, unknown> = {};
-    const unread: string[] = [];
-    const links = ([] as unknown[]).concat(config.extends ?? []);
-    for (const link of links) {
-      if (typeof link !== 'string') continue;
-      const base = this.resolveExtends(path.dirname(file), link);
-      if (!base || seen.has(base)) {
-        if (!base) unread.push(link);
-        continue;
-      }
-      try {
-        const inherited = this.extendsChain(base, seen);
-        options = { ...options, ...inherited.options };
-        unread.push(...inherited.unread);
-      } catch {
-        unread.push(link);
-      }
-    }
-    const own = (config.compilerOptions ?? {}) as Record<string, unknown>;
-    return { options: { ...options, ...own }, unread };
-  }
-
-  /** An `extends` entry as a file: a relative path, or a package in node_modules. */
-  private static resolveExtends(dir: string, link: string): string | null {
-    const candidates = (base: string): string[] =>
-      base.endsWith('.json')
-        ? [base]
-        : [base, `${base}.json`, path.join(base, TSCONFIG)];
-    if (link.startsWith('.') || path.isAbsolute(link)) {
-      return candidates(path.resolve(dir, link)).find(isFile) ?? null;
-    }
-    for (let at = dir; ; at = path.dirname(at)) {
-      const found = candidates(path.join(at, 'node_modules', link)).find(
-        isFile
-      );
-      if (found) return found;
-      if (path.dirname(at) === at) return null;
-    }
-  }
-
   private static validateCompilerOptions(
     chain: { options: Record<string, unknown>; unread: string[] },
     violations: string[],
@@ -215,14 +158,12 @@ export class TypeScriptStrictLaw {
       }
     }
 
-    // target / moduleResolution / sourceMap as the chain sets them (strings,
-    // unlike the compiler's resolved enums) — inherited ones included.
+    // target / moduleResolution as the chain sets them (strings, unlike the
+    // compiler's resolved enums) — inherited ones included.
     if (!unknown('target'))
       this.validateTargetVersion(compilerOptions, violations);
     if (!unknown('moduleResolution'))
       this.validateModuleResolution(compilerOptions, violations);
-    if (!unknown('sourceMap') || compilerOptions.inlineSourceMap !== undefined)
-      this.validateSourceMaps(compilerOptions, violations);
   }
 
   private static validateTargetVersion(
@@ -254,15 +195,6 @@ export class TypeScriptStrictLaw {
       violations.push(
         `TypeScript moduleResolution must be one of: ${MODERN_RESOLUTIONS.join(', ')}`
       );
-    }
-  }
-
-  private static validateSourceMaps(
-    compilerOptions: Record<string, unknown>,
-    violations: string[]
-  ): void {
-    if (!compilerOptions.sourceMap && !compilerOptions.inlineSourceMap) {
-      violations.push('TypeScript source maps must be enabled');
     }
   }
 }

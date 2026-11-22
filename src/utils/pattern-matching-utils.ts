@@ -85,7 +85,11 @@ export class PatternMatchingUtils {
    * @returns True if pattern matches
    */
   static hasRegexPattern(content: string, pattern: RegExp): boolean {
-    return pattern.test(content);
+    // Stateless for a `g`/`y` pattern too: see hasAnyRegexPattern (#487).
+    pattern.lastIndex = 0;
+    const found = pattern.test(content);
+    pattern.lastIndex = 0;
+    return found;
   }
 
   /**
@@ -124,6 +128,12 @@ export class PatternMatchingUtils {
    * @param patterns - Array of RegExp patterns to test
    * @returns True if content matches any pattern
    *
+   * The answer depends on `content` and `patterns` only. A pattern with the
+   * `g` or `y` flag keeps `lastIndex` between `.test()` calls, and the
+   * pattern tables passed here are module constants: without the reset, a
+   * match in one file made the next file's search start past it, so the
+   * same secret in two files was reported once (#487).
+   *
    * @example
    * ```typescript
    * PatternMatchingUtils.hasAnyRegexPattern(content, [/import.*crypto/, /require.*crypto/])
@@ -134,6 +144,11 @@ export class PatternMatchingUtils {
     content: string,
     patterns: RegExp[] | readonly RegExp[]
   ): boolean {
-    return patterns.some(pattern => pattern.test(content));
+    return patterns.some(pattern => {
+      pattern.lastIndex = 0;
+      const found = pattern.test(content);
+      pattern.lastIndex = 0;
+      return found;
+    });
   }
 }

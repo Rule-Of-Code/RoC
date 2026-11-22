@@ -112,6 +112,24 @@ describe('cli/init-interactive', () => {
       expect(content).toContain('"type": "react"');
     });
 
+    it('moves a legacy ruleofcode.config.js aside, not left to take precedence', () => {
+      const legacy = PathOperations.join(tempDir, 'ruleofcode.config.js');
+      FileUtils.writeFile(legacy, 'module.exports = {};\n');
+      const configData: ConfigData = {
+        projectName: 'legacy-app',
+        projectType: 'node',
+        componentPrefix: 'api',
+        domain: 'example.com',
+        lawsMode: 'pareto',
+        paretoMode: true,
+      };
+
+      saveConfigAndShowSuccess(tempDir, configData);
+
+      expect(FileUtils.exists(legacy)).toBe(false);
+      expect(FileUtils.exists(`${legacy}.bak`)).toBe(true);
+    });
+
     it('should work with vue project type', () => {
       const configData: ConfigData = {
         projectName: 'vue-app',

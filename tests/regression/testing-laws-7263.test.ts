@@ -189,8 +189,10 @@ describe('#303 — `generic` is not evidence of TypeScript', () => {
 });
 
 describe('#304 — Unit Test Quality Standards reads the project’s test files', () => {
+  // The spec gives the code under test an input: edge cases are asked only
+  // of such a test since #429, and this suite reads that finding.
   const SPEC =
-    "describe('x', () => { it('works', () => { expect(1).toBe(1); }); });\n";
+    "import { sum } from './sum';\ndescribe('x', () => { it('works', () => { expect(sum(1, 2)).toBe(3); }); });\n";
   const files = (ignores: string[]): Record<string, string> => ({
     'package.json': JSON.stringify({
       name: 'tc',

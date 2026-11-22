@@ -4,6 +4,13 @@ import type { AssetOptimizationResult } from '../constants/types';
 import { NxWorkspace } from '../../../../utils/nx-workspace';
 import { PerformanceAnalyzerBase } from './performance-analyzer-base';
 
+/**
+ * Answers whether shipped assets get content-hashed filenames: an Angular/Nx
+ * build target with `outputHashing` set to anything but "none", or a
+ * webpack.config.js / webpack.prod.js / config/webpack.config.js containing
+ * one of OPTIMIZATION_KEYWORDS (contenthash, chunkhash, splitChunks,
+ * outputHashing, assetFileNames, entryFileNames, chunkFileNames).
+ */
 export class AssetOptimizationAnalyzerService extends PerformanceAnalyzerBase {
   static analyze(projectRoot: string): AssetOptimizationResult {
     return {

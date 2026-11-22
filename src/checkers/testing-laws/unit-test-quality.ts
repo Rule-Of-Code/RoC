@@ -3,13 +3,23 @@
  * Ensures high quality unit tests with proper structure and coverage
  */
 
+import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
+import { CodeText } from '../../utils/code-text';
 import { ConfigHelper } from '../../utils/config-helper';
 import { FileUtils } from '../../utils/file-utils';
 import { markJudgedNothing } from '../../utils/judged-nothing';
 import { PathOperations } from '../../utils/path-operations';
+import {
+  loadTypeScript,
+  parserUnavailable,
+} from '../../utils/react/tsx-source';
 import { AsyncTestAnalyzer } from '../../utils/testing/async-test-analyzer';
-import { TestCoverageAnalyzer } from '../../utils/testing/test-coverage-analyzer';
+import {
+  TestCoverageAnalyzer,
+  TestFileReading,
+  TestNetworkClients,
+} from '../../utils/testing/test-coverage-analyzer';
 import { TestStructureAnalyzer } from '../../utils/testing/test-structure-analyzer';
 import { TestingLawBase } from './testing-law-base';
 
@@ -38,10 +48,17 @@ export class UnitTestQualityLaw extends TestingLawBase {
     }
 
     // Analyze test quality
+    const ts = loadTypeScript(context.projectRoot);
     const qualityAnalysis = await this.analyzeTestQuality(
       context.projectRoot,
-      testFiles
+      testFiles,
+      ts
     );
+    if (!ts) {
+      violations.push(
+        `${parserUnavailable(context.projectRoot, `the async, mocking and edge-case patterns of the ${testFiles.length} test file(s)`)}`
+      );
+    }
     violations.push(...qualityAnalysis.violations);
     suggestions.push(...qualityAnalysis.suggestions);
 
@@ -77,7 +94,8 @@ export class UnitTestQualityLaw extends TestingLawBase {
 
   private static async analyzeTestQuality(
     projectRoot: string,
-    testFiles: string[]
+    testFiles: string[],
+    ts: typeof TS | null
   ): Promise<{
     violations: string[];
     suggestions: string[];
@@ -91,6 +109,8 @@ export class UnitTestQualityLaw extends TestingLawBase {
     let totalTests = 0;
     let qualityScore = 0;
     let filesWithoutTests = 0;
+    // One answer per project: does its Jest/Vitest config reset mocks?
+    const runnerResetsMocks = TestFileReading.runnerResetsMocks(projectRoot);
 
     for (const file of testFiles) {
       // Findings name the file from the project root, as the twins do — not
@@ -109,17 +129,36 @@ export class UnitTestQualityLaw extends TestingLawBase {
         const structSuggestions = this.extractSuggestions(structureAnalysis);
         suggestions.push(...structSuggestions);
 
-        // Async test analysis
-        const asyncAnalysis = AsyncTestAnalyzer.analyzeAsyncPatterns(content);
-        const asyncViolations = asyncAnalysis.asyncIssues;
+        // Async test analysis, on the CODE of the file (#424): a promise
+        // chain, a timer or a done callback written inside a fixture string
+        // is the input of a test, not what the test does. Without the
+        // parser the patterns are not read (said once, by the caller).
+        const code = ts ? CodeText.codeOnly(content, file, projectRoot) : '';
+        const asyncAnalysis = AsyncTestAnalyzer.analyzeAsyncPatterns(code);
+        const asyncViolations = ts ? asyncAnalysis.asyncIssues : [];
         violations.push(...asyncViolations.map(named));
         const asyncSuggestions = asyncAnalysis.recommendations;
         suggestions.push(...asyncSuggestions);
 
         // Coverage analysis
+        // The mocking and edge-case checks read the same code, and what the
+        // file loads and calls, from its syntax tree (#429); without the
+        // parser, not at all.
         const coverageAnalysis = TestCoverageAnalyzer.analyzeCoverage(
           content,
-          shown
+          shown,
+          ts
+            ? {
+                code,
+                networkClients: TestNetworkClients.imported(ts, content, file),
+                callsWithInput: TestFileReading.callsWithInput(
+                  ts,
+                  content,
+                  file
+                ),
+                runnerResetsMocks,
+              }
+            : null
         );
         const coverageViolations = this.extractViolations(coverageAnalysis);
         violations.push(...coverageViolations.map(named));

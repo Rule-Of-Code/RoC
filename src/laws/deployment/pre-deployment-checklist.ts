@@ -1,7 +1,9 @@
 import type { RuleOfCodeConfig } from '../../config/types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { ConfigHelper } from '../../utils/config-helper';
+import { lawRequirementsMet } from '../../utils/law-requirements';
 import { owningLawSatisfied } from '../../utils/owning-law';
+import { REQUIRES_PRODUCTION_SUBJECT } from '../../utils/production-subject-requirements';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
 import { BuildValidationChecker } from './pre-deployment/build-validator';
 import { ChecklistDocumentValidator } from './pre-deployment/checklist-validator';
@@ -99,6 +101,18 @@ export class PreDeploymentChecklistLaw {
       score -= 25;
     }
 
+    // Authentication, benchmarking, health checks and production logging are
+    // properties of something that runs for users: a service, a web surface,
+    // a mobile app, a deploy target. A CLI tool or a library deploys by
+    // publishing a package; it has no login, no endpoint to probe and no
+    // production log, so those four clauses are not asked there (#428). The
+    // checklist, build, test and security-scan clauses still are.
+    const runsForUsers = lawRequirementsMet(
+      REQUIRES_PRODUCTION_SUBJECT,
+      projectRoot,
+      context.config.ignores?.global ?? []
+    );
+
     // A sub-check is not addressable: there is no `laws.notApplicable` entry
     // for "the auth clause of the checklist law". So each clause below defers
     // to the law that OWNS its concern — if a project has declared
@@ -115,6 +129,7 @@ export class PreDeploymentChecklistLaw {
       context.config
     );
     if (
+      runsForUsers &&
       !authSetup.authConfigured &&
       !PythonSatisfaction.hasAuthGuards(projectRoot) &&
       !(await owningLawSatisfied(context, 'Authentication Security'))
@@ -130,6 +145,7 @@ export class PreDeploymentChecklistLaw {
     const performanceBenchmarking =
       performanceValidator.checkPerformanceBenchmarking(projectRoot);
     if (
+      runsForUsers &&
       !performanceBenchmarking.benchmarkingConfigured &&
       !PythonSatisfaction.hasBackendPerformanceMonitoring(projectRoot) &&
       !(await owningLawSatisfied(context, 'Performance Monitoring Standards'))
@@ -155,6 +171,7 @@ export class PreDeploymentChecklistLaw {
       monitoringSetup.healthChecksConfigured ||
       PythonSatisfaction.hasHealthEndpoint(projectRoot);
     if (
+      runsForUsers &&
       !healthChecksConfigured &&
       !(await owningLawSatisfied(context, 'Health Check Monitoring'))
     ) {
@@ -167,6 +184,7 @@ export class PreDeploymentChecklistLaw {
       monitoringSetup.loggingConfigured ||
       PythonSatisfaction.hasStructuredLogging(projectRoot);
     if (
+      runsForUsers &&
       !loggingConfigured &&
       !(await owningLawSatisfied(context, 'Centralized Logging'))
     ) {

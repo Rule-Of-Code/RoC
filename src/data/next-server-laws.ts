@@ -16,6 +16,7 @@ import type {
   LawRequirement,
 } from '../types/enhanced-law.types';
 import { REQUIRES_NEXT } from '../utils/framework-requirements';
+import { REQUIRES_NODE_HTTP_SERVER } from '../utils/production-subject-requirements';
 import { generateLawId } from '../utils/id-generator';
 
 /** The App Router laws: `next` declared, and an app/ or src/app/ directory present. */
@@ -24,28 +25,10 @@ const REQUIRES_NEXT_APP_ROUTER: LawRequirement = {
   anyFile: ['app', 'src/app'],
 };
 
-/**
- * Client IP handling is a concern of any server that answers HTTP, not of
- * Next alone. A dependency is the only thing `requires` can read, so the law
- * is selected by the common Node HTTP frameworks; a server built on bare
- * `node:http` declares none of them and is not selected.
- */
-const REQUIRES_NODE_HTTP_SERVER: LawRequirement = {
-  anyDependency: [
-    'next',
-    'express',
-    'fastify',
-    'koa',
-    'hono',
-    '@nestjs/core',
-    '@hapi/hapi',
-  ],
-};
-
 const PARSER_LIMIT =
   "Parses with the project's own TypeScript (ts.createSourceFile, no type checker); without it every file is reported unread, never passed.";
 const GRAPH_LIMIT =
-  "The client graph follows static imports, `export … from`, and literal `import()`/`require()` through the project's own TypeScript resolver (tsconfig paths, workspace packages); a computed `import()` path is not followed, and an import that does not resolve is reported, not passed.";
+  "The client graph is the one every Next law walks: static imports, `export … from`, and literal `import()`/`require()`, resolved as Next's bundler resolves them (the nearest tsconfig.json or jsconfig.json, package `exports` and `imports`, workspace packages linked into node_modules); a computed `import()` path is not followed, and an import that does not resolve, a package that is not installed and a tsconfig that cannot be read are reported, not passed.";
 const ROUTER_LIMIT =
   "Reads the router directory Next uses (app/ before src/app/) with Next's default page extensions (tsx, ts, jsx, js); a custom `pageExtensions` in next.config is not read.";
 
@@ -152,7 +135,7 @@ export const NEXT_SERVER_LAWS: EnhancedConstitutionalLaw[] = [
       GRAPH_LIMIT,
       'Server data handed to a client component as props is not seen; that is a data question, not an import.',
       "The second rule (import 'server-only') can be turned off with thresholds.next.requireServerOnlyMarker: false. The npm server-only package throws outside the react-server condition, so a module that plain Node scripts or a Jest/Vitest run import needs it mocked there.",
-      "Pages Router pages are not client entries here (Next strips imports used only by getServerSideProps); the client graph is the App Router's 'use client' graph plus instrumentation-client.",
+      "Client entries are the 'use client' modules, Pages Router pages with _app and _error, and instrumentation-client; what only a page's getServerSideProps/getStaticProps/getStaticPaths uses is stripped by Next and not judged as client code. A module a page bundles for the browser is reported by the first rule, not the second.",
       'Built-in list: Node built-ins Next does not polyfill for the browser, and common database drivers/ORMs; a server module not on it is not seen unless added in thresholds.next.serverModules.',
       PARSER_LIMIT,
     ],

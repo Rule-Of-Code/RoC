@@ -9,7 +9,12 @@
       "src/**/*.ts",
       "scripts/**/*.js",
       "tests/**/*.ts"
-    ]
+    ],
+    "byRule": {
+      "md-footer-template-mandatory": [
+        "**/*.md"
+      ]
+    }
   },
   "ignores": {
     "global": [
@@ -50,7 +55,6 @@
       "Environment Parity Standards": "warning",
       "Environment Security Enforcement": "warning",
       "Error Handling Completeness": "warning",
-      "Error Handling Standards": "warning",
       "Feature Branch Protection": "warning",
       "Health Check Monitoring": "warning",
       "Incident Response Protocol": "warning",
@@ -77,6 +81,17 @@
       "Unit Test Quality Standards": "warning"
     },
     "notApplicable": {}
+  },
+  "thresholds": {
+    "git": {
+      "commitSize": {
+        "generatedFiles": [
+          "^docs/demo/out[^/]*/",
+          "^docs/demo/[^/]*[.]gif$",
+          "^tests/regression/__golden__/"
+        ]
+      }
+    }
   },
   "failOnWarnings": false,
   "hooks": {

@@ -139,6 +139,12 @@ export function unreadViolation(unread: readonly string[]): string {
   return `Source/config NOT read, so it could not be checked: ${shown}${more}`;
 }
 
+/**
+ * Scans the React/Next source of a workspace that declares `react` or
+ * `next` and collects the performance evidence it writes (lazy code, Web
+ * Vitals reporting, image handling, resource hints, error-tracking imports),
+ * each as `file:line`, with the files it could not read.
+ */
 export class ReactPerformanceSource {
   /** The scan; `errorTrackingModules` are reported in `errorTrackingImports` when imported. */
   static scan(

@@ -5,6 +5,1280 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [8.0.0] - 2026-11-22
+
+**A major release with six breaking changes.** Upgrading from 7.29.1:
+
+- **Node 20 or later** (#21).
+- **`compliance` and the victory art mean a clean pass**: no failed law, no
+  waiver, no warning, and no law that judged nothing. A law that read none of
+  its files makes the run `partial` instead of counting as a pass or a
+  finding (#427).
+- **Laws about a running product run only where there is one.** CDN and
+  Caching, Performance Monitoring, Incident Response, Launch Readiness and
+  Authentication Security need an HTTP service, a web surface, a mobile app or
+  a deploy target. NX Commands Only needs Nx or Angular. MD Footer Template is
+  opt-in. Laws selected per release-canary profile, 7.29.1 → 8.0.0: python
+  97 → 91, node 77 → 70, angular 120 → 119, angular + NgRx 131 → 130, ionic
+  150 → 149, react 134 → 132. In fast mode, gating no longer pushes a
+  CRITICAL `error` law out of the core.
+- **Code Documentation Standards judges each exported class and function**,
+  not ratios (#439).
+- **Test Coverage counts a file a test imports directly as covered**, not
+  only a file with a test of the same name.
+- **The Next laws walk one module graph, as Next sees the code**. What cannot
+  be read is reported as not read (#287).
+
+Also changed: TypeScript Strict Mode no longer requires
+`noPropertyAccessFromIndexSignature` or source maps. Many detectors now read
+code, not text in strings and comments (#424, #426), and judge only where
+they read (#427, #486). No law was added or removed (265). Each change has its
+own section below.
+
+### 🐛 Fixed — TODO Management Constitutional Requirements reads TODO markers in comments of tracked files
+
+On a real Angular site the law reported three violations that were not
+there, and missed the one TODO that was:
+
+- a `"TODO (Sprint N)"` inside a JSON string in an HTML `<script>` was
+  counted, and so was any `#todo` (an anchor, a CSS id `#todo-list`): the
+  `#\s*TODO` pattern ignored case, and since #426 HTML and CSS were read as
+  written;
+- a TODO on the second line of a `/* … */` block comment was not counted;
+- gitignored generated files were read, because the law walked the disk.
+
+A TODO is now an upper-case `TODO` in a comment, by the comment syntax of the
+file's language (`//` and `/* */` in JS/TS/SCSS, `/* */` in CSS, `<!-- -->` in
+HTML and Markdown). Right after `//`, `/*` or `<!--` the word starts a marker;
+on a later line of a block comment it takes the tag form `TODO:` or `TODO(…)`,
+so JSDoc prose such as " * TODO Management Standards Law" is not a task.
+Strings and template literals in code, and code spans and fenced blocks in
+Markdown, are not read for comments. The files are the ones git tracks;
+outside a git repository the disk is read.
+
+The `#todo` reading of HTML is a regression of this release (#426 stopped
+blanking strings in HTML). The CSS `#todo-list` id, the missed second line of
+a block comment and the gitignored files were wrong before 8.0.0 as well.
+
+TODO Management Standards, which already read comments only, also read
+gitignored files; it now keeps only the files git tracks.
+
+### Changed — TypeScript Strict Mode no longer requires noPropertyAccessFromIndexSignature or source maps
+
+The law reported "TypeScript noPropertyAccessFromIndexSignature must be true"
+and "TypeScript source maps must be enabled" next to the strict flags. Neither
+is strictness. `noPropertyAccessFromIndexSignature` decides how a key of an
+index signature is written (`obj['key']` instead of `obj.key`); the type
+safety of that read comes from `noUncheckedIndexedAccess`, which the law still
+requires. Source maps are a build and debugging setting.
+
+Before: a tsconfig with `strict` and the whole strict family still failed on
+those two. After: the law requires `strict` (with `noImplicitAny` and
+`noImplicitThis`, which it turns on), `noImplicitReturns`, `noUnusedLocals`,
+`noUnusedParameters`, `exactOptionalPropertyTypes`, `noImplicitOverride` and
+`noUncheckedIndexedAccess`, a target of ES2020 or later and a modern
+`moduleResolution`; it does not judge the other two at all. The Law Card's
+"satisfied by" text lists the same flags.
+
+### 🐛 Fixed — Test Data Management read shared state inside strings as code (#513)
+
+A test that hands a detector source code as a fixture string was reported for
+the fixture's code: ``'<Script>{`window.x = 1`}</Script>'``, or a template
+holding `window.onerror = …`, as shared mutable state — and, without a
+beforeEach/afterEach, as state nothing resets. The check stripped comments
+only.
+
+Shared state is now matched on the file with comments and string contents
+removed by the TypeScript parser (`CodeText.codeOnly`), as Test Isolation
+Enforcement already reads the same kind of pattern. A real top-level
+`window.x = 1`, `global.y = …` or module-scope `let` is still reported.
+Without a loadable `typescript` the law already says its files were not read
+(#427). Hardcoded test data written inside fixture strings is #426.
+
+### 🐛 Fixed — detectors judged their own pattern tables, the law registry's prose and their fixture strings as code (#426)
+
+A project that contains detectors (this one, or any project with lint or
+security tooling) was judged by its data. The general rule now, for every
+project: a pattern counts where it **starts in code** — not inside a string,
+template, regex or comment — and a string counts only where the code **hands
+it to an API**. Files are read from the TypeScript parse (`src/utils/security/code-view.ts`);
+an import's module name (`from 'firebase/auth'`, `require('md5')`) is code.
+Without a loadable `typescript` the files are reported as not read.
+
+- **Data Encryption Standards.** Before: `\bMD5\b` and the other weak
+  algorithms anywhere outside comments (`WEAK_ALGORITHMS = ['MD5', …]`, law
+  prose); `password = "…"` inside a string or regex; `'http://'` anywhere in
+  a file without `localhost`; `Math.random`, `btoa(`, `hash` + `password` in
+  strings. After: a weak algorithm is an identifier in code (`CryptoJS.MD5`,
+  `md5(…)`) or a one-token string passed to a crypto API or bound to a
+  crypto name (`createHash('md5')`, `{ algorithm: 'des-ede3' }`,
+  `const HASH_ALGO = 'sha1'`); a hardcoded secret is an assignment written in
+  code; an HTTP connection is a string that is an `http://host` URL (the
+  file-level `localhost` exemption is unchanged); `Math.random()`, `btoa(`,
+  `localStorage.setItem` and password hashing are calls in code. The 777
+  file-mode check reads code plus the strings handed to a file-mode API.
+- **Authentication Security** (all three checkers: authentication,
+  authorization, session). Before: every pattern on the raw file, so
+  `/md5.*password/` in the checker's own table was "Insecure password
+  handling detected", and `/AuthService/`, `/refreshToken/` and similar
+  table entries satisfied "has an auth service" / "has token management".
+  After: patterns match from code. A project whose only auth "evidence" was
+  such text is now told it has none.
+- **Test Data Management** (hardcoded test data). Before: the patterns
+  matched fixture strings — a detector's own test keeping
+  `const users = [{ id: '1' }]` as an input string was "hardcoded test data".
+  After: a pattern counts where it starts in the test's code.
+- **Test Data Management and Test Isolation Enforcement** (external
+  resources without cleanup). Before: every test file was parsed as TSX, so
+  in a `.ts` test a generic arrow (`<T>(x: T) => …`) read as a JSX tag, the
+  parser lost its place and fixture strings after it (`'setInterval(…)'`)
+  were "code". After: each test is parsed by its own file name.
+- **TODO Management Constitutional Requirements.** Before: every file —
+  Markdown, HTML, CSS included — went through the JS string blanker, which
+  pairs `'`, `"` and backticks as JS does; in Markdown an apostrophe opened a
+  "string", so whether a `` `// TODO` `` example in a CHANGELOG line counted
+  depended on the prose above it (this repository's CHANGELOG had one).
+  After: the blanker runs on JS/TS only; in Markdown, fenced code blocks and
+  inline code are examples and are blanked, prose and `<!-- TODO -->`
+  comments are read as written; HTML and CSS are read as written.
+
+A secret match whose value is a dotted property path (`KEY =
+'thresholds.next.guardExemptions'`, a config key or a message id) is a name,
+not a secret.
+
+**Authentication Security is selected only where something runs for
+users** (#428): a Node or Python HTTP service, a web surface, a mobile app
+or a deploy target (`REQUIRES_PRODUCTION_SUBJECT`, the shared requirement
+the other #428 laws use). A
+command-line tool or a library has nobody to sign in; before, it was judged
+for an auth service, token storage and route guards it cannot have.
+Consequences: the stack templates advertise one applicable law fewer
+(python 94 → 93, frontend 97 → 96, node 73 → 72). Applicable laws per
+release-canary profile:
+
+| profile | before | after | |
+|---|---|---|---|
+| python | 92 | 91 | loses Authentication Security (no production subject) |
+| node | 71 | 70 | loses Authentication Security (no production subject) |
+| angular | 119 | 119 | web surface: keeps it |
+| ngrx | 130 | 130 | web surface: keeps it |
+| ionic | 149 | 149 | web surface: keeps it |
+| react | 132 | 132 | web surface: keeps it |
+
+**Fast core: in a gate group the quota counts only the unprotected laws.**
+Gating Authentication Security (a protected core law) into the production-
+subject group made it take that group's one quota slot, and Launch
+Readiness Checklist (CRITICAL, `error`) left the fast core. Now, in a group
+with a `requires` gate, the share is of its unprotected laws and taken from
+them; the protected set and ungated groups are unchanged. Fast core per
+profile (core laws / selected, develop → after):
+
+| profile | develop | after | enters | leaves |
+|---|---|---|---|---|
+| python | 19/92 (20.7%) | 18/91 (19.8%) | — | Authentication Security (not selected) |
+| node | 17/71 (23.9%) | 16/70 (22.9%) | — | Authentication Security (not selected) |
+| angular | 27/119 (22.7%) | 27/119 (22.7%) | — | — |
+| ngrx | 29/130 (22.3%) | 29/130 (22.3%) | — | — |
+| ionic | 33/149 (22.1%) | 35/149 (23.5%) | Capacitor Plugin Platform Declarations, Capacitor Sync Artefacts Match Dependencies | — |
+| react | 29/132 (22.0%) | 32/132 (24.2%) | Next Client Env Public Only, Next Public Env Is Build Time, React Effect Resource Cleanup | — |
+
+Authentication Security and Launch Readiness Checklist are both in the fast
+core of every profile with a production subject; no CRITICAL `error` law
+that was in the core and is still selected leaves it.
+
+Self-audit of this repository: Data Encryption Standards 28 → 0;
+Authentication Security 1 finding → not selected (a CLI); Test Data
+Management 3 → 2 (the detector's own test,
+`tests/laws/testing/unit-test-data-management-constants.test.ts`, is no
+longer a hardcoded-data file); TODO Management Constitutional Requirements
+2 → 0 (the one "TODO" it counted was a `` `// TODO` `` example in
+CHANGELOG.md).
+
+### 🐛 Fixed — Security Vulnerability Response asks for the security policy once (#439)
+
+Before: two analyzers of the law looked for the security policy, each with
+its own file list. A project without one got three findings — "No security
+policy documentation found", "Missing Security Policy documentation" (root or
+`.github/` only) and "Missing Security Documentation documentation" (the
+same `SECURITY.md` in `docs/`) — and a project with `SECURITY.md` at the
+root was still told the `docs/` one was missing.
+
+After: one requirement, one finding ("No security policy documentation
+found"), satisfied by `SECURITY.md` at the root, in `docs/` or in
+`.github/` (the places GitHub reads it from), or `SECURITY.txt` /
+`security.md` / `docs/security.md` as before. The privacy-policy
+requirement is unchanged.
+
+The privacy-policy clause is asked for only where users reach the code
+(#428): before, every project was told "Missing Privacy Policy
+documentation"; after, only one that declares a Node or Python HTTP
+service, a web surface, a mobile app or a deploy target
+(`REQUIRES_PRODUCTION_SUBJECT` in
+`production-subject-requirements.ts`). A command-line tool or a library has
+no users' data to declare.
+
+Self-audit of this repository: Security Vulnerability Response 2 → 0
+findings.
+
+### 🐛 Fixed — Error Handling Completeness reports dropped promises, not awaits; reads the package entry points (#438)
+
+Before: a file was flagged when `await \w+` occurred more than four times per
+`try {` / `.catch(` in the raw text — so five awaits inside one try, or
+awaits whose rejection goes to the caller, were "async calls without proper
+error handling"; `.then(` was counted against `.catch(` file-wide, so a
+dropped chain passed when an unrelated `.catch(` was elsewhere; `.then(` and
+`fetch(` in strings, regexes and comments were code. The global handler was
+looked for only in fixed bootstrap file names, never in the source of the
+package's `bin` / `main`.
+
+After: an `await` is not a gap. A DROPPED promise is: a `.then` chain with
+no rejection handler (no `.catch`, no second `.then` argument), or a call
+to an async function or method declared in the same file, used as a
+statement — neither awaited, returned, `void`-ed nor caught. The finding
+names the lines. Code is read from the TypeScript parse (strings, regexes and
+comments removed) for this and for the HTTP / event-listener checks; without a
+loadable `typescript` the files are reported as not read. The global-handler
+check also reads what package.json `bin` and `main` name, from source
+(`dist|lib|build|out/x.js` → `src/x.ts`); the built file is not read.
+
+The global handler is recognised in the code, not by name. Before: the text
+`ErrorHandler`, `process.on`, `ErrorBoundary`, `unhandledRejection`… anywhere
+in an entry file — a function named `setupErrorHandlers`, `process.on('SIGINT')`
+or the word in a comment counted. After: `process.on/once('unhandledRejection'
+| 'uncaughtException', …)`, `window.onerror = …`,
+`window.addEventListener('error' | 'unhandledrejection', …)`, or a framework
+handler as an identifier in code (Angular `ErrorHandler`, a name ending in
+`ErrorBoundary` / `GlobalErrorHandler`, `errorHandlerInterceptor`,
+`provideHttpClient`, `provideBrowserGlobalErrorListeners`). In the package's
+`bin` entry, `parse()` / `parseAsync()` inside a `try` with a `catch` also
+counts: for a command-line program that, with a catch in each action, is its
+global handling (maintainer decision for 8.0.0).
+
+Self-audit of this repository: 33 findings → 0. The global handler is found
+in `src/cli.ts` (the `bin`): `program.parse()` inside a try with a catch.
+
+### 🐛 Fixed — a secret or connection string in a second file was missed: `hasAnyRegexPattern` carried `lastIndex` (#487)
+
+`PatternMatchingUtils.hasAnyRegexPattern` ran `.test()` on the patterns as
+given. The database-URL and secret tables of the environment-variable usage
+analyzer (Environment Security Enforcement, Environment Parity Standards) and
+the hard-coded secret table of Data Encryption Standards are global (`/g`,
+`/gi`) module constants, so a match left `lastIndex` past it and the next
+call — on the next file — searched from there.
+
+Before: the same hard-coded `mongodb://…` URL in two files was reported for
+the first file only; the same text tested three times answered true, false,
+true. The tables are shared by Environment Security Enforcement and
+Environment Parity Standards, so the state also carried from one law to the
+other: on three identical files one law reported `a` and `c`, the other `b`.
+After: every call starts at the beginning of the text and leaves the
+pattern at `lastIndex` 0, so the answer depends on the text and the patterns
+only, for every caller of `hasAnyRegexPattern`.
+
+The same holds for every other `/g` regex in `src` that reached `.test()`:
+`PatternMatchingUtils.hasRegexPattern` resets `lastIndex` too, and the
+direct `.test()` calls on global constants go through the two helpers —
+Environment Variables Policy's placeholder table (two placeholders in one
+file: the second was reported as a secret), the event-listener, timer and
+DOM-reference analyzers, the NgRx selector `parameters` check and the TODO
+line check. Before: the same text asked twice could answer true, then
+false. After: the same answer every time.
+
+### 🐛 Fixed — environment-variable usage judges each `process.env` read where it stands; a URL is reported once (#433)
+
+The usage analyzer shared by Environment Security Enforcement and Environment
+Parity Standards read the file as text.
+
+Before: every `process.env.X` of a file was judged by a 150-character window
+around the FIRST occurrence of that text, and `||`, `??`, `? ` or the word
+`default` anywhere in it counted as a fallback — so a second read without one
+passed, and `if (!name) return` after `const name = process.env.X` did not.
+`process.env.X` in law prose, a message string or a comment was a read; the
+branch variables a CI system sets were "used without fallback". Three
+overlapping URL regexes reported one quoted URL twice (bare host and full
+string), in comments too, including `example.com` samples and documentation
+links. Environment Parity reported a missing `.env.example` twice.
+
+After: reads come from the TypeScript parse, each at its own offset. A read
+is handled when it is the left of `??`/`||`, either side of `&&`, compared,
+negated, `typeof`, a condition, or the object of `?.` — directly, through
+`Number()`/`parseInt()`/parentheses, through a variable it is stored in and
+that is checked in the same function, or when the same function checks
+another read of that variable. Writes (`process.env.X = …`) are not reads.
+Variables set by GitHub Actions, GitLab, Bitbucket, CircleCI, Travis,
+Buildkite, Azure Pipelines and Jenkins (`GITHUB_*`, `CI_*`, `CI`,
+`BRANCH_NAME`, …) are not asked for a fallback. A URL is taken once from the
+string or template it is written in; comments and JSX text are not values;
+loopback and the reserved example hosts (RFC 2606/6761: `example.com`,
+`*.test`, …) are not endpoints; a URL bound to a documentation name
+(`reference`, `DOCS_URL`, `helpLink`…) is a link for a reader. A missing
+example file is one Parity finding. A hardcoded database connection string
+(`mongodb://…`, `postgresql://…`) is looked for in the strings the code holds;
+a comment that names the schemes is not one. Without a loadable `typescript`
+these checks report the files as not read instead of judging them by text.
+
+This repository now commits `.env.example`: RuleOfCode reads `NODE_ENV` and
+`DEBUG` (logging), `ROC_*` / `RULEOFCODE_*` (configuration overrides) and the
+variables CI systems set. The file names them with empty values and says what
+each does; none is required or secret.
+
+Self-audit of this repository: Environment Security Enforcement 57 → 0
+findings; Environment Parity Standards 60 → 1 ("No proper environment
+detection found" — another analyzer, unchanged: it looks for `process.env`
+only in five fixed main files, while this repository reads `NODE_ENV` in
+`src/utils/logging-utils.ts`).
+
+### Internal — dead code removed
+
+Fifteen source files that nothing reaches: no importer in `src`, `tests`,
+`scripts` or the package entry point (`src/index.ts`), no registry entry
+that names them, no dynamic `require`/`import()` by name. Checked per file
+with a TypeScript-resolved import graph and `git grep` on the module path
+and on every exported name.
+
+- `src/checkers/typescript-checker.ts` (`TypeScriptChecker`; exported only
+  from `src/checkers/index.ts`, which only a test imports)
+- `src/checkers/dependency-scanning/license-checker.ts`,
+  `src/laws/dependency-scanning/license-checker.ts` and
+  `src/laws/dependency-scanning/license-checker/` (index, constants,
+  `LicenseCheckerAnalysisService`)
+- `src/laws/dependency-scanning/vulnerability-checker.ts` and
+  `src/laws/dependency-scanning/dependency-pinning-checker.ts`
+- `src/laws/security/dependency-scanning/dependency-pinning-checker.ts`,
+  `npm-audit-checker.ts` and `vulnerability-checker.ts` (the live checkers of
+  the same names are in `src/checkers/dependency-scanning`)
+- `src/checkers/git-laws/commit-message-standards-impl.ts` (a second
+  `CommitMessageStandardsLaw`; the registry runs `commit-message-standards.ts`)
+  — its line in the Commit Message Standards detection limits goes with it
+- `src/types/law-result.ts`, `src/utils/file-scanner-helper.ts`,
+  `src/utils/security/security-validation-pattern-base.ts`
+
+Tests that covered only this code go with it: the `TypeScriptChecker` suite,
+its two #486 cases and barrel-export check, and the `LicenseCheckerConstants`
+suite. No law changes what it reports.
+
+### ⚠️ BREAKING — Test Coverage counts a file a test imports directly
+
+Test Coverage Constitutional Standard counted a source file as tested only
+when a test was named after it (`foo.ts` ↔ `foo.spec.ts` / `foo.test.ts`). A
+test that imports a file and exercises it under another name — one spec for a
+folder, an integration test, `tests/` laid out differently from `src/` —
+counted for nothing, and the law asked for tests that already existed. A file
+now counts as tested when a test is named after it OR imports it directly:
+`import`/`export … from`, `require()`, `import()`, or a `jest.mock` /
+`vi.mock` path, resolved from the test file with the `paths`/`baseUrl` of the
+nearest tsconfig/jsconfig. Direct only: a file a test reaches through another
+module still lacks a test. The finding reads "N source files lack
+corresponding test files (a test that imports a file counts)" and its
+examples name only files no test names or imports.
+
+Projects whose tests are not named after their sources see fewer findings —
+on RoC's own code 557 → 295. Not followed: an alias declared only in a Jest
+`moduleNameMapper` or a bundler config (such a file is judged by its test's
+name, as before). Without the `typescript` package the imports are not read:
+the name alone decides, and the finding says the imports were NOT read. The
+"Low test coverage ratio" check is unchanged (test files per source file):
+counting covered files instead would fail projects that pass it today.
+
+### Internal — two copied helpers read through their one implementation
+
+Code Duplication Control reported three copies in our own code; two are
+removed here. `GlobUtils` carried its own `createTypePattern`,
+`createMultiExtensionPattern`, `getStandardPatterns` and `getFilePatterns`,
+line for line the functions of `file-patterns`; it now delegates to them, and
+its unused `createTypePattern` is gone. `commit-scope` carried its own
+`execSync` wrapper for git; it now reads through
+`GitLawBase.executeGitCommand` (made public for it), with the same result:
+trimmed stdout, or null when git fails or prints nothing. No output changes.
+
+A test title in Retention Registry Covers Schema ("is opt-in") was below Test
+Documentation Requirements' minimum length; it now says what it checks.
+
+### 🐛 Fixed — Unit Test Quality: edge cases, test counts, timers and mock cleanup (#429)
+
+Four more templates of the law judged text where a test says something
+else.
+
+- **No edge case testing.** Before: asked of every test file, answered by
+  words such as null, empty or invalid in a title, or a throw, null or
+  negated matcher in the body. A negative title (does NOT flag, ignores,
+  rejects, fails, without) and `toBe(false)` did not count, so a detector
+  suite made of exactly these was told it tests no edge case; a file of
+  export checks or constant tables, which has no input, was asked for one.
+  After: negative titles, `toBe(false)` and `toBeFalsy()` count; edge cases
+  are asked only of a test that calls the code it imports with an argument
+  (an imported function, a method of an imported binding, a class), read
+  from its syntax tree. A Node built-in, a type-only import and a value
+  method of an imported table (`LAWS.filter`) are not that call.
+- **Excessive mocking.** Before: tests were counted with `it\s*\(`, so
+  `it.each(` counted none and `submit(` or `split(` counted one. After:
+  `it(` and `test(`, with modifiers and `.each`, as words. A spy that only
+  silences the console or a standard stream is not counted as a double.
+- **setTimeout usage without fake timers.** Before: any `setTimeout` in the
+  code. After: not `jest.setTimeout(n)`, which sets the test time limit;
+  not a timer whose handle the file clears with `clearTimeout(handle)`, a
+  watchdog on a real process; any fake timers (`jest.`, `vi.` or
+  `sinon.useFakeTimers`) answer it.
+- **Mock functions without cleanup.** Before: read on the text of the file,
+  fixture strings included, and asked even where the runner resets mocks.
+  After: read on the code, and not asked when the root Jest or Vitest
+  config, or the `jest` key of package.json, sets `resetMocks`,
+  `restoreMocks`, `clearMocks` or `mockReset`.
+
+Without a loadable `typescript` the edge-case check is not read either, and
+the law says so with the async and mocking patterns.
+
+Self-audit of this repository: Unit Test Quality — before 116 findings (75
+edge case, 20 excessive mocking, 17 setTimeout, 4 cleanup), after 32 (4, 19,
+9, 0); what is left is debt in the tests themselves.
+
+### 🐛 Fixed — Unit Test Quality asked every test to mock the module it tests (#429)
+
+"Dependencies found but no mocking detected" fired for any test file with an
+`import … from`, a `require(`, `inject(` or `TestBed` and no mock word in it:
+a test of its own module, a test that builds a temp-dir fixture, a test that
+spawns the CLI it ships. "HTTP calls should be mocked in unit tests" fired on
+a `fetch(` or `http.get(` written inside a fixture string of a detector test.
+
+Before: a dependency was any import; a double was the word spy, stub, fake or
+sinon (or a jest mock call) anywhere in the text of the file, comments and strings
+included. After: a dependency is a network or service client the test loads,
+read from its syntax tree (`import`, `export … from`, `import x = require()`,
+`require()`, `import()`; type-only imports load nothing) — the clients Test
+Data Management names, without the filesystem and child processes, which a
+test may run for real on its own machine. A double is one in the code of the file:
+what Test Data Management recognises (jest and vi mocks, spies, sinon, msw,
+nock, the HTTP testing backend of Angular) or a hand-written one named mock, spy,
+stub or fake. The finding names the clients:
+`Dependencies found but no mocking detected in src/api.test.ts (axios)`.
+The HTTP check is the same rule over the code of the file, so a request inside a
+string or a comment is not one, and a double named only in a comment no
+longer excuses a real request. Without a loadable `typescript` the mocking
+checks are not read and the law says so, with the async patterns.
+
+Self-audit of this repository: Unit Test Quality — before 634 findings, 500
+"no mocking" (381 tests importing only the code under test, 114 adding only
+fs/path/os/child_process, 5 adding a package that is not a client, none
+loading a network client) and 18 "HTTP calls" (all in fixture strings);
+after 116, none of either.
+
+### 🐛 Fixed — Zero Tolerance advice follows the findings of the run (#506)
+
+Zero Tolerance Doctrine and Absolute Zero Tolerance Doctrine gave the same
+fixed advice on every failing run. A `tsconfig.json` the law could not read,
+reported as NOT read since #486, still got "Enable TypeScript strict mode",
+which is advice about a file the law never judged, and a project with no console
+call was told to remove console statements. Each piece of advice now comes with
+the finding it answers: strict mode only for a tsconfig that was read and has
+`strict` or `noImplicitAny` off (or none at all), console only for console
+findings, ESLint only for disabled rules (Absolute Zero Tolerance) or a missing
+config (Zero Tolerance). The generic "Fix all errors and warnings" is no longer
+given.
+
+### 🐛 Fixed — NgRx Selectors Memoization Mandate reported "Check failed" on NgRx projects with an app.module.ts (#511)
+
+`NgRxSetupConfiguration` copied `checkDevToolsDependencyInstalled` and
+`checkDevToolsConfigured` from other classes as bare static fields. Called
+through it, `this` was `NgRxSetupConfiguration`, which has neither
+`getDependencyKeys` nor `readConfigFile`, so the check threw
+`this.getDependencyKeys is not a function` and the law reported
+`❌ Check failed` instead of judging the project. The aliases are now bound to
+the class that owns the method. Five more aliases of the same kind, with no
+caller yet, are bound the same way (`getAppConfigPath`, `getSourcePath`,
+`NgRxSetupValidation.getSetupAnalysisSummary`, `FileUtils.getFilesInWorkspace`,
+`FileUtils.resolve`). `FileUtils.getFilesInWorkspace` returned an empty list
+after logging the swallowed TypeError. Four unit tests asserted that the alias
+*was* the owner's function, which is exactly the bug; they now compare results.
+
+The TypeError hid a second fault behind it. `containsNgRxPattern` looked up
+the pattern type's own value (`'storeModule'`) as an `APP_MODULE_PATTERNS` key
+that does not exist, so it never found `StoreModule.forRoot`,
+`EffectsModule.forRoot` or `StoreDevtoolsModule`. Every NgModule NgRx project
+would have been told `StoreModule.forRoot should be configured in
+app.module.ts` while importing it. Each pattern type now names the entry it
+looks for. Three unit tests asserted the wrong `false` ("mapping mismatch");
+they now expect the pattern to be found.
+
+### Internal — eslint is a direct devDependency
+
+`npm run lint` runs `eslint .`, but `eslint` was only installed as a peer of
+`@typescript-eslint/parser` and `eslint-plugin-sonarjs`, never named in
+`devDependencies`. Investment-Grade Quality ("Quality tool missing: eslint")
+and Professional Excellence ("Missing eslint for Code linting") reported that
+on the self-audit, and they were right. `eslint` `^9.39.5` — the version
+already in the lockfile — is now a devDependency; the lockfile changes only
+by dropping the `peer` flag from eslint and its dependencies.
+
+### 🐛 Fixed — package.json, tsconfig.json and ESLint .json configs are read as what they are (#486)
+
+Eleven places read a file that is not RoC's config — package.json,
+tsconfig.json, `.eslintrc.json`, package.json `eslintConfig` — with RoC's own
+config loader, which returns null for any JSON without `ignores`, `includes`
+or `laws`. The file always came back empty: some laws passed what they never
+read, others reported a valid file as missing. They now go through one reader
+(`readJsonManifest`, `src/utils/json-manifest.ts`; tsconfig and `.eslintrc*`
+as JSONC, tsconfig with its `extends` chain). A file that cannot be read is
+said to be NOT read — never a silent pass, never a TypeError in the findings.
+
+| law | before | after |
+|---|---|---|
+| Absolute Zero Tolerance Doctrine | strict judged by a text search for `"strict"` and `true` (`"strict": false, "sourceMap": true` passed); an invalid tsconfig passed | strict read from the parsed config, `extends` followed; an invalid tsconfig: `tsconfig.json is not valid JSON (…) — its compiler options were NOT read` |
+| Zero Tolerance Doctrine (sacred) | "ESLint configuration not found" unless `eslint.config.js/.mjs` or `.eslintrc.js`; an invalid tsconfig read as "TypeScript strict mode not enabled" | any ESLint config counts (`.eslintrc.json`/`.eslintrc`/YAML, `eslint.config.cjs/.ts/.mts/.cts`, `.eslintrc.cjs`, package.json `eslintConfig`); strict and noImplicitAny read through the `extends` chain; an invalid tsconfig is NOT read |
+| Naming Convention Enforcement | "No ESLint configuration found" next to a valid `.eslintrc.json` or package.json `eslintConfig` | the config is read and its naming rules judged; invalid JSON or YAML is NOT read |
+| Dead Code Elimination | "ESLint dead code detection rules not configured" for any `.eslintrc.json` (the lookup asked for `eslint.json`) | the rules of `.eslintrc.json` / `eslintConfig` are read; the finding stays only where no dead-code rule is configured |
+| Code Complexity Control | an `.eslintrc.json` without complexity rules passed (never read) | **new finding** "ESLint complexity rules not configured" when it has none; an unreadable config is NOT read |
+| Magic Number Prevention | an `.eslintrc.json` without the rule was only a suggestion (never read) | **new finding** "ESLint magic numbers rule not configured" when it has none; an unreadable config is NOT read |
+| Security Vulnerability Response | "Add npm audit script…" with an audit script in package.json; dependency tools never seen | scripts and dependencies are read; an invalid package.json: `… — its scripts and dependencies were NOT read` |
+| Automation First Principle, Continuous Compliance Doctrine | an invalid package.json put "Package.json script check check failed: Cannot read properties of undefined (reading 'scripts')" in the findings | `package.json is not valid JSON (…) — its scripts were NOT read` |
+
+Not a law, same reader: `SecurityPolicyChecker.checkAuditResolve` and
+`LicenseCompatibilityChecker` (src/laws/security/dependency-scanning; it threw
+on the null package.json) and `TypeScriptChecker`. No law calls them.
+
+Removed: the supply-chain risk analyzer (`src/utils/security/supply-chain-risk/`
+— `SupplyChainRiskAnalyzer`, `SupplyChainRiskConfiguration`,
+`SupplyChainRiskValidationPatterns`, `RiskAnalysisResult`) and
+`SecuritySharedUtils.loadPackageJson`, its only reader of package.json. No law
+called them; they were exported from `src/utils/index.ts` and
+`src/utils/security/index.ts`, not from the package entry point.
+
+Self-audit of this repository (develop 63690ed → this branch merged with it): verdict compliance-with-warnings → compliance-with-warnings, 0 waived, score 84 → 84, findings 1095 → 1094. This repository is configured by `eslint.config.mjs` and its package.json and tsconfig.json are valid, so no law that reads them changes. The one difference is Commit Size Control (1 → 0): this branch's commits are each under 500 lines and 10 files and move two larger develop commits out of its last-10 window — a window effect, not a fix.
+
+### Internal — this repository keeps MD Footer Template on
+
+MD Footer Template became opt-in in this release (#468). This repository does
+not drop a law from its own config to reach a clean self-audit, so it turns it
+on again, at the severity it ran at before (`"MD Footer Template (MANDATORY)":
+"warning"`). Its includes name only source (`src/**/*.ts`, `scripts/**/*.js`,
+`tests/**/*.ts`), which select no Markdown file; `includes.byRule` gives this
+law `**/*.md`, or it would judge nothing.
+
+Every tracked Markdown file now ends with the footer the law asks for. The
+values are facts, not claims: the version points at the file's git history,
+and the rating is a status word — `reviewed` only where the file was checked
+against the code or the process that day, `current` for the CHANGELOG,
+`needs-review` everywhere else.
+
+### 🐛 Fixed — Test Data Management read an exact expected value as hardcoded test data (#439)
+
+Any string of 20 or more characters inside `expect(…).toBe(…)` matched the
+"hardcoded test data" pattern, so `expect(result.lawName).toBe('angular-testing-excellence')`
+was reported as test data to replace with a factory. The value a test expects
+back is the assertion itself; no factory can produce it.
+
+Before: a file was "hardcoded test data" if it held an inline array of records
+with string ids, a `mockReturnValue` of a 4+ digit number, or any long exact
+string in `toBe(…)`. After: the first two only; an expected value is not data.
+
+Self-audit of this repository: Test Data Management "Found hardcoded test data"
+— before 102 files (101 of them for a long expected string), after 1 (a
+detector test whose fixture strings hold the two remaining patterns).
+
+### 🐛 Fixed — Absolute Zero Tolerance judged text as code, and a CLI's output as debug logging (#424, #425)
+
+Every check ran a regex over the raw file, so a `console.log` in a message,
+`any` in a comment's prose, `TODO` in a string or in a sentence about the
+TODO law, and `eslint-disable` in a string were all findings. The checks now
+read the TypeScript parse.
+
+| | before | after |
+|---|---|---|
+| `console.*`, `: any`, empty `catch (e) {}` | anywhere in the text | in code only |
+| `as any` cast | not counted (the regex matched only `: any`) | counted with the `: any` annotations |
+| TODO/FIXME/XXX/HACK | any `//` line containing the word, any case | a tag in capitals at the start of a `//` comment |
+| `eslint-disable` | anywhere in the text | in comments only |
+| `unknown[]` | a strict-type violation | not a violation (the safe type for data of unknown shape) |
+| `constructor(...args: any[])` of a mixin | a violation | not counted (TypeScript requires it, TS2545) |
+| package with `bin` in package.json | every `console.*` counted | `console.log/info` is the command's output in the whole package; `console.warn` only in the command's entry modules (the source of each `bin` target, the directory named after it, a `commands/` beside it); elsewhere `warn`, and `debug/trace` everywhere, still count |
+| a logging module (`logger.*`, `logging*`, `log.*`) | its `console.*` counted | not counted |
+| no loadable `typescript` | text scanned | ".ts file(s) were NOT read" — judged nothing |
+
+Findings name the file relative to the project on Windows too (they carried
+the absolute path when the project root was written with backslashes).
+
+### 🐛 Fixed — Magic Number Prevention reported numbers that are already named, and missed some that are not (#431)
+
+The law scanned text: a regex literal was skipped but not blanked, so
+`{0,300}` was a magic number; a name was accepted only in `const X = N` or
+`key: N` on the same line; and whole template literals were blanked, so
+`${text.slice(0, 57)}` was never seen. Literals are now read from the
+TypeScript parse.
+
+| | before | after |
+|---|---|---|
+| digits in a regex literal | reported | not code |
+| `config.x ?? 50` (also with `??` on the line before) | reported | named by the left side |
+| parameter / destructuring default `before = 50` | reported | named |
+| `MAX_AGE = 24 * 60 * 60 * 1000`, `SIZES = [16, 32]` | later factors / elements reported | named |
+| `const CODES = new Set([401, 403])`, a class field `= new Map([...])` | elements reported | named by the const / field |
+| a Set/Map built anywhere else (parameter default, object property, argument) | elements reported | still reported |
+| `parseInt(s, 16)` | reported | the radix is not a magic number |
+| `${t.slice(0, 57)}` inside a template | never seen | reported |
+| no loadable `typescript` | scanned as text | "code file(s) were NOT read" — judged nothing |
+
+Score deductions, unnamed length limits and other unnamed literals in code
+are reported as before.
+
+### 🐛 Fixed — Centralized Logging counted a CLI's output, strings and the logging module itself (#424, #425)
+
+| | before | after |
+|---|---|---|
+| `console.log(` inside a string | a call | not code |
+| package with `bin` in package.json | every `console.*` counted | `console.log/info` is the command's output in the whole package; `console.warn/error` only in the command's entry modules (the source of each `bin` target, the directory named after it, a `commands/` beside it); elsewhere `warn/error`, and `debug/trace` everywhere, still count |
+| where console is allowed | files named `logger.service.ts` and `main.ts` | also any logging module: `logger.*`, `logging*`, `log.*` |
+| no loadable `typescript` | text scanned | ".ts file(s) were NOT read" — judged nothing |
+
+The Python branch is unchanged.
+
+### ⚠️ BREAKING — Code Documentation Standards judges each exported class and function, not ratios (#439)
+
+The law asked for JSDoc but measured something else: a comment-to-code ratio
+per file, a README in every `src/app` / `src/lib` directory, and two coverage
+percentages over regex counts of classes and of every function and method.
+It could pass a file of undocumented exports and fail a well-documented one
+for being short on `//` lines. In the self-audit of this repository 81 of its
+82 findings were "Low comment ratio"; the one coverage finding (classes,
+50.4%) did not count a JSDoc block at the top of a file for the file's only
+exported class (97.5% when counted). Its messages also carried absolute paths
+on Windows: the root (`D:\…`) was stripped from file paths written `D:/…`.
+
+Before: comment ratio, README presence, class coverage ≥ 80 %, function and
+method coverage ≥ 60 %. After: one rule, one finding per declaration —
+`src/x.ts:12: exported class X has no JSDoc`:
+
+- every exported class and exported function (a function declaration, or a
+  `const`/`let`/`var` initialised with an arrow or function expression;
+  `export default`, and a local declaration named in `export { … }`) needs a
+  non-empty JSDoc block above it — above its decorators, where the compiler,
+  IDEs and TypeDoc read it;
+- a JSDoc block at the top of the file documents the file's only exported
+  class/function;
+- methods, interfaces, types, enums, non-function constants, non-exported
+  code and `.d.ts` files are not judged.
+
+The files are read with the project's own `typescript`, not a regex (an
+`export class` in a template string is no longer a class); without it they
+are reported as not read, and a file that does not parse is named. Paths in
+the messages are relative, with forward slashes, on every platform.
+`ignores.byRule` keyed by this law now applies.
+
+`thresholds.codeQuality.minCommentRatioPercent`, `minFileSizeForComments`,
+`thresholds.documentation.minClassDocumentationPercent` and
+`minFunctionDocumentationPercent` are no longer read (marked deprecated in the
+config types).
+
+Self-audit of this repository: 82 findings before → 171 after (40 classes,
+131 functions, in 68 files).
+
+### 🐛 Fixed — a committed PRE_DEPLOYMENT_CHECKLIST.md was reported missing when `includes` name only source (#476)
+
+Pre-Deployment Checklist looked the checklist up through the source scan,
+which applies `includes.global`. A project whose includes name only its
+source (this repository: `src/**/*.ts`, `scripts/**/*.js`, `tests/**/*.ts`)
+was told "PRE_DEPLOYMENT_CHECKLIST.md missing" with the file committed at its
+root. A file of that name anywhere (`docs/…`) counted as found and was then
+read from the root, where it is not.
+
+Before: found only when the includes cover the root `.md`, or anywhere by
+name. After: the root `PRE_DEPLOYMENT_CHECKLIST.md`, whatever the includes
+say; `ignores.global` can still leave it out. What it must cover is unchanged
+(build & tests, security, rollback / recovery).
+
+This repository now commits its checklist: the release process it actually
+follows — candidate, build and tests, security, GO from QA and the site on the
+untagged candidate, tag, publish by the founder, and rollback by
+`npm deprecate` and a new patch.
+
+### Changed — Commit Size Control does not count generated files at all
+
+Generated files count neither lines nor files; asciinema `.cast` recordings
+join the built-in lockfile list, and `thresholds.git.commitSize.generatedFiles`
+now ADDS to that list instead of replacing it. Test files count like any
+other code. This repository declares its demo captures and recorded goldens
+as generated, and CONTRIBUTING states the atomic-commit policy.
+
+Self-audit of this repository: Commit Size Control — before 2 findings (4 of the last 10 commits oversized; no atomic-commit policy), after 1 (2 of the last 10: two hand-written commits of 534 and 597 lines, tests included; they leave the window as new commits land).
+### ⚠️ BREAKING — laws about a running product run only where there is one; MD Footer Template is opt-in
+
+Five laws had no `requires` and judged every TypeScript project; a CLI tool or
+a library was asked for a CDN, an APM, an incident runbook, a launch checklist
+and an Nx workspace. They are now gated by shared, exported requirements
+(`src/utils/production-subject-requirements.ts`, `REQUIRES_NX_OR_ANGULAR` in
+`src/utils/framework-requirements.ts`). **A project that does not meet the
+condition no longer runs the law, and nothing is printed about it** — except
+when its config names the law in `laws.severity` or `laws.notApplicable`, which
+prints one ℹ️ line saying the law is requirement-gated (#428).
+
+| law | not selected without | lawId |
+|---|---|---|
+| CDN and Caching Strategy | `REQUIRES_WEB_SURFACE`: a browser framework (`react-dom`, `@angular/core`, `vue`, `svelte`, `next`, `nuxt`, `astro`, `lit` …), a web build or hosting config (angular.json, next.config.*, firebase.json, vercel.json, netlify.toml, wrangler.toml, nginx.conf), or an HTML page outside test trees | `performance_664dd2d3` |
+| Performance Monitoring Standards | `REQUIRES_PRODUCTION_SUBJECT`: a Node HTTP framework (`next`, `express`, `fastify`, `koa`, `hono`, `@nestjs/core`, `@hapi/hapi`), a Python one (fastapi, flask, django, starlette, aiohttp …), a web surface, a mobile app shell (`react-native`, `expo`, `@capacitor/core`, `@nativescript/core`), or a deploy target (Dockerfile, Procfile, compose, app.yaml, fly.toml, render.yaml, firebase.json, vercel.json, netlify.toml, wrangler.*, serverless.yml, Chart.yaml, a serverless deploy command) | `performance_351f896e` |
+| Incident Response Protocol | `REQUIRES_PRODUCTION_SUBJECT` | `docs_cd2817cb` |
+| Launch Readiness Checklist | `REQUIRES_PRODUCTION_SUBJECT` | `deployment_b1c8dba1` |
+| NX Commands Only Policy | `REQUIRES_NX_OR_ANGULAR`: nx.json, `nx` / `@nx/workspace` / `@nrwl/workspace`, or `@angular/core` (an Angular project without Nx is still asked to use Nx) | `quality_f66318df` |
+
+Pre-Deployment Checklist (MANDATORY) (`deployment_37c13d47`) asks its
+authentication, benchmarking, health-check and production-logging clauses only
+where `REQUIRES_PRODUCTION_SUBJECT` holds; the checklist, build, test and
+security-scan clauses are asked everywhere.
+
+**MD Footer Template (MANDATORY) is opt-in** (#436). A project that wants it
+turns it on with `laws.severity: { "MD Footer Template (MANDATORY)": "warning" }`
+(or its lawId `docs_5ef46de8`), or lists it in `laws.enabled`. Without that the
+law does not run, and nothing is printed. MD Footer Footer Consistency stays on
+by default.
+
+If `includes.global` does not select Markdown (it names only source, e.g.
+`src/**/*.ts`), the law finds no file to judge and says so ("N Markdown file(s)
+exist, but the configured includes / ignores select none of them — nothing was
+judged"), which makes the run partial. Give it the Markdown files with
+`includes.byRule: { "md-footer-template-mandatory": ["**/*.md"] }`.
+
+Laws selected per release-canary profile, before → after, and what leaves:
+
+| profile | before → after | no longer selected |
+|---|---|---|
+| python | 97 → 92 | CDN, Performance Monitoring, Incident Response, Launch Readiness (no production subject); MD Footer (opt-in) |
+| angular | 120 → 119 | MD Footer (opt-in) |
+| ngrx | 131 → 130 | MD Footer (opt-in) |
+| ionic | 150 → 149 | MD Footer (opt-in) |
+| react | 134 → 132 | NX Commands Only (no Nx, no Angular); MD Footer (opt-in) |
+| node | 77 → 71 | CDN, Performance Monitoring, Incident Response, Launch Readiness (no production subject); NX Commands Only (no Nx, no Angular); MD Footer (opt-in) |
+
+Fast mode core before → after: unchanged, except that Launch Readiness
+Checklist enters it where `REQUIRES_PRODUCTION_SUBJECT` holds (its own gated
+group's 20% share), and the laws above leave it where they are no longer
+selected. A CRITICAL `error` law that every project selects (no stack, no
+`requires`) is now protected from the quota, so CI/CD Constitutional Tribunal
+stays in the core: the share of the ungated universal group shrank with the
+laws that moved to their subject, and it would have cut it as a side effect.
+
+Self-audit of this repository, before → after: CDN and Caching Strategy 5
+findings, Performance Monitoring Standards 3, Incident Response Protocol 3,
+Launch Readiness Checklist 1, NX Commands Only Policy 1 → not selected;
+Pre-Deployment Checklist 4 → 2.
+
+### Changed — MD Footer Template is opt-in, and says when it judged nothing (#436)
+
+The footer is a house convention, so the law is opt-in (`defaultEnabled:
+false`): turn it on with a severity in `laws.severity` or in `laws.enabled`.
+When no Markdown file is left to read — none in the project, or
+`includes.global` that lists only code — it reports that nothing was judged
+(and which case), never "No markdown files found in project". This
+repository's config no longer enables it.
+
+Self-audit of this repository: MD Footer Template — before 1 finding ("No markdown files found in project"), after not selected (opt-in, not enabled).
+### Fixed — a checklist clause defers to an owning law the audit would not select (#428)
+
+Pre-Deployment Checklist consults the law that owns each runtime concern.
+That law was run even when the audit would not select it for the project
+(its `stack` or `requires` unmet), so it inspected an absent subject, failed,
+and the clause was reported. An owning law the audit would not select now
+answers "satisfied", like a written `notApplicable`.
+
+Self-audit of this repository: no change — the four owning laws are selected here, so they still run (measured).
+### Fixed — Async Cache Single-Flight reads a check as a one-key get / has (#437)
+
+The selection pattern matched `constants.set(` as `s.set(` (no left boundary
+on the back-reference). In TS/JS a check is now a `get` / `has` with the key
+as its only argument (the Map signature), so a file-backed API such as
+`Cache.get(root, key, mode)` is not judged as an in-memory map.
+
+Self-audit of this repository: Async Cache Single-Flight — before 1 finding (`src/core/auditing/audit-engine.ts`, a file-backed `AuditCache.get(…)` / `.set(…)`), after pass: 3 files read, 0 async check-then-store sites.
+### Fixed — the audit run from git hooks and CI counts as running it (#434)
+
+Constitutional Supremacy, Continuous Compliance and Pull Request Workflow
+read one place each (package scripts, a `ruleofcode` dependency, scripts
+named `precommit` / `prepush`). One shared probe, `auditInvocations`, now
+reads package scripts, committed git hooks (`.husky`, `.githooks`, lefthook,
+pre-commit, simple-git-hooks) and CI steps; comments, `echo` lines and step
+titles do not count.
+
+| law (self-audit of this repository) | before | after |
+|---|---|---|
+| Constitutional Supremacy Doctrine | 1 finding (no enforcement script) | pass (.husky/pre-commit, .husky/pre-push run the audit) |
+| Continuous Compliance Doctrine | 1 finding (no enforcement tool) | pass |
+| Pull Request Workflow Standards | 1 finding (missing precommit, prepush) | pass |
+### Fixed — Pre-PR Quality Gates: GitHub and GitLab keep branch protection server-side (#435)
+
+A github.com or gitlab.com remote is now a server-side protection host, as
+bitbucket.org and Azure DevOps already were (inferred from the host, not
+verified). The message is built from the violations; it printed "Missing "
+with an empty list when branch protection was the only one.
+
+Self-audit of this repository: Pre-PR Quality Gates — before 1 finding ("Missing branch protection configuration", message "Missing "), after pass (github.com remote).
+### Changed — Strategic Document Updates: a CHANGELOG and an issue tracker are a status record
+
+The status clause is met by a PROJECT_STATUS / STATUS / ROADMAP file, or by
+a CHANGELOG together with an issue tracker (`bugs` in package.json, an Issues
+URL in pyproject.toml, GitHub or GitLab issue templates). A project with
+neither is asked, as before.
+
+Self-audit of this repository: Strategic Document Updates — before 1 finding ("Missing PROJECT_STATUS.md file"), after pass (CHANGELOG.md + `bugs` in package.json + .github/ISSUE_TEMPLATE).
+### Changed — Constitutional Compliance Headers: a repository-level license is enough
+
+A LICENSE file at the root together with the `license` field in package.json
+states the terms for every file; the law passes and says so. Without both,
+the per-file headers, template and automation are judged as before.
+
+Self-audit of this repository: Constitutional Compliance Headers — before 4 findings, after pass (LICENSE + package.json license MIT).
+### Fixed — Pre-Deployment Checklist reads the dependency scan from the command
+
+The security-scan clause read only script names (`audit`, `security`,
+`snyk` …). It now also reads what package scripts and CI steps run (npm /
+yarn / pnpm audit, pip-audit, safety check, snyk test).
+
+Self-audit of this repository: Pre-Deployment Checklist — before 4 findings, after 3 ("Security vulnerability scanning not configured" is gone: `security-audit` runs `npm audit`, and so does the CI step).
+### 🐛 Fixed — an Angular CLI project was told to add webpack limits it cannot write (#449)
+
+Once the budget suggestion read angular.json correctly (#449), the two
+Angular/Ionic projects of the QA matrix were told "Add maxAssetSize and
+maxEntrypointSize in webpack configuration". An Angular CLI project has no
+webpack config of its own — the CLI owns it, and the budgets live in
+angular.json — so the advice could not be followed. The law still passed; only
+the suggestion was wrong.
+
+Before: the webpack suggestions were given to every Angular project without a
+webpack config. After: only to a project that has one — a
+`webpack.config.*` / `webpack.prod.*` at the root or under `config/`, or an
+angular.json build through `@angular-builders/custom-webpack`, `ngx-build-plus`
+or `customWebpackConfig`.
+
+### ⚠️ BREAKING — Node 20 or later (#21)
+
+`engines.node` is now `>=20` (was `>=16.0.0`). The old floor was already
+untrue: a runtime dependency in 7.29.1's lockfile (`@inquirer/external-editor`)
+declares `>=18`, and CI ran Node 20 only. Node 20 is now the floor because it
+is the oldest line that both `glob` 14 (`18 || 20 || >=22`) and `minimatch` 11
+(`20 || >=22`) support.
+
+Node 20 is past end-of-life (2026-04-30, nodejs/Release `schedule.json`); 20
+is the floor because it is the lowest version this release's dependencies
+support, not a recommendation. Run a supported line — 26 (Active LTS) or 24
+(Maintenance LTS) on 2026-11-21. Raising the floor is a separate decision.
+
+On Node 18, npm warns `EBADENGINE` (for `ruleofcode`, `minimatch`,
+`brace-expansion` and `lru-cache`) and installs anyway; with `engine-strict`
+the install fails. Node 18 is unsupported and is not run in CI.
+
+CI runs the whole gate (build, lint, format, jest, release canary, self-audit)
+on Node 20, the declared floor, and on Node 26, the Active LTS line on
+2026-11-21 (nodejs.org/dist/index.json; nodejs/Release `schedule.json`: v26
+Active LTS since 2026-10-28). The required check `Constitutional gate` is now
+a job that is green only when every Node version is. A test reads
+package.json, the CI matrix and the lockfile, and fails when the lowest CI
+version is not the declared floor, a CI step pins its own Node version, or a
+runtime dependency declares an `engines.node` that refuses the floor.
+
+### ⬆️ Dependencies — `glob` 10.5.0 → 14.0.6, `minimatch` 9.0.9 → 11.0.9 (#21)
+
+No source change was needed: what RoC uses (`glob`, `globSync`, `sync`,
+`glob.sync`; `minimatch(path, pattern, options)`; glob options `cwd`,
+`ignore`, `absolute`, `dot`, `nodir`, `maxDepth`) behaves the same.
+`npm audit --omit=dev` goes from two moderate advisories (GHSA-3g3m-2fjr-6pw4,
+glob 9.0.0–14.0.1; GHSA-g3hv-75wg-m249, minimatch 7.0.0–11.0.0) to none. The
+ranges start at the measured versions (`^14.0.6`, `^11.0.9`): `^14` alone
+would admit 14.0.0, which is inside the advisory. 17 runtime packages leave
+the tree and 2 come in (`@isaacs/nonrecursive-glob-match`, a newer
+`balanced-match`).
+
+Measured on Windows, so that a different file set cannot hide behind an
+unchanged verdict (173 projects: 165 Next.js fixtures, the `_ng-outside`
+fixture, saas-starter, commerce, create-t3-turbo, three read-only festrr
+clones, and RoC's own develop tree; the audit cache off):
+
+| what | result |
+|---|---|
+| every `glob`/`minimatch` call of `audit --json` recorded under 10.5.0 + 9.0.9 and under 14.0.6 + 11.0.9, same build | identical in 173/173 projects: 16,260 distinct glob calls (pattern, options, sorted result), 21,128 minimatch pattern+option pairs over 1,232,214 distinct (pattern, path) tests, and the same call counts |
+| `audit --json` of develop's build vs this branch's build | byte-identical in 173/173 (no field stripped), same exit code in 173/173 |
+| 307 glob-like literals (274 from `src`, 33 from the projects' configs) × 10,065 paths × 4 option sets, minimatch 9.0.9 vs 11.0.9 | 0 of 12,359,820 disagree |
+| escaped forms from #451 (`weird\[1\]/**`, `a\{b,c\}`, `x\(1\)`, `\!keep`, …): minimatch, and glob `ignore` on a real tree | 0 of 780, 0 of 15 |
+| read-only clones, `git status --porcelain` before and after every run | empty, unchanged |
+
+The full set was measured on develop 1d24269. After develop gained #451
+(a minimatch call for escaped brackets in config patterns), both
+comparisons were run again on 9a2386b for the seven projects that are not
+fixtures: call logs identical in 7/7 (478 glob calls, 856 minimatch
+pattern+option pairs over 914,208 tests), audit JSON byte-identical in 7/7.
+
+### 🔧 CI — `actions/checkout` and `actions/setup-node` v4 → v7 (#21)
+
+`actions/checkout` and `actions/setup-node` go from v4 to v7 in both
+workflows: v4 targets Node 20, which GitHub now forces onto Node 24 with a
+warning on each job that uses them.
+
+### 🐛 Fixed — a law that read none of its files was counted as a finding, not as judged nothing (#427)
+
+Without `typescript`, No Focused Tests, Guard Function Has Production Caller,
+Tsconfig Exclude Leaves Code Untyped and Independent Awaits Run Concurrently
+said their files were NOT read — but the note counted as an ordinary finding.
+The law was not in `scope.judgedNothingLaws`, so a run with them alone was
+`compliance-with-warnings`, while Test Isolation Enforcement in the same state
+made it `partial`.
+
+One rule now, for every law, in one place: a result whose every finding is a
+parser-unavailable note read none of its files — it judged nothing (failed,
+score 0; `failed` or `partial` by severity, as for any law that judged
+nothing). A law that also reads input without the parser and judged it says
+so in the note ("the rest of what this law reads was judged") and is not
+judged nothing; neither is a note beside a real finding, nor a file that did
+not parse.
+
+| law, no `typescript` | before | after |
+|---|---|---|
+| No Focused Tests · Guard Function Has Production Caller · Tsconfig Exclude Leaves Code Untyped · Independent Awaits (TS/JS only) | one finding: "… NOT read" | judged nothing |
+| HTML Lang Declared (next.config) · Accessibility Linting (config script) · Capacitor Plugin Stub (test configs) · Independent Awaits / cache laws with Python read | the note, a finding | the note, a finding, ending "the rest of what this law reads was judged" |
+
+Two more corrections, found by QA on the same fixtures:
+
+- **TypeScript Strict Mode reads the `extends` chain without `typescript`.**
+  Before: tsconfig.json alone — a project whose strict flags live in its base
+  config got 14 "must be enabled" findings, all false, and no note (QA
+  p478-tsstrict-extends). After: the chain is read as JSONC — relative paths
+  and packages in `node_modules`, an `extends` array with later entries over
+  earlier ones — and `target`, `moduleResolution` and `sourceMap` are judged
+  as inherited too. A link that cannot be read is named ("… which could not
+  be read — the inherited compiler options were NOT read …"), and a flag the
+  files that were read leave unset is not judged; one set to `false` still is.
+- **A not-read note names the files it means.** The default wording of the
+  parser-unavailable note said "the .tsx/.jsx files" whatever was not read;
+  the request-path reader (Independent Awaits, the cache laws) said it of
+  `.ts` files (QA p478-awaits-py-ts). It now names their extensions, and the
+  default is neutral ("the files this law parses").
+
+### 🐛 Fixed — Dead Code Elimination judged words as dead code (#424)
+
+| | before | after |
+|---|---|---|
+| `debugger` | the word anywhere in the file, strings and comments included | a `debugger;` statement |
+| "commented code blocks" | `//` lines containing "function", "const" or "let" anywhere | `//` comments that hold a const/let declaration or a function header |
+| "unreachable code after return" | a line starting with `return` (also `returnValue = …`) followed by a line at the same indent | a statement after a `return` in the same block (not a hoisted function or a type) |
+| no loadable `typescript` | text scanned | "code file(s) were NOT read" — judged nothing |
+
+### 🐛 Fixed — No Explicit Any / Non-Null, No Double Cast and Typed HTTP Boundaries read strings as code (#424)
+
+| | before | after |
+|---|---|---|
+| No Explicit Any: `'AWS::Serverless::Function'`, `'value: any'`, `'run it! now'` in strings | weak type / `any` / non-null | not code |
+| No Explicit Any: `{ keys: Object.keys(x) }` | a weak `: Object` type | a value, not a type |
+| No Double Cast: "as unknown as" in a string (a law's prose) | a double cast | not code |
+| Typed HTTP Boundaries: `http.get(` in a string (a law's prose) | an untyped call | not code |
+| either law, no loadable `typescript` | text scanned | ".ts file(s) were NOT read" — judged nothing |
+
+Real annotations, casts and non-null assertions in code are reported as before.
+
+### 🐛 Fixed — Code Duplication Control compared text fragments, not functions (#432)
+
+A "block" started on any line containing `=>` or `function` and ran to the
+next balancing `}`, so it was the tail of whatever followed the last arrow —
+a type member, a call-site fragment, a one-line idiom — and every string was
+replaced with `STR`, so two tables of different messages were the same code.
+
+| | before | after |
+|---|---|---|
+| what is compared | text from a line with `=>`/`function` to the next `}` | the block body of every function, method and arrow, from the TypeScript parse |
+| strings | all normalised to `STR` | compared as written (numbers are still normalised) |
+| comments | stripped by regex | not tokens |
+| size floor | 50 characters | 5 lines and 50 tokens (`minDuplicationLines`, `minDuplicationTokens`); `minDuplicationBlockSize` still applies in characters |
+| a copy inside a larger copy | reported again | reported once, with the larger copy |
+| no loadable `typescript` | compared as text | ".ts/.tsx file(s) were NOT read" — judged nothing |
+
+### 🐛 Fixed — Code Complexity Control measured text, not functions (#430)
+
+The law found function bodies by brace matching over the source with only the
+comments removed. An outer function was charged with every callback inside it;
+an `if`, `?` or `{` inside a string or regex was counted and used for brace
+matching; an expression-bodied arrow and a function returning an inline object
+type were never measured. Now every function is read from the TypeScript
+syntax tree and measured on its own body.
+
+| | before | after |
+|---|---|---|
+| function complexity | brace-matched text, callbacks added to the outer function, strings counted | each function's own body from the syntax tree; strings, regexes and comments are not code |
+| arrow with an expression body, inline object return type | never measured | measured |
+| `maxFileLines` (300) | every line, comments and blank lines included | lines of code only |
+| a data file (at most two functions) | held to `maxFileLines` | not held to it |
+| "too many functions" (> 20) | reported when the file had ≥ 10 decision points | reported only when a function in the file is over the complexity limit |
+| no loadable `typescript` | measured with the regex | ".ts/.tsx file(s) were NOT read" — judged nothing |
+
+The finding now reads "(N code lines, max 300)". The set of decision points is
+unchanged (`??` is still not one).
+
+### 🐛 Fixed — Unit Test Quality read the async code a test keeps in strings (#424)
+
+The async analysis of every test file ran over the raw text, so a test that
+holds the code it feeds a detector as a string was told its promise chains
+have no `.catch()`, could use async/await, mix `done()` with async, or use
+`setTimeout` without fake timers.
+
+| | before | after |
+|---|---|---|
+| `.then(`, `setTimeout(`, `done()`, `await` in a string or comment | an async finding | not code |
+| the same in code | a finding | a finding |
+| no loadable `typescript` | text scanned | "the async patterns of the N test file(s) were NOT read" |
+
+The other Unit Test Quality checks (mocking, edge cases, HTTP calls) are
+unchanged.
+
+### 🐛 Fixed — a PARTIAL line said "passed" for laws that reported warnings
+
+The judged-nothing line said "The other laws passed" and the narrowed line
+"The selected laws passed" while some of those laws had reported warnings (a
+run of this repository: 40 passed, 43 with warnings). When any law warned, the
+line now gives the counts from `stats`:
+
+```
+⚠️  PARTIAL — 1 law(s) judged nothing (…). 40 passed, 43 reported warnings (not blocking); no compliance verdict.
+⚠️  PARTIAL SCAN — 6 of 75 applicable laws ran (narrowed by laws.enabled). Of the selected laws 5 passed, 1 reported warnings (not blocking); no compliance verdict.
+```
+
+With no warnings the text is as before.
+
+### 🐛 Fixed — an escaped bracket in an ignore pattern stopped excluding (#414)
+
+The #414 normalisation turned every `\` into `/`, so `weird\[1\]/**` became
+`weird/[1/]/**` and excluded nothing, in silence. `\` is both the Windows
+separator and the glob escape; it is now read as an escape only where it
+cannot be a separator, and as `/` everywhere else:
+
+| `\` before | read as | example → normalised |
+| --- | --- | --- |
+| `]`, `}`, `)` (no path segment starts with one) | escape | `weird\[1\]/**` → unchanged |
+| `[`, `{`, `(` whose matching closer is escaped later | escape | `a\{b,c\}`, `x\(1\)` → unchanged |
+| `!`, `+`, `@` | escape | `\!keep` → unchanged |
+| anything else | separator | `vendor\**` → `vendor/**` · `vendor\lib.js` → `vendor/lib.js` · `app\[slug]\[id]\page.tsx` → `app/[slug]/[id]/page.tsx` |
+
+Glob semantics stay standard for `/` and `\` alike, so `app/[slug]/page.tsx`
+— written with either separator — is a character class: it excludes
+`app/s/page.tsx`, not the route `app/[slug]/page.tsx`. That was silent too.
+Now, when a class segment of an `ignores.*` or `includes.*` pattern names a
+directory or file that exists under that literal name where the pattern
+points, the audit says so:
+
+```
+⚠️  ignores.global: 'app/[slug]/page.tsx' — '[slug]' is a glob character class and does not match the directory '[slug]' — write \[slug\] for the literal name.
+```
+
+The pattern is followed from the project root through its plain segments; a
+class after a wildcard (`**/[slug]/**`) cannot be located and is not judged.
+Before: `weird\[1\]/**` excluded nothing, and `app/[slug]/…` excluded a
+different file without a word. After: the escape works, and the class is named.
+
+### 🧹 Removed — a second, dead result printer that said "All constitutional laws passed!"
+
+`AuditResultProcessor.displayResults` printed `✅ All constitutional laws
+passed!` whenever `passed` was true — warnings, waivers or a law that judged
+nothing included — and knew nothing of the verdict. No command called it;
+only its own tests did. It is removed with its private helpers and those
+tests, so the one printer left is the audit's own, which follows the verdict.
+It was not exported from the package entry point.
+
+### ⚠️ BREAKING — `compliance` and the victory art mean a clean pass; a law that judged nothing makes the run partial
+
+A run of this repository listed 46 laws with violations at warning level, one
+of them a law that judged nothing, then printed `CONSTITUTIONAL COMPLIANCE:
+PASSED` and the victory art, and its JSON verdict was `compliance`. On screen
+that is the unearned pass this tool exists to refuse.
+
+Now `compliance` — and the art — is only the clean pass: no law failed, was
+waived, reported warnings or judged nothing. The verdict is the first that
+holds: `refused` > `failed` > `partial` > `compliance-with-waivers` >
+`compliance-with-warnings` > `compliance`. One value; no information is lost,
+because every list is in `scope`.
+
+| run | verdict before | verdict after | console before | console after | exit |
+|---|---|---|---|---|---|
+| all laws passed, nothing waived | compliance | compliance | PASSED + art | PASSED + art | 0 |
+| ≥1 law reported warnings, nothing waived | compliance | **compliance-with-warnings** | PASSED + art | **PASSED WITH WARNINGS — N law(s) reported warnings (not blocking)**, no art | 0 |
+| ≥1 waiver (with or without warnings) | compliance-with-waivers | compliance-with-waivers | PASSED WITH WAIVERS, no art | unchanged | 0 |
+| ≥1 law judged nothing, at warning/info severity | compliance (counted as a warning) | **partial** | PASSED + art | **PARTIAL — N law(s) judged nothing (…)**, no compliance verdict | 0 |
+| ≥1 law judged nothing, at error severity | failed | failed | FAILED | FAILED | 1 |
+| narrowed (allowlist, Pareto, categories) | partial | partial | PARTIAL SCAN | unchanged | 0 |
+
+New JSON fields:
+
+- `scope.warningLaws` — `[{ law, lawId }]`, the laws that reported warnings,
+  sorted by `law`; its length is `stats.warningLaws`.
+- `scope.judgedNothingLaws` — `[{ law, lawId }]`, the laws that found nothing to
+  judge (`results[].judgedNothing: true`), sorted. They are never counted
+  among the warnings, and they make `scope.partial` true.
+- `stats.judgedNothingLaws` — their number.
+
+The console lists the laws that judged nothing in their own block
+(`◌ JUDGED NOTHING`) and counts them on their own summary line, apart from the
+warnings. The exit code follows severity, as before. A consumer that keyed a
+pass on `verdict === 'compliance'` should accept `compliance-with-warnings`
+and `compliance-with-waivers` too, or read the lists.
+
+### 🐛 Fixed — five more laws gave a weaker answer, and no note, without `typescript` (#427)
+
+The rest of the class #427 found: when `typescript` could not be loaded, these
+laws fell back to a second-best reading and said nothing. Now each says what
+it did not read; with the parser nothing changes.
+
+| law | before, no `typescript` | after, no `typescript` |
+|---|---|---|
+| HTML Lang Declared | an unread `next.config` counted as "no i18n": **"no _document and no i18n in next.config"**, possibly false | "… the next.config file(s) were NOT read … whether i18n sets <html lang> was not judged" |
+| Accessibility Linting Enforcement | an ESLint config script it could not parse counted as "no jsx-a11y preset": **"rules missing"** | "<config>: … the ESLint config script(s) were NOT read … whether they enable the jsx-a11y preset was not judged" |
+| TypeScript Strict Mode | an `extends` chain not followed; the flags read from `tsconfig.json` alone, silently | the same check, plus "tsconfig.json extends …: … the inherited compiler options were NOT read … the strict flags were read from tsconfig.json alone" |
+| Inject Over Constructor DI | constructors counted by a regex | "… the N Angular file(s) were NOT read", no count; a file that does not parse is named as not read |
+| Test Documentation Requirements | test titles read by a regex | "… the N test file(s) were NOT read" — judged nothing |
+
+Two more corrections of the same notes:
+
+- A law that judged nothing is headlined by its own note. Its summary was
+  computed from defaults, so Test Isolation Enforcement read "poor
+  setup/teardown isolation" over files it had not read. The message of every
+  judged-nothing result is now the note that says so.
+- The note names the files that were not read: "the .ts file(s) were NOT read",
+  not ".tsx/.jsx" for every file (No Focused Tests on 714 `.ts` tests, and every
+  law that parses through the same reader).
+
+### ⚠️ BREAKING — the Next laws walk one module graph, as Next sees the code (#287)
+
+The Next laws that follow imports carried two static import graphs: one for
+**Next Heavy Lib In Client Graph** and **Next Client Props Serializable**, one
+for **Next Server Only Boundary**, **Next Client Env Public Only** and **Next
+Public Env Is Build Time**. They resolved the same import differently, so a
+client law and a server law could reach opposite conclusions about the same
+code. There is now one graph (`next-module-graph.ts`, entries in
+`next-entries.ts`). The rule it follows: resolve the way Next and its bundler
+do; what cannot be read is reported as not read (the law is partial), never
+passed in silence.
+
+What differs between the laws is a parameter of the walk: which calls are
+edges (point a, below) and whether a boundary module is part of the result
+(Heavy Lib and Client Props keep it as a node without edges, as before; the
+other three leave it out, as before).
+
+| # | shape | before | after |
+|---|---|---|---|
+| a | `require('x')` (the bundler puts it in the same chunk) | an edge only for Client Env, Server Only, Public Env | an edge for every graph law |
+| a | `import('x')` (a chunk of its own) | an edge only for Client Env, Server Only, Public Env | also for Client Props (a Server Component loaded that way still passes its props across the boundary); still not for Heavy Lib (a lazy chunk is not first-load JavaScript — it is the remedy that law recommends) |
+| b | workspace package linked through `node_modules` | Heavy Lib, Client Props: a package, not walked — its code was never judged | walked as first-party code |
+| c | `paths` in `jsconfig.json` (no tsconfig) | Heavy Lib, Client Props: `@/x` taken for a package, nothing walked, nothing said | read |
+| d | bare package that is not installed | Heavy Lib, Client Props: a package, silent (Heavy Lib still matched the name) | not read; Heavy Lib still names a heavy one |
+| e | first-party `.d.ts` | Heavy Lib, Client Props: skipped in silence | the `.js` beside it is read; with none, not read |
+| g | `tsconfig.json` that cannot be parsed, or whose `extends` is missing | the server laws used default options in silence; Heavy Lib, Client Props stopped at every import | named as not read by every law; what resolves without it is still read |
+| zh | relative import that leaves the audited root | Heavy Lib, Client Props: walked outside the root | not read |
+| 8 | package.json `imports` (`#x`) | the server laws cut the specifier at `#` and reported it not read | resolved |
+| 10 | tsconfig `moduleResolution` that ignores `exports` | the server laws could not resolve an `exports`-only subpath: not read | bundler resolution, as Next: resolved |
+| 13 | alias or `baseUrl` path no config maps | Heavy Lib, Client Props: taken for a package, silent | not read |
+| 9 | `.glsl` import | Heavy Lib: not read; the server laws: an asset | an asset (no imports to walk) |
+| 11 | client entries | Heavy Lib: `'use client'` + Pages Router pages; the server laws: `'use client'` + `instrumentation-client` | all three, for every client law; what a page's `getServerSideProps` / `getStaticProps` / `getStaticPaths` alone uses is not client code |
+| 12 | server entries | Client Props: special files of both `app/` and `src/app/` | the router Next reads (`app/` over `src/app/`); Server Only rule 2 also starts at `_app`, `_document`, `_error` |
+
+What you may see:
+
+- **more "not read"** where the project is not installed (no `node_modules`)
+  or a config cannot be read: Heavy Lib and Client Props now say so where they
+  used to pass in silence;
+- **more findings** where workspace packages are linked into `node_modules`
+  (Heavy Lib, Client Props now read their code) and in Pages Router apps
+  (Client Env and Server Only rule 1 now walk from each page);
+- Server Only rule 2 no longer reports a module that a Pages Router page
+  bundles for the browser: rule 1 reports it, as it reports any client module.
+
+Measured on the #287 fixture set (165 fixtures, 29 verdicts that 7.29.1 got
+wrong on purpose; `develop` before this change is identical to the 7.28.1
+baseline on every fixture): all 29 now give the verdict Next's behaviour calls
+for (judge287: FIXED 29, STILL 0, CHANGED-OK 12, OTHER-LAWS 22).
+
+Three verdicts the old fixtures expected change, each as decided
+(judge287 REGRESSION 3; the fixtures are being updated):
+
+- `nc-heavy-neutral-require`: Heavy Lib now names `moment` that a client
+  module loads with `require()` (point a; the case recorded the old limit);
+- `ng-pages-router`: the helper a Pages Router page bundles is reported by
+  Server Only rule 1, not rule 2 (point 11);
+- `nc-heavy-green-subpath`: `lodash/max`, not installed in the fixture, is
+  reported as not read (point d).
+
+Fourteen verdicts on four cases whose expectation was 7.29.1's own behaviour
+changed and were reviewed against the rule (judge287 REVIEW 14): a relative
+import that leaves the root is not read (`ng-outside-root`, point zh), a
+`.glsl` import is an asset (`ng-asset-glsl`, point 9), and an unreadable
+tsconfig is named by every graph law (`ng-extends-missing`,
+`ng-tsconfig-broken-relative`, point g).
+
+On three installed public Next apps (`nextjs/saas-starter`,
+`vercel/commerce`, `t3-oss/create-t3-turbo`) no verdict and no message
+changed before point a; in create-t3-turbo the Heavy Lib walk now reaches 16
+modules instead of 12 and the Client Props walk 26 instead of 11, the
+difference being workspace-package code.
+
+### 🐛 Fixed — without `typescript`, two testing laws judged by a regex and said nothing (#427)
+
+`CodeText.codeOnly` (the code of a file, without its comments and strings) fell
+back to a regex when no `typescript` could be loaded. The regex reads a string
+in a test as code, so **Test Isolation Enforcement** (error severity) failed a
+project that passes with the parser — the verdict depended on the machine, and
+nothing said the files had not really been read.
+
+Now `codeOnly` throws instead of guessing, and the two laws that reach it check
+for the parser first:
+
+| | before, no `typescript` | after, no `typescript` | with `typescript` |
+|---|---|---|---|
+| Test Isolation Enforcement | judged by the regex, silently | "could not load the 'typescript' package … the N test file(s) were NOT read" — judged nothing | unchanged |
+| Test Data Management | judged by the regex, silently | the same note — judged nothing | unchanged |
+
+A judged-nothing law fails at error severity and makes the run partial at a
+non-blocking one. `typescript` resolves from the project or from RoC itself, so
+this shows only where neither has it.
+
+### 🐛 Fixed — an ignores entry written as a Windows path, an absolute path, with `./` or a trailing slash matched nothing (#414)
+
+`ignores.*` patterns were passed to the matcher as written, while the paths
+they are matched against are project-relative with forward slashes. minimatch
+reads `\` as an escape, so `vendor\**` never matched `vendor/lib.js`; `./vendor/**`,
+`vendor/` and an absolute path never matched either. Nothing said so: the files
+the entry was meant to exclude were still judged.
+
+Every `ignores.*` and `includes.*` pattern (`global`, `tests`, `build`,
+`design`, `byRule`) is now brought to one form when the config is loaded, so
+every reader of it sees the same thing: `\` → `/`, a leading `./` dropped,
+`dir/` → `dir/**`, an absolute path inside the project made relative to it
+(a leading `!` is kept). An absolute path outside the project cannot match a
+project file; it is left as written and the audit warns:
+
+```
+⚠️  ignores.global: '<path>' is an absolute path outside the project (<root>) — it matches nothing. Write it relative to the project root.
+```
+
+| `ignores.global` | `vendor/lib.js` excluded, before | after |
+|---|---|---|
+| `vendor/**`, `**/vendor/**` | yes | yes |
+| `./vendor/**` | no | yes |
+| `vendor/` | no | yes |
+| `vendor\**`, `vendor\lib.js` | no | yes |
+| `<project root>/vendor/**`, with `/` or `\` | no | yes |
+| an absolute path outside the project | no, silently | no, with the warning |
+
+The same forms in `includes.*` now match too (`\` and a bare directory already
+did). A config that relied on one of these entries doing nothing will see the
+files it names excluded (or, for includes, included).
+
+### Internal — no tool attribution in the project's public text
+
+The founder's rule: no generated-with/by line naming the tool and no
+Co-Authored-By trailer in a commit, a pull request, an issue, a comment, a
+release note, the code or the docs. Agent tooling appends these lines by
+default, so the rule is held by machinery:
+
+- `scripts/public-text-guard.js` finds both, line by line, in files, stdin or —
+  with `--scan owner/repo` — every release, issue, pull request and comment
+  through the GitHub API. A scan reports how much it read and fails (exit 2) if
+  a page cannot be read.
+- The workflow `Public text guard`: the check "No tool attribution in the pull
+  request" runs on every PR to master and develop (opened, edited, pushed),
+  with the script from the base branch; issues, comments and releases are
+  checked when written (non-blocking, the text is already public); and a
+  weekly scan.
+- `commit-trailer-guard.test.ts` also refuses the attribution line in any
+  commit, merges included, with no exceptions (the history had none), and a
+  new test refuses it in any tracked file.
+
 ## [7.29.1] - 2026-11-20
 
 **The first release on npm after 7.28.1.** 7.29.0 was tagged but never
@@ -3051,3 +4325,8 @@ _Changelog entries prior to v7.11.0 predate the public release and are not inclu
 Earlier history kept for verification: [7.8.1 → 7.9.1, the hook modes that narrowed
 the law set](docs/history/7.8.1-7.9.1-hooks-narrowed.md) (122 → 27 laws), copied unchanged
 from the private repository.
+
+---
+
+<!-- roc-footer -->
+**Document Version:** the git history of this file &middot; **Last Updated:** 2026-11-21 &middot; **Status:** Active &middot; **Investment Rating:** current

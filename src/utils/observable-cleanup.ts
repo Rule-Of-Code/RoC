@@ -85,35 +85,3 @@ export class ObservableCleanup {
     );
   }
 }
-
-// Type for mixin constructor - args must accept any due to TypeScript mixin constraints
-type MixinConstructor = new (...args: any[]) => Record<string, unknown>;
-type MixinDestructorSignature = new (...args: any[]) => Record<
-  string,
-  unknown
-> & {
-  destroy$: Subject<void>;
-};
-
-/**
- * Decorator for automatic cleanup in Angular components.
- * Automatically adds destroy$ Subject to component for cleanup pattern.
- */
-export function AutoCleanup(): <T extends MixinConstructor>(
-  constructor: T
-) => MixinDestructorSignature & T {
-  return function <T extends MixinConstructor>(constructor: T) {
-    return class extends constructor {
-      destroy$ = new Subject<void>();
-
-      constructor(...args: any[]) {
-        super(...args);
-      }
-
-      ngOnDestroy(): void {
-        this.destroy$.next();
-        this.destroy$.complete();
-      }
-    } as unknown as MixinDestructorSignature & T;
-  };
-}

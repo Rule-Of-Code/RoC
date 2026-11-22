@@ -23,6 +23,7 @@ import type { LawCheckContext } from '../../types/law.types';
 import { FileUtils } from '../file-utils';
 import { PathOperations } from '../path-operations';
 import {
+  internalArray,
   loadTypeScript,
   parserUnavailable,
   TsxSource,
@@ -68,7 +69,7 @@ export function decoratorsOf(
   if (typeof ts.getDecorators === 'function' && ts.canHaveDecorators(node)) {
     return ts.getDecorators(node) ?? [];
   }
-  return (node as unknown as { decorators?: TS.Decorator[] }).decorators ?? [];
+  return internalArray<TS.Decorator>(node, 'decorators');
 }
 
 /** The object literal argument of `@Name({...})` on a class, or null. */
@@ -108,6 +109,13 @@ export function propertyOf(
 const SCAN_CACHE = new Map<string, AngularScan>();
 const SCAN_CACHE_LIMIT = 4;
 
+/**
+ * Finds the `@Component` classes of a project's non-test .ts files (parsed
+ * once per audit and cached by file list, mtime and size) with their
+ * templates, styles, selectors and host keys, and answers which components
+ * are rendered inside an `<ion-content>` scroller by following selectors
+ * through parent templates.
+ */
 export class AngularComponents {
   /** Non-test .ts source through the normal scan, so `ignores` apply. */
   static tsFiles(context: LawCheckContext): string[] {

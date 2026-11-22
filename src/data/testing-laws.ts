@@ -28,6 +28,7 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Presence, not a number: it checks that a test runner and coverage CONFIG exist plus a source-to-test FILE ratio — never the actual line/branch coverage percentage.',
+      'A .ts/.tsx/.js/.jsx source file counts as tested when a test is named after it (foo.ts ↔ foo.spec.ts / foo.test.ts) or imports it directly: import/export from, require(), import(), or a jest.mock / vi.mock path, resolved from the test file — relative paths and the paths/baseUrl of the nearest tsconfig/jsconfig. A file a test reaches only through another module does not count; an alias declared only in a Jest moduleNameMapper or a bundler config is not followed; a type-only import counts. Without the typescript package the imports are not read and only the name counts — the finding says so. The ratio stays test files per source file.',
       'Jest-biased for JS/TS — a project on Karma/Jasmine with no jest config trips "No Jest configuration found".',
       'Only the Python stack gets a non-Jest exemption; React/Vue/Node do not.',
     ],
@@ -102,6 +103,7 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Edge-case and mock detection are keyword heuristics (imports imply "has dependencies"; jest.mock/spyOn imply mocks) — a test that mocks via a helper import is misread; no semantics.',
       'It counts structure, not assertion strength; a test with one weak assertion passes.',
+      'The async patterns (.then without catch, setTimeout without fake timers, done() with async, awaited literals) are read from the code of the TypeScript parse — not from strings or comments; without a loadable `typescript` they are NOT read and the law says so.',
       'TS/JS .spec/.test files only — no Python. realDataMode suppresses the no-mocking / hardcoded-data findings for projects that test against real data by design.',
     ],
     stack: 'typescript',
@@ -342,7 +344,7 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'checkPerformanceTestRequirements',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article VII.7.9: Performance testing missing',
-    remediation: 'Add PerformanceTestUtils for critical application flows',
+    remediation: 'Add performance tests for critical application flows',
   },
 
   {

@@ -238,11 +238,11 @@ export interface RuleOfCodeConfig {
         /** How many recent commits to measure when no baseline is set. Default: 10. */
         maxCommits?: number;
         /**
-         * Paths whose LINES are not counted, as regular-expression sources.
-         * Replaces the built-in list of lockfiles (package-lock.json, yarn.lock,
-         * poetry.lock, go.sum, Cargo.lock and the rest) rather than adding to
-         * it. Their file count still applies — the exemption is for content
-         * nobody reviews, not for the size of the change.
+         * Generated paths, as regular-expression sources: neither their lines
+         * nor the files count toward the commit size. Added to the built-in
+         * list (package-lock.json, yarn.lock, poetry.lock, go.sum, Cargo.lock
+         * and the other lockfiles, asciinema .cast recordings) — e.g. the
+         * captured output of a demo recording script.
          */
         generatedFiles?: string[];
       };
@@ -330,11 +330,18 @@ export interface RuleOfCodeConfig {
       maxFileLines?: number;
       /** Maximum dependencies per module */
       maxDependencies?: number;
-      /** Minimum code block size for duplication detection */
+      /** Minimum size, in characters, of a function body compared for duplication. Default: 50. */
       minDuplicationBlockSize?: number;
-      /** Minimum comment ratio percentage (0-100) */
+      /** Minimum lines of code in a function body compared for duplication. Default: 5. */
+      minDuplicationLines?: number;
+      /** Minimum tokens in a function body compared for duplication. Default: 50. */
+      minDuplicationTokens?: number;
+      /**
+       * @deprecated Not read since 8.0.0: Code Documentation Standards no longer
+       * judges the comment ratio (it judges JSDoc on exported classes and functions).
+       */
       minCommentRatioPercent?: number;
-      /** Minimum file size (lines) to require comment ratio */
+      /** @deprecated Not read since 8.0.0 — see minCommentRatioPercent. */
       minFileSizeForComments?: number;
     };
     typescript?: {
@@ -853,9 +860,12 @@ export interface RuleOfCodeConfig {
       maxTodoContentLength?: number;
       /** Minimum setup/teardown documentation length */
       minSetupDocumentationLength?: number;
-      /** Minimum class documentation coverage percentage (0-100) */
+      /**
+       * @deprecated Not read since 8.0.0: Code Documentation Standards reports
+       * each undocumented exported class and function instead of a coverage ratio.
+       */
       minClassDocumentationPercent?: number;
-      /** Minimum function documentation coverage percentage (0-100) */
+      /** @deprecated Not read since 8.0.0 — see minClassDocumentationPercent. */
       minFunctionDocumentationPercent?: number;
       standards?: {
         /** Score deduction per documentation violation */

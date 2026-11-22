@@ -23,27 +23,31 @@ export class PerformanceMonitoringAnalyzerService {
     errorTracking: { configured: boolean };
     performanceAlerts: { configured: boolean };
   }> {
+    // The two awaited checks are independent reads of the project: start
+    // both, then wait once.
+    const [realUserMonitoring, errorTracking] = await Promise.all([
+      RealUserMonitoringAnalyzerService.checkRealUserMonitoring(
+        projectRoot,
+        config
+      ),
+      ErrorTrackingAnalyzerService.checkPerformanceErrorTracking(
+        projectRoot,
+        config
+      ),
+    ]);
     return {
       monitoringTools:
         MonitoringToolsAnalyzerService.checkMonitoringToolsIntegration(
           projectRoot
         ),
-      realUserMonitoring:
-        await RealUserMonitoringAnalyzerService.checkRealUserMonitoring(
-          projectRoot,
-          config
-        ),
+      realUserMonitoring,
       performanceBudget:
         PerformanceBudgetAnalyzerService.checkPerformanceBudget(projectRoot),
       buildPerformance:
         BuildPerformanceAnalyzerService.checkBuildPerformanceMonitoring(
           projectRoot
         ),
-      errorTracking:
-        await ErrorTrackingAnalyzerService.checkPerformanceErrorTracking(
-          projectRoot,
-          config
-        ),
+      errorTracking,
       performanceAlerts:
         PerformanceAlertsAnalyzerService.checkPerformanceAlerts(projectRoot),
     };

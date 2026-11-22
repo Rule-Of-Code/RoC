@@ -1,7 +1,7 @@
 import type { LawCheckContext } from '../../../types/law.types';
-import { ConfigFileUtils } from '../../../utils/config-file-utils';
 import { ProjectTypeDetectorValidation } from '../../../utils/config/project-type-detector/project-type-detector-validation';
 import { FileUtils } from '../../../utils/file-utils';
+import { notReadNote, readJsonManifest } from '../../../utils/json-manifest';
 import { PathOperations } from '../../../utils/path-operations';
 import type { PackageJson } from './shared-types';
 
@@ -52,7 +52,9 @@ export class LicenseCompatibilityChecker {
 
     // Check package.json license field
     const packageLicense = this.checkPackageLicense(context);
-    if (!packageLicense) {
+    if (typeof packageLicense === 'string') {
+      violations.push(packageLicense);
+    } else if (!packageLicense) {
       violations.push('Package license not specified in package.json');
     }
 
@@ -97,9 +99,22 @@ export class LicenseCompatibilityChecker {
     return false;
   }
 
-  private static checkPackageLicense(context: LawCheckContext): boolean {
-    const pkg = this.getPackageJson(context.projectRoot) as PackageJson;
-    return Boolean(pkg.license);
+  /** Whether package.json names a license; the not-read note when it cannot be read. */
+  private static checkPackageLicense(
+    context: LawCheckContext
+  ): boolean | string {
+    const packagePath = PathOperations.join(
+      context.projectRoot,
+      'package.json'
+    );
+    if (!FileUtils.exists(packagePath)) return false;
+    // Read as package.json: RoC's own config loader returned null for it, and
+    // `null.license` threw (#486).
+    const read = readJsonManifest(packagePath);
+    if (read.notRead !== undefined) {
+      return notReadNote('package.json', read.notRead, 'its license was');
+    }
+    return Boolean((read.data as PackageJson).license);
   }
 
   private static checkLicenseFile(context: LawCheckContext): boolean {
@@ -126,19 +141,5 @@ export class LicenseCompatibilityChecker {
     } catch (_error) {
       return false;
     }
-  }
-
-  private static getPackageJson(projectRoot: string): unknown {
-    try {
-      const _path = require('path');
-      const packagePath = PathOperations.join(projectRoot, 'package.json');
-
-      if (FileUtils.exists(packagePath)) {
-        return ConfigFileUtils.loadConfig(packagePath);
-      }
-    } catch (_error) {
-      // Silent fail
-    }
-    return null;
   }
 }

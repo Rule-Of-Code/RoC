@@ -4,6 +4,7 @@
  */
 
 import { ProjectTypeDetector } from '../../config/project-type-detector';
+import { lawRequirementsMet } from '../../law-requirements';
 import * as Config from './security-documentation-configuration';
 
 // ============================================================================
@@ -31,6 +32,7 @@ function checkRequiredSecurityDocs(
 
   // Check each required documentation
   Config.REQUIRED_DOCS.forEach(doc => {
+    if (!lawRequirementsMet(doc.requires, projectRoot)) return;
     if (!Config.checkFilesExist(projectRoot, doc.files)) {
       result.violations.push(Config.VALIDATION_MESSAGES.missingDoc(doc.name));
       result.suggestions.push(

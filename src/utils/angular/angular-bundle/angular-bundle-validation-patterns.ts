@@ -1,8 +1,10 @@
 import { ChangeDetectionOptimizationLaw } from '../../../checkers/performance-laws/change-detection-optimization';
 import type { RuleOfCodeConfig } from '../../../config/types';
-import { PerformanceBudgetComplianceLaw } from '../../../laws/performance/performance-budget-compliance';
+import { PerformanceBudgetComplianceAnalyzerService } from '../../../laws/performance/performance-budget-compliance/services';
 import { ProjectTypeDetector } from '../../config/project-type-detector';
 import { ANGULAR_CONSTANTS } from '../../constants';
+import { FileSystemOperations } from '../../file-system-operations';
+import { PathOperations } from '../../path-operations';
 import { AngularBundleConfiguration } from './angular-bundle-configuration';
 
 /**
@@ -90,13 +92,10 @@ export class AngularBundleValidationPatterns {
     suggestions: string[]
   ): void {
     try {
-      // Using type assertion as temporary solution for private method access
-      const law = PerformanceBudgetComplianceLaw as unknown as {
-        checkAngularPerformanceBudgets: (projectRoot: string) => {
-          configured: boolean;
-        };
-      };
-      const budgetAnalysis = law.checkAngularPerformanceBudgets(projectRoot);
+      const budgetAnalysis =
+        PerformanceBudgetComplianceAnalyzerService.analyzeAngularBudgets(
+          projectRoot
+        );
 
       if (!budgetAnalysis.configured) {
         const message =
@@ -118,15 +117,15 @@ export class AngularBundleValidationPatterns {
     projectRoot: string,
     suggestions: string[]
   ): void {
+    // An Angular CLI project has no webpack config of its own: the CLI owns
+    // it and the budgets live in angular.json. Telling it to add maxAssetSize
+    // "in webpack configuration" is advice it cannot follow (#449, QA matrix).
+    if (!this.hasOwnWebpackConfig(projectRoot)) return;
     try {
-      // Using type assertion as temporary solution for private method access
-      const law = PerformanceBudgetComplianceLaw as unknown as {
-        checkWebpackPerformanceConfig: (projectRoot: string) => {
-          configured: boolean;
-          configs: string[];
-        };
-      };
-      const webpackAnalysis = law.checkWebpackPerformanceConfig(projectRoot);
+      const webpackAnalysis =
+        PerformanceBudgetComplianceAnalyzerService.analyzeWebpackBudgets(
+          projectRoot
+        );
 
       if (!webpackAnalysis.configured) {
         const configMessage =
@@ -150,6 +149,40 @@ export class AngularBundleValidationPatterns {
     }
   }
 
+  /** Custom builders that hand the project its own webpack config. */
+  private static readonly CUSTOM_WEBPACK_BUILDERS = [
+    '@angular-builders/custom-webpack',
+    'ngx-build-plus',
+    'customWebpackConfig',
+  ];
+
+  /**
+   * Whether the project has a webpack config it writes itself: a
+   * webpack.config.* / webpack.prod.* at the root or under config/, or an
+   * angular.json build through a custom-webpack builder.
+   */
+  static hasOwnWebpackConfig(projectRoot: string): boolean {
+    for (const dir of ['', 'config']) {
+      const where = dir ? PathOperations.join(projectRoot, dir) : projectRoot;
+      const names = FileSystemOperations.exists(where)
+        ? FileSystemOperations.readDirectory(where).map(entry => entry.name)
+        : [];
+      if (
+        names.some(name => /^webpack\.(?:config|prod)\.[cm]?[jt]s$/.test(name))
+      )
+        return true;
+    }
+    const angularJson = PathOperations.join(projectRoot, 'angular.json');
+    if (!FileSystemOperations.exists(angularJson)) return false;
+    let text: string;
+    try {
+      text = FileSystemOperations.readFileSync(angularJson);
+    } catch {
+      return false;
+    }
+    return this.CUSTOM_WEBPACK_BUILDERS.some(token => text.includes(token));
+  }
+
   /**
    * Validate source code optimization patterns
    * Meta-dogfooding: Uses specialized change detection optimization law
@@ -161,22 +194,7 @@ export class AngularBundleValidationPatterns {
     suggestions: string[]
   ): void {
     try {
-      // Using type assertions as temporary solution for private method access
-      const law = ChangeDetectionOptimizationLaw as unknown as {
-        analyzeComponents: (
-          projectRoot: string,
-          config: RuleOfCodeConfig
-        ) => { violations: string[]; suggestions: string[] };
-        analyzeTrackByUsage: (
-          projectRoot: string,
-          config: RuleOfCodeConfig
-        ) => { violations: string[]; suggestions: string[] };
-        analyzeObservableUsage: (
-          projectRoot: string,
-          config: RuleOfCodeConfig
-        ) => { violations: string[]; suggestions: string[] };
-      };
-
+      const law = ChangeDetectionOptimizationLaw;
       const componentAnalysis = law.analyzeComponents(projectRoot, config);
       violations.push(...componentAnalysis.violations);
       suggestions.push(...componentAnalysis.suggestions);

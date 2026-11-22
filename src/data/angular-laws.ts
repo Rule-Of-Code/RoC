@@ -26,9 +26,10 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
       'A file header is where a repo states its license, authorship and the rules it lives under — without it, provenance and terms are a guess. This law asks that the header exist and be applied automatically, not by memory.',
     satisfiedBy: {
       typescript:
-        'Keep a header template (config/header-template.txt), a CONSTITUTION.md, and automation (a script or hook) that stamps the header on new files.',
+        'State the terms once for the repository: a LICENSE file at the root and the license field in package.json. Without them: a header template (config/header-template.txt), a CONSTITUTION.md, and automation (a script or hook) that stamps the header on new files.',
     },
     detectionLimits: [
+      'A LICENSE / LICENCE / COPYING file at the root together with a non-empty license field in package.json passes the law: the terms are stated for the whole repository, and per-file headers are not required. Whether the two name the same license is not compared.',
       "Presence and substring only — a file counts as 'headered' if the word license/copyright/@author/@version appears ANYWHERE in it (a URL, a dep name, a string).",
       'Samples at most 20 files, depth 3, under src/.',
       'Universal, not Angular-gated.',

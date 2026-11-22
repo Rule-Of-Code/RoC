@@ -1,0 +1,120 @@
+name: Public text guard
+
+# No tool attribution in this project's public text: no generated-with/by line
+# naming the tool and no Co-Authored-By trailer (scripts/public-text-guard.js).
+#
+# - A pull request's title and description: a required check, so a PR that
+#   carries the line cannot be merged until its description is edited.
+# - An issue, a comment, a release note: checked when written or edited. The
+#   text is already public then, so this cannot block; it makes the run red.
+# - Weekly, and on demand: every release, issue, pull request and comment
+#   through the API, for whatever got past the above.
+#
+# The text reaches the script through env and files, never through an
+# expression inside `run:` (that would execute it). The PR job runs the script
+# from the BASE commit: a PR that changes the guard cannot vouch for itself.
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+    branches: [master, develop]
+  issues:
+    types: [opened, edited]
+  issue_comment:
+    types: [created, edited]
+  release:
+    types: [published, edited]
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  pull-request:
+    name: No tool attribution in the pull request
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          sparse-checkout: scripts/public-text-guard.js
+          sparse-checkout-cone-mode: false
+      - name: Is the guard on the base yet?
+        id: base
+        run: |
+          if [ -f scripts/public-text-guard.js ]; then
+            echo "has_guard=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_guard=false" >> "$GITHUB_OUTPUT"
+          fi
+      # Only until the guard reaches this base branch (the PR that adds it, and
+      # PRs to master before a release carries it): then the PR's own copy runs,
+      # and the log says so.
+      - uses: actions/checkout@v7
+        if: steps.base.outputs.has_guard == 'false'
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: head
+          sparse-checkout: scripts/public-text-guard.js
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+      - name: Check the title and the description
+        env:
+          TEXT_TITLE: ${{ github.event.pull_request.title }}
+          TEXT_BODY: ${{ github.event.pull_request.body }}
+          HAS_GUARD: ${{ steps.base.outputs.has_guard }}
+        run: |
+          guard=scripts/public-text-guard.js
+          if [ "$HAS_GUARD" != "true" ]; then
+            guard=head/scripts/public-text-guard.js
+            echo "::warning::the base branch has no public-text guard yet; running the pull request's copy"
+          fi
+          printf '%s\n' "$TEXT_TITLE" > "$RUNNER_TEMP/title.txt"
+          printf '%s\n' "$TEXT_BODY" > "$RUNNER_TEMP/description.txt"
+          node "$guard" "$RUNNER_TEMP/title.txt" "$RUNNER_TEMP/description.txt"
+
+  issue-comment-release:
+    name: No tool attribution in the issue, comment or release
+    if: github.event_name == 'issues' || github.event_name == 'issue_comment' || github.event_name == 'release'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts/public-text-guard.js
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+      - name: Check the text that was just written
+        env:
+          # a comment event also carries its issue: its title is checked again
+          TEXT_TITLE: ${{ github.event.issue.title || github.event.release.name || '' }}
+          TEXT_BODY: ${{ github.event.comment.body || github.event.issue.body || github.event.release.body || '' }}
+        run: |
+          printf '%s\n' "$TEXT_TITLE" > "$RUNNER_TEMP/title.txt"
+          printf '%s\n' "$TEXT_BODY" > "$RUNNER_TEMP/body.txt"
+          node scripts/public-text-guard.js "$RUNNER_TEMP/title.txt" "$RUNNER_TEMP/body.txt"
+
+  scan:
+    name: Scan all public text
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts/public-text-guard.js
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+      - name: Every release, issue, pull request and comment
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/public-text-guard.js --scan "$GITHUB_REPOSITORY"

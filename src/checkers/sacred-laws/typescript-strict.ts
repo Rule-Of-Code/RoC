@@ -3,13 +3,22 @@
  * All TypeScript must be configured with strict settings
  */
 
+import { PARTLY_READ_TEXT } from '../../utils/judged-nothing';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { ProjectTypeDetector } from '../../utils/config/project-type-detector';
 import { SacredLawBase } from './sacred-law-base';
 import { PathOperations } from '../../utils/path-operations';
 import { loadTypeScript } from '../../utils/react/tsx-source';
+import { readTsconfigChain } from '../../utils/tsconfig-chain';
+
+const TSCONFIG = 'tsconfig.json';
 
 export class TypeScriptStrictLaw {
+  // The flags this law requires. noPropertyAccessFromIndexSignature and
+  // sourceMap are not among them: the first is a style choice about how an
+  // index signature is read (`obj['key']` vs `obj.key`), not a type-safety
+  // guarantee — noUncheckedIndexedAccess is the one that makes the read
+  // honest — and source maps are a build/debugging setting, not strictness.
   private static readonly STRICT_CHECKS = {
     noImplicitAny: true,
     noImplicitReturns: true,
@@ -18,7 +27,6 @@ export class TypeScriptStrictLaw {
     noUnusedParameters: true,
     exactOptionalPropertyTypes: true,
     noImplicitOverride: true,
-    noPropertyAccessFromIndexSignature: true,
     noUncheckedIndexedAccess: true,
   };
 
@@ -39,9 +47,25 @@ export class TypeScriptStrictLaw {
 
     const tsConfig = ProjectTypeDetector.getTypeScriptConfig(projectRoot);
     if (tsConfig) {
-      const compilerOptions = ((tsConfig as Record<string, unknown>)
-        .compilerOptions ?? {}) as Record<string, unknown>;
-      this.validateCompilerOptions(compilerOptions, violations, projectRoot);
+      // The extends chain read as JSONC, merged base → child — with or without
+      // the compiler. Without typescript the law used to read tsconfig.json
+      // alone and report every flag set in the base as "must be enabled":
+      // false findings, and no note (#427, QA p478-tsstrict-extends).
+      const chain = readTsconfigChain(
+        PathOperations.join(projectRoot, TSCONFIG)
+      );
+      if (chain.notRead !== undefined) {
+        violations.push(
+          'tsconfig.json exists but could not be parsed — strict settings cannot be verified'
+        );
+      } else {
+        this.validateCompilerOptions(chain, violations, projectRoot);
+      }
+      if (chain.notRead === undefined && chain.unread.length > 0) {
+        violations.push(
+          `tsconfig.json extends ${chain.unread.map(e => JSON.stringify(e)).join(', ')}, which could not be read — the inherited compiler options were NOT read, and a flag not set in the files that were read is not judged; ${PARTLY_READ_TEXT}`
+        );
+      }
     } else {
       // The file EXISTS (checked above) but did not parse. Fail closed: a strict
       // gate that cannot read the config it governs must not report compliance —
@@ -60,7 +84,6 @@ export class TypeScriptStrictLaw {
         'Enable strict mode in tsconfig.json',
         'Configure all strict compiler options',
         'Set target to ES2020 or higher',
-        'Enable source maps for debugging',
       ]
     );
   }
@@ -87,7 +110,7 @@ export class TypeScriptStrictLaw {
   ): Record<string, unknown> | null {
     const ts = loadTypeScript(projectRoot);
     if (!ts) return null;
-    const file = PathOperations.join(projectRoot, 'tsconfig.json');
+    const file = PathOperations.join(projectRoot, TSCONFIG);
     const read = ts.readConfigFile(file, ts.sys.readFile);
     if (read.error) return null;
     const host = { ...ts.sys, readDirectory: (): string[] => [] };
@@ -102,17 +125,22 @@ export class TypeScriptStrictLaw {
   }
 
   private static validateCompilerOptions(
-    compilerOptions: Record<string, unknown>,
+    chain: { options: Record<string, unknown>; unread: string[] },
     violations: string[],
     projectRoot: string
   ): void {
+    const compilerOptions = chain.options;
     // The flags as the compiler resolves them — `extends` followed (an Nx
     // tsconfig.base.json, @tsconfig/strictest) — or, without a loadable
-    // typescript, as written.
+    // typescript, as the JSONC chain sets them.
     const flags = this.resolvedFlags(projectRoot) ?? compilerOptions;
+    // A link of the chain that was not read may set any flag the read files
+    // leave unset: such a flag is not judged (the note says so).
+    const unknown = (flag: string): boolean =>
+      chain.unread.length > 0 && compilerOptions[flag] === undefined;
 
     // Strict mode checks
-    if (flags.strict !== true) {
+    if (flags.strict !== true && !unknown('strict')) {
       violations.push('TypeScript strict mode must be enabled');
     }
 
@@ -125,14 +153,17 @@ export class TypeScriptStrictLaw {
         this.IMPLIED_BY_STRICT.has(check) &&
         flags.strict === true &&
         flags[check] !== false;
-      if (flags[check] !== required && !impliedByStrict) {
+      if (flags[check] !== required && !impliedByStrict && !unknown(check)) {
         violations.push(`TypeScript ${check} must be ${required}`);
       }
     }
 
-    this.validateTargetVersion(compilerOptions, violations);
-    this.validateModuleResolution(compilerOptions, violations);
-    this.validateSourceMaps(compilerOptions, violations);
+    // target / moduleResolution as the chain sets them (strings, unlike the
+    // compiler's resolved enums) — inherited ones included.
+    if (!unknown('target'))
+      this.validateTargetVersion(compilerOptions, violations);
+    if (!unknown('moduleResolution'))
+      this.validateModuleResolution(compilerOptions, violations);
   }
 
   private static validateTargetVersion(
@@ -164,15 +195,6 @@ export class TypeScriptStrictLaw {
       violations.push(
         `TypeScript moduleResolution must be one of: ${MODERN_RESOLUTIONS.join(', ')}`
       );
-    }
-  }
-
-  private static validateSourceMaps(
-    compilerOptions: Record<string, unknown>,
-    violations: string[]
-  ): void {
-    if (!compilerOptions.sourceMap && !compilerOptions.inlineSourceMap) {
-      violations.push('TypeScript source maps must be enabled');
     }
   }
 }

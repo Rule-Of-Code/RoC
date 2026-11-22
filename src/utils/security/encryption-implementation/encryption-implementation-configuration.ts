@@ -30,6 +30,14 @@ export const HARDCODED_SECRET_PATTERNS = [
   /\bkey\s*=\s*["'](?!.*(_key|_metrics|_storage|_cache|_consent))[^"']+["']/gi,
 ] as const;
 
+/**
+ * The quoted value of a secret match is a dotted property path
+ * (`'thresholds.next.guardExemptions'`, `'auth.login.title'`): a name, not a
+ * secret. Two or more segments, each a lower-case-led identifier.
+ */
+export const NAME_PATH_VALUE =
+  /["'][a-z][A-Za-z0-9]*(?:\.[a-z][A-Za-z0-9]*)+["']$/;
+
 // Safe key patterns (constant names, not actual secrets)
 export const SAFE_KEY_PATTERNS = [
   /_KEY\s*=/i, // Constants ending with _KEY
@@ -46,6 +54,16 @@ export const BASE64_FUNCTIONS = ['btoa(', 'atob('] as const;
 // ============================================================================
 
 export const INSECURE_HTTP_PATTERN = 'http://';
+/** A string that is an http:// URL with a host (#426). */
+export const INSECURE_HTTP_URL = /^http:\/\/[a-z0-9[]/i;
+
+/**
+ * A call, property or variable whose name says it takes an algorithm name:
+ * createHash, createHmac, createCipheriv, subtle.digest, `algorithm:`,
+ * `HASH_ALGO`, createSign / sign / verify (#426).
+ */
+export const CRYPTO_API_NAME =
+  /hash|hmac|cipher|crypt|digest|algorithm|algo|^(?:create)?(?:sign|verify)$/i;
 export const LOCALHOST_PATTERN = 'localhost';
 
 export const API_CALL_PATTERNS = ['XMLHttpRequest', 'fetch('] as const;
@@ -156,12 +174,14 @@ export const RECOMMENDATIONS = [
 // Helper Functions
 // ============================================================================
 
+/** An encryption result with no violations and no suggestions. */
 export function createEmptyResult(): EncryptionCheckResult {
   return { violations: [], suggestions: [] };
 }
 
 import { mergeSecurityResults } from '../result-merging-helper';
 
+/** Concatenates the violations and the suggestions of all results, in argument order. */
 export function mergeResults(
   ...results: EncryptionCheckResult[]
 ): EncryptionCheckResult {
@@ -172,21 +192,21 @@ export function mergeResults(
 export const { hasPattern, hasAnyPattern, hasAllPatterns, hasAnyRegexPattern } =
   PatternMatchingUtils;
 
+/**
+ * Whether the text contains, case-insensitively, any of SENSITIVE_DATA_KEYWORDS
+ * (password, token, secret, key, auth) as a plain substring — so `keyboard`
+ * or `author` count too.
+ */
 export function hasSensitiveDataKeyword(content: string): boolean {
   return hasAnyPattern(content.toLowerCase(), SENSITIVE_DATA_KEYWORDS);
 }
 
-export function hasInsecureHttp(content: string): boolean {
-  return (
-    hasPattern(content, INSECURE_HTTP_PATTERN) &&
-    !hasPattern(content, LOCALHOST_PATTERN)
-  );
-}
-
+/** Whether the text contains `Math.random` anywhere (comments and strings included). */
 export function hasInsecureRandom(content: string): boolean {
   return hasPattern(content, INSECURE_RANDOM_PATTERN);
 }
 
+/** The file's UTF-8 text, or '' when it does not exist or cannot be read (never throws). */
 export function safeReadFile(filePath: string): string {
   try {
     return FileUtils.readFile(filePath);

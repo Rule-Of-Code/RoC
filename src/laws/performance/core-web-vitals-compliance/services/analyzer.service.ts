@@ -9,6 +9,12 @@ import { LighthouseAnalyzerService } from './lighthouse.analyzer';
 import { PerformanceBudgetsAnalyzerService } from './performance-budgets.analyzer';
 import { ResourceHintsAnalyzerService } from './resource-hints.analyzer';
 
+/**
+ * Runs the six Core Web Vitals Compliance checks on one project. The React/Next
+ * source scan and the next.config / vite.config reading are done once here and
+ * shared by the bundle, image and resource-hint checks; what either could not
+ * read is passed on as `unread`.
+ */
 export class CoreWebVitalsAnalyzerService {
   static analyze(
     projectRoot: string,

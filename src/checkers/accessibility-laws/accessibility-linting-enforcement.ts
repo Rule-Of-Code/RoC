@@ -21,12 +21,16 @@ import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { CheckerUtils } from '../../utils/checker-utils';
 import { FileUtils } from '../../utils/file-utils';
-import { markJudgedNothing } from '../../utils/judged-nothing';
+import {
+  markJudgedNothing,
+  PARTLY_READ_TEXT,
+} from '../../utils/judged-nothing';
 import { declaredDependencies } from '../../utils/law-requirements';
 import { PathOperations } from '../../utils/path-operations';
 import { ReactProject } from '../../utils/react/react-project';
 import {
   loadTypeScript,
+  parserUnavailable,
   TsxSource,
   type TypeScriptModule,
 } from '../../utils/react/tsx-source';
@@ -171,7 +175,9 @@ export class AccessibilityLintingEnforcementLaw extends AccessibilityLawBase {
         'The project has .tsx/.jsx files but its ESLint config does not load eslint-plugin-jsx-a11y — JSX accessibility is unenforced. Enable its recommended preset.',
       ];
     }
-    if (this.usesJsxPreset(context, configs, eslintContent)) return [];
+    const preset = this.usesJsxPreset(context, configs, eslintContent);
+    if (typeof preset === 'string') return [preset];
+    if (preset) return [];
     const missing = this.JSX_CORE_RULES.filter(
       rule =>
         !eslintContent.includes(`${JSX_RULE_PREFIX}${rule}`) &&
@@ -184,12 +190,16 @@ export class AccessibilityLintingEnforcementLaw extends AccessibilityLawBase {
       : [];
   }
 
-  /** `plugin:jsx-a11y/recommended|strict`, or `<binding>.flatConfigs|configs.recommended|strict`. */
+  /**
+   * `plugin:jsx-a11y/recommended|strict`, or `<binding>.flatConfigs|configs.recommended|strict`.
+   * A config script the parser cannot load is not "no preset": the not-read
+   * note is returned instead (#427).
+   */
   private static usesJsxPreset(
     context: LawCheckContext,
     configs: EslintConfig[],
     eslintContent: string
-  ): boolean {
+  ): boolean | string {
     if (
       PRESET_NAMES.some(name =>
         eslintContent.includes(`plugin:${JSX_RULE_PREFIX}${name}`)
@@ -202,7 +212,8 @@ export class AccessibilityLintingEnforcementLaw extends AccessibilityLawBase {
     );
     if (scripts.length === 0) return false;
     const ts = loadTypeScript(context.projectRoot);
-    if (!ts) return false;
+    if (!ts)
+      return `${scripts.map(c => PathOperations.getRelative(context.projectRoot, c.file)).join(', ')}: ${parserUnavailable(context.projectRoot, 'the ESLint config script(s)')} — whether they enable the jsx-a11y preset was not judged; ${PARTLY_READ_TEXT}`;
     return scripts.some(config => this.scriptUsesPreset(ts, config));
   }
 

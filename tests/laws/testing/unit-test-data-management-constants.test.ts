@@ -165,11 +165,10 @@ describe('UnitTestDataManagementConstants', () => {
       ).toBe(true);
     });
 
-    it('should have LONG_STRING_ASSERTION pattern', () => {
+    it('does not read an exact expected value as hardcoded data', () => {
       expect(
-        UnitTestDataManagementConstants.HARDCODED_DATA_PATTERNS
-          .LONG_STRING_ASSERTION
-      ).toBeInstanceOf(RegExp);
+        Object.keys(UnitTestDataManagementConstants.HARDCODED_DATA_PATTERNS)
+      ).toEqual(['HARDCODED_ID_ARRAY', 'MOCK_WITH_NUMBER']);
     });
   });
 
@@ -454,6 +453,21 @@ describe('UnitTestDataManagementConstants', () => {
       expect(
         UnitTestDataManagementConstants.hasHardcodedTestData(content)
       ).toBe(true);
+    });
+
+    it('reports an inline array of records, not the value expected back', () => {
+      const content = [
+        "const rows = [{ id: '1001', amount: 5 }];",
+        "expect(total(rows)).toBe('a total of twelve units');",
+      ].join('\n');
+      expect(
+        UnitTestDataManagementConstants.hasHardcodedTestData(content)
+      ).toBe(true);
+      expect(
+        UnitTestDataManagementConstants.hasHardcodedTestData(
+          "expect(result.lawName).toBe('angular-testing-excellence');"
+        )
+      ).toBe(false);
     });
 
     it('should return false for content without hardcoded data', () => {

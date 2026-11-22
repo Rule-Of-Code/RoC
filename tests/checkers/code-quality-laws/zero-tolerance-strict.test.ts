@@ -358,7 +358,8 @@ export function process(data: any): any {
       expect(anyViolation).toBeDefined();
     });
 
-    it('should detect unknown[] type', () => {
+    /** unknown[] is the safe type for data of unknown shape: not a violation. */
+    it('does not report unknown[]', () => {
       FileUtils.writeFile(
         PathOperations.join(tempDir, 'src', 'unknown-array.ts'),
         `
@@ -372,7 +373,7 @@ export function process(data: unknown[]): void {
         v =>
           v.includes('unknown-array.ts') && v.includes('Strict type violations')
       );
-      expect(unknownViolation).toBeDefined();
+      expect(unknownViolation).toBeUndefined();
     });
 
     it('should pass for properly typed code', () => {
@@ -532,11 +533,46 @@ export function risky() {
       }
     });
 
-    it('should include ESLint suggestion when violations exist', () => {
+    it('should include ESLint suggestion when a file disables ESLint rules', () => {
+      FileUtils.createDirectory(PathOperations.join(tempDir, 'src'));
+      FileUtils.writeFile(
+        PathOperations.join(tempDir, 'tsconfig.json'),
+        JSON.stringify({ compilerOptions: { strict: true } })
+      );
+      FileUtils.writeFile(
+        PathOperations.join(tempDir, 'src', 'lint.ts'),
+        '// eslint-disable-next-line no-var\nexport var x = 1;\n'
+      );
       const result = ZeroToleranceStrictLaw.check(mockContext);
-      if (!result.passed) {
-        expect(result.suggestions).toContain('Configure strict ESLint rules');
-      }
+      expect(result.violations?.join('\n')).toMatch(/ESLint rules disabled in/);
+      expect(result.suggestions).toContain('Configure strict ESLint rules');
+    });
+
+    // #506 (QA on #503): advice follows the findings of the run. A tsconfig
+    // the law could not read is NOT read — "enable strict mode" would be
+    // advice about a file it never judged.
+    it('gives no strict-mode advice when tsconfig.json could not be read', () => {
+      FileUtils.writeFile(
+        PathOperations.join(tempDir, 'tsconfig.json'),
+        '{ "compilerOptions": { "strict": tru'
+      );
+      const result = ZeroToleranceStrictLaw.check(mockContext);
+      expect(result.violations?.join('\n')).toMatch(/NOT read/);
+      expect(result.suggestions ?? []).not.toContain(
+        'Enable TypeScript strict mode'
+      );
+    });
+
+    it('gives strict-mode advice when tsconfig.json turns strict off', () => {
+      FileUtils.writeFile(
+        PathOperations.join(tempDir, 'tsconfig.json'),
+        JSON.stringify({ compilerOptions: { strict: false } })
+      );
+      const result = ZeroToleranceStrictLaw.check(mockContext);
+      expect(result.suggestions).toContain('Enable TypeScript strict mode');
+      expect(result.suggestions ?? []).not.toContain(
+        'Remove all console statements'
+      );
     });
   });
 

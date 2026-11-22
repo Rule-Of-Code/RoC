@@ -37,6 +37,10 @@ import type {
   WaivedLaw,
 } from './audit-types';
 import { AuditResultProcessor } from './result-processor';
+import {
+  absolutePatternsIn,
+  literalNamesReadAsClassesIn,
+} from '../../utils/config/path-patterns';
 
 // Force chalk to use colors in all environments
 chalk.level = 1;
@@ -177,6 +181,7 @@ export class RuleOfCodeAuditor {
 
     // A typo'd severity override must not pass silently
     this.validateSeverityOverrides();
+    this.validatePathPatterns();
 
     // Check cache if enabled
     const cacheEnabled = (this.config as any).performance?.cache ?? false;
@@ -252,6 +257,7 @@ export class RuleOfCodeAuditor {
         passedLaws: processedResults.passedLaws ?? 0,
         failedLaws: processedResults.failedLaws ?? 0,
         warningLaws: processedResults.warningLaws ?? 0,
+        judgedNothingLaws: processedResults.judgedNothingLaws ?? 0,
         substantiveLaws: substantive.length,
         deferredLaws: selected.length - laws.length,
         results: processedResults.results ?? new Map(),
@@ -263,11 +269,14 @@ export class RuleOfCodeAuditor {
         projectRoot: this.projectRoot,
         config: this.config,
         project: this.projectTypeInfo(),
-        scope: this.scopeOf(
-          substantive.length,
-          laws.filter(
-            law => !(law as { alwaysEnabled?: boolean }).alwaysEnabled
-          ).length
+        scope: this.withOutcomes(
+          this.scopeOf(
+            substantive.length,
+            laws.filter(
+              law => !(law as { alwaysEnabled?: boolean }).alwaysEnabled
+            ).length
+          ),
+          processedResults.results ?? new Map()
         ),
       };
       // Set before the cache write, so a cached run returns the same verdict.
@@ -527,6 +536,9 @@ export class RuleOfCodeAuditor {
       // out of the open selection or out of this run's selection.
       applicableBeforeWaivers: applicableLaws + waivedLaws.length,
       waivedLaws,
+      // Filled from the results once the laws ran (see withOutcomes).
+      warningLaws: [],
+      judgedNothingLaws: [],
       narrowedBy,
       // Partial is about the SELECTION: a pre-commit defers the history laws
       // by design, which is not a narrowing. A refusal is not partial — no
@@ -538,6 +550,30 @@ export class RuleOfCodeAuditor {
         selectedSubstantive < applicableLaws,
       // The floor Audit Liveness judges by, from the function the law uses.
       liveness: livenessFloorOf(this.config, this.projectRoot),
+    };
+  }
+
+  /**
+   * The scope with what the laws reported: the laws with warnings, and the
+   * laws that judged nothing. A law that judged nothing did not pass, so the
+   * run judged less than the set that applies: partial, no compliance verdict
+   * (8.0.0) — never a warning among the others.
+   */
+  private withOutcomes(
+    scope: AuditScope,
+    results: Map<string, unknown>
+  ): AuditScope {
+    const failOnWarnings =
+      (this.options as { failOnWarnings?: boolean })?.failOnWarnings ?? false;
+    const { warningLaws, judgedNothingLaws } = AuditResultProcessor.scopedLaws(
+      results,
+      failOnWarnings
+    );
+    return {
+      ...scope,
+      warningLaws,
+      judgedNothingLaws,
+      partial: scope.partial || judgedNothingLaws.length > 0,
     };
   }
 
@@ -820,6 +856,30 @@ export class RuleOfCodeAuditor {
   }
 
   /**
+   * An absolute ignores/includes path outside the project matches no file in
+   * any form (#414). The loader makes an absolute path inside the project
+   * relative; one left absolute points elsewhere, so say so instead of
+   * excluding nothing in silence.
+   */
+  private validatePathPatterns(): void {
+    for (const [where, pattern] of absolutePatternsIn(this.config)) {
+      console.warn(
+        `⚠️  ${where}: '${pattern}' is an absolute path outside the project (${this.projectRoot}) — it matches nothing. Write it relative to the project root.`
+      );
+    }
+    for (const [where, pattern, segment, kind] of literalNamesReadAsClassesIn(
+      this.config,
+      this.projectRoot
+    )) {
+      const name = segment.replace(/\\(.)/g, '$1');
+      const literal = name.replace(/[[\]{}()*?!+@]/g, ch => `\\${ch}`);
+      console.warn(
+        `⚠️  ${where}: '${pattern}' — '${segment}' is a glob character class and does not match the ${kind} '${name}' — write ${literal} for the literal name.`
+      );
+    }
+  }
+
+  /**
    * A severity that is not a severity is dropped in silence — the config reads
    * as though it said something and did not. `notApplicable` gets its own
    * message because writing it here instead of in `laws.notApplicable` is the
@@ -1002,6 +1062,7 @@ export class RuleOfCodeAuditor {
     this.displaySummaryStats(auditResult, chalkForced, options.showScoring);
     this.displayFailedLaws(auditResult, chalkForced, options);
     this.displayWarningLaws(auditResult, chalkForced, options);
+    this.displayJudgedNothingLaws(auditResult, chalkForced, options);
     this.displayPassedLaws(auditResult, chalkForced, options);
     this.displayWaivers(auditResult.scope, chalkForced);
     this.displayFinalVerdict(auditResult, chalkForced);
@@ -1033,6 +1094,18 @@ export class RuleOfCodeAuditor {
   }
 
   /** Warning result = violations at warning/info severity (non-blocking). */
+  /** Where a law's result counts, under this run's failOnWarnings. */
+  private outcomeOf(lawResult: {
+    passed?: boolean;
+    severity?: string;
+    judgedNothing?: boolean;
+  }): ReturnType<typeof AuditResultProcessor.outcomeOf> {
+    return AuditResultProcessor.outcomeOf(
+      lawResult,
+      this.options.failOnWarnings ?? false
+    );
+  }
+
   private isWarningResult(lawResult: {
     passed?: boolean;
     severity?: string;
@@ -1105,6 +1178,12 @@ export class RuleOfCodeAuditor {
     if ((auditResult.warningLaws ?? 0) > 0) {
       console.log(
         `${chalk.yellow('⚠ Warnings:')} ${chalk.bold.yellow(auditResult.warningLaws)} ${chalk.gray('(reported, not blocking)')}`
+      );
+    }
+    const judgedNothing = auditResult.scope?.judgedNothingLaws.length ?? 0;
+    if (judgedNothing > 0) {
+      console.log(
+        `${chalk.magenta('◌ Judged nothing:')} ${chalk.bold.magenta(judgedNothing)} ${chalk.gray('(did not pass)')}`
       );
     }
 
@@ -1191,11 +1270,43 @@ export class RuleOfCodeAuditor {
         violations?: string[];
         score?: number;
       };
-      if (this.isWarningResult(lawResult)) {
+      if (this.outcomeOf(lawResult) === 'warning') {
         count++;
         this.displayFailedLaw(lawResult, count, chalk, options);
       }
     }
+  }
+
+  /**
+   * Laws that found nothing in this project to judge, at a non-blocking
+   * severity: their own block, never among the warnings (8.0.0). At error
+   * severity they are failures and listed with the failed laws.
+   */
+  private displayJudgedNothingLaws(
+    auditResult: AuditResult,
+    chalk: chalk.Chalk,
+    options: { verbose: boolean; showScoring: boolean }
+  ): void {
+    const laws = [...auditResult.results.values()].filter(
+      result =>
+        this.outcomeOf(result as { passed?: boolean }) === 'judged-nothing'
+    );
+    if (laws.length === 0) return;
+    console.log(
+      chalk.magenta.bold(
+        '◌ JUDGED NOTHING — found nothing in this project to judge; they did not pass:'
+      )
+    );
+    console.log(chalk.gray('─'.repeat(60)));
+    console.log('');
+    laws.forEach((lawResult, index) =>
+      this.displayFailedLaw(
+        lawResult as Parameters<RuleOfCodeAuditor['displayFailedLaw']>[0],
+        index + 1,
+        chalk,
+        options
+      )
+    );
   }
 
   private displayFailedLaw(
@@ -1409,7 +1520,7 @@ export class RuleOfCodeAuditor {
     // printed for it: "PARTIAL SCAN PASSED" and "never PASSED" were quoted
     // against each other.
     if (auditResult.passed && auditResult.scope?.partial) {
-      this.displayPartialVerdict(auditResult.scope, chalk);
+      this.displayPartialVerdict(auditResult, chalk);
       return;
     }
 
@@ -1427,14 +1538,76 @@ export class RuleOfCodeAuditor {
     }
   }
 
-  private displayPartialVerdict(scope: AuditScope, chalk: chalk.Chalk): void {
+  private displayPartialVerdict(
+    auditResult: AuditResult,
+    chalk: chalk.Chalk
+  ): void {
+    const scope = auditResult.scope as AuditScope;
+    const counted = RuleOfCodeAuditor.passedSentence(auditResult);
+    if (scope.narrowedBy === undefined) {
+      this.displayJudgedNothingVerdict(scope, counted, chalk);
+      return;
+    }
+    this.displayNarrowedVerdict(scope, counted, chalk);
+  }
+
+  /**
+   * What the laws that ran did, in one clause: "passed" only when none of
+   * them reported warnings; otherwise the counts (stats.passedLaws and
+   * stats.warningLaws) — a law with warnings did not "pass".
+   */
+  static passedSentence(
+    auditResult: Pick<AuditResult, 'passedLaws' | 'warningLaws'>
+  ): string | null {
+    const warnings = auditResult.warningLaws ?? 0;
+    return warnings > 0
+      ? `${auditResult.passedLaws} passed, ${warnings} reported warnings (not blocking)`
+      : null;
+  }
+
+  /**
+   * Every law that applies ran, but some found nothing to judge (8.0.0): what
+   * was not judged cannot have passed, so there is no compliance verdict.
+   */
+  private displayJudgedNothingVerdict(
+    scope: AuditScope,
+    counted: string | null,
+    chalk: chalk.Chalk
+  ): void {
+    const judgedNothing = scope.judgedNothingLaws.length;
+    const others = counted ?? 'The other laws passed';
+    console.log(
+      chalk.yellowBright.bold(
+        `⚠️  PARTIAL — ${judgedNothing} law(s) judged nothing (${scope.judgedNothingLaws.map(l => l.law).join(', ')}). ${others}; no compliance verdict.`
+      )
+    );
+    console.log(
+      chalk.yellow('   A law that found nothing to judge has not passed.')
+    );
+    console.log(
+      chalk.gray(
+        '   For a compliance verdict give it something to judge, or leave it off (it is opt-in or stack-gated where it can be).'
+      )
+    );
+    console.log(chalk.cyan('═'.repeat(60)));
+    console.log('');
+  }
+
+  private displayNarrowedVerdict(
+    scope: AuditScope,
+    counted: string | null,
+    chalk: chalk.Chalk
+  ): void {
     const { executedLaws, applicableLaws, narrowedBy } = scope;
     const waived = scope.waivedLaws?.length ?? 0;
     const why =
       waived > 0 ? `${narrowedBy}; ${waived} waived` : `${narrowedBy}`;
+    const selected = counted
+      ? `Of the selected laws ${counted}`
+      : 'The selected laws passed';
     console.log(
       chalk.yellowBright.bold(
-        `⚠️  PARTIAL SCAN — ${executedLaws} of ${applicableLaws} applicable laws ran (narrowed by ${why}). The selected laws passed; no compliance verdict.`
+        `⚠️  PARTIAL SCAN — ${executedLaws} of ${applicableLaws} applicable laws ran (narrowed by ${why}). ${selected}; no compliance verdict.`
       )
     );
     console.log(
@@ -1445,6 +1618,13 @@ export class RuleOfCodeAuditor {
         `   For a compliance verdict run the full set: ${RuleOfCodeAuditor.fullSetRemedy(narrowedBy)}.`
       )
     );
+    const judgedNothing = scope.judgedNothingLaws.length;
+    if (judgedNothing > 0)
+      console.log(
+        chalk.magenta(
+          `   And ${judgedNothing} law(s) that ran judged nothing; they did not pass either.`
+        )
+      );
     console.log(chalk.cyan('═'.repeat(60)));
     console.log('');
   }
@@ -1468,16 +1648,23 @@ export class RuleOfCodeAuditor {
   ): void {
     const scope = auditResult.scope;
     const waived = scope?.waivedLaws?.length ?? 0;
+    const warnings = auditResult.warningLaws ?? 0;
     if (scope && waived > 0) {
       console.log(
         chalk.green.bold(
           `✅ CONSTITUTIONAL COMPLIANCE: PASSED WITH WAIVERS — ${scope.executedLaws} of ${scope.applicableLaws} applicable laws ran (${waived} waived)`
         )
       );
+    } else if (warnings > 0) {
+      console.log(
+        chalk.green.bold(
+          `✅ CONSTITUTIONAL COMPLIANCE: PASSED WITH WARNINGS — ${warnings} law(s) reported warnings (not blocking)`
+        )
+      );
     } else {
       console.log(chalk.green.bold('✅ CONSTITUTIONAL COMPLIANCE: PASSED'));
     }
-    if ((auditResult.warningLaws ?? 0) > 0) {
+    if (warnings > 0) {
       console.log(
         chalk.yellow(
           `⚠️  ${auditResult.warningLaws} law(s) reported warnings — address them in the warn cycle (or enforce with failOnWarnings).`
@@ -1486,7 +1673,9 @@ export class RuleOfCodeAuditor {
     }
     console.log(chalk.cyan('═'.repeat(60)));
     console.log('');
-    if (waived === 0) this.displayVictoryArt(chalk);
+    // The art is for the clean pass only: no law failed, waived, warning or
+    // judging nothing (a judged-nothing run is partial and never gets here).
+    if (waived === 0 && warnings === 0) this.displayVictoryArt(chalk);
   }
 
   private displayVictoryArt(chalk: chalk.Chalk): void {

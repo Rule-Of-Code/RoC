@@ -3,7 +3,9 @@
  * Centralized configuration for security documentation analysis
  */
 
+import type { LawRequirement } from '../../../types/enhanced-law.types';
 import { DOC_FILES } from '../../file-constants';
+import { REQUIRES_PRODUCTION_SUBJECT } from '../../production-subject-requirements';
 import * as SharedUtils from '../security-shared-utils';
 export type { SecurityCheckResult as DocumentationCheckResult } from '../security-shared-utils';
 
@@ -11,27 +13,30 @@ export interface RequiredDocConfig {
   files: readonly string[];
   name: string;
   description: string;
+  /** Asked for only where the project declares this (#428). */
+  requires?: LawRequirement;
 }
 
 // ============================================================================
 // Required Documentation Files
 // ============================================================================
 
+// The security policy (SECURITY.md at the root, in docs/ or in .github/ —
+// the three places GitHub reads it from) is judged once, by
+// SecurityPolicyChecker, in the vulnerability-management analysis of the
+// same law. Listing it here too reported one missing file two or three
+// times: as "Security Policy" and again as "Security Documentation" for
+// docs/SECURITY.md (#439).
 export const REQUIRED_DOCS: readonly RequiredDocConfig[] = [
-  {
-    files: [DOC_FILES.SECURITY, '.github/SECURITY.md'],
-    name: 'Security Policy',
-    description: 'vulnerability reporting and security procedures',
-  },
-  {
-    files: ['docs/security.md', 'docs/SECURITY.md'],
-    name: 'Security Documentation',
-    description: 'detailed security implementation and practices',
-  },
   {
     files: ['docs/privacy.md', DOC_FILES.PRIVACY],
     name: 'Privacy Policy',
     description: 'data handling and privacy practices',
+    // A privacy policy tells USERS what happens to their data. A CLI tool or
+    // a library has no users' data to declare; asked only where users reach
+    // the code — a service, a web surface, a mobile app or a deploy target
+    // (the shared #428 requirement).
+    requires: REQUIRES_PRODUCTION_SUBJECT,
   },
 ] as const;
 
@@ -178,10 +183,16 @@ export const {
   readFileContent,
 } = SharedUtils;
 
+/** Whether the text mentions `security` or `vulnerability` anywhere, in any case. */
 export function hasSecuritySection(content: string): boolean {
   return hasAnyPattern(content.toLowerCase(), SECURITY_TERMS);
 }
 
+/**
+ * package.json `description` and `keywords` lower-cased into one
+ * space-separated string, searched for signs that the project handles
+ * sensitive data (healthcare, payment, personal, …).
+ */
 export function getPackageJsonSearchText(packageJson: {
   description?: string;
   keywords?: string[];

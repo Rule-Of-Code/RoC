@@ -47,6 +47,8 @@ const OPT_IN = [
   'Next Route JS Budget',
   // 7.28.0: its five paths measured 0 of 42 correct on real code (#390).
   'Error Handling Standards',
+  // 8.0.0: a house convention, enabled by the projects that adopt it (#436).
+  'MD Footer Template (MANDATORY)',
 ];
 
 describe('opt-in laws (defaultEnabled: false) are not run by default', () => {
@@ -473,12 +475,12 @@ describe('#316: every import graph drops an import used only as a type', () => {
     writeFiles(root, {
       'tsconfig.json': '{ "compilerOptions": { "jsx": "preserve", ',
     });
-    // Heavy Lib's resolver names the broken config on the kept edge; it never passes.
+    // The one Next graph names the broken config (#287 point g) and keeps
+    // the edge; Heavy Lib never passes.
     expect(heavy(root)).toEqual(
       expect.arrayContaining([
-        expect.stringContaining(
-          'app/List.tsx:3: tsconfig.json: could not be parsed'
-        ),
+        expect.stringContaining('tsconfig.json: could not be parsed'),
+        expect.stringContaining("app/List.tsx:3: imports 'moment'"),
       ])
     );
     expect(leakage(root)).toEqual([
@@ -491,8 +493,13 @@ describe('#316: every import graph drops an import used only as a type', () => {
       'src/lib/db.ts':
         "import 'server-only';\nimport { Pool } from 'pg';\nexport interface Row { id: number }\nexport const pool = new Pool();\n",
     });
+    // Before #287 the server laws' graph dropped the broken config in
+    // silence; now it is named, as in every other Next graph law.
     expect(NextServerOnlyBoundaryLaw.check(nextCtx(server)).violations).toEqual(
-      [expect.stringContaining("src/lib/db.ts:2: imports 'pg'")]
+      [
+        expect.stringContaining("src/lib/db.ts:2: imports 'pg'"),
+        expect.stringContaining('tsconfig.json: could not be parsed'),
+      ]
     );
   });
 });

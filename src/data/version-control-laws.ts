@@ -62,7 +62,6 @@ export const VERSION_CONTROL_LAWS: EnhancedConstitutionalLaw[] = [
       'It judges the subject line only — a perfectly-typed `feat: x` with an empty or nonsensical body still passes.',
       'Merge, revert and "initial commit" subjects are exempted, so those are never graded.',
       'Not evaluated in the pre-commit hook: these describe history, and blocking a commit on the past deadlocks the rewrite that would fix it. They run on pre-push and in CI; the commit-msg hook still checks the message being written.',
-      'A second, identically-named class in commit-message-standards-impl.ts (the commitlint/husky variant) is dead code and never runs.',
     ],
     emoji: '💬',
     description: 'Conventional commit format with proper semantic meaning',
@@ -134,7 +133,7 @@ export const VERSION_CONTROL_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'It reads configuration files, not real pull requests — it can never see whether reviews actually happen.',
-      'The required-scripts violation is package.json-only, so a repo with no package.json skips that check instead of failing it.',
+      'The required-scripts violation is package.json-only, so a repo with no package.json skips that check instead of failing it. precommit / prepush are also met by a committed git hook of that name (.husky, .githooks, lefthook, pre-commit config, simple-git-hooks).',
       'When .github/ is absent the template and CODEOWNERS checks become suggestions, leaving only the CI-presence violations live.',
     ],
     emoji: '🔄',
@@ -346,7 +345,7 @@ export const VERSION_CONTROL_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'It reads at most the last 10 commits from the past week, so an oversized commit older than that is invisible.',
-      "Size is measured from git's own --stat summary (files changed, insertions/deletions); a commit is oversized if it breaks either limit, and a generated or vendored file counts like any other.",
+      "Size is measured from git's own --numstat (files changed, insertions + deletions); a commit is oversized if it breaks either limit. Generated files do not count, neither their lines nor the files: the lockfiles (package-lock.json, yarn.lock, poetry.lock, go.sum …), asciinema .cast recordings, and what thresholds.git.commitSize.generatedFiles adds. Test files count like any other code; a vendored file that is not declared counts too.",
       'The limits are configurable (thresholds.git.maxFilesPerCommit, default 10; maxLinesPerCommit, default 500), and the law also requires an atomic-commit policy doc.',
     ],
     emoji: '📏',

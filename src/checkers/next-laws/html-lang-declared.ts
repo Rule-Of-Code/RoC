@@ -10,6 +10,7 @@
  * i18n locale when `i18n` is configured.
  */
 
+import { PARTLY_READ_TEXT } from '../../utils/judged-nothing';
 import * as fs from 'fs';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { PathOperations } from '../../utils/path-operations';
@@ -23,6 +24,7 @@ import {
   jsxAttribute,
   type JsxElementInfo,
   loadTypeScript,
+  parserUnavailable,
   TsxSource,
 } from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';
@@ -127,9 +129,16 @@ export class HtmlLangDeclaredLaw extends LawBase {
         page => page.app === app && !page.api && !page.special
       );
       if (documents.length === 0) {
-        if (routed && !this.configuresI18n(context, app)) {
+        const i18n = routed ? this.configuresI18n(context, app) : true;
+        const where = ReactProject.relative(
+          context,
+          app.pagesDirs[0] ?? app.root
+        );
+        if (i18n === null) {
+          violations.push(this.i18nNotRead(context, where));
+        } else if (!i18n) {
           violations.push(
-            `${ReactProject.relative(context, app.pagesDirs[0] ?? app.root)}: no _document and no i18n in next.config — Next renders <html> without lang`
+            `${where}: no _document and no i18n in next.config — Next renders <html> without lang`
           );
         }
         continue;
@@ -159,17 +168,17 @@ export class HtmlLangDeclaredLaw extends LawBase {
         `${where}: renders no <Html> from next/document — the document's lang was not found, so it was not checked`,
       ];
     }
-    return htmls
+    const withProblem = htmls
       .map(element => ({ element, problem: this.langProblem(element) }))
-      .filter(
-        ({ problem }) =>
-          problem !== null &&
-          !this.configuresI18n(context, this.appOf(sources, file))
-      )
-      .map(
-        ({ element, problem }) =>
-          `${where}:${element.line}: ${problem} — screen readers guess the page language`
-      );
+      .filter(({ problem }) => problem !== null);
+    if (withProblem.length === 0) return [];
+    const i18n = this.configuresI18n(context, this.appOf(sources, file));
+    if (i18n === null) return [this.i18nNotRead(context, where)];
+    if (i18n) return [];
+    return withProblem.map(
+      ({ element, problem }) =>
+        `${where}:${element.line}: ${problem} — screen readers guess the page language`
+    );
   }
 
   private static appOf(
@@ -179,17 +188,28 @@ export class HtmlLangDeclaredLaw extends LawBase {
     return sources.pagesFiles.find(page => page.file === file)?.app;
   }
 
-  /** An `i18n` key anywhere in the app's next.config: Next then sets lang from the locale. */
+  /** A finding whose answer hangs on a next.config the parser could not read. */
+  private static i18nNotRead(context: LawCheckContext, where: string): string {
+    return `${where}: ${parserUnavailable(context.projectRoot, 'the next.config file(s)')} — whether i18n sets <html lang> was not judged; ${PARTLY_READ_TEXT}`;
+  }
+
+  /**
+   * An `i18n` key anywhere in the app's next.config: Next then sets lang from
+   * the locale. Null when a next.config exists but no parser loads: that is
+   * not "no i18n" — it was not read (#427).
+   */
   static configuresI18n(
     context: LawCheckContext,
     app: NextApp | undefined
-  ): boolean {
+  ): boolean | null {
     if (!app) return false;
+    const configs = NEXT_CONFIG_FILES.map(name =>
+      PathOperations.join(app.root, name)
+    ).filter(file => fs.existsSync(file));
+    if (configs.length === 0) return false;
     const ts = loadTypeScript(context.projectRoot);
-    if (!ts) return false;
-    for (const name of NEXT_CONFIG_FILES) {
-      const file = PathOperations.join(app.root, name);
-      if (!fs.existsSync(file)) continue;
+    if (!ts) return null;
+    for (const file of configs) {
       const source = TsxSource.parse(ts, file, fs.readFileSync(file, 'utf8'));
       let found = false;
       source.walk(node => {

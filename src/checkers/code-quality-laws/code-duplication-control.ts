@@ -7,13 +7,31 @@ import type { RuleOfCodeConfig } from '../../config/types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { CheckerUtils } from '../../utils/checker-utils';
 import { FileUtils } from '../../utils/file-utils';
+import { markJudgedNothing } from '../../utils/judged-nothing';
 import { PathOperations } from '../../utils/path-operations';
+import {
+  loadTypeScript,
+  parserUnavailable,
+} from '../../utils/react/tsx-source';
 import { CodeQualityLawBase } from './code-quality-law-base';
+import { type FunctionBody, functionBodies } from './function-bodies';
+
+/** Where one copy of a body is. */
+interface BodyOccurrence {
+  file: string;
+  start: number;
+  end: number;
+}
 
 export class CodeDuplicationControlLaw extends CodeQualityLawBase {
   static check(context: LawCheckContext): LawResult {
     const violations: string[] = [];
     const suggestions: string[] = [];
+
+    // Function bodies come from the parser (#432): without it the files are
+    // not read — said so, never compared as text instead.
+    const unread = this.unreadWithoutParser(context);
+    if (unread) return unread;
 
     // Check for duplication detection tools
     const toolsAnalysis = this.checkDuplicationTools(context.projectRoot);
@@ -73,61 +91,77 @@ export class CodeDuplicationControlLaw extends CodeQualityLawBase {
     return { violations, suggestions };
   }
 
+  /**
+   * The law's result when there are files to compare and no parser to read
+   * them with: failed, judged nothing, naming what was not read.
+   */
+  private static unreadWithoutParser(
+    context: LawCheckContext
+  ): LawResult | null {
+    if (loadTypeScript(context.projectRoot)) return null;
+    const files = CheckerUtils.findFilesByExtension(
+      context.projectRoot,
+      CheckerUtils.getCommonExtensions().TYPESCRIPT,
+      context.config
+    );
+    if (files.length === 0) return null;
+    return markJudgedNothing({
+      passed: false,
+      message: 'Code duplication not checked',
+      violations: [
+        `${parserUnavailable(context.projectRoot, `the ${files.length} .ts/.tsx file(s)`)} — Code Duplication Control judged nothing`,
+      ],
+      suggestions: [],
+      score: 0,
+      fixable: false,
+      config: context.config,
+    });
+  }
+
+  /**
+   * Function bodies that are the same code, grouped by their tokens.
+   *
+   * A body is compared only when it is big enough to be worth extracting:
+   * at least `minDuplicationLines` lines (5) and `minDuplicationTokens`
+   * tokens (50), the floor copy-paste detectors such as jscpd use. Below it,
+   * two equal bodies are an idiom — `return this.value;` — not a copy.
+   */
   private static analyzeDuplication(
     projectRoot: string,
     config: RuleOfCodeConfig
   ): { violations: string[]; suggestions: string[] } {
     const { violations, suggestions } = this.initializeAnalysis();
+    const ts = loadTypeScript(projectRoot);
+    if (!ts) return { violations, suggestions };
 
+    const groups = new Map<string, BodyOccurrence[]>();
     const codeFiles = CheckerUtils.findFilesByExtension(
       projectRoot,
       CheckerUtils.getCommonExtensions().TYPESCRIPT,
       config
     );
-    const codeBlocks = new Map<string, string[]>();
-
-    // Collect code blocks for comparison
     for (const file of codeFiles) {
       try {
-        const content = FileUtils.readFile(file);
-        const blocks = this.extractCodeBlocks(content);
-        const minBlockSize =
-          config.thresholds?.codeQuality?.minDuplicationBlockSize ?? 50;
-
-        for (const block of blocks) {
-          if (block.length > minBlockSize) {
-            // Only check substantial blocks
-            const key = this.normalizeCode(block);
-            // A block that normalises to nothing — all comments, or all
-            // whitespace — is not duplicated code. It is the ABSENCE of code,
-            // and every such block matches every other one. The threshold above
-            // measures the RAW block, so a comment-only block passes it while
-            // carrying no logic at all.
-            if (key.length < minBlockSize) {
-              continue;
-            }
-            this.addToCodeBlocks(
-              codeBlocks,
-              key,
-              PathOperations.getRelative(projectRoot, file)
-            );
-          }
+        const where = PathOperations.getRelative(projectRoot, file);
+        for (const body of this.comparableBodies(ts, file, config)) {
+          const occurrences = groups.get(body.key) ?? [];
+          occurrences.push({ file: where, start: body.start, end: body.end });
+          groups.set(body.key, occurrences);
         }
       } catch (_error) {
         // Continue if file can't be read
       }
     }
 
-    // Find duplicated blocks
-    let duplicationCount = 0;
-    codeBlocks.forEach((files, _block) => {
-      if (files.length > 1) {
-        duplicationCount++;
-        violations.push(`Code duplication found in: ${files.join(', ')}`);
-      }
-    });
+    const duplicated = [...groups.values()].filter(group => group.length > 1);
+    for (const group of duplicated) {
+      if (this.insideLargerCopy(group, duplicated)) continue;
+      violations.push(
+        `Code duplication found in: ${group.map(o => o.file).join(', ')}`
+      );
+    }
 
-    if (duplicationCount > 0) {
+    if (violations.length > 0) {
       suggestions.push('Extract common code into shared functions or modules');
       suggestions.push('Use inheritance or composition to reduce duplication');
       suggestions.push(
@@ -138,77 +172,47 @@ export class CodeDuplicationControlLaw extends CodeQualityLawBase {
     return { violations, suggestions };
   }
 
-  private static extractCodeBlocks(content: string): string[] {
-    const blocks: string[] = [];
-    const lines = content.split('\n');
-
-    // Extract function bodies
-    let inFunction = false;
-    let functionLines: string[] = [];
-    let braceCount = 0;
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-
-      if (trimmed.includes('function') || trimmed.includes('=>')) {
-        inFunction = true;
-        functionLines = [line];
-        braceCount =
-          (line.match(/{/g) ?? []).length - (line.match(/}/g) ?? []).length;
-      } else if (inFunction) {
-        functionLines.push(line);
-        braceCount +=
-          (line.match(/{/g) ?? []).length - (line.match(/}/g) ?? []).length;
-
-        if (braceCount <= 0 && trimmed.includes('}')) {
-          blocks.push(functionLines.join('\n'));
-          inFunction = false;
-          functionLines = [];
-        }
-      }
-    }
-
-    return blocks;
+  /** The bodies of one file that are over the size floor. */
+  private static comparableBodies(
+    ts: NonNullable<ReturnType<typeof loadTypeScript>>,
+    file: string,
+    config: RuleOfCodeConfig
+  ): FunctionBody[] {
+    const quality = config.thresholds?.codeQuality;
+    const minLines = quality?.minDuplicationLines ?? 5;
+    const minTokens = quality?.minDuplicationTokens ?? 50;
+    const minChars = quality?.minDuplicationBlockSize ?? 50;
+    const source = ts.createSourceFile(
+      file,
+      FileUtils.readFile(file),
+      ts.ScriptTarget.Latest,
+      true
+    );
+    return functionBodies(ts, source).filter(
+      body =>
+        body.lines >= minLines &&
+        body.tokens >= minTokens &&
+        body.end - body.start > minChars
+    );
   }
 
   /**
-   * Comments go FIRST, while the line boundaries they are anchored to still
-   * exist.
-   *
-   * Whitespace was collapsed before the comment strip, so `/\/\/.*$/gm` had no
-   * `$` left to stop at and ate everything from the first `//` to the end of
-   * the block — comments and real code alike. Any block whose first line was a
-   * `//` comment normalised to the empty string, and every such block collided
-   * with every other one.
-   *
-   * That is how a flat Angular provider array was reported as a duplicate of a
-   * route guard: no shared logic, no overlap that `jscpd` could find, two
-   * empty strings meeting in a map.
+   * A copy that only exists because a larger copy contains it — the inner
+   * callback of two equal functions — is the same finding, reported once.
    */
-  private static normalizeCode(code: string): string {
-    return code
-      .replace(/\/\*[\s\S]*?\*\//g, ' ') // block comments, before lines collapse
-      .replace(/(^|[^:])\/\/[^\n]*/g, '$1') // line comments, not a URL's //
-      .replace(/\s+/g, ' ') // only now is whitespace irrelevant
-      .replace(/\b\d+\b/g, 'NUM')
-      .replace(/['"`][^'"`]*['"`]/g, 'STR')
-      .trim();
-  }
-
-  /**
-   * Add code block to map with safe access
-   */
-  private static addToCodeBlocks(
-    codeBlocks: Map<string, string[]>,
-    key: string,
-    filePath: string
-  ): void {
-    if (!codeBlocks.has(key)) {
-      codeBlocks.set(key, []);
-    }
-    const files = codeBlocks.get(key);
-    if (files) {
-      files.push(filePath);
-    }
+  private static insideLargerCopy(
+    group: BodyOccurrence[],
+    duplicated: BodyOccurrence[][]
+  ): boolean {
+    const contains = (outer: BodyOccurrence, inner: BodyOccurrence): boolean =>
+      outer.file === inner.file &&
+      outer.start <= inner.start &&
+      inner.end <= outer.end &&
+      outer.end - outer.start > inner.end - inner.start;
+    return group.every(inner =>
+      duplicated.some(
+        other => other !== group && other.some(outer => contains(outer, inner))
+      )
+    );
   }
 }

@@ -43,9 +43,27 @@ export function loadTypeScript(projectRoot: string): TypeScriptModule | null {
   return ts;
 }
 
+/**
+ * An array a TypeScript node carries under a name the typings do not declare:
+ * `parseDiagnostics` on a SourceFile (internal, present since TS 1.x) or
+ * `decorators` on a node (public before TS 4.8, removed after). The audited
+ * project may load any TypeScript version, so the value is checked at run time
+ * instead of asserted: anything but an array reads as none.
+ */
+export function internalArray<T>(node: object, name: string): readonly T[] {
+  const value: unknown = Reflect.get(node, name);
+  return Array.isArray(value) ? value : [];
+}
+
 /** The message a law gives when it needed the parser and could not load it. */
-export function parserUnavailable(projectRoot: string): string {
-  return `could not load the 'typescript' package from ${projectRoot} — the .tsx/.jsx files were NOT read. Install typescript in the project (it compiles these files) so this law can inspect them`;
+export function parserUnavailable(
+  projectRoot: string,
+  // Neutral: a caller that does not name its files must not be told they
+  // were ".tsx/.jsx" — No Focused Tests and the request-path reader said so
+  // of .ts files (#427).
+  notRead = 'the files this law parses'
+): string {
+  return `could not load the 'typescript' package from ${projectRoot} — ${notRead} were NOT read. Install typescript in the project (it compiles these files) so this law can inspect them`;
 }
 
 /** One JSX attribute as written. */
@@ -82,6 +100,11 @@ export interface ImportInfo {
   line: number;
 }
 
+/**
+ * One file parsed with `ts.createSourceFile` (TSX, JS or TS by extension,
+ * without type-checking), with the reads the laws share: node lines, parse
+ * errors, names used as values, directives, imports and JSX elements.
+ */
 export class TsxSource {
   readonly sourceFile: TS.SourceFile;
 
@@ -128,12 +151,10 @@ export class TsxSource {
    * (`parseDiagnostics` is internal, present since TS 1.x.)
    */
   parseErrors(): string[] {
-    const diagnostics =
-      (
-        this.sourceFile as unknown as {
-          parseDiagnostics?: readonly TS.Diagnostic[];
-        }
-      ).parseDiagnostics ?? [];
+    const diagnostics = internalArray<TS.Diagnostic>(
+      this.sourceFile,
+      'parseDiagnostics'
+    );
     return diagnostics.map(diagnostic => {
       const line =
         diagnostic.start === undefined

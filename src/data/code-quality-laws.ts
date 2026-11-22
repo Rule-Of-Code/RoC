@@ -5,7 +5,10 @@
 
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
-import { REQUIRES_RXJS } from '../utils/framework-requirements';
+import {
+  REQUIRES_NX_OR_ANGULAR,
+  REQUIRES_RXJS,
+} from '../utils/framework-requirements';
 
 export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
   {
@@ -22,11 +25,12 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Zero tolerance means the build has no acceptable number of console.logs, TODOs, `any`s or empty catches — because "we will clean it up later" is the comment on every line that shipped a bug. The bar is zero, so there is no line to argue about.',
     satisfiedBy: {
       typescript:
-        'Enable strict in tsconfig and keep zero console.*, TODO/FIXME, `: any`/unknown[], eslint-disable and empty catch blocks across non-test .ts.',
+        "Enable strict in tsconfig and keep zero console.*, TODO/FIXME tags, `: any` annotations and `as any` casts, eslint-disable and empty catch blocks across non-test .ts. In a package that declares `bin`, console.log/info is the command's output, and console.warn too in the command's entry modules (what `bin` points to, and its command directory); console.debug/trace still count.",
     },
     detectionLimits: [
       'The strict check is a SUBSTRING test: `"strict"` plus any `true` in the tsconfig passes — even `"strict": false` next to `"esModuleInterop": true`.',
-      'No comment/string stripping — a console.log, `: any` or TODO inside a comment or string counts; only the ROOT tsconfig is read.',
+      'Reads the code and the comments from the TypeScript parse: console, `: any` annotations, `as any` casts and empty catch in code only, TODO tags (capitals, at the start of a // comment) and eslint-disable in comments only; without a loadable `typescript` the files are NOT read and the law judges nothing. Only the ROOT tsconfig is read.',
+      'In a package whose nearest package.json declares `bin`, console.log/info are not counted anywhere in it — a stray log in such a package is not told apart from output; console.warn is not counted in the entry modules derived from `bin` (the source of each bin target, the directory named after it and a commands/ directory beside it), and is counted in the rest. A logging module (logger.*, logging*, log.*) is not counted.',
       'TS/Angular only; a Python project has no tsconfig and cannot pass.',
     ],
     stack: 'typescript',
@@ -62,11 +66,12 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
         'Commit nx.json, use `nx ...` (not `ng ...`) in package.json scripts, and prefer workspace.json over a standalone angular.json.',
     },
     detectionLimits: [
-      'Requires nx.json to exist — any non-Nx repo fails unless the law is scoped out.',
+      'Selected only for an Nx workspace (nx.json, or the nx / @nx/workspace / @nrwl/workspace package) or an Angular project (@angular/core). There it requires nx.json, so an Angular CLI workspace without Nx fails it; a TypeScript, React or Node project without Nx is not selected.',
       'The docs scan is effectively dead (it looks for .md among ts/js/json results), so only the root README.md is checked for `ng` usage.',
       'Reads scripts / config / README, not build invocations; Angular/Nx only.',
     ],
     stack: 'typescript',
+    requires: REQUIRES_NX_OR_ANGULAR,
     emoji: '🛠️',
     description: 'All build/test commands must use NX workspace architecture',
     priority: 'HIGH',
@@ -134,12 +139,14 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Undocumented public code is a maze with no signs — the next engineer reverse-engineers what a docstring could have told them in a sentence. This law asks that classes and functions carry the why the code itself cannot.',
     satisfiedBy: {
       typescript:
-        'Put a JSDoc /** */ block before >=80% of exported classes and >=60% of functions/methods; keep a >=10% comment ratio in files over 50 lines; add a README in src/app or src/lib dirs.',
+        'Put a non-empty JSDoc /** */ block above every exported class and exported function (a function declaration, or a const/let/var initialised with an arrow or function expression), above its decorators. A file whose only exported class/function it is may carry the block at the top of the file instead.',
     },
     detectionLimits: [
-      'Regex counting of classes/functions (no AST); the comment-ratio counts any // or /* line regardless of what it actually says.',
-      'The README check fires only under src/app or src/lib paths; an empty project scores 100.',
-      'TS only — no Python (no export class / JSDoc to count).',
+      'Judges presence, not content: any non-empty JSDoc block satisfies it, however little it says.',
+      'Only top-level declarations: methods, interfaces, types, enums, non-function constants, namespace members and non-exported code are not judged; a function wrapped in a call (export const f = wrap(() => …)) is not seen as a function.',
+      'A re-export (export { a } from …) is judged in the module that declares it, not where it is re-exported; .d.ts files are not judged.',
+      "Reads .ts/.tsx with the project's own typescript; without it the files are reported as not read, and a file that does not parse is named as not read.",
+      'TS only — no Python (Public Docstrings judges Python).',
     ],
     emoji: '📝',
     description:
@@ -176,7 +183,8 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Measures structural / cyclomatic complexity from syntax; it does not measure cognitive load, naming quality, or whether the complexity is justified by the problem.',
       'A low score is not "simple" — a tangled function under the threshold still passes.',
-      'Function bodies are found by brace matching, so an arrow with an expression body (x => x + 1) is never measured, and neither is a function whose return type is written as an inline object literal.',
+      'Each function is measured on its own body from the TypeScript syntax tree (a nested callback is its own function); without a loadable `typescript` the .ts/.tsx files are NOT read and the law judges nothing. Decision points: if, loops, case, catch, ?: and &&/||; `??` and optional chaining are not counted.',
+      'File length counts lines of code (no comment or blank lines) and is not applied to a data file with at most two functions; "too many functions" is reported only for a file that also has a function over the complexity limit.',
       'thresholds.codeQuality.maxFileComplexity is opt-in: with no value set a file is judged only by its worst single function, never by its total, so a large file of simple functions is not reported.',
     ],
     emoji: '🌪️',
@@ -246,7 +254,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'The "unused vars/imports" in the title are enforced only by the PRESENCE of an ESLint rule — never actually detected in the code.',
-      'Unreachable-code detection is an indentation heuristic (not scope-aware); the debugger/keyword match hits comments and strings.',
+      'Read from the TypeScript parse (without a loadable `typescript` the files are NOT read and the law judges nothing): a `debugger;` statement, a statement after a `return` in the same block (a hoisted function or a type after it is not), and more than three `//` comments that hold a const/let declaration or a function header. Words in strings and prose comments are not code.',
       'TS/JS only; no Python.',
     ],
     emoji: '🧟',
@@ -282,6 +290,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Flags numeric literals by pattern; it cannot tell a domain constant from a magic number by MEANING, only by whether the value is named.',
       'It does not verify a named constant is used correctly — a well-named but wrong constant passes.',
+      'Literals are read from the TypeScript parse: a digit in a string, template text, regex or comment is not one; without a loadable `typescript` the files are NOT read and the law judges nothing. Named: an initializer of a variable, property, class field, enum member, parameter or destructuring default (also through a constant expression or an array), the elements of a new Set/Map that initialises a const or a class field, the fallback of `??`, and a parseInt radix.',
     ],
     emoji: '🔮',
     description: 'All numeric literals must be replaced with named constants',
@@ -314,7 +323,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Tool-presence dominates: a project without jscpd fails regardless of actual duplication.',
-      'Block extraction is naive brace-counting on function/=> lines; it matches only EXACT normalized bodies (a single differing identifier escapes) and can list the same file twice.',
+      'Compares the block bodies of functions, methods and arrows from the TypeScript parse (without a loadable `typescript` the files are NOT read and the law judges nothing); a body counts only at 5+ lines and 50+ tokens (thresholds.codeQuality.minDuplicationLines / minDuplicationTokens). It matches only EXACT token sequences — numbers are normalised, strings are not — so a single differing identifier escapes; a copy inside a larger copy is reported once, and the same file can be listed twice.',
       'TS/JS only; no Python.',
     ],
     emoji: '📋',
@@ -344,13 +353,14 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'An unhandled await or a promise with no .catch is a 500 waiting for the one input you did not test. This law asks that the risky calls be guarded and the app carry a last-resort global handler, so a failure is logged, not silently swallowed.',
     satisfiedBy: {
       typescript:
-        'Wrap await/fetch/http calls in try/catch, add .catch() to promise chains, and register a global handler (ErrorHandler / ErrorBoundary / window.onerror).',
+        'Await, return or .catch() every promise you start (a statement like save(); or p.then(f); drops its rejection), guard fetch/http calls, and register a global handler in an entry point — the fixed bootstrap files or what package.json bin/main name: process.on(unhandledRejection / uncaughtException), window.onerror, Angular ErrorHandler, a React ErrorBoundary; for a CLI, parse()/parseAsync() inside a try with a catch in the bin entry.',
       python:
         'Register a global handler (@app.errorhandler(Exception) / add_exception_handler) — recognised natively.',
     },
     detectionLimits: [
-      'Per-file guarding is counting heuristics/ratios over JS/TS only (no AST, matches in comments/strings); Python files are not analysed per-file.',
-      'Global-handler detection is a FIXED path allowlist — a bootstrap file placed elsewhere gets a false "no global error handling".',
+      'A dropped promise is recognised from syntax only (no type checker): a .then chain, or a call to an async function or method declared in the same file, used as a statement. A promise-returning function imported from another module and called as a statement is not seen.',
+      'HTTP and event-listener guarding is still a per-file text check, over code only (strings and comments removed); JS/TS only, Python files are not analysed per-file.',
+      'Global-handler detection reads a fixed list of bootstrap files plus the source of package.json bin/main (dist|lib|build|out → src); a bootstrap file elsewhere gets a false "no global error handling". The handler is recognised in the parse (a listener call, a window.onerror assignment, a framework identifier, or a try around parse()/parseAsync() in the bin entry), not by what the handler body does.',
       'Python satisfies only the global-handler clause, not the per-call gaps.',
     ],
     emoji: '🚨',
@@ -386,7 +396,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
         'Replace any with a real type or unknown + narrowing; replace `x!` with a guard or optional chaining.',
     },
     detectionLimits: [
-      'Regex, strings NOT stripped — `"as any"` or `x!` inside a string literal is flagged; `: Object` / `: Function` fire on user types named Object/Function.',
+      'Regex over the code of the TypeScript parse — strings, templates, regexes and comments are not read (without a loadable `typescript` the files are NOT read and the law judges nothing); `: Object` / `: Function` fire on user types named Object/Function, but not on a value after a colon (`Object.keys(`, `Function(`).',
       'The empty-object `{}` type is deliberately not detected; the per-file collapse hides the true count.',
       'TypeScript; not Angular-gated; no Python.',
     ],
@@ -424,7 +434,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Matches only the literal `as unknown as` form — an angle-bracket cast, `as any as`, or laundering through a variable is missed.',
-      'Strings not stripped — a double-cast inside a string literal is flagged.',
+      'Reads the code of the TypeScript parse — the words in a string or a comment are not a cast; without a loadable `typescript` the files are NOT read and the law judges nothing.',
       'TypeScript; no gate, no Python.',
     ],
     stack: 'typescript',
@@ -459,6 +469,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
         'Give every http.get/post/etc. a type parameter: http.get<User>(url), backed by a runtime validator at the boundary.',
     },
     detectionLimits: [
+      'Reads the code of the TypeScript parse — `http.get(` in a string or a comment is not a call; without a loadable `typescript` the files are NOT read and the law judges nothing.',
       'The receiver identifier must literally contain "http" — this.api.get() and client.post() are false negatives, while a Map named httpMap.get() is a false positive.',
       'Detection works by the ABSENCE of a `<T>` between the verb and `(`; fetch() is not covered.',
       'Regex, no AST; TypeScript, not Angular-gated.',
@@ -528,12 +539,13 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'A console.log in production is a log nobody collects and a leak nobody audits — scattered logging means no levels, no correlation, no off switch. A logging boundary is where you decide, once, what gets recorded and where.',
     satisfiedBy: {
       typescript:
-        'Log through a logger service, not console.*; keep console out of application code.',
+        "Log through a logger service, not console.*; keep console out of application code. A logging module (logger.*, logging*, log.*) and main.ts may use console; in a package that declares `bin`, console.log/info is the command's output, and console.warn/error too in the command's entry modules (what `bin` points to, and its command directory).",
       python:
         'Log through the logging module / a logger, not print() — recognised natively (scripts, __main__, cli.py are exempt).',
     },
     detectionLimits: [
-      'TS side matches inside string literals (comments stripped, strings not) and only the six named console methods; an aliased console is missed.',
+      'TS side reads console calls from the TypeScript parse (not in strings or comments; without a loadable `typescript` the .ts files are NOT read) and only the six named console methods; an aliased console is missed.',
+      'In a package whose nearest package.json declares `bin`, console.log/info are not counted anywhere in it — library code in such a package that bypasses its logger with them is not told apart from output; console.warn/error are not counted in the entry modules derived from `bin` (the source of each bin target, the directory named after it and a commands/ directory beside it), and are counted in the rest; console.debug/trace still count.',
       'Python side is comment- and string-clean and exempts scripts/tools/__main__/cli.py/manage.py.',
       'Dual-stack (TypeScript and Python); not Angular-gated.',
     ],

@@ -11,13 +11,35 @@ import type {
 import { FileUtils } from '../../utils';
 import { CheckerUtils } from '../../utils/checker-utils';
 import { ProjectTypeDetectorValidation } from '../../utils/config/project-type-detector/project-type-detector-validation';
+import { markJudgedNothing } from '../../utils/judged-nothing';
 import { PathOperations } from '../../utils/path-operations';
+import {
+  loadTypeScript,
+  parserUnavailable,
+} from '../../utils/react/tsx-source';
 import { CodeQualityLawBase } from './code-quality-law-base';
+import {
+  type FileComplexity,
+  measureFileComplexity,
+} from './function-complexity';
+
+/** The thresholds a file is measured against. */
+interface ComplexityLimits {
+  maxFileLines: number;
+  maxFunctions: number;
+  maxFunctionComplexity: number;
+  maxFileComplexity: number | undefined;
+}
 
 export class CodeComplexityControlLaw extends CodeQualityLawBase {
   static check(context: LawCheckContext): LawResult {
     const violations: string[] = [];
     const suggestions: string[] = [];
+
+    // Functions and their bodies come from the parser (#430). Without it the
+    // files are not read — said so, never measured with a regex instead.
+    const unread = this.unreadWithoutParser(context);
+    if (unread) return unread;
 
     // Check for complexity analysis tools
     const complexityTools = this.checkComplexityTools(context.projectRoot);
@@ -78,8 +100,10 @@ export class CodeComplexityControlLaw extends CodeQualityLawBase {
 
       // Check for ESLint complexity rules
       if (devDependencies.eslint) {
-        const eslintConfig = this.findESLintConfig(projectRoot);
-        if (eslintConfig && !this.hasComplexityRules(eslintConfig)) {
+        const eslint = this.readESLintConfig(projectRoot);
+        if (eslint?.notRead !== undefined) {
+          violations.push(eslint.notRead);
+        } else if (eslint && !this.hasComplexityRules(eslint.config)) {
           violations.push('ESLint complexity rules not configured');
           suggestions.push(
             'Configure ESLint complexity rules (complexity, max-lines, max-depth)'
@@ -122,81 +146,21 @@ export class CodeComplexityControlLaw extends CodeQualityLawBase {
     );
     let complexFilesFound = 0;
 
+    const ts = loadTypeScript(projectRoot);
+    if (!ts) return { violations, suggestions };
+    const limits = this.limitsOf(config);
+
     for (const file of codeFiles) {
       try {
-        const content = FileUtils.readFile(file);
-        const complexity = this.calculateFileComplexity(content);
-
-        const maxFileLines =
-          config.thresholds?.codeQuality?.maxFileLines ?? 300;
-        if (complexity.lines > maxFileLines) {
-          complexFilesFound++;
-          violations.push(
-            `File too long: ${PathOperations.getRelative(projectRoot, file)} (${
-              complexity.lines
-            } lines, max ${maxFileLines})`
-          );
-        }
-
-        // A COUNT of functions, under a key that says so.
-        //
-        // This was governed by `maxComplexity`, which an adopter would
-        // reasonably read as cyclomatic complexity — the metric this same law
-        // computes and reports two checks below. `maxComplexity` is still
-        // honoured so existing configs keep working, but it is the fallback
-        // now, not the name.
-        const maxFunctions =
-          config.thresholds?.codeQuality?.maxFunctionsPerFile ??
-          config.thresholds?.codeQuality?.maxComplexity ??
-          20;
-
-        // And the count alone is not the thing the ceiling protects against.
-        //
-        // A lazy-route table costs two functions per route — an arrow to defer
-        // the import and an arrow to pick the export — so eleven routes reach
-        // 22 functions with TWO decision points and nothing to reason about.
-        // It crossed a complexity ceiling by being maximally declarative,
-        // which is the opposite of what the law is for, and the only ways to
-        // comply were to split the table across files or raise the limit for
-        // every file in the repository.
-        //
-        // The same is true of a DI provider array or a table of small pure
-        // lambdas. What the ceiling is for is a file with many functions that
-        // branches inside them, so both have to be high.
-        const minConditionals = Math.floor(maxFunctions / 2);
-        if (
-          complexity.functions > maxFunctions &&
-          complexity.conditionals >= minConditionals
-        ) {
-          violations.push(
-            `Too many functions in ${PathOperations.getRelative(projectRoot, file)} (${complexity.functions}, max ${maxFunctions}) with ${complexity.conditionals} decision points — split it, or extract the branching`
-          );
-        }
-
-        // Per FUNCTION — which is what this threshold has always been named and
-        // defaulted for. It used to be compared against the whole file's sum.
-        const maxCyclomatic =
-          config.thresholds?.codeQuality?.minFunctionComplexity ?? 10;
-        if (complexity.worstFunction > maxCyclomatic) {
-          violations.push(
-            `Function complexity too high in ${PathOperations.getRelative(projectRoot, file)} (worst function ${complexity.worstFunction}, max ${maxCyclomatic})`
-          );
-        }
-
-        // The file aggregate keeps its own name and its own, much higher default,
-        // so "this file is a lot" and "this function is a lot" stop being the same
-        // number. Opt-in: absent config means the old aggregate never fails a file
-        // that has no over-complex function in it.
-        const maxFileComplexity =
-          config.thresholds?.codeQuality?.maxFileComplexity;
-        if (
-          maxFileComplexity !== undefined &&
-          complexity.cyclomaticEstimate > maxFileComplexity
-        ) {
-          violations.push(
-            `File complexity too high in ${PathOperations.getRelative(projectRoot, file)} (estimated ${complexity.cyclomaticEstimate}, max ${maxFileComplexity})`
-          );
-        }
+        const complexity = measureFileComplexity(
+          ts,
+          FileUtils.readFile(file),
+          file
+        );
+        const where = PathOperations.getRelative(projectRoot, file);
+        const found = this.fileFindings(where, complexity, limits);
+        if (found.some(v => v.startsWith('File too long'))) complexFilesFound++;
+        violations.push(...found);
       } catch (_error) {
         // Continue if file can't be read
       }
@@ -242,174 +206,96 @@ export class CodeComplexityControlLaw extends CodeQualityLawBase {
     return { violations: [], suggestions };
   }
   /**
-   * Lines the way `wc -l` and ESLint count them: a trailing newline terminates
-   * the last line rather than starting an empty one. An empty file has none.
+   * The law's result when there are files to measure and no parser to read
+   * them with: failed, judged nothing, naming what was not read.
    */
-  private static countLines(content: string): number {
-    if (content.length === 0) return 0;
-    return content.split('\n').length - (content.endsWith('\n') ? 1 : 0);
+  private static unreadWithoutParser(
+    context: LawCheckContext
+  ): LawResult | null {
+    if (loadTypeScript(context.projectRoot)) return null;
+    const files = CheckerUtils.findFilesByExtension(
+      context.projectRoot,
+      CheckerUtils.getCommonExtensions().TYPESCRIPT,
+      context.config
+    );
+    if (files.length === 0) return null;
+    return markJudgedNothing({
+      passed: false,
+      message: 'Code complexity not measured',
+      violations: [
+        `${parserUnavailable(context.projectRoot, `the ${files.length} .ts/.tsx file(s)`)} — Code Complexity Control judged nothing`,
+      ],
+      suggestions: [],
+      score: 0,
+      fixable: false,
+      config: context.config,
+    });
   }
 
-  private static calculateFileComplexity(content: string): {
-    lines: number;
-    functions: number;
-    conditionals: number;
-    cyclomaticEstimate: number;
-    worstFunction: number;
-  } {
-    // A trailing newline TERMINATES the last line, it does not begin another.
-    //
-    // `split('\n').length` counts the empty string after the final newline, so
-    // every POSIX-conformant file measured one line too long — and a file at
-    // exactly `maxFileLines` was reported as one over. Three tools disagreed on
-    // the same file at the boundary: `wc -l` said 300, ESLint's `max-lines: 300`
-    // passed it, and this blocked the commit claiming 301.
-    //
-    // The reported number was wrong for every file this law names, not only at
-    // the boundary.
-    const lines = this.countLines(content);
-
-    // Count over code with comments removed so keywords in prose/JSDoc don't
-    // inflate the estimate ("if you want, for example" must not score if + for).
-    const code = content
-      .replace(/\/\*[\s\S]*?\*\//g, ' ')
-      .replace(/(^|[^:])\/\/[^\n]*/g, '$1');
-
-    // Function declarations + arrow functions. `\bfunction\b` is word-bounded so
-    // the substring "function" inside an identifier does not count.
-    const functions = (code.match(/\bfunction\b|=>/g) ?? []).length;
-
-    // Decision points (a cyclomatic proxy). Keywords are word-bounded so
-    // identifiers like `forEach`, `notify`, `classifier`, `switchboard` no longer
-    // count as for/if/case/switch. Boolean operators add branches. The ternary is
-    // matched ONLY as a real `?` — optional chaining `?.`, nullish `??`, and
-    // optional members/params `x?:` are excluded (these were the bulk of the old
-    // regex's false inflation). `else`/`switch` themselves are dropped: `else if`
-    // is already counted by `if`, and each `case` is the real branch.
-    const decisionPatterns = [
-      /\bif\b/g,
-      /\bfor\b/g,
-      /\bwhile\b/g,
-      /\bcase\b/g,
-      /\bcatch\b/g,
-      /&&/g,
-      /\|\|/g,
-      /(?<!\?)\?(?![.?:])/g,
-    ];
-    const conditionals = decisionPatterns.reduce(
-      (sum, pattern) => sum + (code.match(pattern) ?? []).length,
-      0
-    );
-
-    // File aggregate, kept for the file-level knob. It is deliberately NOT what a
-    // per-function threshold is compared against — see worstFunctionComplexity.
-    const cyclomaticEstimate = conditionals + functions;
-
+  /** The thresholds, with their defaults and their older key names. */
+  private static limitsOf(config: RuleOfCodeConfig): ComplexityLimits {
+    const quality = config.thresholds?.codeQuality;
     return {
-      lines,
-      functions,
-      conditionals,
-      cyclomaticEstimate,
-      worstFunction: this.worstFunctionComplexity(code),
+      maxFileLines: quality?.maxFileLines ?? 300,
+      // A COUNT of functions, under a key that says so. `maxComplexity` reads
+      // as cyclomatic complexity; it is still honoured as the fallback so
+      // existing configs keep working, but it is not the name.
+      maxFunctions:
+        quality?.maxFunctionsPerFile ?? quality?.maxComplexity ?? 20,
+      maxFunctionComplexity: quality?.minFunctionComplexity ?? 10,
+      maxFileComplexity: quality?.maxFileComplexity,
     };
   }
 
-  /**
-   * Cyclomatic complexity of the single worst FUNCTION in the file.
-   *
-   * The threshold this feeds is called `minFunctionComplexity`, defaults to 10,
-   * and 10 is the classic per-function cyclomatic limit — but the number being
-   * compared against it used to be the whole file's decision points PLUS one per
-   * function. Two consequences, both wrong:
-   *
-   *  - a module of eight tiny branch-free helpers scored 8 before doing anything,
-   *    so well-factored code failed and the rule pushed toward one function per
-   *    file;
-   *  - a genuinely gnarly 400-line function alone in its file scored fine.
-   *
-   * We now measure each function's own body and report the worst. Bodies are
-   * found by brace matching, which means an arrow function with an expression
-   * body (`x => x + 1`) is not measured — it has no branches worth counting — and
-   * an arrow inside a TYPE (`readonly load: () => Promise<T>`) is correctly not a
-   * function at all. Both limits are declared on the law.
-   */
-  private static worstFunctionComplexity(code: string): number {
-    // A `(` preceded by one of these is control flow, not a callable signature.
-    const CONTROL = /\b(?:if|for|while|switch|catch|do|return|typeof)\s*$/;
-    // A TypeScript signature carries a return type between the `)` and the `{`
-    // (`): string {`, `): Promise<T> => {`), so the brace is not adjacent to the
-    // parameter list. Allow an annotation that contains no brace — a return type
-    // written as an inline object literal is not matched, and that limit is
-    // declared on the law rather than guessed at.
-    const starts = /\)\s*(?::\s*[^{};=]+?)?\s*(?:=>\s*)?\{/g;
+  /** What one measured file is reported for. */
+  private static fileFindings(
+    where: string,
+    file: FileComplexity,
+    limits: ComplexityLimits
+  ): string[] {
+    const found: string[] = [];
+    const tooComplex = file.worstFunction > limits.maxFunctionComplexity;
 
-    let worst = 0;
-    let match: RegExpExecArray | null;
-    while ((match = starts.exec(code)) !== null) {
-      const openBrace = code.indexOf('{', match.index);
-      if (openBrace < 0) continue;
-
-      // Look back past the parameter list to see what kind of construct this is.
-      const parenStart = this.matchingOpenParen(code, match.index);
-      if (parenStart < 0) continue;
-      if (CONTROL.test(code.slice(Math.max(0, parenStart - 12), parenStart))) {
-        continue;
-      }
-
-      const body = this.bracedBody(code, openBrace);
-      if (body === null) continue;
-
-      worst = Math.max(worst, this.decisionPoints(body) + 1);
+    // Lines of CODE: a comment or a blank line is not what makes a file hard
+    // to hold in your head. And a file of data — a table, a registry, a list
+    // of constants, at most two functions — is long because the data is; the
+    // length limit is for logic, so it does not apply there.
+    if (file.codeLines > limits.maxFileLines && file.functions > 2) {
+      found.push(
+        `File too long: ${where} (${file.codeLines} code lines, max ${limits.maxFileLines})`
+      );
     }
-    return worst;
-  }
 
-  /** Index of the `(` that opens the parameter list ending at/just before `from`. */
-  private static matchingOpenParen(code: string, from: number): number {
-    const closeParen = code.lastIndexOf(')', from + 1);
-    if (closeParen < 0) return -1;
-    let depth = 0;
-    for (let i = closeParen; i >= 0; i--) {
-      const ch = code[i];
-      if (ch === ')') depth++;
-      else if (ch === '(') {
-        depth--;
-        if (depth === 0) return i;
-      }
+    // Many functions are not debt on their own. A routing table, a provider
+    // array, a module of small pure helpers each cost a function per entry
+    // and nothing to reason about. The ceiling is for a file that has many
+    // functions AND one that is too complex: then splitting is the remedy.
+    if (file.functions > limits.maxFunctions && tooComplex) {
+      found.push(
+        `Too many functions in ${where} (${file.functions}, max ${limits.maxFunctions}) with a function of complexity ${file.worstFunction} — split it, or extract the branching`
+      );
     }
-    return -1;
-  }
 
-  /** The text between a `{` and its matching `}`, or null when unbalanced. */
-  private static bracedBody(code: string, openBrace: number): string | null {
-    let depth = 0;
-    for (let i = openBrace; i < code.length; i++) {
-      const ch = code[i];
-      if (ch === '{') depth++;
-      else if (ch === '}') {
-        depth--;
-        if (depth === 0) return code.slice(openBrace + 1, i);
-      }
+    // Per FUNCTION, each on its own body: a callback inside a function is
+    // its own function and is not added to the one around it.
+    if (tooComplex) {
+      found.push(
+        `Function complexity too high in ${where} (worst function ${file.worstFunction}, max ${limits.maxFunctionComplexity})`
+      );
     }
-    return null;
-  }
 
-  /** Decision points in a body — the same proxy, without counting functions. */
-  private static decisionPoints(body: string): number {
-    const patterns = [
-      /\bif\b/g,
-      /\bfor\b/g,
-      /\bwhile\b/g,
-      /\bcase\b/g,
-      /\bcatch\b/g,
-      /&&/g,
-      /\|\|/g,
-      /(?<!\?)\?(?![.?:])/g,
-    ];
-    return patterns.reduce(
-      (sum, pattern) => sum + (body.match(pattern) ?? []).length,
-      0
-    );
+    // The file aggregate keeps its own, opt-in key: with no value set a file
+    // is judged by its worst single function, never by its total.
+    const fileComplexity = file.conditionals + file.functions;
+    if (
+      limits.maxFileComplexity !== undefined &&
+      fileComplexity > limits.maxFileComplexity
+    ) {
+      found.push(
+        `File complexity too high in ${where} (estimated ${fileComplexity}, max ${limits.maxFileComplexity})`
+      );
+    }
+    return found;
   }
 
   private static calculateDirectoryDepth(

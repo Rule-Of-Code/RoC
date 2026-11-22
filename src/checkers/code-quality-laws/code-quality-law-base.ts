@@ -5,10 +5,17 @@
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { CheckerUtils } from '../../utils/checker-utils';
-import { ConfigFileUtils } from '../../utils/config-file-utils';
 import { FileUtils } from '../../utils/file-utils';
+import {
+  ESLINTRC_DATA_FILES,
+  type ESLintConfigRead,
+  readESLintDataConfig,
+  readPackageJsonESLintConfig,
+} from '../../utils/eslint-config-json';
+import { notReadNote } from '../../utils/json-manifest';
 import { ObservableCleanup } from '../../utils/observable-cleanup';
 import { PathOperations } from '../../utils/path-operations';
+import { readTsconfigChain, strictModeOf } from '../../utils/tsconfig-chain';
 
 export abstract class CodeQualityLawBase {
   protected static findTypeScriptFiles(
@@ -57,27 +64,33 @@ export abstract class CodeQualityLawBase {
     );
   }
 
-  protected static hasStrictTypeScriptConfig(tsconfigContent: string): boolean {
-    try {
-      const config = ConfigFileUtils.loadConfig(tsconfigContent);
-      if (!config || typeof config !== 'object') {
-        return false;
-      }
-
-      const configObj = config as Record<string, unknown>;
-      const compilerOptions = configObj.compilerOptions as Record<
-        string,
-        unknown
-      >;
-
-      return !!(
-        compilerOptions.strict &&
-        compilerOptions.noImplicitAny &&
-        compilerOptions.strictNullChecks
-      );
-    } catch {
-      return false;
+  /**
+   * Whether the tsconfig at `tsconfigPath` (its `extends` chain merged, read
+   * as JSONC) switches strict type checking on, or the note saying it could
+   * not be told. It used to be handed the file's TEXT and pass it to RoC's
+   * config loader as a path, which never read a tsconfig (#486).
+   */
+  protected static strictTypeScriptConfig(
+    tsconfigPath: string,
+    shownAs = 'tsconfig.json'
+  ): { strict: boolean; notRead?: undefined } | { notRead: string } {
+    const chain = readTsconfigChain(tsconfigPath);
+    if (chain.notRead !== undefined) {
+      return {
+        notRead: notReadNote(
+          shownAs,
+          chain.notRead,
+          'its compiler options were'
+        ),
+      };
     }
+    const strict = strictModeOf(chain);
+    if (strict === null) {
+      return {
+        notRead: `${shownAs} extends ${chain.unread.map(e => JSON.stringify(e)).join(', ')}, which could not be read — whether strict mode is on was NOT read`,
+      };
+    }
+    return { strict };
   }
 
   protected static hasProperDocumentation(content: string): boolean {
@@ -157,48 +170,56 @@ export abstract class CodeQualityLawBase {
     ).filter(file => file.includes('.spec.ts'));
   }
 
+  /** Flat configs this base loads by running them (ESLint's order). */
+  private static readonly ESLINT_JS_CONFIGS = [
+    'eslint.config.js',
+    'eslint.config.mjs',
+  ] as const;
+
+  /** ESLint configs this base does not read: when one is present, no config is judged. */
+  private static readonly ESLINT_UNREAD_CONFIGS = [
+    'eslint.config.cjs',
+    'eslint.config.ts',
+    'eslint.config.mts',
+    'eslint.config.cts',
+    '.eslintrc.js',
+    '.eslintrc.cjs',
+  ] as const;
+
   /**
-   * Find and parse ESLint configuration
-   * Shared by multiple code quality laws (complexity, magic numbers, etc.)
-   * Supports both legacy and flat config formats
+   * The project's ESLint config: a flat `eslint.config.js/.mjs`, an
+   * `.eslintrc.json`/`.eslintrc` (JSONC), or package.json `eslintConfig`.
+   * `notRead` holds the note when the file was found and not read (invalid
+   * JSON, YAML); null when there is no config this base reads. Shared by the
+   * code quality laws (complexity, dead code, magic numbers).
+   *
+   * It looked for `eslint.json` instead of `.eslintrc.json` and read JSON with
+   * RoC's own config loader, so a valid `.eslintrc.json` was "no config" (#486).
    */
-  protected static findESLintConfig(
+  protected static readESLintConfig(
     projectRoot: string
-  ): Record<string, unknown> | null {
-    const configFiles = CheckerUtils.getCommonExtensions().CONFIG;
-
-    for (const configFile of configFiles) {
-      // Try common ESLint config file names
-      const configNames = this.getESLintConfigNames(configFile);
-
-      for (const configName of configNames) {
-        const configPath = PathOperations.join(projectRoot, configName);
-        if (!FileUtils.exists(configPath)) continue;
-        try {
-          if (configFile.endsWith('.js') || configFile.endsWith('.mjs')) {
-            return this.loadESLintJsConfig(configPath);
-          } else if (configFile.endsWith('.json')) {
-            return ConfigFileUtils.loadConfig(configPath);
-          }
-        } catch (_error) {
-          // Continue if config can't be parsed
-        }
+  ): ({ file: string } & ESLintConfigRead) | null {
+    const at = (name: string): string => PathOperations.join(projectRoot, name);
+    for (const name of this.ESLINT_JS_CONFIGS) {
+      if (!FileUtils.exists(at(name))) continue;
+      const config = this.loadESLintJsConfig(at(name));
+      return config ? { file: name, config } : null;
+    }
+    if (this.ESLINT_UNREAD_CONFIGS.some(name => FileUtils.exists(at(name)))) {
+      return null;
+    }
+    for (const name of ESLINTRC_DATA_FILES) {
+      if (FileUtils.exists(at(name))) {
+        return { file: name, ...readESLintDataConfig(at(name), name) };
       }
     }
-
-    return null;
-  }
-
-  /**
-   * Build the candidate ESLint config file names for a given extension
-   */
-  private static getESLintConfigNames(configFile: string): string[] {
-    return [
-      configFile.startsWith('.')
-        ? `eslint${configFile}`
-        : `.eslintrc${configFile}`,
-      `eslint.config${configFile}`,
-    ];
+    const manifest = 'package.json';
+    if (!FileUtils.exists(at(manifest))) return null;
+    const read = readPackageJsonESLintConfig(
+      at(manifest),
+      'its ESLint config (eslintConfig) was'
+    );
+    return read ? { file: manifest, ...read } : null;
   }
 
   /**

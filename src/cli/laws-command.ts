@@ -147,6 +147,7 @@ export interface LawsJson {
   laws: SerializedLaw[];
 }
 
+/** Whether `category` names one of LAW_CATEGORIES, ignoring case. */
 export function isKnownCategory(category: string): category is LawCategory {
   return (LAW_CATEGORIES as readonly string[]).includes(
     category.toUpperCase() as LawCategory
@@ -171,6 +172,11 @@ export function resolveBaseLaws(options: LawsOptions): ConstitutionalLaw[] {
   return ModularLawsRegistry.getEnabled(config);
 }
 
+/**
+ * Narrows `laws` by the `--pareto` and `--category` options. The category
+ * is matched against the law's AUTHORED category (case-insensitive), not the
+ * derived tier.
+ */
 export function filterLaws(
   laws: ConstitutionalLaw[],
   options: LawsOptions
@@ -222,6 +228,13 @@ let LIMITS: Map<string, string[]> | undefined;
 let RATIONALE: Map<string, string> | undefined;
 let SATISFIED: Map<string, SatisfiedBy> | undefined;
 
+/**
+ * One law as `ruleofcode laws --json` prints it: its identity (id, legacyId,
+ * name, slugs, identity keys and the unambiguous config keys), the derived
+ * tier and severity, and the authored card fields (category,
+ * detectionLimits, rationale, satisfiedBy) looked up by title, `null` when
+ * the card does not declare them.
+ */
 export function serializeLaw(law: ConstitutionalLaw): SerializedLaw {
   AUTHORED ??= authoredByTitle(law => law.category);
   LIMITS ??= authoredByTitle(law =>
@@ -269,6 +282,12 @@ export function serializeLaw(law: ConstitutionalLaw): SerializedLaw {
   };
 }
 
+/**
+ * The whole `ruleofcode laws --json` document (schemaVersion 2): tool and
+ * version, registry total and how many laws are returned, the filters used,
+ * the categories laws actually carry, the satisfiedBy stack keys with their
+ * stack/project-type mappings, and the serialized laws.
+ */
 export function buildLawsJson(
   laws: ConstitutionalLaw[],
   options: LawsOptions

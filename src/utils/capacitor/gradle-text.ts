@@ -35,6 +35,13 @@ const KEYWORD = /^(if|else|try|catch|finally|for|while)\b/;
 const TRAILING_IDENTIFIER = /(\w+)\s*$/;
 const HEADER_START = /[;{}\n]/;
 
+/**
+ * One Gradle script with two masked copies of the same length as the source:
+ * `plain` (comments blanked) for reading literal values and `code` (comments
+ * and string contents blanked) for reading structure. Offers the script's
+ * `{ … }` blocks as a tree (computed once, cached), block bodies, line
+ * numbers and regex matches confined to code.
+ */
 export class GradleText {
   readonly plain: string;
   readonly code: string;

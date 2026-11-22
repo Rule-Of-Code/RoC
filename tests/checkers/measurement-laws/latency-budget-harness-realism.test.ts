@@ -192,7 +192,10 @@ describe('LatencyBudgetHarnessRealismLaw (#355)', () => {
 
     it('Lighthouse budget.json and angular.json budgets add nothing; a latency budget adds exactly this law', async () => {
       const frontend = { 'budget.json': LIGHTHOUSE, 'angular.json': ANGULAR };
-      const without = await applicable({});
+      // angular.json is a web surface (#428): it selects the laws about a
+      // served product on its own, so the comparison starts from it, and the
+      // budgets inside it and in budget.json are what is measured.
+      const without = await applicable({ 'angular.json': '{}' });
       expect(await applicable(frontend)).toBe(without);
       expect(
         await applicable({

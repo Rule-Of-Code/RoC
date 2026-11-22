@@ -7,11 +7,20 @@ on:
     branches: [master, develop]
 
 jobs:
-  gate:
-    name: Constitutional gate
+  node:
+    name: Gate on Node ${{ matrix.node }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 20: the floor package.json declares (engines.node), so the floor is
+        # tested, not assumed. 26: the Active LTS line on the day this was set
+        # (nodejs.org/dist/index.json and nodejs/Release schedule.json).
+        # tests/regression/node-floor-matches-ci.test.ts holds the lowest
+        # entry to engines.node.
+        node: [20, 26]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Full history: the git laws (commit message/description, branch
           # governance, release tags) read real history. A shallow clone
@@ -19,9 +28,9 @@ jobs:
           # a green that proves nothing.
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: ${{ matrix.node }}
           cache: npm
 
       - name: Install
@@ -48,3 +57,20 @@ jobs:
 
       - name: Self-audit (RuleOfCode against RuleOfCode)
         run: node dist/cli.js audit
+
+  # The required status check on master and develop is named
+  # "Constitutional gate". A matrix job reports one check per version under
+  # another name, so this job keeps that name and is green only when every
+  # Node version above is.
+  gate:
+    name: Constitutional gate
+    needs: node
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every Node version passed
+        env:
+          RESULT: ${{ needs.node.result }}
+        run: |
+          echo "Node matrix: $RESULT"
+          test "$RESULT" = "success"

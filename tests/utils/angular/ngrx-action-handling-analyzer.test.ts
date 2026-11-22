@@ -1,200 +1,93 @@
 /**
  * @fileoverview Tests for ngrx-action-handling-analyzer.ts
- * @description Tests for NgRx Action Handling Analyzer utility
+ * @description NgRx Action Handling Analyzer, on real projects: the reducer
+ * files under src/ are found, read and judged by the real validation
+ * patterns. No helper of the code under test is replaced.
  */
 
-import type { RuleOfCodeConfig } from '../../../src/config/types';
 import { NgRxActionHandlingAnalyzer } from '../../../src/utils/angular/ngrx-action-handling/ngrx-action-handling-analyzer';
-import { NgRxActionHandlingValidationPatterns } from '../../../src/utils/angular/ngrx-action-handling/ngrx-action-handling-validation-patterns';
-import { CheckerUtils } from '../../../src/utils/checker-utils';
 import { FileUtils } from '../../../src/utils/file-utils';
-import { PathOperations } from '../../../src/utils/path-operations';
+import { project, removeProjects } from '../../checkers/toolkit-fixture';
+
+afterAll(removeProjects);
+
+const config = FileUtils.getMinimalDefaultConfig();
+
+/** A reducer that handles one action with `on(...)`. */
+const HANDLING_REDUCER = [
+  "import { createReducer, on } from '@ngrx/store';",
+  'export const counterReducer = createReducer(',
+  '  initialState,',
+  '  on(increment, state => ({ ...state, count: state.count + 1 }))',
+  ');',
+  '',
+].join('\n');
+
+/** A reducer that handles no action at all. */
+const EMPTY_REDUCER = [
+  "import { createReducer } from '@ngrx/store';",
+  'export const emptyReducer = createReducer(initialState);',
+  '',
+].join('\n');
+
+const check = (files: Record<string, string>) =>
+  NgRxActionHandlingAnalyzer.checkActionHandling(project(files), config);
 
 describe('utils/angular/ngrx-action-handling/ngrx-action-handling-analyzer', () => {
-  const mockConfig = {
-    projectRoot: '/test/project',
-    verbose: false,
-    excludePatterns: ['node_modules', 'dist'],
-    includePatterns: ['**/*.ts'],
-  } as unknown as RuleOfCodeConfig;
+  describe('NgRxActionHandlingAnalyzer.checkActionHandling', () => {
+    it('reports nothing for a project without a src directory', () => {
+      const result = check({ 'package.json': '{}' });
 
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
+      expect(result.violations).toEqual([]);
+      expect(result.suggestions).toEqual([]);
+    });
 
-  describe('NgRxActionHandlingAnalyzer', () => {
-    describe('checkActionHandling', () => {
-      it('should delegate to NgRxActionHandlingValidationPatterns', () => {
-        const validateSpy = jest.spyOn(
-          NgRxActionHandlingValidationPatterns,
-          'validateAllActionHandlingPatterns'
-        );
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
+    it('reports nothing for a src directory with no reducer file', () => {
+      const result = check({ 'src/app/app.component.ts': 'export class A {}' });
 
-        existsSpy.mockReturnValue(false);
-        validateSpy.mockReturnValue({ violations: [], suggestions: [] });
+      expect(result.violations).toEqual([]);
+      expect(result.suggestions).toEqual([]);
+    });
 
-        NgRxActionHandlingAnalyzer.checkActionHandling(
-          '/test/project',
-          mockConfig
-        );
+    it('reports a reducer that handles no action, by file name', () => {
+      const result = check({ 'src/state/empty.reducer.ts': EMPTY_REDUCER });
 
-        expect(validateSpy).toHaveBeenCalledWith('/test/project', mockConfig);
+      const finding = result.violations.find(v =>
+        v.includes('action handlers')
+      );
+      expect(finding).toBeDefined();
+      expect(finding).toContain('empty.reducer');
+    });
+
+    it('does not report a reducer that handles its action', () => {
+      const result = check({
+        'src/state/counter.reducer.ts': HANDLING_REDUCER,
       });
 
-      it('should return empty results when src directory does not exist', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        existsSpy.mockReturnValue(false);
+      expect(
+        result.violations.filter(v => v.includes('action handlers'))
+      ).toEqual([]);
+    });
 
-        const result = NgRxActionHandlingAnalyzer.checkActionHandling(
-          '/test/project',
-          mockConfig
-        );
-
-        expect(result.violations).toHaveLength(0);
-        expect(result.suggestions).toHaveLength(0);
+    it('judges every reducer file, and names only the one at fault', () => {
+      const result = check({
+        'src/state/counter.reducer.ts': HANDLING_REDUCER,
+        'src/state/empty.reducer.ts': EMPTY_REDUCER,
       });
 
-      it('should return empty results when no reducer files found', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
+      const handlers = result.violations.filter(v =>
+        v.includes('action handlers')
+      );
+      expect(handlers).toHaveLength(1);
+      expect(handlers[0]).toContain('empty.reducer');
+      expect(handlers[0]).not.toContain('counter.reducer');
+    });
 
-        existsSpy.mockReturnValue(true);
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
-        );
-        findFilesSpy.mockReturnValue([]);
+    it('reports nothing for an empty reducer file', () => {
+      const result = check({ 'src/state/blank.reducer.ts': '' });
 
-        const result = NgRxActionHandlingAnalyzer.checkActionHandling(
-          '/test/project',
-          mockConfig
-        );
-
-        expect(result.violations).toHaveLength(0);
-        expect(result.suggestions).toHaveLength(0);
-      });
-
-      it('should analyze reducer files for action handling patterns', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-
-        existsSpy.mockReturnValue(true);
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
-        );
-        findFilesSpy.mockReturnValue([
-          '/test/project/src/state/counter.reducer.ts',
-        ]);
-        readFileSpy.mockReturnValue(`
-          import { createReducer, on } from '@ngrx/store';
-          export const counterReducer = createReducer(
-            initialState,
-            on(increment, state => ({ ...state, count: state.count + 1 }))
-          );
-        `);
-        basenameSpy.mockReturnValue('counter.reducer.ts');
-
-        const result = NgRxActionHandlingAnalyzer.checkActionHandling(
-          '/test/project',
-          mockConfig
-        );
-
-        expect(Array.isArray(result.violations)).toBe(true);
-        expect(Array.isArray(result.suggestions)).toBe(true);
-      });
-
-      it('should detect violations in reducer without action handlers', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-
-        existsSpy.mockReturnValue(true);
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
-        );
-        findFilesSpy.mockReturnValue([
-          '/test/project/src/state/empty.reducer.ts',
-        ]);
-        readFileSpy.mockReturnValue(`
-          import { createReducer } from '@ngrx/store';
-          export const emptyReducer = createReducer(initialState);
-        `);
-        basenameSpy.mockReturnValue('empty.reducer.ts');
-
-        const result = NgRxActionHandlingAnalyzer.checkActionHandling(
-          '/test/project',
-          mockConfig
-        );
-
-        expect(result.violations.some(v => v.includes('action handlers'))).toBe(
-          true
-        );
-      });
-
-      it('should process multiple reducer files', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-
-        existsSpy.mockReturnValue(true);
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
-        );
-        findFilesSpy.mockReturnValue([
-          '/test/project/src/state/counter.reducer.ts',
-          '/test/project/src/state/user.reducer.ts',
-        ]);
-        readFileSpy.mockReturnValue(`
-          import { createReducer, on } from '@ngrx/store';
-          export const reducer = createReducer(
-            initialState,
-            on(action, state => ({ ...state }))
-          );
-        `);
-        basenameSpy.mockImplementation(path => path.split('/').pop() ?? '');
-
-        const result = NgRxActionHandlingAnalyzer.checkActionHandling(
-          '/test/project',
-          mockConfig
-        );
-
-        expect(Array.isArray(result.violations)).toBe(true);
-        expect(Array.isArray(result.suggestions)).toBe(true);
-      });
-
-      it('should handle empty reducer file content', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-
-        existsSpy.mockReturnValue(true);
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
-        );
-        findFilesSpy.mockReturnValue([
-          '/test/project/src/state/empty.reducer.ts',
-        ]);
-        readFileSpy.mockReturnValue('');
-        basenameSpy.mockReturnValue('empty.reducer.ts');
-
-        const result = NgRxActionHandlingAnalyzer.checkActionHandling(
-          '/test/project',
-          mockConfig
-        );
-
-        expect(result.violations).toHaveLength(0);
-        expect(result.suggestions).toHaveLength(0);
-      });
+      expect(result.violations).toEqual([]);
+      expect(result.suggestions).toEqual([]);
     });
   });
 });

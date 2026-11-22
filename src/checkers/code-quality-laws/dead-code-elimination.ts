@@ -3,6 +3,7 @@
  * Detects and eliminates unused code, imports, and variables
  */
 
+import type * as TS from 'typescript';
 import type {
   LawCheckContext,
   LawResult,
@@ -11,8 +12,13 @@ import type {
 import { ConfigFileUtils } from '../../utils/config-file-utils';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
+import {
+  loadTypeScript,
+  parserUnavailable,
+} from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';
 import { CodeQualityLawBase } from './code-quality-law-base';
+import { readSource, type SourceView } from './source-view';
 
 export class DeadCodeEliminationLaw extends CodeQualityLawBase {
   static check(context: LawCheckContext): LawResult {
@@ -63,8 +69,10 @@ export class DeadCodeEliminationLaw extends CodeQualityLawBase {
 
     // Check for ESLint rules that catch dead code
     if (devDeps.eslint) {
-      const eslintConfig = this.findESLintConfig(projectRoot);
-      if (!this.hasDeadCodeRules(eslintConfig)) {
+      const eslint = this.readESLintConfig(projectRoot);
+      if (eslint?.notRead !== undefined) {
+        violations.push(eslint.notRead);
+      } else if (!this.hasDeadCodeRules(eslint?.config ?? null)) {
         violations.push('ESLint dead code detection rules not configured');
         suggestions.push(
           'Configure no-unused-vars and no-unreachable-code rules'
@@ -98,10 +106,22 @@ export class DeadCodeEliminationLaw extends CodeQualityLawBase {
     );
     let deadCodeCount = 0;
 
+    // Read from the parse (#424). Without it the files are not read — said
+    // so, never matched as text instead.
+    const ts = loadTypeScript(projectRoot);
+    if (!ts) {
+      if (codeFiles.length > 0) {
+        violations.push(
+          `${parserUnavailable(projectRoot, `the ${codeFiles.length} code file(s)`)} — Dead Code Elimination judged nothing`
+        );
+      }
+      return { violations, suggestions };
+    }
+
     for (const file of codeFiles) {
       try {
         const content = FileUtils.readFile(file);
-        const deadCodeIssues = this.findDeadCodeInFile(content);
+        const deadCodeIssues = this.findDeadCodeInFile(ts, content, file);
 
         if (deadCodeIssues.length > 0) {
           deadCodeCount++;
@@ -123,105 +143,81 @@ export class DeadCodeEliminationLaw extends CodeQualityLawBase {
     return { violations, suggestions };
   }
 
-  private static findDeadCodeInFile(content: string): string[] {
+  /**
+   * The findings of one file, from its parse (#424): a `debugger` in a
+   * message, a `//` sentence that mentions a function, or a property named
+   * `returned:` is not dead code.
+   */
+  private static findDeadCodeInFile(
+    ts: typeof TS,
+    content: string,
+    fileName: string
+  ): string[] {
+    const view = readSource(ts, content, fileName);
     const issues: string[] = [];
-
-    this.checkCommentedCode(content, issues);
-    this.checkUnreachableCode(content, issues);
-    this.checkDebugStatements(content, issues);
-
+    if (this.commentedCodeLines(view) > 3) {
+      issues.push('commented code blocks detected');
+    }
+    if (this.hasStatementAfterReturn(ts, view.source)) {
+      issues.push('unreachable code after return');
+    }
+    if (this.hasDebuggerStatement(ts, view.source)) {
+      issues.push('debug statement: debugger');
+    }
     return issues;
   }
 
-  private static checkCommentedCode(content: string, issues: string[]): void {
-    // Check for commented code blocks
-    const commentedCodeLines = content.split('\n').filter(line => {
-      const trimmed = line.trim();
-      return (
-        trimmed.startsWith('//') &&
-        (trimmed.includes('function') ||
-          trimmed.includes('const') ||
-          trimmed.includes('let'))
-      );
-    });
-
-    if (commentedCodeLines.length > 3) {
-      issues.push('commented code blocks detected');
-    }
+  /**
+   * `//` comments that hold a declaration rather than words about one:
+   * `// const total = sum(rows);`, `// function legacy() {`. A sentence that
+   * merely contains "function" or "const" is prose.
+   */
+  private static commentedCodeLines(view: SourceView): number {
+    const looksLikeCode =
+      /^\/\/\s*(?:export\s+)?(?:(?:const|let)\s+[\w${}[\],\s]+=|(?:async\s+)?function\b[\s\w$]*\()/;
+    return view.comments.filter(comment => looksLikeCode.test(comment.text))
+      .length;
   }
 
-  private static checkUnreachableCode(content: string, issues: string[]): void {
-    // Check for unreachable code after return (same indentation only)
-    // Match multiline: return statement followed by code at same indent before closing brace
-    // Improved pattern: captures indentation and requires matching indent for unreachable code
-    const lines = content.split('\n');
-    for (let i = 0; i < lines.length - 1; i++) {
-      const line = lines[i];
-      if (!line) continue; // Skip undefined lines
-      const trimmed = line.trim();
-
-      // Skip if not a return statement or is inside a comment
-      if (!trimmed.startsWith('return') || trimmed.startsWith('//')) continue;
-      if (!trimmed.endsWith(';') && !trimmed.endsWith('}')) continue;
-
-      // Get indentation level of return statement
-      const indentMatch = line.match(/^(\s*)/);
-      const indent = indentMatch?.[1]?.length || 0;
-
-      if (this.hasUnreachableCodeAfterReturn(lines, i, indent)) {
-        issues.push('unreachable code after return');
-      }
-    }
-  }
-
-  private static hasUnreachableCodeAfterReturn(
-    lines: string[],
-    returnLineIndex: number,
-    indent: number
+  /**
+   * A statement written after a `return` in the same block — it can never
+   * run. A function declaration after it is hoisted and does run; a type or
+   * interface is not code at all.
+   */
+  private static hasStatementAfterReturn(
+    ts: typeof TS,
+    source: TS.SourceFile
   ): boolean {
-    // Check next non-empty line
-    for (let j = returnLineIndex + 1; j < lines.length; j++) {
-      const nextLine = lines[j];
-      if (!nextLine) continue; // Skip undefined lines
-      const nextTrimmed = nextLine.trim();
-
-      // Skip empty lines and comments
+    let found = false;
+    const runs = (statement: TS.Statement): boolean =>
+      !ts.isFunctionDeclaration(statement) &&
+      !ts.isInterfaceDeclaration(statement) &&
+      !ts.isTypeAliasDeclaration(statement) &&
+      !ts.isEmptyStatement(statement);
+    const visit = (node: TS.Node): void => {
+      if (found) return;
       if (
-        !nextTrimmed ||
-        nextTrimmed.startsWith('//') ||
-        nextTrimmed.startsWith('/*')
-      )
-        continue;
-
-      // If next code line is closing brace at same or lower indent - no unreachable code
-      if (nextTrimmed.startsWith('}')) return false;
-
-      // Get indentation of next code line
-      const nextIndentMatch = nextLine.match(/^(\s*)/);
-      const nextIndent = nextIndentMatch?.[1]?.length || 0;
-
-      // If same or greater indent and not a closing brace - unreachable code!
-      if (nextIndent >= indent) {
-        return true;
+        ts.isBlock(node) ||
+        ts.isCaseClause(node) ||
+        ts.isDefaultClause(node)
+      ) {
+        const at = node.statements.findIndex(ts.isReturnStatement);
+        found = at >= 0 && node.statements.slice(at + 1).some(runs);
       }
-
-      // If less indent - we're in outer scope, no unreachable code
-      return false;
-    }
-
-    return false;
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+    return found;
   }
 
-  private static checkDebugStatements(content: string, issues: string[]): void {
-    // Check for debug statements. `console.*` is owned by the dedicated
-    // Centralized Logging law (centralized-logging) as of v7.2.0 — only the
-    // `debugger` statement is flagged here (real dead/debug code).
-    const debugStatements = ['debugger'];
-    for (const debug of debugStatements) {
-      if (content.includes(debug)) {
-        issues.push(`debug statement: ${debug}`);
-      }
-    }
+  /** A `debugger;` statement — not the word in a string or a comment. */
+  private static hasDebuggerStatement(
+    ts: typeof TS,
+    source: TS.SourceFile
+  ): boolean {
+    const visit = (node: TS.Node): boolean =>
+      ts.isDebuggerStatement(node) || !!ts.forEachChild(node, visit);
+    return visit(source);
   }
 
   private static hasDeadCodeRules(

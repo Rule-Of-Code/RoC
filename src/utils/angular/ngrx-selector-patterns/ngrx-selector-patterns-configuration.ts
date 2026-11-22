@@ -5,6 +5,7 @@ import {
   NGRX_KEYWORDS,
 } from '../../constants';
 import { FileSystemOperations } from '../../file-system-operations';
+import { PatternMatchingUtils } from '../../pattern-matching-utils';
 import { PathOperations } from '../../path-operations';
 import { StringTemplateUtils } from '../../string-template-utils';
 import { AngularConfigurationBase } from '../angular-configuration-base';
@@ -109,14 +110,13 @@ export class NgRxSelectorPatternsConfiguration extends AngularConfigurationBase 
     return FileSystemOperations.exists(srcPath) ? srcPath : null;
   }
 
-  static getSelectorAnalysisConfig(_config: RuleOfCodeConfig): {
+  static getSelectorAnalysisConfig(): {
     checkNamingConventions: boolean;
     checkMemoization: boolean;
     checkParameterUsage: boolean;
     checkReusability: boolean;
     checkPropsSelectors: boolean;
     enableAdvancedPatterns: boolean;
-    // TODO (Sprint 10): Use config to customize selector patterns based on project-specific naming conventions
   } {
     return this.Config.SELECTOR_ANALYSIS_CONFIG;
   }
@@ -246,7 +246,10 @@ export class NgRxSelectorPatternsConfiguration extends AngularConfigurationBase 
       case 'props':
         return content.includes(NGRX_KEYWORDS.PROPS);
       case 'parameters':
-        return patterns.parameterPattern.test(content);
+        return PatternMatchingUtils.hasRegexPattern(
+          content,
+          patterns.parameterPattern
+        );
       case 'duplicateLogic': {
         const matches = content.match(patterns.duplicateLogicPattern);
         return matches
@@ -261,8 +264,7 @@ export class NgRxSelectorPatternsConfiguration extends AngularConfigurationBase 
   /**
    * Get file reading configuration (RULE 2: Caching)
    */
-  // TODO (Sprint 10): Use config to customize file reading settings for better caching performance
-  static getFileReadingConfig(_config: RuleOfCodeConfig): {
+  static getFileReadingConfig(): {
     encoding: string;
     fallbackToEmpty: boolean;
     skipEmptyFiles: boolean;

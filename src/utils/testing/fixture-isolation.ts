@@ -88,9 +88,13 @@ export class FixtureIsolation {
    */
   static resourcesUsed(
     content: string,
-    patterns: Record<string, RegExp>
+    patterns: Record<string, RegExp>,
+    // The file's own name decides how it is parsed (#426): a .ts test read
+    // as TSX takes `<T>(x) =>` for a JSX tag, loses its place, and reads
+    // the fixture strings after it as code.
+    fileName = 'file.tsx'
   ): string[] {
-    const code = CodeText.codeOnly(content);
+    const code = CodeText.codeOnly(content, fileName);
     const storageIsolated = this.isolatesBrowserStorage(content);
     const httpIsolated = this.replacesHttpBackend(code);
     const used = new Set<string>();

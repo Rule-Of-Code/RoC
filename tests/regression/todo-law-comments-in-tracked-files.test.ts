@@ -12,6 +12,7 @@ import * as os from 'os';
 import * as path from 'path';
 
 import { TodoManagementLaw } from '../../src/laws/documentation/todo-management';
+import { TodoManagementStandardsLaw } from '../../src/laws/documentation/todo-management-standards';
 import type { LawCheckContext } from '../../src/types/law.types';
 
 const dirs: string[] = [];
@@ -130,5 +131,32 @@ describe('TODO markers: comments of tracked files only', () => {
         { 'src/generated.ts': '// TODO (Sprint 1): generated noise\n' }
       )
     ).toBe(0);
+  });
+});
+
+describe('TODO Management Standards: tracked files only', () => {
+  const standards = async (
+    files: Record<string, string>,
+    ignored?: Record<string, string>
+  ): Promise<string[]> => {
+    const result = await TodoManagementStandardsLaw.check(
+      context(repo(files, ignored))
+    );
+    return result.details ?? [];
+  };
+
+  it('finds a TODO in a tracked file (control)', async () => {
+    const details = await standards({
+      'src/a.ts': '// TODO: wire the cache\nexport const a = 1;\n',
+    });
+    expect(details).not.toContain('No TODO comments found in codebase');
+  });
+
+  it('does not read a gitignored file', async () => {
+    const details = await standards(
+      { 'src/a.ts': 'export const a = 1;\n' },
+      { 'src/generated.ts': '// TODO: generated noise\n' }
+    );
+    expect(details).toContain('No TODO comments found in codebase');
   });
 });

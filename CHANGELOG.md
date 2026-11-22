@@ -28,6 +28,9 @@ The `#todo` reading of HTML is a regression of this release (#426 stopped
 blanking strings in HTML). The CSS `#todo-list` id, the missed second line of
 a block comment and the gitignored files were wrong before 8.0.0 as well.
 
+TODO Management Standards, which already read comments only, also read
+gitignored files; it now keeps only the files git tracks.
+
 ### Changed — TypeScript Strict Mode no longer requires noPropertyAccessFromIndexSignature or source maps
 
 The law reported "TypeScript noPropertyAccessFromIndexSignature must be true"

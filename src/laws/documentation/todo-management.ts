@@ -10,6 +10,7 @@ import { trackedFiles } from '../../utils/integrity/tracked-files';
 import { PathOperations } from '../../utils/path-operations';
 import type { TodoAnalysisResult } from './todo-analysis-result';
 import { TodoAnalysisResultBuilder } from './todo-analysis-result';
+import { todoCommentSource } from './todo-comment-source';
 /**
  * TODO Management Constitutional Requirements Law
  *
@@ -394,14 +395,18 @@ export class TodoManagementLaw {
     config: RuleOfCodeConfig
   ): TodoAnalysisResult {
     const result = TodoAnalysisResultBuilder.createEmpty();
-    // A TODO is a marker at the start of a COMMENT, by the comment syntax of
-    // the file's language (the reader TODO Management Standards uses): `//`
-    // and `/* */` in JS/TS/SCSS, `/* */` in CSS, `<!-- -->` in HTML and
-    // Markdown. Text in a string, a JSON blob in a <script>, Markdown prose
-    // or a code span is not one; a marker on a later line of a block comment
-    // is (RoC_web, 8.0.0 rc1).
-    for (const comment of commentLines(file, content)) {
-      const marker = this.todoMarker(comment.text);
+    // A TODO is a marker in a COMMENT, by the comment syntax of the file's
+    // language (the reader TODO Management Standards uses): `//` and `/* */`
+    // in JS/TS/SCSS, `/* */` in CSS, `<!-- -->` in HTML and Markdown. Strings
+    // and template literals in code, and code spans and blocks in Markdown,
+    // are blanked first: a `// TODO` there is text (RoC_web, QA on #541).
+    const source = todoCommentSource(content, file);
+    const lines = source.split(/\r?\n/);
+    for (const comment of commentLines(file, source)) {
+      const marker = this.todoMarker(
+        comment.text,
+        this.opensComment(lines[comment.line - 1] ?? '', comment.text)
+      );
       if (marker) {
         this.processTodoLine(marker, file, comment.line, config, result);
       }
@@ -410,15 +415,30 @@ export class TodoManagementLaw {
     return result;
   }
 
+  /** Whether the comment text on `line` follows its opener, not a block comment's earlier line. */
+  private static opensComment(line: string, commentText: string): boolean {
+    const at = line.indexOf(commentText);
+    const before = (at < 0 ? '' : line.slice(0, at)).trimEnd();
+    return /(?:\/\/|\/\*\*?|<!--)$/.test(before);
+  }
+
   /**
-   * The TODO marker a comment line starts with — after the comment opener
-   * and a block comment's leading `*` — or null. Upper case, as a marker is
-   * written: "todo" in a comment is a word, and `#todo` was an anchor or a
-   * CSS id that a case-insensitive `#\s*TODO` read as a marker.
+   * The TODO marker of a comment line, or null. Upper case, as a marker is
+   * written: "todo" is a word, and `#todo` an anchor or a CSS id that a
+   * case-insensitive `#\s*TODO` read as a marker.
+   *
+   * Right after `//`, `/*` or `<!--` the word TODO starts a marker. On a later
+   * line of a block comment it takes the tag form, `TODO:` or `TODO(…)`:
+   * prose such as " * TODO Management Standards Law" is not a task (arch on
+   * QA's #541 review).
    */
-  private static todoMarker(commentText: string): string | null {
+  private static todoMarker(
+    commentText: string,
+    firstLine: boolean
+  ): string | null {
     const text = commentText.replace(/^[\s*]+/, '');
-    return /^TODO\b/.test(text) ? text.trim() : null;
+    const marker = firstLine ? /^TODO\b/ : /^TODO\s*[:(]/;
+    return marker.test(text) ? text.trim() : null;
   }
 
   /**

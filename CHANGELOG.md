@@ -19,10 +19,14 @@ there, and missed the one TODO that was:
 - a TODO on the second line of a `/* … */` block comment was not counted;
 - gitignored generated files were read, because the law walked the disk.
 
-A TODO is now an upper-case `TODO` at the start of a comment, by the comment
-syntax of the file's language (`//` and `/* */` in JS/TS/SCSS, `/* */` in
-CSS, `<!-- -->` in HTML and Markdown), on any line of a block comment. The
-files are the ones git tracks; outside a git repository the disk is read.
+A TODO is now an upper-case `TODO` in a comment, by the comment syntax of the
+file's language (`//` and `/* */` in JS/TS/SCSS, `/* */` in CSS, `<!-- -->` in
+HTML and Markdown). Right after `//`, `/*` or `<!--` the word starts a marker;
+on a later line of a block comment it takes the tag form `TODO:` or `TODO(…)`,
+so JSDoc prose such as " * TODO Management Standards Law" is not a task.
+Strings and template literals in code, and code spans and fenced blocks in
+Markdown, are not read for comments. The files are the ones git tracks;
+outside a git repository the disk is read.
 
 The `#todo` reading of HTML is a regression of this release (#426 stopped
 blanking strings in HTML). The CSS `#todo-list` id, the missed second line of

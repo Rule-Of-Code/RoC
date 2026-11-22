@@ -132,6 +132,49 @@ describe('TODO markers: comments of tracked files only', () => {
       )
     ).toBe(0);
   });
+
+  // QA on #541: the reader must not find comments in text, and must not
+  // read prose in a block comment as a task.
+  it('does not count a // TODO inside a template literal (a fixture string)', async () => {
+    const ts = [
+      'const fixture = `',
+      'export const x = 1;',
+      '// TODO: fixture text',
+      '`;',
+      'export default fixture;',
+      '',
+    ].join('\n');
+    expect(await countIn({ 'tests/a.test.ts': ts })).toBe(0);
+  });
+
+  it('does not count an HTML comment inside Markdown inline code', async () => {
+    expect(
+      await countIn({
+        'CHANGELOG.md': 'It no longer reads `<!-- TODO -->` in code.\n',
+      })
+    ).toBe(0);
+  });
+
+  it('does not count prose on a later line of a JSDoc block', async () => {
+    const ts = [
+      '/**',
+      ' * TODO Management Standards Law',
+      ' * TODO items come from the store.',
+      ' */',
+      'export const law = 1;',
+      '',
+    ].join('\n');
+    expect(await countIn({ 'src/law.ts': ts })).toBe(0);
+  });
+
+  it('counts TODO right after the opener of a block comment', async () => {
+    expect(
+      await countIn({
+        'src/a.ts':
+          '/* TODO (Sprint 99): move this to the config */\nexport const a = 1;\n',
+      })
+    ).toBe(1);
+  });
 });
 
 describe('TODO Management Standards: tracked files only', () => {

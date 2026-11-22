@@ -5,6 +5,22 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 🐛 Fixed — a module-level `let` reset in `beforeEach` is not shared state (#552)
+
+Test Data Management and Test Isolation Enforcement reported a module-level
+`let` with an initialiser as shared mutable state even when a `beforeEach`
+gave it a fresh value before every test, which is the isolation pattern both
+laws ask for. The two laws also disagreed on a typed `let`
+(`let state: State = make();`): one reported it, the other did not.
+
+Both laws now read the same definition: a column-0 `let` / `var` with an
+initialiser, typed or not, is shared state unless a `beforeEach` or
+`afterEach` of the same file assigns it. A reset in `beforeAll` (which runs
+once) does not count. Test Data Management can therefore report a typed
+`let` that nothing resets, which it did not see before.
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

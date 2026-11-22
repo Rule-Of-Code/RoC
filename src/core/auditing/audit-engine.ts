@@ -1180,7 +1180,10 @@ export class RuleOfCodeAuditor {
         `${chalk.yellow('⚠ Warnings:')} ${chalk.bold.yellow(auditResult.warningLaws)} ${chalk.gray('(reported, not blocking)')}`
       );
     }
-    const judgedNothing = auditResult.scope?.judgedNothingLaws.length ?? 0;
+    // The outcome, not scope.judgedNothingLaws: a law that judged nothing at
+    // error severity is already counted in Failed, so the four lines add up to
+    // Total Laws Checked (8.0.1).
+    const judgedNothing = auditResult.judgedNothingLaws ?? 0;
     if (judgedNothing > 0) {
       console.log(
         `${chalk.magenta('◌ Judged nothing:')} ${chalk.bold.magenta(judgedNothing)} ${chalk.gray('(did not pass)')}`

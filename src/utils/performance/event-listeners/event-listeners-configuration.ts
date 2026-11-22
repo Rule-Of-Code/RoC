@@ -4,6 +4,7 @@
  */
 
 import { ANGULAR_CONSTANTS } from '../../angular-constants';
+import { PatternMatchingUtils } from '../../pattern-matching-utils';
 
 export class EventListenersConfiguration {
   static readonly EVENT_PATTERNS = {
@@ -53,9 +54,18 @@ export class EventListenersConfiguration {
     hasCleanupIndicators: boolean;
   } {
     return {
-      hasWindowListener: this.EVENT_PATTERNS.WINDOW_LISTENER.test(content),
-      hasDocumentListener: this.EVENT_PATTERNS.DOCUMENT_LISTENER.test(content),
-      hasElementListener: this.EVENT_PATTERNS.ELEMENT_LISTENER.test(content),
+      hasWindowListener: PatternMatchingUtils.hasRegexPattern(
+        content,
+        this.EVENT_PATTERNS.WINDOW_LISTENER
+      ),
+      hasDocumentListener: PatternMatchingUtils.hasRegexPattern(
+        content,
+        this.EVENT_PATTERNS.DOCUMENT_LISTENER
+      ),
+      hasElementListener: PatternMatchingUtils.hasRegexPattern(
+        content,
+        this.EVENT_PATTERNS.ELEMENT_LISTENER
+      ),
       hasCleanupIndicators:
         content.includes(this.CLEANUP_PATTERNS.REMOVE_LISTENER) ||
         content.includes(this.CLEANUP_PATTERNS.NG_ON_DESTROY),
@@ -71,7 +81,10 @@ export class EventListenersConfiguration {
     hasNgOnDestroy: boolean;
   } {
     return {
-      hasHostListener: this.DECORATORS.HOST_LISTENER.test(content),
+      hasHostListener: PatternMatchingUtils.hasRegexPattern(
+        content,
+        this.DECORATORS.HOST_LISTENER
+      ),
       hasNgOnDestroy: content.includes(this.CLEANUP_PATTERNS.NG_ON_DESTROY),
     };
   }

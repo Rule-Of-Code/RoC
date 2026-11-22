@@ -223,7 +223,7 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '18.1',
     title: 'Performance Monitoring Standards',
     rationale:
-      'A bot trading real money had a metric named unauthorized_401 that fed nothing and zero alert policies — it could have died silently while its dashboard looked green. Monitoring you never wire to an alert is decoration; the alert is the law.',
+      'A service with an error metric that feeds nothing and zero alert policies can die silently while its dashboard looks green. Monitoring you never wire to an alert is decoration; the alert is the law.',
     satisfiedBy: {
       angular:
         'Wire RUM (web-vitals) and a Lighthouse budget in CI so a regression fails the build.',

@@ -453,11 +453,4 @@ services:
       expect(result.violations).toHaveLength(0);
     });
   });
-
-  afterAll(async () => {
-    jest.clearAllMocks();
-    jest.clearAllTimers();
-    jest.restoreAllMocks();
-    await new Promise(resolve => setTimeout(resolve, 50));
-  });
 });

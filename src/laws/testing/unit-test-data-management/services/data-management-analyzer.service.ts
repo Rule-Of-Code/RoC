@@ -38,25 +38,36 @@ export class UnitTestDataManagementAnalyzerService {
         const content = FileUtils.readFile(testFile, { encoding: 'utf8' });
         const relative = PathOperations.getRelative(projectRoot, testFile);
 
+        // Code, not text: the file is parsed, so a fixture string holding
+        // `window.x = 1` is not shared state (#513).
+        const shared = UnitTestDataManagementConstants.hasSharedMutableState(
+          content,
+          testFile,
+          projectRoot
+        );
+
         // A setup/teardown hook exists to reset what tests share. A file
         // with no module-scope mutable state has nothing to reset — the
         // twin's rule (Test Isolation Enforcement). This used to pass the
         // whole project when ANY file had a hook and fail it, naming no
         // file, when none did — a pure-function spec included (#310).
         if (
-          UnitTestDataManagementConstants.hasSharedMutableState(content) &&
+          shared &&
           !UnitTestDataManagementConstants.hasProperSetupTeardown(content)
         ) {
           missingSetupFiles.push(relative);
         }
 
-        if (UnitTestDataManagementConstants.hasHardcodedTestData(content)) {
+        if (
+          UnitTestDataManagementConstants.hasHardcodedTestData(
+            content,
+            testFile
+          )
+        ) {
           hardcodedDataFiles.push(relative);
         }
 
-        if (UnitTestDataManagementConstants.hasSharedMutableState(content)) {
-          sharedStateFiles.push(relative);
-        }
+        if (shared) sharedStateFiles.push(relative);
       } catch (_error) {
         // Skip files that can't be read
       }
@@ -115,7 +126,10 @@ export class UnitTestDataManagementAnalyzerService {
     for (const testFile of this.findTestFiles(projectRoot, config)) {
       try {
         const content = FileUtils.readFile(testFile, { encoding: 'utf8' });
-        const used = UnitTestDataManagementConstants.resourcesUsed(content);
+        const used = UnitTestDataManagementConstants.resourcesUsed(
+          content,
+          testFile
+        );
         if (
           used.length > 0 &&
           !UnitTestDataManagementConstants.hasResourceCleanup(content)

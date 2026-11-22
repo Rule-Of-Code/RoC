@@ -465,6 +465,21 @@ describe('ZeroToleranceLaw', () => {
       ).toBe(true);
     });
 
+    // #506 (QA on #503): advice follows the findings of the run.
+    it('gives no strict-mode advice when tsconfig.json could not be read', async () => {
+      FileUtils.writeFile(
+        PathOperations.join(tempDir, 'tsconfig.json'),
+        '{ "compilerOptions": { "strict": tru'
+      );
+
+      const result = await ZeroToleranceLaw.check(createMockContext());
+
+      expect(result.violations?.join('\n')).toMatch(/NOT read/);
+      expect(result.suggestions ?? []).not.toContain(
+        'Enable TypeScript strict mode'
+      );
+    });
+
     it('should not have suggestions when passing', async () => {
       const tsconfig = {
         compilerOptions: {

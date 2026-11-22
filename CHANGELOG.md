@@ -301,6 +301,29 @@ Tests that covered only this code go with it: the `TypeScriptChecker` suite,
 its two #486 cases and barrel-export check, and the `LicenseCheckerConstants`
 suite. No law changes what it reports.
 
+### ⚠️ BREAKING — Test Coverage counts a file a test imports directly
+
+Test Coverage Constitutional Standard counted a source file as tested only
+when a test was named after it (`foo.ts` ↔ `foo.spec.ts` / `foo.test.ts`). A
+test that imports a file and exercises it under another name — one spec for a
+folder, an integration test, `tests/` laid out differently from `src/` —
+counted for nothing, and the law asked for tests that already existed. A file
+now counts as tested when a test is named after it OR imports it directly:
+`import`/`export … from`, `require()`, `import()`, or a `jest.mock` /
+`vi.mock` path, resolved from the test file with the `paths`/`baseUrl` of the
+nearest tsconfig/jsconfig. Direct only: a file a test reaches through another
+module still lacks a test. The finding reads "N source files lack
+corresponding test files (a test that imports a file counts)" and its
+examples name only files no test names or imports.
+
+Projects whose tests are not named after their sources see fewer findings —
+on RoC's own code 557 → 295. Not followed: an alias declared only in a Jest
+`moduleNameMapper` or a bundler config (such a file is judged by its test's
+name, as before). Without the `typescript` package the imports are not read:
+the name alone decides, and the finding says the imports were NOT read. The
+"Low test coverage ratio" check is unchanged (test files per source file):
+counting covered files instead would fail projects that pass it today.
+
 ### Internal — two copied helpers read through their one implementation
 
 Code Duplication Control reported three copies in our own code; two are

@@ -265,6 +265,18 @@ packed tarball installed as a consumer — the mandatory gate before every relea
 pre-push (full audit). The audit's exit code blocks the push only on error-severity
 violations — warning laws report without stopping the team.
 
+`reinstall-hooks` rewrites a hook only when it differs from what this version generates
+by its version stamp alone. A hook with lines of its own (a step you added, or an older
+template) is kept and named, and the command exits 1. `reinstall-hooks --force` replaces
+it and first saves the old file as `.husky/<hook>.bak`, printing the path.
+
+`reinstall-hooks --no-stash` (opt-in) writes `npx lint-staged --no-stash` into pre-commit.
+lint-staged keeps its backup with `git stash`, and the stash list belongs to the repository,
+not the worktree: with several worktrees committing at once, one hook can restore another's
+backup. Without the stash a failed task cannot restore files it rewrote, so use it only when
+no lint-staged task rewrites files (`prettier --write`, `eslint --fix`). A hook that carries the
+opt-in keeps it on later reinstalls; remove `--no-stash` from the hook to drop it.
+
 ### Audit cache (opt-in)
 
 `performance.cache: true` caches the audit result and creates `.ruleofcode-cache/` in the

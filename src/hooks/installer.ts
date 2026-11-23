@@ -15,8 +15,39 @@ import { PythonSatisfaction } from '../utils/python-satisfaction';
 export interface HooksInstallOptions {
   projectRoot: string;
   config: RuleOfCodeConfig;
+  /** Write over hooks that exist. */
   force?: boolean;
+  /**
+   * When writing over a hook that has lines this version does not generate,
+   * keep it and name it instead of replacing it (#556). Without it, such a
+   * hook is saved as `<hook>.bak` first.
+   */
+  keepEdited?: boolean;
+  /**
+   * Run lint-staged without its backup stash (#480). `undefined` keeps what
+   * the existing pre-commit hook does, so an opt-in survives the next
+   * reinstall.
+   */
+  lintStagedNoStash?: boolean;
 }
+
+/** What an install did to existing hooks it was asked to write over. */
+export interface HooksWriteReport {
+  /** Hooks kept as they are: they have lines of their own (keepEdited). */
+  refused: string[];
+  /** `<hook>.bak` files written before a hook with lines of its own was replaced. */
+  backups: string[];
+}
+
+interface WriteMode {
+  force: boolean;
+  lintStagedNoStash: boolean;
+  keepEdited: boolean;
+  report: HooksWriteReport;
+}
+
+/** A version stamp in a generated hook (`RuleOfCode v8.0.1`). */
+const VERSION_STAMP = /\bv\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?\b/g;
 
 export class GitHooksInstaller {
   /**
@@ -44,8 +75,12 @@ export class GitHooksInstaller {
   /**
    * Install all git hooks based on configuration
    */
-  static install(options: HooksInstallOptions): void {
-    const { projectRoot, config, force = false } = options;
+  static install(options: HooksInstallOptions): HooksWriteReport {
+    const { projectRoot, config, force = false, keepEdited = false } = options;
+    const report: HooksWriteReport = { refused: [], backups: [] };
+    const lintStagedNoStash =
+      options.lintStagedNoStash ?? this.hookRunsLintStagedNoStash(projectRoot);
+    const mode: WriteMode = { force, keepEdited, lintStagedNoStash, report };
 
     console.log(chalk.cyanBright('🔧 Installing RuleOfCode git hooks...'));
 
@@ -55,25 +90,114 @@ export class GitHooksInstaller {
 
     // Install hooks based on configuration
     if (config.hooks.preCommit) {
-      this.installPreCommitHook(projectRoot, config, force);
+      this.installPreCommitHook(projectRoot, config, mode);
     }
 
     if (config.hooks.prePush) {
-      this.installPrePushHook(projectRoot, config, force);
+      this.installPrePushHook(projectRoot, config, mode);
     }
 
     if (config.hooks.commitMsg) {
-      this.installCommitMsgHook(projectRoot, config, force);
+      this.installCommitMsgHook(projectRoot, config, mode);
     }
 
     // Install custom hooks
     if (config.hooks.custom) {
       for (const [hookName, commands] of Object.entries(config.hooks.custom)) {
-        this.installCustomHook(projectRoot, hookName, commands, force);
+        this.installCustomHook(projectRoot, hookName, commands, mode);
       }
     }
 
     console.log(chalk.greenBright('✅ Hook scripts written to .husky/'));
+    return report;
+  }
+
+  /**
+   * Write one hook. A hook that exists and differs from `content` by more
+   * than its version stamp has lines this version does not generate — the
+   * project's own steps, or an older template — and writing over it in
+   * silence deleted them (#556). It is kept and named (`keepEdited`), or
+   * saved as `<hook>.bak` before it is replaced. Returns whether it wrote.
+   */
+  private static writeHook(
+    hookPath: string,
+    hookName: string,
+    content: string,
+    mode: WriteMode
+  ): boolean {
+    if (FileUtils.exists(hookPath)) {
+      const current = FileUtils.readFile(hookPath);
+      if (!this.sameButVersion(current, content)) {
+        const where = `${this.HUSKY_DIR}/${hookName}`;
+        if (mode.keepEdited) {
+          console.warn(
+            chalk.yellowBright(
+              `⚠️ ${where} has lines this version does not generate (the project's own, or an older template) — kept as it is. Compare it with the template, or run 'reinstall-hooks --force' to replace it (the file is saved as ${where}.bak first).`
+            )
+          );
+          mode.report.refused.push(hookName);
+          return false;
+        }
+        const backup = `${hookPath}.bak`;
+        FileUtils.writeFile(backup, current);
+        mode.report.backups.push(backup);
+        console.warn(
+          chalk.yellowBright(
+            `⚠️ ${where} had lines this version does not generate — the old file is saved as ${backup}`
+          )
+        );
+      }
+    }
+    FileUtils.writeFile(hookPath, content);
+    return true;
+  }
+
+  /** The existing pre-commit hook runs `npx lint-staged --no-stash` (the #480 opt-in). */
+  private static hookRunsLintStagedNoStash(projectRoot: string): boolean {
+    const hookPath = PathOperations.join(
+      projectRoot,
+      this.HUSKY_DIR,
+      this.PRE_COMMIT_HOOK
+    );
+    if (!FileUtils.exists(hookPath)) return false;
+    return /^\s*npx lint-staged --no-stash\s*$/m.test(
+      FileUtils.readFile(hookPath)
+    );
+  }
+
+  /**
+   * The lint-staged call of the pre-commit hook. lint-staged saves a backup
+   * with `git stash` and restores it when a task fails; the stash list
+   * belongs to the repository, not the worktree, so with several worktrees
+   * committing at once one hook can restore another's backup. `--no-stash`
+   * avoids that, and loses the backup a task that rewrites files relies on:
+   * opt-in only (`reinstall-hooks --no-stash`).
+   */
+  private static lintStagedCall(noStash: boolean): string {
+    if (!noStash) return '  npx lint-staged';
+    return [
+      '  # Opt-in (reinstall-hooks --no-stash): no backup stash. The stash list',
+      '  # belongs to the repository, not the worktree, so with several worktrees',
+      "  # committing at once one hook could restore another worktree's backup.",
+      '  # Only safe when no lint-staged task rewrites files.',
+      '  npx lint-staged --no-stash',
+    ].join('\n');
+  }
+
+  /**
+   * The two hooks are the same apart from version stamps, line endings and
+   * the generated lint-staged call — with or without the #480 opt-in, which
+   * is this tool's own text, not a line of the project's.
+   */
+  private static sameButVersion(a: string, b: string): boolean {
+    const optIn = this.lintStagedCall(true);
+    const plain = (text: string): string =>
+      text
+        .replace(/\r\n/g, '\n')
+        .replace(VERSION_STAMP, 'v*')
+        .split(optIn)
+        .join(this.lintStagedCall(false));
+    return plain(a) === plain(b);
   }
 
   /**
@@ -82,7 +206,7 @@ export class GitHooksInstaller {
   private static installPreCommitHook(
     projectRoot: string,
     config: RuleOfCodeConfig,
-    force: boolean
+    mode: WriteMode
   ): void {
     const hookPath = PathOperations.join(
       projectRoot,
@@ -90,7 +214,7 @@ export class GitHooksInstaller {
       this.PRE_COMMIT_HOOK
     );
 
-    if (!force && FileUtils.exists(hookPath)) {
+    if (!mode.force && FileUtils.exists(hookPath)) {
       console.log(
         chalk.yellowBright(
           '⚠️ pre-commit hook already exists, skipping (use --force to overwrite)'
@@ -113,7 +237,7 @@ if [ "$roc_lint_staged" = 0 ] && node -e "process.exit(require('./package.json')
   roc_lint_staged=1
 fi
 if [ "$roc_lint_staged" = 1 ]; then
-  npx lint-staged
+${this.lintStagedCall(mode.lintStagedNoStash)}
 fi
 
 # Run constitutional audit on staged files
@@ -131,7 +255,8 @@ ${this.pythonHookBlock(config, this.PRE_COMMIT_HOOK)}
 echo "✅ Constitutional compliance verified - proceeding with commit"
 `;
 
-    FileUtils.writeFile(hookPath, hookContent);
+    if (!this.writeHook(hookPath, this.PRE_COMMIT_HOOK, hookContent, mode))
+      return;
     console.log(chalk.greenBright('✅ pre-commit hook installed'));
   }
 
@@ -141,7 +266,7 @@ echo "✅ Constitutional compliance verified - proceeding with commit"
   private static installPrePushHook(
     projectRoot: string,
     config: RuleOfCodeConfig,
-    force: boolean
+    mode: WriteMode
   ): void {
     const hookPath = PathOperations.join(
       projectRoot,
@@ -149,7 +274,7 @@ echo "✅ Constitutional compliance verified - proceeding with commit"
       this.PRE_PUSH_HOOK
     );
 
-    if (!force && FileUtils.exists(hookPath)) {
+    if (!mode.force && FileUtils.exists(hookPath)) {
       console.log(
         chalk.yellowBright(
           '⚠️ pre-push hook already exists, skipping (use --force to overwrite)'
@@ -177,7 +302,8 @@ ${this.pythonHookBlock(config, 'pre-push')}
 echo "✅ Full constitutional compliance verified - proceeding with push"
 `;
 
-    FileUtils.writeFile(hookPath, hookContent);
+    if (!this.writeHook(hookPath, this.PRE_PUSH_HOOK, hookContent, mode))
+      return;
     console.log(chalk.greenBright('✅ pre-push hook installed'));
   }
 
@@ -233,7 +359,7 @@ ${steps}
   private static installCommitMsgHook(
     projectRoot: string,
     config: RuleOfCodeConfig,
-    force: boolean
+    mode: WriteMode
   ): void {
     const hookPath = PathOperations.join(
       projectRoot,
@@ -241,7 +367,7 @@ ${steps}
       this.COMMIT_MSG_HOOK
     );
 
-    if (!force && FileUtils.exists(hookPath)) {
+    if (!mode.force && FileUtils.exists(hookPath)) {
       console.log(
         '⚠️ commit-msg hook already exists, skipping (use --force to overwrite)'
       );
@@ -441,7 +567,8 @@ fi
 echo "✅ Commit message format validated (RuleOfCode v${this.VERSION})"
 `;
 
-    FileUtils.writeFile(hookPath, hookContent);
+    if (!this.writeHook(hookPath, this.COMMIT_MSG_HOOK, hookContent, mode))
+      return;
     console.log('✅ commit-msg hook installed');
   }
 
@@ -452,11 +579,11 @@ echo "✅ Commit message format validated (RuleOfCode v${this.VERSION})"
     projectRoot: string,
     hookName: string,
     commands: string[],
-    force: boolean
+    mode: WriteMode
   ): void {
     const hookPath = PathOperations.join(projectRoot, this.HUSKY_DIR, hookName);
 
-    if (!force && FileUtils.exists(hookPath)) {
+    if (!mode.force && FileUtils.exists(hookPath)) {
       console.log(
         `⚠️ ${hookName} hook already exists, skipping (use --force to overwrite)`
       );
@@ -471,7 +598,7 @@ ${commands.join('\n')}
 echo "✅ Custom hook ${hookName} completed"
 `;
 
-    FileUtils.writeFile(hookPath, hookContent);
+    if (!this.writeHook(hookPath, hookName, hookContent, mode)) return;
     console.log(`✅ ${hookName} hook installed`);
   }
 
@@ -787,11 +914,17 @@ echo "✅ Custom hook ${hookName} completed"
   }
 
   /**
-   * Reinstall hooks (force update)
+   * Reinstall hooks: write over the generated ones. A hook with lines of its
+   * own is kept and named, unless `force` is given — then it is saved as
+   * `<hook>.bak` and replaced (#556).
    */
-  static reinstall(options: HooksInstallOptions): void {
+  static reinstall(options: HooksInstallOptions): HooksWriteReport {
     console.log(chalk.cyanBright('🔄 Reinstalling RuleOfCode git hooks...'));
-    this.install({ ...options, force: true });
+    return this.install({
+      ...options,
+      force: true,
+      keepEdited: !options.force,
+    });
   }
 
   /**

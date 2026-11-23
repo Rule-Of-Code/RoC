@@ -33,6 +33,26 @@ A script, hook or CI step that runs the file a `ruleofcode` / `roc` bin entry
 points at, with `audit`, now counts. The same command under a bin of another
 name does not (#434).
 
+### 🐛 Fixed — reinstall-hooks keeps the lines a project added to a hook
+
+`reinstall-hooks` wrote every hook over with the template, with or without
+`--force`, and kept no copy: a step the project had added (a secret scan, a
+formatter, a repository-specific flag) was gone after the next upgrade.
+Now a hook that differs from the template by more than its version stamp is
+kept and named, and the command exits 1. With `--force` it is replaced, and
+the old file is first saved as `.husky/<hook>.bak`, whose path is printed
+(#556).
+
+### ✨ Added — reinstall-hooks --no-stash (opt-in)
+
+`reinstall-hooks --no-stash` writes `npx lint-staged --no-stash` into the
+pre-commit hook. lint-staged keeps its backup with `git stash`, and the stash
+list belongs to the repository, not the worktree: with several worktrees
+committing at once one hook could restore another worktree's backup. Without
+the stash a failed task cannot restore files it rewrote, so it is not the
+default. A hook that carries the opt-in keeps it on every later reinstall, and
+is not reported as outdated or as edited (#480).
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

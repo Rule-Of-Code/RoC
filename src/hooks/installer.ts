@@ -130,7 +130,7 @@ export class GitHooksInstaller {
       if (!this.sameButVersion(current, content)) {
         const where = `${this.HUSKY_DIR}/${hookName}`;
         if (mode.keepEdited) {
-          console.warn(
+          console.log(
             chalk.yellowBright(
               `⚠️ ${where} has lines this version does not generate (the project's own, or an older template) — kept as it is. Compare it with the template, or run 'reinstall-hooks --force' to replace it (the file is saved as ${where}.bak first).`
             )
@@ -141,7 +141,7 @@ export class GitHooksInstaller {
         const backup = `${hookPath}.bak`;
         FileUtils.writeFile(backup, current);
         mode.report.backups.push(backup);
-        console.warn(
+        console.log(
           chalk.yellowBright(
             `⚠️ ${where} had lines this version does not generate — the old file is saved as ${backup}`
           )

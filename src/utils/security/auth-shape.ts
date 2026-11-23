@@ -219,11 +219,59 @@ function conceptName(ts: typeof TS, node: TS.Node): string | null {
   return null;
 }
 
+/** `x.role` / `x?.roles` — a property access that names a role concept. */
+function rolePropertyName(ts: typeof TS, node: TS.Node): string | null {
+  return ts.isPropertyAccessExpression(node) &&
+    isRoleOrPermission(node.name.text)
+    ? node.name.text
+    : null;
+}
+
+/**
+ * An inline role check (#574): `user?.role === 'owner'`, `role !== 'admin'`,
+ * `user.roles.includes('admin')`. The code enforces the role where it
+ * compares it, without a helper named hasRole.
+ */
+function readInlineRoleCheck(ts: typeof TS, node: TS.Node, s: AuthShape) {
+  if (comparesRole(ts, node) || includesRole(ts, node)) s.roleCheck = true;
+}
+
+/** `user?.role === 'owner'`, `role !== 'admin'` (either side). */
+function comparesRole(ts: typeof TS, node: TS.Node): boolean {
+  if (!ts.isBinaryExpression(node)) return false;
+  if (!equalityTokens(ts).has(node.operatorToken.kind)) return false;
+  return !!(
+    rolePropertyName(ts, node.left) || rolePropertyName(ts, node.right)
+  );
+}
+
+/** `user.roles.includes('admin')`. */
+function includesRole(ts: typeof TS, node: TS.Node): boolean {
+  return (
+    ts.isCallExpression(node) &&
+    ts.isPropertyAccessExpression(node.expression) &&
+    node.expression.name.text === 'includes' &&
+    !!rolePropertyName(ts, node.expression.expression)
+  );
+}
+
+/** `===`, `!==`, `==`, `!=`. */
+function equalityTokens(ts: typeof TS): ReadonlySet<TS.SyntaxKind> {
+  const k = ts.SyntaxKind;
+  return new Set([
+    k.EqualsEqualsEqualsToken,
+    k.ExclamationEqualsEqualsToken,
+    k.EqualsEqualsToken,
+    k.ExclamationEqualsToken,
+  ]);
+}
+
 function readNode(ts: typeof TS, node: TS.Node, s: AuthShape): void {
   readModule(ts, node, s);
   if (ts.isCallExpression(node)) readCall(ts, node, s);
   readDecoratorOrNew(ts, node, s);
   readKeyOrType(ts, node, s);
+  readInlineRoleCheck(ts, node, s);
   const name = conceptName(ts, node);
   if (name && isRoleOrPermission(name)) s.roleConcept = true;
 }

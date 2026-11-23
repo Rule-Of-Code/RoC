@@ -273,8 +273,9 @@ and "vulnerability detection"; its id (`security_a0bcc52d`) is unchanged.
 - Without the TypeScript parser these two checks read nothing, and the law
   says the files were NOT read instead of judging them by words.
 
-Authentication by file name (`AUTH_FILES`) is not changed here; it moves to
-the content-based detector of #549.
+Authentication by file name (`AUTH_FILES`) was not changed by this entry;
+it moved to the content-based detector of #549 (see "API Security Standards
+recognises authentication by what the code does" below).
 
 ### Fixed — Semantic Versioning Standards reads the manifest a Python project releases from
 
@@ -629,6 +630,39 @@ The service, the five analyzers, their configurations and validation patterns,
 the `utils/performance` barrel and their tests are removed. No law result
 changes: the removed code never produced a finding. Leaks in code are judged by
 Memory Leak Prevention and Timer Cleanup.
+
+### 🐛 Fixed — API Security Standards recognises authentication by what the code does (#550)
+
+The law looked for authentication in five exact file names
+(`auth.service.ts`, `authentication.service.ts`, `token.service.ts`,
+`auth.interceptor.ts`, `auth.guard.ts`): an interceptor in `http-auth.ts`
+that attaches the credential was "No authentication service implementation
+found", and an empty `auth.service.ts` satisfied the check. It now uses the
+detector of #549: a managed auth SDK or a session library imported, a
+sign-in or verify call, or an `Authorization` header attached to requests,
+in a file of any name. The Authorization-header, refresh and storage checks
+read the files that authenticate; a managed SDK is not asked for a refresh
+mechanism (it refreshes its own tokens). Without the TypeScript parser
+authentication is not judged and the law says the files were NOT read. The
+detection limits say so.
+
+### 🐛 Fixed — Authentication Security reads code outside src/ (#574)
+
+The law read `src/`, or `apps/` and `libs/` in an Nx layout, and nothing
+else. A Next.js app-router project (`app/`, `lib/`), a pages-router project
+(`pages/`) or an Express service with `server/` gave its checks no file;
+after #561 the law said the code was not read. When neither layout holds
+code, the law now reads the project as the other laws do, less tests,
+ignored trees and build output (`.next/`, `out/`, `build/`, `.output/`,
+`.nuxt/`, `.svelte-kit/`, `.vercel/`, `.netlify/`, `.turbo/`, `.cache/`,
+`coverage/`, `storybook-static/`). A project with code in `src/` is read as
+before. A project with no code file at all is still told its code was not
+read.
+
+Role enforcement written inline now counts as a role check:
+`user?.role === 'owner'`, `role !== 'admin'`, `user.roles.includes('admin')`.
+A role that appears only as an object key (`{ role: 'user' }`, as in a chat
+message or an ARIA attribute object) is not a role concept.
 
 ## [8.0.1] - 2026-11-22
 

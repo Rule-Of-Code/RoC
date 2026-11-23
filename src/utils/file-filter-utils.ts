@@ -162,15 +162,25 @@ export class FileFilterUtils {
     // Apply rule-specific ignores. Match by the hashed lawId (legacy) and by the
     // readable lawConfigKey slug (e.g. "magic-number-prevention") — so that the
     // readable `ignores.byRule` keys in the config work, not just the hashed ones.
-    if (lawId && _config.ignores?.byRule?.[lawId]) {
-      patterns.push(..._config.ignores.byRule[lawId]);
-    }
-    const ignoreSlug = FileFilterUtils.currentLawConfigKey;
-    if (ignoreSlug && _config.ignores?.byRule?.[ignoreSlug]) {
-      patterns.push(..._config.ignores.byRule[ignoreSlug]);
-    }
+    patterns.push(
+      ...FileFilterUtils.byRulePatterns(_config.ignores?.byRule, lawId)
+    );
 
     return patterns;
+  }
+
+  /**
+   * The patterns a `byRule` section holds for the running law: under its
+   * hashed lawId (legacy) and under its readable lawConfigKey slug.
+   */
+  private static byRulePatterns(
+    byRule: Record<string, string[]> | undefined,
+    lawId?: string
+  ): string[] {
+    const slug = FileFilterUtils.currentLawConfigKey;
+    const byId = lawId ? (byRule?.[lawId] ?? []) : [];
+    const bySlug = slug ? (byRule?.[slug] ?? []) : [];
+    return [...byId, ...bySlug];
   }
 
   /**
@@ -241,14 +251,10 @@ export class FileFilterUtils {
     }
 
     // Use positive inclusion if specified
-    const includePatterns = [..._config.includes.global];
-    if (lawId && _config.includes.byRule?.[lawId]) {
-      includePatterns.push(..._config.includes.byRule[lawId]);
-    }
-    const includeSlug = FileFilterUtils.currentLawConfigKey;
-    if (includeSlug && _config.includes.byRule?.[includeSlug]) {
-      includePatterns.push(..._config.includes.byRule[includeSlug]);
-    }
+    const includePatterns = [
+      ..._config.includes.global,
+      ...FileFilterUtils.byRulePatterns(_config.includes.byRule, lawId),
+    ];
 
     // For directories, check if they could potentially contain included
     // files. Pruning is an OPTIMIZATION — when we cannot reason about a

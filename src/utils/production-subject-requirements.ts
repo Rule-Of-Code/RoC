@@ -13,13 +13,26 @@
  * never the name or path of a particular project.
  */
 
-import * as fs from 'fs';
-import type { LawRequirement } from '../types/enhanced-law.types';
+import type {
+  JsonFileWithKey,
+  LawRequirement,
+} from '../types/enhanced-law.types';
 import { REQUIRES_SERVERLESS_DEPLOY } from './deployment/serverless-platforms';
 import { TEST_TREES } from './edge-deploy/gate-files';
-import { NxWorkspace } from './nx-workspace';
+import { jsonFilesWithKey } from './law-requirements';
 
 const FIREBASE_JSON = 'firebase.json';
+
+/**
+ * firebase.json configures several products; only its `hosting` key declares
+ * something a browser loads. `firestore`, `functions`, `storage` and
+ * `emulators` serve no page (#547). The file is parsed, not searched: the
+ * word "hosting" also appears under `emulators`.
+ */
+export const FIREBASE_HOSTING: JsonFileWithKey = {
+  file: FIREBASE_JSON,
+  key: 'hosting',
+};
 
 /** What the firebase.json files of a project say about web hosting. */
 export interface FirebaseHosting {
@@ -29,37 +42,10 @@ export interface FirebaseHosting {
   unreadable: string[];
 }
 
-/**
- * firebase.json configures several products; only its `hosting` key declares
- * something a browser loads. `firestore`, `functions`, `storage` and
- * `emulators` serve no page (#547). The file is parsed, not searched: the
- * word "hosting" also appears under `emulators`.
- */
+/** The law's reading of FIREBASE_HOSTING — the same reader the selector uses. */
 export function firebaseHosting(projectRoot: string): FirebaseHosting {
-  const unreadable: string[] = [];
-  let hosting = false;
-  for (const file of NxWorkspace.resolveSourceFiles(
-    projectRoot,
-    FIREBASE_JSON
-  )) {
-    try {
-      const parsed: unknown = JSON.parse(fs.readFileSync(file, 'utf8'));
-      if (
-        parsed !== null &&
-        typeof parsed === 'object' &&
-        !Array.isArray(parsed) &&
-        'hosting' in parsed
-      ) {
-        hosting = true;
-      }
-    } catch (error) {
-      const rel = file.slice(projectRoot.length).replace(/^[\\/]+/, '');
-      unreadable.push(
-        `${rel.replace(/\\/g, '/')}: ${error instanceof Error ? error.message : String(error)}`
-      );
-    }
-  }
-  return { hosting, unreadable };
+  const found = jsonFilesWithKey(projectRoot, FIREBASE_HOSTING);
+  return { hosting: found.matched.length > 0, unreadable: found.unreadable };
 }
 
 /**
@@ -168,13 +154,15 @@ export const REQUIRES_WEB_SURFACE: LawRequirement = {
         'next.config.ts',
         'nuxt.config.ts',
         'nuxt.config.js',
-        FIREBASE_JSON,
         'netlify.toml',
         'vercel.json',
         'wrangler.toml',
         'nginx.conf',
       ],
     },
+    // Parsed: firebase.json declares a page only with `hosting` (#547);
+    // one that does not parse selects the law, which reports it not read.
+    { anyJsonFileWithKey: [FIREBASE_HOSTING] },
     {
       anyFileContaining: [
         {

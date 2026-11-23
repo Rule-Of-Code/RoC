@@ -18,8 +18,13 @@ Without TypeScript/JavaScript sources or another web config, the law now
 counts `firebase.json` (at the root or in a workspace project) only when it
 parses and has a top-level `hosting` key; otherwise it is not applicable. A
 `firebase.json` that does not parse is reported as not read: the law judged
-nothing and does not pass. The `requires` selector still selects the law on
-the presence of `firebase.json`; that part follows separately.
+nothing and does not pass. The `requires` selector (`REQUIRES_WEB_SURFACE`)
+reads `firebase.json` the same way, through a new requirement condition,
+`anyJsonFileWithKey`: a JSON file parsed for a top-level key. A file that does
+not parse selects the law (fail-closed), so its "not read" is reported instead
+of the law disappearing from the audit. The laws selected by
+`REQUIRES_PRODUCTION_SUBJECT` are unchanged: `firebase.json` is still a deploy
+target there.
 
 ## [8.0.1] - 2026-11-22
 

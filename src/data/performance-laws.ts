@@ -345,8 +345,8 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
         'Serve assets via a CDN (firebase hosting headers / deployUrl), set cache-control headers, add a service worker, and enable HTTP/2.',
     },
     detectionLimits: [
-      'Selected only for a web surface: a browser framework dependency (@angular/core, react-dom, vue, svelte, next, nuxt, astro, lit …), a web build or hosting config (angular.json, next.config.*, firebase.json, vercel.json, netlify.toml, wrangler.toml, nginx.conf), or an HTML page of the project outside test trees. A pure backend, a CLI tool or a library is not selected.',
-      'Without TS/JS sources or another web config, a firebase.json counts as a web surface only when it parses and has a top-level hosting key (Firestore, Functions or Storage alone serve no page); one that does not parse is reported as not read. The selector still selects the law on the presence of firebase.json.',
+      'Selected only for a web surface: a browser framework dependency (@angular/core, react-dom, vue, svelte, next, nuxt, astro, lit …), a web build or hosting config (angular.json, next.config.*, vercel.json, netlify.toml, wrangler.toml, nginx.conf, or a firebase.json with a top-level hosting key), or an HTML page of the project outside test trees. A pure backend, a CLI tool or a library is not selected.',
+      'Without TS/JS sources or another web config, a firebase.json counts as a web surface only when it parses and has a top-level hosting key (Firestore, Functions or Storage alone serve no page); one that does not parse is reported as not read. The selector reads firebase.json the same way; one that does not parse selects the law (fail-closed) so that it is reported, not skipped.',
       'Its CDN check matches a bare "assets" or "cdn" anywhere in an env file, a trivially-satisfied false pass.',
       'All detection is config-file presence; no runtime CDN/edge verification.',
       'TS/JS + web config only.',

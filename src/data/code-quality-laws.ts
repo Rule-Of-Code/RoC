@@ -184,9 +184,10 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Measures structural / cyclomatic complexity from syntax; it does not measure cognitive load, naming quality, or whether the complexity is justified by the problem.',
       'A low score is not "simple" — a tangled function under the threshold still passes.',
-      'Each function is measured on its own body from the TypeScript syntax tree (a nested callback is its own function); without a loadable `typescript` the .ts/.tsx files are NOT read and the law judges nothing. Decision points: if, loops, case, catch, ?: and &&/||; `??` and optional chaining are not counted.',
+      'Each function is measured on its own body from the TypeScript syntax tree (a nested callback is its own function); without a loadable `typescript` the .ts/.tsx files are NOT read and the law judges nothing. Decision points: if, for / for-in / for-of, while, do, case, catch, `?:`, `&&`, `||`, `&&=` and `||=`. Not counted: `??`, optional chaining (`?.`) and default parameters — the `complexity` rule of ESLint counts those too, so its numbers are higher than the ones this law reports.',
       'File length counts lines of code (no comment or blank lines) and is not applied to a data file with at most two functions; "too many functions" is reported only for a file that also has a function over the complexity limit.',
       'thresholds.codeQuality.maxFileComplexity is opt-in: with no value set a file is judged only by its worst single function, never by its total, so a large file of simple functions is not reported.',
+      'The law is the check; ESLint complexity rules (`complexity`, `max-lines`, `max-depth`) are not required. When the project sets them, the result says so in its details, as information: not a finding, and it changes nothing about the verdict.',
     ],
     emoji: '🌪️',
     description: 'Functions must maintain reasonable cyclomatic complexity',
@@ -294,9 +295,11 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Flags numeric literals by pattern; it cannot tell a domain constant from a magic number by MEANING, only by whether the value is named.',
       'It does not verify a named constant is used correctly — a well-named but wrong constant passes.',
       'Literals are read from the TypeScript parse: a digit in a string, template text, regex or comment is not one; without a loadable `typescript` the files are NOT read and the law judges nothing. Named: an initializer of a variable, property, class field, enum member, parameter or destructuring default (also through a constant expression or an array), the elements of a new Set/Map that initialises a const or a class field, the fallback of `??`, and a parseInt radix.',
+      'The law is the check; an ESLint rule is not required. `no-magic-numbers` / `@typescript-eslint/no-magic-numbers` has no option for a `??` fallback or a constant expression in an initializer, so it reports numbers this law counts as named. When the project sets one, the result says so in its details, as information: not a finding, and it changes nothing about the verdict.',
     ],
     emoji: '🔮',
-    description: 'All numeric literals must be replaced with named constants',
+    description:
+      'Numeric literals in code are named (a constant, an initializer, a ?? fallback), not written bare; judged by the law itself, no lint rule required',
     priority: 'MEDIUM',
     category: 'CODE_QUALITY',
     defaultEnabled: true,
@@ -305,7 +308,8 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
     checkFunction: 'checkMagicNumberPrevention',
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article II.2.8: Magic numbers detected',
-    remediation: 'Replace magic numbers with well-named constants',
+    remediation:
+      'Name each reported number where it is used: a named constant, or a config key with a ?? fallback. Adding an ESLint rule does not satisfy or change the verdict',
   },
 
   {

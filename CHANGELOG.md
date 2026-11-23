@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Angular Testing Excellence reports a one-letter test title (#570)
+
+The descriptive-title rule (#557) reported an empty title, a placeholder or
+only the unit name, but `it('x')` and `it('y')` passed. A title with no word
+of two or more letters (`x`, `a1`, `1`) now says nothing and is reported;
+`returns 401 without a token` is not.
+
 ### 🐛 Fixed — NgRx Selectors Memoization Mandate sees a raw selector with a typed parameter (#530)
 
 A selector that reads state with no `createSelector` was reported only when

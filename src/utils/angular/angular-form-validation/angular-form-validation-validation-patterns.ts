@@ -9,15 +9,15 @@ import { AngularFormValidationConfiguration } from './angular-form-validation-co
  * Meta-dogfooding: Centralizes validation logic and eliminates duplicated file processing
  */
 export class AngularFormValidationValidationPatterns {
-  private static readonly Config = AngularFormValidationConfiguration;
+  private static readonly config = AngularFormValidationConfiguration;
   /**
    * Helper: Read file with standard Angular form validation config
    * Meta-dogfooding: Eliminates duplicated FileUtils.readFile calls with same config
    */
   private static readFileWithConfig(filePath: string): string {
     return FileUtils.readFile(filePath, {
-      encoding: this.Config.FILE_CONFIG.ENCODING,
-      fallbackToEmpty: this.Config.FILE_CONFIG.FALLBACK_TO_EMPTY,
+      encoding: this.config.FILE_CONFIG.ENCODING,
+      fallbackToEmpty: this.config.FILE_CONFIG.FALLBACK_TO_EMPTY,
     });
   }
 
@@ -49,7 +49,7 @@ export class AngularFormValidationValidationPatterns {
     ) => void,
     fileName: string
   ): void {
-    const templatePath = this.Config.getTemplatePath(componentFilePath);
+    const templatePath = this.config.getTemplatePath(componentFilePath);
 
     if (!FileUtils.exists(templatePath)) return;
 
@@ -70,7 +70,7 @@ export class AngularFormValidationValidationPatterns {
   ): void {
     if (!patterns.hasFormControls) return;
 
-    const validationConfig = this.Config.buildValidationSuggestions(patterns);
+    const validationConfig = this.config.buildValidationSuggestions(patterns);
 
     AngularValidationUtils.validateAndSuggest(
       patterns.fileName,
@@ -95,13 +95,13 @@ export class AngularFormValidationValidationPatterns {
     this.processTemplateContent(
       componentFilePath,
       (templateContent, templatePath, fileName) => {
-        const templatePatterns = this.Config.analyzeTemplateValidationPatterns(
+        const templatePatterns = this.config.analyzeTemplateValidationPatterns(
           templateContent,
           templatePath
         );
 
         const validationConfig =
-          this.Config.buildTemplateValidationSuggestions(templatePatterns);
+          this.config.buildTemplateValidationSuggestions(templatePatterns);
 
         AngularValidationUtils.validateAndSuggest(
           fileName,
@@ -112,7 +112,7 @@ export class AngularFormValidationValidationPatterns {
         // Critical validation violations
         if (!templatePatterns.hasErrorDisplay) {
           violations.push(
-            `${this.Config.VALIDATION_MESSAGES.TEMPLATE_ERRORS_MISSING} ${fileName}`
+            `${this.config.VALIDATION_MESSAGES.TEMPLATE_ERRORS_MISSING} ${fileName}`
           );
         }
       },
@@ -129,7 +129,7 @@ export class AngularFormValidationValidationPatterns {
     violations: string[],
     suggestions: string[]
   ): void {
-    const patterns = this.Config.analyzeFormValidationPatterns(
+    const patterns = this.config.analyzeFormValidationPatterns(
       content,
       filePath
     );

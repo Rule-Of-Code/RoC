@@ -11,7 +11,7 @@ import { AngularSignalImportsConfiguration } from './angular-signal-imports-conf
  * Meta-dogfooding: Uses centralized Configuration and validates imports
  */
 export class AngularSignalImportsAnalyzer extends AngularSignalAnalyzerBase {
-  private static readonly Config = AngularSignalImportsConfiguration;
+  private static readonly config = AngularSignalImportsConfiguration;
 
   /**
    * Check for Signal imports and configuration
@@ -24,7 +24,7 @@ export class AngularSignalImportsAnalyzer extends AngularSignalAnalyzerBase {
   }
 
   protected getFileExtensions(): string[] {
-    return [...AngularSignalImportsAnalyzer.Config.FILE_EXTENSIONS];
+    return [...AngularSignalImportsAnalyzer.config.FILE_EXTENSIONS];
   }
 
   protected analyzeFile(
@@ -119,21 +119,21 @@ export class AngularSignalImportsAnalyzer extends AngularSignalAnalyzerBase {
     violations: string[],
     suggestions: string[]
   ): void {
-    for (const check of this.Config.SIGNAL_CHECKS) {
+    for (const check of this.config.SIGNAL_CHECKS) {
       if (
         content.includes(check.usage) &&
         !this.importsSymbol(content, check.import)
       ) {
         violations.push(
-          this.Config.buildSignalMessage(
-            this.Config.VALIDATION_MESSAGES.SIGNAL_NOT_IMPORTED,
+          this.config.buildSignalMessage(
+            this.config.VALIDATION_MESSAGES.SIGNAL_NOT_IMPORTED,
             check.function,
             fileName
           )
         );
         suggestions.push(
-          this.Config.buildSignalMessage(
-            this.Config.VALIDATION_MESSAGES.SUGGEST_IMPORT,
+          this.config.buildSignalMessage(
+            this.config.VALIDATION_MESSAGES.SUGGEST_IMPORT,
             check.import,
             fileName
           )
@@ -144,12 +144,12 @@ export class AngularSignalImportsAnalyzer extends AngularSignalAnalyzerBase {
     // Effect cleanup validation
     if (
       content.includes('effect(') &&
-      content.includes(this.Config.EFFECT_CLEANUP_INDICATOR)
+      content.includes(this.config.EFFECT_CLEANUP_INDICATOR)
     ) {
-      if (!this.importsSymbol(content, this.Config.DESTROY_REF_IMPORT)) {
+      if (!this.importsSymbol(content, this.config.DESTROY_REF_IMPORT)) {
         suggestions.push(
-          this.Config.buildFileNameMessage(
-            this.Config.VALIDATION_MESSAGES.DESTROY_REF_SUGGESTION,
+          this.config.buildFileNameMessage(
+            this.config.VALIDATION_MESSAGES.DESTROY_REF_SUGGESTION,
             fileName
           )
         );
@@ -166,20 +166,20 @@ export class AngularSignalImportsAnalyzer extends AngularSignalAnalyzerBase {
     violations: string[],
     suggestions: string[]
   ): void {
-    const hasRxjsInterop = this.Config.RXJS_INTEROP_FUNCTIONS.some(fn =>
+    const hasRxjsInterop = this.config.RXJS_INTEROP_FUNCTIONS.some(fn =>
       content.includes(fn)
     );
 
-    if (hasRxjsInterop && !content.includes(this.Config.RXJS_INTEROP_PACKAGE)) {
+    if (hasRxjsInterop && !content.includes(this.config.RXJS_INTEROP_PACKAGE)) {
       violations.push(
-        this.Config.buildFileNameMessage(
-          this.Config.VALIDATION_MESSAGES.RXJS_INTEROP_NOT_IMPORTED,
+        this.config.buildFileNameMessage(
+          this.config.VALIDATION_MESSAGES.RXJS_INTEROP_NOT_IMPORTED,
           fileName
         )
       );
       suggestions.push(
-        this.Config.buildFileNameMessage(
-          this.Config.VALIDATION_MESSAGES.SUGGEST_RXJS_INTEROP_IMPORT,
+        this.config.buildFileNameMessage(
+          this.config.VALIDATION_MESSAGES.SUGGEST_RXJS_INTEROP_IMPORT,
           fileName
         )
       );
@@ -194,12 +194,12 @@ export class AngularSignalImportsAnalyzer extends AngularSignalAnalyzerBase {
     fileName: string,
     suggestions: string[]
   ): void {
-    const coreImports = content.match(this.Config.ANGULAR_CORE_IMPORT_REGEX);
+    const coreImports = content.match(this.config.ANGULAR_CORE_IMPORT_REGEX);
 
     if (coreImports && coreImports.length > 1) {
       suggestions.push(
-        this.Config.buildFileNameMessage(
-          this.Config.VALIDATION_MESSAGES.COMBINE_IMPORTS,
+        this.config.buildFileNameMessage(
+          this.config.VALIDATION_MESSAGES.COMBINE_IMPORTS,
           fileName
         )
       );
@@ -222,17 +222,17 @@ export class AngularSignalImportsAnalyzer extends AngularSignalAnalyzerBase {
     const angularVersion = dependencies['@angular/core'];
     if (!angularVersion) return;
 
-    const hasSignals = this.Config.SIGNAL_USAGE_INDICATORS.some(indicator =>
+    const hasSignals = this.config.SIGNAL_USAGE_INDICATORS.some(indicator =>
       content.includes(indicator)
     );
-    const isCompatibleVersion = this.Config.COMPATIBLE_VERSIONS.some(version =>
+    const isCompatibleVersion = this.config.COMPATIBLE_VERSIONS.some(version =>
       angularVersion.includes(version)
     );
 
     if (hasSignals && !isCompatibleVersion) {
       suggestions.push(
-        this.Config.buildVersionMessage(
-          this.Config.VALIDATION_MESSAGES.SIGNALS_VERSION_INCOMPATIBLE,
+        this.config.buildVersionMessage(
+          this.config.VALIDATION_MESSAGES.SIGNALS_VERSION_INCOMPATIBLE,
           angularVersion,
           fileName
         )
@@ -249,16 +249,16 @@ export class AngularSignalImportsAnalyzer extends AngularSignalAnalyzerBase {
     violations: string[],
     suggestions: string[]
   ): void {
-    if (content.includes(this.Config.EXPERIMENTAL_PACKAGE)) {
+    if (content.includes(this.config.EXPERIMENTAL_PACKAGE)) {
       violations.push(
-        this.Config.buildFileNameMessage(
-          this.Config.VALIDATION_MESSAGES.EXPERIMENTAL_SIGNALS_WARNING,
+        this.config.buildFileNameMessage(
+          this.config.VALIDATION_MESSAGES.EXPERIMENTAL_SIGNALS_WARNING,
           fileName
         )
       );
       suggestions.push(
-        this.Config.buildFileNameMessage(
-          this.Config.VALIDATION_MESSAGES.UPGRADE_TO_STABLE,
+        this.config.buildFileNameMessage(
+          this.config.VALIDATION_MESSAGES.UPGRADE_TO_STABLE,
           fileName
         )
       );

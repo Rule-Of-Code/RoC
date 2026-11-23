@@ -5,7 +5,7 @@ import { CONFIG_FILES } from '../../constants';
  * Centralized configuration management for project type detection operations
  */
 export class ProjectTypeDetectorConfiguration {
-  private static readonly Config = ProjectTypeDetectorConfiguration;
+  private static readonly config = ProjectTypeDetectorConfiguration;
 
   /**
    * Angular project detection patterns (RULE 1: 100% internal coverage)
@@ -207,14 +207,14 @@ export class ProjectTypeDetectorConfiguration {
     files: readonly string[];
     dependencies: readonly string[];
   } {
-    return this.Config.IONIC_PROJECT_PATTERNS;
+    return this.config.IONIC_PROJECT_PATTERNS;
   }
 
   static getAngularProjectPatterns(_config?: unknown): {
     files: readonly string[];
     dependencies: readonly string[];
   } {
-    return this.Config.ANGULAR_PROJECT_PATTERNS;
+    return this.config.ANGULAR_PROJECT_PATTERNS;
   }
 
   /**
@@ -224,7 +224,7 @@ export class ProjectTypeDetectorConfiguration {
     files: readonly string[];
     dependencies: readonly string[];
   } {
-    return this.Config.REACT_PROJECT_PATTERNS;
+    return this.config.REACT_PROJECT_PATTERNS;
   }
 
   /**
@@ -234,7 +234,7 @@ export class ProjectTypeDetectorConfiguration {
     files: readonly string[];
     dependencies: readonly string[];
   } {
-    return this.Config.VUE_PROJECT_PATTERNS;
+    return this.config.VUE_PROJECT_PATTERNS;
   }
 
   /**
@@ -244,7 +244,7 @@ export class ProjectTypeDetectorConfiguration {
     files: readonly string[];
     dependencies: readonly string[];
   } {
-    return this.Config.NODE_PROJECT_PATTERNS;
+    return this.config.NODE_PROJECT_PATTERNS;
   }
 
   /**
@@ -254,7 +254,7 @@ export class ProjectTypeDetectorConfiguration {
     files: readonly string[];
     dependencies: readonly string[];
   } {
-    return this.Config.TYPESCRIPT_PROJECT_PATTERNS;
+    return this.config.TYPESCRIPT_PROJECT_PATTERNS;
   }
 
   /**
@@ -264,7 +264,7 @@ export class ProjectTypeDetectorConfiguration {
     files: readonly string[];
     dependencies: readonly string[];
   } {
-    return this.Config.PYTHON_PROJECT_PATTERNS;
+    return this.config.PYTHON_PROJECT_PATTERNS;
   }
 
   /**
@@ -273,7 +273,7 @@ export class ProjectTypeDetectorConfiguration {
   static getTestingFrameworkPatterns(_config?: unknown): {
     dependencies: readonly string[];
   } {
-    return this.Config.TESTING_FRAMEWORK_PATTERNS;
+    return this.config.TESTING_FRAMEWORK_PATTERNS;
   }
 
   /**
@@ -282,7 +282,7 @@ export class ProjectTypeDetectorConfiguration {
   static getNxWorkspacePatterns(_config?: unknown): {
     files: readonly string[];
   } {
-    return this.Config.NX_WORKSPACE_PATTERNS;
+    return this.config.NX_WORKSPACE_PATTERNS;
   }
 
   /**
@@ -291,7 +291,7 @@ export class ProjectTypeDetectorConfiguration {
   static getBuildConfigPatterns(_config?: unknown): {
     files: readonly string[];
   } {
-    return this.Config.BUILD_CONFIG_PATTERNS;
+    return this.config.BUILD_CONFIG_PATTERNS;
   }
 
   /**
@@ -300,7 +300,7 @@ export class ProjectTypeDetectorConfiguration {
   static getHeavyLibraryPatterns(_config?: unknown): {
     libraries: readonly string[];
   } {
-    return this.Config.HEAVY_LIBRARY_PATTERNS;
+    return this.config.HEAVY_LIBRARY_PATTERNS;
   }
 
   /**
@@ -310,7 +310,7 @@ export class ProjectTypeDetectorConfiguration {
     files: readonly string[];
     patterns: readonly string[];
   } {
-    return this.Config.DEPLOYMENT_CONFIG_PATTERNS;
+    return this.config.DEPLOYMENT_CONFIG_PATTERNS;
   }
 
   /**
@@ -319,6 +319,6 @@ export class ProjectTypeDetectorConfiguration {
   static getProjectTypeDetectionOrder(_config?: unknown): {
     types: readonly string[];
   } {
-    return this.Config.PROJECT_TYPE_DETECTION_ORDER;
+    return this.config.PROJECT_TYPE_DETECTION_ORDER;
   }
 }

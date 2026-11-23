@@ -9,7 +9,7 @@ import type { MemoryLeakPatterns } from '../../types/memory.types';
 import { EventListenersConfiguration } from './event-listeners-configuration';
 
 export class EventListenersValidationPatterns {
-  private static readonly Config = EventListenersConfiguration;
+  private static readonly config = EventListenersConfiguration;
 
   /**
    * Master orchestrator method - validates all event listener patterns
@@ -45,7 +45,7 @@ export class EventListenersValidationPatterns {
     if (!content) return;
 
     // ===== INLINED: Centralized pattern analysis (RULE 1) =====
-    const patterns = this.Config.analyzeEventListenerPatterns(content);
+    const patterns = this.config.analyzeEventListenerPatterns(content);
 
     // Delegate to private validation helper with pre-computed patterns (RULE 2)
     this.validateEventListeners(file, patterns, globalEventListeners);
@@ -70,7 +70,7 @@ export class EventListenersValidationPatterns {
       patterns.hasElementListener;
 
     if (hasAnyListener && !patterns.hasCleanupIndicators) {
-      const message = this.Config.VALIDATION_MESSAGES.MISSING_REMOVAL(file);
+      const message = this.config.VALIDATION_MESSAGES.MISSING_REMOVAL(file);
       globalEventListeners.push(message);
     }
   }
@@ -90,26 +90,26 @@ export class EventListenersValidationPatterns {
     const missingCleanups: string[] = [];
 
     // Extract all event listener details using Configuration (RULE 1)
-    const listenerDetails = this.Config.extractEventListenerDetails(content);
+    const listenerDetails = this.config.extractEventListenerDetails(content);
 
     // Process each listener with pre-computed details (RULE 2)
     listenerDetails.forEach(detail => {
-      const listenerString = `${detail.target}.${this.Config.METHOD_NAMES.ADD_EVENT_LISTENER}('${detail.event}', ${detail.handler})`;
+      const listenerString = `${detail.target}.${this.config.METHOD_NAMES.ADD_EVENT_LISTENER}('${detail.event}', ${detail.handler})`;
       listeners.push(listenerString);
 
       // Check if corresponding removeEventListener exists (RULE 1)
       if (
-        this.Config.hasListenerCleanup(
+        this.config.hasListenerCleanup(
           content,
           detail.target,
           detail.event,
           detail.handler
         )
       ) {
-        const cleanupString = `${detail.target}.${this.Config.METHOD_NAMES.REMOVE_EVENT_LISTENER}('${detail.event}', ${detail.handler})`;
+        const cleanupString = `${detail.target}.${this.config.METHOD_NAMES.REMOVE_EVENT_LISTENER}('${detail.event}', ${detail.handler})`;
         cleanups.push(cleanupString);
       } else {
-        const message = this.Config.VALIDATION_MESSAGES.MISSING_CLEANUP(
+        const message = this.config.VALIDATION_MESSAGES.MISSING_CLEANUP(
           detail.full
         );
         missingCleanups.push(message);
@@ -128,11 +128,11 @@ export class EventListenersValidationPatterns {
     const issues: string[] = [];
 
     // Use Configuration's pattern analysis (RULE 1)
-    const patterns = this.Config.analyzeHostListenerPatterns(content);
+    const patterns = this.config.analyzeHostListenerPatterns(content);
 
     // Check if using @HostListener without proper cleanup considerations
     if (patterns.hasHostListener && !patterns.hasNgOnDestroy) {
-      issues.push(this.Config.VALIDATION_MESSAGES.CONSIDER_ONDESTROY);
+      issues.push(this.config.VALIDATION_MESSAGES.CONSIDER_ONDESTROY);
     }
 
     return issues;

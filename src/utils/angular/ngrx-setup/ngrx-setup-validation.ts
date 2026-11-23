@@ -14,7 +14,7 @@ export class NgRxSetupValidation {
   /**
    * RULE 2: Configuration alias for caching (avoids repeated method calls)
    */
-  private static readonly Config = NgRxSetupConfiguration;
+  private static readonly config = NgRxSetupConfiguration;
 
   /**
    * Validate prerequisites for NgRx setup analysis
@@ -34,9 +34,9 @@ export class NgRxSetupValidation {
       return { valid: false, errors };
     }
 
-    const packageJson = this.Config.getPackageJsonData(projectRoot);
+    const packageJson = this.config.getPackageJsonData(projectRoot);
     if (!packageJson) {
-      errors.push(this.Config.VALIDATION_MESSAGES.PACKAGE_JSON_NOT_FOUND);
+      errors.push(this.config.VALIDATION_MESSAGES.PACKAGE_JSON_NOT_FOUND);
       return { valid: false, errors };
     }
 
@@ -93,7 +93,7 @@ export class NgRxSetupValidation {
   ): void {
     // RULE 2: Use cached analysis configuration
     // Analyze NgRx dependencies using configuration method
-    const dependencyResults = this.Config.analyzeDependencies(packageJson);
+    const dependencyResults = this.config.analyzeDependencies(packageJson);
     suggestions.push(...dependencyResults.suggestions);
 
     // Analyze app module configuration using specialized analyzer

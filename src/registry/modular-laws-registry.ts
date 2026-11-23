@@ -162,7 +162,6 @@ import {
   NoHostnameGatingLaw,
   NoLayoutTransitionLaw,
   NoPassthroughCastLaw,
-  NoRiskLiteralsLaw,
   PollViaSanctionedSourceLaw,
   RequiresSpecLaw,
   RootServiceNoTimerLaw,
@@ -657,7 +656,6 @@ export class ModularLawsRegistry {
     'DefensiveArrayCoercionLaw.check': DefensiveArrayCoercionLaw,
     'NoPassthroughCastLaw.check': NoPassthroughCastLaw,
     'TimerCleanupLaw.check': TimerCleanupLaw,
-    'NoRiskLiteralsLaw.check': NoRiskLiteralsLaw,
 
     // Next.js Laws (gated on next; Client IP Single Boundary on any Node HTTP server)
     'NextServerActionAuthorizesLaw.check': NextServerActionAuthorizesLaw,

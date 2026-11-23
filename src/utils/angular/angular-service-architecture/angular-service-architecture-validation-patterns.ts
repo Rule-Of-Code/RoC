@@ -10,7 +10,7 @@ import { AngularServiceArchitectureConfiguration } from './angular-service-archi
  * Centralized validation methods for service architecture analysis
  */
 export class AngularServiceArchitectureValidationPatterns extends AngularConfigurationBase {
-  private static readonly Config = AngularServiceArchitectureConfiguration;
+  private static readonly config = AngularServiceArchitectureConfiguration;
   private static readonly FILE_NAME_PLACEHOLDER = '{fileName}';
   private static readonly METHOD_COUNT_PLACEHOLDER = '{methodCount}';
   /**
@@ -31,7 +31,7 @@ export class AngularServiceArchitectureValidationPatterns extends AngularConfigu
     );
 
     if (serviceFiles.length === 0) {
-      suggestions.push(this.Config.VALIDATION_MESSAGES.NO_SERVICES_SUGGESTION);
+      suggestions.push(this.config.VALIDATION_MESSAGES.NO_SERVICES_SUGGESTION);
       return { violations, suggestions };
     }
 
@@ -83,18 +83,18 @@ export class AngularServiceArchitectureValidationPatterns extends AngularConfigu
     violations: string[],
     suggestions: string[]
   ): void {
-    const patterns = this.Config.analyzeServicePatterns(content);
+    const patterns = this.config.analyzeServicePatterns(content);
 
     // Check for Injectable decorator
     if (!patterns.hasInjectableDecorator) {
       violations.push(
-        this.Config.VALIDATION_MESSAGES.MISSING_INJECTABLE_VIOLATION.replace(
+        this.config.VALIDATION_MESSAGES.MISSING_INJECTABLE_VIOLATION.replace(
           this.FILE_NAME_PLACEHOLDER,
           fileName
         )
       );
       suggestions.push(
-        this.Config.VALIDATION_MESSAGES.MISSING_INJECTABLE_SUGGESTION.replace(
+        this.config.VALIDATION_MESSAGES.MISSING_INJECTABLE_SUGGESTION.replace(
           this.FILE_NAME_PLACEHOLDER,
           fileName
         )
@@ -104,7 +104,7 @@ export class AngularServiceArchitectureValidationPatterns extends AngularConfigu
     // Check for providedIn root
     if (patterns.hasInjectableDecorator && !patterns.hasProvidedIn) {
       suggestions.push(
-        this.Config.VALIDATION_MESSAGES.PROVIDED_IN_ROOT_SUGGESTION.replace(
+        this.config.VALIDATION_MESSAGES.PROVIDED_IN_ROOT_SUGGESTION.replace(
           this.FILE_NAME_PLACEHOLDER,
           fileName
         )
@@ -114,7 +114,7 @@ export class AngularServiceArchitectureValidationPatterns extends AngularConfigu
     // Check for constructor injection patterns
     if (patterns.hasConstructor && !patterns.hasAccessModifiers) {
       suggestions.push(
-        this.Config.VALIDATION_MESSAGES.ACCESS_MODIFIERS_SUGGESTION.replace(
+        this.config.VALIDATION_MESSAGES.ACCESS_MODIFIERS_SUGGESTION.replace(
           this.FILE_NAME_PLACEHOLDER,
           fileName
         )
@@ -132,12 +132,12 @@ export class AngularServiceArchitectureValidationPatterns extends AngularConfigu
     suggestions: string[],
     config: RuleOfCodeConfig
   ): void {
-    const patterns = this.Config.analyzeServicePatterns(content);
+    const patterns = this.config.analyzeServicePatterns(content);
 
     // Check for interface implementation
     if (patterns.hasServiceClass && !patterns.hasImplementsKeyword) {
       suggestions.push(
-        this.Config.VALIDATION_MESSAGES.INTERFACE_IMPLEMENTATION_SUGGESTION.replace(
+        this.config.VALIDATION_MESSAGES.INTERFACE_IMPLEMENTATION_SUGGESTION.replace(
           this.FILE_NAME_PLACEHOLDER,
           fileName
         )
@@ -145,10 +145,10 @@ export class AngularServiceArchitectureValidationPatterns extends AngularConfigu
     }
 
     // Check for single responsibility
-    const thresholds = this.Config.getThresholds(config);
+    const thresholds = this.config.getThresholds(config);
     if (patterns.methodCount > thresholds.MAX_METHODS_PER_SERVICE) {
       suggestions.push(
-        this.Config.VALIDATION_MESSAGES.SINGLE_RESPONSIBILITY_SUGGESTION.replace(
+        this.config.VALIDATION_MESSAGES.SINGLE_RESPONSIBILITY_SUGGESTION.replace(
           this.FILE_NAME_PLACEHOLDER,
           fileName
         ).replace(
@@ -161,13 +161,13 @@ export class AngularServiceArchitectureValidationPatterns extends AngularConfigu
     // Check for proper return types
     if (patterns.hasObservable && !patterns.hasObservableImport) {
       violations.push(
-        this.Config.VALIDATION_MESSAGES.OBSERVABLE_IMPORT_VIOLATION.replace(
+        this.config.VALIDATION_MESSAGES.OBSERVABLE_IMPORT_VIOLATION.replace(
           this.FILE_NAME_PLACEHOLDER,
           fileName
         )
       );
       suggestions.push(
-        this.Config.VALIDATION_MESSAGES.OBSERVABLE_IMPORT_SUGGESTION.replace(
+        this.config.VALIDATION_MESSAGES.OBSERVABLE_IMPORT_SUGGESTION.replace(
           this.FILE_NAME_PLACEHOLDER,
           fileName
         )
@@ -178,7 +178,7 @@ export class AngularServiceArchitectureValidationPatterns extends AngularConfigu
     if (patterns.hasHttpClient) {
       if (!patterns.hasHttpClientInjection) {
         suggestions.push(
-          this.Config.VALIDATION_MESSAGES.HTTP_CLIENT_INJECTION_SUGGESTION.replace(
+          this.config.VALIDATION_MESSAGES.HTTP_CLIENT_INJECTION_SUGGESTION.replace(
             this.FILE_NAME_PLACEHOLDER,
             fileName
           )
@@ -188,7 +188,7 @@ export class AngularServiceArchitectureValidationPatterns extends AngularConfigu
       // Check for proper error handling
       if (!patterns.hasCatchError && patterns.hasHttpReference) {
         suggestions.push(
-          this.Config.VALIDATION_MESSAGES.ERROR_HANDLING_SUGGESTION.replace(
+          this.config.VALIDATION_MESSAGES.ERROR_HANDLING_SUGGESTION.replace(
             this.FILE_NAME_PLACEHOLDER,
             fileName
           )

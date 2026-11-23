@@ -12,10 +12,10 @@
  * of this test's own, with one file in it that is not theirs. Afterwards that
  * file is still there and no `roc-*` directory is.
  */
-import { spawnSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import { spawnSync } from '../../src/utils/child-process';
 import { makeTempDir } from '../helpers/temp-dirs';
 
 const REPO = path.resolve(__dirname, '..', '..');

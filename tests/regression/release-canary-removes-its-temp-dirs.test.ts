@@ -9,9 +9,9 @@
  * path, in about a second, with the OS temp dir pointed at a directory of the
  * test's own.
  */
-import { spawnSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import { spawnSync } from '../../src/utils/child-process';
 import { makeTempDir, registerTempDir } from '../helpers/temp-dirs';
 
 const REPO = path.resolve(__dirname, '..', '..');

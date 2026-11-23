@@ -43,7 +43,6 @@ export * from './types';
 export * from './angular';
 
 // Security exports - explicitly import PackageJson to avoid conflicts
-export * from './security/audit-results';
 export * from './security/cryptographic-libraries';
 export * from './security/data-storage-security';
 export {
@@ -64,7 +63,6 @@ export {
 } from './security/dependency-vulnerability';
 export * from './security/encryption-implementation';
 export * from './security/environment-variables-usage';
-export { NpmAuditSimulator } from './security/npm-audit-simulator';
 export * from './security/secret-management';
 export * from './security/security-documentation';
 export { SecurityPolicyChecker } from './security/security-policy-checker';

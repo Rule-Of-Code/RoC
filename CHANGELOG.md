@@ -562,6 +562,32 @@ and fixture trees, `androidTest/`, `Pods/`) are left out, so a library that
 ships an example app is not selected by it. JS shells (React Native, Expo,
 Capacitor, NativeScript) are selected as before.
 
+### 🔧 Internal — RoC's own code: logging, types and casts (#559)
+
+The self-audit's small groups on RoC's own code, with no change in behaviour:
+user-facing warnings and errors of the engine, the audit cache, the config
+loader and the file utilities go through `warnUser` / `errorUser` in
+logging-utils (the same text on stderr) instead of direct `console.warn` /
+`console.error`; the engine reads its config through a typed `EngineSettings`
+instead of `as any`, runs laws as `RunnableLaw`, and builds the open
+selection without `as unknown as`; the audit cache stores a typed
+`StoredAuditResult`; Latency Budget Harness Realism guards instead of
+asserting with `!`. Self-audit: Centralized Logging 7 → 0, Absolute Zero
+Tolerance Doctrine 7 → 0, No Explicit Any / Non-Null Assertion 2 → 0,
+No Double Cast 2 → 0.
+
+### 🔧 Internal — RoC's own code follows a naming convention ESLint enforces (#559)
+
+`@typescript-eslint/eslint-plugin` (8.67.0, the version of the locked
+parser) is a devDependency, and `eslint.config.mjs` turns on
+`@typescript-eslint/naming-convention` with the convention the code follows:
+camelCase values, functions and members, UPPER_CASE constants (and getters
+that stand for one), PascalCase types, keys of object literals and type
+members left to the data they describe. 56 private static aliases
+(`Config`, `Messages`, `Patterns`, …) and one constant-style helper were
+renamed to camelCase in their files; nothing is exempted. The packed tarball
+lists the same files. Self-audit: Naming Convention Enforcement 1 → 0.
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

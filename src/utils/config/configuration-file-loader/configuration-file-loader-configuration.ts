@@ -5,7 +5,7 @@ import { CONFIG_FILES } from '../../constants';
  * Centralized configuration management for configuration file loading operations
  */
 export class ConfigurationFileLoaderConfiguration {
-  private static readonly Config = ConfigurationFileLoaderConfiguration;
+  private static readonly config = ConfigurationFileLoaderConfiguration;
 
   /**
    * Supported configuration files (RULE 1: 100% internal coverage)
@@ -75,7 +75,7 @@ export class ConfigurationFileLoaderConfiguration {
   static getConfigurationFiles(_config?: unknown): {
     files: readonly string[];
   } {
-    return this.Config.CONFIGURATION_FILES;
+    return this.config.CONFIGURATION_FILES;
   }
 
   /**
@@ -84,7 +84,7 @@ export class ConfigurationFileLoaderConfiguration {
   static getConfigurationDirectories(_config?: unknown): {
     directories: readonly string[];
   } {
-    return this.Config.CONFIGURATION_DIRECTORIES;
+    return this.config.CONFIGURATION_DIRECTORIES;
   }
 
   /**
@@ -94,7 +94,7 @@ export class ConfigurationFileLoaderConfiguration {
     encoding: BufferEncoding;
     errorHandling: 'skip' | 'throw';
   } {
-    return this.Config.FILE_READING_CONFIG;
+    return this.config.FILE_READING_CONFIG;
   }
 
   /**
@@ -104,7 +104,7 @@ export class ConfigurationFileLoaderConfiguration {
     fileName: string;
     configKeys: readonly string[];
   } {
-    return this.Config.PACKAGE_JSON_CONFIG;
+    return this.config.PACKAGE_JSON_CONFIG;
   }
 
   /**
@@ -117,7 +117,7 @@ export class ConfigurationFileLoaderConfiguration {
       value: string;
     };
   } {
-    return this.Config.ENVIRONMENT_CONFIG;
+    return this.config.ENVIRONMENT_CONFIG;
   }
 
   /**
@@ -130,14 +130,14 @@ export class ConfigurationFileLoaderConfiguration {
     };
     numberDetection: boolean;
   } {
-    return this.Config.VALUE_PARSING_CONFIG;
+    return this.config.VALUE_PARSING_CONFIG;
   }
 
   /**
    * Check if environment variable key matches Rule of Code patterns (RULE 2: Caching)
    */
   static isRuleOfCodeEnvVar(key: string): boolean {
-    const config = this.Config.ENVIRONMENT_CONFIG;
+    const config = this.config.ENVIRONMENT_CONFIG;
     return config.prefixes.some(prefix => key.startsWith(prefix));
   }
 
@@ -145,7 +145,7 @@ export class ConfigurationFileLoaderConfiguration {
    * Normalize environment variable key to config format (RULE 2: Caching)
    */
   static normalizeEnvKey(key: string): string {
-    const config = this.Config.ENVIRONMENT_CONFIG;
+    const config = this.config.ENVIRONMENT_CONFIG;
     let normalizedKey = key;
 
     // Remove prefixes

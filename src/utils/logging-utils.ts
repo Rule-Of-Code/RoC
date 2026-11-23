@@ -55,3 +55,19 @@ export const logDebug = (
     console.debug(`[${context}] ${message}`, data);
   }
 };
+
+/**
+ * A warning for the person running the command: printed exactly as written,
+ * on stderr (console.warn), in every environment. No `[context]` prefix and
+ * no NODE_ENV gate — unlike logWarn, this is what the user reads, not a
+ * developer's log line. Details (an error, a value) follow the message the
+ * way console.warn prints them.
+ */
+export const warnUser = (message: string, ...details: unknown[]): void => {
+  console.warn(message, ...details);
+};
+
+/** An error for the person running the command: as written, on stderr (console.error). */
+export const errorUser = (message: string, ...details: unknown[]): void => {
+  console.error(message, ...details);
+};

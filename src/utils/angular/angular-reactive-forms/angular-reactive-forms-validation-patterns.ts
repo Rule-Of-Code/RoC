@@ -10,7 +10,7 @@ import { AngularReactiveFormsConfiguration } from './angular-reactive-forms-conf
  * Centralized validation methods for reactive forms analysis
  */
 export class AngularReactiveFormsValidationPatterns {
-  private static readonly Config = AngularReactiveFormsConfiguration;
+  private static readonly config = AngularReactiveFormsConfiguration;
   private static readonly FILE_NAME_PLACEHOLDER = '{fileName}';
   /**
    * Validate all reactive forms patterns in a project
@@ -49,8 +49,8 @@ export class AngularReactiveFormsValidationPatterns {
 
     const fileName = PathOperations.getBasename(componentFile);
     // ===== INLINED: Centralized pattern analysis (RULE 1) =====
-    const patterns = this.Config.analyzeReactiveFormsPatterns(content);
-    const specificPatterns = this.Config.checkSpecificPatterns(content);
+    const patterns = this.config.analyzeReactiveFormsPatterns(content);
+    const specificPatterns = this.config.checkSpecificPatterns(content);
 
     // Delegate to private validation helpers with pre-computed patterns (RULE 2)
     this.checkFormsTypePatterns(patterns, fileName, violations, suggestions);
@@ -77,7 +77,7 @@ export class AngularReactiveFormsValidationPatterns {
    * RULE 2: Private helper for organized validation structure
    */
   private static checkFormsTypePatterns(
-    patterns: ReturnType<typeof this.Config.analyzeReactiveFormsPatterns>,
+    patterns: ReturnType<typeof this.config.analyzeReactiveFormsPatterns>,
     fileName: string,
     violations: string[],
     suggestions: string[]
@@ -85,13 +85,13 @@ export class AngularReactiveFormsValidationPatterns {
     if (patterns.hasTemplateDriven && !patterns.hasReactiveForms) {
       violations.push(
         this.applyFileNamePlaceholder(
-          this.Config.VALIDATION_MESSAGES.TEMPLATE_DRIVEN_VIOLATION,
+          this.config.VALIDATION_MESSAGES.TEMPLATE_DRIVEN_VIOLATION,
           fileName
         )
       );
       suggestions.push(
         this.applyFileNamePlaceholder(
-          this.Config.VALIDATION_MESSAGES.TEMPLATE_DRIVEN_SUGGESTION,
+          this.config.VALIDATION_MESSAGES.TEMPLATE_DRIVEN_SUGGESTION,
           fileName
         )
       );
@@ -100,13 +100,13 @@ export class AngularReactiveFormsValidationPatterns {
     if (patterns.hasReactiveForms && !patterns.hasReactiveFormsImport) {
       violations.push(
         this.applyFileNamePlaceholder(
-          this.Config.VALIDATION_MESSAGES.MISSING_IMPORTS_VIOLATION,
+          this.config.VALIDATION_MESSAGES.MISSING_IMPORTS_VIOLATION,
           fileName
         )
       );
       suggestions.push(
         this.applyFileNamePlaceholder(
-          this.Config.VALIDATION_MESSAGES.MISSING_IMPORTS_SUGGESTION,
+          this.config.VALIDATION_MESSAGES.MISSING_IMPORTS_SUGGESTION,
           fileName
         )
       );
@@ -119,8 +119,8 @@ export class AngularReactiveFormsValidationPatterns {
    * RULE 2: Private helper for organized validation structure
    */
   private static checkFormBuilderPatterns(
-    patterns: ReturnType<typeof this.Config.analyzeReactiveFormsPatterns>,
-    specificPatterns: ReturnType<typeof this.Config.checkSpecificPatterns>,
+    patterns: ReturnType<typeof this.config.analyzeReactiveFormsPatterns>,
+    specificPatterns: ReturnType<typeof this.config.checkSpecificPatterns>,
     fileName: string,
     suggestions: string[]
   ): void {
@@ -131,7 +131,7 @@ export class AngularReactiveFormsValidationPatterns {
     ) {
       suggestions.push(
         this.applyFileNamePlaceholder(
-          this.Config.VALIDATION_MESSAGES.FORM_BUILDER_SUGGESTION,
+          this.config.VALIDATION_MESSAGES.FORM_BUILDER_SUGGESTION,
           fileName
         )
       );
@@ -144,14 +144,14 @@ export class AngularReactiveFormsValidationPatterns {
    * RULE 2: Private helper for organized validation structure
    */
   private static checkFormInitializationPatterns(
-    patterns: ReturnType<typeof this.Config.analyzeReactiveFormsPatterns>,
+    patterns: ReturnType<typeof this.config.analyzeReactiveFormsPatterns>,
     fileName: string,
     suggestions: string[]
   ): void {
     if (patterns.hasReactiveForms && !patterns.hasLifecycleInit) {
       suggestions.push(
         this.applyFileNamePlaceholder(
-          this.Config.VALIDATION_MESSAGES.LIFECYCLE_SUGGESTION,
+          this.config.VALIDATION_MESSAGES.LIFECYCLE_SUGGESTION,
           fileName
         )
       );
@@ -160,7 +160,7 @@ export class AngularReactiveFormsValidationPatterns {
     if (patterns.hasReactiveForms && !patterns.hasFormSubmission) {
       suggestions.push(
         this.applyFileNamePlaceholder(
-          this.Config.VALIDATION_MESSAGES.SUBMISSION_SUGGESTION,
+          this.config.VALIDATION_MESSAGES.SUBMISSION_SUGGESTION,
           fileName
         )
       );
@@ -173,14 +173,14 @@ export class AngularReactiveFormsValidationPatterns {
    * RULE 2: Private helper for organized validation structure
    */
   private static checkFormValidationPatterns(
-    patterns: ReturnType<typeof this.Config.analyzeReactiveFormsPatterns>,
+    patterns: ReturnType<typeof this.config.analyzeReactiveFormsPatterns>,
     fileName: string,
     suggestions: string[]
   ): void {
     if (patterns.hasReactiveForms && !patterns.hasValidation) {
       suggestions.push(
         this.applyFileNamePlaceholder(
-          this.Config.VALIDATION_MESSAGES.VALIDATION_SUGGESTION,
+          this.config.VALIDATION_MESSAGES.VALIDATION_SUGGESTION,
           fileName
         )
       );
@@ -193,8 +193,8 @@ export class AngularReactiveFormsValidationPatterns {
    * RULE 2: Private helper for organized validation structure
    */
   private static checkFormResetPatterns(
-    patterns: ReturnType<typeof this.Config.analyzeReactiveFormsPatterns>,
-    specificPatterns: ReturnType<typeof this.Config.checkSpecificPatterns>,
+    patterns: ReturnType<typeof this.config.analyzeReactiveFormsPatterns>,
+    specificPatterns: ReturnType<typeof this.config.checkSpecificPatterns>,
     fileName: string,
     suggestions: string[]
   ): void {
@@ -205,7 +205,7 @@ export class AngularReactiveFormsValidationPatterns {
       ) {
         suggestions.push(
           this.applyFileNamePlaceholder(
-            this.Config.VALIDATION_MESSAGES.RESET_SUGGESTION,
+            this.config.VALIDATION_MESSAGES.RESET_SUGGESTION,
             fileName
           )
         );
@@ -219,7 +219,7 @@ export class AngularReactiveFormsValidationPatterns {
    * RULE 2: Private helper for organized validation structure
    */
   private static checkNestedFormPatterns(
-    patterns: ReturnType<typeof this.Config.analyzeReactiveFormsPatterns>,
+    patterns: ReturnType<typeof this.config.analyzeReactiveFormsPatterns>,
     fileName: string,
     suggestions: string[]
   ): void {
@@ -227,7 +227,7 @@ export class AngularReactiveFormsValidationPatterns {
       if (!patterns.hasFormGetters) {
         suggestions.push(
           this.applyFileNamePlaceholder(
-            this.Config.VALIDATION_MESSAGES.NESTED_FORMS_SUGGESTION,
+            this.config.VALIDATION_MESSAGES.NESTED_FORMS_SUGGESTION,
             fileName
           )
         );

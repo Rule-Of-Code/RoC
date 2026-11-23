@@ -10,7 +10,7 @@ import { StringTemplateUtils } from '../../string-template-utils';
  * Centralized configuration for NgRx error handling analysis patterns and validation messages
  */
 export class NgRxErrorHandlingConfiguration {
-  private static readonly Config = NgRxErrorHandlingConfiguration;
+  private static readonly config = NgRxErrorHandlingConfiguration;
 
   /**
    * Error handling detection keywords (RULE 1: 100% internal coverage)
@@ -73,7 +73,7 @@ export class NgRxErrorHandlingConfiguration {
     RETRY_LOGIC_SUGGESTION: string;
     TIMEOUT_SUGGESTION: string;
   } {
-    const messages = this.Config.VALIDATION_MESSAGES_CONFIG;
+    const messages = this.config.VALIDATION_MESSAGES_CONFIG;
     return {
       MISSING_CATCH_ERROR_VIOLATION: (fileName: string) =>
         this.buildMessage(messages.MISSING_CATCH_ERROR_VIOLATION, fileName),
@@ -100,7 +100,7 @@ export class NgRxErrorHandlingConfiguration {
     hasRetryLogic: boolean;
     hasTimeout: boolean;
   } {
-    const keywords = this.Config.ERROR_HANDLING_KEYWORDS;
+    const keywords = this.config.ERROR_HANDLING_KEYWORDS;
 
     const hasCatchError = content.includes(keywords.CATCH_ERROR);
     const hasRxOf = content.includes(keywords.RX_OF);
@@ -121,7 +121,7 @@ export class NgRxErrorHandlingConfiguration {
    * Check if content has HTTP-related code (RULE 2: Caching)
    */
   static hasHttpContent(content: string): boolean {
-    const keywords = this.Config.ERROR_HANDLING_KEYWORDS;
+    const keywords = this.config.ERROR_HANDLING_KEYWORDS;
     return (
       content.includes(keywords.HTTP_LOWERCASE) ||
       content.includes(keywords.HTTP)
@@ -132,7 +132,7 @@ export class NgRxErrorHandlingConfiguration {
    * Check if content has retry logic (RULE 2: Caching)
    */
   static hasRetryLogic(content: string): boolean {
-    const keywords = this.Config.ERROR_HANDLING_KEYWORDS;
+    const keywords = this.config.ERROR_HANDLING_KEYWORDS;
     return (
       content.includes(keywords.RETRY) || content.includes(keywords.RETRY_WHEN)
     );
@@ -142,7 +142,7 @@ export class NgRxErrorHandlingConfiguration {
    * Check if file is an NgRx effects file based on filename patterns (RULE 2: Caching)
    */
   static isEffectsFile(fileName: string): boolean {
-    const patterns = this.Config.EFFECTS_FILE_PATTERNS;
+    const patterns = this.config.EFFECTS_FILE_PATTERNS;
     return (
       fileName.includes(patterns.EFFECTS_DOT) ||
       fileName.includes(patterns.EFFECT_DOT) ||

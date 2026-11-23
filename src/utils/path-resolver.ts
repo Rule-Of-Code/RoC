@@ -7,6 +7,7 @@
 import { glob } from 'glob';
 import type { RuleOfCodeConfig } from '../config/types';
 import { PathOperations } from './path-operations';
+import { warnUser } from './logging-utils';
 
 export class PathResolver {
   private config: RuleOfCodeConfig | undefined;
@@ -103,7 +104,7 @@ export class PathResolver {
         ],
       });
     } catch (error) {
-      console.warn(`Failed to resolve glob pattern: ${pattern}`, error);
+      warnUser(`Failed to resolve glob pattern: ${pattern}`, error);
       return [];
     }
   }

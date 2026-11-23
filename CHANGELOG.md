@@ -332,6 +332,14 @@ read its code. JavaScript is now read through the same parser with the same
 rule; CommonJS `module.exports` is not an ES export and stays out, as the card
 says (#493).
 
+### 🐛 Fixed — MD Footer Template's "nothing was judged" names the fix
+
+When the configured includes select no Markdown file, the opt-in law reported
+the cause and not the fix. The message now ends with
+`Give this law the Markdown files with includes.byRule: { "md-footer-template-mandatory": ["**/*.md"] }`,
+the key derived from the law's title the way the registry derives every
+config key, so it stays right if the title changes (#501).
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

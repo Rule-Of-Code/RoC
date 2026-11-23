@@ -93,6 +93,20 @@ same for a delay of `0` and of `1200`. A call with no delay or a literal `0`
 is no longer counted. A non-zero literal and a delay the law cannot read (a
 name, an expression) still are.
 
+### Changed — Angular Testing Excellence asks for a descriptive test title, not a "should" prefix (#557)
+
+The law reported every test whose title did not start with "should". The
+prefix is a style: `it('returns the cached value on the second call')`
+describes behaviour as well as the "should" form. The law now reports a
+title that describes nothing: empty, a placeholder (`test`, `test 1`,
+`works`, `it works`) or only the name of the unit under test (an enclosing
+describe's title, `getUser()`, `CacheService`), as
+`Test title does not describe behaviour in <file>: "<title>"`.
+
+The prefix is an opt-in convention: `thresholds.angular.testTitlePrefix`
+(unset by default). Set it to `"should"` to keep the previous rule and its
+message.
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

@@ -14,14 +14,12 @@ class TestableUniversalChecker extends UniversalCheckerBase {
   public static testCreateResult(
     violations: string[],
     lawName: string,
-    category: string,
     recommendations: string[],
     fixable = true
   ) {
     return UniversalCheckerBase['createResult'](
       violations,
       lawName,
-      category,
       recommendations,
       fixable
     );
@@ -81,7 +79,6 @@ describe('UniversalCheckerBase', () => {
       const result = TestableUniversalChecker.testCreateResult(
         [],
         'Test Law',
-        'TESTING',
         ['Good job!'],
         true
       );
@@ -95,7 +92,6 @@ describe('UniversalCheckerBase', () => {
       const result = TestableUniversalChecker.testCreateResult(
         ['Violation 1', 'Violation 2'],
         'Test Law',
-        'TESTING',
         ['Fix this'],
         true
       );
@@ -110,7 +106,6 @@ describe('UniversalCheckerBase', () => {
       const result1 = TestableUniversalChecker.testCreateResult(
         ['V1'],
         'Law',
-        'CAT',
         [],
         true
       );
@@ -119,7 +114,6 @@ describe('UniversalCheckerBase', () => {
       const result5 = TestableUniversalChecker.testCreateResult(
         ['V1', 'V2', 'V3', 'V4', 'V5'],
         'Law',
-        'CAT',
         [],
         true
       );
@@ -131,7 +125,6 @@ describe('UniversalCheckerBase', () => {
       const result = TestableUniversalChecker.testCreateResult(
         manyViolations,
         'Law',
-        'CAT',
         [],
         true
       );
@@ -143,7 +136,6 @@ describe('UniversalCheckerBase', () => {
       const result = TestableUniversalChecker.testCreateResult(
         [],
         'Law',
-        'CAT',
         ['Rec 1', 'Rec 2'],
         true
       );
@@ -156,7 +148,6 @@ describe('UniversalCheckerBase', () => {
       const result = TestableUniversalChecker.testCreateResult(
         [],
         'Law',
-        'CAT',
         ['Suggestion 1'],
         true
       );
@@ -168,7 +159,6 @@ describe('UniversalCheckerBase', () => {
       const fixableResult = TestableUniversalChecker.testCreateResult(
         ['V'],
         'Law',
-        'CAT',
         [],
         true
       );
@@ -177,7 +167,6 @@ describe('UniversalCheckerBase', () => {
       const notFixableResult = TestableUniversalChecker.testCreateResult(
         ['V'],
         'Law',
-        'CAT',
         [],
         false
       );
@@ -188,7 +177,6 @@ describe('UniversalCheckerBase', () => {
       const result = TestableUniversalChecker.testCreateResult(
         [],
         'Law',
-        'CAT',
         ['npm fix', 'npm lint'],
         true
       );
@@ -201,7 +189,6 @@ describe('UniversalCheckerBase', () => {
       const result = TestableUniversalChecker.testCreateResult(
         [],
         'Law',
-        'CAT',
         [],
         true
       );

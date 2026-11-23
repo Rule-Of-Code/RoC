@@ -1,7 +1,6 @@
 import { ProjectTypeDetectorValidation } from '../../config/project-type-detector/project-type-detector-validation';
 import { FileSystemOperations } from '../../file-system-operations';
 import { FileUtils } from '../../file-utils';
-import type { PackageJsonLicense } from '../licensing-types';
 import { LicensingValidationBase } from '../licensing-validation-base';
 import { DependencyLicenseAnalyzerConfiguration } from './dependency-license-analyzer-configuration';
 
@@ -15,7 +14,6 @@ export class DependencyLicenseAnalyzerValidation extends LicensingValidationBase
    */
   static validateDependencyLicenses(
     projectRoot: string,
-    packageJson: PackageJsonLicense,
     _config: Record<string, unknown> = {}
   ): {
     violations: string[];
@@ -341,7 +339,6 @@ export class DependencyLicenseAnalyzerValidation extends LicensingValidationBase
    */
   static extractDependencyLicenses(
     projectRoot: string,
-    packageJson: PackageJsonLicense,
     _config: Record<string, unknown> = {}
   ): string[] {
     const paths = DependencyLicenseAnalyzerConfiguration.getProjectPaths(

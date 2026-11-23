@@ -491,28 +491,4 @@ export class PythonSatisfaction {
   private static normalize(file: string): string {
     return file.replace(/\\/g, '/').toLowerCase();
   }
-
-  /** pytest-style test path: a tests/ tree, test_*.py, *_test.py, conftest.py. */
-  private static isTestPath(file: string): boolean {
-    const p = this.normalize(file);
-    return (
-      /(^|\/)tests?\//.test(p) ||
-      /(^|\/)test_[^/]*\.py$/.test(p) ||
-      /_test\.py$/.test(p) ||
-      /(^|\/)conftest\.py$/.test(p)
-    );
-  }
-
-  /**
-   * Blank out docstrings, string literals and `#` comments so the call patterns
-   * cannot match inside them. Replacement preserves newlines and columns, so
-   * indentation — and therefore the block structure — survives intact.
-   */
-  private static stripPython(content: string): string {
-    return content
-      .replace(/\r\n|\r/g, '\n')
-      .replace(/'''[\s\S]*?'''|"""[\s\S]*?"""/g, m => m.replace(/[^\n]/g, ' '))
-      .replace(/(['"])(?:\\.|(?!\1).)*\1/g, m => m.replace(/[^\n]/g, ' '))
-      .replace(/#[^\n]*/g, '');
-  }
 }

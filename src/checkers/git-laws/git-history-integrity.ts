@@ -9,7 +9,6 @@ import type {
   RuleOfCodeConfig,
 } from '../../types/law.types';
 import { FileUtils } from '../../utils';
-import { CheckerUtils } from '../../utils/checker-utils';
 import {
   resolveGitConfigPath,
   resolveGitHooksDir,

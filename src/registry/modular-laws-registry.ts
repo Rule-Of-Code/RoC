@@ -458,7 +458,11 @@ export class ModularLawsRegistry {
    * the gates that judge it (#370).
    */
   static inCategories<
-    T extends { id: string; category: string; alwaysEnabled?: boolean },
+    T extends {
+      id: string;
+      category: string;
+      alwaysEnabled?: boolean | undefined;
+    },
   >(laws: T[], categories: readonly string[]): T[] {
     if (categories.length === 0) return laws;
     return laws.filter(
@@ -918,9 +922,9 @@ export class ModularLawsRegistry {
    * law's identity is a public contract.
    */
   static lawIdentityKeys(law: {
-    name?: string;
-    id?: string;
-    legacyId?: number | string;
+    name?: string | undefined;
+    id?: string | undefined;
+    legacyId?: number | string | undefined;
   }): string[] {
     return LawIdentity.lawIdentityKeys(law);
   }
@@ -934,7 +938,7 @@ export class ModularLawsRegistry {
     stack: string | undefined,
     projectType: string | undefined,
     projectRoot?: string,
-    law?: { staticSiteHtml?: boolean },
+    law?: { staticSiteHtml?: boolean | undefined },
     ignores?: readonly string[]
   ): boolean {
     return LawIdentity.lawAppliesToProjectType(
@@ -948,9 +952,9 @@ export class ModularLawsRegistry {
 
   /** Identity keys that resolve to exactly ONE law — the only ones a config may use. */
   static unambiguousIdentityKeys(law: {
-    name?: string;
-    id?: string;
-    legacyId?: number | string;
+    name?: string | undefined;
+    id?: string | undefined;
+    legacyId?: number | string | undefined;
   }): string[] {
     if (!this.ambiguousKeys) {
       const counts = new Map<string, number>();
@@ -977,7 +981,11 @@ export class ModularLawsRegistry {
    * when this is non-null, and the audit names the waiver with this reason.
    */
   static waiverReasonOf(
-    law: { name?: string; id?: string; legacyId?: number | string },
+    law: {
+      name?: string | undefined;
+      id?: string | undefined;
+      legacyId?: number | string | undefined;
+    },
     notApplicable: Record<string, unknown> | undefined
   ): string | null {
     if (!notApplicable) return null;

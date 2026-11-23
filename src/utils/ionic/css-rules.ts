@@ -44,6 +44,11 @@ interface Frame {
   rule: CssRule | null;
 }
 
+/** The characters that open a quoted string. */
+const QUOTES = new Set(['"', "'"]);
+/** The characters that end a selector or a declaration. */
+const STATEMENT_ENDS = new Set(['{', ';', '}']);
+
 const NOT_ELEMENT_RULES =
   /^@(?:-[\w]+-)?(?:keyframes|font-face|page|property|counter-style)\b/i;
 
@@ -72,8 +77,8 @@ export class CssRules {
         buffer += c;
         continue;
       }
-      if (c === '"' || c === "'") quote = c;
-      if (c === '{' || c === ';' || c === '}') {
+      if (QUOTES.has(c)) quote = c;
+      if (STATEMENT_ENDS.has(c)) {
         this.flush(stack, rules, buffer, bufferLine, c);
         buffer = '';
         bufferLine = line;

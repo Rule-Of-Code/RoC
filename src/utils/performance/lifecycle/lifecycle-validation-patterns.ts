@@ -8,7 +8,7 @@ import { ObservableCleanup } from '../../observable-cleanup';
 import { LifecycleConfiguration } from './lifecycle-configuration';
 
 export class LifecycleValidationPatterns {
-  private static readonly Config = LifecycleConfiguration;
+  private static readonly config = LifecycleConfiguration;
 
   /**
    * Master orchestrator method - validates all lifecycle patterns
@@ -23,7 +23,7 @@ export class LifecycleValidationPatterns {
     const suggestions: string[] = [];
 
     // ===== INLINED: Centralized pattern analysis (RULE 1) =====
-    const patterns = this.Config.analyzeLifecyclePatterns(content);
+    const patterns = this.config.analyzeLifecyclePatterns(content);
 
     // Delegate to private validation helpers with pre-computed patterns (RULE 2)
     this.validateOnDestroyImplementation(patterns, violations, suggestions);
@@ -57,9 +57,9 @@ export class LifecycleValidationPatterns {
   ): void {
     if (patterns.hasSubscribe && !patterns.hasOnDestroy) {
       violations.push(
-        this.Config.VALIDATION_MESSAGES.NO_ONDESTROY_WITH_SUBSCRIPTIONS
+        this.config.VALIDATION_MESSAGES.NO_ONDESTROY_WITH_SUBSCRIPTIONS
       );
-      suggestions.push(this.Config.SUGGESTIONS.IMPLEMENT_ONDESTROY);
+      suggestions.push(this.config.SUGGESTIONS.IMPLEMENT_ONDESTROY);
     }
   }
 
@@ -77,9 +77,9 @@ export class LifecycleValidationPatterns {
   ): void {
     if (patterns.hasSetInterval && !patterns.hasClearInterval) {
       violations.push(
-        this.Config.VALIDATION_MESSAGES.SETINTERVAL_WITHOUT_CLEAR
+        this.config.VALIDATION_MESSAGES.SETINTERVAL_WITHOUT_CLEAR
       );
-      suggestions.push(this.Config.SUGGESTIONS.CLEAR_INTERVALS);
+      suggestions.push(this.config.SUGGESTIONS.CLEAR_INTERVALS);
     }
   }
 
@@ -96,7 +96,7 @@ export class LifecycleValidationPatterns {
   ): void {
     if (destructorAnalysis.missingCleanups.length > 0) {
       violations.push(
-        this.Config.VALIDATION_MESSAGES.MISSING_CLEANUP_IN_ONDESTROY
+        this.config.VALIDATION_MESSAGES.MISSING_CLEANUP_IN_ONDESTROY
       );
       suggestions.push(...destructorAnalysis.missingCleanups);
     }
@@ -136,7 +136,7 @@ export class LifecycleValidationPatterns {
     const cleanupActions: string[] = [];
 
     // Extract ngOnDestroy method content using Configuration (RULE 1)
-    const onDestroyContent = this.Config.extractOnDestroyContent(content);
+    const onDestroyContent = this.config.extractOnDestroyContent(content);
     if (!onDestroyContent) {
       return cleanupActions;
     }
@@ -166,21 +166,21 @@ export class LifecycleValidationPatterns {
     if (
       patterns.hasSubscribe &&
       !cleanupActions.includes(
-        this.Config.CLEANUP_PATTERNS.SUBSCRIPTION_CLEANUP
+        this.config.CLEANUP_PATTERNS.SUBSCRIPTION_CLEANUP
       )
     ) {
       missingCleanups.push(
-        this.Config.VALIDATION_MESSAGES.MISSING_SUBSCRIPTION_CLEANUP
+        this.config.VALIDATION_MESSAGES.MISSING_SUBSCRIPTION_CLEANUP
       );
     }
 
     // Check intervals cleanup (RULE 1 - use pre-computed patterns)
     if (
       patterns.hasSetInterval &&
-      !cleanupActions.includes(this.Config.CLEANUP_PATTERNS.INTERVAL_CLEANUP)
+      !cleanupActions.includes(this.config.CLEANUP_PATTERNS.INTERVAL_CLEANUP)
     ) {
       missingCleanups.push(
-        this.Config.VALIDATION_MESSAGES.MISSING_INTERVAL_CLEANUP
+        this.config.VALIDATION_MESSAGES.MISSING_INTERVAL_CLEANUP
       );
     }
 
@@ -188,11 +188,11 @@ export class LifecycleValidationPatterns {
     if (
       patterns.hasAddEventListener &&
       !cleanupActions.includes(
-        this.Config.CLEANUP_PATTERNS.EVENT_LISTENER_CLEANUP
+        this.config.CLEANUP_PATTERNS.EVENT_LISTENER_CLEANUP
       )
     ) {
       missingCleanups.push(
-        this.Config.VALIDATION_MESSAGES.MISSING_EVENT_LISTENER_CLEANUP
+        this.config.VALIDATION_MESSAGES.MISSING_EVENT_LISTENER_CLEANUP
       );
     }
 
@@ -211,15 +211,15 @@ export class LifecycleValidationPatterns {
 
     // Analyze current patterns and suggest improvements (RULE 1)
     if (patterns.hasSubscribe && !patterns.hasTakeUntil) {
-      suggestions.push(this.Config.SUGGESTIONS.USE_TAKEUNTIL);
+      suggestions.push(this.config.SUGGESTIONS.USE_TAKEUNTIL);
     }
 
     if (patterns.hasViewChild && !patterns.hasOnDestroy) {
-      suggestions.push(this.Config.SUGGESTIONS.CLEANUP_VIEWCHILD);
+      suggestions.push(this.config.SUGGESTIONS.CLEANUP_VIEWCHILD);
     }
 
     if (patterns.hasObservable && !patterns.hasAsyncPipe) {
-      suggestions.push(this.Config.SUGGESTIONS.USE_ASYNC_PIPE);
+      suggestions.push(this.config.SUGGESTIONS.USE_ASYNC_PIPE);
     }
 
     return suggestions;
@@ -230,7 +230,7 @@ export class LifecycleValidationPatterns {
    * RULE 2: Pre-computes patterns and delegates to private helper
    */
   static generateCleanupSuggestionsPublic(content: string): string[] {
-    const patterns = this.Config.analyzeLifecyclePatterns(content);
+    const patterns = this.config.analyzeLifecyclePatterns(content);
     return this.generateCleanupSuggestions(patterns);
   }
 }

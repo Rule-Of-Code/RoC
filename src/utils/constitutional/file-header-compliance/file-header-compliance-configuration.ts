@@ -5,7 +5,7 @@ import { DIRECTORY_NAMES, FILE_EXTENSIONS } from '../../constants';
  * Centralized configuration management for constitutional file header compliance analysis
  */
 export class FileHeaderComplianceConfiguration {
-  private static readonly Config = FileHeaderComplianceConfiguration;
+  private static readonly config = FileHeaderComplianceConfiguration;
 
   /**
    * File header analysis configuration (RULE 1: 100% internal coverage)
@@ -107,7 +107,7 @@ export class FileHeaderComplianceConfiguration {
     maxExampleFiles: number;
     fileHeaderAnalysisLines: number;
   } {
-    return this.Config.FILE_HEADER_ANALYSIS_CONFIG;
+    return this.config.FILE_HEADER_ANALYSIS_CONFIG;
   }
 
   /**
@@ -116,7 +116,7 @@ export class FileHeaderComplianceConfiguration {
   static getHeaderIndicatorPatterns(_config?: unknown): {
     patterns: readonly string[];
   } {
-    return this.Config.HEADER_INDICATOR_PATTERNS;
+    return this.config.HEADER_INDICATOR_PATTERNS;
   }
 
   /**
@@ -126,7 +126,7 @@ export class FileHeaderComplianceConfiguration {
     extensions: readonly string[];
     skipPatterns: readonly string[];
   } {
-    return this.Config.SOURCE_FILE_CONFIG;
+    return this.config.SOURCE_FILE_CONFIG;
   }
 
   /**
@@ -136,7 +136,7 @@ export class FileHeaderComplianceConfiguration {
     skipDirectories: readonly string[];
     srcDirectory: string;
   } {
-    return this.Config.DIRECTORY_FILTER_CONFIG;
+    return this.config.DIRECTORY_FILTER_CONFIG;
   }
 
   /**
@@ -146,7 +146,7 @@ export class FileHeaderComplianceConfiguration {
     encoding: BufferEncoding;
     errorHandling: 'skip' | 'throw';
   } {
-    return this.Config.FILE_READING_CONFIG;
+    return this.config.FILE_READING_CONFIG;
   }
 
   /**
@@ -161,14 +161,14 @@ export class FileHeaderComplianceConfiguration {
       includeCompliance: string;
     };
   } {
-    return this.Config.VALIDATION_MESSAGES;
+    return this.config.VALIDATION_MESSAGES;
   }
 
   /**
    * Check if directory should be skipped based on configuration (RULE 2: Caching)
    */
   static shouldSkipDirectory(dirname: string): boolean {
-    const config = this.Config.DIRECTORY_FILTER_CONFIG;
+    const config = this.config.DIRECTORY_FILTER_CONFIG;
     return config.skipDirectories.includes(dirname);
   }
 }

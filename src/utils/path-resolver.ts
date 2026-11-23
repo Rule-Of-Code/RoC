@@ -7,6 +7,7 @@
 import { glob } from 'glob';
 import type { RuleOfCodeConfig } from '../config/types';
 import { PathOperations } from './path-operations';
+import { warnUser } from './logging-utils';
 
 export class PathResolver {
   private config: RuleOfCodeConfig | undefined;
@@ -61,7 +62,7 @@ export class PathResolver {
    * Returns the root-level standard path (e.g. `<root>/src/main.ts`) AND any matches
    * under common monorepo project folders (`apps/*`, `libs/*`, `packages/*`,
    * `projects/*`, nested one level), so an Nx workspace like
-   * `apps/bot-admin/src/main.ts` is found even when no `pathMappings` is configured.
+   * `apps/admin/src/main.ts` is found even when no `pathMappings` is configured.
    */
   private async resolveWithMonorepoDetection(
     canonicalPath: string
@@ -103,7 +104,7 @@ export class PathResolver {
         ],
       });
     } catch (error) {
-      console.warn(`Failed to resolve glob pattern: ${pattern}`, error);
+      warnUser(`Failed to resolve glob pattern: ${pattern}`, error);
       return [];
     }
   }

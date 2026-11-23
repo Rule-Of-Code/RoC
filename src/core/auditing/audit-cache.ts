@@ -8,11 +8,20 @@ import crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { FileUtils } from '../../utils/file-utils';
+import { warnUser } from '../../utils/logging-utils';
 import { PathOperations } from '../../utils/path-operations';
 import type { AuditResult } from './audit-types';
 
+/**
+ * An AuditResult as JSON holds it: JSON has no Map, so the per-law results
+ * are written as a plain object and read back into a Map.
+ */
+export type StoredAuditResult = Omit<AuditResult, 'results'> & {
+  results: Record<string, unknown>;
+};
+
 export interface CacheEntry {
-  results: AuditResult;
+  results: StoredAuditResult;
   timestamp: number;
   filesHash: string;
   configHash: string;
@@ -216,16 +225,11 @@ export class AuditCache {
       }
 
       // Convert results back to Map (JSON.parse converts Maps to objects)
-      const results = cacheData.results;
-      if (
-        results.results &&
-        typeof results.results === 'object' &&
-        !(results.results instanceof Map)
-      ) {
-        results.results = new Map(Object.entries(results.results));
-      }
-
-      return results;
+      const stored = cacheData.results;
+      return {
+        ...stored,
+        results: new Map(Object.entries(stored.results ?? {})),
+      };
     } catch (error) {
       // Cache read error, ignore
       return null;
@@ -249,7 +253,7 @@ export class AuditCache {
       const cachePath = this.getCachePath(projectRoot);
 
       // Convert Map to object for JSON serialization
-      const serializableResults = {
+      const serializableResults: StoredAuditResult = {
         ...results,
         results:
           results.results instanceof Map
@@ -258,7 +262,7 @@ export class AuditCache {
       };
 
       const cacheEntry: CacheEntry = {
-        results: serializableResults as unknown as AuditResult,
+        results: serializableResults,
         timestamp: Date.now(),
         filesHash,
         configHash,
@@ -271,7 +275,7 @@ export class AuditCache {
       FileUtils.writeFile(cachePath, JSON.stringify(cacheEntry, null, 2));
     } catch (error) {
       // Cache write error, ignore (non-critical)
-      console.warn('Warning: Failed to write cache');
+      warnUser('Warning: Failed to write cache');
     }
   }
 

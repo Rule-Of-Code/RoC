@@ -9,7 +9,7 @@ import type { MemoryLeakPatterns } from '../../types/memory.types';
 import { ObservableSubscriptionsConfiguration } from './observable-subscriptions-configuration';
 
 export class ObservableSubscriptionsValidationPatterns {
-  private static readonly Config = ObservableSubscriptionsConfiguration;
+  private static readonly config = ObservableSubscriptionsConfiguration;
 
   /**
    * Master orchestrator method - validates all subscription patterns
@@ -53,7 +53,7 @@ export class ObservableSubscriptionsValidationPatterns {
     if (!content) return;
 
     // ===== INLINED: Centralized pattern analysis (RULE 1) =====
-    const patterns = this.Config.analyzeSubscriptionPatterns(content);
+    const patterns = this.config.analyzeSubscriptionPatterns(content);
 
     // Delegate to private validation helpers with pre-computed patterns (RULE 2)
     this.validateUnsubscribe(file, patterns, unsubscribedObservables);
@@ -74,8 +74,8 @@ export class ObservableSubscriptionsValidationPatterns {
   ): void {
     // Check if there are subscriptions without unsubscribe (RULE 1 - use patterns)
     if (patterns.hasSubscribe && !patterns.hasUnsubscribe) {
-      const message = this.Config.buildMessage(
-        this.Config.VALIDATION_MESSAGES.MISSING_UNSUBSCRIBE,
+      const message = this.config.buildMessage(
+        this.config.VALIDATION_MESSAGES.MISSING_UNSUBSCRIBE,
         file
       );
       unsubscribedObservables.push(message);
@@ -99,8 +99,8 @@ export class ObservableSubscriptionsValidationPatterns {
         patterns.hasImplementsOnDestroy || patterns.hasOnDestroy;
 
       if (!hasOnDestroy) {
-        const message = this.Config.buildMessage(
-          this.Config.VALIDATION_MESSAGES.MISSING_ON_DESTROY,
+        const message = this.config.buildMessage(
+          this.config.VALIDATION_MESSAGES.MISSING_ON_DESTROY,
           file
         );
         missingOnDestroy.push(message);
@@ -117,18 +117,18 @@ export class ObservableSubscriptionsValidationPatterns {
     const leaks: string[] = [];
 
     // Extract subscription assignments using Configuration (RULE 1)
-    const assignments = this.Config.extractSubscriptionAssignments(content);
+    const assignments = this.config.extractSubscriptionAssignments(content);
 
     assignments.forEach(({ property }) => {
       // Check if property has unsubscribe using Configuration (RULE 1)
-      const hasUnsubscribe = this.Config.hasPropertyUnsubscribe(
+      const hasUnsubscribe = this.config.hasPropertyUnsubscribe(
         content,
         property
       );
 
       if (!hasUnsubscribe) {
-        const message = this.Config.buildPropertyMessage(
-          this.Config.VALIDATION_MESSAGES.POTENTIAL_LEAK,
+        const message = this.config.buildPropertyMessage(
+          this.config.VALIDATION_MESSAGES.POTENTIAL_LEAK,
           property
         );
         leaks.push(message);

@@ -14,7 +14,7 @@ import { PerformanceAnalysisHelpersService } from './performance-analysis-helper
 import type { PerformanceAnalysisResult } from './performance-analysis-service';
 
 export class PerformanceAnalysisRunnersService {
-  private static readonly Config = PerformanceAnalysisConfiguration;
+  private static readonly config = PerformanceAnalysisConfiguration;
 
   static runLifecycleAnalysis(
     include: boolean,
@@ -30,8 +30,8 @@ export class PerformanceAnalysisRunnersService {
       lifecycleResult.violations,
       issues,
       recommendations,
-      this.Config.ISSUE_TYPES.LIFECYCLE,
-      this.Config.RECOMMENDATIONS.LIFECYCLE
+      this.config.ISSUE_TYPES.LIFECYCLE,
+      this.config.RECOMMENDATIONS.LIFECYCLE
     );
   }
 
@@ -52,8 +52,8 @@ export class PerformanceAnalysisRunnersService {
       domViolations,
       issues,
       recommendations,
-      this.Config.ISSUE_TYPES.DOM,
-      this.Config.RECOMMENDATIONS.DOM
+      this.config.ISSUE_TYPES.DOM,
+      this.config.RECOMMENDATIONS.DOM
     );
   }
 
@@ -72,8 +72,8 @@ export class PerformanceAnalysisRunnersService {
       eventViolations,
       issues,
       recommendations,
-      this.Config.ISSUE_TYPES.EVENTS,
-      this.Config.RECOMMENDATIONS.EVENTS
+      this.config.ISSUE_TYPES.EVENTS,
+      this.config.RECOMMENDATIONS.EVENTS
     );
   }
 
@@ -95,8 +95,8 @@ export class PerformanceAnalysisRunnersService {
       observableViolations,
       issues,
       recommendations,
-      this.Config.ISSUE_TYPES.OBSERVABLES,
-      this.Config.RECOMMENDATIONS.OBSERVABLES
+      this.config.ISSUE_TYPES.OBSERVABLES,
+      this.config.RECOMMENDATIONS.OBSERVABLES
     );
   }
 
@@ -117,8 +117,8 @@ export class PerformanceAnalysisRunnersService {
       timerViolations,
       issues,
       recommendations,
-      this.Config.ISSUE_TYPES.TIMERS,
-      this.Config.RECOMMENDATIONS.TIMERS
+      this.config.ISSUE_TYPES.TIMERS,
+      this.config.RECOMMENDATIONS.TIMERS
     );
   }
 }

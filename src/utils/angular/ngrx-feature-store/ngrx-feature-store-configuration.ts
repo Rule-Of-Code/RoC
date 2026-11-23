@@ -15,7 +15,7 @@ import { findDirectoriesRecursively as findDirsRecursively } from '../recursive-
  * Centralizes feature store patterns, file requirements, and analysis logic
  */
 export class NgRxFeatureStoreConfiguration {
-  private static readonly Config = NgRxFeatureStoreConfiguration;
+  private static readonly config = NgRxFeatureStoreConfiguration;
 
   /**
    * Required file extension patterns for NgRx feature store (RULE 1: 100% internal coverage)
@@ -55,7 +55,7 @@ export class NgRxFeatureStoreConfiguration {
    * Get required files for a complete NgRx feature store (RULE 2: Caching)
    */
   static getRequiredFeatureFiles(featureName: string): string[] {
-    const extensions = this.Config.REQUIRED_FILE_EXTENSIONS;
+    const extensions = this.config.REQUIRED_FILE_EXTENSIONS;
     return [
       ...extensions.map(ext => `${featureName}${ext}`),
       ANGULAR_CONSTANTS.INDEX_TS,
@@ -66,7 +66,7 @@ export class NgRxFeatureStoreConfiguration {
    * Get optional files that are recommended but not required (RULE 2: Caching)
    */
   static getOptionalFeatureFiles(featureName: string): string[] {
-    const extensions = this.Config.OPTIONAL_FILE_EXTENSIONS;
+    const extensions = this.config.OPTIONAL_FILE_EXTENSIONS;
     return extensions.map(ext => `${featureName}${ext}`);
   }
 
@@ -81,7 +81,7 @@ export class NgRxFeatureStoreConfiguration {
     CONSIDER_OPTIONAL_FILE: (fileName: string, featureName: string) => string;
     CREATE_FEATURE_DIRECTORIES: string;
   } {
-    const messages = this.Config.VALIDATION_MESSAGES_CONFIG;
+    const messages = this.config.VALIDATION_MESSAGES_CONFIG;
     return {
       MISSING_PLUS_STATE: (featureName: string) =>
         StringTemplateUtils.formatTemplate(
@@ -199,8 +199,8 @@ export class NgRxFeatureStoreConfiguration {
     const stateDir = PathOperations.join(featureDir, stateFolder);
     const hasStateDir = FileUtils.exists(stateDir);
 
-    const requiredFiles = this.Config.getRequiredFeatureFiles(featureName);
-    const optionalFiles = this.Config.getOptionalFeatureFiles(featureName);
+    const requiredFiles = this.config.getRequiredFeatureFiles(featureName);
+    const optionalFiles = this.config.getOptionalFeatureFiles(featureName);
 
     const missingFiles: string[] = [];
     const missingOptionalFiles: string[] = [];

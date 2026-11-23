@@ -46,6 +46,31 @@ an `anyFileContaining` entry can set `readsCode`, and the pattern is then
 matched with comments and string contents blanked (TS/JS by the JS rules,
 Python by its own lexer). The law's three entries set it.
 
+### ⚠️ BREAKING — No Risk Literals is removed (#558)
+
+The opt-in law No Risk Literals is removed: 265 laws → 264. Its vocabulary
+(`floor`, `risk`, `limit`, `equity`, `stake`, `pnl`, `leverage`, `target`)
+belongs to one business domain, not to a framework or to code quality in
+general, and its own detection limits said so; a law in this catalogue
+should hold for any project of its stack.
+
+**Migration: delete the key.** A config that still names the law in
+`laws.severity`, `laws.enabled` or `laws.notApplicable` (as
+`"No Risk Literals"` or `"no-risk-literals"`) fails the audit through
+Config Integrity Guard, an always-on law at error severity, as every key
+that gates nothing does. The message says what happened:
+`laws.severity: 'no-risk-literals' is no longer a law (removed after 8.0.1, #558): delete this key`.
+Removed laws are listed in `src/data/retired-laws.ts`, so their keys are
+named as removed rather than as unknown. The audit's stderr warning for
+`laws.severity`, `laws.notApplicable` and `ignores`/`includes.byRule` uses
+the same words (`⚠️  laws.notApplicable: 'No Risk Literals' is no longer a
+law …`); a misspelt name is still an "unknown law".
+
+The angular release-canary profile now plants its red violation for MD
+Footer Template (MANDATORY), the other opt-in law that a plain Angular
+fixture can fail, and its fixture paths are neutral (`libs/app/…`). Older
+entries below that describe the law are kept as history.
+
 ### 🐛 Fixed — Lazy Loading Implementation reports lazy loading only (#562)
 
 The law's bundle step called three analyzers of `ChangeDetectionOptimizationLaw`
@@ -65,8 +90,8 @@ each check has the law that owns it:
   subscription laws; "any manual subscribe" on its own is dropped;
 - "No Angular components found" is not a finding of any law.
 
-`ChangeDetectionOptimizationLaw` has no caller left and is removed. The
-law count stays 265.
+`ChangeDetectionOptimizationLaw` has no caller left and is removed. It
+was not a registered law, so the law count does not change.
 
 ### 🐛 Fixed — two leftovers of the 8.0.0 self-audit (#439)
 
@@ -549,6 +574,56 @@ the request-path reader could not parse), HTML Lang Declared (sources and a
 config script) and Capacitor Plugin Stub Has Contract Test (test configs and
 mappers it could not read) fill it. A law that read none of its files is still
 judged nothing, whether its note is a violation or in `notRead` (#453).
+
+### 🐛 Fixed — a native Android, iOS or Flutter app is a production subject (#577)
+
+The production-subject gate (API Security Standards, Environment Parity
+Standards and the laws gated in 8.0.0) saw a mobile app only through a JS
+dependency (`react-native`, `expo`, `@capacitor/core`,
+`@nativescript/core`). A native app declares none of them, so those laws
+were not selected for an app a store ships to users' devices.
+
+The gate now also reads what a native build declares:
+
+- Android: a Gradle build file applying `com.android.application` (directly
+  or through a version-catalog alias `libs.plugins.android.application`);
+  a module applying only `com.android.library` is not an app;
+- iOS: an Xcode project (`*.xcodeproj/project.pbxproj`) with an application
+  target (`com.apple.product-type.application…`); a framework or library
+  target is not;
+- Flutter: a `pubspec.yaml` on the Flutter SDK together with
+  `lib/main.dart` (a Flutter package has no entry point).
+
+Sample and test trees (`example/`, `examples/`, `sample/`, `samples/`, test
+and fixture trees, `androidTest/`, `Pods/`) are left out, so a library that
+ships an example app is not selected by it. JS shells (React Native, Expo,
+Capacitor, NativeScript) are selected as before.
+
+### 🔧 Internal — RoC's own code: logging, types and casts (#559)
+
+The self-audit's small groups on RoC's own code, with no change in behaviour:
+user-facing warnings and errors of the engine, the audit cache, the config
+loader and the file utilities go through `warnUser` / `errorUser` in
+logging-utils (the same text on stderr) instead of direct `console.warn` /
+`console.error`; the engine reads its config through a typed `EngineSettings`
+instead of `as any`, runs laws as `RunnableLaw`, and builds the open
+selection without `as unknown as`; the audit cache stores a typed
+`StoredAuditResult`; Latency Budget Harness Realism guards instead of
+asserting with `!`. Self-audit: Centralized Logging 7 → 0, Absolute Zero
+Tolerance Doctrine 7 → 0, No Explicit Any / Non-Null Assertion 2 → 0,
+No Double Cast 2 → 0.
+
+### 🔧 Internal — RoC's own code follows a naming convention ESLint enforces (#559)
+
+`@typescript-eslint/eslint-plugin` (8.67.0, the version of the locked
+parser) is a devDependency, and `eslint.config.mjs` turns on
+`@typescript-eslint/naming-convention` with the convention the code follows:
+camelCase values, functions and members, UPPER_CASE constants (and getters
+that stand for one), PascalCase types, keys of object literals and type
+members left to the data they describe. 56 private static aliases
+(`Config`, `Messages`, `Patterns`, …) and one constant-style helper were
+renamed to camelCase in their files; nothing is exempted. The packed tarball
+lists the same files. Self-audit: Naming Convention Enforcement 1 → 0.
 
 ## [8.0.1] - 2026-11-22
 

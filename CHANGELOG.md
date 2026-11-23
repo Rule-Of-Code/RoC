@@ -88,7 +88,10 @@ each check has the law that owns it:
 - `detectChanges()` / `markForCheck()` without OnPush and manual
   subscriptions are judged by OnPush Change Detection Strategy and the
   subscription laws; "any manual subscribe" on its own is dropped;
-- "No Angular components found" is not a finding of any law.
+- "No Angular components found" is not a finding of any law. A project
+  with no route configuration and no `@Component` in its code has no lazy
+  loading to judge: Lazy Loading now says it judged nothing there, instead
+  of passing with nothing judged (#427).
 
 `ChangeDetectionOptimizationLaw` has no caller left and is removed. It
 was not a registered law, so the law count does not change.

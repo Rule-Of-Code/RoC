@@ -220,6 +220,7 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
       'Both lazy forms count (loadChildren and loadComponent), and preloading is recognised from app.module.ts, app.config.ts or main.ts (preloadingStrategy / PreloadAllModules / withPreloading).',
       'Routing detection is filename-scoped — a file named *routing* or *.routes.* — and substring-based, so a lazy route defined in a differently-named file is invisible and a match inside a comment or string still counts.',
       'Requires src/; Angular-flavoured. It judges lazy loading only: change-detection checks (OnPush, trackBy, ngDoCheck, subscriptions) belong to their own laws (#562).',
+      'A project with no route configuration (Routes, RouterModule, provideRouter, loadChildren, loadComponent) and no @Component in its .ts code, comments removed, has no lazy loading to judge: the law says it judged nothing instead of passing (#562).',
     ],
     emoji: '⚡',
     description: 'All feature modules must implement lazy loading',

@@ -44,7 +44,7 @@ describe('#439 one change is counted once, whatever number of commits carry it',
     git('git commit -qm "chore: init"');
   });
   afterEach(() => {
-    fs.rmSync(root, { recursive: true, force: true });
+    if (root) fs.rmSync(root, { recursive: true, force: true, maxRetries: 3 });
   });
 
   it('counts a commit and its cherry-pick as one oversized change', () => {
@@ -63,6 +63,26 @@ describe('#439 one change is counted once, whatever number of commits carry it',
     expect(sizeFindings()).toEqual([
       expect.stringMatching(/^1 of the last 3 authored commits exceed/),
     ]);
+  });
+
+  /** The boundary: a change of exactly the line limit is not oversized, however many commits carry it. */
+  it('does not count a change at exactly the line limit, nor its cherry-pick', () => {
+    const atLimit = (salt: string): string =>
+      Array.from(
+        { length: 500 },
+        (_, i) => `export const ${salt}${i} = ${i};`
+      ).join('\n');
+    git('git checkout -q -b side');
+    write('src/edge.ts', atLimit('e'));
+    git('git add -A');
+    git('git commit -qm "feat: change at the limit"');
+    git('git checkout -q main');
+    write('src/small.ts', 'export const small = 1;\n');
+    git('git add -A');
+    git('git commit -qm "feat: small"');
+    git('git cherry-pick side');
+
+    expect(sizeFindings()).toEqual([]);
   });
 
   /** The control: two different large changes are two. */

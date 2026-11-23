@@ -13,6 +13,9 @@ import type * as TS from 'typescript';
 import type { LawCheckContext } from '../../types/law.types';
 import { ReactProject } from '../../utils/react/react-project';
 
+/** Characters of a hardcoded text quoted in a finding. */
+const TEXT_QUOTE_LENGTH = 40;
+
 /** The same "looks like words" heuristic the Angular template check uses. */
 const WORDS = /[A-Za-z][A-Za-z\s]{3,}/;
 const READ_ATTRIBUTES = new Set(['placeholder', 'title', 'alt', 'aria-label']);
@@ -43,7 +46,7 @@ export function analyzeJsxText(context: LawCheckContext): JsxTextAnalysis {
     const rel = ReactProject.relative(context, source.fileName);
     const report = (node: TS.Node, text: string): void => {
       hardcoded.push(
-        `${rel}:${source.lineOf(node)} "${text.trim().replace(/\s+/g, ' ').slice(0, 40)}"`
+        `${rel}:${source.lineOf(node)} "${text.trim().replace(/\s+/g, ' ').slice(0, TEXT_QUOTE_LENGTH)}"`
       );
     };
     source.walk(node => {

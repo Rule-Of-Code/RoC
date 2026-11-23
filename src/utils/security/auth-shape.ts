@@ -233,28 +233,37 @@ function rolePropertyName(ts: typeof TS, node: TS.Node): string | null {
  * compares it, without a helper named hasRole.
  */
 function readInlineRoleCheck(ts: typeof TS, node: TS.Node, s: AuthShape) {
-  if (ts.isBinaryExpression(node)) {
-    const op = node.operatorToken.kind;
-    const k = ts.SyntaxKind;
-    const equality =
-      op === k.EqualsEqualsEqualsToken ||
-      op === k.ExclamationEqualsEqualsToken ||
-      op === k.EqualsEqualsToken ||
-      op === k.ExclamationEqualsToken;
-    if (
-      equality &&
-      (rolePropertyName(ts, node.left) || rolePropertyName(ts, node.right))
-    )
-      s.roleCheck = true;
-    return;
-  }
-  if (
+  if (comparesRole(ts, node) || includesRole(ts, node)) s.roleCheck = true;
+}
+
+/** `user?.role === 'owner'`, `role !== 'admin'` (either side). */
+function comparesRole(ts: typeof TS, node: TS.Node): boolean {
+  if (!ts.isBinaryExpression(node)) return false;
+  if (!equalityTokens(ts).has(node.operatorToken.kind)) return false;
+  return !!(
+    rolePropertyName(ts, node.left) || rolePropertyName(ts, node.right)
+  );
+}
+
+/** `user.roles.includes('admin')`. */
+function includesRole(ts: typeof TS, node: TS.Node): boolean {
+  return (
     ts.isCallExpression(node) &&
     ts.isPropertyAccessExpression(node.expression) &&
     node.expression.name.text === 'includes' &&
-    rolePropertyName(ts, node.expression.expression)
-  )
-    s.roleCheck = true;
+    !!rolePropertyName(ts, node.expression.expression)
+  );
+}
+
+/** `===`, `!==`, `==`, `!=`. */
+function equalityTokens(ts: typeof TS): ReadonlySet<TS.SyntaxKind> {
+  const k = ts.SyntaxKind;
+  return new Set([
+    k.EqualsEqualsEqualsToken,
+    k.ExclamationEqualsEqualsToken,
+    k.EqualsEqualsToken,
+    k.ExclamationEqualsToken,
+  ]);
 }
 
 function readNode(ts: typeof TS, node: TS.Node, s: AuthShape): void {

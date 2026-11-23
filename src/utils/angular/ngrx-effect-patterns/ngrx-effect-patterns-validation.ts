@@ -10,10 +10,10 @@ import { NgRxEffectPatternsConfiguration } from './ngrx-effect-patterns-configur
  * Centralized validation methods for effect pattern analysis
  */
 export class NgRxEffectPatternsValidation {
-  private static readonly Config = NgRxEffectPatternsConfiguration;
-  private static readonly Messages = this.Config.VALIDATION_MESSAGES;
+  private static readonly config = NgRxEffectPatternsConfiguration;
+  private static readonly messages = this.config.VALIDATION_MESSAGES;
   private static readonly FILENAME_PLACEHOLDER = '{fileName}';
-  private static readonly EffectAnalysis = Object.create(null) as Record<
+  private static readonly effectAnalysis = Object.create(null) as Record<
     string,
     unknown
   >;
@@ -35,13 +35,13 @@ export class NgRxEffectPatternsValidation {
     const effectFiles = CheckerUtils.findFilesByExtension(
       projectRoot,
       [
-        this.Config.EFFECT_PATTERNS.FILE_EXTENSIONS.EFFECTS_TS,
-        this.Config.EFFECT_PATTERNS.FILE_EXTENSIONS.EFFECT_TS,
+        this.config.EFFECT_PATTERNS.FILE_EXTENSIONS.EFFECTS_TS,
+        this.config.EFFECT_PATTERNS.FILE_EXTENSIONS.EFFECT_TS,
       ],
       config
     ).filter(file =>
       // The name WITH its extension: isEffectFile looks for `.effects.ts` (#369).
-      this.Config.isEffectFile(PathOperations.getFilename(file))
+      this.config.isEffectFile(PathOperations.getFilename(file))
     );
 
     for (const file of effectFiles) {
@@ -61,14 +61,14 @@ export class NgRxEffectPatternsValidation {
   ): void {
     try {
       const content = FileUtils.readFile(file, {
-        encoding: this.Config.EFFECT_PATTERNS.ANGULAR_CONSTANTS.ENCODING_UTF8,
+        encoding: this.config.EFFECT_PATTERNS.ANGULAR_CONSTANTS.ENCODING_UTF8,
         fallbackToEmpty: true,
       });
       if (!content) return;
 
       const fileName = PathOperations.getBasename(file);
-      const patterns: typeof this.EffectAnalysis =
-        this.Config.analyzeEffectPatterns(content);
+      const patterns: typeof this.effectAnalysis =
+        this.config.analyzeEffectPatterns(content);
 
       this.validateInjectableDecorator(patterns, fileName, violations);
       this.validateCreateEffectUsage(patterns, suggestions);
@@ -84,13 +84,13 @@ export class NgRxEffectPatternsValidation {
    * Validate @Injectable decorator presence
    */
   private static validateInjectableDecorator(
-    patterns: typeof this.EffectAnalysis,
+    patterns: typeof this.effectAnalysis,
     fileName: string,
     violations: string[]
   ): void {
     if (!patterns.hasInjectable) {
       violations.push(
-        this.formatMessage(this.Messages.MISSING_INJECTABLE_VIOLATION, fileName)
+        this.formatMessage(this.messages.MISSING_INJECTABLE_VIOLATION, fileName)
       );
     }
   }
@@ -99,11 +99,11 @@ export class NgRxEffectPatternsValidation {
    * Validate createEffect usage
    */
   private static validateCreateEffectUsage(
-    patterns: typeof this.EffectAnalysis,
+    patterns: typeof this.effectAnalysis,
     suggestions: string[]
   ): void {
     if (!patterns.hasCreateEffect) {
-      suggestions.push(this.Messages.USE_CREATE_EFFECT_SUGGESTION);
+      suggestions.push(this.messages.USE_CREATE_EFFECT_SUGGESTION);
     }
   }
 
@@ -111,11 +111,11 @@ export class NgRxEffectPatternsValidation {
    * Validate dispatch: false pattern with tap
    */
   private static validateDispatchFalsePattern(
-    patterns: typeof this.EffectAnalysis,
+    patterns: typeof this.effectAnalysis,
     suggestions: string[]
   ): void {
     if (patterns.hasDispatchFalse && patterns.hasTap) {
-      suggestions.push(this.Messages.TAP_WITH_DISPATCH_FALSE_SUGGESTION);
+      suggestions.push(this.messages.TAP_WITH_DISPATCH_FALSE_SUGGESTION);
     }
   }
 
@@ -123,14 +123,14 @@ export class NgRxEffectPatternsValidation {
    * Validate error handling in effects
    */
   private static validateErrorHandling(
-    patterns: typeof this.EffectAnalysis,
+    patterns: typeof this.effectAnalysis,
     fileName: string,
     violations: string[]
   ): void {
     if (patterns.hasCreateEffect && !patterns.hasCatchError) {
       violations.push(
         this.formatMessage(
-          this.Messages.MISSING_ERROR_HANDLING_VIOLATION,
+          this.messages.MISSING_ERROR_HANDLING_VIOLATION,
           fileName
         )
       );
@@ -141,11 +141,11 @@ export class NgRxEffectPatternsValidation {
    * Validate dependency injection pattern
    */
   private static validateDependencyInjection(
-    patterns: typeof this.EffectAnalysis,
+    patterns: typeof this.effectAnalysis,
     suggestions: string[]
   ): void {
     if (patterns.hasHttp && !patterns.hasInject) {
-      suggestions.push(this.Messages.USE_INJECT_SUGGESTION);
+      suggestions.push(this.messages.USE_INJECT_SUGGESTION);
     }
   }
 }

@@ -2,6 +2,7 @@ import { FileSystemOperations } from '../../file-system-operations';
 import { FileUtils } from '../../file-utils';
 import { PathOperations } from '../../path-operations';
 import { ConfigurationFileLoaderConfiguration } from './configuration-file-loader-configuration';
+import { warnUser } from '../../logging-utils';
 
 type ConfigObject = Record<string, unknown>;
 
@@ -57,7 +58,7 @@ export class ConfigurationFileLoaderValidation {
     } catch (error) {
       // A config the user wrote must never be dropped silently — defaults
       // (e.g. paretoMode: true) would quietly replace their settings.
-      console.warn(
+      warnUser(
         `⚠️ RoC config found at ${fullPath} but could not be parsed (${
           (error as Error).message
         }) — file skipped, built-in defaults may apply`

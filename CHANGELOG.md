@@ -67,6 +67,21 @@ hand-written ones and nothing else; the release checklist
 (PRE_DEPLOYMENT_CHECKLIST.md, linked from CONTRIBUTING.md) has the step
 (#560).
 
+### ⚠️ BREAKING — `audit --suggest-exceptions` is removed
+
+The flag was accepted and did nothing: it was stored by the engine and never
+read, while `--help` promised "suggest exception patterns for failures". It is
+removed rather than implemented, because a generator of exceptions argues
+against this tool's rule that a finding is fixed, or declared inapplicable
+with a reason (`laws.notApplicable`), and never waived so that a run passes.
+
+A script that still passes `--suggest-exceptions` now stops with
+`error: unknown option '--suggest-exceptions'` and exit 1, instead of a run
+that pretends the flag did something. Remove the flag from the script. The
+programmatic option `suggestExceptions` is gone from `AuditOptions` and
+`RuleOfCodeAuditor.create`; the constructor keeps its positional slot, unused,
+so positional callers keep their mode and options (#527).
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

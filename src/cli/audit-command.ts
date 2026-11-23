@@ -13,7 +13,6 @@ export interface AuditActionOptions {
   config?: string;
   export?: string;
   json?: boolean;
-  suggestExceptions?: boolean;
   staged?: boolean;
   failOnWarnings?: boolean;
 }
@@ -264,7 +263,6 @@ async function runAuditAction(
       projectRoot: root,
       config,
       mode: finalMode as 'fast' | 'full',
-      suggestExceptions: options.suggestExceptions,
       verbose: options.verbose,
       onlyFailures: options.onlyFailures,
       parallel: options.parallel,
@@ -360,7 +358,6 @@ export function auditCommand(program: Command): void {
     .option('--config <path>', 'custom config file path')
     .option('--export <format>', 'export results: json, html, csv')
     .option('--json', 'output results as JSON')
-    .option('--suggest-exceptions', 'suggest exception patterns for failures')
     .option('--staged', 'audit only staged files (for git hooks)')
     .option(
       '--fail-on-warnings',

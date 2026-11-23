@@ -460,8 +460,12 @@ A tsconfig that sets `"strict": true` and does not repeat `noImplicitAny` got
 `TypeScript noImplicitAny not enabled`. TypeScript's `strict` turns
 `noImplicitAny` on, so the finding was false. The flag now counts as enabled
 when it is `true`, or when it is unset and `strict` is `true` (in the file or
-a base it extends); only an explicit `"noImplicitAny": false` is reported
-(#506).
+a base it extends); only an explicit `"noImplicitAny": false` is reported.
+That holds only when every file of the `extends` chain was read: a base that
+could not be read may set `"noImplicitAny": false`, which `strict: true` in
+the file does not undo. There the law says `… which could not be read —
+noImplicitAny was NOT read` in `notRead` (#453): not a finding, not passed,
+and no claim that the flag is on or off (#506).
 
 ### 🐛 Fixed — Professional Excellence Mandate reads every ESLint config ESLint reads
 

@@ -9,6 +9,7 @@ import {
   readPackageJsonESLintConfig,
 } from '../../utils/eslint-config-json';
 import { FileUtils } from '../../utils/file-utils';
+import { withNotRead } from '../../utils/judged-nothing';
 import { notReadNote } from '../../utils/json-manifest';
 import { PathOperations } from '../../utils/path-operations';
 import { readTsconfigChain } from '../../utils/tsconfig-chain';
@@ -22,8 +23,9 @@ export class ZeroToleranceLaw {
   static check(context: LawCheckContext): LawResult {
     const { projectRoot } = context;
     const violations: string[] = [];
+    const notRead: string[] = [];
 
-    this.checkTsConfig(projectRoot, violations);
+    this.checkTsConfig(projectRoot, violations, notRead);
 
     // Any ESLint config counts: flat, legacy (.eslintrc.json/.yaml/…) or
     // package.json `eslintConfig`. Only three names were known, so a
@@ -36,11 +38,16 @@ export class ZeroToleranceLaw {
       violations.push('ESLint configuration not found');
     }
 
-    return SacredLawBase.createResult(
-      violations,
-      'Zero Tolerance Doctrine',
-      'SACRED_LAW',
-      this.suggestionsFor(violations)
+    // A flag an unread base may set is in notRead, not a finding (#453): the
+    // law did not pass, and it does not claim the flag is on or off.
+    return withNotRead(
+      SacredLawBase.createResult(
+        violations,
+        'Zero Tolerance Doctrine',
+        'SACRED_LAW',
+        this.suggestionsFor(violations)
+      ),
+      notRead
     );
   }
 
@@ -79,11 +86,12 @@ export class ZeroToleranceLaw {
    * strict and noImplicitAny from tsconfig.json, its `extends` chain merged
    * (JSONC). An unparseable tsconfig read as "strict mode not enabled" (#486);
    * it is said to be NOT read, and so is a flag a base that could not be read
-   * may set.
+   * may set — that note goes to notRead.
    */
   private static checkTsConfig(
     projectRoot: string,
-    violations: string[]
+    violations: string[],
+    notRead: string[]
   ): void {
     const tsConfigPath = PathOperations.join(projectRoot, 'tsconfig.json');
     if (!FileUtils.fileExistsSync(tsConfigPath)) {
@@ -104,9 +112,13 @@ export class ZeroToleranceLaw {
     }
     const unknown: string[] = [];
     // `strict` turns noImplicitAny on: unset under strict is enabled, and only
-    // an explicit `false` turns it off (#506).
+    // an explicit `false` turns it off (#506). Only when every file of the
+    // chain was read: a base that could not be read may set
+    // `noImplicitAny: false`, which `strict: true` in this file does not undo,
+    // so there it is NOT read, never assumed on (QA on #578).
     const valueOf = (flag: 'strict' | 'noImplicitAny'): unknown =>
       flag === 'noImplicitAny' &&
+      chain.unread.length === 0 &&
       chain.options.noImplicitAny === undefined &&
       chain.options.strict === true
         ? true
@@ -123,7 +135,7 @@ export class ZeroToleranceLaw {
       }
     }
     if (unknown.length > 0) {
-      violations.push(
+      notRead.push(
         `tsconfig.json extends ${chain.unread.map(e => JSON.stringify(e)).join(', ')}, which could not be read — ${unknown.join(' and ')} ${unknown.length > 1 ? 'were' : 'was'} NOT read`
       );
     }

@@ -73,7 +73,8 @@ export class EnvironmentParityStandardsLaw {
     // Check environment detection using specialized utility
     const envDetection = BuildEnvironmentAnalyzer.checkEnvironmentDetection(
       context.projectRoot,
-      context.config
+      context.config,
+      context.lawId
     );
     violations.push(...envDetection.violations);
     suggestions.push(...envDetection.suggestions);

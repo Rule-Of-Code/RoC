@@ -1,6 +1,5 @@
 import chalk from 'chalk';
 import * as inquirer from 'inquirer';
-import { FileUtils } from '../utils/file-utils';
 import { PathOperations } from '../utils/path-operations';
 import {
   type ProjectType,

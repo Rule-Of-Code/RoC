@@ -171,7 +171,7 @@ export class AsyncTestAnalyzerConfiguration {
   static readonly RECOMMENDATION_DETECTION_CONFIGS: RecommendationDetectionConfig[] =
     [
       {
-        checker: (content: string, hasProperAsyncHandling: boolean) =>
+        checker: (_content: string, hasProperAsyncHandling: boolean) =>
           !hasProperAsyncHandling,
         message:
           AsyncTestAnalyzerConfiguration.RECOMMENDATION_CONFIG

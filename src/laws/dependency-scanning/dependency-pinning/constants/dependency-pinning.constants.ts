@@ -37,10 +37,7 @@ export class DependencyPinningConstants {
   /**
    * Analyze a dependency version string
    */
-  static analyzeDependencyVersion(
-    packageName: string,
-    version: string
-  ): { type: string } | null {
+  static analyzeDependencyVersion(version: string): { type: string } | null {
     // Check for exact versions (no prefixes)
     if (/^\d+\.\d+\.\d+$/.test(version)) {
       return null; // Properly pinned

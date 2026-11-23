@@ -6,8 +6,6 @@ import { StringTemplateUtils } from '../../string-template-utils';
  * Centralized configuration for environment file analysis patterns
  */
 export class EnvironmentFilesAnalyzerConfiguration {
-  private static readonly Config = EnvironmentFilesAnalyzerConfiguration;
-
   /**
    * Possible environment files list (RULE 1: 100% internal coverage)
    */

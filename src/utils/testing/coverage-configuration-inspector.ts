@@ -2,7 +2,6 @@ import { ProjectTypeDetector } from '../config/project-type-detector';
 import { CONFIG_FILES, JEST_CONSTANTS } from '../constants';
 import { FileUtils } from '../file-utils';
 import { NxWorkspace } from '../nx-workspace';
-import { PathOperations } from '../path-operations';
 import { CoverageThresholdReader } from './coverage-threshold-reader';
 
 /**
@@ -358,7 +357,7 @@ export class CoverageConfigurationInspector {
   ): string[] {
     const results: string[] = [];
 
-    this.forEachJestConfig(projectRoot, (configPath, content) => {
+    this.forEachJestConfig(projectRoot, (_configPath, content) => {
       if (content.includes(propertyName)) {
         handler(content, results);
       }

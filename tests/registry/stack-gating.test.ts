@@ -7,7 +7,7 @@
 import { ALL_ENHANCED_CONSTITUTIONAL_LAWS } from '../../src/data/enhanced-laws';
 import { ModularLawsRegistry } from '../../src/registry/modular-laws-registry';
 
-const law = (title: string): { stack?: string } | undefined =>
+const law = (title: string): { stack?: string | undefined } | undefined =>
   ALL_ENHANCED_CONSTITUTIONAL_LAWS.find(l => l.title === title);
 
 describe('lawAppliesToProjectType', () => {

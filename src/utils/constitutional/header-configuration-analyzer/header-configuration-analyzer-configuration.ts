@@ -5,8 +5,6 @@ import { PathOperations } from '../../path-operations';
  * Centralized configuration for header configuration detection patterns
  */
 export class HeaderConfigurationAnalyzerConfiguration {
-  private static readonly Config = HeaderConfigurationAnalyzerConfiguration;
-
   /**
    * Header template file paths (RULE 1: 100% internal coverage)
    */

@@ -5,6 +5,7 @@ import * as path from 'path';
 import { SeededRandomnessLaw } from '../../src/checkers/python-laws/seeded-randomness';
 import { ALL_ENHANCED_CONSTITUTIONAL_LAWS } from '../../src/data/enhanced-laws';
 import { FileUtils } from '../../src/utils';
+import type { SatisfiedByGuidance } from '../../src/types/enhanced-law.types';
 import type { RuleOfCodeConfig } from '../../src/types/law.types';
 
 /**
@@ -136,10 +137,10 @@ describe('seeded randomness tells reproducible from unpredictable', () => {
     // The Law Card, not the runtime law object: `satisfiedBy`, `rationale` and
     // `detectionLimits` live on the data entry, and the registry's runtime
     // objects carry none of them.
-    const law = (): { satisfiedBy?: Record<string, string> } =>
+    const law = (): { satisfiedBy?: SatisfiedByGuidance | undefined } =>
       ALL_ENHANCED_CONSTITUTIONAL_LAWS.find(
         entry => entry.title === 'Seeded Randomness'
-      ) as { satisfiedBy?: Record<string, string> };
+      ) as { satisfiedBy?: SatisfiedByGuidance | undefined };
 
     it('names cryptographic sources in satisfiedBy', () => {
       expect(law().satisfiedBy?.python ?? '').toMatch(

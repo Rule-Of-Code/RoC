@@ -11,11 +11,6 @@ import { NgRxConfigurationBase } from '../ngrx-configuration-base';
  */
 export class NgRxImmutabilityConfiguration extends NgRxConfigurationBase {
   /**
-   * Config alias for cleaner internal references (RULE 2 pattern)
-   */
-  private static readonly Config = NgRxImmutabilityConfiguration;
-
-  /**
    * Direct state mutation patterns to detect - RULE 1: Inlined from getter method
    */
   static readonly STATE_MUTATION_PATTERNS = [

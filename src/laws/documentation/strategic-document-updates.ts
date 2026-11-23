@@ -395,28 +395,6 @@ export class StrategicDocumentUpdatesLaw {
     return 'minimal';
   }
 
-  private static assessReadmeQualityOld(content: string): string {
-    const qualityIndicators = [
-      /## installation/i,
-      /## usage/i,
-      /## contributing/i,
-      /## license/i,
-      /## getting started/i,
-      /## requirements/i,
-      /## api/i,
-      /## examples/i,
-    ];
-
-    const matches = qualityIndicators.filter(pattern =>
-      pattern.test(content)
-    ).length;
-
-    if (matches >= 5) return 'comprehensive';
-    if (matches >= 3) return 'good';
-    if (matches >= 1) return 'basic';
-    return 'minimal';
-  }
-
   private static generateMessage(
     violationCount: number,
     readme: DocumentAnalysis,

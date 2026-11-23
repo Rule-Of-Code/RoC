@@ -12,11 +12,6 @@ import { SignalConfigurationBase } from '../signal-configuration-base';
  */
 export class NgRxMemoizationConfiguration extends SignalConfigurationBase {
   /**
-   * Config alias for cleaner internal references (RULE 2 pattern)
-   */
-  private static readonly Config = NgRxMemoizationConfiguration;
-
-  /**
    * File extensions for selector analysis - RULE 1: Inlined from getter method
    */
   static readonly SELECTOR_FILE_EXTENSIONS = [

@@ -89,120 +89,91 @@ describe('DependencyPinningConstants', () => {
   describe('analyzeDependencyVersion', () => {
     describe('exact versions (properly pinned)', () => {
       it('should return null for exact version 1.0.0', () => {
-        const result = DependencyPinningConstants.analyzeDependencyVersion(
-          'test',
-          '1.0.0'
-        );
+        const result =
+          DependencyPinningConstants.analyzeDependencyVersion('1.0.0');
         expect(result).toBeNull();
       });
 
       it('should return null for exact version 10.20.30', () => {
-        const result = DependencyPinningConstants.analyzeDependencyVersion(
-          'test',
-          '10.20.30'
-        );
+        const result =
+          DependencyPinningConstants.analyzeDependencyVersion('10.20.30');
         expect(result).toBeNull();
       });
 
       it('should return null for version 0.0.0', () => {
-        const result = DependencyPinningConstants.analyzeDependencyVersion(
-          'test',
-          '0.0.0'
-        );
+        const result =
+          DependencyPinningConstants.analyzeDependencyVersion('0.0.0');
         expect(result).toBeNull();
       });
     });
 
     describe('wildcard versions', () => {
       it('should detect * as wildcard', () => {
-        const result = DependencyPinningConstants.analyzeDependencyVersion(
-          'test',
-          '*'
-        );
+        const result = DependencyPinningConstants.analyzeDependencyVersion('*');
         expect(result).toEqual({ type: 'wildcard' });
       });
 
       it('should detect latest as wildcard', () => {
-        const result = DependencyPinningConstants.analyzeDependencyVersion(
-          'test',
-          'latest'
-        );
+        const result =
+          DependencyPinningConstants.analyzeDependencyVersion('latest');
         expect(result).toEqual({ type: 'wildcard' });
       });
 
       it('should detect x in version as wildcard', () => {
-        const result = DependencyPinningConstants.analyzeDependencyVersion(
-          'test',
-          '1.x'
-        );
+        const result =
+          DependencyPinningConstants.analyzeDependencyVersion('1.x');
         expect(result).toEqual({ type: 'wildcard' });
       });
 
       it('should detect 1.0.x as wildcard', () => {
-        const result = DependencyPinningConstants.analyzeDependencyVersion(
-          'test',
-          '1.0.x'
-        );
+        const result =
+          DependencyPinningConstants.analyzeDependencyVersion('1.0.x');
         expect(result).toEqual({ type: 'wildcard' });
       });
     });
 
     describe('unpinned versions (^ or ~)', () => {
       it('should detect caret versions as unpinned', () => {
-        const result = DependencyPinningConstants.analyzeDependencyVersion(
-          'test',
-          '^1.0.0'
-        );
+        const result =
+          DependencyPinningConstants.analyzeDependencyVersion('^1.0.0');
         expect(result).toEqual({ type: 'unpinned' });
       });
 
       it('should detect tilde versions as unpinned', () => {
-        const result = DependencyPinningConstants.analyzeDependencyVersion(
-          'test',
-          '~1.0.0'
-        );
+        const result =
+          DependencyPinningConstants.analyzeDependencyVersion('~1.0.0');
         expect(result).toEqual({ type: 'unpinned' });
       });
     });
 
     describe('version ranges', () => {
       it('should detect range with dash as range', () => {
-        const result = DependencyPinningConstants.analyzeDependencyVersion(
-          'test',
-          '1.0.0 - 2.0.0'
-        );
+        const result =
+          DependencyPinningConstants.analyzeDependencyVersion('1.0.0 - 2.0.0');
         expect(result).toEqual({ type: 'range' });
       });
 
       it('should detect || as range', () => {
-        const result = DependencyPinningConstants.analyzeDependencyVersion(
-          'test',
-          '1.0.0 || 2.0.0'
-        );
+        const result =
+          DependencyPinningConstants.analyzeDependencyVersion('1.0.0 || 2.0.0');
         expect(result).toEqual({ type: 'range' });
       });
 
       it('should detect < as range', () => {
-        const result = DependencyPinningConstants.analyzeDependencyVersion(
-          'test',
-          '<2.0.0'
-        );
+        const result =
+          DependencyPinningConstants.analyzeDependencyVersion('<2.0.0');
         expect(result).toEqual({ type: 'range' });
       });
 
       it('should detect > as range', () => {
-        const result = DependencyPinningConstants.analyzeDependencyVersion(
-          'test',
-          '>1.0.0'
-        );
+        const result =
+          DependencyPinningConstants.analyzeDependencyVersion('>1.0.0');
         expect(result).toEqual({ type: 'range' });
       });
 
       it('should detect >= as range', () => {
-        const result = DependencyPinningConstants.analyzeDependencyVersion(
-          'test',
-          '>=1.0.0'
-        );
+        const result =
+          DependencyPinningConstants.analyzeDependencyVersion('>=1.0.0');
         expect(result).toEqual({ type: 'range' });
       });
     });
@@ -210,7 +181,6 @@ describe('DependencyPinningConstants', () => {
     describe('non-standard versions', () => {
       it('should detect git+ URLs as unpinned', () => {
         const result = DependencyPinningConstants.analyzeDependencyVersion(
-          'test',
           'git+https://github.com/user/repo'
         );
         expect(result).toEqual({ type: 'unpinned' });
@@ -218,17 +188,16 @@ describe('DependencyPinningConstants', () => {
 
       it('should detect http URLs as wildcard due to x in extension', () => {
         const result = DependencyPinningConstants.analyzeDependencyVersion(
-          'test',
           'https://example.com/package.tgz'
         );
         expect(result).toEqual({ type: 'wildcard' });
       });
 
       it('should detect file: protocol as unpinned', () => {
-        const result = DependencyPinningConstants.analyzeDependencyVersion(
-          'test',
-          'file:../my-package'
-        );
+        const result =
+          DependencyPinningConstants.analyzeDependencyVersion(
+            'file:../my-package'
+          );
         expect(result).toEqual({ type: 'unpinned' });
       });
     });

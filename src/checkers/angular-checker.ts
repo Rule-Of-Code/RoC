@@ -3,7 +3,6 @@
  * Handles Angular-specific checks and best practices
  */
 
-import { Subject } from 'rxjs';
 import type { LawCheckContext, LawResult } from '../types/law.types';
 import {
   AngularTestingExcellenceLaw,
@@ -17,7 +16,6 @@ import {
 import { BaseChecker } from './base-checker';
 
 export class AngularChecker extends BaseChecker {
-  private readonly destroy$ = new Subject<void>(); // Observable cleanup pattern
   async check(context: LawCheckContext): Promise<LawResult> {
     try {
       if (

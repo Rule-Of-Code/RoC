@@ -194,22 +194,28 @@ export class NextUseClientAtLeavesLaw extends LawBase {
     return FUNCTION_ATTRIBUTES.has(name);
   }
 
+  /** The name in `a.name`, `{ name: … }`, a property or a method declaration. */
+  private static isMemberName(
+    ts: TsxSource['ts'],
+    node: TS.Identifier
+  ): boolean {
+    const parent = node.parent;
+    return (
+      (ts.isPropertyAccessExpression(parent) ||
+        ts.isPropertyAssignment(parent) ||
+        ts.isPropertyDeclaration(parent) ||
+        ts.isMethodDeclaration(parent)) &&
+      parent.name === node
+    );
+  }
+
   /** An identifier used as a value, not a property name, declaration name or type. */
   private static isReference(
     ts: TsxSource['ts'],
     node: TS.Identifier
   ): boolean {
     const parent = node.parent;
-    if (ts.isPropertyAccessExpression(parent) && parent.name === node)
-      return false;
-    if (
-      (ts.isPropertyAssignment(parent) ||
-        ts.isPropertyDeclaration(parent) ||
-        ts.isMethodDeclaration(parent)) &&
-      parent.name === node
-    ) {
-      return false;
-    }
+    if (this.isMemberName(ts, node)) return false;
     if (ts.isTypeReferenceNode(parent) || ts.isQualifiedName(parent))
       return false;
     return !(

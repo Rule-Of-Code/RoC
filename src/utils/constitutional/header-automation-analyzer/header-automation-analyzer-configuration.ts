@@ -5,8 +5,6 @@ import { PathOperations } from '../../path-operations';
  * Centralized configuration for header automation detection patterns
  */
 export class HeaderAutomationAnalyzerConfiguration {
-  private static readonly Config = HeaderAutomationAnalyzerConfiguration;
-
   /**
    * Shared header-related keywords (RULE 1: 100% internal coverage, eliminates duplication)
    */

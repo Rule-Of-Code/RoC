@@ -20,7 +20,6 @@ import {
   AngularComponents,
   type AngularComponent,
 } from '../../utils/ionic/angular-components';
-import { HtmlTemplate } from '../../utils/ionic/html-template';
 import { withNotes } from '../../utils/ionic/law-notes';
 import type { TsxSource } from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';

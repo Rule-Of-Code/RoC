@@ -7,11 +7,6 @@ import { SignalConfigurationBase } from '../signal-configuration-base';
 
 export class AngularRoutingConfiguration extends SignalConfigurationBase {
   /**
-   * Config alias for cleaner internal references (RULE 2 pattern)
-   */
-  private static readonly Config = AngularRoutingConfiguration;
-
-  /**
    * Routing detection and analysis patterns
    */
   static readonly ROUTING_PATTERNS = {

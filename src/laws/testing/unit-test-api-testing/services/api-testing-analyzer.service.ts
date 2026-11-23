@@ -271,7 +271,6 @@ export class UnitTestAPITestingAnalyzerService extends TestAnalyzerMixin {
   ): string[] {
     const searchDirs = this.buildTestSearchDirs(projectRoot, ['api']);
     return this.findTestFilesInDirectories(
-      projectRoot,
       searchDirs,
       UnitTestAPITestingConstants.isAPITestFile.bind(
         UnitTestAPITestingConstants

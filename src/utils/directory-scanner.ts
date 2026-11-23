@@ -16,7 +16,7 @@ export interface ScanOptions {
   /** Apply config-based filtering */
   useConfigFiltering?: boolean;
   /** Law ID for specific filtering */
-  lawId?: string;
+  lawId?: string | undefined;
   /** Only scan directories, not files */
   directoriesOnly?: boolean;
   /** Only scan files, not directories */

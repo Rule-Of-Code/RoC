@@ -8,6 +8,7 @@ import {
 } from '../../../../utils/security/code-view';
 import { ExternalBoundary } from '../../../../utils/testing/external-boundary';
 import { FixtureIsolation } from '../../../../utils/testing/fixture-isolation';
+import { ModuleBindings } from '../../../../utils/testing/module-bindings';
 
 /**
  * Unit Test Data Management Constants
@@ -70,8 +71,10 @@ export class UnitTestDataManagementConstants {
     // Only MODULE-scope (column 0) mutable bindings are genuine cross-test shared
     // state. An INDENTED `let x = ...` is a normal local inside a describe / test /
     // helper (e.g. `let result = reducer(...)`) and must NOT be flagged.
-    MODULE_LET: /^let\s+\w+\s*=\s*[^;]*;$/m,
-    MODULE_VAR: /^var\s+\w+\s*=\s*[^;]*;$/m,
+    // ModuleBindings' patterns, shared with Test Isolation Enforcement
+    // (#552); a binding reset in beforeEach/afterEach is not shared.
+    MODULE_LET: ModuleBindings.MODULE_LET,
+    MODULE_VAR: ModuleBindings.MODULE_VAR,
     WINDOW_ASSIGNMENT: /window\.\w+\s*=/,
     GLOBAL_ASSIGNMENT: /global\.\w+\s*=/,
   };
@@ -212,8 +215,12 @@ export class UnitTestDataManagementConstants {
     // Parse only a file whose text could hold a match at all.
     if (!patterns.some(pattern => pattern.test(content))) return false;
     const code = CodeText.codeOnly(content, fileName, projectRoot);
-    return patterns.some(pattern =>
-      PatternMatchingUtils.hasRegexPattern(code, pattern)
+    return (
+      ModuleBindings.hasShared(code) ||
+      [
+        this.SHARED_STATE_PATTERNS.WINDOW_ASSIGNMENT,
+        this.SHARED_STATE_PATTERNS.GLOBAL_ASSIGNMENT,
+      ].some(pattern => PatternMatchingUtils.hasRegexPattern(code, pattern))
     );
   }
 

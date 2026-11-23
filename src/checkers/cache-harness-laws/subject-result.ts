@@ -17,7 +17,7 @@
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { markJudgedNothing } from '../../utils/judged-nothing';
+import { markJudgedNothing, withNotRead } from '../../utils/judged-nothing';
 import { LawBase } from '../law-base';
 
 export interface SubjectVerdict {
@@ -73,8 +73,7 @@ export function subjectResult(verdict: SubjectVerdict): LawResult {
     suggestions,
     context
   );
-  const notRead = verdict.notRead ?? [];
-  const result = notRead.length > 0 ? { ...created, notRead } : created;
+  const result = withNotRead(created, verdict.notRead ?? []);
   if (!result.passed) return { ...result, metrics };
   const summary =
     verdict.judged === 0

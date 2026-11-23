@@ -10,7 +10,7 @@
  * i18n locale when `i18n` is configured.
  */
 
-import { PARTLY_READ_TEXT } from '../../utils/judged-nothing';
+import { PARTLY_READ_TEXT, withNotRead } from '../../utils/judged-nothing';
 import * as fs from 'fs';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { PathOperations } from '../../utils/path-operations';
@@ -61,7 +61,7 @@ export class HtmlLangDeclaredLaw extends LawBase {
       ],
       context
     );
-    return notRead.length > 0 ? { ...result, notRead } : result;
+    return withNotRead(result, notRead);
   }
 
   /** `lang` written with a non-empty literal or any expression. */

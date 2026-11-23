@@ -24,6 +24,7 @@ import { FileUtils } from '../../utils/file-utils';
 import {
   markJudgedNothing,
   PARTLY_READ_TEXT,
+  withNotRead,
 } from '../../utils/judged-nothing';
 import { declaredDependencies } from '../../utils/law-requirements';
 import { PathOperations } from '../../utils/path-operations';
@@ -142,7 +143,7 @@ export class AccessibilityLintingEnforcementLaw extends AccessibilityLawBase {
       ],
       context
     );
-    return notRead.length > 0 ? { ...result, notRead } : result;
+    return withNotRead(result, notRead);
   }
 
   private static angularFindings(eslintContent: string): string[] {

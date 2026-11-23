@@ -138,3 +138,16 @@ export function normalizeJudgedNothing<T>(result: T): T {
   if (readsPartly(result)) return { ...(result as T & object), passed: false };
   return result;
 }
+
+/**
+ * The law result with what it could not read (#453): `notRead` set and the
+ * result not passed — what was not read cannot have passed. Unchanged when
+ * every input was read.
+ */
+export function withNotRead<T extends { passed: boolean }>(
+  result: T,
+  notRead: readonly string[]
+): T & { notRead?: string[] } {
+  if (notRead.length === 0) return result;
+  return { ...result, notRead: [...notRead], passed: false };
+}

@@ -14,7 +14,7 @@
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { markJudgedNothing } from '../../utils/judged-nothing';
+import { markJudgedNothing, withNotRead } from '../../utils/judged-nothing';
 import { declaredClients } from '../../utils/request-path/data-clients';
 import {
   describeSequentialRun,
@@ -69,8 +69,6 @@ export class IndependentAwaitsRunConcurrentlyLaw extends LawBase {
       context
     );
     // What could not be read is a note, not a finding (#453).
-    return sources.unread.length > 0
-      ? { ...result, notRead: sources.unread }
-      : result;
+    return withNotRead(result, sources.unread);
   }
 }

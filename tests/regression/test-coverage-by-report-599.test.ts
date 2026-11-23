@@ -324,5 +324,9 @@ describe('#599 Test Coverage Constitutional Standard judges by line coverage', (
     expect(text).toContain('thresholds.testing.minFileLineCoveragePercent');
     expect(text).toContain('thresholds.testing.coverageReportPath');
     expect(text).toContain('older than the code');
+    expect(card?.description).toMatch(
+      /line coverage in a fresh coverage report/
+    );
+    expect(card?.id).toBe('testing_557c4854');
   });
 });

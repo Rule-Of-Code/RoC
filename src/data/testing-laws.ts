@@ -9,6 +9,8 @@ import { REQUIRES_ANGULAR } from '../utils/framework-requirements';
 
 export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
   {
+    // The id hashes the original description; it stays, so ignores.byRule and
+    // laws.severity keyed by it still resolve after the description changed (#599).
     id: generateLawId(
       'Test Coverage Constitutional Standard',
       'Every feature MUST have tests before merge, ≥80% coverage for new code',
@@ -35,7 +37,7 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     ],
     emoji: '🧪',
     description:
-      'Every feature MUST have tests before merge, ≥80% coverage for new code',
+      'Every source file MUST be tested: ≥80% line coverage in a fresh coverage report when there is one, otherwise a test named after it or importing it',
     priority: 'HIGH',
     category: 'TESTING',
     automation: 'AUTOMATED',

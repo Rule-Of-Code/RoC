@@ -6,7 +6,7 @@ import { AngularDependencyInjectionConfiguration } from './angular-dependency-in
  * Meta-dogfooding: Centralizes validation logic and eliminates duplicated patterns
  */
 export class AngularDependencyInjectionValidationPatterns {
-  private static readonly Config = AngularDependencyInjectionConfiguration;
+  private static readonly config = AngularDependencyInjectionConfiguration;
 
   /**
    * Validate constructor injection patterns
@@ -32,13 +32,13 @@ export class AngularDependencyInjectionValidationPatterns {
     // ===== INLINED: validateServiceCount (RULE 1) =====
     const { dependencyCount } = patterns;
     if (
-      constructorBlock.includes(this.Config.PATTERNS.COLON) &&
-      !constructorBlock.includes(this.Config.PATTERNS.ANY_TYPE)
+      constructorBlock.includes(this.config.PATTERNS.COLON) &&
+      !constructorBlock.includes(this.config.PATTERNS.ANY_TYPE)
     ) {
-      const thresholds = this.Config.getThresholds(config);
+      const thresholds = this.config.getThresholds(config);
       if (dependencyCount > thresholds.MAX_DEPENDENCIES) {
         violations.push(
-          this.Config.VALIDATION_MESSAGES.SERVICE_COUNT.TOO_MANY_DEPENDENCIES(
+          this.config.VALIDATION_MESSAGES.SERVICE_COUNT.TOO_MANY_DEPENDENCIES(
             dependencyCount,
             fileName
           )
@@ -62,7 +62,7 @@ export class AngularDependencyInjectionValidationPatterns {
 
     if (!patterns.hasInjectableDecorator) {
       violations.push(
-        this.Config.VALIDATION_MESSAGES.INJECTABLE.MISSING_DECORATOR(
+        this.config.VALIDATION_MESSAGES.INJECTABLE.MISSING_DECORATOR(
           patterns.fileName
         )
       );
@@ -70,7 +70,7 @@ export class AngularDependencyInjectionValidationPatterns {
 
     if (!patterns.hasProvidedIn) {
       suggestions.push(
-        this.Config.VALIDATION_MESSAGES.INJECTABLE.SUGGEST_PROVIDED_IN(
+        this.config.VALIDATION_MESSAGES.INJECTABLE.SUGGEST_PROVIDED_IN(
           patterns.fileName
         )
       );
@@ -96,7 +96,7 @@ export class AngularDependencyInjectionValidationPatterns {
 
     if (patterns.hasComponentDecorator) {
       suggestions.push(
-        this.Config.VALIDATION_MESSAGES.PROVIDERS.COMPONENT_LEVEL(
+        this.config.VALIDATION_MESSAGES.PROVIDERS.COMPONENT_LEVEL(
           patterns.fileName
         )
       );
@@ -104,10 +104,10 @@ export class AngularDependencyInjectionValidationPatterns {
 
     if (
       patterns.hasModuleDecorator &&
-      !patterns.hasProviders.toString().includes(this.Config.PATTERNS.FOR_ROOT)
+      !patterns.hasProviders.toString().includes(this.config.PATTERNS.FOR_ROOT)
     ) {
       suggestions.push(
-        this.Config.VALIDATION_MESSAGES.PROVIDERS.SUGGEST_FOR_ROOT(
+        this.config.VALIDATION_MESSAGES.PROVIDERS.SUGGEST_FOR_ROOT(
           patterns.fileName
         )
       );
@@ -127,10 +127,10 @@ export class AngularDependencyInjectionValidationPatterns {
   ): void {
     if (!patterns.hasImports) return;
 
-    const thresholds = this.Config.getThresholds(config);
+    const thresholds = this.config.getThresholds(config);
     if (patterns.importCount > thresholds.HIGH_IMPORT_COUNT) {
       suggestions.push(
-        this.Config.VALIDATION_MESSAGES.CIRCULAR_DEPS.HIGH_IMPORTS(
+        this.config.VALIDATION_MESSAGES.CIRCULAR_DEPS.HIGH_IMPORTS(
           patterns.fileName
         )
       );
@@ -150,7 +150,7 @@ export class AngularDependencyInjectionValidationPatterns {
     if (!patterns.hasOptionalDeps) return;
 
     suggestions.push(
-      this.Config.VALIDATION_MESSAGES.OPTIONAL_DEPS.GOOD_USAGE(
+      this.config.VALIDATION_MESSAGES.OPTIONAL_DEPS.GOOD_USAGE(
         patterns.fileName
       )
     );

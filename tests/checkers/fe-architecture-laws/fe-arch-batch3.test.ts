@@ -8,7 +8,6 @@ import os from 'os';
 import path from 'path';
 import { DefensiveArrayCoercionLaw } from '../../../src/checkers/fe-architecture-laws/defensive-array-coercion';
 import { NoPassthroughCastLaw } from '../../../src/checkers/fe-architecture-laws/no-passthrough-cast';
-import { NoRiskLiteralsLaw } from '../../../src/checkers/fe-architecture-laws/no-risk-literals';
 import { TimerCleanupLaw } from '../../../src/checkers/fe-architecture-laws/timer-cleanup';
 import { FE_ARCHITECTURE_LAWS } from '../../../src/data/fe-architecture-laws';
 import { FileUtils } from '../../../src/utils/file-utils';
@@ -113,46 +112,6 @@ describe('ROC-FE-09 Timer Cleanup', () => {
   });
 });
 
-describe('ROC-FE-11 No Risk Literals', () => {
-  it('flags a hardcoded risk number', () => {
-    const dir = fixture({ 'libs/a/x.ts': 'const equityFloor = 450;' });
-    expect(NoRiskLiteralsLaw.check(ctx(dir)).passed).toBe(false);
-  });
-  it('passes a risk value sourced from state, and whitelists 0/1', () => {
-    const dir = fixture({
-      'libs/a/x.ts':
-        'const equityFloor = this.state.floor();\nconst riskLevel = 0;',
-    });
-    expect(NoRiskLiteralsLaw.check(ctx(dir)).passed).toBe(true);
-  });
-  it('ignores $-amounts inside HTML comments (documentation, not bound values)', () => {
-    const dir = fixture({
-      'libs/a/x.component.html':
-        '<!-- stepper стъпка $100 -->\n<div>{{ maxPosition() }}</div>\n<!-- multi\nline $250\ncomment -->\n',
-    });
-    expect(NoRiskLiteralsLaw.check(ctx(dir)).passed).toBe(true);
-  });
-  it('still flags a $-amount outside a comment, with the right line number', () => {
-    const dir = fixture({
-      'libs/a/x.component.html': '<!-- doc $100 -->\n<span>$450</span>\n',
-    });
-    const r = NoRiskLiteralsLaw.check(ctx(dir));
-    expect(r.passed).toBe(false);
-    expect((r.violations ?? []).some(v => /x\.component\.html:2/.test(v))).toBe(
-      true
-    );
-  });
-  it('ignores a risk assignment inside a captured/display string literal', () => {
-    // A `floor = 3` inside a captured-terminal display string is text, not a
-    // bound risk number. Real risk assignments are code, so this must pass.
-    const dir = fixture({
-      'libs/a/terminal-captures.ts':
-        'export const CAPTURE = `\\n  floor = 3\\n  risk = 5\\n`;',
-    });
-    expect(NoRiskLiteralsLaw.check(ctx(dir)).passed).toBe(true);
-  });
-});
-
 describe('batch 3 without Angular (#210)', () => {
   const nonAngular = (): string =>
     fixture(
@@ -180,17 +139,5 @@ describe('batch 3 without Angular (#210)', () => {
     expect(card?.requires).toEqual({ anyDependency: ['@angular/core'] });
     expect(lawRequirementsMet(card?.requires, nonAngular())).toBe(false);
     expect(lawRequirementsMet(card?.requires, fixture({}))).toBe(true);
-  });
-
-  // #214 row 54: opt-in by domain, not gated by framework — once a project
-  // enables it, it reads that project whatever its UI framework.
-  it('No Risk Literals is opt-in and, once enabled, judges a non-Angular project', () => {
-    const card = FE_ARCHITECTURE_LAWS.find(
-      law => law.title === 'No Risk Literals'
-    );
-    expect(card?.defaultEnabled).toBe(false);
-    expect(card?.requires).toBeUndefined();
-    const dir = fixture({ 'libs/a/x.ts': 'const equityFloor = 450;' }, false);
-    expect(NoRiskLiteralsLaw.check(ctx(dir, 'react')).passed).toBe(false);
   });
 });

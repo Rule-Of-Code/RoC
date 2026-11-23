@@ -6,10 +6,11 @@ import chalk from 'chalk';
 import { execFileSync } from '../../utils/child-process';
 import * as fs from 'fs';
 import { ConfigLoader } from '../../config/loader';
+import { retiredLawNotice } from '../../data/retired-laws';
 import { GitHooksInstaller } from '../../hooks/installer';
 import { ModularLawsRegistry } from '../../registry/modular-laws-registry';
 import type { LawRequirement } from '../../types/enhanced-law.types';
-import type { RuleOfCodeConfig } from '../../types/law.types';
+import type { LawResult, RuleOfCodeConfig } from '../../types/law.types';
 import { CapacitorProjects } from '../../utils/capacitor/capacitor-project';
 import { ProjectTypeDetector } from '../../utils/config/project-type-detector';
 import * as LawIdentity from '../../utils/law-identity';
@@ -26,6 +27,7 @@ import {
 } from '../../utils/liveness-floor';
 import { honouredWaiverReason } from '../../utils/law-waivers';
 import { NxWorkspace } from '../../utils/nx-workspace';
+import { warnUser } from '../../utils/logging-utils';
 import { PathOperations } from '../../utils/path-operations';
 import { selectionProjectType } from '../../utils/selection-project-type';
 import { AuditCache } from './audit-cache';
@@ -60,6 +62,54 @@ interface KnownLaw {
   defaultEnabled?: boolean | undefined;
 }
 
+/**
+ * The settings the engine reads from a loaded config. A config written by
+ * hand may leave any section out, so every field is optional here — the
+ * declared RuleOfCodeConfig promises more than a file on disk has to give.
+ * `performance.incremental` and a top-level `failOnWarnings` are read
+ * although the declared type does not name them.
+ */
+interface EngineSettings {
+  performance?: {
+    parallel?: boolean;
+    maxConcurrent?: number;
+    cache?: boolean;
+    incremental?: boolean;
+  };
+  reporting?: { verbose?: boolean; onlyFailures?: boolean; scoring?: boolean };
+  laws?: { failOnWarnings?: boolean };
+  failOnWarnings?: boolean;
+}
+
+/**
+ * A law as the engine runs it: the registry's entry, read defensively — a
+ * law without a check passes with no violations, and a title stands in for
+ * a missing name.
+ */
+interface RunnableLaw {
+  id?: string;
+  legacyId?: number | string;
+  name?: string;
+  title?: string;
+  severity?: 'error' | 'info' | 'warning';
+  check?: (
+    projectRoot: string,
+    config: RuleOfCodeConfig
+  ) => LawResult | Promise<LawResult>;
+}
+
+/** The run's options, with the config's `reporting.scoring` the report reads. */
+type EngineOptions = AuditOptions & { scoring?: boolean };
+
+/**
+ * The stderr line for a config key that names no law. A removed law is named
+ * as removed, in Config Integrity Guard's words (#558); any other key keeps
+ * its "unknown law" message.
+ */
+function keyWarning(where: string, key: string, unknown: string): string {
+  return `⚠️  ${retiredLawNotice(where, key) ?? unknown}`;
+}
+
 export class RuleOfCodeAuditor {
   private static readonly UNKNOWN_LAW = 'Unknown Law';
   /** Suggestions shown per failing law before --verbose is needed. */
@@ -82,7 +132,12 @@ export class RuleOfCodeAuditor {
   private readonly config: RuleOfCodeConfig;
   private readonly projectRoot: string;
   private readonly mode: string;
-  private readonly options: AuditOptions;
+  private readonly options: EngineOptions;
+
+  /** The config as the engine reads it: every section may be missing. */
+  private get settings(): EngineSettings {
+    return this.config;
+  }
 
   static async create(options: {
     projectRoot?: string;
@@ -133,18 +188,15 @@ export class RuleOfCodeAuditor {
     this.mode = mode;
 
     // Read settings from config
-    const configParallel = (this.config as any).performance?.parallel ?? true;
-    const configMaxConcurrent =
-      (this.config as any).performance?.maxConcurrent ?? 10;
-    const configVerbose = (this.config as any).reporting?.verbose ?? false;
-    const configOnlyFailures =
-      (this.config as any).reporting?.onlyFailures ?? false;
-    const configScoring = (this.config as any).reporting?.scoring ?? true;
+    const settings = this.settings;
+    const configParallel = settings.performance?.parallel ?? true;
+    const configMaxConcurrent = settings.performance?.maxConcurrent ?? 10;
+    const configVerbose = settings.reporting?.verbose ?? false;
+    const configOnlyFailures = settings.reporting?.onlyFailures ?? false;
+    const configScoring = settings.reporting?.scoring ?? true;
     // laws.failOnWarnings is the documented home; top-level accepted too.
     const configFailOnWarnings =
-      (this.config as any).laws?.failOnWarnings ??
-      (this.config as any).failOnWarnings ??
-      false;
+      settings.laws?.failOnWarnings ?? settings.failOnWarnings ?? false;
 
     this.options = {
       parallel: configParallel,
@@ -158,10 +210,9 @@ export class RuleOfCodeAuditor {
       categories: [],
       excludePatterns: [],
       ...options, // CLI options override config
+      // Scoring comes from the config only; no CLI option sets it.
+      scoring: configScoring,
     };
-
-    // Store scoring config for result processor
-    (this.options as any).scoring = configScoring;
 
     // A narrowing by `categories` is recorded in the config the run audits
     // with (a copy, the caller's object is left alone): the selector, the
@@ -188,7 +239,7 @@ export class RuleOfCodeAuditor {
     this.validatePathPatterns();
 
     // Check cache if enabled
-    const cacheEnabled = (this.config as any).performance?.cache ?? false;
+    const cacheEnabled = this.settings.performance?.cache ?? false;
 
     // The key is computed ONCE, before the run, and the same key is written
     // after it. Recomputing it after the run hashed the config the run had
@@ -247,7 +298,7 @@ export class RuleOfCodeAuditor {
       (this.config.laws as { __plannedLawCount?: number }).__plannedLawCount =
         substantive.length;
 
-      const results = await this.executeLawChecks(laws);
+      const results = await this.executeLawChecks(laws as RunnableLaw[]);
       const processedResults = this.processResults(results);
 
       const auditResult: AuditResult = {
@@ -588,15 +639,13 @@ export class RuleOfCodeAuditor {
   private openSelection(
     laws: Record<string, unknown>
   ): Array<{ id: string; name: string }> {
-    const open = {
-      ...this.config,
-      laws: {
-        ...laws,
-        enabled: undefined,
-        paretoMode: false,
-        [CATEGORIES_KEY]: undefined,
-      },
-    } as unknown as RuleOfCodeConfig;
+    const openLaws: Record<string, unknown> = {
+      ...laws,
+      enabled: undefined,
+      paretoMode: false,
+      [CATEGORIES_KEY]: undefined,
+    };
+    const open = { ...this.config, laws: openLaws } as RuleOfCodeConfig;
     return this.getSelectedLaws(open).filter(
       law => !(law as { alwaysEnabled?: boolean }).alwaysEnabled
     ) as Array<{ id: string; name: string }>;
@@ -655,7 +704,7 @@ export class RuleOfCodeAuditor {
     return selectionProjectType(configured, this.projectRoot);
   }
 
-  private async executeLawChecks(laws: unknown[]): Promise<unknown[]> {
+  private async executeLawChecks(laws: RunnableLaw[]): Promise<unknown[]> {
     process.stdout.write(
       `${chalk.yellow('⚖️  Executing constitutional checks...')}\n`
     );
@@ -672,7 +721,7 @@ export class RuleOfCodeAuditor {
     }
   }
 
-  private async executeParallel(laws: unknown[]): Promise<unknown[]> {
+  private async executeParallel(laws: RunnableLaw[]): Promise<unknown[]> {
     const chunks = this.chunkArray(laws, this.options.maxConcurrent ?? 10);
     const allResults = [];
 
@@ -693,7 +742,7 @@ export class RuleOfCodeAuditor {
     return allResults;
   }
 
-  private async executeSequential(laws: unknown[]): Promise<unknown[]> {
+  private async executeSequential(laws: RunnableLaw[]): Promise<unknown[]> {
     const results = [];
 
     for (const law of laws) {
@@ -793,8 +842,12 @@ export class RuleOfCodeAuditor {
 
       const law = known.get(key);
       if (!law) {
-        console.warn(
-          `⚠️  laws.severity: unknown law '${key}' — this override gates nothing. Check the name with 'roc laws --list'.`
+        warnUser(
+          keyWarning(
+            'laws.severity',
+            key,
+            `laws.severity: unknown law '${key}' — this override gates nothing. Check the name with 'roc laws --list'.`
+          )
         );
       } else if (
         !ModularLawsRegistry.lawAppliesToProjectType(
@@ -805,7 +858,7 @@ export class RuleOfCodeAuditor {
           this.globalIgnores()
         )
       ) {
-        console.warn(
+        warnUser(
           `ℹ️  laws.severity: '${key}' exists but does not apply to this project type (${projectType ?? 'unknown'}) — stack-gated, kept for shared configs.`
         );
       } else if (
@@ -815,7 +868,7 @@ export class RuleOfCodeAuditor {
           this.globalIgnores()
         )
       ) {
-        console.warn(
+        warnUser(
           `ℹ️  laws.severity: '${key}' exists but this project does not declare ${describeRequirement(law.requires ?? {})} — requirement-gated, kept for shared configs.`
         );
       }
@@ -855,8 +908,12 @@ export class RuleOfCodeAuditor {
       for (const key of Object.keys(section)) {
         if (LawIdentity.isNonLawConfigKey(key)) continue; // annotation or legacy map
         if (known.has(key)) continue;
-        console.warn(
-          `⚠️  ${label}: unknown law '${key}' — these patterns filter nothing. Check the name with 'roc laws --list'.`
+        warnUser(
+          keyWarning(
+            label,
+            key,
+            `${label}: unknown law '${key}' — these patterns filter nothing. Check the name with 'roc laws --list'.`
+          )
         );
       }
     }
@@ -870,7 +927,7 @@ export class RuleOfCodeAuditor {
    */
   private validatePathPatterns(): void {
     for (const [where, pattern] of absolutePatternsIn(this.config)) {
-      console.warn(
+      warnUser(
         `⚠️  ${where}: '${pattern}' is an absolute path outside the project (${this.projectRoot}) — it matches nothing. Write it relative to the project root.`
       );
     }
@@ -880,7 +937,7 @@ export class RuleOfCodeAuditor {
     )) {
       const name = segment.replace(/\\(.)/g, '$1');
       const literal = name.replace(/[[\]{}()*?!+@]/g, ch => `\\${ch}`);
-      console.warn(
+      warnUser(
         `⚠️  ${where}: '${pattern}' — '${segment}' is a glob character class and does not match the ${kind} '${name}' — write ${literal} for the literal name.`
       );
     }
@@ -890,7 +947,7 @@ export class RuleOfCodeAuditor {
       this.config,
       this.projectRoot
     )) {
-      console.warn(
+      warnUser(
         `⚠️  ignores.global: '${pattern}' matched no file in the project — it excludes nothing. Check the path: a typo, or a directory that was renamed or removed.`
       );
     }
@@ -908,16 +965,16 @@ export class RuleOfCodeAuditor {
     if (typeof value === 'string' && VALID.includes(value)) return;
 
     if (value === 'notApplicable') {
-      console.warn(
+      warnUser(
         `⚠️  laws.severity['${key}'] = 'notApplicable' is not a severity — this waives nothing and the law still runs.`
       );
-      console.warn(
+      warnUser(
         `   Declare it inapplicable with a reason instead: laws.notApplicable = { "${key}": "why it does not apply" }`
       );
       return;
     }
 
-    console.warn(
+    warnUser(
       `⚠️  laws.severity['${key}'] = ${JSON.stringify(value)} is not a severity — valid values are ${VALID.join(' | ')}. This entry gates nothing.`
     );
   }
@@ -939,14 +996,18 @@ export class RuleOfCodeAuditor {
     for (const [key, reason] of Object.entries(notApplicable)) {
       if (LawIdentity.isNonLawConfigKey(key)) continue;
       if (!known.has(key)) {
-        console.warn(
-          `⚠️  laws.notApplicable: unknown law '${key}' — this waives nothing and the law still runs. Check the name with 'roc laws --list'.`
+        warnUser(
+          keyWarning(
+            'laws.notApplicable',
+            key,
+            `laws.notApplicable: unknown law '${key}' — this waives nothing and the law still runs. Check the name with 'roc laws --list'.`
+          )
         );
         continue;
       }
       if (honouredWaiverReason(reason) === null) {
         // Not a waiver: the selector runs the law (see waiverReasonOf).
-        console.warn(
+        warnUser(
           `⚠️  laws.notApplicable['${key}'] has no reason — it waives nothing and the law still runs. Give the reason: laws.notApplicable = { "${key}": "why it does not apply" }`
         );
       }
@@ -961,7 +1022,7 @@ export class RuleOfCodeAuditor {
           this.globalIgnores()
         )
       ) {
-        console.warn(
+        warnUser(
           `ℹ️  laws.notApplicable: '${key}' is already stack-gated off this project type (${projectType ?? 'unknown'}) — the waiver is redundant here.`
         );
       } else if (
@@ -972,11 +1033,11 @@ export class RuleOfCodeAuditor {
           this.globalIgnores()
         )
       ) {
-        console.warn(
+        warnUser(
           `ℹ️  laws.notApplicable: '${key}' is already requirement-gated off this project (it needs ${describeRequirement(law.requires ?? {})}) — the waiver is redundant here.`
         );
       } else if (law && this.optInNotEnabled(law)) {
-        console.warn(
+        warnUser(
           `ℹ️  laws.notApplicable: '${key}' is opt-in and not enabled in this config (it runs only when laws.severity gives it a severity or laws.enabled names it) — the waiver is redundant here.`
         );
       }
@@ -1003,7 +1064,7 @@ export class RuleOfCodeAuditor {
     );
   }
 
-  private async executeSingleLaw(law: any): Promise<unknown> {
+  private async executeSingleLaw(law: RunnableLaw): Promise<unknown> {
     const severity = this.resolveLawSeverity(law);
 
     // Execute the actual law check function
@@ -1070,9 +1131,9 @@ export class RuleOfCodeAuditor {
   private displayResults(auditResult: AuditResult): void {
     const chalkForced = new chalk.Instance({ level: 3 });
     const options = {
-      onlyFailures: (this.options as any).onlyFailures ?? false,
-      verbose: (this.options as any).verbose ?? false,
-      showScoring: (this.options as any).scoring ?? true,
+      onlyFailures: this.options.onlyFailures ?? false,
+      verbose: this.options.verbose ?? false,
+      showScoring: this.options.scoring ?? true,
     };
 
     this.displayHeader(chalkForced);

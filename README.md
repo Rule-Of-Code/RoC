@@ -1,7 +1,7 @@
 # 🏛️ RuleOfCode (RoC)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-gold.svg)](https://opensource.org/licenses/MIT)
-[![Constitutional Laws](https://img.shields.io/badge/Constitutional%20Laws-265-red.svg)](#-laws-and-scope)
+[![Constitutional Laws](https://img.shields.io/badge/Constitutional%20Laws-264-red.svg)](#-laws-and-scope)
 [![CI](https://github.com/Rule-Of-Code/RoC/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Rule-Of-Code/RoC/actions/workflows/ci.yml)
 [![Fail Closed](https://img.shields.io/badge/Gate-fail--closed-blue.svg)](#-severity-semantics-and-fail-closed-guarantees)
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-Strict%20Mode-blue.svg)](https://www.typescriptlang.org/)
@@ -52,13 +52,13 @@ npx ruleofcode laws --list   # the law catalog with canonical names
 
 ## ⚖️ Laws and scope
 
-**265 laws**, scoped per stack via automatic stack gating — laws outside the project's
+**264 laws**, scoped per stack via automatic stack gating — laws outside the project's
 stack do not run and are not counted:
 
 | Scope | Laws | Applies to |
 |---|---|---|
 | Universal | 77 | every project |
-| Frontend (Angular/NgRx, FE architecture, Ionic/Capacitor) | 128 | angular / react / vue / ionic |
+| Frontend (Angular/NgRx, FE architecture, Ionic/Capacitor) | 127 | angular / react / vue / ionic |
 | Python (FastAPI, Clean Architecture/CQRS) | 37 | python |
 | TypeScript | 23 | all TS/JS projects |
 
@@ -86,7 +86,7 @@ IDE panel, a dashboard. It is versioned by `schemaVersion` (currently `2`).
   "schemaVersion": 2,
   "tool": "ruleofcode",          // the package name this build was published under
   "version": "8.0.1",
-  "registryTotal": 265,
+  "registryTotal": 264,
   "satisfiedByStacks": {          // the mapping described below — read it, don't hardcode it
     "keys": ["typescript", "angular", "react", "python", "ionic", "capacitor"],
     "stackToKey": { "frontend": "angular", "typescript": "typescript", "python": "python" },
@@ -113,7 +113,7 @@ onto a stack. Measured against the shipped registry:
 | key | laws | spread across stacks |
 |---|---|---|
 | `typescript` | 96 | 2 `frontend` + 20 `typescript` + 74 universal |
-| `angular` | 68 | 59 `frontend` + 3 `typescript` + 6 universal |
+| `angular` | 67 | 58 `frontend` + 3 `typescript` + 6 universal |
 | `react` | 58 | 57 `frontend` + 1 `typescript` |
 | `python` | 83 | 37 `python` + 46 universal |
 | `ionic` | 24 | 24 `frontend` |
@@ -153,8 +153,8 @@ point at — another reason to iterate `keys`.
 ### Where the guidance is missing, say so
 
 The `frontend` laws that run on every UI project (no `requires`) carry React guidance
-(`satisfiedBy.react`, counted in the `react` row above) — except No Risk Literals, the opt-in
-1 `frontend` law without a `requires` that carries only `satisfiedBy.angular`.
+(`satisfiedBy.react`, counted in the `react` row above); none of them carries only
+`satisfiedBy.angular`.
 There is **no Vue guidance yet** ([#12](https://github.com/Rule-Of-Code/RoC/issues/12)). A
 React project matches `stack: "frontend"`, so a law without a `react` key still runs there
 — but the only remediation text it has is Angular's.

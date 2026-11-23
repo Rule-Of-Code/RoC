@@ -21,7 +21,7 @@ function errorToString(error: unknown): string {
 }
 
 export class PerformanceAnalysisResultsService {
-  private static readonly Config = PerformanceAnalysisConfiguration;
+  private static readonly config = PerformanceAnalysisConfiguration;
 
   /**
    * Helper: Apply error message placeholder to template
@@ -52,7 +52,7 @@ export class PerformanceAnalysisResultsService {
       PerformanceAnalysisHelpersService.countIssuesBySeverity(issues);
 
     // Use Configuration's score calculation (RULE 1)
-    const score = this.Config.calculateScore(
+    const score = this.config.calculateScore(
       counts.high,
       counts.medium,
       counts.low
@@ -60,7 +60,7 @@ export class PerformanceAnalysisResultsService {
 
     const hasPerformanceIssues = counts.total > 0;
     // Use Configuration's summary generation (RULE 1)
-    const summary = this.Config.generateSummary(
+    const summary = this.config.generateSummary(
       counts.total,
       counts.high,
       counts.medium,
@@ -80,20 +80,20 @@ export class PerformanceAnalysisResultsService {
     // RULE 1: Use Configuration for error handling and messages
     // RULE 2: Use helper method for safe error message construction
     return {
-      score: this.Config.SCORE.MIN,
+      score: this.config.SCORE.MIN,
       issues: [
         {
-          type: this.Config.ISSUE_TYPES.ANALYSIS_ERROR,
-          severity: this.Config.SEVERITY.HIGH,
+          type: this.config.ISSUE_TYPES.ANALYSIS_ERROR,
+          severity: this.config.SEVERITY.HIGH,
           message: this.buildErrorMessage(
-            `${this.Config.ERROR_MESSAGES.ANALYSIS_FAILED}: {errorMessage}`,
+            `${this.config.ERROR_MESSAGES.ANALYSIS_FAILED}: {errorMessage}`,
             error
           ),
         },
       ],
-      recommendations: [this.Config.RECOMMENDATIONS.ANALYSIS_ERROR],
+      recommendations: [this.config.RECOMMENDATIONS.ANALYSIS_ERROR],
       hasPerformanceIssues: true,
-      summary: this.Config.ERROR_MESSAGES.ANALYSIS_ENCOUNTERED_ERRORS,
+      summary: this.config.ERROR_MESSAGES.ANALYSIS_ENCOUNTERED_ERRORS,
     };
   }
 }

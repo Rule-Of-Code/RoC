@@ -14,12 +14,12 @@ export class NgRxMemoizationValidationPatterns extends AngularConfigurationBase 
   /**
    * Class-level alias for Configuration to reduce verbosity
    */
-  private static readonly Config = NgRxMemoizationConfiguration;
+  private static readonly config = NgRxMemoizationConfiguration;
 
   /**
    * Type alias for selector analysis result
    */
-  private static readonly SelectorAnalysis = Object.create(null) as Record<
+  private static readonly selectorAnalysis = Object.create(null) as Record<
     string,
     unknown
   >;
@@ -27,7 +27,7 @@ export class NgRxMemoizationValidationPatterns extends AngularConfigurationBase 
   /**
    * Type alias for component analysis result
    */
-  private static readonly ComponentAnalysis = Object.create(null) as Record<
+  private static readonly componentAnalysis = Object.create(null) as Record<
     string,
     unknown
   >;
@@ -70,7 +70,7 @@ export class NgRxMemoizationValidationPatterns extends AngularConfigurationBase 
     config: RuleOfCodeConfig
   ): string[] {
     const selectorExtensions = [
-      ...this.Config.SELECTOR_FILE_EXTENSIONS,
+      ...this.config.SELECTOR_FILE_EXTENSIONS,
     ] as string[];
     return CheckerUtils.findFilesByExtension(
       srcPath,
@@ -87,7 +87,7 @@ export class NgRxMemoizationValidationPatterns extends AngularConfigurationBase 
     config: RuleOfCodeConfig
   ): string[] {
     const componentExtensions = [
-      ...this.Config.COMPONENT_FILE_EXTENSIONS,
+      ...this.config.COMPONENT_FILE_EXTENSIONS,
     ] as string[];
     return CheckerUtils.findFilesByExtension(
       srcPath,
@@ -119,13 +119,13 @@ export class NgRxMemoizationValidationPatterns extends AngularConfigurationBase 
   ): void {
     const content = FileUtils.readFile(
       selectorFile,
-      this.Config.FILE_READ_OPTIONS
+      this.config.FILE_READ_OPTIONS
     );
 
     if (!content) return;
 
     const fileName = PathOperations.getBasename(selectorFile);
-    const analysis = this.Config.analyzeSelectorMemoizationPatterns(content);
+    const analysis = this.config.analyzeSelectorMemoizationPatterns(content);
 
     // Apply all selector validation checks
     this.validateDirectStateAccess(analysis, fileName, violations, suggestions);
@@ -138,7 +138,7 @@ export class NgRxMemoizationValidationPatterns extends AngularConfigurationBase 
    * Validate direct state access patterns
    */
   private static validateDirectStateAccess(
-    analysis: typeof this.SelectorAnalysis,
+    analysis: typeof this.selectorAnalysis,
     fileName: string,
     violations: string[],
     suggestions: string[]
@@ -149,14 +149,14 @@ export class NgRxMemoizationValidationPatterns extends AngularConfigurationBase 
     // selectors, never createSelector() projectors.
     if (analysis.hasDirectStateAccess) {
       violations.push(
-        this.Config.buildMessage(
-          this.Config.VALIDATION_MESSAGES.DIRECT_STATE_ACCESS,
+        this.config.buildMessage(
+          this.config.VALIDATION_MESSAGES.DIRECT_STATE_ACCESS,
           fileName
         )
       );
       suggestions.push(
-        this.Config.buildMessage(
-          this.Config.VALIDATION_MESSAGES.WRAP_WITH_SELECTOR,
+        this.config.buildMessage(
+          this.config.VALIDATION_MESSAGES.WRAP_WITH_SELECTOR,
           fileName
         )
       );
@@ -167,7 +167,7 @@ export class NgRxMemoizationValidationPatterns extends AngularConfigurationBase 
    * Validate createSelector usage
    */
   private static validateCreateSelectorUsage(
-    analysis: typeof this.SelectorAnalysis,
+    analysis: typeof this.selectorAnalysis,
     fileName: string,
     suggestions: string[]
   ): void {
@@ -176,8 +176,8 @@ export class NgRxMemoizationValidationPatterns extends AngularConfigurationBase 
     // Check feature selector usage
     if (analysis.hasSingleParamSelectors) {
       suggestions.push(
-        this.Config.buildMessage(
-          this.Config.VALIDATION_MESSAGES.USE_FEATURE_SELECTOR,
+        this.config.buildMessage(
+          this.config.VALIDATION_MESSAGES.USE_FEATURE_SELECTOR,
           fileName
         )
       );
@@ -186,8 +186,8 @@ export class NgRxMemoizationValidationPatterns extends AngularConfigurationBase 
     // Check complex computations
     if (analysis.hasComplexComputations) {
       suggestions.push(
-        this.Config.buildMessage(
-          this.Config.VALIDATION_MESSAGES.OPTIMIZE_COMPLEX_SELECTOR,
+        this.config.buildMessage(
+          this.config.VALIDATION_MESSAGES.OPTIMIZE_COMPLEX_SELECTOR,
           fileName
         )
       );
@@ -198,21 +198,21 @@ export class NgRxMemoizationValidationPatterns extends AngularConfigurationBase 
    * Validate selector imports
    */
   private static validateSelectorImports(
-    analysis: typeof this.SelectorAnalysis,
+    analysis: typeof this.selectorAnalysis,
     fileName: string,
     violations: string[],
     suggestions: string[]
   ): void {
     if (!analysis.hasProperImports) {
       violations.push(
-        this.Config.buildMessage(
-          this.Config.VALIDATION_MESSAGES.MISSING_STORE_IMPORT,
+        this.config.buildMessage(
+          this.config.VALIDATION_MESSAGES.MISSING_STORE_IMPORT,
           fileName
         )
       );
       suggestions.push(
-        this.Config.buildMessage(
-          this.Config.VALIDATION_MESSAGES.IMPORT_FROM_STORE,
+        this.config.buildMessage(
+          this.config.VALIDATION_MESSAGES.IMPORT_FROM_STORE,
           fileName
         )
       );
@@ -223,14 +223,14 @@ export class NgRxMemoizationValidationPatterns extends AngularConfigurationBase 
    * Validate selector composition
    */
   private static validateSelectorComposition(
-    analysis: typeof this.SelectorAnalysis,
+    analysis: typeof this.selectorAnalysis,
     fileName: string,
     suggestions: string[]
   ): void {
     if (analysis.needsComposition) {
       suggestions.push(
-        this.Config.buildMessage(
-          this.Config.VALIDATION_MESSAGES.COMPOSE_SELECTORS,
+        this.config.buildMessage(
+          this.config.VALIDATION_MESSAGES.COMPOSE_SELECTORS,
           fileName
         )
       );
@@ -261,11 +261,11 @@ export class NgRxMemoizationValidationPatterns extends AngularConfigurationBase 
     try {
       const content = FileUtils.readFile(
         componentFile,
-        this.Config.COMPONENT_FILE_READ_OPTIONS
+        this.config.COMPONENT_FILE_READ_OPTIONS
       );
       const fileName = PathOperations.getBasename(componentFile);
 
-      const analysis = this.Config.analyzeComponentSelectorPatterns(content);
+      const analysis = this.config.analyzeComponentSelectorPatterns(content);
 
       // Apply all component validation checks
       this.validateDirectStoreSelect(
@@ -286,7 +286,7 @@ export class NgRxMemoizationValidationPatterns extends AngularConfigurationBase 
    * Validate direct store.select usage
    */
   private static validateDirectStoreSelect(
-    analysis: typeof this.ComponentAnalysis,
+    analysis: typeof this.componentAnalysis,
     content: string,
     fileName: string,
     violations: string[],
@@ -294,21 +294,21 @@ export class NgRxMemoizationValidationPatterns extends AngularConfigurationBase 
   ): void {
     if (analysis.hasValidDirectSelects) return;
 
-    const directSelects = this.Config.findDirectSelects(content);
+    const directSelects = this.config.findDirectSelects(content);
     if (!directSelects) return;
 
     // Check each direct select for validity
     for (const select of directSelects) {
-      if (this.Config.isInvalidDirectSelect(select)) {
+      if (this.config.isInvalidDirectSelect(select)) {
         violations.push(
-          this.Config.buildMessage(
-            this.Config.VALIDATION_MESSAGES.DIRECT_STORE_SELECT,
+          this.config.buildMessage(
+            this.config.VALIDATION_MESSAGES.DIRECT_STORE_SELECT,
             fileName
           )
         );
         suggestions.push(
-          this.Config.buildMessage(
-            this.Config.VALIDATION_MESSAGES.USE_MEMOIZED_SELECTORS,
+          this.config.buildMessage(
+            this.config.VALIDATION_MESSAGES.USE_MEMOIZED_SELECTORS,
             fileName
           )
         );
@@ -321,14 +321,14 @@ export class NgRxMemoizationValidationPatterns extends AngularConfigurationBase 
    * Validate multiple subscriptions
    */
   private static validateMultipleSubscriptions(
-    analysis: typeof this.ComponentAnalysis,
+    analysis: typeof this.componentAnalysis,
     fileName: string,
     suggestions: string[]
   ): void {
     if (analysis.hasTooManySubscriptions) {
       suggestions.push(
-        this.Config.buildMessage(
-          this.Config.VALIDATION_MESSAGES.USE_ASYNC_PIPE,
+        this.config.buildMessage(
+          this.config.VALIDATION_MESSAGES.USE_ASYNC_PIPE,
           fileName
         )
       );
@@ -339,14 +339,14 @@ export class NgRxMemoizationValidationPatterns extends AngularConfigurationBase 
    * Validate unsubscribed selectors
    */
   private static validateUnsubscribedSelectors(
-    analysis: typeof this.ComponentAnalysis,
+    analysis: typeof this.componentAnalysis,
     fileName: string,
     suggestions: string[]
   ): void {
     if (analysis.needsCleanup) {
       suggestions.push(
-        this.Config.buildMessage(
-          this.Config.VALIDATION_MESSAGES.ENSURE_CLEANUP,
+        this.config.buildMessage(
+          this.config.VALIDATION_MESSAGES.ENSURE_CLEANUP,
           fileName
         )
       );

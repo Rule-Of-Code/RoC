@@ -10,7 +10,7 @@ import { AngularOnDestroyConfiguration } from './angular-ondestroy-configuration
  * Meta-dogfooding: Centralizes validation logic and eliminates duplicated patterns
  */
 export class AngularOnDestroyValidationPatterns {
-  private static readonly Config = AngularOnDestroyConfiguration;
+  private static readonly config = AngularOnDestroyConfiguration;
   /**
    * Analyze a single Angular file for OnDestroy violations
    * Meta-dogfooding: Centralizes Angular file analysis logic
@@ -21,13 +21,13 @@ export class AngularOnDestroyValidationPatterns {
     suggestions: string[]
   ): void {
     const content = FileUtils.readFile(angularFile, {
-      encoding: this.Config.FILE_CONFIG.ENCODING,
-      fallbackToEmpty: this.Config.FILE_CONFIG.FALLBACK_TO_EMPTY,
+      encoding: this.config.FILE_CONFIG.ENCODING,
+      fallbackToEmpty: this.config.FILE_CONFIG.FALLBACK_TO_EMPTY,
     });
     if (!content) return;
 
     const fileName = PathOperations.getBasename(angularFile);
-    const patterns = this.Config.analyzeOnDestroyPatterns(content, fileName);
+    const patterns = this.config.analyzeOnDestroyPatterns(content, fileName);
 
     // Run all validation checks
     this.validateOnDestroyInterface(patterns, violations, suggestions);
@@ -48,7 +48,7 @@ export class AngularOnDestroyValidationPatterns {
     violations: string[],
     suggestions: string[]
   ): void {
-    const config = this.Config.VALIDATION_MESSAGES;
+    const config = this.config.VALIDATION_MESSAGES;
 
     if (patterns.hasOnDestroyInterface && !patterns.hasNgOnDestroyMethod) {
       violations.push(config.INTERFACE.MISSING_METHOD(patterns.fileName));
@@ -79,10 +79,10 @@ export class AngularOnDestroyValidationPatterns {
     const methodBody = patterns.ngOnDestroyMethodBody;
     if (
       methodBody === '' ||
-      methodBody.length < this.Config.FILE_CONFIG.EMPTY_METHOD_THRESHOLD
+      methodBody.length < this.config.FILE_CONFIG.EMPTY_METHOD_THRESHOLD
     ) {
       suggestions.push(
-        this.Config.VALIDATION_MESSAGES.SUGGESTIONS.EMPTY_METHOD(
+        this.config.VALIDATION_MESSAGES.SUGGESTIONS.EMPTY_METHOD(
           patterns.fileName
         )
       );
@@ -100,7 +100,7 @@ export class AngularOnDestroyValidationPatterns {
   ): void {
     if (!patterns.hasNgOnDestroyMethod) return;
 
-    const cleanupSuggestions = this.Config.buildCleanupSuggestions(patterns);
+    const cleanupSuggestions = this.config.buildCleanupSuggestions(patterns);
     suggestions.push(...cleanupSuggestions);
   }
 
@@ -115,7 +115,7 @@ export class AngularOnDestroyValidationPatterns {
   ): void {
     if (!patterns.hasTakeUntil || !patterns.hasNgOnDestroyMethod) return;
 
-    const config = this.Config.VALIDATION_MESSAGES.PATTERNS;
+    const config = this.config.VALIDATION_MESSAGES.PATTERNS;
 
     if (!patterns.hasDestroySubject) {
       suggestions.push(config.DESTROY_SUBJECT(patterns.fileName));
@@ -138,7 +138,7 @@ export class AngularOnDestroyValidationPatterns {
     if (!patterns.hasSubscriptionArray || !patterns.hasNgOnDestroyMethod)
       return;
 
-    const config = this.Config;
+    const config = this.config;
     const hasForEach = patterns.ngOnDestroyMethodBody?.includes(
       config.ONDESTROY_PATTERNS.FOR_EACH
     );
@@ -167,7 +167,7 @@ export class AngularOnDestroyValidationPatterns {
     if (!patterns.hasAsync || !patterns.hasNgOnDestroyMethod) return;
 
     suggestions.push(
-      this.Config.VALIDATION_MESSAGES.PATTERNS.ASYNC_CLEANUP(patterns.fileName)
+      this.config.VALIDATION_MESSAGES.PATTERNS.ASYNC_CLEANUP(patterns.fileName)
     );
   }
 
@@ -178,7 +178,7 @@ export class AngularOnDestroyValidationPatterns {
   static findAngularFiles(srcPath: string, config: RuleOfCodeConfig): string[] {
     return CheckerUtils.findFilesByExtension(
       srcPath,
-      this.Config.ANGULAR_FILE_EXTENSIONS,
+      this.config.ANGULAR_FILE_EXTENSIONS,
       config
     );
   }

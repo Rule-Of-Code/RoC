@@ -13,7 +13,7 @@ export class NgRxNamingConventionsValidationPatterns {
   /**
    * Class-level alias for Configuration to reduce verbosity
    */
-  private static readonly Config = NgRxNamingConventionsConfiguration;
+  private static readonly config = NgRxNamingConventionsConfiguration;
 
   /**
    * Validate all NgRx naming convention patterns
@@ -27,7 +27,7 @@ export class NgRxNamingConventionsValidationPatterns {
     const suggestions: string[] = [];
 
     // Find all NgRx files
-    const ngrxExtensions = [...this.Config.NGRX_FILE_EXTENSIONS] as string[];
+    const ngrxExtensions = [...this.config.NGRX_FILE_EXTENSIONS] as string[];
     const ngrxFiles = CheckerUtils.findFilesByExtension(
       PathOperations.join(projectRoot, DIRECTORY_NAMES.SRC),
       ngrxExtensions,
@@ -55,13 +55,13 @@ export class NgRxNamingConventionsValidationPatterns {
     suggestions: string[]
   ): void {
     try {
-      const content = FileUtils.readFile(file, this.Config.FILE_READ_OPTIONS);
+      const content = FileUtils.readFile(file, this.config.FILE_READ_OPTIONS);
 
       if (!content) return;
 
       const fileName = PathOperations.getBasename(file);
       const featurePath = PathOperations.getDirectory(file);
-      const featureName = this.Config.extractFeatureName(featurePath);
+      const featureName = this.config.extractFeatureName(featurePath);
 
       // Apply specific validations based on file type
       this.validateByFileType(
@@ -137,7 +137,7 @@ export class NgRxNamingConventionsValidationPatterns {
     const fileTypes = Object.keys(this.FILE_TYPE_VALIDATORS);
 
     for (const fileType of fileTypes) {
-      if (this.Config.isFileType(fileName, fileType)) {
+      if (this.config.isFileType(fileName, fileType)) {
         const validator = this.FILE_TYPE_VALIDATORS[fileType];
         if (validator) {
           validator(content, fileName, featureName, violations, suggestions);
@@ -156,7 +156,7 @@ export class NgRxNamingConventionsValidationPatterns {
     violations: string[],
     suggestions: string[]
   ): void {
-    const analysis = this.Config.analyzeActionNaming(content, featureName);
+    const analysis = this.config.analyzeActionNaming(content, featureName);
 
     // Validate action patterns
     this.processActionMatches(
@@ -185,25 +185,25 @@ export class NgRxNamingConventionsValidationPatterns {
     violations: string[],
     suggestions: string[]
   ): void {
-    const actionNames = this.Config.extractNamesFromMatches(
+    const actionNames = this.config.extractNamesFromMatches(
       actionMatches,
       REGEX_PATTERNS.QUOTED_STRING
     );
 
     for (const actionName of actionNames) {
       // Check action prefix
-      if (!this.Config.hasProperActionPrefix(actionName, featureName)) {
+      if (!this.config.hasProperActionPrefix(actionName, featureName)) {
         violations.push(
-          this.Config.buildMessage(
-            this.Config.VALIDATION_MESSAGES.ACTION_PREFIX_VIOLATION,
+          this.config.buildMessage(
+            this.config.VALIDATION_MESSAGES.ACTION_PREFIX_VIOLATION,
             actionName,
             featureName,
             fileName
           )
         );
         suggestions.push(
-          this.Config.buildMessage(
-            this.Config.VALIDATION_MESSAGES.ACTION_PREFIX_SUGGESTION,
+          this.config.buildMessage(
+            this.config.VALIDATION_MESSAGES.ACTION_PREFIX_SUGGESTION,
             featureName,
             actionName
           )
@@ -211,11 +211,11 @@ export class NgRxNamingConventionsValidationPatterns {
       }
 
       // Check action case
-      const actionText = this.Config.cleanActionName(actionName);
-      if (!this.Config.hasProperActionCase(actionText)) {
+      const actionText = this.config.cleanActionName(actionName);
+      if (!this.config.hasProperActionCase(actionText)) {
         suggestions.push(
-          this.Config.buildMessage(
-            this.Config.VALIDATION_MESSAGES.ACTION_CASE_SUGGESTION,
+          this.config.buildMessage(
+            this.config.VALIDATION_MESSAGES.ACTION_CASE_SUGGESTION,
             actionText,
             fileName
           )
@@ -232,16 +232,16 @@ export class NgRxNamingConventionsValidationPatterns {
     fileName: string,
     suggestions: string[]
   ): void {
-    const creatorNames = this.Config.extractNamesFromMatches(
+    const creatorNames = this.config.extractNamesFromMatches(
       actionCreatorMatches,
       REGEX_PATTERNS.CONST_PATTERN
     );
 
     for (const creatorName of creatorNames) {
-      if (!this.Config.hasProperActionCreatorCase(creatorName)) {
+      if (!this.config.hasProperActionCreatorCase(creatorName)) {
         suggestions.push(
-          this.Config.buildMessage(
-            this.Config.VALIDATION_MESSAGES.ACTION_CREATOR_CASE_SUGGESTION,
+          this.config.buildMessage(
+            this.config.VALIDATION_MESSAGES.ACTION_CREATOR_CASE_SUGGESTION,
             creatorName,
             fileName
           )
@@ -259,19 +259,19 @@ export class NgRxNamingConventionsValidationPatterns {
     featureName: string,
     suggestions: string[]
   ): void {
-    const analysis = this.Config.analyzeReducerNaming(content);
-    const expectedNames = this.Config.generateExpectedNames(featureName);
+    const analysis = this.config.analyzeReducerNaming(content);
+    const expectedNames = this.config.generateExpectedNames(featureName);
 
     // Validate reducer function naming
-    const reducerNames = this.Config.extractNamesFromMatches(
+    const reducerNames = this.config.extractNamesFromMatches(
       analysis.reducerMatches,
       REGEX_PATTERNS.CONST_PATTERN
     );
     for (const reducerName of reducerNames) {
       if (reducerName !== expectedNames.reducer) {
         suggestions.push(
-          this.Config.buildMessage(
-            this.Config.VALIDATION_MESSAGES.REDUCER_NAME_SUGGESTION,
+          this.config.buildMessage(
+            this.config.VALIDATION_MESSAGES.REDUCER_NAME_SUGGESTION,
             expectedNames.reducer,
             fileName
           )
@@ -280,10 +280,10 @@ export class NgRxNamingConventionsValidationPatterns {
     }
 
     // Validate initial state naming
-    if (!this.Config.hasProperInitialState(content, featureName)) {
+    if (!this.config.hasProperInitialState(content, featureName)) {
       suggestions.push(
-        this.Config.buildMessage(
-          this.Config.VALIDATION_MESSAGES.INITIAL_STATE_SUGGESTION,
+        this.config.buildMessage(
+          this.config.VALIDATION_MESSAGES.INITIAL_STATE_SUGGESTION,
           featureName,
           fileName
         )
@@ -291,18 +291,18 @@ export class NgRxNamingConventionsValidationPatterns {
     }
 
     // Validate state interface naming
-    const stateNames = this.Config.extractNamesFromMatches(
+    const stateNames = this.config.extractNamesFromMatches(
       analysis.interfaceMatches,
       REGEX_PATTERNS.INTERFACE_PATTERN
     );
     for (const stateName of stateNames) {
       if (
         stateName !== expectedNames.stateInterface &&
-        !this.Config.hasProperStateInterfaceCase(stateName)
+        !this.config.hasProperStateInterfaceCase(stateName)
       ) {
         suggestions.push(
-          this.Config.buildMessage(
-            this.Config.VALIDATION_MESSAGES.STATE_INTERFACE_SUGGESTION,
+          this.config.buildMessage(
+            this.config.VALIDATION_MESSAGES.STATE_INTERFACE_SUGGESTION,
             expectedNames.stateInterface,
             fileName
           )
@@ -320,19 +320,19 @@ export class NgRxNamingConventionsValidationPatterns {
     featureName: string,
     suggestions: string[]
   ): void {
-    const analysis = this.Config.analyzeSelectorNaming(content);
-    const expectedNames = this.Config.generateExpectedNames(featureName);
+    const analysis = this.config.analyzeSelectorNaming(content);
+    const expectedNames = this.config.generateExpectedNames(featureName);
 
     // Validate feature selector naming
-    const featureSelectorNames = this.Config.extractNamesFromMatches(
+    const featureSelectorNames = this.config.extractNamesFromMatches(
       analysis.featureSelectorMatches,
       REGEX_PATTERNS.CONST_PATTERN
     );
     for (const selectorName of featureSelectorNames) {
       if (selectorName !== expectedNames.featureSelector) {
         suggestions.push(
-          this.Config.buildMessage(
-            this.Config.VALIDATION_MESSAGES.FEATURE_SELECTOR_SUGGESTION,
+          this.config.buildMessage(
+            this.config.VALIDATION_MESSAGES.FEATURE_SELECTOR_SUGGESTION,
             expectedNames.featureSelector,
             fileName
           )
@@ -341,15 +341,15 @@ export class NgRxNamingConventionsValidationPatterns {
     }
 
     // Validate general selector naming
-    const generalSelectorNames = this.Config.extractNamesFromMatches(
+    const generalSelectorNames = this.config.extractNamesFromMatches(
       analysis.generalSelectorMatches,
       REGEX_PATTERNS.CONST_PATTERN
     );
     for (const selectorName of generalSelectorNames) {
-      if (!this.Config.hasProperSelectorPrefix(selectorName)) {
+      if (!this.config.hasProperSelectorPrefix(selectorName)) {
         suggestions.push(
-          this.Config.buildMessage(
-            this.Config.VALIDATION_MESSAGES.SELECTOR_PREFIX_SUGGESTION,
+          this.config.buildMessage(
+            this.config.VALIDATION_MESSAGES.SELECTOR_PREFIX_SUGGESTION,
             selectorName,
             fileName
           )
@@ -367,19 +367,19 @@ export class NgRxNamingConventionsValidationPatterns {
     featureName: string,
     suggestions: string[]
   ): void {
-    const analysis = this.Config.analyzeEffectNaming(content);
-    const expectedNames = this.Config.generateExpectedNames(featureName);
+    const analysis = this.config.analyzeEffectNaming(content);
+    const expectedNames = this.config.generateExpectedNames(featureName);
 
     // Validate effect class naming
-    const classNames = this.Config.extractNamesFromMatches(
+    const classNames = this.config.extractNamesFromMatches(
       analysis.classMatches,
       REGEX_PATTERNS.CLASS_PATTERN
     );
     for (const className of classNames) {
       if (className !== expectedNames.effectsClass) {
         suggestions.push(
-          this.Config.buildMessage(
-            this.Config.VALIDATION_MESSAGES.EFFECTS_CLASS_SUGGESTION,
+          this.config.buildMessage(
+            this.config.VALIDATION_MESSAGES.EFFECTS_CLASS_SUGGESTION,
             expectedNames.effectsClass,
             fileName
           )
@@ -388,15 +388,15 @@ export class NgRxNamingConventionsValidationPatterns {
     }
 
     // Validate individual effect naming
-    const effectNames = this.Config.extractNamesFromMatches(
+    const effectNames = this.config.extractNamesFromMatches(
       analysis.effectMatches,
       REGEX_PATTERNS.EFFECT_ASSIGNMENT
     );
     for (const effectName of effectNames) {
-      if (!this.Config.hasValidEffectNaming(effectName)) {
+      if (!this.config.hasValidEffectNaming(effectName)) {
         suggestions.push(
-          this.Config.buildMessage(
-            this.Config.VALIDATION_MESSAGES.EFFECT_NAMING_SUGGESTION,
+          this.config.buildMessage(
+            this.config.VALIDATION_MESSAGES.EFFECT_NAMING_SUGGESTION,
             effectName,
             fileName
           )

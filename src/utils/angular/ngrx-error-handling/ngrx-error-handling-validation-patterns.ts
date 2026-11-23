@@ -11,8 +11,8 @@ import { NgRxErrorHandlingConfiguration } from './ngrx-error-handling-configurat
  * Centralized validation methods for NgRx error handling analysis
  */
 export class NgRxErrorHandlingValidationPatterns {
-  private static readonly Config = NgRxErrorHandlingConfiguration;
-  private static readonly ErrorAnalysis = Object.create(null) as Record<
+  private static readonly config = NgRxErrorHandlingConfiguration;
+  private static readonly errorAnalysis = Object.create(null) as Record<
     string,
     unknown
   >;
@@ -33,7 +33,7 @@ export class NgRxErrorHandlingValidationPatterns {
     ).filter(file => {
       // The name WITH its extension: isEffectsFile looks for `.effects.` (#369).
       const fileName = PathOperations.getFilename(file);
-      return this.Config.isEffectsFile(fileName);
+      return this.config.isEffectsFile(fileName);
     });
 
     for (const file of ngrxFiles) {
@@ -56,8 +56,8 @@ export class NgRxErrorHandlingValidationPatterns {
         encoding: ANGULAR_CONSTANTS.ENCODING_UTF8,
       });
       const fileName = PathOperations.getBasename(file);
-      const patterns: typeof this.ErrorAnalysis =
-        this.Config.analyzeErrorHandlingPatterns(content);
+      const patterns: typeof this.errorAnalysis =
+        this.config.analyzeErrorHandlingPatterns(content);
 
       this.validateCatchErrorUsage(patterns, fileName, violations, suggestions);
       this.validateErrorActionDispatch(
@@ -76,12 +76,12 @@ export class NgRxErrorHandlingValidationPatterns {
    * Validate catchError usage in content
    */
   private static validateCatchErrorUsage(
-    patterns: typeof this.ErrorAnalysis,
+    patterns: typeof this.errorAnalysis,
     fileName: string,
     violations: string[],
     suggestions: string[]
   ): void {
-    const messages = this.Config.getValidationMessages();
+    const messages = this.config.getValidationMessages();
     if (!patterns.hasCatchError) {
       violations.push(messages.MISSING_CATCH_ERROR_VIOLATION(fileName));
       suggestions.push(messages.MISSING_CATCH_ERROR_SUGGESTION);
@@ -92,12 +92,12 @@ export class NgRxErrorHandlingValidationPatterns {
    * Validate proper error action dispatch patterns
    */
   private static validateErrorActionDispatch(
-    patterns: typeof this.ErrorAnalysis,
+    patterns: typeof this.errorAnalysis,
     fileName: string,
     violations: string[],
     suggestions: string[]
   ): void {
-    const messages = this.Config.getValidationMessages();
+    const messages = this.config.getValidationMessages();
     if (patterns.hasCatchError && !patterns.hasRxOf) {
       violations.push(messages.MISSING_OBSERVABLE_RETURN_VIOLATION(fileName));
       suggestions.push(messages.MISSING_OBSERVABLE_RETURN_SUGGESTION);
@@ -108,10 +108,10 @@ export class NgRxErrorHandlingValidationPatterns {
    * Validate HTTP-related patterns (retry and timeout)
    */
   private static validateHttpPatterns(
-    patterns: typeof this.ErrorAnalysis,
+    patterns: typeof this.errorAnalysis,
     suggestions: string[]
   ): void {
-    const messages = this.Config.getValidationMessages();
+    const messages = this.config.getValidationMessages();
     if (patterns.hasHttpContent && !patterns.hasRetryLogic) {
       suggestions.push(messages.RETRY_LOGIC_SUGGESTION);
     }

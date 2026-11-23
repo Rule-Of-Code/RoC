@@ -64,6 +64,10 @@ export interface ContainingFile {
 const widened = (pattern: string): string =>
   pattern.includes('**') ? pattern : `${NxWorkspace.PROJECT_DIRS}${pattern}`;
 
+/**
+ * A file's text from the disk, or null when it is unreadable or larger than
+ * the read limit — a file too big to read contains nothing for a gate.
+ */
 export function readDisk(file: string): string | null {
   try {
     return fs.statSync(file).size > CONTAINING_MAX_BYTES

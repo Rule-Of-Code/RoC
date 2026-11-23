@@ -6,7 +6,6 @@
  * comment of the file's language; NOTE is not a task marker.
  */
 import fs from 'fs';
-import os from 'os';
 import path from 'path';
 import { TodoManagementStandardsLaw } from '../../src/laws/documentation/todo-management-standards';
 import type {
@@ -15,16 +14,10 @@ import type {
   RuleOfCodeConfig,
 } from '../../src/types/law.types';
 import { commentLines } from '../../src/utils/comment-text';
-
-const made: string[] = [];
-afterAll(() => {
-  for (const dir of made.splice(0))
-    fs.rmSync(dir, { recursive: true, force: true });
-});
+import { makeTempDir } from '../helpers/temp-dirs';
 
 async function lawOn(files: Record<string, string>): Promise<LawResult> {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-todo-words-'));
-  made.push(root);
+  const root = makeTempDir('roc-todo-words-');
   for (const [name, content] of Object.entries(files)) {
     fs.mkdirSync(path.dirname(path.join(root, name)), { recursive: true });
     fs.writeFileSync(path.join(root, name), content);

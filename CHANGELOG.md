@@ -588,6 +588,19 @@ members left to the data they describe. 56 private static aliases
 renamed to camelCase in their files; nothing is exempted. The packed tarball
 lists the same files. Self-audit: Naming Convention Enforcement 1 → 0.
 
+### Changed — the default config writes no positional `laws.severity` map (#585)
+
+The default config built `laws.severity` as `law-1` … `law-N`, one key per
+registry entry by index, each set to the law's default severity. No law is
+named `law-N`, so the engine and Config Integrity Guard skipped these keys
+and they changed nothing; they still travelled in the `config` section of
+every `--json` result and every export, and shifted with every registry
+change, so a diff of two results' configs showed hundreds of meaningless
+lines. The map is gone: each law's authored `defaultSeverity` is the source
+of truth when no override is written. Every law's severity is unchanged. A
+user's config that still carries `law-N` keys keeps working: they are
+skipped as before.
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

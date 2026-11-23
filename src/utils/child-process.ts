@@ -98,7 +98,9 @@ export function childEnvironment(
 /** Options with the target directory made mandatory. */
 type Targeted<T> = Omit<T, 'cwd'> & { cwd: string };
 
-function targeted<T extends { env?: NodeJS.ProcessEnv }>(options: T): T {
+function targeted<T extends { env?: NodeJS.ProcessEnv | undefined }>(
+  options: T
+): T {
   return { ...options, env: childEnvironment(options.env ?? process.env) };
 }
 

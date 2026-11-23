@@ -1,6 +1,7 @@
 import { DependencyPinningChecker } from '../../checkers/dependency-scanning/dependency-pinning-checker';
 import { NpmAuditChecker } from '../../checkers/dependency-scanning/npm-audit-checker';
 import { VulnerabilityChecker } from '../../checkers/dependency-scanning/vulnerability-checker';
+import { NpmAuditConstants } from '../dependency-scanning/npm-audit-checker/constants/npm-audit.constants';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import {
   DependencyLicenseAnalyzer,
@@ -63,9 +64,13 @@ export class DependencySecurityScanningLaw {
     return {
       passed,
       message: passed
-        ? '✅ Dependencies are locked and scanned (pip-audit/safety in the gate)'
+        ? `✅ Dependencies are locked and scanned (pip-audit/safety in the gate). ${NpmAuditConstants.NOT_MEASURED_NOTE}`
         : `${violations.length} dependency security violation(s) found`,
-      details: [...violations, ...suggestions],
+      details: [
+        ...violations,
+        ...suggestions,
+        NpmAuditConstants.NOT_MEASURED_NOTE,
+      ],
       violations,
       suggestions,
       score: Math.max(0, 100 - violations.length * 30),
@@ -138,9 +143,14 @@ export class DependencySecurityScanningLaw {
       return await Promise.resolve({
         passed,
         message: passed
-          ? 'All DependencyVulnerabilityAnalyzer dependency security requirements met'
-          : `${violations.length} DependencyVulnerabilityAnalyzer dependency security violation(s) found`,
-        details: [...violations, ...suggestions],
+          ? `✅ Dependencies are locked and a scanner runs in the gate. ${NpmAuditConstants.NOT_MEASURED_NOTE}`
+          : `${violations.length} dependency security violation(s) found`,
+        // The note says what is not measured here (#545): not a violation.
+        details: [
+          ...violations,
+          ...suggestions,
+          NpmAuditConstants.NOT_MEASURED_NOTE,
+        ],
         violations,
         suggestions,
         score,

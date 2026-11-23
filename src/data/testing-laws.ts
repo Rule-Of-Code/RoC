@@ -136,11 +136,12 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
       'An Angular test that never touches TestBed is testing a class, not a component — it misses the template, change detection and DI that make it Angular. Excellence is testing the thing as it actually runs.',
     satisfiedBy: {
       angular:
-        'Use TestBed + ComponentFixture in component specs, TestBed.inject in service specs, async/fakeAsync for Observables, and "should" descriptions.',
+        'Use TestBed + ComponentFixture in component specs, TestBed.inject in service specs, async/fakeAsync for Observables, and test titles that describe behaviour (a prefix such as "should" only if thresholds.angular.testTitlePrefix asks for it).',
     },
     detectionLimits: [
       'Coverage is a test-file-to-source FILE ratio (default 80%), not real coverage.',
-      'Substring checks: a "TestBed" in a comment passes, and its absence fails a genuinely-fine test; the "must start with should" rule is stylistic and easily false-positive.',
+      'Substring checks: a "TestBed" in a comment passes, and its absence fails a genuinely-fine test.',
+      'A test title is judged by its form, not its meaning: empty, a placeholder (test, test 1, works, it works) or only the unit name (a describe title, getUser(), CacheService) is reported; a vague sentence is not. thresholds.angular.testTitlePrefix (unset by default) adds a required prefix.',
       'Angular-gated; string matching, no AST.',
     ],
     stack: 'frontend',
@@ -217,6 +218,7 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Project-wide OR: a SINGLE file with beforeEach marks the whole project as having setup.',
+      'Mocking is judged only where a test reaches a network or a shared service (the boundary unit-test-quality-standards reads; the filesystem and a child process are not on it), and one test double anywhere in the suite satisfies it.',
       'Hardcoded-data detection is a crude 20-char-string-literal heuristic; factory detection keys off filenames (factory/builder/fixture/mock/test-data).',
       'JS/TS .spec/.test files only — no Python. realDataMode suppresses the hardcoded-data finding.',
       'Test files are the .spec/.test (.ts, .tsx, .js, .jsx) and .e2e-spec files under src/, apps/, libs/, test/, tests/ and e2e/, found with the project’s ignores and includes matched from the project root — the same discovery as test-isolation-enforcement. A test file outside those six roots (a packages/ workspace, a Jest __tests__ file without the suffix) is not read.',
@@ -294,7 +296,7 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Presence, not content: HTTP-method "coverage" is a very loose regex (the word GET anywhere, any .get(), any 4xx-looking number).',
-      'API test files are found by filename, and only .ts (no .js).',
+      'API test files are found by filename, or by a test file whose syntax tree drives an HTTP test harness (supertest, nock, msw, fetch-mock, HttpTestingController / provideHttpClientTesting); only .ts files are scanned (no .js).',
       'Python gets a native pass via test-client tests; otherwise it is Jest/supertest-shaped.',
     ],
     emoji: '🔌',
@@ -326,12 +328,13 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
       angular:
         'Add perf/load tests (k6/artillery), a bundle-size budget, and web-vitals (LCP/CLS/INP) tracking for critical flows.',
       react:
-        'Add a perf spec named *.perf.spec.ts or *.perf.test.ts under src/, tests/, test/, e2e/ or an {apps,libs,packages}/**/src directory, exercising a critical flow (login, checkout, payment). Declare size-limit or @next/bundle-analyzer, and web-vitals or Lighthouse, in the ROOT package.json: a workspace package manifest is not read.',
+        'Add a perf spec (named *.perf.spec.ts or *.perf.test.ts, or any spec whose code compares a performance.now() or Date.now() duration with toBeLessThan) under src/, tests/, test/, e2e/ or an {apps,libs,packages}/**/src directory, exercising a critical flow (login, checkout, payment, or any flow an e2e spec drives with page.goto / cy.visit). Declare size-limit or @next/bundle-analyzer, and web-vitals or Lighthouse, in the ROOT package.json: a workspace package manifest is not read.',
     },
     detectionLimits: [
       'Entirely presence-of-tooling by keyword — it measures no actual performance number.',
       'Bundle-size and web-vitals are browser-only and there is NO Python path, so a Python service is scored on browser concerns it cannot have.',
       'A pass requires perf files AND load config AND bundle-size AND web-vitals AND monitoring AND critical-flow keywords together.',
+      'A spec without a perf name counts only if its code reads performance.now() or Date.now() and asserts toBeLessThan / toBeLessThanOrEqual; a budget compared with < inside an if, or one asserted through a helper, is not seen.',
     ],
     stack: 'frontend',
     emoji: '⚡',

@@ -272,7 +272,8 @@ describe('AsyncTestAnalyzerConfiguration', () => {
     it('should detect setTimeout without fake timers', () => {
       const config =
         AsyncTestAnalyzerConfiguration.RECOMMENDATION_DETECTION_CONFIGS[1]!;
-      expect(config.checker('setTimeout(() => {})', false)).toBe(true);
+      // A delay: with none the call is a yield, not a wait (#548).
+      expect(config.checker('setTimeout(() => {}, 100)', false)).toBe(true);
       expect(config.checker('jest.useFakeTimers(); setTimeout()', false)).toBe(
         false
       );

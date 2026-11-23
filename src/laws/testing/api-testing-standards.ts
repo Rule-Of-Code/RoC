@@ -1,5 +1,6 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
+import { HttpTestHarness } from '../../utils/testing/http-test-harness';
 import { TestingLawUtilities } from './shared-testing-utilities';
 import { UnitTestAPITestingAnalyzerService } from './unit-test-api-testing/services/api-testing-analyzer.service';
 
@@ -71,7 +72,14 @@ export class APITestingStandardsLaw {
       const mockingAnalysis =
         UnitTestAPITestingAnalyzerService.analyzeMockingSetup(projectRoot);
 
-      if (!mockingAnalysis.hasMocking && !pythonSatisfied) {
+      // A mock backend used by the API tests is API mocking whether or not
+      // its package is a declared dependency: Angular's HttpTestingController
+      // ships inside @angular/common (#551).
+      const mocksBackend = apiTestAnalysis.testFiles.some(file =>
+        HttpTestHarness.mocksBackend(file)
+      );
+
+      if (!mockingAnalysis.hasMocking && !mocksBackend && !pythonSatisfied) {
         suggestions.push(
           'Consider implementing API mocking with tools like MSW or nock'
         );

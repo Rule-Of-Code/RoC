@@ -90,6 +90,8 @@ npx jest          # the full suite
 npm run canary    # release canary: 3 stacks, red/green probe
 ```
 
+- Jest keeps its cache in `node_modules/.cache/jest` (set in `jest.config.js`), not in the
+  OS temp directory. `npx jest --clearCache` empties it; removing `node_modules` removes it.
 - **`--no-verify` is FORBIDDEN.** If a hook fails, fix the cause. Bypassing the gate is
   exactly the behaviour RoC exists to make impossible.
 - The canary proves not only that green is green, but that **red is red**

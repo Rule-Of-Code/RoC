@@ -73,7 +73,7 @@ export class NgRxModuleConfiguration {
     const suggestions: string[] = [];
 
     // RULE 2: Use centralized configuration helper to eliminate duplication
-    const { messages, patterns } = this.getCachedConfiguration();
+    const { patterns } = this.getCachedConfiguration();
     const appModulePath = this.Config.getAppModulePath(projectRoot);
 
     // RULE 2: Early return for missing module (no violation for standalone architecture)

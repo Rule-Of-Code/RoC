@@ -1,7 +1,6 @@
 import { FileSystemOperations } from '../../file-system-operations';
 import { FileUtils } from '../../file-utils';
 import { PathOperations } from '../../path-operations';
-import type { PackageJsonLicense } from '../licensing-types';
 import { DependencyLicenseAnalyzerValidation } from './dependency-license-analyzer-validation';
 
 /**
@@ -29,9 +28,10 @@ export class DependencyLicenseAnalyzer {
       };
     }
 
-    let packageJson: PackageJsonLicense;
+    // The analysis reads the dependencies itself; package.json is parsed here
+    // only so a broken file is reported as such.
     try {
-      packageJson = FileSystemOperations.readJsonFile(packageJsonPath);
+      FileSystemOperations.readJsonFile(packageJsonPath);
     } catch (_error) {
       return {
         violations: ['Could not read package.json file'],
@@ -41,8 +41,7 @@ export class DependencyLicenseAnalyzer {
     }
 
     return DependencyLicenseAnalyzerValidation.validateDependencyLicenses(
-      projectRoot,
-      packageJson
+      projectRoot
     );
   }
 
@@ -66,13 +65,9 @@ export class DependencyLicenseAnalyzer {
   /**
    * Extract dependency licenses from project (for compatibility checking)
    */
-  static extractDependencyLicenses(
-    projectRoot: string,
-    packageJson: PackageJsonLicense
-  ): string[] {
+  static extractDependencyLicenses(projectRoot: string): string[] {
     return DependencyLicenseAnalyzerValidation.extractDependencyLicenses(
-      projectRoot,
-      packageJson
+      projectRoot
     );
   }
 }

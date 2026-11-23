@@ -15,18 +15,27 @@ gave it a fresh value before every test, which is the isolation pattern both
 laws ask for. The two laws also disagreed on a typed `let`
 (`let state: State = make();`): one reported it, the other did not.
 
-Both laws now read the same definition, from the syntax tree: every
-declarator of a top-level `let` / `var` with an initialiser, typed or not,
-is shared state unless a `beforeEach` or `afterEach` of the same file
-assigns it. A reset in `beforeAll` (which runs once), an assignment inside
-a string, and a hook that declares its own binding of the same name do not
-count.
+Both laws now read the same definition: a column-0 `let` / `var` with an
+initialiser, typed or not, is shared state unless a `beforeEach` or
+`afterEach` of the same file assigns it. A reset in `beforeAll` (which runs
+once) does not count.
 
-Findings can also grow, because the two laws now read a declaration the
-same way: Test Data Management now sees a typed `let`, a declaration
-without a trailing `;` and a name with `$` when nothing resets them; Test
-Isolation Enforcement now sees a `$` name, a typed `var` and the second
-declarator of `let a = 1, b = 2`.
+Test Data Management now also reports a typed module-level `let` that
+nothing resets, as Test Isolation Enforcement does. Findings can grow the
+same way for a declaration without a trailing `;` and for a name with a
+dollar sign, which Test Data Management's old pattern did not see.
+
+### 🐛 Fixed — module bindings are read from the syntax tree (#565)
+
+The definition above read the reset as text in the hook. Three cases were
+wrong: a hook that declared its own binding of the same name
+(`const x = …`, shadowing) counted as a reset, an assignment written inside
+a string counted as a reset, and only the first declarator of
+`let a = 1, b = 2` was read. Both laws now read the bindings and the hooks
+from the syntax tree: every declarator of a top-level `let` / `var` with an
+initialiser, an assignment only where it is code, and a same-named binding
+inside the hook shadows instead of resetting. The second declarator of one
+statement can add a finding where nothing resets it.
 
 ### 🐛 Fixed — Test Coverage Constitutional Standard took `domain.ts` for an entry point (#539)
 

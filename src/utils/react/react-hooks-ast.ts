@@ -11,9 +11,9 @@
  */
 
 import type * as TS from 'typescript';
-import type { LawCheckContext } from '../../types/law.types';
-import { ReactProject } from './react-project';
 import type { TsxSource, TypeScriptModule } from './tsx-source';
+
+export { hasInlineReason, readReactSources, where } from './react-law-sources';
 
 /** The hooks whose callback runs after render and may return a cleanup. */
 export const EFFECT_HOOKS: readonly string[] = ['useEffect', 'useLayoutEffect'];
@@ -186,26 +186,30 @@ export function localFunction(
   let found: TS.FunctionLikeDeclaration | null = null;
   walkWithin(ts, scope, node => {
     if (found) return;
-    if (
-      ts.isFunctionDeclaration(node) &&
-      node.name?.text === name &&
-      node.body
-    ) {
-      found = node;
-      return;
-    }
-    if (
-      ts.isVariableDeclaration(node) &&
-      ts.isIdentifier(node.name) &&
-      node.name.text === name &&
-      node.initializer
-    ) {
-      const value = unwrap(ts, node.initializer);
-      if (ts.isArrowFunction(value) || ts.isFunctionExpression(value))
-        found = value;
-    }
+    found = functionBoundTo(ts, node, name);
   });
   return found;
+}
+
+/** The function `node` binds to `name`, when it declares that name with a function. */
+function functionBoundTo(
+  ts: TypeScriptModule,
+  node: TS.Node,
+  name: string
+): TS.FunctionLikeDeclaration | null {
+  if (ts.isFunctionDeclaration(node) && node.name?.text === name && node.body)
+    return node;
+  if (
+    ts.isVariableDeclaration(node) &&
+    ts.isIdentifier(node.name) &&
+    node.name.text === name &&
+    node.initializer
+  ) {
+    const value = unwrap(ts, node.initializer);
+    if (ts.isArrowFunction(value) || ts.isFunctionExpression(value))
+      return value;
+  }
+  return null;
 }
 
 /**
@@ -335,101 +339,4 @@ export function stateSetters(source: TsxSource): Set<string> {
     }
   });
   return setters;
-}
-
-const commentsCache = new WeakMap<
-  TsxSource,
-  Array<{ line: number; text: string }>
->();
-
-/**
- * Every comment of the file with the 1-based line it ends on. Read from the
- * trivia the parser keeps around tokens — `{/* … *\/}` inside JSX included —
- * so a string that looks like a comment is never one.
- */
-function comments(source: TsxSource): Array<{ line: number; text: string }> {
-  const cached = commentsCache.get(source);
-  if (cached) return cached;
-  const ts = source.ts;
-  const { text, sourceFile } = source;
-  const seen = new Map<number, { line: number; text: string }>();
-  const collect = (ranges: readonly TS.CommentRange[] | undefined): void => {
-    for (const range of ranges ?? []) {
-      if (seen.has(range.pos)) continue;
-      seen.set(range.pos, {
-        line: sourceFile.getLineAndCharacterOfPosition(range.end).line + 1,
-        text: text.slice(range.pos, range.end),
-      });
-    }
-  };
-  source.walk(node => {
-    if (ts.isJsxText(node)) return;
-    collect(ts.getLeadingCommentRanges(text, node.pos));
-    collect(ts.getTrailingCommentRanges(text, node.end));
-    if (ts.isJsxExpression(node) && !node.expression) {
-      // `{/* … */}`: the comment follows the brace on the same line, which the
-      // compiler reports as trailing trivia, not leading.
-      const inside = node.getStart(sourceFile) + 1;
-      collect(ts.getTrailingCommentRanges(text, inside));
-      collect(ts.getLeadingCommentRanges(text, inside));
-    }
-  });
-  const list = [...seen.values()];
-  commentsCache.set(source, list);
-  return list;
-}
-
-/**
- * True when a comment on `line` or the line above carries `marker: <reason>`
- * with a non-empty reason — the inline answer a finding the law cannot judge
- * (a bounded one-shot timer, a list that never reorders) is given.
- */
-export function hasInlineReason(
-  source: TsxSource,
-  line: number,
-  marker: string
-): boolean {
-  const pattern = new RegExp(`${marker}\\s*:\\s*\\S`);
-  return comments(source).some(
-    comment =>
-      (comment.line === line || comment.line === line - 1) &&
-      pattern.test(comment.text)
-  );
-}
-
-/** `file:line` for a message, relative to the project root. */
-export function where(
-  context: LawCheckContext,
-  source: TsxSource,
-  node: TS.Node
-): string {
-  return `${ReactProject.relative(context, source.fileName)}:${source.lineOf(node)}`;
-}
-
-/**
- * Parse the React source a law reads. A file that was not read becomes a
- * violation, and so does a scan that found no React source at all: the law is
- * selected because the project declares React, so an empty scan means
- * `ignores` hid the subject, and a green from it would be a green over nothing.
- */
-export function readReactSources(
-  context: LawCheckContext,
-  lawName: string
-): { sources: TsxSource[]; violations: string[] } {
-  const files = ReactProject.sourceFiles(context);
-  if (files.length === 0) {
-    return {
-      sources: [],
-      violations: [
-        `no React source file (.tsx/.jsx/.ts/.js) was found to inspect although the project declares react — ${lawName} does not pass on an empty scan; check that ignores do not hide the source`,
-      ],
-    };
-  }
-  const { sources, unread } = ReactProject.parse(context, files);
-  return {
-    sources,
-    violations: unread.map(
-      reason => `${reason} — ${lawName} did not inspect them`
-    ),
-  };
 }

@@ -13,6 +13,9 @@ import { PathOperations } from '../../utils/path-operations';
 import { CoverageThresholdReader } from '../../utils/testing/coverage-threshold-reader';
 import { TestConfigurationInspector } from '../../utils/testing/test-configuration-inspector';
 
+/** Points of the score of 100 each coverage violation costs. */
+const POINTS_PER_VIOLATION = 20;
+
 export class JestUnitTest100CoverageMandateLaw {
   static check(context: LawCheckContext): LawResult {
     const violations: string[] = [];
@@ -157,7 +160,7 @@ export class JestUnitTest100CoverageMandateLaw {
     suggestions: string[],
     context: LawCheckContext
   ): LawResult {
-    const score = Math.max(0, 100 - violations.length * 20);
+    const score = Math.max(0, 100 - violations.length * POINTS_PER_VIOLATION);
 
     return {
       passed: violations.length === 0,

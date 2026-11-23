@@ -14,6 +14,9 @@ import { FileUtils } from '../../utils/file-utils';
 import { TestingLawBase } from './testing-law-base';
 import { findE2ESpecs } from '../../utils/testing/e2e-specs';
 
+/** Points of the score of 100 each E2E testing violation costs. */
+const POINTS_PER_VIOLATION = 25;
+
 export class E2ETestingStandardsLaw extends TestingLawBase {
   private static readonly E2E_DEPS = [
     '@playwright/test',
@@ -133,7 +136,7 @@ export class E2ETestingStandardsLaw extends TestingLawBase {
   ): LawResult {
     return {
       passed: violations.length === 0,
-      score: Math.max(0, 100 - violations.length * 25),
+      score: Math.max(0, 100 - violations.length * POINTS_PER_VIOLATION),
       message:
         violations.length === 0
           ? 'E2E Testing Standards satisfied'

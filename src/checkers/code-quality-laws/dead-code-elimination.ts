@@ -20,6 +20,9 @@ import { LawBase } from '../law-base';
 import { CodeQualityLawBase } from './code-quality-law-base';
 import { readSource, type SourceView } from './source-view';
 
+/** Points of the score of 100 each dead-code finding costs. */
+const POINTS_PER_VIOLATION = 12;
+
 export class DeadCodeEliminationLaw extends CodeQualityLawBase {
   static check(context: LawCheckContext): LawResult {
     const violations: string[] = [];
@@ -50,7 +53,7 @@ export class DeadCodeEliminationLaw extends CodeQualityLawBase {
       score:
         violations.length === 0
           ? 100
-          : Math.max(0, 100 - violations.length * 12),
+          : Math.max(0, 100 - violations.length * POINTS_PER_VIOLATION),
       context,
     });
   }

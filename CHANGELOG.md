@@ -5,6 +5,17 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 🐛 Fixed — a zero-delay `setTimeout` is a yield, not a real-timer wait (#548)
+
+Unit Test Quality reported "setTimeout usage without fake timers may cause
+test flakiness" for `await new Promise((resolve) => setTimeout(resolve))`,
+which waits for one macrotask, not for wall-clock time; the finding was the
+same for a delay of `0` and of `1200`. A call with no delay or a literal `0`
+is no longer counted. A non-zero literal and a delay the law cannot read (a
+name, an expression) still are.
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

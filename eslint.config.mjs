@@ -1,3 +1,4 @@
+import tsPlugin from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
 import sonarjs from 'eslint-plugin-sonarjs';
 
@@ -13,8 +14,52 @@ export default [
     },
     plugins: {
       sonarjs,
+      '@typescript-eslint': tsPlugin,
     },
     rules: {
+      // Names as the code writes them: values and functions in camelCase,
+      // constants in UPPER_CASE, types in PascalCase. Keys of object
+      // literals and type members follow the data they describe (config
+      // keys, JSON fields, header names), so their format is not enforced.
+      '@typescript-eslint/naming-convention': [
+        'error',
+        {
+          selector: 'default',
+          format: ['camelCase'],
+          leadingUnderscore: 'allow',
+        },
+        {
+          selector: 'variable',
+          format: ['camelCase', 'UPPER_CASE', 'PascalCase'],
+          leadingUnderscore: 'allow',
+        },
+        {
+          selector: 'parameter',
+          format: ['camelCase'],
+          leadingUnderscore: 'allow',
+        },
+        { selector: 'function', format: ['camelCase', 'PascalCase'] },
+        {
+          selector: 'classProperty',
+          format: ['camelCase', 'UPPER_CASE'],
+          leadingUnderscore: 'allow',
+        },
+        // A getter that stands for a constant (VERSION) is UPPER_CASE, as
+        // a constant property is.
+        { selector: 'classicAccessor', format: ['camelCase', 'UPPER_CASE'] },
+        { selector: 'typeLike', format: ['PascalCase'] },
+        { selector: 'enumMember', format: ['PascalCase', 'UPPER_CASE'] },
+        {
+          selector: [
+            'objectLiteralProperty',
+            'objectLiteralMethod',
+            'typeProperty',
+            'typeMethod',
+          ],
+          format: null,
+        },
+        { selector: 'import', format: null },
+      ],
       // SonarJS rules for code quality
       'sonarjs/cognitive-complexity': ['error', 15],
       'sonarjs/no-duplicate-string': ['error', { threshold: 3 }],

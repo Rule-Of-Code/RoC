@@ -400,6 +400,18 @@ asserting with `!`. Self-audit: Centralized Logging 7 → 0, Absolute Zero
 Tolerance Doctrine 7 → 0, No Explicit Any / Non-Null Assertion 2 → 0,
 No Double Cast 2 → 0.
 
+### 🔧 Internal — RoC's own code follows a naming convention ESLint enforces (#559)
+
+`@typescript-eslint/eslint-plugin` (8.67.0, the version of the locked
+parser) is a devDependency, and `eslint.config.mjs` turns on
+`@typescript-eslint/naming-convention` with the convention the code follows:
+camelCase values, functions and members, UPPER_CASE constants (and getters
+that stand for one), PascalCase types, keys of object literals and type
+members left to the data they describe. 56 private static aliases
+(`Config`, `Messages`, `Patterns`, …) and one constant-style helper were
+renamed to camelCase in their files; nothing is exempted. The packed tarball
+lists the same files. Self-audit: Naming Convention Enforcement 1 → 0.
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

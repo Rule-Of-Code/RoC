@@ -13,8 +13,6 @@ export class SacredMetricsLaw {
     const { projectRoot } = context;
     const violations: string[] = [];
 
-    const _packageJson = SacredLawBase.getPackageJson(projectRoot);
-
     // Check for testing framework
     const hasTests =
       SacredLawBase.hasDependency(projectRoot, 'jest') ||

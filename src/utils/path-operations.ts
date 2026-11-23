@@ -280,35 +280,12 @@ export class PathOperations {
   }
 
   /**
-   * Find workspace root by looking for marker files
+   * Returns `startPath` unchanged. This module does no file-system access, so
+   * it cannot look for marker files; ConfigFileUtils.findWorkspaceRoot does
+   * the search.
    */
   static findWorkspaceRoot(startPath: string): string {
-    const markers = [
-      'package.json',
-      'nx.json',
-      'workspace.json',
-      'angular.json',
-      '.git',
-      'lerna.json',
-      'pnpm-workspace.yaml',
-      'yarn.lock',
-    ];
-
-    let currentDir = this.resolve(startPath);
-    const rootDir = path.parse(currentDir).root;
-
-    while (currentDir !== rootDir) {
-      for (const marker of markers) {
-        const _markerPath = this.join(currentDir, marker);
-        // Note: We can't check file existence here as this utility
-        // should not depend on file system operations
-        // This method should be used with FileSystemOperations.exists()
-      }
-
-      currentDir = path.dirname(currentDir);
-    }
-
-    return startPath; // Fallback to start path
+    return startPath;
   }
 
   // === PATH LISTS AND ARRAYS ===

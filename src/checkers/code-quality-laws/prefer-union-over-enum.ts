@@ -50,11 +50,7 @@ export class PreferUnionOverEnumLaw extends CodeQualityLawBase {
         const match = this.ENUM_DECL.exec(code);
         if (!match) return;
 
-        const justified =
-          allowJustification &&
-          (this.JUSTIFICATION.test(line) ||
-            (index > 0 && this.JUSTIFICATION.test(lines[index - 1] ?? '')));
-        if (justified) return;
+        if (allowJustification && this.isJustified(line, lines, index)) return;
 
         violations.push(
           `Enum declaration '${match[1]}' in ${relativePath}:${
@@ -73,6 +69,18 @@ export class PreferUnionOverEnumLaw extends CodeQualityLawBase {
         'Keep an enum only with a // roc-allow-enum justification (e.g. runtime iteration)',
       ],
       context
+    );
+  }
+
+  /** A `roc-allow-enum` marker on the enum line or the line above. */
+  private static isJustified(
+    line: string,
+    lines: readonly string[],
+    index: number
+  ): boolean {
+    return (
+      this.JUSTIFICATION.test(line) ||
+      (index > 0 && this.JUSTIFICATION.test(lines[index - 1] ?? ''))
     );
   }
 }

@@ -7,11 +7,6 @@ import { SignalConfigurationBase } from '../signal-configuration-base';
  */
 export class AngularSignalConfiguration extends SignalConfigurationBase {
   /**
-   * Config alias for cleaner internal references (RULE 2 pattern)
-   */
-  private static readonly Config = AngularSignalConfiguration;
-
-  /**
    * Angular file extensions for signal analysis
    * Eliminates hardcoded extension arrays
    */
@@ -35,7 +30,7 @@ export class AngularSignalConfiguration extends SignalConfigurationBase {
    * Eliminates magic numbers in validation logic
    */
   static getThresholds(config: {
-    thresholds?: { angular?: { maxSignalMutations?: number } };
+    thresholds?: { angular?: { maxSignalMutations?: number } } | undefined;
   }) {
     return {
       MAX_MUTATIONS: config.thresholds?.angular?.maxSignalMutations ?? 5,
@@ -105,7 +100,7 @@ export class AngularSignalConfiguration extends SignalConfigurationBase {
    * Apply fileName placeholder to validation message object
    * RULE 2: Handles message objects with multiple properties containing placeholders
    */
-  static buildMessageObject<T extends Record<string, string>>(
+  static override buildMessageObject<T extends Record<string, string>>(
     messageTemplate: T,
     fileName: string
   ): T {

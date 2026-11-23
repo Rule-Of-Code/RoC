@@ -9,11 +9,6 @@ import { AngularConfigurationBase } from '../angular-configuration-base';
  */
 export class RxJSOperatorUsageConfiguration extends AngularConfigurationBase {
   /**
-   * Config alias for cleaner internal references (RULE 2 pattern)
-   */
-  private static readonly Config = RxJSOperatorUsageConfiguration;
-
-  /**
    * Operator analysis configuration - RULE 1: Inlined from getter method
    */
   static readonly OPERATOR_ANALYSIS_CONFIG = {
@@ -174,7 +169,7 @@ export class RxJSOperatorUsageConfiguration extends AngularConfigurationBase {
    * Build validation message with flexible placeholder support
    * RULE 1: Uses centralized StringTemplateUtils instead of duplicate logic
    */
-  static buildMessage(
+  static override buildMessage(
     messageTemplate: string,
     ...placeholders: string[]
   ): string {

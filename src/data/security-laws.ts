@@ -326,9 +326,9 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
         'Enforce HTTPS (firebase.json / nginx), an auth service with token handling, rate limiting on sensitive endpoints, explicit CORS, security headers and input validation.',
     },
     detectionLimits: [
-      'Heavily Angular + Firebase + nginx-shaped — no Python, and no generic Express/Fastify/Nest route analysis beyond filename heuristics.',
-      'Auth and rate limiting are detected by a substring appearing SOMEWHERE; a backend concern like rate limiting reads as "missing" on a pure frontend, for which it does not apply.',
-      'Regex/substring over raw text, no data-flow.',
+      'Heavily Angular + Firebase + nginx-shaped — no Python, and no per-route Express/Fastify/Nest analysis: an Express server is a file that imports express and creates or starts the app.',
+      'Authentication is recognised by shapes in the parse, in a file of any name (a managed auth SDK or session library imported, a sign-in or verify call, an Authorization header attached); rate limiting is still a substring appearing SOMEWHERE, and reads as "missing" on a pure frontend, for which it does not apply.',
+      'Regex/substring over raw text for HTTPS, rate limiting and headers; servers, HTTP services and authentication are read through the parser, and without it they are NOT read. No data-flow.',
     ],
     stack: 'typescript',
     emoji: '🛡️',

@@ -11,21 +11,12 @@ export class APIAuthenticationConstants {
     AUTHORIZATION_HEADER: /Authorization|Bearer/i,
     TOKEN_REFRESH: /refresh|renew/i,
     SECURE_STORAGE: /secure|encrypt/i,
-    AUTH_SERVICE: /auth\.(service|guard)/i,
   };
 
   static readonly INSECURE_PATTERNS = {
     LOCALSTORAGE: /localStorage/,
     SESSIONSTORAGE: /sessionStorage/,
   };
-
-  static readonly AUTH_FILES = [
-    'auth.service.ts',
-    'authentication.service.ts',
-    'token.service.ts',
-    'auth.interceptor.ts',
-    'auth.guard.ts',
-  ];
 
   static hasAuthorizationHandling(content: string): boolean {
     return PatternMatchingUtils.hasRegexPattern(

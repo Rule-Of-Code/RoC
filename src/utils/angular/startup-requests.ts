@@ -27,6 +27,7 @@ import type * as TS from 'typescript';
 import type { LawRequirement } from '../../types/enhanced-law.types';
 import { decoratorObject } from '../ionic/angular-components';
 import type { TsxSource } from '../react/tsx-source';
+import { codeExcerpt } from '../code-excerpt';
 
 /** HttpClient methods that send a request. */
 const HTTP_METHODS = new Set([
@@ -204,8 +205,7 @@ function describe(source: TsxSource, node: TS.Expression | undefined): string {
   if (!node) return '?';
   const ts = source.ts;
   if (ts.isStringLiteralLike(node)) return `'${node.text}'`;
-  const text = node.getText(source.sourceFile).replace(/\s+/g, ' ');
-  return text.length > 60 ? `${text.slice(0, 57)}...` : text;
+  return codeExcerpt(node.getText(source.sourceFile));
 }
 
 interface Walk {

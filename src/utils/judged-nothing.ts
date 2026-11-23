@@ -18,8 +18,15 @@ export const JUDGED_NOTHING_TEXT =
 interface JudgeableResult {
   judgedNothing?: boolean;
   violations?: unknown;
+  notRead?: unknown;
   message?: unknown;
 }
+
+/** The string notes of a result field (violations or notRead). */
+const notesOf = (field: unknown): string[] =>
+  Array.isArray(field)
+    ? field.filter((v): v is string => typeof v === 'string')
+    : [];
 
 /** A note that says the law judged nothing, or that files were not read. */
 const NOT_JUDGED_NOTE = new RegExp(
@@ -37,11 +44,10 @@ export function markJudgedNothing<T extends object>(
   result: T
 ): T & { judgedNothing: true; passed: false; score: 0 } {
   const res = result as JudgeableResult;
-  const note = Array.isArray(res.violations)
-    ? res.violations.find(
-        (v): v is string => typeof v === 'string' && NOT_JUDGED_NOTE.test(v)
-      )
-    : undefined;
+  // The note may be among the violations, or in notRead (#453).
+  const note = [...notesOf(res.violations), ...notesOf(res.notRead)].find(v =>
+    NOT_JUDGED_NOTE.test(v)
+  );
   const message =
     typeof res.message === 'string' && NOT_JUDGED_NOTE.test(res.message)
       ? res.message
@@ -86,13 +92,23 @@ export function saysJudgedNothing(result: unknown): boolean {
   const res = result as JudgeableResult | null | undefined;
   if (!res || typeof res !== 'object') return false;
   if (res.judgedNothing === true) return true;
-  if (!Array.isArray(res.violations)) return false;
+  const violations = Array.isArray(res.violations) ? res.violations : [];
+  // A law that moved its notes to notRead (#453) and has no finding: every
+  // note a parser-unavailable note that covers all its input is still
+  // "read none of its files".
+  const notRead = notesOf(res.notRead);
+  if (
+    violations.length === 0 &&
+    notRead.length > 0 &&
+    notRead.every(readsNothing)
+  )
+    return true;
   return (
-    res.violations.some(
+    violations.some(
       violation =>
         typeof violation === 'string' && JUDGED_NOTHING_TEXT.test(violation)
     ) ||
-    (res.violations.length > 0 && res.violations.every(readsNothing))
+    (violations.length > 0 && violations.every(readsNothing))
   );
 }
 

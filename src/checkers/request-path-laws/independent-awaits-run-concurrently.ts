@@ -61,12 +61,16 @@ export class IndependentAwaitsRunConcurrentlyLaw extends LawBase {
         )
       );
     }
-    return this.createResult(
-      [...sources.unread, ...runs.map(describeSequentialRun)],
+    const result = this.createResult(
+      runs.map(describeSequentialRun),
       this.LAW_NAME,
       'PERFORMANCE',
       suggestions,
       context
     );
+    // What could not be read is a note, not a finding (#453).
+    return sources.unread.length > 0
+      ? { ...result, notRead: sources.unread }
+      : result;
   }
 }

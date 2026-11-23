@@ -18,6 +18,7 @@ import os from 'os';
 import path from 'path';
 
 import { TypeScriptStrictLaw } from '../../src/checkers/sacred-laws/typescript-strict';
+import { IndependentAwaitsRunConcurrentlyLaw } from '../../src/checkers/request-path-laws/independent-awaits-run-concurrently';
 import { ConfigLoader } from '../../src/config/loader';
 import { normalizeJudgedNothing } from '../../src/utils/judged-nothing';
 import * as tsxSource from '../../src/utils/react/tsx-source';
@@ -78,6 +79,25 @@ describe('#453 what a law did not read is not one of its findings', () => {
       expect.stringContaining(
         'tsconfig.json extends "./not-here.json", which could not be read'
       ),
+    ]);
+    expect(result.judgedNothing).toBeUndefined();
+  });
+
+  it('Independent Awaits, Python read and TypeScript not: no finding, one notRead', async () => {
+    const dir = project({
+      'package.json': MANIFEST,
+      'app/service.py':
+        'async def load(a, b):\n    x = await a()\n    return x\n',
+      'src/load.ts':
+        'export async function load(a: () => Promise<number>) {\n  return await a();\n}\n',
+    });
+    const result = await audited(
+      c => IndependentAwaitsRunConcurrentlyLaw.check(c),
+      dir
+    );
+    expect(result.violations ?? []).toEqual([]);
+    expect(result.notRead ?? []).toEqual([
+      expect.stringContaining("could not load the 'typescript' package"),
     ]);
     expect(result.judgedNothing).toBeUndefined();
   });

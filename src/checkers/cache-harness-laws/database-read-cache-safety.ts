@@ -150,17 +150,15 @@ export class DatabaseReadCacheSafetyLaw extends LawBase {
       graph: new ModuleGraph(all.modules, clients),
       clients,
     };
-    const findings = [
-      ...sources.unread,
-      ...dbCaches.flatMap(site =>
-        this.judge(site, collections.get(site) ?? [], ctx)
-      ),
-    ];
+    const findings = dbCaches.flatMap(site =>
+      this.judge(site, collections.get(site) ?? [], ctx)
+    );
     return subjectResult({
       lawName: this.LAW_NAME,
       category: 'SECURITY',
       context,
       findings,
+      notRead: sources.unread,
       suggestions: [
         'Give the cache an expiry and a size bound (cachetools.TTLCache(maxsize, ttl), lru-cache { max, ttl })',
         'Clear it on every write path of the collections it holds (any non-GET request, or the writes themselves)',

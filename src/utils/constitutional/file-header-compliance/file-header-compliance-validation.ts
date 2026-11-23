@@ -112,8 +112,6 @@ export class FileHeaderComplianceValidation {
    * Check if file has proper constitutional compliance header
    */
   private static checkFileHasHeader(content: string): boolean {
-    const analysisConfig =
-      FileHeaderComplianceConfiguration.getFileHeaderAnalysisConfig();
     const firstLines = content.split('\n').join('\n').toLowerCase();
 
     const headerConfig =

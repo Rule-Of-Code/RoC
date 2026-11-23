@@ -7,12 +7,10 @@ import { execSync } from '../../utils/child-process';
 import type { RuleOfCodeConfig } from '../../config/types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils';
-import { CheckerUtils } from '../../utils/checker-utils';
 import {
   branchConventionSuggestion,
   followsBranchConvention,
 } from '../../utils/git/branch-naming';
-import { CodeNamingAnalyzer } from '../../utils/naming';
 import { PathOperations } from '../../utils/path-operations';
 import { ciConfigContent } from '../../utils/project-discovery';
 import { GitLawBase } from './git-law-base';

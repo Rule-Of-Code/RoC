@@ -104,8 +104,6 @@ export class JestUnitTest100CoverageMandateLaw {
     hasReports: boolean;
     lowCoverageAreas: string[];
   } {
-    const _path = require('path');
-
     // Check for coverage reports
     const coverageDir = PathOperations.join(projectRoot, 'coverage');
     const hasReports = FileUtils.exists(coverageDir);

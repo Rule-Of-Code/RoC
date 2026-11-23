@@ -192,49 +192,6 @@ export class LaunchReadinessChecklistLaw {
     return { hasTestingCompleteness };
   }
 
-  private static analyzePerformanceBenchmarks(projectRoot: string): {
-    hasPerformanceBenchmarks: boolean;
-  } {
-    // Check for performance benchmarking documentation and results
-    let hasPerformanceBenchmarks = false;
-
-    const performanceFiles = [
-      'PERFORMANCE_REPORT.md',
-      'docs/PERFORMANCE_REPORT.md',
-      'performance-benchmarks.md',
-      'load-test-results.md',
-      'lighthouse-report.html',
-      'performance/benchmarks.json',
-    ];
-
-    for (const perfFile of performanceFiles) {
-      const filePath = PathOperations.join(projectRoot, perfFile);
-      if (FileUtils.exists(filePath)) {
-        hasPerformanceBenchmarks = true;
-        break;
-      }
-    }
-
-    // Check for performance configuration files
-    if (!hasPerformanceBenchmarks) {
-      const performanceConfigFiles = [
-        'lighthouse.config.js',
-        'performance.config.js',
-        'load-test.config.js',
-      ];
-
-      for (const configFile of performanceConfigFiles) {
-        const filePath = PathOperations.join(projectRoot, configFile);
-        if (FileUtils.exists(filePath)) {
-          hasPerformanceBenchmarks = true;
-          break;
-        }
-      }
-    }
-
-    return { hasPerformanceBenchmarks };
-  }
-
   private static analyzeSecurityReview(projectRoot: string): {
     hasSecurityReview: boolean;
   } {

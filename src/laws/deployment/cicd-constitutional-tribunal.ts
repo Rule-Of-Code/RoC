@@ -1,6 +1,5 @@
 import type { RuleOfCodeConfig } from '../../config/types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 import { PerformanceAnalysisService } from '../../utils/performance';
 import { ciConfigContent, ciConfigPaths } from '../../utils/project-discovery';
@@ -25,12 +24,6 @@ interface QualityGates {
 interface SecurityChecks {
   hasSecurityValidation: boolean;
   securityTypes?: string[];
-  coverage?: number;
-}
-
-interface PerformanceTesting {
-  hasPerformanceTesting: boolean;
-  testingTypes?: string[];
   coverage?: number;
 }
 
@@ -268,28 +261,6 @@ export class CicdConstitutionalTribunalLaw {
     );
 
     return { hasSecurityValidation: hasSecurityScanning };
-  }
-
-  private static analyzePerformanceTesting(
-    pipelineAnalysis: PipelineAnalysis
-  ): PerformanceTesting {
-    if (!pipelineAnalysis.hasPipeline) {
-      return { hasPerformanceTesting: false };
-    }
-
-    const performancePatterns = [
-      /lighthouse/i, // Lighthouse CI
-      /load.*test/i, // Load testing
-      /BundleSizeAnalyzer.*bundle.*size/i, // Bundle size checks
-      /web.*vitals/i, // Web Vitals
-      /performance.*budget/i, // Performance budgets
-    ];
-
-    const hasPerformanceTesting = performancePatterns.some(pattern =>
-      pattern.test(pipelineAnalysis.pipelineContent)
-    );
-
-    return { hasPerformanceTesting };
   }
 
   private static analyzeApprovalProcess(

@@ -393,26 +393,6 @@ export class AutomatedCodeQualityGatesLaw {
     } as QualityGateAnalysis;
   }
 
-  private static analyzePerformanceGates(
-    projectRoot: string,
-    config?: RuleOfCodeConfig
-  ): QualityGateAnalysis {
-    const hasPerformanceInCICD = this.checkPerformanceInPipeline(
-      projectRoot,
-      config
-    );
-
-    const hasBundleAnalysis = this.checkBundleAnalysis(projectRoot);
-
-    const hasPerformanceGates = hasPerformanceInCICD || hasBundleAnalysis;
-
-    return {
-      hasPerformanceGates,
-      violations: [],
-      suggestions: [],
-    } as QualityGateAnalysis;
-  }
-
   private static checkLintingInPipeline(
     projectRoot: string,
     config?: RuleOfCodeConfig
@@ -457,17 +437,6 @@ export class AutomatedCodeQualityGatesLaw {
     );
   }
 
-  private static checkPerformanceInPipeline(
-    projectRoot: string,
-    config?: RuleOfCodeConfig
-  ): boolean {
-    return this.checkPatternInPipelineFiles(
-      projectRoot,
-      [/lighthouse/i, /performance/i, /BundleSizeAnalyzer.*bundle.*size/i],
-      config
-    );
-  }
-
   private static checkPatternInPipelineFiles(
     projectRoot: string,
     patterns: RegExp[],
@@ -502,13 +471,6 @@ export class AutomatedCodeQualityGatesLaw {
     return this.checkScriptInPackageJson(projectRoot, [/audit/i, /security/i]);
   }
 
-  private static checkBundleAnalysis(projectRoot: string): boolean {
-    return this.checkScriptInPackageJson(projectRoot, [
-      /bundle.*analyzer/i,
-      /analyze/i,
-    ]);
-  }
-
   private static checkScriptInPackageJson(
     projectRoot: string,
     patterns: RegExp[]
@@ -539,14 +501,6 @@ export class AutomatedCodeQualityGatesLaw {
       }
     }
     return false;
-  }
-
-  private static hasCoverageConfiguration(content: string): boolean {
-    return /collectCoverage|coverage/i.test(content);
-  }
-
-  private static hasCoverageThresholds(content: string): boolean {
-    return /coverageThreshold|threshold/i.test(content);
   }
 
   private static hasTypeScriptStrict(content: string): boolean {

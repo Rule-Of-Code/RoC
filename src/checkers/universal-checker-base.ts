@@ -113,7 +113,6 @@ export abstract class UniversalCheckerBase {
     filePath: string,
     projectRoot?: string
   ): string {
-    const _path = require('path');
     const root = projectRoot ?? this.getProjectRoot();
     return PathOperations.getRelative(root, filePath);
   }

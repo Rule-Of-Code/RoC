@@ -4,7 +4,6 @@
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { CodeNamingAnalyzer } from '../../utils';
 import {
   branchConventionSuggestion,
   followsBranchConvention,

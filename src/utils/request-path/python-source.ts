@@ -136,6 +136,36 @@ function indentOf(physical: string): number {
   return width;
 }
 
+/** Open a logical line at this physical line, or add the line to the open one. */
+function extendLogical(
+  current: LogicalLine | null,
+  piece: string,
+  index: number
+): LogicalLine {
+  if (current === null) {
+    return {
+      line: index + 1,
+      endLine: index + 1,
+      indent: indentOf(piece),
+      text: piece.trim(),
+    };
+  }
+  current.text += ` ${piece.trim()}`;
+  current.endLine = index + 1;
+  return current;
+}
+
+/** The bracket depth after one physical line (never below zero). */
+function depthAfter(piece: string, depth: number): number {
+  let after = depth;
+  for (const ch of piece) {
+    if (ch === '(' || ch === '[' || ch === '{') after++;
+    else if (ch === ')' || ch === ']' || ch === '}')
+      after = Math.max(0, after - 1);
+  }
+  return after;
+}
+
 /** Physical lines joined into logical lines (brackets and backslash continuations). */
 function logicalLines(code: string): LogicalLine[] {
   const out: LogicalLine[] = [];
@@ -145,23 +175,9 @@ function logicalLines(code: string): LogicalLine[] {
   physical.forEach((raw, index) => {
     const continued = /\\\s*$/.test(raw);
     const piece = continued ? raw.replace(/\\\s*$/, '') : raw;
-    if (current === null) {
-      if (piece.trim() === '' && !continued) return;
-      current = {
-        line: index + 1,
-        endLine: index + 1,
-        indent: indentOf(piece),
-        text: piece.trim(),
-      };
-    } else {
-      current.text += ` ${piece.trim()}`;
-      current.endLine = index + 1;
-    }
-    for (const ch of piece) {
-      if (ch === '(' || ch === '[' || ch === '{') depth++;
-      else if (ch === ')' || ch === ']' || ch === '}')
-        depth = Math.max(0, depth - 1);
-    }
+    if (current === null && piece.trim() === '' && !continued) return;
+    current = extendLogical(current, piece, index);
+    depth = depthAfter(piece, depth);
     if (depth === 0 && !continued) {
       if (current.text.trim() !== '') out.push(current);
       current = null;

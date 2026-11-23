@@ -126,14 +126,30 @@ export class NextInternalLinkComponentLaw extends LawBase {
     const jsx: TS.Node = ts.isJsxOpeningElement(element.node)
       ? element.node.parent
       : element.node;
+    return (
+      this.reasonInLeadingComment(source, jsx) ||
+      this.reasonInSiblingBefore(source, jsx)
+    );
+  }
+
+  /** A `// roc-allow-full-reload: …` comment in the element's leading trivia. */
+  private static reasonInLeadingComment(
+    source: TsxSource,
+    jsx: TS.Node
+  ): boolean {
     const leading =
-      ts.getLeadingCommentRanges(source.text, jsx.getFullStart()) ?? [];
-    if (
-      leading.some(range =>
-        INLINE_REASON.test(source.text.slice(range.pos, range.end))
-      )
-    )
-      return true;
+      source.ts.getLeadingCommentRanges(source.text, jsx.getFullStart()) ?? [];
+    return leading.some(range =>
+      INLINE_REASON.test(source.text.slice(range.pos, range.end))
+    );
+  }
+
+  /** A `{/* roc-allow-full-reload: … *\/}` child right before the element (blank text skipped). */
+  private static reasonInSiblingBefore(
+    source: TsxSource,
+    jsx: TS.Node
+  ): boolean {
+    const ts = source.ts;
     const parent = jsx.parent;
     if (!parent || !(ts.isJsxElement(parent) || ts.isJsxFragment(parent)))
       return false;

@@ -103,18 +103,29 @@ export class NextThirdPartyScriptDeclaredLaw extends LawBase {
     return undefined;
   }
 
+  /** A string literal's text, a template literal's fixed head, or null for any other expression. */
+  private static fixedText(
+    ts: TsxSource['ts'],
+    src: TS.Expression
+  ): string | null {
+    if (ts.isStringLiteralLike(src)) return src.text;
+    if (ts.isTemplateExpression(src)) return src.head.text;
+    return null;
+  }
+
   /** Read the host from a literal, or from the fixed head of a template literal. */
   static targetOf(source: TsxSource, element: JsxElementInfo): Target {
     const ts = source.ts;
     const src = this.srcInitializer(source, element);
     if (src === undefined) return element.hasSpread ? 'unknown' : null;
     if (src === null) return null;
-    let text: string | null = null;
-    if (ts.isStringLiteralLike(src)) text = src.text;
-    else if (ts.isTemplateExpression(src)) text = src.head.text;
+    const text = this.fixedText(ts, src);
     if (text === null) return 'unknown';
-    const head = text.trim();
-    const isTemplate = ts.isTemplateExpression(src);
+    return this.headTarget(text.trim(), ts.isTemplateExpression(src));
+  }
+
+  /** What a fixed head names: a local path, an external host, or unknown while a template's host is still open. */
+  private static headTarget(head: string, isTemplate: boolean): Target {
     if (!/^(?:https?:)?\/\//i.test(head))
       return isTemplate && head === '' ? 'unknown' : 'local';
     // A template whose host is still open (`https://${region}.cdn…`) cannot be read.

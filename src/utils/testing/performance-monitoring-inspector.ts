@@ -71,7 +71,7 @@ export class PerformanceMonitoringInspector {
   } {
     const criticalFlowTests = this.findCriticalFlowTestsSimple(projectRoot);
     const performanceAnalysis =
-      PerformanceAnalysisService.analyzePerformanceScenarios(projectRoot);
+      PerformanceAnalysisService.analyzePerformanceScenarios();
 
     return {
       hasCriticalFlowTests: criticalFlowTests.length > 0,
@@ -90,7 +90,7 @@ export class PerformanceMonitoringInspector {
   } {
     const ciConfigs = this.findPerformanceCIConfigsSimple(projectRoot);
     const performanceAnalysis =
-      PerformanceAnalysisService.analyzePerformanceTesting(projectRoot);
+      PerformanceAnalysisService.analyzePerformanceTesting();
 
     return {
       hasPerformanceCI:

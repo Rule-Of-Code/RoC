@@ -47,13 +47,13 @@ chalk.level = 1;
 
 /** What the config validators need to know about a law named by a key. */
 interface KnownLaw {
-  stack?: string;
-  requires?: LawRequirement;
-  staticSiteHtml?: boolean;
+  stack?: string | undefined;
+  requires?: LawRequirement | undefined;
+  staticSiteHtml?: boolean | undefined;
   name?: string;
   id?: string;
-  legacyId?: number | string;
-  defaultEnabled?: boolean;
+  legacyId?: number | string | undefined;
+  defaultEnabled?: boolean | undefined;
 }
 
 export class RuleOfCodeAuditor {
@@ -84,11 +84,11 @@ export class RuleOfCodeAuditor {
     projectRoot?: string;
     config: RuleOfCodeConfig;
     mode?: string;
-    suggestExceptions?: boolean;
-    verbose?: boolean;
-    onlyFailures?: boolean;
-    parallel?: boolean;
-    failOnWarnings?: boolean;
+    suggestExceptions?: boolean | undefined;
+    verbose?: boolean | undefined;
+    onlyFailures?: boolean | undefined;
+    parallel?: boolean | undefined;
+    failOnWarnings?: boolean | undefined;
   }): Promise<RuleOfCodeAuditor> {
     await Promise.resolve(); // Satisfy async requirement
 
@@ -711,9 +711,9 @@ export class RuleOfCodeAuditor {
    * AuditResultProcessor.
    */
   private resolveLawSeverity(law: {
-    name?: string;
-    id?: string;
-    legacyId?: number | string;
+    name?: string | undefined;
+    id?: string | undefined;
+    legacyId?: number | string | undefined;
     severity?: 'error' | 'info' | 'warning';
   }): 'error' | 'info' | 'warning' {
     const overrides = (
@@ -739,9 +739,9 @@ export class RuleOfCodeAuditor {
    * as a violation — so the config fails loudly instead of gating quietly.
    */
   private unambiguousIdentityKeys(law: {
-    name?: string;
-    id?: string;
-    legacyId?: number | string;
+    name?: string | undefined;
+    id?: string | undefined;
+    legacyId?: number | string | undefined;
   }): string[] {
     return ModularLawsRegistry.unambiguousIdentityKeys(law);
   }

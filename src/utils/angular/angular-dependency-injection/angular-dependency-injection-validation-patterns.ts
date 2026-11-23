@@ -17,7 +17,6 @@ export class AngularDependencyInjectionValidationPatterns {
       typeof AngularDependencyInjectionConfiguration.analyzeDependencyPatterns
     >,
     violations: string[],
-    suggestions: string[],
     config: {
       thresholds?: { angular?: { maxConstructorDependencies?: number } };
     }
@@ -177,12 +176,7 @@ export class AngularDependencyInjectionValidationPatterns {
     }
   ): void {
     // Constructor injection validation
-    this.validateConstructorInjection(
-      patterns,
-      violations,
-      suggestions,
-      config
-    );
+    this.validateConstructorInjection(patterns, violations, config);
 
     // Injectable decorator validation - via RULE 2 helper
     this.checkInjectableDecorator(patterns, violations, suggestions);

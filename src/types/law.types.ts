@@ -16,14 +16,14 @@ export interface ConstitutionalLaw {
   impact: 'high' | 'low' | 'medium';
   paretoCore: boolean; // Is this part of the 20% that catches 80% of issues?
   /** Gate-of-the-gate: runs regardless of paretoMode / laws.enabled / notApplicable. */
-  alwaysEnabled?: boolean;
+  alwaysEnabled?: boolean | undefined;
   /** See EnhancedConstitutionalLaw.staticSiteHtml. */
-  staticSiteHtml?: boolean;
+  staticSiteHtml?: boolean | undefined;
   /**
    * False = opt-in: selected only when `laws.enabled` names it. Without
    * `laws.enabled` the law is not run. See EnhancedConstitutionalLaw.defaultEnabled.
    */
-  defaultEnabled?: boolean;
+  defaultEnabled?: boolean | undefined;
   applicableFrameworks: string[];
   /** What this law does NOT claim — see EnhancedConstitutionalLaw.detectionLimits. */
   detectionLimits?: string[];
@@ -35,10 +35,10 @@ export interface ConstitutionalLaw {
    * Legacy numeric id, for migration only. NOT a config key: 25 legacyIds are
    * shared by 51 laws (v7.10.0 refuses ambiguous keys). Key by name or slug.
    */
-  legacyId?: number;
-  stack?: 'frontend' | 'python' | 'typescript'; // Stack scope (omitted = universal)
+  legacyId?: number | undefined;
+  stack?: 'frontend' | 'python' | 'typescript' | undefined; // Stack scope (omitted = universal)
   /** Declared dependencies/files without which the law is not selected — see EnhancedConstitutionalLaw.requires. */
-  requires?: LawRequirement;
+  requires?: LawRequirement | undefined;
   check: (projectRoot: string, config: RuleOfCodeConfig) => Promise<LawResult>;
 }
 
@@ -55,7 +55,7 @@ export interface ViolationDetail {
 }
 
 export interface LawResult {
-  lawName?: string; // Optional name of the law for reporting
+  lawName?: string | undefined; // Optional name of the law for reporting
   passed: boolean;
   message: string;
   details?: string[];
@@ -66,7 +66,7 @@ export interface LawResult {
   violations?: string[];
   violationDetails?: ViolationDetail[]; // NEW: Structured violation information
   config: RuleOfCodeConfig; // Optional configuration information
-  metrics?: Record<string, unknown>; // Optional metrics data
+  metrics?: Record<string, unknown> | undefined; // Optional metrics data
   /**
    * The law found nothing it could judge (no file in its layer, no entry
    * document, no test file, …). The engine reports such a result as failed
@@ -79,7 +79,7 @@ export interface LawResult {
 export interface LawCheckContext {
   projectRoot: string;
   config: RuleOfCodeConfig;
-  lawId?: string;
+  lawId?: string | undefined;
 }
 
 export interface CheckerResult {

@@ -8,40 +8,31 @@ import { AuthenticationPatternValidators } from '../../../src/checkers/security-
 describe('AuthenticationPatternValidators', () => {
   describe('createSecurityAnalysisFlow', () => {
     it('should return a function', () => {
-      const flow = AuthenticationPatternValidators.createSecurityAnalysisFlow(
-        'test-check',
-        {
-          validator: () => true,
-          violationMessage: 'Violation',
-          suggestionMessage: 'Suggestion',
-        }
-      );
+      const flow = AuthenticationPatternValidators.createSecurityAnalysisFlow({
+        validator: () => true,
+        violationMessage: 'Violation',
+        suggestionMessage: 'Suggestion',
+      });
       expect(typeof flow).toBe('function');
     });
 
     it('should return empty arrays when primary check passes', () => {
-      const flow = AuthenticationPatternValidators.createSecurityAnalysisFlow(
-        'test-check',
-        {
-          validator: () => true,
-          violationMessage: 'Violation',
-          suggestionMessage: 'Suggestion',
-        }
-      );
+      const flow = AuthenticationPatternValidators.createSecurityAnalysisFlow({
+        validator: () => true,
+        violationMessage: 'Violation',
+        suggestionMessage: 'Suggestion',
+      });
       const result = flow(['file1.ts', 'file2.ts']);
       expect((result.violations ?? []).length).toBe(0);
       expect((result.suggestions ?? []).length).toBe(0);
     });
 
     it('should return violation when primary check fails', () => {
-      const flow = AuthenticationPatternValidators.createSecurityAnalysisFlow(
-        'test-check',
-        {
-          validator: () => false,
-          violationMessage: 'Primary violation',
-          suggestionMessage: 'Primary suggestion',
-        }
-      );
+      const flow = AuthenticationPatternValidators.createSecurityAnalysisFlow({
+        validator: () => false,
+        violationMessage: 'Primary violation',
+        suggestionMessage: 'Primary suggestion',
+      });
       const result = flow(['file1.ts']);
       expect(result.violations).toContain('Primary violation');
       expect(result.suggestions).toContain('Primary suggestion');
@@ -49,7 +40,6 @@ describe('AuthenticationPatternValidators', () => {
 
     it('should handle secondary checks when provided', () => {
       const flow = AuthenticationPatternValidators.createSecurityAnalysisFlow(
-        'test-check',
         {
           validator: () => true,
           violationMessage: 'Primary violation',
@@ -70,7 +60,6 @@ describe('AuthenticationPatternValidators', () => {
 
     it('should accumulate violations from multiple failing checks', () => {
       const flow = AuthenticationPatternValidators.createSecurityAnalysisFlow(
-        'test-check',
         {
           validator: () => false,
           violationMessage: 'Primary violation',
@@ -96,37 +85,30 @@ describe('AuthenticationPatternValidators', () => {
 
     it('should pass codeFiles to validator functions', () => {
       let receivedFiles: string[] = [];
-      const flow = AuthenticationPatternValidators.createSecurityAnalysisFlow(
-        'test-check',
-        {
-          validator: files => {
-            receivedFiles = files;
-            return true;
-          },
-          violationMessage: 'Violation',
-          suggestionMessage: 'Suggestion',
-        }
-      );
+      const flow = AuthenticationPatternValidators.createSecurityAnalysisFlow({
+        validator: files => {
+          receivedFiles = files;
+          return true;
+        },
+        violationMessage: 'Violation',
+        suggestionMessage: 'Suggestion',
+      });
       flow(['auth.ts', 'login.ts']);
       expect(receivedFiles).toEqual(['auth.ts', 'login.ts']);
     });
 
     it('should work with empty codeFiles array', () => {
-      const flow = AuthenticationPatternValidators.createSecurityAnalysisFlow(
-        'test-check',
-        {
-          validator: files => files.length > 0,
-          violationMessage: 'No files',
-          suggestionMessage: 'Add files',
-        }
-      );
+      const flow = AuthenticationPatternValidators.createSecurityAnalysisFlow({
+        validator: files => files.length > 0,
+        violationMessage: 'No files',
+        suggestionMessage: 'Add files',
+      });
       const result = flow([]);
       expect(result.violations).toContain('No files');
     });
 
     it('should handle undefined secondary checks', () => {
       const flow = AuthenticationPatternValidators.createSecurityAnalysisFlow(
-        'test-check',
         {
           validator: () => true,
           violationMessage: 'Violation',
@@ -140,7 +122,6 @@ describe('AuthenticationPatternValidators', () => {
 
     it('should handle empty secondary checks array', () => {
       const flow = AuthenticationPatternValidators.createSecurityAnalysisFlow(
-        'test-check',
         {
           validator: () => true,
           violationMessage: 'Violation',

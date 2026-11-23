@@ -357,7 +357,7 @@ export class CoverageConfigurationInspector {
   ): string[] {
     const results: string[] = [];
 
-    this.forEachJestConfig(projectRoot, (configPath, content) => {
+    this.forEachJestConfig(projectRoot, (_configPath, content) => {
       if (content.includes(propertyName)) {
         handler(content, results);
       }

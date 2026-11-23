@@ -93,10 +93,8 @@ export class CicdConstitutionalTribunalLaw {
     }
 
     // 2. Check for constitutional checks in pipeline
-    const constitutionalChecks = this.analyzeConstitutionalChecks(
-      projectRoot,
-      pipelineAnalysis
-    );
+    const constitutionalChecks =
+      this.analyzeConstitutionalChecks(pipelineAnalysis);
     if (!constitutionalChecks.hasConstitutionalValidation) {
       violations.push(
         'CI/CD pipeline missing constitutional compliance validation'
@@ -108,10 +106,7 @@ export class CicdConstitutionalTribunalLaw {
     }
 
     // 3. Check for quality gates
-    const qualityGates = this.analyzeQualityGates(
-      projectRoot,
-      pipelineAnalysis
-    );
+    const qualityGates = this.analyzeQualityGates(pipelineAnalysis);
     if (!qualityGates.hasQualityGates) {
       violations.push('CI/CD pipeline missing quality gates');
       suggestions.push(
@@ -121,10 +116,7 @@ export class CicdConstitutionalTribunalLaw {
     }
 
     // 4. Check for security scanning integration
-    const securityScanning = this.analyzeSecurityScanning(
-      projectRoot,
-      pipelineAnalysis
-    );
+    const securityScanning = this.analyzeSecurityScanning(pipelineAnalysis);
     if (!securityScanning.hasSecurityValidation) {
       violations.push('CI/CD pipeline missing security scanning');
       suggestions.push('Add security vulnerability scanning to pipeline');
@@ -133,7 +125,7 @@ export class CicdConstitutionalTribunalLaw {
 
     // 5. Check for performance testing in the pipeline (suggestions only, not violations)
     const performanceTesting =
-      PerformanceAnalysisService.analyzePerformanceTesting(projectRoot);
+      PerformanceAnalysisService.analyzePerformanceTesting();
     if (performanceTesting.hasPerformanceIssues) {
       suggestions.push(
         'Consider adding performance tests to the CI/CD pipeline'
@@ -145,10 +137,7 @@ export class CicdConstitutionalTribunalLaw {
     }
 
     // 6. Check for deployment approval process (suggestions only, not violations)
-    const approvalProcess = this.analyzeApprovalProcess(
-      projectRoot,
-      pipelineAnalysis
-    );
+    const approvalProcess = this.analyzeApprovalProcess(pipelineAnalysis);
     if (!approvalProcess.hasApprovalGates) {
       suggestions.push(
         'Consider adding approval gates for production deployments'
@@ -157,10 +146,8 @@ export class CicdConstitutionalTribunalLaw {
     }
 
     // 7. Check for rollback capabilities (suggestions only, not violations)
-    const rollbackCapabilities = this.analyzeRollbackCapabilities(
-      projectRoot,
-      pipelineAnalysis
-    );
+    const rollbackCapabilities =
+      this.analyzeRollbackCapabilities(pipelineAnalysis);
     if (!rollbackCapabilities.hasRollbackStrategy) {
       suggestions.push('Implement automated rollback capabilities');
       // Optional enhancement - don't penalize score for suggestions
@@ -205,7 +192,6 @@ export class CicdConstitutionalTribunalLaw {
   }
 
   private static analyzeConstitutionalChecks(
-    projectRoot: string,
     pipelineAnalysis: PipelineAnalysis
   ): ConstitutionalChecks {
     if (!pipelineAnalysis.hasPipeline) {
@@ -229,7 +215,6 @@ export class CicdConstitutionalTribunalLaw {
   }
 
   private static analyzeQualityGates(
-    projectRoot: string,
     pipelineAnalysis: PipelineAnalysis
   ): QualityGates {
     if (!pipelineAnalysis.hasPipeline) {
@@ -254,7 +239,6 @@ export class CicdConstitutionalTribunalLaw {
   }
 
   private static analyzeSecurityScanning(
-    projectRoot: string,
     pipelineAnalysis: PipelineAnalysis
   ): SecurityChecks {
     if (!pipelineAnalysis.hasPipeline) {
@@ -280,7 +264,6 @@ export class CicdConstitutionalTribunalLaw {
   }
 
   private static analyzeApprovalProcess(
-    projectRoot: string,
     pipelineAnalysis: PipelineAnalysis
   ): ApprovalProcess {
     if (!pipelineAnalysis.hasPipeline) {
@@ -303,7 +286,6 @@ export class CicdConstitutionalTribunalLaw {
   }
 
   private static analyzeRollbackCapabilities(
-    projectRoot: string,
     pipelineAnalysis: PipelineAnalysis
   ): RollbackCapabilities {
     if (!pipelineAnalysis.hasPipeline) {

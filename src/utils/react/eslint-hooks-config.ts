@@ -18,110 +18,31 @@ import * as fs from 'fs';
 import type * as TS from 'typescript';
 import { PathOperations } from '../path-operations';
 import { TsxSource, type TypeScriptModule } from './tsx-source';
+import {
+  emptyEvidence,
+  eslintConfigOf,
+  HOOKS_PLUGIN,
+  type HooksConfigEvidence,
+  KNOWN_EXTENDS,
+  KNOWN_PRESET_MODULES,
+  KNOWN_WITHOUT_HOOKS,
+  levelState,
+  NEUTRAL_MODULE,
+  PLUGIN_PRESETS,
+  resolveConfigFile,
+  RULE_PREFIX,
+  type RuleState,
+} from './eslint-hooks-vocabulary';
 
-/** The package whose rules the law asks for. */
-export const HOOKS_PLUGIN = 'eslint-plugin-react-hooks';
-const RULE_PREFIX = 'react-hooks/';
-
-/** The two core rules (rules-of-hooks, exhaustive-deps): required. */
-export const CORE_HOOK_RULES: readonly string[] = [
-  'rules-of-hooks',
-  'exhaustive-deps',
-];
-
-/**
- * React Compiler rules of the plugin (7.x recommended preset) that stand in
- * for laws RoC deliberately does not have: turning one off is reported.
- */
-export const RELIED_COMPILER_RULES: readonly string[] = [
-  'set-state-in-effect',
-  'immutability',
-  'purity',
-  'static-components',
-];
-
-/** `configs.recommended`, `configs['recommended-latest']`, and both under `configs.flat`. */
-const PLUGIN_PRESETS = new Set(['recommended', 'recommended-latest']);
-
-/**
- * Shared configs whose arrays register the plugin and enable both core rules
- * — verified in eslint-config-next 16.4.6 (`dist/index.js`; `core-web-vitals`
- * spreads it). The bare `next` names are how `.eslintrc` and FlatCompat
- * spell the same packages.
- */
-const KNOWN_PRESET_MODULES = [
-  'eslint-config-next',
-  'eslint-config-next/core-web-vitals',
-];
-const KNOWN_EXTENDS = new Set([
-  ...KNOWN_PRESET_MODULES,
-  'next',
-  'next/core-web-vitals',
-  'plugin:react-hooks/recommended',
-  'plugin:react-hooks/recommended-latest',
-]);
-
-/** Imports that never carry rules of another plugin: ESLint itself and its helpers. */
-const NEUTRAL_MODULE =
-  /^(?:node:|eslint$|eslint\/|@eslint\/|globals$|typescript-eslint$|@typescript-eslint\/|path$|url$|module$)/;
-
-/** Shared configs read and found WITHOUT the hooks rules (eslint-config-next 16.4.6: typescript-eslint rules only). */
-const KNOWN_WITHOUT_HOOKS = new Set(['eslint-config-next/typescript']);
-
-export const FLAT_CONFIG_FILES: readonly string[] = [
-  'eslint.config.js',
-  'eslint.config.mjs',
-  'eslint.config.cjs',
-  'eslint.config.ts',
-  'eslint.config.mts',
-  'eslint.config.cts',
-];
-export const ESLINTRC_FILES: readonly string[] = [
-  '.eslintrc.js',
-  '.eslintrc.cjs',
-  '.eslintrc.json',
-  '.eslintrc',
-  '.eslintrc.yaml',
-  '.eslintrc.yml',
-];
-
-const RESOLVE_EXTENSIONS = [
-  '',
-  '.js',
-  '.mjs',
-  '.cjs',
-  '.ts',
-  '.mts',
-  '.cts',
-  '.json',
-];
-
-type RuleState = 'off' | 'on' | 'unknown';
-
-/** What the config files read say about the plugin. */
-export interface HooksConfigEvidence {
-  /** The preset that enables the core rules, as written — null when none is used. */
-  preset: string | null;
-  /** Core and compiler rules set to a non-off severity. */
-  enabled: Set<string>;
-  /** `react-hooks/<rule>` set to off, with `file:line`. */
-  disabled: Array<{ rule: string; at: string }>;
-  /** Non-relative imports this reader cannot judge (they may carry the rules). */
-  unknownModules: Set<string>;
-  /** Files that could not be read, with the reason. */
-  unread: string[];
-}
-
-/** Evidence before any config file is read: no preset, no rules, nothing unread. */
-export function emptyEvidence(): HooksConfigEvidence {
-  return {
-    preset: null,
-    enabled: new Set(),
-    disabled: [],
-    unknownModules: new Set(),
-    unread: [],
-  };
-}
+export {
+  CORE_HOOK_RULES,
+  emptyEvidence,
+  ESLINTRC_FILES,
+  FLAT_CONFIG_FILES,
+  HOOKS_PLUGIN,
+  type HooksConfigEvidence,
+  RELIED_COMPILER_RULES,
+} from './eslint-hooks-vocabulary';
 
 /** One config file, parsed, with the root node the walk starts from. */
 interface ParsedConfig {
@@ -184,26 +105,13 @@ export class EslintHooksConfigReader {
     ) {
       const sourceFile = this.ts.parseJsonText(file, text);
       const root =
-        base === 'package.json' ? this.eslintConfigOf(sourceFile) : sourceFile;
+        base === 'package.json'
+          ? eslintConfigOf(this.ts, sourceFile)
+          : sourceFile;
       return root ? { sourceFile, root } : null;
     }
     const source = TsxSource.parse(this.ts, file, text);
     return { sourceFile: source.sourceFile, root: source.sourceFile };
-  }
-
-  /** The `eslintConfig` property of a package.json, or null. */
-  private eslintConfigOf(sourceFile: TS.JsonSourceFile): TS.Node | null {
-    const ts = this.ts;
-    const statement = sourceFile.statements[0];
-    const object = statement?.expression;
-    if (!object || !ts.isObjectLiteralExpression(object)) return null;
-    const property = object.properties.find(
-      p =>
-        ts.isPropertyAssignment(p) &&
-        ts.isStringLiteral(p.name) &&
-        p.name.text === 'eslintConfig'
-    );
-    return property ?? null;
   }
 
   private visit(
@@ -257,21 +165,9 @@ export class EslintHooksConfigReader {
   ): void {
     const ts = this.ts;
     const callee = node.expression;
-    const first = node.arguments[0];
-    if (
-      ts.isIdentifier(callee) &&
-      callee.text === 'require' &&
-      first &&
-      ts.isStringLiteral(first)
-    ) {
-      const module = first.text;
-      const parent = node.parent;
-      if (ts.isVariableDeclaration(parent) && ts.isIdentifier(parent.name)) {
-        bindings.set(parent.name.text, module);
-      } else if (this.presets.has(module)) {
-        this.evidence.preset ??= module; // used in place: `...require('eslint-config-next')`
-      }
-      this.followOrRecord(module, file);
+    const module = this.requiredModule(node);
+    if (module !== null) {
+      this.recordRequire(node, module, bindings, file);
       return;
     }
     if (
@@ -280,6 +176,36 @@ export class EslintHooksConfigReader {
     ) {
       for (const argument of node.arguments) this.creditExtends(argument);
     }
+  }
+
+  /** The module of `require('x')`, or null when the call is not one. */
+  private requiredModule(node: TS.CallExpression): string | null {
+    const ts = this.ts;
+    const callee = node.expression;
+    const first = node.arguments[0];
+    return ts.isIdentifier(callee) &&
+      callee.text === 'require' &&
+      first &&
+      ts.isStringLiteral(first)
+      ? first.text
+      : null;
+  }
+
+  /** `const x = require('m')` binds `x`; a preset required in place is used. */
+  private recordRequire(
+    node: TS.CallExpression,
+    module: string,
+    bindings: Map<string, string>,
+    file: string
+  ): void {
+    const ts = this.ts;
+    const parent = node.parent;
+    if (ts.isVariableDeclaration(parent) && ts.isIdentifier(parent.name)) {
+      bindings.set(parent.name.text, module);
+    } else if (this.presets.has(module)) {
+      this.evidence.preset ??= module; // used in place: `...require('eslint-config-next')`
+    }
+    this.followOrRecord(module, file);
   }
 
   private visitProperty(
@@ -351,14 +277,8 @@ export class EslintHooksConfigReader {
       ? value.elements[0]
       : value;
     if (!level) return 'unknown';
-    if (ts.isStringLiteralLike(level)) {
-      if (level.text === 'off') return 'off';
-      return level.text === 'warn' || level.text === 'error' ? 'on' : 'unknown';
-    }
-    if (ts.isNumericLiteral(level)) {
-      if (level.text === '0') return 'off';
-      return level.text === '1' || level.text === '2' ? 'on' : 'unknown';
-    }
+    if (ts.isStringLiteralLike(level)) return levelState(level.text, false);
+    if (ts.isNumericLiteral(level)) return levelState(level.text, true);
     return 'unknown';
   }
 
@@ -391,7 +311,7 @@ export class EslintHooksConfigReader {
   /** Follow a relative config; record a module this reader does not know. */
   private followOrRecord(module: string, file: string): void {
     if (module.startsWith('.')) {
-      const target = this.resolveRelative(
+      const target = resolveConfigFile(
         PathOperations.join(PathOperations.getDirectory(file), module)
       );
       if (target) this.read(target);
@@ -409,16 +329,6 @@ export class EslintHooksConfigReader {
       return;
     if (NEUTRAL_MODULE.test(module)) return;
     this.evidence.unknownModules.add(module);
-  }
-
-  private resolveRelative(base: string): string | null {
-    for (const extension of RESOLVE_EXTENSIONS) {
-      const candidate = `${base}${extension}`;
-      if (fs.existsSync(candidate) && fs.statSync(candidate).isFile())
-        return candidate;
-    }
-    const index = PathOperations.join(base, 'index.js');
-    return fs.existsSync(index) ? index : null;
   }
 
   private walk(root: TS.Node, visit: (node: TS.Node) => void): void {

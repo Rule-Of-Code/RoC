@@ -17,7 +17,6 @@ export abstract class UniversalCheckerBase {
   protected static createResult(
     violations: string[],
     lawName: string,
-    category: string,
     recommendations: string[],
     fixable = true
   ): LawResult {

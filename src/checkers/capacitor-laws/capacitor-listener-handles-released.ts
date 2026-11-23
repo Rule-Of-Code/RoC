@@ -134,12 +134,7 @@ export class CapacitorListenerHandlesReleasedLaw extends LawBase {
   /** Follow the call's value up through await, parentheses and `void` to where it lands. */
   static fate(source: TsxSource, call: TS.CallExpression): HandleFate {
     const ts = source.ts;
-    let node: TS.Node = call;
-    while (
-      ts.isAwaitExpression(node.parent) ||
-      ts.isParenthesizedExpression(node.parent)
-    )
-      node = node.parent;
+    const node = this.landing(source, call);
     const parent = node.parent;
     if (ts.isExpressionStatement(parent) || ts.isVoidExpression(parent))
       return { kind: 'discarded' };
@@ -149,29 +144,48 @@ export class CapacitorListenerHandlesReleasedLaw extends LawBase {
     ) {
       return { kind: 'returned' };
     }
+    return { kind: 'kept', name: this.keptName(source, node, parent) };
+  }
+
+  /** The call's value, through `await` and parentheses. */
+  private static landing(source: TsxSource, call: TS.CallExpression): TS.Node {
+    const ts = source.ts;
+    let node: TS.Node = call;
+    while (
+      ts.isAwaitExpression(node.parent) ||
+      ts.isParenthesizedExpression(node.parent)
+    )
+      node = node.parent;
+    return node;
+  }
+
+  /** The name a kept handle is stored under: assigned, declared, or pushed onto; null when none is read. */
+  private static keptName(
+    source: TsxSource,
+    node: TS.Node,
+    parent: TS.Node
+  ): string | null {
+    const ts = source.ts;
     if (
       ts.isBinaryExpression(parent) &&
       parent.operatorToken.kind === ts.SyntaxKind.EqualsToken
     ) {
-      return { kind: 'kept', name: this.nameOf(source, parent.left) };
+      return this.nameOf(source, parent.left);
     }
     if (
       (ts.isVariableDeclaration(parent) || ts.isPropertyDeclaration(parent)) &&
       parent.initializer === node
     ) {
-      return { kind: 'kept', name: this.nameOf(source, parent.name) };
+      return this.nameOf(source, parent.name);
     }
     if (
       ts.isCallExpression(parent) &&
       ts.isPropertyAccessExpression(parent.expression) &&
       parent.expression.name.text === 'push'
     ) {
-      return {
-        kind: 'kept',
-        name: this.nameOf(source, parent.expression.expression),
-      };
+      return this.nameOf(source, parent.expression.expression);
     }
-    return { kind: 'kept', name: null };
+    return null;
   }
 
   private static nameOf(source: TsxSource, node: TS.Node): string | null {

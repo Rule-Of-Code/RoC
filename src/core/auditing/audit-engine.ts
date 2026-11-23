@@ -84,7 +84,6 @@ export class RuleOfCodeAuditor {
     projectRoot?: string;
     config: RuleOfCodeConfig;
     mode?: string;
-    suggestExceptions?: boolean | undefined;
     verbose?: boolean | undefined;
     onlyFailures?: boolean | undefined;
     parallel?: boolean | undefined;
@@ -104,7 +103,7 @@ export class RuleOfCodeAuditor {
     return new RuleOfCodeAuditor(
       options.config,
       options.projectRoot,
-      options.suggestExceptions,
+      false,
       options.mode,
       cliOptions
     );
@@ -113,7 +112,9 @@ export class RuleOfCodeAuditor {
   constructor(
     _config: unknown,
     projectRoot: string = process.cwd(),
-    // Positional slot of the public constructor; no code reads it.
+    // Positional slot of the public constructor; no code reads it. It held
+    // --suggest-exceptions, removed in #527; the slot stays so positional
+    // callers keep their mode and options.
     _suggestExceptions = false,
     mode = 'fast',
     options: AuditOptions = {}

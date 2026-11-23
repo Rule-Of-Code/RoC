@@ -64,7 +64,6 @@ export {
 } from './security/dependency-vulnerability';
 export * from './security/encryption-implementation';
 export * from './security/environment-variables-usage';
-export { NpmAuditSimulator } from './security/npm-audit-simulator';
 export * from './security/secret-management';
 export * from './security/security-documentation';
 export { SecurityPolicyChecker } from './security/security-policy-checker';

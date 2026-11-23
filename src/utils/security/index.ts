@@ -64,11 +64,7 @@ export {
 } from './vulnerability-management';
 
 // Specialized Security Utilities
-export {
-  AuditResultsAnalyzer,
-  AuditResultsConfiguration,
-  AuditResultsValidationPatterns,
-} from './audit-results';
+export { AuditResultsConfiguration } from './audit-results';
 export {
   DependencyVulnerabilityAnalyzer,
   DependencyVulnerabilityConfiguration,
@@ -81,7 +77,6 @@ export {
   type VulnerabilitySeverity,
   type VulnerablePackageInfo,
 } from './dependency-vulnerability';
-export { NpmAuditSimulator } from './npm-audit-simulator';
 export { SecurityPolicyChecker } from './security-policy-checker';
 export * as SecuritySharedUtils from './security-shared-utils';
 export {

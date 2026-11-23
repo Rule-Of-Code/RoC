@@ -25,7 +25,8 @@ const angular = (version: string): Record<string, string> => ({
   'src/app/app.routes.ts': [
     "import { Routes } from '@angular/router';",
     'export const routes: Routes = [',
-    "  { path: 'admin', loadChildren: () => import('./admin/admin.routes').then(m => m.ADMIN_ROUTES) },",
+    // admin.routes default-exports its Routes (Angular 15+), so no `.then` is needed.
+    "  { path: 'admin', loadChildren: () => import('./admin/admin.routes') },",
     '];',
   ].join('\n'),
 });
@@ -40,16 +41,16 @@ const DO_CHECK_COMPONENT = [
   '}',
 ].join('\n');
 
-const check = (
+const check = async (
   law: { check(context: never): LawResult | Promise<LawResult> },
   files: Record<string, string>
-): Promise<string[]> =>
-  Promise.resolve(
-    law.check({
-      projectRoot: project(files),
-      config: FileUtils.getMinimalDefaultConfig(),
-    } as never)
-  ).then(result => (result.violations ?? []).map(String));
+): Promise<string[]> => {
+  const result = await law.check({
+    projectRoot: project(files),
+    config: FileUtils.getMinimalDefaultConfig(),
+  } as never);
+  return (result.violations ?? []).map(String);
+};
 
 describe('#562 Lazy Loading reports lazy loading; the borrowed checks have owners', () => {
   afterEach(removeProjects);

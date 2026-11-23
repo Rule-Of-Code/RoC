@@ -28,6 +28,9 @@ import { CodeQualityLawBase } from './code-quality-law-base';
 import { ExportedDeclarations } from './exported-declarations';
 
 export class CodeDocumentationLaw extends CodeQualityLawBase {
+  /** The JavaScript files the law reads besides .ts / .tsx (#493). */
+  private static readonly JS_EXTENSIONS = ['.js', '.jsx', '.mjs', '.cjs'];
+
   static check(context: LawCheckContext): LawResult {
     const { projectRoot } = context;
 
@@ -90,9 +93,11 @@ export class CodeDocumentationLaw extends CodeQualityLawBase {
     context: LawCheckContext
   ): string[] {
     // The law id is passed so `ignores.byRule` keyed by this law applies.
+    // JavaScript is read too, through the same parser: an exported function
+    // in a .js file was never looked at, with no note (#493).
     return CheckerUtils.findFilesByExtension(
       projectRoot,
-      CheckerUtils.getCommonExtensions().TYPESCRIPT,
+      [...CheckerUtils.getCommonExtensions().TYPESCRIPT, ...this.JS_EXTENSIONS],
       context.config,
       context.lawId
     );

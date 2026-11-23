@@ -302,6 +302,15 @@ or a `window` / `process` error listener. An import of `ErrorHandler` or
 that may register a handler are reported as not read. Global Error Handlers
 also recognises a `provide…ErrorHandler()` helper call.
 
+### 🐛 Fixed — Code Documentation Standards reads JavaScript exports
+
+The law judged exported classes and functions in `.ts` / `.tsx` only: the
+exports of a `.js`, `.jsx`, `.mjs` or `.cjs` file were never looked at, with
+no note, so a JavaScript project got a clean result from a law that did not
+read its code. JavaScript is now read through the same parser with the same
+rule; CommonJS `module.exports` is not an ES export and stays out, as the card
+says (#493).
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

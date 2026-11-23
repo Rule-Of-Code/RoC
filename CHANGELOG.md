@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Lazy Loading Implementation reports lazy loading only (#562)
+
+The law's bundle step called three analyzers of Change Detection
+Optimization (components, `trackBy`, observables) and appended their
+findings to its own. In a project without component files the line
+"No Angular components found" appeared twice and cost 20 points, and a
+change-detection finding was reported under both laws. Lazy Loading now
+judges routes and bundle configuration only; Change Detection Optimization
+keeps reporting its own findings, once.
+
 ### 🐛 Fixed — a module-level `let` reset in `beforeEach` is not shared state (#552)
 
 Test Data Management and Test Isolation Enforcement reported a module-level

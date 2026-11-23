@@ -65,10 +65,14 @@ describe('#562 Lazy Loading reports lazy loading, not change detection', () => {
     const found = LazyLoadingImplementationLaw.check({
       projectRoot: project({
         ...ANGULAR,
-        'src/app/app.routes.ts': [
-          "import { Routes } from '@angular/router';",
+        'src/app/app-routing.module.ts': [
+          "import { NgModule } from '@angular/core';",
+          "import { RouterModule } from '@angular/router';",
           "import { AdminComponent } from './admin.component';",
-          "export const routes: Routes = [{ path: 'admin', component: AdminComponent }];",
+          '@NgModule({',
+          "  imports: [RouterModule.forRoot([{ path: 'admin', component: AdminComponent }])],",
+          '})',
+          'export class AppRoutingModule {}',
         ].join('\n'),
       }),
       config: FileUtils.getMinimalDefaultConfig(),

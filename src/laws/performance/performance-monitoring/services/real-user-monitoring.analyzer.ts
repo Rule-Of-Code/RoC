@@ -1,40 +1,31 @@
 import type { RuleOfCodeConfig } from '../../../../config/types';
-import { FileUtils } from '../../../../utils/file-utils';
-import { RealUserMonitoringConstants } from '../constants/real-user-monitoring.constants';
+import { BrowserMonitoringEvidence } from '../../../../utils/performance/browser-monitoring-evidence';
 
 /**
  * Real User Monitoring Analyzer Service
  *
- * Single Responsibility: Analyze RUM configuration
+ * Single Responsibility: Analyze Real User Monitoring configuration
+ *
+ * Field metrics measured in the browser, wherever the code measures them
+ * (#553): a web-vitals call (v3 or v4), Next's `useReportWebVitals`, or the
+ * project's own PerformanceObserver on the vitals' entry types. It used to
+ * look for a few names in main.ts, app.component.ts and src/index.ts only,
+ * so a measurement in its own module was not seen.
  */
 export class RealUserMonitoringAnalyzerService {
   static async checkRealUserMonitoring(
     projectRoot: string,
-    config?: RuleOfCodeConfig
+    config?: RuleOfCodeConfig,
+    lawId?: string
   ): Promise<{
     configured: boolean;
   }> {
-    try {
-      // Check for RUM configuration in main files
-      const rumConfigLocations =
-        await RealUserMonitoringConstants.getRumConfigLocations(
-          projectRoot,
-          config
-        );
-      for (const mainFilePath of rumConfigLocations) {
-        if (FileUtils.exists(mainFilePath)) {
-          const content = FileUtils.readFile(mainFilePath, {
-            encoding: 'utf8',
-          });
-          if (RealUserMonitoringConstants.hasRumIndicators(content)) {
-            return { configured: true };
-          }
-        }
-      }
-
-      return { configured: false };
-    } catch {
-      return { configured: false };
-    }
+    const measured = BrowserMonitoringEvidence.vitalsMeasurements(
+      projectRoot,
+      config,
+      undefined,
+      lawId
+    );
+    return Promise.resolve({ configured: measured.length > 0 });
   }
 }

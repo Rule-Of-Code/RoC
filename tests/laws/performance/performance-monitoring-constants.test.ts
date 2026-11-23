@@ -1,13 +1,12 @@
 /**
  * Tests for Performance Monitoring Constants
  *
- * Tests for error tracking, monitoring tools, alerts, budget, and RUM constants.
+ * Tests for error tracking, monitoring tools, alerts and budget constants.
  */
 import { ErrorTrackingConstants } from '../../../src/laws/performance/performance-monitoring/constants/error-tracking.constants';
 import { MonitoringToolsConstants } from '../../../src/laws/performance/performance-monitoring/constants/monitoring-tools.constants';
 import { PerformanceAlertsConstants } from '../../../src/laws/performance/performance-monitoring/constants/performance-alerts.constants';
 import { PerformanceBudgetConstants } from '../../../src/laws/performance/performance-monitoring/constants/performance-budget.constants';
-import { RealUserMonitoringConstants } from '../../../src/laws/performance/performance-monitoring/constants/real-user-monitoring.constants';
 
 describe('ErrorTrackingConstants', () => {
   describe('ERROR_TRACKING_TOOLS', () => {
@@ -301,90 +300,6 @@ describe('PerformanceBudgetConstants', () => {
       expect(
         PerformanceBudgetConstants.hasBudgetConfiguration('config: true')
       ).toBe(false);
-    });
-  });
-});
-
-describe('RealUserMonitoringConstants', () => {
-  describe('RUM_DEPENDENCY_PATTERNS', () => {
-    it('should include web-vitals', () => {
-      expect(RealUserMonitoringConstants.RUM_DEPENDENCY_PATTERNS).toContain(
-        'web-vitals'
-      );
-    });
-
-    it('should include getCLS', () => {
-      expect(RealUserMonitoringConstants.RUM_DEPENDENCY_PATTERNS).toContain(
-        'getCLS'
-      );
-    });
-
-    it('should include getLCP', () => {
-      expect(RealUserMonitoringConstants.RUM_DEPENDENCY_PATTERNS).toContain(
-        'getLCP'
-      );
-    });
-  });
-
-  describe('RUM_CONFIG_FILE_PATTERNS', () => {
-    it('should include src/utils/rum.ts', () => {
-      expect(RealUserMonitoringConstants.RUM_CONFIG_FILE_PATTERNS).toContain(
-        'src/utils/rum.ts'
-      );
-    });
-  });
-
-  describe('PERFORMANCE_MONITORING_PATTERNS', () => {
-    it('should include web-vitals', () => {
-      expect(
-        RealUserMonitoringConstants.PERFORMANCE_MONITORING_PATTERNS
-      ).toContain('web-vitals');
-    });
-
-    it('should include PerformanceObserver', () => {
-      expect(
-        RealUserMonitoringConstants.PERFORMANCE_MONITORING_PATTERNS
-      ).toContain('PerformanceObserver');
-    });
-
-    it('should include performance.mark', () => {
-      expect(
-        RealUserMonitoringConstants.PERFORMANCE_MONITORING_PATTERNS
-      ).toContain('performance.mark');
-    });
-  });
-
-  describe('getRumConfigLocations', () => {
-    const projectRoot = '/test/project';
-
-    it('should include src/main.ts', async () => {
-      expect(
-        await RealUserMonitoringConstants.getRumConfigLocations(projectRoot)
-      ).toContain(`${projectRoot}/src/main.ts`);
-    });
-  });
-
-  describe('hasRumIndicators', () => {
-    it('should return true for content with web-vitals', () => {
-      expect(
-        RealUserMonitoringConstants.hasRumIndicators(
-          'import { getCLS } from "web-vitals";'
-        )
-      ).toBe(true);
-    });
-
-    it('should return true for content with PerformanceObserver', () => {
-      expect(
-        RealUserMonitoringConstants.hasRumIndicators(
-          'new PerformanceObserver()'
-        )
-      ).toBe(true);
-    });
-
-    it('should return false for unrelated content', () => {
-      expect(RealUserMonitoringConstants.hasRumIndicators('const x = 1;')).toBe(
-        false
-      );
     });
   });
 });

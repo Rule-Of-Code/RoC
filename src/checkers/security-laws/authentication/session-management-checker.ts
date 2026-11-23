@@ -2,6 +2,10 @@ import type { RuleOfCodeConfig } from '../../../config/types';
 import { SecurityCheckerBase } from './security-checker-base';
 import { AuthenticationPatternValidators } from './shared-authentication-patterns';
 
+/** Said when a managed auth SDK holds the session (#561). */
+export const MANAGED_SESSION_NOTE =
+  'The session is held by a managed auth SDK (token expiry, sign-out): server session timeout and invalidation checks do not apply';
+
 /**
  * Session Management Checker
  * Validates session handling and management patterns
@@ -46,6 +50,25 @@ export class SessionManagementChecker extends SecurityCheckerBase {
       );
 
     return this.runSecurityCheck(projectRoot, config, codeFiles => {
+      // A managed auth SDK holds the session: its token expiry and sign-out
+      // are the timeout and the invalidation (#561). Server session checks
+      // apply where the server keeps a session; web storage is still judged.
+      const shape = this.authShapeOf(codeFiles);
+      if (shape.managedSdk && !shape.serverSession) {
+        const insecure = !this.hasSecureSessionStorage(codeFiles);
+        return {
+          violations: insecure ? ['Insecure session storage detected'] : [],
+          suggestions: [
+            MANAGED_SESSION_NOTE,
+            ...(insecure
+              ? [
+                  'Use secure session storage (avoid localStorage for sensitive data)',
+                ]
+              : []),
+          ],
+        };
+      }
+
       const { violations, suggestions } = sessionFlow(codeFiles);
 
       // Additional concurrent session check
@@ -95,6 +118,8 @@ export class SessionManagementChecker extends SecurityCheckerBase {
   }
 
   private static hasSessionInvalidation(codeFiles: string[]): boolean {
+    // A sign-out call, or `req.session.destroy()` / `regenerate()` (#561).
+    if (this.authShapeOf(codeFiles).signsOut) return true;
     const invalidationPatterns = [
       /session.*destroy/i,
       /session.*invalidate/i,

@@ -74,6 +74,13 @@ export interface LawResult {
    * earned no score, and one value means one verdict across every law.
    */
   judgedNothing?: boolean;
+  /**
+   * What the law could NOT read — a config it could not follow, files it had
+   * no parser for — said as notes, never as findings (#453). A law with
+   * notes here and no violations found nothing wrong in what it read, and
+   * did not read everything: it did not pass, and the run is partial.
+   */
+  notRead?: string[] | undefined;
 }
 
 export interface LawCheckContext {

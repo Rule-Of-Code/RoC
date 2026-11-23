@@ -116,6 +116,13 @@ export interface FileContaining {
   pattern: string;
   /** Globs left out of `files` (test trees, fixtures) — for the gate and for the law reading through it. */
   exclude?: readonly string[];
+  /**
+   * Match the pattern against the file's code only: comments and the
+   * contents of string literals are blanked (TS/JS by the JS rules, Python
+   * by its own lexer, other files as they are). A law's example kept in a
+   * string does not select it (#437).
+   */
+  readsCode?: boolean;
 }
 
 export interface EnhancedConstitutionalLaw {

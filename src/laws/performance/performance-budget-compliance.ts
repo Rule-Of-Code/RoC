@@ -27,6 +27,42 @@ const deduct = (check: string): number =>
  * - production performance monitoring.
  */
 export class PerformanceBudgetComplianceLaw {
+  /**
+   * No budget was found. A build config that could not be read may declare
+   * one: it is reported as not read, never as "not configured" (#423).
+   * Returns the score deduction.
+   */
+  private static budgetFinding(
+    projectRoot: string,
+    budgetsNotRead: readonly string[],
+    violations: string[],
+    suggestions: string[]
+  ): number {
+    if (budgetsNotRead.length > 0) {
+      violations.push(
+        `${budgetsNotRead.join('; ')} — the Angular budgets it may declare were NOT read`
+      );
+      suggestions.push(
+        'Fix the JSON syntax of the Angular build configuration'
+      );
+      return deduct('ANGULAR');
+    }
+    if (WorkspaceManifests.declares(projectRoot, '@angular/core')) {
+      violations.push('Angular CLI performance budgets not configured');
+      suggestions.push(
+        'Add performance budgets in angular.json build configurations'
+      );
+    } else {
+      violations.push(
+        'No enforced performance budget: declare webpack performance hints, Lighthouse assertions, or a size-limit check, run by a script or CI'
+      );
+      suggestions.push(
+        'Add a size-limit check with a "limit" and a script that runs it, or Lighthouse CI assertions'
+      );
+    }
+    return deduct('ANGULAR') + deduct('WEBPACK') + deduct('LIGHTHOUSE');
+  }
+
   static async check(context: LawCheckContext): Promise<LawResult> {
     const violations: string[] = [];
     const suggestions: string[] = [];
@@ -55,29 +91,13 @@ export class PerformanceBudgetComplianceLaw {
     const budgetsNotRead = angularBudgets.unreadable;
 
     // 1. A budget. An Angular project is pointed at its native mechanism.
-    if (!hasBudget && budgetsNotRead.length > 0) {
-      violations.push(
-        `${budgetsNotRead.join('; ')} — the Angular budgets it may declare were NOT read`
+    if (!hasBudget) {
+      score -= this.budgetFinding(
+        projectRoot,
+        budgetsNotRead,
+        violations,
+        suggestions
       );
-      suggestions.push(
-        'Fix the JSON syntax of the Angular build configuration'
-      );
-      score -= deduct('ANGULAR');
-    } else if (!hasBudget) {
-      if (WorkspaceManifests.declares(projectRoot, '@angular/core')) {
-        violations.push('Angular CLI performance budgets not configured');
-        suggestions.push(
-          'Add performance budgets in angular.json build configurations'
-        );
-      } else {
-        violations.push(
-          'No enforced performance budget: declare webpack performance hints, Lighthouse assertions, or a size-limit check, run by a script or CI'
-        );
-        suggestions.push(
-          'Add a size-limit check with a "limit" and a script that runs it, or Lighthouse CI assertions'
-        );
-      }
-      score -= deduct('ANGULAR') + deduct('WEBPACK') + deduct('LIGHTHOUSE');
     }
 
     // 2. Bundle size monitoring. Angular budgets, webpack hints and size-limit

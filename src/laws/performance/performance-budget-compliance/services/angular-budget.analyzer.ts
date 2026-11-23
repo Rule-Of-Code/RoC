@@ -9,6 +9,13 @@ import {
   PerformanceBudgetTypesConstants,
 } from '../constants';
 
+/** Budgets found, and the build configs that could not be read. */
+export interface AngularBudgetAnalysis {
+  configured: boolean;
+  projects: string[];
+  unreadable: string[];
+}
+
 /**
  * AngularBudgetAnalyzerService
  *
@@ -17,13 +24,6 @@ import {
  * - Verify budget setup in angular.json or Nx project.json files
  * - Support both traditional Angular CLI and Nx monorepo structures
  */
-/** Budgets found, and the build configs that could not be read. */
-export interface AngularBudgetAnalysis {
-  configured: boolean;
-  projects: string[];
-  unreadable: string[];
-}
-
 export class AngularBudgetAnalyzerService {
   /**
    * Analyze Angular performance budgets

@@ -302,6 +302,16 @@ or a `window` / `process` error listener. An import of `ErrorHandler` or
 that may register a handler are reported as not read. Global Error Handlers
 also recognises a `provide…ErrorHandler()` helper call.
 
+### 🐛 Fixed — NX Commands Only Policy is selected only for an Nx workspace
+
+The law was selected for an Nx workspace or any Angular project, and then
+required `nx.json`: an Angular CLI workspace that never chose Nx failed it at
+error severity. Adopting a monorepo tool is a choice, not a defect, so the law
+is now selected only for an Nx workspace (`nx.json`, or the `nx` /
+`@nx/workspace` / `@nrwl/workspace` package; `REQUIRES_NX_WORKSPACE`). An
+Angular project in an Nx workspace is still judged. The canary angular, ngrx
+and ionic profiles no longer select it (#475).
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

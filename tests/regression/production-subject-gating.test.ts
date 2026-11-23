@@ -128,7 +128,7 @@ describe('#428 laws about something that runs for users', () => {
   });
 });
 
-describe('#428 NX Commands Only Policy needs an Nx or Angular workspace', () => {
+describe('#428, #475 NX Commands Only Policy needs an Nx workspace', () => {
   const nxSelected = (files: Record<string, string>): boolean => {
     const law = ALL_ENHANCED_CONSTITUTIONAL_LAWS.find(
       l => l.title === 'NX Commands Only Policy'
@@ -144,12 +144,29 @@ describe('#428 NX Commands Only Policy needs an Nx or Angular workspace', () => 
   it.each([
     ['nx.json', { 'nx.json': '{}\n' }],
     ['the nx package', { 'package.json': pkg({ nx: '21.0.0' }) }],
-    [
-      'an Angular project',
-      { 'package.json': pkg({ '@angular/core': '20.0.0' }) },
-    ],
   ])('%s selects it', (_label, extra) => {
     expect(nxSelected({ ...CLI_BASE, ...extra })).toBe(true);
+  });
+
+  // #475: an Angular CLI workspace without Nx chose no monorepo tool
+  it.each([
+    ['@angular/core', { 'package.json': pkg({ '@angular/core': '20.0.0' }) }],
+    ['angular.json', { 'angular.json': '{}\n' }],
+  ])(
+    'an Angular CLI workspace without Nx (%s) does not select it',
+    (_label, extra) => {
+      expect(nxSelected({ ...CLI_BASE, ...extra })).toBe(false);
+    }
+  );
+
+  it('an Angular project in an Nx workspace selects it', () => {
+    expect(
+      nxSelected({
+        ...CLI_BASE,
+        'package.json': pkg({ '@angular/core': '20.0.0', nx: '21.0.0' }),
+        'nx.json': '{}\n',
+      })
+    ).toBe(true);
   });
 });
 

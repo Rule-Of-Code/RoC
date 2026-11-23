@@ -6,7 +6,7 @@
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
 import {
-  REQUIRES_NX_OR_ANGULAR,
+  REQUIRES_NX_WORKSPACE,
   REQUIRES_RXJS,
 } from '../utils/framework-requirements';
 
@@ -66,12 +66,12 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
         'Commit nx.json, use `nx ...` (not `ng ...`) in package.json scripts, and prefer workspace.json over a standalone angular.json.',
     },
     detectionLimits: [
-      'Selected only for an Nx workspace (nx.json, or the nx / @nx/workspace / @nrwl/workspace package) or an Angular project (@angular/core). There it requires nx.json, so an Angular CLI workspace without Nx fails it; a TypeScript, React or Node project without Nx is not selected.',
+      'Selected only for an Nx workspace (nx.json, or the nx / @nx/workspace / @nrwl/workspace package). An Angular CLI workspace without Nx is not selected (adopting Nx is a choice, not a defect), and neither is a TypeScript, React or Node project without Nx.',
       'The docs scan is effectively dead (it looks for .md among ts/js/json results), so only the root README.md is checked for `ng` usage.',
       'Reads scripts / config / README, not build invocations; Angular/Nx only.',
     ],
     stack: 'typescript',
-    requires: REQUIRES_NX_OR_ANGULAR,
+    requires: REQUIRES_NX_WORKSPACE,
     emoji: '🛠️',
     description: 'All build/test commands must use NX workspace architecture',
     priority: 'HIGH',

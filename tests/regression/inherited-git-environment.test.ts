@@ -26,6 +26,7 @@ import * as os from 'os';
 import * as path from 'path';
 
 import { execFileSync } from '../../src/utils/child-process';
+import { registerTempDir } from '../helpers/temp-dirs';
 
 const IDENTITY = [
   '-c',
@@ -219,6 +220,8 @@ describe('#372 an inherited GIT_DIR', () => {
       console.log(JSON.stringify([a, b]));`,
       { GIT_DIR: otherWorktreeGitDir, GIT_INDEX_FILE: index }
     );
+    // The child made them in the OS temp dir; they go after the suite (#582).
+    roots.forEach(registerTempDir);
 
     expect(bytes(config).equals(before.config)).toBe(true);
     expect(bytes(index).equals(before.index)).toBe(true);

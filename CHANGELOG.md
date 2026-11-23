@@ -80,6 +80,46 @@ Footer Template (MANDATORY), the other opt-in law that a plain Angular
 fixture can fail, and its fixture paths are neutral (`libs/app/…`). Older
 entries below that describe the law are kept as history.
 
+### 🐛 Fixed — Lazy Loading Implementation reports lazy loading only (#562)
+
+The law's bundle step called three analyzers of `ChangeDetectionOptimizationLaw`
+(components, `trackBy`, observables) and appended their findings to its
+own. In a project without component files the line "No Angular components
+found" appeared twice and cost 20 points. That class was never a
+registered law, so its checks reached the product only through Lazy
+Loading. Lazy Loading now judges routes and bundle configuration only, and
+each check has the law that owns it:
+
+- `ngDoCheck` in a component, directive or service → **Angular Lifecycle
+  Management** (it runs on every change-detection pass);
+- `*ngFor` without `trackBy` → **Modern Angular Control Flow**, below
+  Angular 18 (from 18 its syntax rule already asks for `@for` with `track`);
+- `detectChanges()` / `markForCheck()` without OnPush and manual
+  subscriptions are judged by OnPush Change Detection Strategy and the
+  subscription laws; "any manual subscribe" on its own is dropped;
+- "No Angular components found" is not a finding of any law. A project
+  with no route configuration and no `@Component` in its code has no lazy
+  loading to judge: Lazy Loading now says it judged nothing there, instead
+  of passing with nothing judged (#427).
+
+`ChangeDetectionOptimizationLaw` has no caller left and is removed. It
+was not a registered law, so the law count does not change.
+
+### 🐛 Fixed — two leftovers of the 8.0.0 self-audit (#439)
+
+- **Commit Size Control** counted the same change twice when it reached the
+  history as a commit and its cherry-pick. A change is now counted once, by
+  its `git patch-id --stable`; when git cannot give patch-ids, every commit
+  is counted as before.
+- **Pre-Deployment Checklist** took any code file whose name contained
+  "health", "status" or "ping" for a health check (`order-status.ts`,
+  `shopping-cart.ts`), and missed a server that answers `GET /healthz` from
+  `server.ts`. A health check is now a file named for one (`health…`,
+  `liveness`, `readiness`) or a router call or decorator for `/health`,
+  `/healthz`, `/ready`, `/live`, `/ping` or `/status`.
+
+Still open in #439: Dead Code Elimination does not detect unused code.
+
 ### 🐛 Fixed — a module-level `let` reset in `beforeEach` is not shared state (#552)
 
 Test Data Management and Test Isolation Enforcement reported a module-level
@@ -672,6 +712,34 @@ Role enforcement written inline now counts as a role check:
 `user?.role === 'owner'`, `role !== 'admin'`, `user.roles.includes('admin')`.
 A role that appears only as an object key (`{ role: 'user' }`, as in a chat
 message or an ARIA attribute object) is not a role concept.
+
+### 🧹 Internal — tests and the release canary remove their temp directories
+
+Test runs and `scripts/release-canary.js` left `roc-*` directories in the OS
+temp dir; on one machine they filled the system drive (a canary consumer is an
+installed tarball of about 50 MB). The hook-generation test removed the parent
+of its directory — the OS temp dir itself — until it reached a locked file, so
+it deleted other programs' temp files and left its own (#582).
+
+Tests make temp directories through `tests/helpers/temp-dirs.ts`, which removes
+them after the suite, also when a test fails. The canary removes its fixture,
+consumer and provenance directories when it finishes, green or red; with
+`--keep` it leaves them and prints their paths. The provenance tree's
+`node_modules` junction is removed as a link first. No law result changes.
+
+### 🧹 Internal — the CLI tests refuse a dist/ built from a different src/
+
+The tests that run `dist/cli.js` checked only that the file exists. In a
+worktree where a branch was merged or checked out without a rebuild they ran
+the old build: a correct change failed, and a broken `src/` could pass (#586).
+
+`npm run build` now writes `dist/.build-stamp.json`, a hash of the content of
+`src/` and `tsconfig.json` (line endings read as LF; it is not in the npm
+package). The CLI tests compare it through `tests/helpers/built-cli.ts` and
+stop with `dist/ was built from a different src/ — run npm run build` when it
+differs; they never build themselves. A checkout or merge that leaves the
+content unchanged does not trip the check. A `dist/` with no stamp (built with
+`tsc` alone) is refused as well. No law result changes.
 
 ### Internal — RoC's own code names its numbers (#559)
 

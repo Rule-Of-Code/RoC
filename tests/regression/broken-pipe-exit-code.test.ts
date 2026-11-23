@@ -16,6 +16,7 @@ import os from 'os';
 import path from 'path';
 
 import { spawn, spawnSync } from '../../src/utils/child-process';
+import { builtCli } from '../helpers/built-cli';
 
 const CLI = path.resolve(__dirname, '..', '..', 'dist', 'cli.js');
 
@@ -43,8 +44,7 @@ describe('#405 a broken pipe never decides the exit code', () => {
   const dirs = {} as Record<Verdict, string>;
 
   beforeAll(() => {
-    if (!fs.existsSync(CLI))
-      throw new Error('dist/cli.js missing — run `npm run build` before jest');
+    builtCli();
     for (const verdict of Object.keys(VERDICTS) as Verdict[]) {
       const dir = fs.mkdtempSync(path.join(os.tmpdir(), `roc-405-${verdict}-`));
       fs.mkdirSync(path.join(dir, 'src'));

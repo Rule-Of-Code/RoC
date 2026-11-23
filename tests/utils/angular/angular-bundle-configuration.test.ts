@@ -82,13 +82,6 @@ describe('utils/angular/angular-bundle/angular-bundle-configuration', () => {
       expect(message.suggestionMessage).toContain('angular.json');
     });
 
-    it('should return SOURCE_CODE_REVIEW message', () => {
-      const message =
-        AngularBundleConfiguration.VALIDATION_MESSAGES.SOURCE_CODE_REVIEW();
-
-      expect(message.suggestionMessage).toContain('source code');
-    });
-
     it('should return WEBPACK_PERFORMANCE_CONFIGURED message with configs', () => {
       const configs = ['webpack.config.js', 'webpack.prod.js'];
       const message =

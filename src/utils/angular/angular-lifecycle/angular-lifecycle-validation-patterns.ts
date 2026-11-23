@@ -1,3 +1,4 @@
+import { CodeText } from '../../code-text';
 import { AngularLifecycleConfiguration } from './angular-lifecycle-configuration';
 
 /**
@@ -117,5 +118,27 @@ export class AngularLifecycleValidationPatterns {
       violations.push(messages.violationMessage);
       suggestions.push(messages.suggestionMessage);
     }
+  }
+
+  /**
+   * `ngDoCheck` runs on every change-detection pass of the app, so whatever
+   * it does runs for every event anywhere (#562; checked before only by an
+   * unregistered analyzer reached through Lazy Loading). Read from the code:
+   * a mention in a comment or a string is not the hook.
+   */
+  static validateDoCheck(
+    content: string,
+    fileName: string,
+    violations: string[],
+    suggestions: string[]
+  ): void {
+    if (!/\bngDoCheck\s*\(/.test(CodeText.stripCommentsAndStrings(content)))
+      return;
+    violations.push(
+      `ngDoCheck found in ${fileName} - can cause performance issues`
+    );
+    suggestions.push(
+      `Consider alternatives to ngDoCheck in ${fileName}: OnPush with inputs or signals, or ngOnChanges`
+    );
   }
 }

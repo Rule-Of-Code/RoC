@@ -1,5 +1,5 @@
 import type * as TS from 'typescript';
-import { UnitTestDataManagementConstants } from '../../../laws/testing/unit-test-data-management/constants/data-management';
+import { ExternalBoundary } from '../external-boundary';
 
 /**
  * What Unit Test Quality's mocking checks read of a test file (#429): the
@@ -9,26 +9,19 @@ import { UnitTestDataManagementConstants } from '../../../laws/testing/unit-test
  * A dependency to mock is not "any import". A test imports the module it
  * tests; a test may build a temp-dir fixture or spawn the CLI it ships.
  * What a unit test must not reach for real is a network or a shared
- * service — so the clients are Test Data Management's table (one table),
- * without the filesystem and child processes.
+ * service — ExternalBoundary, the definition Test Data Management reads
+ * too (#491).
  */
 export class TestNetworkClients {
-  /**
-   * The external clients Test Data Management names that a unit test can
-   * run for real on its own machine: the filesystem and a child process. A
-   * test that builds a temp-dir fixture or spawns the CLI it ships is an
-   * integration test by design; a double there would remove the very thing
-   * it checks. What is left reaches a network or a shared service.
-   */
-  static readonly LOCAL_PROCESS_MODULE =
-    /^(?:node:)?(?:fs|fs\/promises|child_process)$/;
+  /** The filesystem and a child process: not a boundary (ExternalBoundary). */
+  static readonly LOCAL_PROCESS_MODULE = ExternalBoundary.LOCAL_RESOURCE_MODULE;
 
   /**
    * A hand-written double named for what it is (`fakeClient`, `stubApi`,
    * `mockHttp`), read in the code, where a comment or a string cannot
    * supply it.
    */
-  static readonly DOUBLE_NAME_PATTERN = /mock|spy|stub|fake|sinon/i;
+  static readonly DOUBLE_NAME_PATTERN = ExternalBoundary.DOUBLE_NAME;
 
   /**
    * The network and service clients a test file loads, from its syntax tree:
@@ -58,20 +51,15 @@ export class TestNetworkClients {
 
   /** Whether the CODE of a test file holds a test double. */
   static hasTestDouble(code: string): boolean {
-    // Test Data Management's recognition (jest and vi mocks, spies, sinon,
-    // msw, nock, Angular's HTTP testing backend), or a named double.
-    return (
-      UnitTestDataManagementConstants.hasTestDouble(code) ||
-      this.DOUBLE_NAME_PATTERN.test(code)
-    );
+    // Framework doubles, msw/nock, Angular's HTTP testing backend, or a
+    // double named by its role: ExternalBoundary, shared with Test Data
+    // Management (#491).
+    return ExternalBoundary.hasTestDouble(code);
   }
 
   /** A module specifier naming a client that leaves the machine. */
   private static isNetworkClient(specifier: string): boolean {
-    return (
-      UnitTestDataManagementConstants.EXTERNAL_CLIENT_MODULE.test(specifier) &&
-      !this.LOCAL_PROCESS_MODULE.test(specifier)
-    );
+    return ExternalBoundary.isClient(specifier);
   }
 
   /** The module a node loads at run time, or null. */

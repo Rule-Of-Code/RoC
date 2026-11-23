@@ -6,6 +6,7 @@ import {
   matchesFromCode,
   readCodeView,
 } from '../../../../utils/security/code-view';
+import { ExternalBoundary } from '../../../../utils/testing/external-boundary';
 import { FixtureIsolation } from '../../../../utils/testing/fixture-isolation';
 import { ModuleBindings } from '../../../../utils/testing/module-bindings';
 
@@ -124,33 +125,18 @@ export class UnitTestDataManagementConstants {
   // 7. Mocking Framework Patterns
   // ============================================
 
-  static readonly MOCKING_PATTERNS = {
-    JEST_MOCK: /jest\.mock|jest\.spyOn/,
-    SINON_MOCK: /sinon\./,
-    SPY_ON: /spyOn/,
-    CREATE_MOCK: /createMock/,
-    VI_MOCK: /vi\.mock/,
-    // Recognise the ordinary ways browser globals get mocked, which the list
-    // above missed — so a suite that mocks localStorage/Document/matchMedia via
-    // Object.defineProperty + jest.fn() is no longer reported as "not mocked".
-    JEST_FN: /jest\.fn\(/,
-    VI_FN: /\bvi\.fn\(/,
-    MOCK_IMPL:
-      /mockImplementation|mockReturnValue|mockResolvedValue|mockRejectedValue/,
-    DEFINE_PROPERTY: /Object\.defineProperty/,
-    // Network doubles that intercept requests instead of replacing a module.
-    NETWORK_DOUBLE: /\bsetupServer\s*\(|\bnock\s*\(/,
-  };
+  /** ExternalBoundary's framework doubles, shared with Unit Test Quality (#491). */
+  static readonly MOCKING_PATTERNS = ExternalBoundary.FRAMEWORK_DOUBLES;
 
   /**
-   * Modules whose import means a test reaches outside its own process: the
-   * filesystem, the network, a database, a broker, a process. A test that
-   * imports only the code under test has nothing to mock, and the mocking
-   * check must not read "any import" as "an external dependency" (#310).
-   * Matched against the module specifier, whole.
+   * Modules whose import means a test reaches outside its own process: a
+   * network or a shared service. A test that imports only the code under
+   * test has nothing to mock, and the mocking check must not read "any
+   * import" as "an external dependency" (#310). The filesystem and a child
+   * process are not on it (#491): ExternalBoundary, the definition Unit Test
+   * Quality reads too. Matched against the module specifier, whole.
    */
-  static readonly EXTERNAL_CLIENT_MODULE =
-    /^(?:node:)?(?:fs|fs\/promises|http|https|http2|net|tls|dgram|dns|child_process)$|^(?:axios|node-fetch|cross-fetch|got|superagent|undici|ky|pg|mysql|mysql2|mongodb|mongoose|redis|ioredis|sequelize|typeorm|knex|@prisma\/client|kafkajs|amqplib|ws|socket\.io-client|nodemailer|firebase|firebase-admin|@supabase\/supabase-js|@angular\/common\/http)$|^(?:@aws-sdk|@google-cloud|@azure)\/|^firebase\//;
+  static readonly EXTERNAL_CLIENT_MODULE = ExternalBoundary.CLIENT_MODULE;
 
   /** Module specifiers in `import … from`, side-effect imports, `import()` and `require()`. */
   private static readonly MODULE_SPECIFIER =
@@ -230,7 +216,7 @@ export class UnitTestDataManagementConstants {
     if (!patterns.some(pattern => pattern.test(content))) return false;
     const code = CodeText.codeOnly(content, fileName, projectRoot);
     return (
-      ModuleBindings.hasShared(code) ||
+      ModuleBindings.hasShared(code, projectRoot) ||
       [
         this.SHARED_STATE_PATTERNS.WINDOW_ASSIGNMENT,
         this.SHARED_STATE_PATTERNS.GLOBAL_ASSIGNMENT,
@@ -280,16 +266,33 @@ export class UnitTestDataManagementConstants {
   }
 
   /**
+   * What a test file reaches across the boundary: the clients it imports,
+   * or `an HTTP call` when its own code makes a request with no import to
+   * name it (a global `fetch(`), which Unit Test Quality reports as an
+   * unmocked HTTP call. Read from the code: a request inside a fixture
+   * string is the input of a test, not a request it makes.
+   */
+  static boundaryReached(
+    content: string,
+    fileName?: string,
+    projectRoot?: string
+  ): string[] {
+    const clients = this.externalClientsImported(content);
+    if (clients.length > 0 || !ExternalBoundary.HTTP_CALL.test(content)) {
+      return clients;
+    }
+    const code = CodeText.codeOnly(content, fileName, projectRoot);
+    return ExternalBoundary.HTTP_CALL.test(code) ? ['an HTTP call'] : [];
+  }
+
+  /**
    * Whether a test file replaces something with a test double: a mocking
-   * framework, a network interceptor, or Angular's HTTP testing backend.
+   * framework, a network interceptor, Angular's HTTP testing backend, or a
+   * double named by its role (#29). ExternalBoundary's definition, the one
+   * Unit Test Quality reads (#491).
    */
   static hasTestDouble(content: string): boolean {
-    const code = CodeText.stripComments(content);
-    return (
-      Object.values(this.MOCKING_PATTERNS).some(pattern =>
-        PatternMatchingUtils.hasRegexPattern(code, pattern)
-      ) || FixtureIsolation.replacesHttpBackend(code)
-    );
+    return ExternalBoundary.hasTestDouble(CodeText.stripComments(content));
   }
 
   /**

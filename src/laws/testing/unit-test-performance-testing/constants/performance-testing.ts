@@ -1,3 +1,6 @@
+import { CodeText } from '../../../../utils/code-text';
+import { FileUtils } from '../../../../utils/file-utils';
+
 /**
  * UnitTestPerformanceTestingConstants
  *
@@ -127,9 +130,45 @@ export class UnitTestPerformanceTestingConstants {
    * Check if filename matches performance test patterns
    */
   static isPerformanceTestFile(filename: string): boolean {
-    return UnitTestPerformanceTestingConstants.PERFORMANCE_TEST_PATTERNS.some(
-      pattern => pattern.test(filename)
-    );
+    const self = UnitTestPerformanceTestingConstants;
+    if (self.PERFORMANCE_TEST_PATTERNS.some(pattern => pattern.test(filename)))
+      return true;
+    // A name is one way in, not the only one (#554): a spec whose code
+    // compares a measured duration with a budget is a performance test,
+    // whatever it is called.
+    if (!self.TEST_FILE.test(filename)) return false;
+    try {
+      return self.assertsTimingBudget(
+        FileUtils.readFile(filename, { encoding: 'utf8' })
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  /** A test file by name: `.spec.`, `.test.` or `.e2e-spec.`. */
+  private static readonly TEST_FILE = /\.(?:spec|test|e2e-spec)\.[cm]?[jt]sx?$/;
+
+  /** A clock read that a measured duration is taken from. */
+  static readonly CLOCK_READ = /\b(?:performance|Date)\.now\s*\(\s*\)/;
+
+  /** A value compared with an upper bound: the budget. */
+  static readonly BUDGET_ASSERTION = /\.toBeLessThan(?:OrEqual)?\s*\(/;
+
+  /** Code that drives a browser or a device through a user flow. */
+  static readonly USER_FLOW_DRIVER =
+    /\b(?:page\.goto|cy\.visit|browser\.url|device\.launchApp)\s*\(/;
+
+  /**
+   * Whether the CODE of a test file reads the clock and asserts an upper
+   * bound (#554): `const ms = performance.now() - start;
+   * expect(ms).toBeLessThan(BUDGET_MS)`. Comments and strings are not code,
+   * so a detector's fixture string holding the same text is not one.
+   */
+  static assertsTimingBudget(content: string): boolean {
+    const self = UnitTestPerformanceTestingConstants;
+    const code = CodeText.stripCommentsAndStrings(content);
+    return self.CLOCK_READ.test(code) && self.BUDGET_ASSERTION.test(code);
   }
 
   /**
@@ -208,8 +247,15 @@ export class UnitTestPerformanceTestingConstants {
    * Check if test content indicates critical flow testing
    */
   static hasCriticalFlowTesting(content: string): boolean {
-    return UnitTestPerformanceTestingConstants.CRITICAL_FLOW_KEYWORDS.some(
-      pattern => pattern.test(content)
+    const self = UnitTestPerformanceTestingConstants;
+    if (self.CRITICAL_FLOW_KEYWORDS.some(pattern => pattern.test(content)))
+      return true;
+    // A budget asserted on a flow the test drives through a browser or a
+    // device is a user-flow performance test, whatever the flow is called
+    // (#554): a cold start or a first screen is as critical as a login.
+    return (
+      self.assertsTimingBudget(content) &&
+      self.USER_FLOW_DRIVER.test(CodeText.stripCommentsAndStrings(content))
     );
   }
 

@@ -1058,7 +1058,9 @@ describe('AppComponent', () => {
       ).toBe(false);
     });
 
-    it('still flags a real test whose description omits "should"', () => {
+    // #557: "should" is asked for only where the project sets
+    // thresholds.angular.testTitlePrefix; a real test is still matched.
+    it('flags a real test whose description omits the configured prefix', () => {
       const srcDir = PathOperations.join(tempDir, 'src');
       FileUtils.createDirectory(srcDir);
       FileUtils.writeFile(
@@ -1066,11 +1068,23 @@ describe('AppComponent', () => {
         "describe('x', () => { it('does a thing', () => {}); });"
       );
 
-      const result = AngularTestingExcellenceLaw.check(mockContext);
+      const withPrefix = AngularTestingExcellenceLaw.check({
+        ...mockContext,
+        config: {
+          ...mockContext.config,
+          thresholds: { angular: { testTitlePrefix: 'should' } },
+        },
+      });
+      const withoutPrefix = AngularTestingExcellenceLaw.check(mockContext);
 
       expect(
-        result.violations!.some(v => v.includes('should start with'))
+        withPrefix.violations!.some(v =>
+          v.includes('should start with "should"')
+        )
       ).toBe(true);
+      expect(
+        withoutPrefix.violations!.some(v => v.includes('should start with'))
+      ).toBe(false);
     });
   });
 });

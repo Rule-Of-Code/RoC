@@ -10,6 +10,9 @@ import { ExternalBoundary } from '../../../../utils/testing/external-boundary';
 import { FixtureIsolation } from '../../../../utils/testing/fixture-isolation';
 import { ModuleBindings } from '../../../../utils/testing/module-bindings';
 
+/** Points the data management level score loses per problem. */
+const PENALTY = { noSetup: 30, hardcodedData: 25, sharedState: 25 } as const;
+
 /**
  * Unit Test Data Management Constants
  *
@@ -333,9 +336,9 @@ export class UnitTestDataManagementConstants {
     hasSharedState: boolean
   ): string {
     let score = 100;
-    if (!hasSetup) score -= 30;
-    if (hasHardcoded) score -= 25;
-    if (hasSharedState) score -= 25;
+    if (!hasSetup) score -= PENALTY.noSetup;
+    if (hasHardcoded) score -= PENALTY.hardcodedData;
+    if (hasSharedState) score -= PENALTY.sharedState;
 
     return score >= 100 ? 'EXCELLENT' : 'CRITICAL';
   }

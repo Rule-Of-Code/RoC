@@ -49,6 +49,20 @@ awaited read of a declared client that the N+1 call-site registry recognises.
 Without one of these the law is not applicable. A Python project that only
 declares an ORM and never queries is not applicable either.
 
+### Internal — the performance analysis that read no file is removed
+
+`PerformanceAnalysisService` ran its DOM-reference, event-listener,
+observable-subscription, timer and lifecycle analyzers on an empty input, so it
+reported no issue for any project. Launch Readiness Checklist, Automated Code
+Quality Gates and the CI/CD tribunal read that as a judgement, and the branches
+built on it never ran; two methods of the performance monitoring inspector built
+on it had no caller (#534).
+
+The service, the five analyzers, their configurations and validation patterns,
+the `utils/performance` barrel and their tests are removed. No law result
+changes: the removed code never produced a finding. Leaks in code are judged by
+Memory Leak Prevention and Timer Cleanup.
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

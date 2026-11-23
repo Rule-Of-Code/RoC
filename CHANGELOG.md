@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Internal — Jest keeps its cache in this checkout (#592)
+
+Jest kept its transform cache in the OS temp directory (`<tmp>/jest`), which
+every project on a machine shares; on one development machine it had grown
+to about 180 GB. `jest.config.js` now sets `cacheDirectory` to
+`<rootDir>/node_modules/.cache/jest`: ignored by git, removed with
+`node_modules`, emptied by `npx jest --clearCache` (noted in CONTRIBUTING).
+No law changes.
+
 ### 🐛 Fixed — Angular Testing Excellence reports a one-letter test title (#570)
 
 The descriptive-title rule (#557) reported an empty title, a placeholder or

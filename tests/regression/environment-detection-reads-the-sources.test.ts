@@ -2,8 +2,11 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
+import { EnvironmentParityStandardsLaw } from '../../src/checkers/deployment-laws/environment-parity-standards';
+import { ALL_ENHANCED_CONSTITUTIONAL_LAWS } from '../../src/data/enhanced-laws';
 import { FileUtils } from '../../src/utils';
 import { BuildEnvironmentAnalyzer } from '../../src/utils/deployment/build-environment-analyzer/build-environment-analyzer';
+import { lawRequirementsMet } from '../../src/utils/law-requirements';
 
 /**
  * #532. Environment detection was looked for in five fixed files
@@ -76,5 +79,32 @@ describe('Environment Parity Standards finds environment detection where the cod
     const root = project({ 'src/cli.ts': "console.log('hello');\n" });
 
     expect(detect(root).violations).toContain(NO_DETECTION);
+  });
+
+  // The law is selected only for a production subject (#428). A service is
+  // one, so the fixed-file lookup still mattered for it after that gate.
+  it('the law judges a service that reads its environment in a config module', () => {
+    const root = project({
+      'package.json': JSON.stringify({
+        name: 'svc',
+        version: '1.0.0',
+        dependencies: { express: '^4.0.0' },
+        scripts: { build: 'tsc', test: 'jest' },
+      }),
+      'src/config/env.ts':
+        'export const port = Number(process.env.PORT ?? 3000);\n',
+      'src/server.ts':
+        "import express from 'express';\nimport { port } from './config/env';\n\nexpress().listen(port);\n",
+    });
+    const law = ALL_ENHANCED_CONSTITUTIONAL_LAWS.find(
+      l => l.title === 'Environment Parity Standards'
+    );
+
+    expect(lawRequirementsMet(law?.requires, root)).toBe(true);
+    const result = EnvironmentParityStandardsLaw.check({
+      projectRoot: root,
+      config: FileUtils.getMinimalDefaultConfig(),
+    });
+    expect(result.violations).not.toContain(NO_DETECTION);
   });
 });

@@ -11,7 +11,7 @@ Project type: typescript (detected)
    Run 'npx ruleofcode reinstall-hooks' to install them
 
 ⚖️  Executing constitutional checks...
-🔍 Processing 69 laws (parallel: true)
+🔍 Processing 67 laws (parallel: true)
 
 
 ════════════════════════════════════════════════════════════
@@ -20,10 +20,10 @@ Project type: typescript (detected)
 
 📊 AUDIT SUMMARY:
 ────────────────────────────────────────────────────────────
-Total Laws Checked: 69
-  the liveness floor counts the selection: 70 (67 run here + 3 history laws deferred to pre-push in --mode=pre-commit, +2 always-on meta-gates — set laws.minLawsChecked against 70, the same in every mode)
+Total Laws Checked: 67
+  the liveness floor counts the selection: 68 (65 run here + 3 history laws deferred to pre-push in --mode=pre-commit, +2 always-on meta-gates — set laws.minLawsChecked against 68, the same in every mode)
 
-✓ Passed: 69
+✓ Passed: 67
 ✗ Failed: 0
 Score: 100% (Pass Rate: 100%)
 Execution time: <n>ms
@@ -69,37 +69,35 @@ Execution time: <n>ms
 36. Security Vulnerability Response (Score: 100/100)
 37. Data Encryption Standards (Score: 100/100)
 38. API Security Testing Requirements (Score: 100/100)
-39. API Security Standards (Score: 100/100)
-40. Dependency Security Scanning (Score: 100/100)
-41. Comprehensive Security Testing Requirements (Score: 100/100)
-42. Memory Leak Prevention (Score: 100/100)
-43. Database Query Optimization (Score: 100/100)
-44. Test Coverage Constitutional Standard (Score: 100/100)
-45. E2E Testing Standards (Score: 100/100)
-46. Unit Test Quality Standards (Score: 100/100)
-47. Test Data Management (Score: 100/100)
-48. Test Isolation Enforcement (Score: 100/100)
-49. API Testing Standards (Score: 100/100)
-50. Test Documentation Requirements (Score: 100/100)
-51. Jest Unit Test 100% Coverage Mandate (Score: 100/100)
-52. Pre-Deployment Checklist (MANDATORY) (Score: 100/100)
-53. CI/CD Constitutional Tribunal (Score: 100/100)
-54. Pre-PR Quality Gates (Score: 100/100)
-55. Automated Code Quality Gates (Score: 100/100)
-56. Environment Parity Standards (Score: 100/100)
-57. Health Check Monitoring (Score: 100/100)
-58. Documentation Standards (Score: 100/100)
-59. Project Structure Standards (Score: 100/100)
-60. TODO Management Constitutional Requirements (Score: 100/100)
-61. TODO Management Standards (Score: 100/100)
-62. MD Footer Footer Consistency (Score: 100/100)
-63. Strategic Document Updates (Score: 100/100)
-64. Audit Liveness Assertion (Score: 100/100)
-65. Config Integrity Guard (Score: 100/100)
-66. Golden Fixture Immutability (Score: 100/100)
-67. Guard Function Has Production Caller (Score: 100/100)
-68. Tsconfig Exclude Leaves Code Untyped (Score: 100/100)
-69. Test Server Loopback Address Match (Score: 100/100)
+39. Dependency Security Scanning (Score: 100/100)
+40. Comprehensive Security Testing Requirements (Score: 100/100)
+41. Memory Leak Prevention (Score: 100/100)
+42. Database Query Optimization (Score: 100/100)
+43. Test Coverage Constitutional Standard (Score: 100/100)
+44. E2E Testing Standards (Score: 100/100)
+45. Unit Test Quality Standards (Score: 100/100)
+46. Test Data Management (Score: 100/100)
+47. Test Isolation Enforcement (Score: 100/100)
+48. API Testing Standards (Score: 100/100)
+49. Test Documentation Requirements (Score: 100/100)
+50. Jest Unit Test 100% Coverage Mandate (Score: 100/100)
+51. Pre-Deployment Checklist (MANDATORY) (Score: 100/100)
+52. CI/CD Constitutional Tribunal (Score: 100/100)
+53. Pre-PR Quality Gates (Score: 100/100)
+54. Automated Code Quality Gates (Score: 100/100)
+55. Health Check Monitoring (Score: 100/100)
+56. Documentation Standards (Score: 100/100)
+57. Project Structure Standards (Score: 100/100)
+58. TODO Management Constitutional Requirements (Score: 100/100)
+59. TODO Management Standards (Score: 100/100)
+60. MD Footer Footer Consistency (Score: 100/100)
+61. Strategic Document Updates (Score: 100/100)
+62. Audit Liveness Assertion (Score: 100/100)
+63. Config Integrity Guard (Score: 100/100)
+64. Golden Fixture Immutability (Score: 100/100)
+65. Guard Function Has Production Caller (Score: 100/100)
+66. Tsconfig Exclude Leaves Code Untyped (Score: 100/100)
+67. Test Server Loopback Address Match (Score: 100/100)
 
 ════════════════════════════════════════════════════════════
 ✅ CONSTITUTIONAL COMPLIANCE: PASSED

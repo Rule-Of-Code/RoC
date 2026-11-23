@@ -10,7 +10,8 @@
  * because npx fetches the tool — was told it enforced nothing (#434).
  *
  * One probe, three places, the same reader for all three laws:
- *   - package scripts, every workspace manifest (the command, not the name);
+ *   - package scripts, every workspace manifest (the command, not the name),
+ *     including a run of the file a `ruleofcode` / `roc` bin entry points at;
  *   - committed git hooks: `.husky/<hook>`, `.githooks/<hook>`, lefthook
  *     config, `.pre-commit-config.yaml`, `simple-git-hooks` in package.json;
  *   - CI configuration (the shared provider list and `pathMappings.cicdConfig`).
@@ -138,11 +139,64 @@ function ciTexts(
 /** A line that prints text rather than running a command (`echo "run roc audit"`). */
 const PRINTS = /^\s*(?:-\s+)?(?:run:\s*)?(?:echo|printf)\b/;
 
+/** The command names this tool is installed under (package.json `bin`). */
+const AUDIT_BIN_NAMES = new Set(['ruleofcode', 'roc']);
+
+type Manifest = ReturnType<typeof WorkspaceManifests.all>[number];
+
+const slashes = (file: string): string =>
+  file.replace(/\\/g, '/').replace(/^(?:\.\/)+/, '');
+
+/**
+ * The files a manifest's `bin` maps this tool's command names to, relative
+ * to the manifest. `{ "roc": "dist/cli.js" }` makes `node dist/cli.js audit`
+ * the same command as `roc audit` — in the tool's own repository, or a fork
+ * of it, whose scripts run the build rather than an installed copy (#434). A
+ * bin of another name is another tool, and its file proves nothing.
+ */
+function auditBinFiles(manifest: Manifest): string[] {
+  const bin = manifest.raw.bin;
+  const name = String(manifest.raw.name ?? '').replace(/^@[^/]+\//, '');
+  const entries: Array<[string, unknown]> =
+    typeof bin === 'string'
+      ? [[name, bin]]
+      : bin && typeof bin === 'object'
+        ? Object.entries(bin as Record<string, unknown>)
+        : [];
+  return entries
+    .filter(
+      (entry): entry is [string, string] =>
+        AUDIT_BIN_NAMES.has(entry[0]) && typeof entry[1] === 'string'
+    )
+    .map(([, file]) => slashes(file));
+}
+
+const escapeRegExp = (text: string): string =>
+  text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * A command that runs one of these files with `audit`, inside one command of
+ * a chain (`[^&|]*`, as RUNS_AUDIT): `node dist/cli.js audit`,
+ * `node ./dist/cli.js audit --mode=full`.
+ */
+function runsBinFile(files: string[]): RegExp | null {
+  if (files.length === 0) return null;
+  const alternatives = files.map(escapeRegExp).join('|');
+  return new RegExp(
+    String.raw`(?:^|[\s;&|(])(?:node\s+)?(?:\.\/)?(?:${alternatives})(?=[\s;&|)]|$)[^&|]*\baudit\b`
+  );
+}
+
+/** One command runs the audit: by its name, or through its bin file. */
+function runsAuditCommand(command: string, ownBin: RegExp | null): boolean {
+  return RUNS_AUDIT.test(command) || (ownBin?.test(command) ?? false);
+}
+
 /** One command line of the text runs the audit (a file is matched line by line). */
-function runsAudit(text: string): boolean {
+function runsAudit(text: string, ownBin: RegExp | null): boolean {
   return text
     .split(/\r?\n/)
-    .some(line => !PRINTS.test(line) && RUNS_AUDIT.test(line));
+    .some(line => !PRINTS.test(line) && runsAuditCommand(line, ownBin));
 }
 
 /**
@@ -155,16 +209,26 @@ export function auditInvocations(
   config?: CiConfig
 ): string[] {
   const found: string[] = [];
-  for (const manifest of WorkspaceManifests.all(projectRoot)) {
+  const manifests = WorkspaceManifests.all(projectRoot);
+  // Hooks and CI steps run at the project root: bin files relative to it.
+  const rootBinFiles: string[] = [];
+  for (const manifest of manifests) {
+    const files = auditBinFiles(manifest);
+    const dir = slashes(PathOperations.getRelative(projectRoot, manifest.dir));
+    rootBinFiles.push(...files.map(file => (dir ? `${dir}/${file}` : file)));
+    // A package script runs in the package's own directory.
+    const ownBin = runsBinFile(files);
     for (const [name, command] of Object.entries(manifest.scripts)) {
-      if (RUNS_AUDIT.test(String(command))) found.push(`script "${name}"`);
+      if (runsAuditCommand(String(command), ownBin))
+        found.push(`script "${name}"`);
     }
   }
+  const rootBin = runsBinFile(rootBinFiles);
   for (const hook of committedHooks(projectRoot)) {
-    if (runsAudit(hook.commands)) found.push(hook.where);
+    if (runsAudit(hook.commands, rootBin)) found.push(hook.where);
   }
   for (const [where, text] of ciTexts(projectRoot, config)) {
-    if (runsAudit(text)) found.push(where);
+    if (runsAudit(text, rootBin)) found.push(where);
   }
   return [...new Set(found)];
 }

@@ -9,11 +9,24 @@ for one release, in its release PR, not committed as done.
 - [ ] A `release/vX.Y.Z` branch from `develop`, with the version in
       `package.json` / `package-lock.json` and a `## [X.Y.Z]` section in
       `CHANGELOG.md` (what each changed law judged before and after).
+- [ ] The version sweep: every place that names the current version names
+      the new one, and no place that names a version as history changes.
+      `node scripts/version-sweep.js --to=X.Y.Z --dry-run` lists the
+      hand-written mentions it will rewrite (the table is
+      `scripts/current-version-mentions.js`); run it without `--dry-run` to
+      write them. It names the rest and the tool that writes them: re-record
+      the README demo with the candidate tarball (`docs/demo/README.md`:
+      `record.mjs --tarball`, then `check.mjs --tarball`) and regenerate the
+      hooks (next step). Then
+      `npx jest tests/regression/current-version-mentions.test.ts` is green.
+      A new mention of the current version is added to the table, or nothing
+      checks it.
 - [ ] The git hooks regenerated for the new version after the bump
-      (`npx ruleofcode reinstall-hooks`), keeping the one documented change in
-      `.husky/pre-commit`: `npx lint-staged --no-stash` (0350ddf — the stash
-      list is shared by every worktree). A hook without the new version is
-      reported as outdated by the self-audit.
+      (`npx ruleofcode reinstall-hooks`). `.husky/pre-commit` carries the
+      `--no-stash` opt-in (#480: the stash list is shared by every worktree),
+      which reinstall keeps; a hook it reports as edited is compared, not
+      forced over. A hook without the new version is reported as outdated by
+      the self-audit.
 - [ ] A release PR `release/vX.Y.Z` → `master`. Its body closes each issue of
       the wave with its own keyword (`Closes #A. Closes #B.`); PRs to `develop`
       only say `Refs #N`.

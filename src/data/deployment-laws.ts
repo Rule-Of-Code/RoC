@@ -207,6 +207,7 @@ export const DEPLOYMENT_LAWS: EnhancedConstitutionalLaw[] = [
     article: 'VIII',
     subsection: '8.9',
     title: 'Environment Parity Standards',
+    requires: REQUIRES_PRODUCTION_SUBJECT,
     rationale:
       'The classic outage: it worked in staging because staging had a config value production did not. Parity asks that every environment be described the same way — one contract, real values injected at deploy — so "works here" means "works there".',
     satisfiedBy: {

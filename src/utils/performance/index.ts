@@ -3,9 +3,6 @@
  * Professional organization of performance analysis utilities
  */
 
-// DOM References Module
-export * from './dom-references';
-
 // Event Listeners Module
 export * from './event-listeners';
 

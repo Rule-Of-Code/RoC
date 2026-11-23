@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Angular Testing Excellence reports a one-letter test title (#570)
+
+The descriptive-title rule (#557) reported an empty title, a placeholder or
+only the unit name, but `it('x')` and `it('y')` passed. A title with no word
+of two or more letters (`x`, `a1`, `1`) now says nothing and is reported;
+`returns 401 without a token` is not.
+
+### 🐛 Fixed — NgRx Selectors Memoization Mandate sees a raw selector with a typed parameter (#530)
+
+A selector that reads state with no `createSelector` was reported only when
+its parameter had no type: `(state) => state.items` was found,
+`(state: AppState) => state.items` was not, and a typed parameter is the
+usual form. Raw selectors are now read from the syntax tree: an exported
+`const` whose value is a one-parameter arrow, typed or not, that reads a
+property of that parameter. A `createSelector` / `createFeatureSelector`
+value and a projector inside one are not raw selectors. This adds findings
+where typed raw selectors exist.
+
+### 🐛 Fixed — Error Handling Completeness judges the event handler, not the file (#536)
+
+"event handlers without error handling" was reported for a file that calls
+`addEventListener` and has no `try` / `catch` anywhere, whatever the
+handler does: a synchronous handler that removes itself and resolves a
+promise was a finding, and a file passed when the word `try` appeared in a
+comment. Each handler is judged now, inline or declared by name in the same
+file: it is a finding, with its line, when it can fail (`async`, an
+`await`, a `throw`, `JSON.parse`, a `fetch` / `XMLHttpRequest` / `axios` /
+HTTP client call) and has no `try` and no `.catch(` of its own.
+
+### 🐛 Fixed — Async Cache Single-Flight is selected by code, not by text in strings (#437)
+
+The last open point of #437: the law's selection matched its pattern over
+the whole file text, so a file holding the card's own example in a string
+(or a comment, or a Python docstring) selected the law, which then found
+nothing to judge and passed with no finding. Selection now reads the code:
+an `anyFileContaining` entry can set `readsCode`, and the pattern is then
+matched with comments and string contents blanked (TS/JS by the JS rules,
+Python by its own lexer). The law's three entries set it.
+
 ### 🐛 Fixed — Lazy Loading Implementation reports lazy loading only (#562)
 
 The law's bundle step called three analyzers of `ChangeDetectionOptimizationLaw`
@@ -422,6 +461,54 @@ so positional callers keep their mode and options (#527).
 from `src/utils` but called by no law and no other code. Dependency Security
 Scanning runs no audit (#545). They are not part of the package entry
 point (`dist/index.js`). No behaviour changes.
+
+### 🐛 Fixed — Dependency Security Scanning sees a scanner in any CI the tool knows (#563)
+
+The law looked for the scanner in a list of gate files of its own, which
+had GitLab and Bitbucket but not GitHub Actions: a project whose only gate
+was a workflow running `npm audit` was told "Security audit configuration
+missing". CI is now read through the shared CI discovery the other CI laws
+use (GitHub Actions, GitLab, Bitbucket, Azure Pipelines, CircleCI, Jenkins,
+Travis, Buildkite, Drone, Cloud Build, and `pathMappings.cicdConfig`). The
+local gate files (package.json scripts, pre-commit, Makefile, tox, nox,
+Dependabot/Renovate) are read as before.
+
+### 🐛 Fixed — Authentication Security recognises authentication, guards and roles by what the code does (#549, #561)
+
+The law recognised an authentication implementation by class-name words
+(`AuthService`, `AuthManager`, `LoginService`…), token management by
+`TokenService` / `accessToken`, guards by a name ending in `Guard`, roles
+by `UserRole`, sessions by `maxAge` / `expires`. An app that signs in
+through a managed SDK behind a provider called anything else got six
+findings; an empty `class AuthService {}` satisfied one check and an
+unused `enum UserRole` another.
+
+Each signal is now a shape in the parse, shared by the three sub-checks:
+
+- **Authentication:** a managed auth SDK or a server session library
+  imported, a sign-in or verify call, or an `Authorization` header attached
+  to requests. A class name is not authentication.
+- **Tokens:** an SDK that holds them (`getIdToken`, `getTokenSilently`…), a
+  token attached to requests, `jwt.sign` / `jwt.verify`, or web storage.
+  With a managed SDK the result says token storage is the SDK's; tokens the
+  app itself writes to web storage are still judged.
+- **Guards:** a route guard by its contract (`implements CanActivate`, a
+  `CanActivateFn`, `canActivate: […]`, `@UseGuards`), a 401/403 refusal, or
+  a credential attached to every request.
+- **Roles:** asked for only where the code has a role or permission concept;
+  then a role check call or decorator must enforce it (one finding, not
+  separate RBAC and permission findings). Without one, the result says the
+  role checks do not apply.
+- **Sessions:** with a managed auth SDK and no server session library,
+  timeout and invalidation are the SDK's; the result says so and only web
+  storage is judged. A sign-out call counts as invalidation.
+- **Nothing read, nothing judged:** the law reads `src/` (or `apps/` and
+  `libs/`). Where none of them holds code, it says the code was NOT read and
+  judges nothing, instead of answering "no role concept" or "no RBAC" about
+  files it never opened. Without the TypeScript parser no sub-check gives
+  the role or session note either.
+
+The law's detection limits describe the shapes.
 
 ## [8.0.1] - 2026-11-22
 

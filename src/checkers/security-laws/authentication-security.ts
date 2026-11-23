@@ -9,11 +9,19 @@ import type {
   RuleOfCodeConfig,
 } from '../../types/law.types';
 import { ConfigFileUtils } from '../../utils/config-file-utils';
+import { markJudgedNothing } from '../../utils/judged-nothing';
 import { LawErrorHandlingUtils } from '../../utils/law-error-handling-utils';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
 import { AuthenticationChecker } from './authentication/authentication-checker';
 import { AuthorizationChecker } from './authentication/authorization-checker';
+import { SecurityCheckerBase } from './authentication/security-checker-base';
 import { SessionManagementChecker } from './authentication/session-management-checker';
+
+const LAW_NAME = 'Authentication Security Law';
+
+/** The note when no code file was read (#561). */
+export const NO_CODE_READ =
+  'No code file was found in src/ (or apps/ and libs/): the code was NOT read, so authentication, authorization and sessions were not judged';
 
 export class AuthenticationSecurityLaw {
   static check(context: LawCheckContext): LawResult {
@@ -26,6 +34,20 @@ export class AuthenticationSecurityLaw {
       // service guards its routes with decorators and role checks instead —
       // and a concern satisfied the Python way IS satisfied
       const guardedInPython = this.isGuardedInPython(context.projectRoot);
+
+      // Nothing read, nothing judged (#427, #561): a project whose code lives
+      // outside src/ (and apps/, libs/) gives the checkers no file. Their
+      // answers on an empty set — "no RBAC", "no role concept" — would be
+      // claims about code that was never read.
+      if (
+        !guardedInPython &&
+        SecurityCheckerBase.readCodeFiles(context.projectRoot, context.config)
+          .length === 0
+      ) {
+        return markJudgedNothing(
+          this.createResult([NO_CODE_READ], LAW_NAME, [], context)
+        );
+      }
 
       // Check for authentication implementation
       const authAnalysis =
@@ -49,12 +71,7 @@ export class AuthenticationSecurityLaw {
       );
       this.collect(violations, suggestions, sessionAnalysis, guardedInPython);
 
-      return this.createResult(
-        violations,
-        'Authentication Security Law',
-        suggestions,
-        context
-      );
+      return this.createResult(violations, LAW_NAME, suggestions, context);
     } catch (_error: unknown) {
       return LawErrorHandlingUtils.createErrorResult(
         _error,

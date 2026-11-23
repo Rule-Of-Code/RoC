@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Angular Testing Excellence reports a one-letter test title (#570)
+
+The descriptive-title rule (#557) reported an empty title, a placeholder or
+only the unit name, but `it('x')` and `it('y')` passed. A title with no word
+of two or more letters (`x`, `a1`, `1`) now says nothing and is reported;
+`returns 401 without a token` is not.
+
 ### 🐛 Fixed — a module-level `let` reset in `beforeEach` is not shared state (#552)
 
 Test Data Management and Test Isolation Enforcement reported a module-level
@@ -376,6 +383,15 @@ that pretends the flag did something. Remove the flag from the script. The
 programmatic option `suggestExceptions` is gone from `AuditOptions` and
 `RuleOfCodeAuditor.create`; the constructor keeps its positional slot, unused,
 so positional callers keep their mode and options (#527).
+
+### Internal — unused npm audit simulator removed
+
+`NpmAuditSimulator` (`src/utils/security/npm-audit-simulator.ts`) and the
+`audit-results` module that read its type (`AuditResultsAnalyzer`,
+`AuditResultsValidationPatterns`, `AuditResultsConfiguration`) were exported
+from `src/utils` but called by no law and no other code. Dependency Security
+Scanning runs no audit (#545). They are not part of the package entry
+point (`dist/index.js`). No behaviour changes.
 
 ### Fixed — Environment Parity Standards finds environment detection where the code reads it
 

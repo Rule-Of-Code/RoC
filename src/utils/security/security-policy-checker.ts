@@ -7,6 +7,9 @@ import { FileUtils } from '../file-utils';
 import { PathOperations } from '../path-operations';
 const PACKAGE_JSON = 'package.json';
 
+/** Points the score loses without audit resolution or a security policy. */
+const PENALTY = { noAuditResolution: 20, noSecurityPolicy: 15 } as const;
+
 /**
  * Security Policy Checker
  * Specialized utility for checking security policies and audit resolution configuration
@@ -58,7 +61,7 @@ export class SecurityPolicyChecker {
           suggestions.push(
             'Consider using audit-resolve for managing known vulnerabilities'
           );
-          scoreModifier -= 20;
+          scoreModifier -= PENALTY.noAuditResolution;
         } else {
           if (!hasAuditResolveFile) {
             suggestions.push(
@@ -214,7 +217,7 @@ export class SecurityPolicyChecker {
       suggestions.push(
         'Create SECURITY.md with vulnerability reporting procedures'
       );
-      return -15;
+      return -PENALTY.noSecurityPolicy;
     }
     return 0;
   }

@@ -21,6 +21,81 @@ initialiser, typed or not, is shared state unless a `beforeEach` or
 once) does not count. Test Data Management can therefore report a typed
 `let` that nothing resets, which it did not see before.
 
+### 🐛 Fixed — hardcoded-URL findings: identifiers, rendered links and the reported value (#537)
+
+Environment Security Enforcement and Environment Parity Standards (both read
+the same environment-variable usage analyzer) reported as "Hardcoded URL":
+
+- XML namespaces and the schema.org vocabulary (`http://www.w3.org/2000/svg`,
+  `https://schema.org/InStock`). They are identifiers that no environment
+  changes, and are no longer reported.
+- the value of a JSX `xmlns` or `href` attribute: a namespace, or a link the
+  page renders for its reader. A JSX `src`, a `location.href = '…'`
+  assignment and a URL the code fetches are still reported.
+
+The URL is now taken from the value of the string, escapes resolved, not from
+the source text: in a template, `https://api.example.io/v1\n\n${rest}` was
+reported with `\n\n${` attached.
+
+**Message change:** every finding of this analyzer (hardcoded URL, variable
+used without fallback, hardcoded connection string, hardcoded secret) names
+the file relative to the project (`src/lib/api.ts: …`). It named the absolute
+path of the checkout on the machine that ran the audit, so the same finding
+read differently on every machine and in CI.
+
+### 🐛 Fixed — Dependency Security Scanning no longer reports vulnerabilities no audit found (#545)
+
+The law ran no audit, but counted:
+
+- one **moderate** vulnerability for every dependency written as an exact
+  0.x version (`"0.3.2"`, but not `"^0.3.2"`), so exact pinning, the safer
+  practice, was penalised;
+- **critical** / **high** from two hard-coded tables (lodash, moment, axios)
+  matched against the declared range text, not the installed version;
+
+and reported the result as "NPM audit passed" / "NPM audit failed".
+
+All of it is removed. The law judges what its detection limits always said:
+the dependency graph is locked, and a scanner runs in the gate. The
+vulnerabilities of the locked graph are measured by that scanner; every
+result now says so in a note (in the message and the details, not as a
+violation and not as "judged nothing").
+
+A wildcard range is now read as a range: `*`, `x`, `latest`, an empty range
+or a wildcard component (`1.x`, `1.2.*`). The letter x or a `*` in a spec
+with a protocol (`file:../ext`, `npm:x-lib@1.0.0`, `workspace:*`) is no
+longer a wildcard.
+
+The law's first detection limit now names what is actually read: three
+lockfiles, the scanners and the files they are looked for in (GitHub
+Actions workflows are not read), and the legacy audit config files that
+also count. The law's description no longer promises "audit integration"
+and "vulnerability detection"; its id (`security_a0bcc52d`) is unchanged.
+
+### 🐛 Fixed — API Security Standards reads servers and HTTP services as code (#550)
+
+- **CORS.** A file was "an Express server missing CORS configuration" when
+  its name contained `server`, `main` or `app` (which includes `mapper.ts`)
+  and its text matched `express` anywhere, without the word `cors`. The word
+  `expression` (`ts.isExpressionStatement`) and a law's prose about Express
+  were enough: five of the six such findings in this repository's own audit
+  came from `expression`. A server is now a file that imports `express` and
+  creates or starts the app, whatever it is called; CORS is configured when
+  the code (not a comment) uses `cors` or sets Access-Control-Allow-Origin.
+- **Input validation.** A service that uses `HttpClient` had to contain the
+  word `validate` somewhere, and a file whose strings merely listed
+  `'@Injectable()'` and `'HttpClient'` was judged as such a service. A
+  response now counts as validated by a schema library import (zod, yup,
+  joi, io-ts, valibot, superstruct, class-validator, ajv, runtypes, arktype,
+  typebox), a validator call, or a value typed `unknown` and narrowed
+  (`typeof x === …`, a type predicate). The word in a comment is not
+  validation.
+- Without the TypeScript parser these two checks read nothing, and the law
+  says the files were NOT read instead of judging them by words.
+
+Authentication by file name (`AUTH_FILES`) is not changed here; it moves to
+the content-based detector of #549.
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

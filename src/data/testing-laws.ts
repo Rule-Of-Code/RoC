@@ -327,12 +327,13 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
       angular:
         'Add perf/load tests (k6/artillery), a bundle-size budget, and web-vitals (LCP/CLS/INP) tracking for critical flows.',
       react:
-        'Add a perf spec named *.perf.spec.ts or *.perf.test.ts under src/, tests/, test/, e2e/ or an {apps,libs,packages}/**/src directory, exercising a critical flow (login, checkout, payment). Declare size-limit or @next/bundle-analyzer, and web-vitals or Lighthouse, in the ROOT package.json: a workspace package manifest is not read.',
+        'Add a perf spec (named *.perf.spec.ts or *.perf.test.ts, or any spec whose code compares a performance.now() or Date.now() duration with toBeLessThan) under src/, tests/, test/, e2e/ or an {apps,libs,packages}/**/src directory, exercising a critical flow (login, checkout, payment, or any flow an e2e spec drives with page.goto / cy.visit). Declare size-limit or @next/bundle-analyzer, and web-vitals or Lighthouse, in the ROOT package.json: a workspace package manifest is not read.',
     },
     detectionLimits: [
       'Entirely presence-of-tooling by keyword — it measures no actual performance number.',
       'Bundle-size and web-vitals are browser-only and there is NO Python path, so a Python service is scored on browser concerns it cannot have.',
       'A pass requires perf files AND load config AND bundle-size AND web-vitals AND monitoring AND critical-flow keywords together.',
+      'A spec without a perf name counts only if its code reads performance.now() or Date.now() and asserts toBeLessThan / toBeLessThanOrEqual; a budget compared with < inside an if, or one asserted through a helper, is not seen.',
     ],
     stack: 'frontend',
     emoji: '⚡',

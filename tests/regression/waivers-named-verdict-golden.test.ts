@@ -19,6 +19,7 @@
  *            "compliance verified".
  *   8.0.0    `scope.warningLaws` and `scope.judgedNothingLaws` (empty here) and
  *            `stats.judgedNothingLaws` (0): the lists behind the verdict.
+ *   #453     `scope.partlyReadLaws` (empty here) and `stats.partlyReadLaws` (0).
  * Everything else must be byte-for-byte what it was, the victory art included.
  *
  * Record (only ever from code that predates the change being guarded):
@@ -121,12 +122,20 @@ describe('#350 golden: a W = 0 project is unchanged in every mode', () => {
         // 8.0.0: the laws that warned and that judged nothing, by name
         warningLaws: scopeWarnings,
         judgedNothingLaws: scopeJudgedNothing,
+        // #453: the laws that read part of their input, by name
+        partlyReadLaws: scopePartlyRead,
         ...scope
       } = rest.scope;
       expect(scopeWarnings).toEqual([]);
       expect(scopeJudgedNothing).toEqual([]);
-      const { judgedNothingLaws: statsJudgedNothing, ...stats } = rest.stats;
+      expect(scopePartlyRead).toEqual([]);
+      const {
+        judgedNothingLaws: statsJudgedNothing,
+        partlyReadLaws: statsPartlyRead,
+        ...stats
+      } = rest.stats;
       expect(statsJudgedNothing).toBe(0);
+      expect(statsPartlyRead).toBe(0);
       expect(applicableBeforeWaivers).toBe(scope.applicableLaws);
       expect(waivedLaws).toEqual([]);
       expect(livenessJson.applicableLaws).toBe(70);

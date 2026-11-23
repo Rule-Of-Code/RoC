@@ -14,6 +14,63 @@ only the unit name, but `it('x')` and `it('y')` passed. A title with no word
 of two or more letters (`x`, `a1`, `1`) now says nothing and is reported;
 `returns 401 without a token` is not.
 
+### 🐛 Fixed — NgRx Selectors Memoization Mandate sees a raw selector with a typed parameter (#530)
+
+A selector that reads state with no `createSelector` was reported only when
+its parameter had no type: `(state) => state.items` was found,
+`(state: AppState) => state.items` was not, and a typed parameter is the
+usual form. Raw selectors are now read from the syntax tree: an exported
+`const` whose value is a one-parameter arrow, typed or not, that reads a
+property of that parameter. A `createSelector` / `createFeatureSelector`
+value and a projector inside one are not raw selectors. This adds findings
+where typed raw selectors exist.
+
+### 🐛 Fixed — Error Handling Completeness judges the event handler, not the file (#536)
+
+"event handlers without error handling" was reported for a file that calls
+`addEventListener` and has no `try` / `catch` anywhere, whatever the
+handler does: a synchronous handler that removes itself and resolves a
+promise was a finding, and a file passed when the word `try` appeared in a
+comment. Each handler is judged now, inline or declared by name in the same
+file: it is a finding, with its line, when it can fail (`async`, an
+`await`, a `throw`, `JSON.parse`, a `fetch` / `XMLHttpRequest` / `axios` /
+HTTP client call) and has no `try` and no `.catch(` of its own.
+
+### 🐛 Fixed — Async Cache Single-Flight is selected by code, not by text in strings (#437)
+
+The last open point of #437: the law's selection matched its pattern over
+the whole file text, so a file holding the card's own example in a string
+(or a comment, or a Python docstring) selected the law, which then found
+nothing to judge and passed with no finding. Selection now reads the code:
+an `anyFileContaining` entry can set `readsCode`, and the pattern is then
+matched with comments and string contents blanked (TS/JS by the JS rules,
+Python by its own lexer). The law's three entries set it.
+
+### ⚠️ BREAKING — No Risk Literals is removed (#558)
+
+The opt-in law No Risk Literals is removed: 265 laws → 264. Its vocabulary
+(`floor`, `risk`, `limit`, `equity`, `stake`, `pnl`, `leverage`, `target`)
+belongs to one business domain, not to a framework or to code quality in
+general, and its own detection limits said so; a law in this catalogue
+should hold for any project of its stack.
+
+**Migration: delete the key.** A config that still names the law in
+`laws.severity`, `laws.enabled` or `laws.notApplicable` (as
+`"No Risk Literals"` or `"no-risk-literals"`) fails the audit through
+Config Integrity Guard, an always-on law at error severity, as every key
+that gates nothing does. The message says what happened:
+`laws.severity: 'no-risk-literals' is no longer a law (removed after 8.0.1, #558): delete this key`.
+Removed laws are listed in `src/data/retired-laws.ts`, so their keys are
+named as removed rather than as unknown. The audit's stderr warning for
+`laws.severity`, `laws.notApplicable` and `ignores`/`includes.byRule` uses
+the same words (`⚠️  laws.notApplicable: 'No Risk Literals' is no longer a
+law …`); a misspelt name is still an "unknown law".
+
+The angular release-canary profile now plants its red violation for MD
+Footer Template (MANDATORY), the other opt-in law that a plain Angular
+fixture can fail, and its fixture paths are neutral (`libs/app/…`). Older
+entries below that describe the law are kept as history.
+
 ### 🐛 Fixed — a module-level `let` reset in `beforeEach` is not shared state (#552)
 
 Test Data Management and Test Isolation Enforcement reported a module-level
@@ -440,6 +497,70 @@ Each signal is now a shape in the parse, shared by the three sub-checks:
   the role or session note either.
 
 The law's detection limits describe the shapes.
+
+### 🐛 Fixed — an ignores.global entry that matches no file is named
+
+8.0.0 brought every written form of an `ignores.*` pattern to one form, so a
+Windows path, `./`, a trailing slash and an absolute path inside the project
+match. An entry written correctly that still points nowhere — a typo
+(`vendr/**`), a directory that was renamed or removed — excluded nothing in
+silence. The audit now prints a warning for each `ignores.global` entry the
+project wrote that matches no file of the project (the files git shows;
+outside git, the files on disk). The tool's own default entries are not
+judged, and neither is an entry the project's .gitignore also ignores:
+generated output (`coverage/**`) is absent from a fresh clone and still right
+to ignore (#414).
+
+### 🐛 Fixed — what a law did not read is not one of its findings
+
+A law that read part of its input (its own flags in `tsconfig.json` but not a
+base it extends, Python modules but not TypeScript ones) wrote the part it
+could not read into `violations`. It was listed as a finding ("1 violations
+found") although it found nothing wrong, and a consumer counting violations
+counted the note. The result now has a field of its own for it: `notRead`
+(notes, never findings).
+
+A law with `notRead` notes and no violations did not pass: what was not read
+cannot have passed. At warning or info severity it is its own outcome,
+`◐ Partly read`, in its own console block with what it could not read, and
+the run is partial (no compliance verdict) — it is never counted among the
+warnings. At error severity it fails, as a law that judged nothing does. A
+law with notes and findings is judged by its findings.
+
+**JSON change:** law results may carry `notRead: string[]`; `stats.partlyReadLaws`
+counts the partly-read laws apart (passed + failed + warning + judgedNothing +
+partlyRead = executedLaws), and `scope.partlyReadLaws` names them. TypeScript
+Strict Mode (an `extends` link it cannot read), Independent Awaits Run
+Concurrently, Async Cache Single-Flight and Database Read Cache Safety (files
+the request-path reader could not parse), HTML Lang Declared (sources and a
+`next.config` it could not read), Accessibility Linting Enforcement (an ESLint
+config script) and Capacitor Plugin Stub Has Contract Test (test configs and
+mappers it could not read) fill it. A law that read none of its files is still
+judged nothing, whether its note is a violation or in `notRead` (#453).
+
+### 🐛 Fixed — a native Android, iOS or Flutter app is a production subject (#577)
+
+The production-subject gate (API Security Standards, Environment Parity
+Standards and the laws gated in 8.0.0) saw a mobile app only through a JS
+dependency (`react-native`, `expo`, `@capacitor/core`,
+`@nativescript/core`). A native app declares none of them, so those laws
+were not selected for an app a store ships to users' devices.
+
+The gate now also reads what a native build declares:
+
+- Android: a Gradle build file applying `com.android.application` (directly
+  or through a version-catalog alias `libs.plugins.android.application`);
+  a module applying only `com.android.library` is not an app;
+- iOS: an Xcode project (`*.xcodeproj/project.pbxproj`) with an application
+  target (`com.apple.product-type.application…`); a framework or library
+  target is not;
+- Flutter: a `pubspec.yaml` on the Flutter SDK together with
+  `lib/main.dart` (a Flutter package has no entry point).
+
+Sample and test trees (`example/`, `examples/`, `sample/`, `samples/`, test
+and fixture trees, `androidTest/`, `Pods/`) are left out, so a library that
+ships an example app is not selected by it. JS shells (React Native, Expo,
+Capacitor, NativeScript) are selected as before.
 
 ### 🔧 Internal — RoC's own code: logging, types and casts (#559)
 

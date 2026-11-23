@@ -265,8 +265,9 @@ function setupListeners() {
   button.onclick = handleButtonClick;
 }
 
-function handleClick(event) {
-  processClick(event);
+async function handleClick(event) {
+  // #536: the handler is judged; this one awaits with nothing to catch.
+  await processClick(event);
 }
 `;
       FileUtils.writeFile(

@@ -33,7 +33,12 @@ describe('without a parser every Next client law fails and says what it did not 
         ctx(root, { thresholds: { next: { routeJsBudgetKb: 10_000 } } })
       );
       expect(result.passed).toBe(false);
-      expect(result.violations).toEqual(
+      // the note is a violation, or in notRead for a law migrated by #453
+      const notes = [
+        ...(result.violations ?? []),
+        ...((result as { notRead?: string[] }).notRead ?? []),
+      ];
+      expect(notes).toEqual(
         expect.arrayContaining([
           expect.stringContaining("could not load the 'typescript' package"),
         ])

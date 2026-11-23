@@ -21,6 +21,19 @@ initialiser, typed or not, is shared state unless a `beforeEach` or
 once) does not count. Test Data Management can therefore report a typed
 `let` that nothing resets, which it did not see before.
 
+### Fixed — Environment Parity Standards finds environment detection where the code reads it
+
+`No proper environment detection found` was reported unless one of five fixed
+files (`src/main.ts`, `src/index.ts`, `src/app.ts`, `server.ts`, `index.js`)
+read the environment. A project that reads `process.env` in a config module, a
+CLI entry point such as `src/cli.ts`, or a workspace app (`apps/<name>/src/main.ts`)
+was told it has no environment detection (#532).
+
+The check now reads the production sources the law selects through
+`includes` / `ignores`, with test files excluded. A read only in a test file
+does not count, and a project that reads the environment nowhere is still
+reported.
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

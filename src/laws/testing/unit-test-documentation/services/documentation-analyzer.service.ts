@@ -244,22 +244,4 @@ export class UnitTestDocumentationAnalyzerService {
   ): string[] {
     return TestFileDiscovery.findTestFiles(projectRoot, config);
   }
-
-  /**
-   * Recursively find test files in directory
-   */
-  private static findTestFilesRecursively(
-    dir: string,
-    testFiles: string[],
-    config: RuleOfCodeConfig
-  ): void {
-    TestFileDiscovery.findTestFilesRecursively(dir, testFiles, config);
-  }
-
-  /**
-   * Check if file is a test file
-   */
-  private static isTestFile(filename: string): boolean {
-    return TestFileDiscovery.isTestFile(filename);
-  }
 }

@@ -6,7 +6,7 @@ import { FileUtils } from '../utils/file-utils';
 import { TOTAL_LAWS_COUNT, getVersion, isRoCPath } from './utils';
 
 export interface AuditActionOptions {
-  mode?: string;
+  mode?: string | undefined;
   verbose?: boolean;
   onlyFailures?: boolean;
   parallel?: boolean;

@@ -74,7 +74,7 @@ export interface LawRequirement {
    * ANDed, so "a Python SDK OR a Node SDK" — one law about a library that
    * ships for both ecosystems — cannot be said without this.
    */
-  anyOf?: readonly LawRequirement[];
+  anyOf?: readonly LawRequirement[] | undefined;
   /**
    * At least one entry holds: a file matched by one of its globs (relative
    * to the workspace root or a workspace project directory, outside
@@ -90,7 +90,7 @@ export interface LawRequirement {
    * deploy command in a CI step, a split @font-face in a stylesheet — so the
    * law is not selected where the subject is absent.
    */
-  anyFileContaining?: readonly FileContaining[];
+  anyFileContaining?: readonly FileContaining[] | undefined;
 }
 
 /** One `anyFileContaining` entry: where to look, and what must be there. */
@@ -166,9 +166,9 @@ export interface EnhancedConstitutionalLaw {
    * `laws.enabled`, `ignores.byRule`) resolves to this law, as do its slugs.
    */
   formerTitles?: readonly string[];
-  stack?: LawStack; // Stack scope (omitted = universal). See LawStack.
+  stack?: LawStack | undefined; // Stack scope (omitted = universal). See LawStack.
   /** Declared dependencies/files without which the law is not selected. See LawRequirement. */
-  requires?: LawRequirement;
+  requires?: LawRequirement | undefined;
 }
 
 /** The `satisfiedBy` vocabulary — one key per technology guidance is written for. */

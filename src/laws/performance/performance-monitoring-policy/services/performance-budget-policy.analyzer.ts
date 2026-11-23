@@ -1,4 +1,3 @@
-import { FileSystemOperations } from '../../../../utils/file-system-operations';
 import { FileUtils } from '../../../../utils/file-utils';
 import { PathOperations } from '../../../../utils/path-operations';
 import type { RuleOfCodeConfig } from '../../../../config/types';

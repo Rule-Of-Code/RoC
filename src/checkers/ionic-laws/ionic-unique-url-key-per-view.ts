@@ -23,6 +23,16 @@ import { LawBase } from '../law-base';
 const ROUTE_ARRAY =
   /(?::\s*Routes\s*=|\bchildren\s*:|\bprovideRouter\s*\(|\bforRoot\s*\(|\bforChild\s*\()\s*\[/g;
 
+/** How each bracket changes the nesting depth of masked code. */
+const BRACKET_DEPTH = new Map<string, number>([
+  ['[', 1],
+  ['(', 1],
+  ['{', 1],
+  [']', -1],
+  [')', -1],
+  ['}', -1],
+]);
+
 export class IonicUniqueUrlKeyPerViewLaw extends LawBase {
   static readonly LAW_NAME = 'Ionic Unique URL Key Per View';
 
@@ -116,8 +126,7 @@ export class IonicUniqueUrlKeyPerViewLaw extends LawBase {
         k = end;
         continue;
       }
-      if (c === '[' || c === '(' || c === '{') depth++;
-      else if (c === ']' || c === ')' || c === '}') depth--;
+      depth += BRACKET_DEPTH.get(c) ?? 0;
       if (depth === 0) break;
     }
     return entries;

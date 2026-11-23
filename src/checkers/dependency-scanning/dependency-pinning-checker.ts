@@ -181,7 +181,7 @@ export class DependencyPinningChecker {
     let scoreDeduction = 0;
 
     for (const [_name, version] of Object.entries(dependencies)) {
-      const analysis = this.analyzeVersionRange(_name, version);
+      const analysis = this.analyzeVersionRange(version);
 
       if (analysis.isViolation) {
         violations.push(`${depType}: ${_name}@${version} - ${analysis.issue}`);
@@ -199,10 +199,7 @@ export class DependencyPinningChecker {
   /**
    * Analyze individual version range for compliance
    */
-  private static analyzeVersionRange(
-    name: string,
-    version: string
-  ): {
+  private static analyzeVersionRange(version: string): {
     isViolation: boolean;
     issue?: string;
     suggestion?: string;

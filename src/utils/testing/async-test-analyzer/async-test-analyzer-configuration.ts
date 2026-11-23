@@ -175,21 +175,36 @@ export class AsyncTestAnalyzerConfiguration {
     start: number,
     index: number
   ): string | undefined {
+    const end = this.closingParen(code, start);
     const args: string[] = [];
     let depth = 0;
     let from = start;
-    for (let at = start; at < code.length; at++) {
-      const char = code.charAt(at);
-      if ('([{'.includes(char)) depth++;
-      else if (')]}'.includes(char) && depth > 0) depth--;
-      else if (char === ')' || (char === ',' && depth === 0)) {
-        args.push(code.slice(from, at).trim());
-        if (char === ')') break;
+    for (let at = start; at < end; at++) {
+      depth += this.nesting(code.charAt(at));
+      if (depth === 0 && code.charAt(at) === ',') {
+        args.push(code.slice(from, at));
         from = at + 1;
       }
     }
-    const value = args[index];
-    return value === undefined || value === '' ? undefined : value;
+    args.push(code.slice(from, end));
+    const value = args[index]?.trim();
+    return value ? value : undefined;
+  }
+
+  /** +1 for an opening bracket, -1 for a closing one, 0 otherwise. */
+  private static nesting(char: string): number {
+    if ('([{'.includes(char)) return 1;
+    return ')]}'.includes(char) ? -1 : 0;
+  }
+
+  /** The index of the `)` that closes the argument list starting at `start`. */
+  private static closingParen(code: string, start: number): number {
+    let depth = 1;
+    for (let at = start; at < code.length; at++) {
+      depth += this.nesting(code.charAt(at));
+      if (depth === 0) return at;
+    }
+    return code.length;
   }
 
   static readonly AWAITED_LITERAL =

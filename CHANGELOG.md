@@ -36,6 +36,17 @@ Actions workflows are not read), and the legacy audit config files that
 also count. The law's description no longer promises "audit integration"
 and "vulnerability detection"; its id (`security_a0bcc52d`) is unchanged.
 
+### 🐛 Fixed — Dependency Security Scanning sees a scanner in any CI the tool knows (#563)
+
+The law looked for the scanner in a list of gate files of its own, which
+had GitLab and Bitbucket but not GitHub Actions: a project whose only gate
+was a workflow running `npm audit` was told "Security audit configuration
+missing". CI is now read through the shared CI discovery the other CI laws
+use (GitHub Actions, GitLab, Bitbucket, Azure Pipelines, CircleCI, Jenkins,
+Travis, Buildkite, Drone, Cloud Build, and `pathMappings.cicdConfig`). The
+local gate files (package.json scripts, pre-commit, Makefile, tox, nox,
+Dependabot/Renovate) are read as before.
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

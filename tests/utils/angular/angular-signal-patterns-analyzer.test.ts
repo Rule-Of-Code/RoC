@@ -1,266 +1,198 @@
 /**
  * @fileoverview Tests for angular-signal-patterns-analyzer.ts
- * @description Tests for Angular Signal Patterns Analyzer utility
+ * @description Tests for Angular Signal Patterns Analyzer utility, on real
+ * project fixtures: the analyzer finds *.component.ts / *.service.ts files
+ * under src/ and reads them, so the tests write them. A spy that only
+ * observes AngularSignalValidationPatterns checks the delegation.
  */
+
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 
 import type { RuleOfCodeConfig } from '../../../src/config/types';
 import { AngularSignalConfiguration } from '../../../src/utils/angular/angular-signals/angular-signal-configuration';
 import { AngularSignalPatternsAnalyzer } from '../../../src/utils/angular/angular-signals/angular-signal-patterns-analyzer';
 import { AngularSignalValidationPatterns } from '../../../src/utils/angular/angular-signals/angular-signal-validation-patterns';
-import { CheckerUtils } from '../../../src/utils/checker-utils';
 import { FileUtils } from '../../../src/utils/file-utils';
-import { PathOperations } from '../../../src/utils/path-operations';
+
+const roots: string[] = [];
+afterAll(() => {
+  for (const root of roots) fs.rmSync(root, { recursive: true, force: true });
+});
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+function project(files: Record<string, string>): string {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-ng-signals-'));
+  roots.push(root);
+  for (const [rel, content] of Object.entries(files)) {
+    const file = path.join(root, rel);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, content);
+  }
+  return root;
+}
+
+const config: RuleOfCodeConfig = FileUtils.getMinimalDefaultConfig();
+const check = (files: Record<string, string>) =>
+  AngularSignalPatternsAnalyzer.checkSignalPatterns(project(files), config);
+
+const MESSAGES = AngularSignalConfiguration.VALIDATION_MESSAGES;
+const escape = (text: string): string =>
+  text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/** A message from `template` about `file` (named by base name or by path). */
+const about = (template: string, file: string) =>
+  expect.stringMatching(
+    new RegExp(
+      `^${escape(template.replace('{fileName}', ''))}.*${escape(file)}$`
+    )
+  );
+
+const COMPONENT = 'src/app/app.component.ts';
 
 describe('utils/angular/angular-signals/angular-signal-patterns-analyzer', () => {
-  const mockConfig = {
-    projectRoot: '/test/project',
-    verbose: false,
-    excludePatterns: ['node_modules', 'dist'],
-    includePatterns: ['**/*.ts'],
-  } as unknown as RuleOfCodeConfig;
-
   describe('AngularSignalPatternsAnalyzer', () => {
     describe('checkSignalPatterns', () => {
       it('should return empty results when src directory does not exist', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        existsSpy.mockReturnValue(false);
-
-        const result = AngularSignalPatternsAnalyzer.checkSignalPatterns(
-          '/test/project',
-          mockConfig
-        );
+        const result = check({ 'lib/app.component.ts': 'signal();\n' });
 
         expect(result.violations).toHaveLength(0);
         expect(result.suggestions).toHaveLength(0);
-
-        existsSpy.mockRestore();
       });
 
       it('should return empty results when no Angular files found', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
-
-        existsSpy.mockReturnValue(true);
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
-        );
-        findFilesSpy.mockReturnValue([]);
-
-        const result = AngularSignalPatternsAnalyzer.checkSignalPatterns(
-          '/test/project',
-          mockConfig
-        );
+        const result = check({
+          'src/app/util.ts': 'const count = signal();\n',
+        });
 
         expect(result.violations).toHaveLength(0);
         expect(result.suggestions).toHaveLength(0);
-
-        existsSpy.mockRestore();
-        findFilesSpy.mockRestore();
-        joinSpy.mockRestore();
       });
 
       it('should detect signal pattern violations in component files', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
+        const result = check({ [COMPONENT]: 'const count = signal();\n' });
 
-        existsSpy.mockReturnValue(true);
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
+        expect(result.violations).toEqual([
+          about(
+            MESSAGES.SIGNAL_WITHOUT_VALUE.violationMessage,
+            'app.component.ts'
+          ),
+        ]);
+        expect(result.suggestions).toEqual(
+          expect.arrayContaining([
+            about(
+              MESSAGES.SIGNAL_WITHOUT_VALUE.suggestionMessage,
+              'app.component.ts'
+            ),
+          ])
         );
-        findFilesSpy.mockReturnValue(['/test/project/src/app.component.ts']);
-        readFileSpy.mockReturnValue(`
-          const count = signal();
-        `);
-
-        const result = AngularSignalPatternsAnalyzer.checkSignalPatterns(
-          '/test/project',
-          mockConfig
-        );
-
-        expect(result.violations.length).toBeGreaterThanOrEqual(0);
-        expect(Array.isArray(result.suggestions)).toBe(true);
-
-        existsSpy.mockRestore();
-        findFilesSpy.mockRestore();
-        readFileSpy.mockRestore();
-        joinSpy.mockRestore();
       });
 
       it('should detect properly initialized signals', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
+        const result = check({
+          [COMPONENT]: `
+            import { signal, WritableSignal } from '@angular/core';
+            readonly count: WritableSignal<number> = signal<number>(0);
+            readonly total = signal(0);
+          `,
+        });
 
-        existsSpy.mockReturnValue(true);
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
-        );
-        findFilesSpy.mockReturnValue(['/test/project/src/app.component.ts']);
-        readFileSpy.mockReturnValue(`
-          import { signal, WritableSignal } from '@angular/core';
-          readonly count: WritableSignal<number> = signal<number>(0);
-        `);
-
-        const result = AngularSignalPatternsAnalyzer.checkSignalPatterns(
-          '/test/project',
-          mockConfig
-        );
-
-        expect(Array.isArray(result.violations)).toBe(true);
-        expect(Array.isArray(result.suggestions)).toBe(true);
-
-        existsSpy.mockRestore();
-        findFilesSpy.mockRestore();
-        readFileSpy.mockRestore();
-        joinSpy.mockRestore();
+        expect(result.violations).toEqual([]);
+        // Readonly and explicitly typed: neither suggestion is made.
+        expect(result.suggestions).toEqual([]);
       });
 
       it('should process multiple files', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
+        const result = check({
+          [COMPONENT]: 'const count = signal();\n',
+          'src/app/data.service.ts': 'const items = signal();\n',
+        });
 
-        existsSpy.mockReturnValue(true);
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
+        expect(result.violations).toEqual(
+          expect.arrayContaining([
+            about(
+              MESSAGES.SIGNAL_WITHOUT_VALUE.violationMessage,
+              'app.component.ts'
+            ),
+            about(
+              MESSAGES.SIGNAL_WITHOUT_VALUE.violationMessage,
+              'data.service.ts'
+            ),
+          ])
         );
-        findFilesSpy.mockReturnValue([
-          '/test/project/src/app.component.ts',
-          '/test/project/src/data.service.ts',
-        ]);
-        readFileSpy.mockReturnValue(`const count = signal(0);`);
-
-        const result = AngularSignalPatternsAnalyzer.checkSignalPatterns(
-          '/test/project',
-          mockConfig
-        );
-
-        expect(Array.isArray(result.violations)).toBe(true);
-        expect(Array.isArray(result.suggestions)).toBe(true);
-
-        existsSpy.mockRestore();
-        findFilesSpy.mockRestore();
-        readFileSpy.mockRestore();
-        joinSpy.mockRestore();
+        expect(result.violations).toHaveLength(2);
       });
 
       it('should handle empty file content', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
-
-        existsSpy.mockReturnValue(true);
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
-        );
-        findFilesSpy.mockReturnValue(['/test/project/src/empty.component.ts']);
-        readFileSpy.mockReturnValue('');
-
-        const result = AngularSignalPatternsAnalyzer.checkSignalPatterns(
-          '/test/project',
-          mockConfig
-        );
+        const result = check({ 'src/app/empty.component.ts': '' });
 
         expect(result.violations).toHaveLength(0);
         expect(result.suggestions).toHaveLength(0);
-
-        existsSpy.mockRestore();
-        findFilesSpy.mockRestore();
-        readFileSpy.mockRestore();
-        joinSpy.mockRestore();
       });
 
       it('should detect computed signals with side effects as violations', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
+        const result = check({
+          [COMPONENT]: `
+            readonly double = computed(() => { console.log('side effect'); return count() * 2; });
+          `,
+        });
 
-        existsSpy.mockReturnValue(true);
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
-        );
-        findFilesSpy.mockReturnValue(['/test/project/src/app.component.ts']);
-        readFileSpy.mockReturnValue(`
-          computed(() => { console.log('side effect'); return count() * 2; }
-        `);
-
-        const result = AngularSignalPatternsAnalyzer.checkSignalPatterns(
-          '/test/project',
-          mockConfig
-        );
-
-        expect(Array.isArray(result.violations)).toBe(true);
-        expect(Array.isArray(result.suggestions)).toBe(true);
-
-        existsSpy.mockRestore();
-        findFilesSpy.mockRestore();
-        readFileSpy.mockRestore();
-        joinSpy.mockRestore();
+        expect(result.violations).toEqual([
+          about(
+            MESSAGES.COMPUTED_WITH_SIDE_EFFECTS.violationMessage,
+            'app.component.ts'
+          ),
+        ]);
       });
 
       it('should detect effect without cleanup', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
+        const withoutCleanup = check({
+          [COMPONENT]: 'effect(() => { console.log(count()); });\n',
+        });
+        const withCleanup = check({
+          [COMPONENT]:
+            'destroyRef = inject(DestroyRef);\neffect(() => { console.log(count()); });\n',
+        });
 
-        existsSpy.mockReturnValue(true);
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
+        const cleanup = about(
+          MESSAGES.EFFECT_WITHOUT_CLEANUP.suggestionMessage,
+          'app.component.ts'
         );
-        findFilesSpy.mockReturnValue(['/test/project/src/app.component.ts']);
-        readFileSpy.mockReturnValue(`
-          effect(() => { console.log(count()); });
-        `);
-
-        const result = AngularSignalPatternsAnalyzer.checkSignalPatterns(
-          '/test/project',
-          mockConfig
+        expect(withoutCleanup.suggestions).toEqual(
+          expect.arrayContaining([cleanup])
         );
-
-        expect(Array.isArray(result.suggestions)).toBe(true);
-
-        existsSpy.mockRestore();
-        findFilesSpy.mockRestore();
-        readFileSpy.mockRestore();
-        joinSpy.mockRestore();
+        expect(withCleanup.suggestions).not.toEqual(
+          expect.arrayContaining([cleanup])
+        );
       });
 
       it('should detect inconsistent update patterns', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
+        const mixed = check({
+          [COMPONENT]: `
+            readonly count = signal(0);
+            count.set(5);
+            count.update(v => v + 1);
+          `,
+        });
+        const setOnly = check({
+          [COMPONENT]: `
+            readonly count = signal(0);
+            count.set(5);
+          `,
+        });
 
-        existsSpy.mockReturnValue(true);
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
+        const inconsistent = about(
+          MESSAGES.INCONSISTENT_UPDATE_PATTERN.suggestionMessage,
+          'app.component.ts'
         );
-        findFilesSpy.mockReturnValue(['/test/project/src/app.component.ts']);
-        readFileSpy.mockReturnValue(`
-          const count = signal(0);
-          count.set(5);
-          count.update(v => v + 1);
-        `);
-
-        const result = AngularSignalPatternsAnalyzer.checkSignalPatterns(
-          '/test/project',
-          mockConfig
+        expect(mixed.suggestions).toEqual(
+          expect.arrayContaining([inconsistent])
         );
-
-        expect(Array.isArray(result.suggestions)).toBe(true);
-
-        existsSpy.mockRestore();
-        findFilesSpy.mockRestore();
-        readFileSpy.mockRestore();
-        joinSpy.mockRestore();
+        expect(setOnly.suggestions).not.toEqual(
+          expect.arrayContaining([inconsistent])
+        );
       });
 
       it('should use correct file extensions from configuration', () => {
@@ -272,34 +204,22 @@ describe('utils/angular/angular-signals/angular-signal-patterns-analyzer', () =>
 
     describe('integration with AngularSignalValidationPatterns', () => {
       it('should call validateAllPatterns for file analysis', () => {
-        const validateSpy = jest.spyOn(
+        const content = 'const count = signal(0);\n';
+        const validate = jest.spyOn(
           AngularSignalValidationPatterns,
           'validateAllPatterns'
         );
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
 
-        existsSpy.mockReturnValue(true);
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
+        check({ [COMPONENT]: content });
+
+        expect(validate).toHaveBeenCalledTimes(1);
+        expect(validate).toHaveBeenCalledWith(
+          expect.objectContaining({ hasSignal: true }),
+          expect.any(Array),
+          expect.any(Array),
+          content,
+          config
         );
-        findFilesSpy.mockReturnValue(['/test/project/src/app.component.ts']);
-        readFileSpy.mockReturnValue(`const count = signal(0);`);
-
-        AngularSignalPatternsAnalyzer.checkSignalPatterns(
-          '/test/project',
-          mockConfig
-        );
-
-        expect(validateSpy).toHaveBeenCalled();
-
-        validateSpy.mockRestore();
-        existsSpy.mockRestore();
-        findFilesSpy.mockRestore();
-        readFileSpy.mockRestore();
-        joinSpy.mockRestore();
       });
     });
   });

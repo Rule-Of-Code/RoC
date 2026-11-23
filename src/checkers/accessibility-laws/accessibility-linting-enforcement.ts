@@ -124,11 +124,15 @@ export class AccessibilityLintingEnforcementLaw extends AccessibilityLawBase {
       );
     }
     const eslintContent = configs.map(c => c.content).join('\n');
+    // What could not be read is a note, not a finding (#453).
+    const notRead: string[] = [];
     if (needsAngular) violations.push(...this.angularFindings(eslintContent));
     if (needsJsx)
-      violations.push(...this.jsxFindings(context, configs, eslintContent));
+      violations.push(
+        ...this.jsxFindings(context, configs, eslintContent, notRead)
+      );
 
-    return this.createResult(
+    const result = this.createResult(
       violations,
       this.LAW_NAME,
       [
@@ -138,6 +142,7 @@ export class AccessibilityLintingEnforcementLaw extends AccessibilityLawBase {
       ],
       context
     );
+    return notRead.length > 0 ? { ...result, notRead } : result;
   }
 
   private static angularFindings(eslintContent: string): string[] {
@@ -160,7 +165,8 @@ export class AccessibilityLintingEnforcementLaw extends AccessibilityLawBase {
   private static jsxFindings(
     context: LawCheckContext,
     configs: EslintConfig[],
-    eslintContent: string
+    eslintContent: string,
+    notRead: string[]
   ): string[] {
     const viaNext = NEXT_CONFIG_TOKENS.some(token =>
       eslintContent.includes(token)
@@ -176,7 +182,10 @@ export class AccessibilityLintingEnforcementLaw extends AccessibilityLawBase {
       ];
     }
     const preset = this.usesJsxPreset(context, configs, eslintContent);
-    if (typeof preset === 'string') return [preset];
+    if (typeof preset === 'string') {
+      notRead.push(preset);
+      return [];
+    }
     if (preset) return [];
     const missing = this.JSX_CORE_RULES.filter(
       rule =>

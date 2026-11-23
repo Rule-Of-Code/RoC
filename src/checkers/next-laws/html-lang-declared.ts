@@ -42,14 +42,16 @@ export class HtmlLangDeclaredLaw extends LawBase {
 
   static check(context: LawCheckContext): LawResult {
     const sources = NextSourcesLoader.load(context, ['.tsx', '.jsx', '.js']);
-    const violations = [...sources.unread];
+    // What could not be read is a note, not a finding (#453).
+    const notRead = [...sources.unread];
+    const violations: string[] = [];
     if (!NextSourcesLoader.hasRouter(sources))
       violations.push(NextAppFiles.noRouterDirectory(context));
     violations.push(
       ...this.appRouter(context, sources),
-      ...this.pagesRouter(context, sources)
+      ...this.pagesRouter(context, sources, notRead)
     );
-    return this.createResult(
+    const result = this.createResult(
       violations,
       this.LAW_NAME,
       'ACCESSIBILITY',
@@ -59,6 +61,7 @@ export class HtmlLangDeclaredLaw extends LawBase {
       ],
       context
     );
+    return notRead.length > 0 ? { ...result, notRead } : result;
   }
 
   /** `lang` written with a non-empty literal or any expression. */
@@ -117,7 +120,8 @@ export class HtmlLangDeclaredLaw extends LawBase {
 
   private static pagesRouter(
     context: LawCheckContext,
-    sources: NextSources
+    sources: NextSources,
+    notRead: string[]
   ): string[] {
     const violations: string[] = [];
     for (const app of sources.apps) {
@@ -135,7 +139,7 @@ export class HtmlLangDeclaredLaw extends LawBase {
           app.pagesDirs[0] ?? app.root
         );
         if (i18n === null) {
-          violations.push(this.i18nNotRead(context, where));
+          notRead.push(this.i18nNotRead(context, where));
         } else if (!i18n) {
           violations.push(
             `${where}: no _document and no i18n in next.config — Next renders <html> without lang`

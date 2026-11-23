@@ -31,3 +31,19 @@ export const RETIRED_LAWS: readonly RetiredLaw[] = [
 export function retiredLaw(key: string): RetiredLaw | undefined {
   return RETIRED_LAWS.find(law => law.title === key || law.slug === key);
 }
+
+/**
+ * The one wording for a key that names a removed law, used by Config
+ * Integrity Guard and by the engine's stderr: `<where>: '<key>' is no longer
+ * a law (removed after 8.0.1, #558): delete this key`. Undefined for any other
+ * key, which keeps its own "unknown law" message.
+ */
+export function retiredLawNotice(
+  where: string,
+  key: string
+): string | undefined {
+  const retired = retiredLaw(key);
+  return retired
+    ? `${where}: '${key}' is no longer a law (removed ${retired.removed}, ${retired.issue}): delete this key`
+    : undefined;
+}

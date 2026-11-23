@@ -22,7 +22,10 @@ Config Integrity Guard, an always-on law at error severity, as every key
 that gates nothing does. The message says what happened:
 `laws.severity: 'no-risk-literals' is no longer a law (removed after 8.0.1, #558): delete this key`.
 Removed laws are listed in `src/data/retired-laws.ts`, so their keys are
-named as removed rather than as unknown.
+named as removed rather than as unknown. The audit's stderr warning for
+`laws.severity`, `laws.notApplicable` and `ignores`/`includes.byRule` uses
+the same words (`⚠️  laws.notApplicable: 'No Risk Literals' is no longer a
+law …`); a misspelt name is still an "unknown law".
 
 The angular release-canary profile now plants its red violation for MD
 Footer Template (MANDATORY), the other opt-in law that a plain Angular

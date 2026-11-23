@@ -11,7 +11,7 @@
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { ALL_ENHANCED_CONSTITUTIONAL_LAWS } from '../../data/enhanced-laws';
-import { retiredLaw } from '../../data/retired-laws';
+import { retiredLawNotice } from '../../data/retired-laws';
 import { lawIdentityKeys, isNonLawConfigKey } from '../../utils/law-identity';
 import { LawBase } from '../law-base';
 
@@ -61,10 +61,10 @@ export class ConfigIntegrityGuardLaw extends LawBase {
    * for what it is, with what to do (#558); anything else is "unknown".
    */
   private static unknownKeyMessage(section: string, key: string): string {
-    const retired = retiredLaw(key);
-    return retired
-      ? `laws.${section}: '${key}' is no longer a law (removed ${retired.removed}, ${retired.issue}): delete this key`
-      : `laws.${section}: unknown law '${key}' — this entry gates nothing; check the name with 'roc laws --list'`;
+    return (
+      retiredLawNotice(`laws.${section}`, key) ??
+      `laws.${section}: unknown law '${key}' — this entry gates nothing; check the name with 'roc laws --list'`
+    );
   }
 
   static check(context: LawCheckContext): LawResult {

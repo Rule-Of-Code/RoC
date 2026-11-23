@@ -30,6 +30,15 @@ import {
   type ClientApi,
   type ProjectClients,
 } from './data-clients';
+import { containerPolicy, decoratorPolicy, type Policy } from './cache-policy';
+import {
+  type Binding,
+  containerBindings,
+  escapeRe,
+  functionText,
+  lastSegment,
+  storesInto,
+} from './cache-stores';
 import type { ModuleGraph } from './module-graph';
 import type {
   CallSite,
@@ -37,6 +46,9 @@ import type {
   ModuleModel,
   StatementModel,
 } from './model';
+
+export { decoratorPolicy } from './cache-policy';
+export { functionText, lastSegment, storesInto } from './cache-stores';
 
 export interface CacheFill {
   fn: FunctionModel;
@@ -68,183 +80,8 @@ export interface CacheSite {
   fills: CacheFill[];
 }
 
-const CACHE_NAME = /cache|memo/i;
 const CLOCK =
   /\b(?:time\.(?:monotonic|time|perf_counter)|monotonic|loop\.time|datetime\.(?:now|utcnow)|Date\.now|performance\.now)\s*\(|expir|\bttl\b/i;
-
-/** `functools.lru_cache`, `cachetools.func.ttl_cache`, `async_lru.alru_cache`, `aiocache.cached`, bare or module-qualified. */
-const DECORATOR =
-  /^(?:(?:functools|cachetools|cachetools\.func|func|async_lru|aiocache)\.)?(lru_cache|cache|ttl_cache|lfu_cache|fifo_cache|rr_cache|alru_cache|cached|cachedmethod)\s*(?:\((.*)\))?$/s;
-const NOT_IN_PROCESS =
-  /\b(?:Cache\.(?:REDIS|MEMCACHED)|RedisCache|MemcachedCache)\b/;
-const TTL_CLASS = /\b(?:TTLCache|TLRUCache)\s*\(/;
-const BOUNDED_CLASS =
-  /\b(?:TTLCache|TLRUCache|LRUCache|LFUCache|FIFOCache|RRCache|Cache)\s*\(/;
-const PLAIN_MAP =
-  /^(?:\{\s*\}|dict\(\s*\)|(?:collections\.)?(?:OrderedDict|defaultdict)\(.*\))$/s;
-
-interface Policy {
-  ttl: boolean;
-  bounded: boolean;
-  unknown: boolean;
-}
-
-const maxsizeNone = (args: string): boolean =>
-  /\bmaxsize\s*=\s*None\b/.test(args) || /^\s*None\s*(?:,|$)/.test(args);
-const hasTtl = (args: string): boolean => /\bttl\s*=\s*(?!None\b)\S/.test(args);
-
-/** The policy of a cache object expression (`TTLCache(...)`, `{}`), or null when it is not one. */
-function objectPolicy(expr: string): Policy | null {
-  if (TTL_CLASS.test(expr)) return { ttl: true, bounded: true, unknown: false };
-  if (BOUNDED_CLASS.test(expr))
-    return { ttl: false, bounded: true, unknown: false };
-  if (/^\s*(?:\{\s*\}|dict\(\s*\))\s*$/.test(expr))
-    return { ttl: false, bounded: false, unknown: false };
-  return null;
-}
-
-/** `cached(cache=…)` / `cached(TTLCache(…))` / aiocache `cached(ttl=…)`; null when not in-process. */
-function cachedPolicy(
-  args: string,
-  bindings: ReadonlyMap<string, string>
-): Policy | null {
-  if (NOT_IN_PROCESS.test(args)) return null;
-  const cacheArg = (
-    /\bcache\s*=\s*([^,]+)/.exec(args)?.[1] ??
-    args.split(',')[0] ??
-    ''
-  ).trim();
-  const direct = objectPolicy(cacheArg);
-  if (direct) return direct;
-  const bound = bindings.get(cacheArg);
-  const viaName = bound !== undefined ? objectPolicy(bound) : null;
-  if (viaName) return viaName;
-  if (hasTtl(args)) return { ttl: true, bounded: false, unknown: false };
-  return { ttl: false, bounded: false, unknown: true };
-}
-
-/** The policy of a caching decorator, or null when the decorator is not an in-process cache. */
-export function decoratorPolicy(
-  decorator: string,
-  bindings: ReadonlyMap<string, string>
-): Policy | null {
-  const m = DECORATOR.exec(decorator.trim());
-  if (!m) return null;
-  const kind = m[1] as string;
-  const args = m[2] ?? '';
-  if (kind === 'cache')
-    return m[2] === undefined
-      ? { ttl: false, bounded: false, unknown: false }
-      : null;
-  if (kind === 'cached' || kind === 'cachedmethod')
-    return cachedPolicy(args, bindings);
-  const ttl = kind === 'ttl_cache' || (kind === 'alru_cache' && hasTtl(args));
-  return { ttl, bounded: !maxsizeNone(args), unknown: false };
-}
-
-/** The policy of a container binding, or null when the binding is not a cache. */
-function containerPolicy(
-  name: string,
-  expr: string,
-  language: ModuleModel['language']
-): Policy | null {
-  if (language === 'typescript') {
-    const m = /^new\s+(Map|LRUCache)\b([\s\S]*)$/.exec(expr.trim());
-    if (!m) return null;
-    if (m[1] === 'LRUCache')
-      return {
-        ttl: /\bttl\s*:/.test(m[2] ?? ''),
-        bounded: /\b(?:max|maxSize)\s*:/.test(m[2] ?? ''),
-        unknown: false,
-      };
-    return CACHE_NAME.test(name)
-      ? { ttl: false, bounded: false, unknown: false }
-      : null;
-  }
-  const cls =
-    /^(?:cachetools\.)?(?:TTLCache|TLRUCache|LRUCache|LFUCache|FIFOCache|RRCache)\s*\(/.test(
-      expr.trim()
-    )
-      ? objectPolicy(expr)
-      : null;
-  if (cls) return cls;
-  return PLAIN_MAP.test(expr.trim()) && CACHE_NAME.test(name)
-    ? { ttl: false, bounded: false, unknown: false }
-    : null;
-}
-
-/** The part after the last dot of a dotted name: `self.cache.get` gives `get`. */
-export const lastSegment = (name: string): string =>
-  name.split('.').pop() ?? name;
-
-const escapeRe = (text: string): string =>
-  text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-/** The raw source of a function (comments included). */
-export function functionText(module: ModuleModel, fn: FunctionModel): string {
-  return module.lines.slice(fn.line - 1, fn.endLine).join('\n');
-}
-
-interface Binding {
-  name: string;
-  expr: string;
-  line: number;
-}
-
-const PY_MODULE_BINDING = /^([A-Za-z_]\w*)\s*(?::[^=\n]+)?=(?!=)\s*(.+?)\s*$/;
-const PY_ATTRIBUTE_BINDING =
-  /^((?:self|cls)\.\w+|[\w.]*\bstate\.\w+)\s*(?::[^=]+)?=(?!=)\s*(.+)$/s;
-const TS_BINDING =
-  /^\s*(?:export\s+)?(?:(?:const|let|var)\s+|(?:(?:private|protected|public|readonly|static|declare)\s+)*(?:this\.)?)(#?[A-Za-z_$][\w$]*)\s*(?:!?:\s*[^=]+)?=\s*(new\s+(?:Map|LRUCache)\b.*)$/;
-
-/** The text from `start` of `lines[index]` to the end of its call: enough to read an options object. */
-function ctorText(
-  lines: readonly string[],
-  index: number,
-  start: string
-): string {
-  return (
-    [start, ...lines.slice(index + 1, index + 8)]
-      .join('\n')
-      .split(/\)\s*;?\s*$/m)[0] ?? start
-  );
-}
-
-function containerBindings(module: ModuleModel): Binding[] {
-  if (module.language === 'typescript') {
-    return module.lines.flatMap((text, index) => {
-      const m = TS_BINDING.exec(text);
-      return m
-        ? [
-            {
-              name: m[1] as string,
-              expr: ctorText(module.lines, index, m[2] as string),
-              line: index + 1,
-            },
-          ]
-        : [];
-    });
-  }
-  const top = module.lines.flatMap((text, index) => {
-    const m = /^\S/.test(text)
-      ? PY_MODULE_BINDING.exec(text.replace(/\s+#.*$/, ''))
-      : null;
-    return m
-      ? [{ name: m[1] as string, expr: m[2] as string, line: index + 1 }]
-      : [];
-  });
-  const attributes = module.functions.flatMap(fn =>
-    fn.blocks.flat().flatMap(statement => {
-      const m = statement.simple
-        ? PY_ATTRIBUTE_BINDING.exec(statement.text)
-        : null;
-      return m
-        ? [{ name: m[1] as string, expr: m[2] as string, line: statement.line }]
-        : [];
-    })
-  );
-  return [...top, ...attributes];
-}
 
 /** Lines of the function's database reads (awaited, or a sync registry read), with the calls. */
 function readCalls(fn: FunctionModel, apis: readonly ClientApi[]): CallSite[] {
@@ -307,66 +144,6 @@ function valueFromRead(
     }
   }
   return false;
-}
-
-interface Store {
-  fn: FunctionModel;
-  statement: StatementModel;
-  line: number;
-  key: string;
-  value: string;
-}
-
-/** `NAME[key] = value` (Python) or `NAME.set(key, value)` (TS/JS), with NAME as the last segment of the target. */
-export function storesInto(module: ModuleModel, name: string): Store[] {
-  const segment = escapeRe(lastSegment(name));
-  if (module.language === 'python') {
-    const target = new RegExp(
-      String.raw`^(?:[\w]+\.)*${segment}\s*\[(.+)\]\s*=(?!=)\s*(.+)$`,
-      's'
-    );
-    return module.functions.flatMap(fn =>
-      fn.blocks.flat().flatMap(statement => {
-        const m = statement.simple ? target.exec(statement.text) : null;
-        return m
-          ? [
-              {
-                fn,
-                statement,
-                line: statement.line,
-                key: (m[1] as string).trim(),
-                value: (m[2] as string).trim(),
-              },
-            ]
-          : [];
-      })
-    );
-  }
-  return module.functions.flatMap(fn =>
-    fn.calls
-      .filter(
-        call =>
-          call.method === 'set' &&
-          call.args.length >= 2 &&
-          lastSegment(call.receiver) === lastSegment(name)
-      )
-      .flatMap(call => {
-        const statement = fn.blocks
-          .flat()
-          .find(s => call.line >= s.line && call.line <= s.endLine);
-        return statement
-          ? [
-              {
-                fn,
-                statement,
-                line: call.line,
-                key: call.args[0]?.text ?? '',
-                value: call.args[1]?.text ?? '',
-              },
-            ]
-          : [];
-      })
-  );
 }
 
 /** Functions of the module whose source mentions the container's last name segment. */

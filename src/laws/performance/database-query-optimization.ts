@@ -13,6 +13,7 @@ import { CheckerUtils } from '../../utils/checker-utils';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
+import { declaredClients } from '../../utils/request-path/data-clients';
 import { DatabaseQueryOptimizationCheckConstants } from './database-query-optimization/constants';
 import { DatabaseQueryOptimizationAnalyzerService } from './database-query-optimization/services';
 import type { NPlusOneAnalysis } from './database-query-optimization/services/nplus-one.analyzer';
@@ -88,9 +89,11 @@ const DATABASE_USAGE = [
 
 export class DatabaseQueryOptimizationLaw {
   /**
-   * Does the project talk to a database at all? The shared helper covers Python
-   * ORMs and the common JS ORMs; a Firestore app is additionally recognised by
-   * its client dependency or its rules/indexes files.
+   * Does the project talk to a database at all? By use only (#555): a query
+   * in a Python source, an import of a database module in the JS/TS sources,
+   * or the schema / rules / indexes files of a database. A word in a
+   * manifest (a plugin whose name contains "firestore", a deploy script) is
+   * not a database.
    */
   private static hasDatabaseLayer(context: LawCheckContext): boolean {
     const { projectRoot } = context;
@@ -190,18 +193,28 @@ export class DatabaseQueryOptimizationLaw {
   static async check(context: LawCheckContext): Promise<LawResult> {
     const { projectRoot } = context;
 
-    if (!this.hasDatabaseLayer(context)) {
+    // A database is proved by use: a query or an import in the sources, its
+    // schema files, or an awaited read of a client the project declares (a
+    // parsed dependency) that the N+1 registry recognises at a call site
+    // (#555). A word in a manifest is not. Without a declared client the
+    // registry reads every client's API, so its count proves nothing then.
+    const provedBySource = this.hasDatabaseLayer(context);
+    if (!provedBySource && declaredClients(projectRoot).labels.length === 0) {
       return Promise.resolve(this.createNotApplicableResult(context));
     }
 
-    // A database exists. Without JS/TS sources, only the N+1 call-site check
-    // (which reads Python) can judge the project.
     const hasJsTs = PythonSatisfaction.hasJsTsSources(projectRoot);
     const nPlusOneDetection =
       DatabaseQueryOptimizationAnalyzerService.analyzeNPlusOneQueryPrevention(
         context,
         hasJsTs ? ['python', 'typescript'] : ['python']
       );
+    if (!provedBySource && nPlusOneDetection.recognisedReads === 0) {
+      return Promise.resolve(this.createNotApplicableResult(context));
+    }
+
+    // A database exists. Without JS/TS sources, only the N+1 call-site check
+    // (which reads Python) can judge the project.
     if (!hasJsTs) {
       return Promise.resolve(this.pythonOnlyResult(context, nPlusOneDetection));
     }

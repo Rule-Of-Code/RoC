@@ -147,22 +147,35 @@ describe('DeadCodeEliminationLaw', () => {
       );
       const result = DeadCodeEliminationLaw.check(mockContext);
       expect(result.suggestions).toContain(
-        'Consider adding dead code detection tools (ts-unused-exports, depcheck)'
+        'Run a dead-code tool (knip, ts-prune, ts-unused-exports or unimported) from a script, a git hook or CI'
       );
     });
 
-    it('should not suggest tools when already installed', () => {
+    it('should say an installed tool is not run, rather than suggest installing one', () => {
       FileUtils.writeFile(
         PathOperations.join(tempDir, 'package.json'),
         JSON.stringify({
           name: 'test-project',
-          devDependencies: { eslint: '^8.0.0', depcheck: '^1.0.0' },
+          devDependencies: { eslint: '^8.0.0', 'ts-unused-exports': '^10.0.0' },
         })
       );
       const result = DeadCodeEliminationLaw.check(mockContext);
-      expect(result.suggestions).not.toContain(
-        'Consider adding dead code detection tools (ts-unused-exports, depcheck)'
+      expect(result.suggestions).toContain(
+        'ts-unused-exports is a devDependency, but no script, git hook or CI step runs it'
       );
+    });
+
+    it('should suggest no tool when a script runs one', () => {
+      FileUtils.writeFile(
+        PathOperations.join(tempDir, 'package.json'),
+        JSON.stringify({
+          name: 'test-project',
+          scripts: { 'lint:exports': 'ts-unused-exports tsconfig.json' },
+          devDependencies: { eslint: '^8.0.0', 'ts-unused-exports': '^10.0.0' },
+        })
+      );
+      const result = DeadCodeEliminationLaw.check(mockContext);
+      expect(result.suggestions).toEqual([]);
     });
   });
 

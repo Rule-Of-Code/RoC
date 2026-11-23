@@ -232,3 +232,32 @@ export function auditInvocations(
   }
   return [...new Set(found)];
 }
+
+/**
+ * Every place the project runs a command that `runs` accepts: a package
+ * script (every workspace manifest), a committed git hook, a CI step — the
+ * same three places and the same reader as the audit probe above. Hooks and
+ * CI are read line by line, without comments, `name:` lines or `echo` lines.
+ * A tool that is only declared as a dependency is not run anywhere.
+ */
+export function commandInvocations(
+  projectRoot: string,
+  runs: (command: string) => boolean,
+  config?: CiConfig
+): string[] {
+  const found: string[] = [];
+  const runsIn = (text: string): boolean =>
+    text.split(/\r?\n/).some(line => !PRINTS.test(line) && runs(line));
+  for (const manifest of WorkspaceManifests.all(projectRoot)) {
+    for (const [name, command] of Object.entries(manifest.scripts)) {
+      if (runs(String(command))) found.push(`script "${name}"`);
+    }
+  }
+  for (const hook of committedHooks(projectRoot)) {
+    if (runsIn(hook.commands)) found.push(hook.where);
+  }
+  for (const [where, text] of ciTexts(projectRoot, config)) {
+    if (runsIn(text)) found.push(where);
+  }
+  return [...new Set(found)];
+}

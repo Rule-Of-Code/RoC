@@ -11,7 +11,7 @@ Project type: typescript (detected)
    Run 'npx ruleofcode reinstall-hooks' to install them
 
 ⚖️  Executing constitutional checks...
-🔍 Processing 72 laws (parallel: true)
+🔍 Processing 70 laws (parallel: true)
 
 
 ════════════════════════════════════════════════════════════
@@ -20,10 +20,10 @@ Project type: typescript (detected)
 
 📊 AUDIT SUMMARY:
 ────────────────────────────────────────────────────────────
-Total Laws Checked: 72
-  of which count for the liveness floor: 70 (+2 always-on meta-gates — set laws.minLawsChecked against 70)
+Total Laws Checked: 70
+  of which count for the liveness floor: 68 (+2 always-on meta-gates — set laws.minLawsChecked against 68)
 
-✓ Passed: 72
+✓ Passed: 70
 ✗ Failed: 0
 Score: 100% (Pass Rate: 100%)
 Execution time: <n>ms
@@ -72,37 +72,35 @@ Execution time: <n>ms
 39. Security Vulnerability Response (Score: 100/100)
 40. Data Encryption Standards (Score: 100/100)
 41. API Security Testing Requirements (Score: 100/100)
-42. API Security Standards (Score: 100/100)
-43. Dependency Security Scanning (Score: 100/100)
-44. Comprehensive Security Testing Requirements (Score: 100/100)
-45. Memory Leak Prevention (Score: 100/100)
-46. Database Query Optimization (Score: 100/100)
-47. Test Coverage Constitutional Standard (Score: 100/100)
-48. E2E Testing Standards (Score: 100/100)
-49. Unit Test Quality Standards (Score: 100/100)
-50. Test Data Management (Score: 100/100)
-51. Test Isolation Enforcement (Score: 100/100)
-52. API Testing Standards (Score: 100/100)
-53. Test Documentation Requirements (Score: 100/100)
-54. Jest Unit Test 100% Coverage Mandate (Score: 100/100)
-55. Pre-Deployment Checklist (MANDATORY) (Score: 100/100)
-56. CI/CD Constitutional Tribunal (Score: 100/100)
-57. Pre-PR Quality Gates (Score: 100/100)
-58. Automated Code Quality Gates (Score: 100/100)
-59. Environment Parity Standards (Score: 100/100)
-60. Health Check Monitoring (Score: 100/100)
-61. Documentation Standards (Score: 100/100)
-62. Project Structure Standards (Score: 100/100)
-63. TODO Management Constitutional Requirements (Score: 100/100)
-64. TODO Management Standards (Score: 100/100)
-65. MD Footer Footer Consistency (Score: 100/100)
-66. Strategic Document Updates (Score: 100/100)
-67. Audit Liveness Assertion (Score: 100/100)
-68. Config Integrity Guard (Score: 100/100)
-69. Golden Fixture Immutability (Score: 100/100)
-70. Guard Function Has Production Caller (Score: 100/100)
-71. Tsconfig Exclude Leaves Code Untyped (Score: 100/100)
-72. Test Server Loopback Address Match (Score: 100/100)
+42. Dependency Security Scanning (Score: 100/100)
+43. Comprehensive Security Testing Requirements (Score: 100/100)
+44. Memory Leak Prevention (Score: 100/100)
+45. Database Query Optimization (Score: 100/100)
+46. Test Coverage Constitutional Standard (Score: 100/100)
+47. E2E Testing Standards (Score: 100/100)
+48. Unit Test Quality Standards (Score: 100/100)
+49. Test Data Management (Score: 100/100)
+50. Test Isolation Enforcement (Score: 100/100)
+51. API Testing Standards (Score: 100/100)
+52. Test Documentation Requirements (Score: 100/100)
+53. Jest Unit Test 100% Coverage Mandate (Score: 100/100)
+54. Pre-Deployment Checklist (MANDATORY) (Score: 100/100)
+55. CI/CD Constitutional Tribunal (Score: 100/100)
+56. Pre-PR Quality Gates (Score: 100/100)
+57. Automated Code Quality Gates (Score: 100/100)
+58. Health Check Monitoring (Score: 100/100)
+59. Documentation Standards (Score: 100/100)
+60. Project Structure Standards (Score: 100/100)
+61. TODO Management Constitutional Requirements (Score: 100/100)
+62. TODO Management Standards (Score: 100/100)
+63. MD Footer Footer Consistency (Score: 100/100)
+64. Strategic Document Updates (Score: 100/100)
+65. Audit Liveness Assertion (Score: 100/100)
+66. Config Integrity Guard (Score: 100/100)
+67. Golden Fixture Immutability (Score: 100/100)
+68. Guard Function Has Production Caller (Score: 100/100)
+69. Tsconfig Exclude Leaves Code Untyped (Score: 100/100)
+70. Test Server Loopback Address Match (Score: 100/100)
 
 ════════════════════════════════════════════════════════════
 ✅ CONSTITUTIONAL COMPLIANCE: PASSED

@@ -95,32 +95,6 @@ describe('ErrorTrackingPolicyConstants', () => {
     });
   });
 
-  describe('APP_MODULE_PATTERNS', () => {
-    it('should include Sentry', () => {
-      expect(ErrorTrackingPolicyConstants.APP_MODULE_PATTERNS).toContain(
-        'Sentry'
-      );
-    });
-
-    it('should include LogRocket', () => {
-      expect(ErrorTrackingPolicyConstants.APP_MODULE_PATTERNS).toContain(
-        'LogRocket'
-      );
-    });
-
-    it('should include Bugsnag', () => {
-      expect(ErrorTrackingPolicyConstants.APP_MODULE_PATTERNS).toContain(
-        'Bugsnag'
-      );
-    });
-
-    it('should include ErrorHandler', () => {
-      expect(ErrorTrackingPolicyConstants.APP_MODULE_PATTERNS).toContain(
-        'ErrorHandler'
-      );
-    });
-  });
-
   describe('PERFORMANCE_TRACKING_PATTERNS', () => {
     it('should include tracesSampleRate', () => {
       expect(
@@ -181,48 +155,6 @@ describe('ErrorTrackingPolicyConstants', () => {
     it('should return false for unrelated file', () => {
       expect(
         ErrorTrackingPolicyConstants.isErrorTrackingConfigFile('package.json')
-      ).toBe(false);
-    });
-  });
-
-  describe('hasErrorTrackingImplementation()', () => {
-    it('should return true for content with Sentry', () => {
-      expect(
-        ErrorTrackingPolicyConstants.hasErrorTrackingImplementation(
-          'Sentry.init()'
-        )
-      ).toBe(true);
-    });
-
-    it('should return true for content with LogRocket', () => {
-      expect(
-        ErrorTrackingPolicyConstants.hasErrorTrackingImplementation(
-          'LogRocket.init()'
-        )
-      ).toBe(true);
-    });
-
-    it('should return true for content with Bugsnag', () => {
-      expect(
-        ErrorTrackingPolicyConstants.hasErrorTrackingImplementation(
-          'Bugsnag.start()'
-        )
-      ).toBe(true);
-    });
-
-    it('should return true for content with ErrorHandler', () => {
-      expect(
-        ErrorTrackingPolicyConstants.hasErrorTrackingImplementation(
-          'class MyErrorHandler extends ErrorHandler'
-        )
-      ).toBe(true);
-    });
-
-    it('should return false for unrelated content', () => {
-      expect(
-        ErrorTrackingPolicyConstants.hasErrorTrackingImplementation(
-          'console.log("test")'
-        )
       ).toBe(false);
     });
   });

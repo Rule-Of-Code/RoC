@@ -41,6 +41,7 @@ import {
   absolutePatternsIn,
   literalNamesReadAsClassesIn,
 } from '../../utils/config/path-patterns';
+import { ignoreEntriesMatchingNothing } from '../../utils/config/dead-ignore-entries';
 
 // Force chalk to use colors in all environments
 chalk.level = 1;
@@ -872,6 +873,16 @@ export class RuleOfCodeAuditor {
       const literal = name.replace(/[[\]{}()*?!+@]/g, ch => `\\${ch}`);
       console.warn(
         `⚠️  ${where}: '${pattern}' — '${segment}' is a glob character class and does not match the ${kind} '${name}' — write ${literal} for the literal name.`
+      );
+    }
+    // An entry the project wrote that points at no file excludes nothing —
+    // a typo or a renamed directory (#414). Gitignored output is not judged.
+    for (const pattern of ignoreEntriesMatchingNothing(
+      this.config,
+      this.projectRoot
+    )) {
+      console.warn(
+        `⚠️  ignores.global: '${pattern}' matched no file in the project — it excludes nothing. Check the path: a typo, or a directory that was renamed or removed.`
       );
     }
   }

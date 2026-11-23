@@ -67,3 +67,45 @@ describe('#414 an ignores.global entry that matches no file is named', () => {
     );
   });
 });
+
+describe('#414 an entry the project also gitignores is generated output, not a typo', () => {
+  jest.setTimeout(120000);
+  let dir: string;
+
+  beforeAll(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-414-gitignored-'));
+    const write = (rel: string, text: string): void => {
+      fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+      fs.writeFileSync(path.join(dir, rel), text);
+    };
+    write('package.json', JSON.stringify({ name: 'gen', version: '1.0.0' }));
+    write('src/app.ts', 'export const app = 1;\n');
+    // coverage/ is not there (a fresh clone, a CI checkout) and is ignored
+    write('.gitignore', 'node_modules/\ncoverage/\n');
+    write(
+      'ruleofcode.config.json',
+      JSON.stringify({
+        project: { type: 'typescript' },
+        ignores: { global: ['coverage/**', 'vendr/**'] },
+        laws: { enabled: { 'Test Coverage Constitutional Standard': true } },
+      })
+    );
+    spawnSync('git', ['init', '-q'], { cwd: dir });
+  });
+  afterAll(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+  it('the gitignored entry is not named, the typo still is', () => {
+    if (!fs.existsSync(CLI))
+      throw new Error('dist/cli.js missing — run `npm run build` before jest');
+    const run = spawnSync(
+      process.execPath,
+      [CLI, 'audit', '--mode=full', '--json'],
+      { cwd: dir, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }
+    );
+    const output = `${run.stdout}\n${run.stderr}`;
+    expect(output).toContain("ignores.global: 'vendr/**' matched no file");
+    expect(output).not.toContain(
+      "ignores.global: 'coverage/**' matched no file"
+    );
+  });
+});

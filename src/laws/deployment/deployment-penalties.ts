@@ -12,7 +12,6 @@ export const QUALITY_GATES_PENALTY = {
   build: 15,
   security: 15,
   typeScriptStrict: 10,
-  performance: 5,
 } as const;
 
 /** Health Check Monitoring. */
@@ -28,7 +27,6 @@ export const HEALTH_CHECK_PENALTY = {
 export const LAUNCH_READINESS_PENALTY = {
   checklist: 30,
   testingCompleteness: 25,
-  performanceBenchmarks: 20,
   securityReview: 15,
   monitoring: 10,
 } as const;

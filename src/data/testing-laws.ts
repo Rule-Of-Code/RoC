@@ -217,6 +217,7 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Project-wide OR: a SINGLE file with beforeEach marks the whole project as having setup.',
+      'Mocking is judged only where a test reaches a network or a shared service (the boundary unit-test-quality-standards reads; the filesystem and a child process are not on it), and one test double anywhere in the suite satisfies it.',
       'Hardcoded-data detection is a crude 20-char-string-literal heuristic; factory detection keys off filenames (factory/builder/fixture/mock/test-data).',
       'JS/TS .spec/.test files only — no Python. realDataMode suppresses the hardcoded-data finding.',
       'Test files are the .spec/.test (.ts, .tsx, .js, .jsx) and .e2e-spec files under src/, apps/, libs/, test/, tests/ and e2e/, found with the project’s ignores and includes matched from the project root — the same discovery as test-isolation-enforcement. A test file outside those six roots (a packages/ workspace, a Jest __tests__ file without the suffix) is not read.',

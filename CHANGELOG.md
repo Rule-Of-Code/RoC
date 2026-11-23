@@ -18,6 +18,30 @@ This **adds** "source files lack corresponding test files" counts in
 projects with such names: +N source files without a test (measured in the
 PR).
 
+### 🐛 Fixed — Unit Test Quality and Test Data Management read one external boundary (#491, #29)
+
+Both laws ask whether a test reaches something outside its process with no
+double in place, and they answered it from two tables. Test Data Management
+counted the filesystem and a child process as external, Unit Test Quality
+did not; Unit Test Quality took a double named by its role (`fakeClient`)
+and an unmocked global `fetch(` into account, Test Data Management did not.
+The same test was "external data" for one law and "no external dependency"
+for the other.
+
+Both now read one definition (`ExternalBoundary`), with a reason per group:
+node network modules, HTTP and socket clients, databases and brokers, cloud
+SDKs. The filesystem and a child process are not on it: a test in a
+temporary directory, or one that runs the project's own CLI, is legitimate.
+A double named by its role now includes a real in-memory implementation
+(`InMemory…`), next to `Fake…`, `Stub…` and `Mock…` (#29).
+
+Measured before the change, with the laws' own discovery:
+
+| project | Test Data Management findings (fs a boundary / not) | Unit Test Quality "no mocking" findings (fs not a boundary / a boundary) |
+|---|---|---|
+| RoC itself | 0 / 0 (files judged: 192 / 25) | 0 / 127 |
+| a large Angular app | 0 / 0 (files judged: 466 / 271) | 33 / 214 |
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

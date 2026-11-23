@@ -318,6 +318,7 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
     section: '5',
     subsection: '5.11',
     title: 'API Security Standards',
+    requires: REQUIRES_PRODUCTION_SUBJECT,
     rationale:
       'The boring API mistakes are the ones that get exploited: no HTTPS, no auth on an endpoint, no rate limit in front of a login. This law checks the perimeter — transport, authentication, throttling, CORS, headers and input validation.',
     satisfiedBy: {

@@ -73,7 +73,6 @@ export class AngularFormValidationValidationPatterns {
     const validationConfig = this.Config.buildValidationSuggestions(patterns);
 
     AngularValidationUtils.validateAndSuggest(
-      '', // content not needed since we have patterns
       patterns.fileName,
       validationConfig,
       suggestions
@@ -105,7 +104,6 @@ export class AngularFormValidationValidationPatterns {
           this.Config.buildTemplateValidationSuggestions(templatePatterns);
 
         AngularValidationUtils.validateAndSuggest(
-          templateContent,
           fileName,
           validationConfig,
           suggestions

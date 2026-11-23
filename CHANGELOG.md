@@ -463,6 +463,18 @@ security scan, a law result without a name) now says so in the type:
 (`NonNullable<…>`), and three test fixtures stop passing an `undefined` that
 meant nothing. Types only; no runtime code changes.
 
+### Internal — `noUnusedParameters` is on
+
+This repository's `tsconfig.json` now sets `noUnusedParameters: true`, one of
+the flags TypeScript Strict Mode (SACRED LAW) asks for. The 33 parameters it
+found are gone: a parameter nobody reads is removed and its callers pass one
+argument less. Only where the signature is set from outside (a callback, a
+base-class hook) is the parameter kept, as `_name`.
+
+One of them says more than the others: `PerformanceAnalysisService` took a
+`projectRoot` and never read it, so its result never depended on the project.
+The parameter is removed, so the signature now says what the code does.
+
 ### Internal — two copied helpers read through their one implementation
 
 Code Duplication Control reported three copies in our own code; two are

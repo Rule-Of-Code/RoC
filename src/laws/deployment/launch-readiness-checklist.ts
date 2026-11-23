@@ -55,7 +55,7 @@ export class LaunchReadinessChecklistLaw {
 
     // 3. Check for performance benchmarking
     const performanceBenchmarks =
-      PerformanceAnalysisService.analyzePerformanceBenchmarks(projectRoot);
+      PerformanceAnalysisService.analyzePerformanceBenchmarks();
     if (performanceBenchmarks.hasPerformanceIssues) {
       violations.push('Missing performance benchmark validation');
       suggestions.push(

@@ -61,10 +61,7 @@ export class AutomatedCodeQualityGatesLaw {
     }
 
     // 3. Check for test coverage gates
-    const coverageGates = this.analyzeCoverageGates(
-      projectRoot,
-      context.config
-    );
+    const coverageGates = this.analyzeCoverageGates(projectRoot);
     if (!coverageGates.hasCoverageGates) {
       violations.push('Missing test coverage quality gates');
       suggestions.push('Configure minimum test coverage thresholds in CI/CD');
@@ -108,7 +105,7 @@ export class AutomatedCodeQualityGatesLaw {
 
     // 7. Check for performance analysis integration
     const performanceGates =
-      PerformanceAnalysisService.analyzePerformanceGates(projectRoot);
+      PerformanceAnalysisService.analyzePerformanceGates();
     if (performanceGates.hasPerformanceIssues) {
       suggestions.push('Consider adding performance analysis to quality gates');
       performanceGates.recommendations.forEach(rec => {
@@ -247,8 +244,7 @@ export class AutomatedCodeQualityGatesLaw {
   }
 
   private static analyzeCoverageGates(
-    projectRoot: string,
-    config?: RuleOfCodeConfig
+    projectRoot: string
   ): QualityGateAnalysis {
     let hasCoverageConfig = false;
     let hasCoverageThresholds = false;

@@ -513,6 +513,20 @@ config script) and Capacitor Plugin Stub Has Contract Test (test configs and
 mappers it could not read) fill it. A law that read none of its files is still
 judged nothing, whether its note is a violation or in `notRead` (#453).
 
+### 🧹 Internal — tests and the release canary remove their temp directories
+
+Test runs and `scripts/release-canary.js` left `roc-*` directories in the OS
+temp dir; on one machine they filled the system drive (a canary consumer is an
+installed tarball of about 50 MB). The hook-generation test removed the parent
+of its directory — the OS temp dir itself — until it reached a locked file, so
+it deleted other programs' temp files and left its own (#582).
+
+Tests make temp directories through `tests/helpers/temp-dirs.ts`, which removes
+them after the suite, also when a test fails. The canary removes its fixture,
+consumer and provenance directories when it finishes, green or red; with
+`--keep` it leaves them and prints their paths. The provenance tree's
+`node_modules` junction is removed as a link first. No law result changes.
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

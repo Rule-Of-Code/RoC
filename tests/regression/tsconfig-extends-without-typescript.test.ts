@@ -50,6 +50,14 @@ const findings = (dir: string): string[] =>
       config: ConfigLoader.load(dir),
     } as never) as { violations?: string[] }
   ).violations ?? [];
+/** What the law says it could not read (#453: no longer among the findings). */
+const notRead = (dir: string): string[] =>
+  (
+    TypeScriptStrictLaw.check({
+      projectRoot: dir,
+      config: ConfigLoader.load(dir),
+    } as never) as { notRead?: string[] }
+  ).notRead ?? [];
 
 /** Everything this law asks for — set in a base config. */
 const FULL = {
@@ -119,7 +127,7 @@ describe('TypeScript Strict without typescript reads the extends chain', () => {
       },
     });
     const out = findings(dir);
-    expect(out.join('\n')).toContain(
+    expect(notRead(dir).join('\n')).toContain(
       'tsconfig.json extends "@missing/tsconfig", which could not be read — the inherited compiler options were NOT read'
     );
     expect(out).not.toContain('TypeScript strict mode must be enabled');

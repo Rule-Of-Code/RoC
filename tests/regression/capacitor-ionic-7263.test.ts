@@ -229,7 +229,7 @@ describe('#299 stub law: a mapper held in a variable is read, or reported as not
       "const { stubs } = require('./stubs');\nmodule.exports = { moduleNameMapper: stubs };\n"
     );
     expect(result.passed).toBe(false);
-    expect(result.violations).toEqual([
+    expect(result.notRead).toEqual([
       expect.stringMatching(
         /^jest\.config\.js:2: moduleNameMapper is `stubs`, which this law cannot read .* does not pass on it$/
       ),
@@ -240,7 +240,7 @@ describe('#299 stub law: a mapper held in a variable is read, or reported as not
     const result = run(
       'module.exports = { moduleNameMapper: pathsToModuleNameMapper(paths) };\n'
     );
-    expect(result.violations).toEqual([
+    expect(result.notRead).toEqual([
       expect.stringContaining(
         'moduleNameMapper is `pathsToModuleNameMapper(paths)`, which this law cannot read'
       ),

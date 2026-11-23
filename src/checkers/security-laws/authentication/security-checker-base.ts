@@ -7,6 +7,11 @@ import {
   parserUnavailable,
 } from '../../../utils/react/tsx-source';
 import {
+  type AuthShape,
+  mergeAuthShapes,
+  readAuthShape,
+} from '../../../utils/security/auth-shape';
+import {
   type CodeView,
   matchesFromCode,
   readCodeView,
@@ -18,6 +23,8 @@ import {
  */
 const VIEW_CACHE = new Map<string, { content: string; view: CodeView }>();
 const VIEW_CACHE_LIMIT = 5000;
+/** The auth shape of a parsed file; dropped with its view. */
+const SHAPE_CACHE = new WeakMap<CodeView, AuthShape>();
 
 function readCachedView(file: string): CodeView | null {
   let content: string;
@@ -41,6 +48,16 @@ function readCachedView(file: string): CodeView | null {
  * Consolidates common security analysis patterns and patterns
  */
 export class SecurityCheckerBase {
+  /**
+   * The code files the security checkers read: `src/`, or `apps/` and
+   * `libs/` when there is no `src/` code. Empty when none of those trees
+   * holds code — then nothing was read, and no checker may claim anything
+   * about the code (#561).
+   */
+  static readCodeFiles(projectRoot: string, config: RuleOfCodeConfig) {
+    return this.initializeSecurityCheck(projectRoot, config).codeFiles;
+  }
+
   /**
    * Common initialization for security checkers
    * Validates src path and returns code files
@@ -114,6 +131,28 @@ export class SecurityCheckerBase {
       const view = readCachedView(file);
       return !!view && patterns.some(pattern => matchesFromCode(view, pattern));
     });
+  }
+
+  /**
+   * What the files do, as far as authentication is concerned (#549, #561):
+   * the shapes of every readable file, combined. A file with no parser or
+   * that cannot be read contributes nothing.
+   */
+  protected static authShapeOf(codeFiles: readonly string[]): AuthShape {
+    const shapes: AuthShape[] = [];
+    for (const file of codeFiles) {
+      const view = readCachedView(file);
+      if (!view) continue;
+      let shape = SHAPE_CACHE.get(view);
+      if (!shape) {
+        const ts = loadTypeScript(PathOperations.getDirectory(file));
+        if (!ts) continue;
+        shape = readAuthShape(ts, view);
+        SHAPE_CACHE.set(view, shape);
+      }
+      shapes.push(shape);
+    }
+    return mergeAuthShapes(shapes);
   }
 
   /**

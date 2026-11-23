@@ -119,7 +119,12 @@ export class CommitSizeControlLaw extends GitLawBase {
         }
       );
 
-      const commits = this.parseNumstat(commitStats, config);
+      // One change, one count (#439): a commit and its cherry-pick carry the
+      // same patch-id and are one change to review.
+      const commits = this.oncePerPatch(
+        this.parseNumstat(commitStats, config),
+        this.patchIds(projectRoot, range)
+      );
 
       const oversized = commits.filter(
         commit => commit.files > maxFiles || commit.lines > maxLines
@@ -219,14 +224,12 @@ export class CommitSizeControlLaw extends GitLawBase {
   private static parseNumstat(
     output: string,
     config: RuleOfCodeConfig
-  ): Array<{ files: number; lines: number }> {
-    const commits: Array<{ files: number; lines: number }> = [];
+  ): Array<{ hash: string; files: number; lines: number }> {
+    const commits: Array<{ hash: string; files: number; lines: number }> = [];
 
     for (const block of output.split('\0')) {
-      const rows = block
-        .split('\n')
-        .slice(1) // the commit hash line
-        .filter(row => row.includes('\t'));
+      const [hashLine = '', ...rest] = block.split('\n');
+      const rows = rest.filter(row => row.includes('\t'));
       if (rows.length === 0) continue;
 
       let files = 0;
@@ -241,10 +244,54 @@ export class CommitSizeControlLaw extends GitLawBase {
         lines += (Number(added) || 0) + (Number(deleted) || 0);
       }
 
-      commits.push({ files, lines });
+      commits.push({ hash: hashLine.trim(), files, lines });
     }
 
     return commits;
+  }
+
+  /**
+   * The patch-id of every commit in the range, from `git patch-id --stable`
+   * (commit → patch-id). Empty when git cannot say: every commit is then
+   * counted, as before.
+   */
+  private static patchIds(
+    projectRoot: string,
+    range: string
+  ): Map<string, string> {
+    const ids = new Map<string, string>();
+    try {
+      const output = execSync(
+        `git log -p --no-merges --format=commit%x20%H ${range} | git patch-id --stable`,
+        {
+          cwd: projectRoot,
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'pipe'],
+        }
+      );
+      for (const line of output.split('\n')) {
+        const [patchId, commit] = line.trim().split(/\s+/);
+        if (patchId && commit) ids.set(commit, patchId);
+      }
+    } catch {
+      // No patch-ids: count every commit.
+    }
+    return ids;
+  }
+
+  /** The commits, with a later commit of an already seen patch-id dropped. */
+  private static oncePerPatch<T extends { hash: string }>(
+    commits: T[],
+    patchIds: Map<string, string>
+  ): T[] {
+    const seen = new Set<string>();
+    return commits.filter(commit => {
+      const id = patchIds.get(commit.hash);
+      if (id === undefined) return true;
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
   }
 
   private static checkAtomicCommitPolicies(

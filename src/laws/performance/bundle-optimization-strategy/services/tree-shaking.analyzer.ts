@@ -198,18 +198,6 @@ export class TreeShakingAnalyzerService {
   }
 
   /**
-   * Read package JSON file
-   */
-  private static readPackageJson(filePath: string): PackageJsonFile | null {
-    try {
-      const content = FileUtils.readFile(filePath, { encoding: 'utf8' });
-      return JSON.parse(content) as PackageJsonFile;
-    } catch {
-      return null;
-    }
-  }
-
-  /**
    * Extract build options from Angular JSON
    */
   private static extractBuildOptions(angularJson: AngularJson) {

@@ -70,10 +70,6 @@ export class NpmAuditSimulator {
 
     const auditInfo = this.getBasicAuditInfo(projectRoot);
 
-    // Check for node_modules
-    const nodeModulesPath = PathOperations.join(projectRoot, 'node_modules');
-    const _hasNodeModules = FileUtils.exists(nodeModulesPath);
-
     // Create simulated audit results
     const simulatedResults: AuditResults = {
       vulnerabilities: [],

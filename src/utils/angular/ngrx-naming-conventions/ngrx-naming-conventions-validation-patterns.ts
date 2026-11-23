@@ -98,30 +98,27 @@ export class NgRxNamingConventionsValidationPatterns {
         suggestions
       );
     },
-    reducer: (content, fileName, featureName, violations, suggestions) => {
+    reducer: (content, fileName, featureName, _violations, suggestions) => {
       NgRxNamingConventionsValidationPatterns.validateReducerNaming(
         content,
         fileName,
         featureName,
-        violations,
         suggestions
       );
     },
-    selectors: (content, fileName, featureName, violations, suggestions) => {
+    selectors: (content, fileName, featureName, _violations, suggestions) => {
       NgRxNamingConventionsValidationPatterns.validateSelectorNaming(
         content,
         fileName,
         featureName,
-        violations,
         suggestions
       );
     },
-    effects: (content, fileName, featureName, violations, suggestions) => {
+    effects: (content, fileName, featureName, _violations, suggestions) => {
       NgRxNamingConventionsValidationPatterns.validateEffectNaming(
         content,
         fileName,
         featureName,
-        violations,
         suggestions
       );
     },
@@ -260,7 +257,6 @@ export class NgRxNamingConventionsValidationPatterns {
     content: string,
     fileName: string,
     featureName: string,
-    violations: string[],
     suggestions: string[]
   ): void {
     const analysis = this.Config.analyzeReducerNaming(content);
@@ -322,7 +318,6 @@ export class NgRxNamingConventionsValidationPatterns {
     content: string,
     fileName: string,
     featureName: string,
-    violations: string[],
     suggestions: string[]
   ): void {
     const analysis = this.Config.analyzeSelectorNaming(content);
@@ -370,7 +365,6 @@ export class NgRxNamingConventionsValidationPatterns {
     content: string,
     fileName: string,
     featureName: string,
-    violations: string[],
     suggestions: string[]
   ): void {
     const analysis = this.Config.analyzeEffectNaming(content);

@@ -7,11 +7,6 @@ import { PatternMatchingUtils } from '../../pattern-matching-utils';
  */
 export class AngularServiceArchitectureConfiguration {
   /**
-   * Config alias for cleaner internal references (RULE 2 pattern)
-   */
-  private static readonly Config = AngularServiceArchitectureConfiguration;
-
-  /**
    * Service architecture detection patterns
    */
   static readonly SERVICE_PATTERNS = {

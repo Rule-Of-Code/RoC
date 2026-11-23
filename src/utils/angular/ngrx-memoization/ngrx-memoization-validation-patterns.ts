@@ -129,7 +129,7 @@ export class NgRxMemoizationValidationPatterns extends AngularConfigurationBase 
 
     // Apply all selector validation checks
     this.validateDirectStateAccess(analysis, fileName, violations, suggestions);
-    this.validateCreateSelectorUsage(analysis, content, fileName, suggestions);
+    this.validateCreateSelectorUsage(analysis, fileName, suggestions);
     this.validateSelectorImports(analysis, fileName, violations, suggestions);
     this.validateSelectorComposition(analysis, fileName, suggestions);
   }
@@ -168,7 +168,6 @@ export class NgRxMemoizationValidationPatterns extends AngularConfigurationBase 
    */
   private static validateCreateSelectorUsage(
     analysis: typeof this.SelectorAnalysis,
-    content: string,
     fileName: string,
     suggestions: string[]
   ): void {

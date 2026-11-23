@@ -8,7 +8,6 @@ export class AuthenticationPatternValidators {
    * Creates a standardized security analysis workflow
    */
   static createSecurityAnalysisFlow(
-    checkName: string,
     primaryCheck: {
       validator: (codeFiles: string[]) => boolean;
       violationMessage: string;

@@ -94,6 +94,65 @@ function isFrameworkHandlerName(ts: typeof TS, node: TS.Node): boolean {
   );
 }
 
+/** `provideAppErrorHandler()` — a helper that returns an ErrorHandler provider. */
+const PROVIDE_HELPER = /^provide\w*ErrorHandler$/;
+const PROVIDER_USE_KEYS = new Set([
+  'useClass',
+  'useExisting',
+  'useFactory',
+  'useValue',
+]);
+
+/** The name a property is written with, when it is a plain name. */
+function propertyName(ts: typeof TS, name: TS.PropertyName): string | null {
+  return ts.isIdentifier(name) || ts.isStringLiteral(name) ? name.text : null;
+}
+
+/** `{ provide: ErrorHandler, useClass | useExisting | useFactory | useValue: … }`. */
+/** `ErrorHandler` or `ng.ErrorHandler` — the token a provider names. */
+function namesErrorHandler(ts: typeof TS, node: TS.Expression): boolean {
+  if (ts.isIdentifier(node)) return node.text === 'ErrorHandler';
+  return (
+    ts.isPropertyAccessExpression(node) && node.name.text === 'ErrorHandler'
+  );
+}
+
+/** `provide: ErrorHandler` in an object literal. */
+function providesErrorHandler(
+  ts: typeof TS,
+  property: TS.ObjectLiteralElementLike
+): boolean {
+  return (
+    ts.isPropertyAssignment(property) &&
+    propertyName(ts, property.name) === 'provide' &&
+    namesErrorHandler(ts, property.initializer)
+  );
+}
+
+function isErrorHandlerProvider(ts: typeof TS, node: TS.Node): boolean {
+  if (!ts.isObjectLiteralExpression(node)) return false;
+  const properties = node.properties;
+  return (
+    properties.some(property => providesErrorHandler(ts, property)) &&
+    properties.some(property => {
+      const name = property.name ? propertyName(ts, property.name) : null;
+      return name !== null && PROVIDER_USE_KEYS.has(name);
+    })
+  );
+}
+
+/** A call of a `provide…ErrorHandler()` helper. */
+function callsProvideHelper(ts: typeof TS, node: TS.Node): boolean {
+  if (!ts.isCallExpression(node)) return false;
+  const callee = node.expression;
+  const name = ts.isIdentifier(callee)
+    ? callee.text
+    : ts.isPropertyAccessExpression(callee)
+      ? callee.name.text
+      : null;
+  return name !== null && PROVIDE_HELPER.test(name);
+}
+
 /** True when any node of the file satisfies `test`. */
 function anyNode(
   source: TS.SourceFile,
@@ -124,7 +183,29 @@ export function registersGlobalHandler(
     node =>
       isRuntimeHandler(ts, node) ||
       isWindowOnError(ts, node) ||
-      isFrameworkHandlerName(ts, node)
+      isFrameworkHandlerName(ts, node) ||
+      callsProvideHelper(ts, node)
+  );
+}
+
+/**
+ * Errors captured by the project's own code (#553): an Angular ErrorHandler
+ * provider (`{ provide: ErrorHandler, useClass … }`, or a
+ * `provide…ErrorHandler()` helper), `window.onerror`, or a
+ * `process` / `window` error listener. Narrower than
+ * `registersGlobalHandler`: an import of ErrorHandler, a class that
+ * implements it without being provided, or `provideHttpClient()` captures
+ * nothing.
+ */
+export function capturesErrors(ts: typeof TS, source: TS.SourceFile): boolean {
+  return anyNode(
+    source,
+    ts,
+    node =>
+      isErrorHandlerProvider(ts, node) ||
+      callsProvideHelper(ts, node) ||
+      isRuntimeHandler(ts, node) ||
+      isWindowOnError(ts, node)
   );
 }
 

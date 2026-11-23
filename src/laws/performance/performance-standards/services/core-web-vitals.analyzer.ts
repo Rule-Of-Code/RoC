@@ -1,7 +1,6 @@
-import { glob } from 'glob';
 import type { RuleOfCodeConfig } from '../../../../config/types';
-import { FileUtils, PathOperations } from '../../../../utils';
-import { PathResolver } from '../../../../utils/path-resolver';
+import { ProjectTypeDetectorValidation } from '../../../../utils';
+import { BrowserMonitoringEvidence } from '../../../../utils/performance/browser-monitoring-evidence';
 import type { ReactPerformanceEvidence } from '../../../../utils/react/react-performance-source';
 import { CoreWebVitalsConstants } from '../constants';
 
@@ -9,93 +8,36 @@ import { CoreWebVitalsConstants } from '../constants';
  * Core Web Vitals Analyzer
  *
  * Single Responsibility: Analyzing Core Web Vitals implementation
+ *
+ * The evidence is a measurement in the code, wherever it is written: a
+ * web-vitals call (v3 or v4), a PerformanceObserver on the vitals' entry
+ * types, or a Next.js report (#553). It used to be a `web-vitals` dependency
+ * and its v3 names in main.ts, app.component.ts or a file named like
+ * monitoring — an app measuring its own vitals failed, and a declared
+ * library nobody calls was half-way to passing.
  */
 export class CoreWebVitalsAnalyzer {
   static async analyze(
     projectRoot: string,
     config?: RuleOfCodeConfig,
-    react?: ReactPerformanceEvidence
+    react?: ReactPerformanceEvidence,
+    lawId?: string
   ): Promise<string[]> {
-    const violations: string[] = [];
+    const measured = BrowserMonitoringEvidence.vitalsMeasurements(
+      projectRoot,
+      config,
+      react,
+      lawId
+    );
+    if (measured.length > 0) return Promise.resolve([]);
 
-    // React/Next: a CALL of `useReportWebVitals` (next/web-vitals, which
-    // bundles web-vitals, so no `web-vitals` dependency is declared) or of a
-    // web-vitals metric function, anywhere in the parsed source. The Angular
-    // path below looks only in main.ts / app.component.ts / *monitoring*.ts.
-    if (react && react.webVitalsReports.length > 0) {
-      return violations;
-    }
-
-    // Check for web-vitals dependency
-    const packageJsonPath = PathOperations.join(projectRoot, 'package.json');
-    if (!FileUtils.exists(packageJsonPath)) {
-      violations.push(CoreWebVitalsConstants.VIOLATION_MESSAGE);
-      return violations;
-    }
-
-    try {
-      const packageJsonContent = FileUtils.readFile(packageJsonPath, {
-        encoding: 'utf8',
-      });
-
-      if (!CoreWebVitalsConstants.hasWebVitalsDependency(packageJsonContent)) {
-        violations.push(CoreWebVitalsConstants.VIOLATION_MESSAGE);
-        return violations;
-      }
-
-      // Always resolve via PathResolver: it returns the standard root paths AND
-      // auto-detects monorepo (Nx/Lerna) variants, so this works with or without
-      // an explicit `pathMappings` config.
-      const resolver = PathResolver.create(config, projectRoot);
-      const [mainTsPaths, appComponentPaths] = await Promise.all([
-        resolver.getMainTsPaths(),
-        resolver.getAppComponentPaths(),
-      ]);
-
-      // web-vitals is typically wired in a dedicated monitoring/performance service
-      // (e.g. `performance-monitoring.service.ts`), not necessarily in main.ts — so
-      // also scan likely integration files anywhere under the workspace source.
-      const integrationFiles = glob.sync(
-        '**/*{performance,monitoring,vitals,web-vitals,analytics}*.{ts,js}',
-        {
-          cwd: projectRoot,
-          absolute: true,
-          ignore: [
-            '**/node_modules/**',
-            '**/dist/**',
-            '**/.angular/**',
-            '**/coverage/**',
-            '**/.nx/**',
-            '**/*.spec.ts',
-            '**/*.test.ts',
-          ],
-        }
-      );
-
-      const mainFiles = [
-        ...mainTsPaths,
-        ...appComponentPaths,
-        ...integrationFiles,
-      ];
-
-      let foundUsage = false;
-      for (const fullPath of mainFiles) {
-        if (FileUtils.exists(fullPath)) {
-          const content = FileUtils.readFile(fullPath, { encoding: 'utf8' });
-          if (CoreWebVitalsConstants.usesWebVitals(content)) {
-            foundUsage = true;
-            break;
-          }
-        }
-      }
-
-      if (!foundUsage) {
-        violations.push(CoreWebVitalsConstants.INTEGRATION_VIOLATION_MESSAGE);
-      }
-    } catch (_error) {
-      violations.push(CoreWebVitalsConstants.VIOLATION_MESSAGE);
-    }
-
-    return violations;
+    const declared =
+      CoreWebVitalsConstants.VITALS_DEPENDENCY in
+      ProjectTypeDetectorValidation.getProjectDependencies(projectRoot);
+    return Promise.resolve([
+      declared
+        ? CoreWebVitalsConstants.INTEGRATION_VIOLATION_MESSAGE
+        : CoreWebVitalsConstants.VIOLATION_MESSAGE,
+    ]);
   }
 }

@@ -54,7 +54,8 @@ export class PerformanceAnalyzerService {
     const vitalsViolations = await CoreWebVitalsAnalyzer.analyze(
       projectRoot,
       config,
-      react
+      react,
+      lawId
     );
     violations.push(...vitalsViolations);
     if (vitalsViolations.length > 0) scoreImpact += 20;

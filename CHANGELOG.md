@@ -673,6 +673,34 @@ Role enforcement written inline now counts as a role check:
 A role that appears only as an object key (`{ role: 'user' }`, as in a chat
 message or an ARIA attribute object) is not a role concept.
 
+### 🧹 Internal — tests and the release canary remove their temp directories
+
+Test runs and `scripts/release-canary.js` left `roc-*` directories in the OS
+temp dir; on one machine they filled the system drive (a canary consumer is an
+installed tarball of about 50 MB). The hook-generation test removed the parent
+of its directory — the OS temp dir itself — until it reached a locked file, so
+it deleted other programs' temp files and left its own (#582).
+
+Tests make temp directories through `tests/helpers/temp-dirs.ts`, which removes
+them after the suite, also when a test fails. The canary removes its fixture,
+consumer and provenance directories when it finishes, green or red; with
+`--keep` it leaves them and prints their paths. The provenance tree's
+`node_modules` junction is removed as a link first. No law result changes.
+
+### 🧹 Internal — the CLI tests refuse a dist/ built from a different src/
+
+The tests that run `dist/cli.js` checked only that the file exists. In a
+worktree where a branch was merged or checked out without a rebuild they ran
+the old build: a correct change failed, and a broken `src/` could pass (#586).
+
+`npm run build` now writes `dist/.build-stamp.json`, a hash of the content of
+`src/` and `tsconfig.json` (line endings read as LF; it is not in the npm
+package). The CLI tests compare it through `tests/helpers/built-cli.ts` and
+stop with `dist/ was built from a different src/ — run npm run build` when it
+differs; they never build themselves. A checkout or merge that leaves the
+content unchanged does not trip the check. A `dist/` with no stamp (built with
+`tsc` alone) is refused as well. No law result changes.
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

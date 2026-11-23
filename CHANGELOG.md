@@ -14,6 +14,38 @@ only the unit name, but `it('x')` and `it('y')` passed. A title with no word
 of two or more letters (`x`, `a1`, `1`) now says nothing and is reported;
 `returns 401 without a token` is not.
 
+### 🐛 Fixed — NgRx Selectors Memoization Mandate sees a raw selector with a typed parameter (#530)
+
+A selector that reads state with no `createSelector` was reported only when
+its parameter had no type: `(state) => state.items` was found,
+`(state: AppState) => state.items` was not, and a typed parameter is the
+usual form. Raw selectors are now read from the syntax tree: an exported
+`const` whose value is a one-parameter arrow, typed or not, that reads a
+property of that parameter. A `createSelector` / `createFeatureSelector`
+value and a projector inside one are not raw selectors. This adds findings
+where typed raw selectors exist.
+
+### 🐛 Fixed — Error Handling Completeness judges the event handler, not the file (#536)
+
+"event handlers without error handling" was reported for a file that calls
+`addEventListener` and has no `try` / `catch` anywhere, whatever the
+handler does: a synchronous handler that removes itself and resolves a
+promise was a finding, and a file passed when the word `try` appeared in a
+comment. Each handler is judged now, inline or declared by name in the same
+file: it is a finding, with its line, when it can fail (`async`, an
+`await`, a `throw`, `JSON.parse`, a `fetch` / `XMLHttpRequest` / `axios` /
+HTTP client call) and has no `try` and no `.catch(` of its own.
+
+### 🐛 Fixed — Async Cache Single-Flight is selected by code, not by text in strings (#437)
+
+The last open point of #437: the law's selection matched its pattern over
+the whole file text, so a file holding the card's own example in a string
+(or a comment, or a Python docstring) selected the law, which then found
+nothing to judge and passed with no finding. Selection now reads the code:
+an `anyFileContaining` entry can set `readsCode`, and the pattern is then
+matched with comments and string contents blanked (TS/JS by the JS rules,
+Python by its own lexer). The law's three entries set it.
+
 ### 🐛 Fixed — a module-level `let` reset in `beforeEach` is not shared state (#552)
 
 Test Data Management and Test Isolation Enforcement reported a module-level

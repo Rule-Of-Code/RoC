@@ -588,6 +588,48 @@ members left to the data they describe. 56 private static aliases
 renamed to camelCase in their files; nothing is exempted. The packed tarball
 lists the same files. Self-audit: Naming Convention Enforcement 1 → 0.
 
+### Fixed — Environment Parity Standards finds environment detection where the code reads it
+
+`No proper environment detection found` was reported unless one of five fixed
+files (`src/main.ts`, `src/index.ts`, `src/app.ts`, `server.ts`, `index.js`)
+read the environment. A project that reads `process.env` in a config module, a
+CLI entry point such as `src/cli.ts`, or a workspace app (`apps/<name>/src/main.ts`)
+was told it has no environment detection (#532).
+
+The check now reads the production sources the law selects through
+`includes` / `ignores`, with test files excluded. A read only in a test file
+does not count, and a project that reads the environment nowhere is still
+reported.
+
+### Fixed — Database Query Optimization is selected by a database in the code, not by a word in the manifest
+
+The law asked a shared helper whether the project has a database, and the
+helper tested the raw text of the manifests (`package.json`, `pyproject.toml`,
+`Makefile` …) for a list of words that included `firestore`. A client whose
+only Firestore trace was a plugin dependency, reading one document by id, or a
+project with a `firebase deploy --only firestore` script, was judged for
+composite indexes, query batching and pagination (#555).
+
+A database is now proved by use: a query in a Python source, an import of a
+database module in the JS/TS sources, its schema / rules / indexes files, or an
+awaited read of a declared client that the N+1 call-site registry recognises.
+Without one of these the law is not applicable. A Python project that only
+declares an ORM and never queries is not applicable either.
+
+### Internal — the performance analysis that read no file is removed
+
+`PerformanceAnalysisService` ran its DOM-reference, event-listener,
+observable-subscription, timer and lifecycle analyzers on an empty input, so it
+reported no issue for any project. Launch Readiness Checklist, Automated Code
+Quality Gates and the CI/CD tribunal read that as a judgement, and the branches
+built on it never ran; two methods of the performance monitoring inspector built
+on it had no caller (#534).
+
+The service, the five analyzers, their configurations and validation patterns,
+the `utils/performance` barrel and their tests are removed. No law result
+changes: the removed code never produced a finding. Leaks in code are judged by
+Memory Leak Prevention and Timer Cleanup.
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

@@ -109,7 +109,9 @@ describe('laws/security/dependency-security-scanning', () => {
 
       const result = await DependencySecurityScanningLaw.check(context);
 
-      expect(result.message).toContain('DependencyVulnerabilityAnalyzer');
+      expect(result.message).toMatch(
+        /^\d+ dependency security violation\(s\) found$/
+      );
     });
 
     it('should handle non-existent project root', async () => {

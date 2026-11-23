@@ -72,16 +72,19 @@ export const ASYNC_CACHE_FILES: readonly FileContaining[] = [
       String.raw`(?<![\w.])([A-Za-z_][\w.]*)\.get\(`
     ),
     exclude: PY_TESTS,
+    readsCode: true,
   },
   {
     files: ['**/*.py'],
     pattern: pythonCheckThenStore(String.raw`\bin\s+([A-Za-z_][\w.]*)\s*:`),
     exclude: PY_TESTS,
+    readsCode: true,
   },
   {
     files: ['**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}'],
     pattern: String.raw`${FILE_START}[\s\S]*?${TS_NAME_START}([A-Za-z_$][\w$.]*)\.(?:get|has)\((?:[\s\S]${REACH}?${TS_ASYNC}[\s\S]${REACH}?${TS_NAME_START}\1\.set\(|[\s\S]${REACH}?${TS_NAME_START}\1\.set\([^\n]*${TS_ASYNC})`,
     exclude: TS_TESTS,
+    readsCode: true,
   },
 ];
 
@@ -118,7 +121,8 @@ export class AsyncCacheSingleFlightLaw extends LawBase {
       lawName: this.LAW_NAME,
       category: 'PERFORMANCE',
       context,
-      findings: [...sources.unread, ...findings],
+      findings,
+      notRead: sources.unread,
       suggestions: [
         'Store the in-flight future/promise before the await so concurrent callers share it (single-flight)',
         'Remove the entry when the fetch fails (except/finally, .catch/finally), so an error is not cached',

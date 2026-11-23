@@ -17,7 +17,7 @@
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { markJudgedNothing } from '../../utils/judged-nothing';
+import { markJudgedNothing, withNotRead } from '../../utils/judged-nothing';
 import { LawBase } from '../law-base';
 
 export interface SubjectVerdict {
@@ -25,6 +25,8 @@ export interface SubjectVerdict {
   category: string;
   context: LawCheckContext;
   findings: string[];
+  /** What the law could not read, apart from its findings (#453). */
+  notRead?: string[];
   suggestions: string[];
   /** Files of the subject the law read (and could parse). 0 → judged nothing. */
   filesRead: number;
@@ -64,13 +66,14 @@ export function subjectResult(verdict: SubjectVerdict): LawResult {
       metrics,
     };
   }
-  const result = LawBase.createResult(
+  const created = LawBase.createResult(
     findings,
     lawName,
     category,
     suggestions,
     context
   );
+  const result = withNotRead(created, verdict.notRead ?? []);
   if (!result.passed) return { ...result, metrics };
   const summary =
     verdict.judged === 0

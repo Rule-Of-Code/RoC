@@ -30,6 +30,7 @@ import type {
   LawRequirement,
 } from '../types/enhanced-law.types';
 import { minimatch } from 'minimatch';
+import { CodeText } from './code-text';
 import { FileSystemOperations } from './file-system-operations';
 import {
   type PublishedListing,
@@ -38,6 +39,7 @@ import {
   trackedFiles,
 } from './git/git-layout';
 import { NxWorkspace } from './nx-workspace';
+import { lexPython } from './request-path/python-source';
 import {
   PYTHON_MANIFEST_GLOB,
   PYTHON_MANIFEST_IGNORE,
@@ -443,6 +445,19 @@ function containingCandidates(
   );
 }
 
+/**
+ * The text an entry's pattern is matched against: the file as it is, or —
+ * for an entry that reads code (#437) — its code with comments and string
+ * contents blanked.
+ */
+function matchedText(entry: FileContaining, rel: string, text: string): string {
+  if (!entry.readsCode) return text;
+  if (/\.py$/.test(rel)) return lexPython(text).code;
+  return /\.[cm]?[jt]sx?$/.test(rel)
+    ? CodeText.stripCommentsAndStrings(text)
+    : text;
+}
+
 /** One `anyFileContaining` entry: a file it names contains its pattern. Reads until the first match. */
 function fileContains(
   projectRoot: string,
@@ -456,7 +471,9 @@ function fileContains(
   const found = containingCandidates(projectRoot, entry, ignores).some(
     candidate => {
       const text = candidate.read();
-      return text !== null && pattern.test(text);
+      return (
+        text !== null && pattern.test(matchedText(entry, candidate.rel, text))
+      );
     }
   );
   if (containingCache.size >= CONTAINING_CACHE_LIMIT) containingCache.clear();
@@ -479,7 +496,8 @@ export function readFilesContaining(
     .sort((a, b) => a.rel.localeCompare(b.rel))
     .flatMap(candidate => {
       const content = candidate.read();
-      return content !== null && pattern.test(content)
+      return content !== null &&
+        pattern.test(matchedText(entry, candidate.rel, content))
         ? [{ file: candidate.file, rel: candidate.rel, content }]
         : [];
     });

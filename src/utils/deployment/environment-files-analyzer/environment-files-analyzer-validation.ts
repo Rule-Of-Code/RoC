@@ -195,8 +195,6 @@ export class EnvironmentFilesAnalyzerValidation {
     violations: string[],
     suggestions: string[]
   ): void {
-    const _messages =
-      EnvironmentFilesAnalyzerConfiguration.ENV_ANALYSIS_MESSAGES;
     const firstConfig = validConfigs[0];
 
     if (!firstConfig) return;

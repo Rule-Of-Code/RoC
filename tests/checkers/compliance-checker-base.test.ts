@@ -50,15 +50,15 @@ class TestComplianceChecker extends ComplianceCheckerBase {
     return this.analysisResult;
   }
 
-  protected getPassThreshold(): number {
+  protected override getPassThreshold(): number {
     return this.customThreshold ?? super.getPassThreshold();
   }
 
-  protected getCheckerName(): string {
+  protected override getCheckerName(): string {
     return this.customName ?? super.getCheckerName();
   }
 
-  protected getErrorSuggestions(): string[] {
+  protected override getErrorSuggestions(): string[] {
     return this.customSuggestions ?? super.getErrorSuggestions();
   }
 

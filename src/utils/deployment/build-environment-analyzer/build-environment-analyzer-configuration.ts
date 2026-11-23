@@ -5,8 +5,6 @@ import { PathOperations } from '../../path-operations';
  * Centralized configuration for build environment analysis patterns
  */
 export class BuildEnvironmentAnalyzerConfiguration {
-  private static readonly Config = BuildEnvironmentAnalyzerConfiguration;
-
   /**
    * Build keywords for detection (RULE 1: 100% internal coverage)
    */

@@ -111,42 +111,6 @@ export class ProjectTypeDetectorValidation {
   }
 
   /**
-   * Check if project is React with comprehensive validation
-   */
-  private static isReactProject(projectRoot: string): boolean {
-    const patterns =
-      ProjectTypeDetectorConfiguration.getReactProjectPatterns(undefined);
-    return this.isProjectOfTypeByPatterns(projectRoot, patterns);
-  }
-
-  /**
-   * Check if project is Vue with comprehensive validation
-   */
-  private static isVueProject(projectRoot: string): boolean {
-    const patterns =
-      ProjectTypeDetectorConfiguration.getVueProjectPatterns(undefined);
-    return this.isProjectOfTypeByPatterns(projectRoot, patterns);
-  }
-
-  /**
-   * Check if project is Node.js with comprehensive validation
-   */
-  private static isNodeProject(projectRoot: string): boolean {
-    const patterns =
-      ProjectTypeDetectorConfiguration.getNodeProjectPatterns(undefined);
-    return this.isProjectOfTypeByPatterns(projectRoot, patterns);
-  }
-
-  /**
-   * Check if project is TypeScript with comprehensive validation
-   */
-  private static isTypeScriptProject(projectRoot: string): boolean {
-    const patterns =
-      ProjectTypeDetectorConfiguration.getTypeScriptProjectPatterns(undefined);
-    return this.isProjectOfTypeByPatterns(projectRoot, patterns);
-  }
-
-  /**
    * Check if any file exists in project
    */
   private static hasAnyFile(

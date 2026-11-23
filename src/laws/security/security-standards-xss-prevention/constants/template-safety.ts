@@ -8,14 +8,14 @@ import { SecurityPatternConstants } from './security-pattern-constants';
  * Single Responsibility: Unsafe template patterns detection
  */
 export class TemplateSafetyConstants extends SecurityPatternConstants {
-  static readonly PATTERNS = {
+  static override readonly PATTERNS = {
     UNSAFE_INNER_HTML: /\[innerHTML\]\s*=\s*["'][^"']*\{\{/,
     INLINE_SCRIPT: /<script[^>]*>/i,
     JAVASCRIPT_PROTOCOL: /javascript:/i,
     INLINE_HANDLERS: /on\w+\s*=/i,
   };
 
-  static readonly MESSAGES = {
+  static override readonly MESSAGES = {
     UNSAFE_INNER_HTML: 'Unsafe innerHTML binding with interpolation',
     INLINE_SCRIPT: 'Inline script tag found in template',
     JAVASCRIPT_PROTOCOL: 'Unsafe protocol usage in template',
@@ -24,7 +24,7 @@ export class TemplateSafetyConstants extends SecurityPatternConstants {
 
   static readonly EXTENSIONS = ['.html', '.ng', '.component.html'];
 
-  static hasUnsafePattern(content: string): boolean {
+  static override hasUnsafePattern(content: string): boolean {
     return Object.values(this.PATTERNS).some(pattern =>
       PatternMatchingUtils.hasRegexPattern(content, pattern)
     );

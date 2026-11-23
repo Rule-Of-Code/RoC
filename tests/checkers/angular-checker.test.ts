@@ -208,7 +208,6 @@ describe('AngularChecker', () => {
 
     it('should handle law without checkFunction', async () => {
       const law = createLaw({
-        checkFunction: undefined,
         description: 'No specific check',
       });
       const checker = new AngularChecker(law, 1);

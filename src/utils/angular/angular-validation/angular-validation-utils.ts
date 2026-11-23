@@ -9,7 +9,6 @@ export class AngularValidationUtils {
    * Meta-dogfooding: Centralizes validation patterns across all Angular analyzers
    */
   static validateContent(
-    content: string,
     fileName: string,
     checks: Array<{
       condition: boolean;
@@ -36,7 +35,6 @@ export class AngularValidationUtils {
    * Meta-dogfooding: Provides consistent suggestion patterns
    */
   static validateAndSuggest(
-    content: string,
     fileName: string,
     checks: Array<{
       condition: boolean;

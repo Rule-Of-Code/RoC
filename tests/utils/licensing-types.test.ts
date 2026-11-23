@@ -103,10 +103,7 @@ describe('utils/licensing/licensing-types', () => {
     });
 
     it('should handle undefined values gracefully', () => {
-      const pkg: PackageJsonLicense = {
-        license: undefined,
-        dependencies: undefined,
-      };
+      const pkg: PackageJsonLicense = {};
 
       expect(pkg.license).toBeUndefined();
       expect(pkg.dependencies).toBeUndefined();

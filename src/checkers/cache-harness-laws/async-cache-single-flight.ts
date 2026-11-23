@@ -118,7 +118,8 @@ export class AsyncCacheSingleFlightLaw extends LawBase {
       lawName: this.LAW_NAME,
       category: 'PERFORMANCE',
       context,
-      findings: [...sources.unread, ...findings],
+      findings,
+      notRead: sources.unread,
       suggestions: [
         'Store the in-flight future/promise before the await so concurrent callers share it (single-flight)',
         'Remove the entry when the fetch fails (except/finally, .catch/finally), so an error is not cached',

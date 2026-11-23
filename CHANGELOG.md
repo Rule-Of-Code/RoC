@@ -39,8 +39,13 @@ law with notes and findings is judged by its findings.
 **JSON change:** law results may carry `notRead: string[]`; `stats.partlyReadLaws`
 counts the partly-read laws apart (passed + failed + warning + judgedNothing +
 partlyRead = executedLaws), and `scope.partlyReadLaws` names them. TypeScript
-Strict Mode is the first law that fills it (an `extends` link it cannot read);
-the laws whose notes come from the shared readers follow (#453).
+Strict Mode (an `extends` link it cannot read), Independent Awaits Run
+Concurrently, Async Cache Single-Flight and Database Read Cache Safety (files
+the request-path reader could not parse), HTML Lang Declared (sources and a
+`next.config` it could not read), Accessibility Linting Enforcement (an ESLint
+config script) and Capacitor Plugin Stub Has Contract Test (test configs and
+mappers it could not read) fill it. A law that read none of its files is still
+judged nothing, whether its note is a violation or in `notRead` (#453).
 
 ## [8.0.1] - 2026-11-22
 

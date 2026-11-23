@@ -3,7 +3,7 @@
  * All TypeScript must be configured with strict settings
  */
 
-import { PARTLY_READ_TEXT } from '../../utils/judged-nothing';
+import { PARTLY_READ_TEXT, withNotRead } from '../../utils/judged-nothing';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { ProjectTypeDetector } from '../../utils/config/project-type-detector';
 import { SacredLawBase } from './sacred-law-base';
@@ -88,7 +88,7 @@ export class TypeScriptStrictLaw {
         'Set target to ES2020 or higher',
       ]
     );
-    return notRead.length > 0 ? { ...result, notRead } : result;
+    return withNotRead(result, notRead);
   }
 
   /** The options `strict: true` switches on (TypeScript's own list). */

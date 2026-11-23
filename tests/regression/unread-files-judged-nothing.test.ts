@@ -65,6 +65,9 @@ const audited = (check: (c: never) => unknown, dir: string): Result =>
   ) as Result;
 
 const NOT_READ = "could not load the 'typescript' package";
+/** Every note of a result: its violations and, since #453, notRead. */
+const notes = (result: Result): string =>
+  [...(result.violations ?? []), ...(result.notRead ?? [])].join('\n');
 const MANIFEST = JSON.stringify({ name: 'app', version: '1.0.0' });
 
 describe('a law that read none of its files judged nothing', () => {
@@ -108,7 +111,8 @@ describe('a law that read none of its files judged nothing', () => {
     '%s, without typescript: judgedNothing, failed, score 0',
     (_name, check, files) => {
       const result = audited(check, project(files));
-      expect(result.violations?.join('\n')).toContain(NOT_READ);
+      // the note is a violation, or in notRead for a law migrated by #453
+      expect(notes(result)).toContain(NOT_READ);
       expect(result.judgedNothing).toBe(true);
       expect(result.passed).toBe(false);
       expect(result.score).toBe(0);
@@ -147,7 +151,7 @@ describe('a law that read part of its input did not judge nothing', () => {
       c => IndependentAwaitsRunConcurrentlyLaw.check(c),
       dir
     );
-    const text = result.violations?.join('\n') ?? '';
+    const text = notes(result);
     expect(text).toContain(NOT_READ);
     expect(text).toContain(PARTLY_READ_TEXT);
     expect(result.judgedNothing).toBeUndefined();
@@ -163,10 +167,9 @@ describe('a not-read note names the extensions that were not read', () => {
       'src/load.ts':
         'export async function load(a: () => Promise<number>) {\n  return await a();\n}\n',
     });
-    const text = (
+    const text = notes(
       audited(c => IndependentAwaitsRunConcurrentlyLaw.check(c), dir)
-        .violations ?? []
-    ).join('\n');
+    );
     expect(text).toContain('the .ts file(s) were NOT read');
     expect(text).not.toContain('.tsx/.jsx');
   });

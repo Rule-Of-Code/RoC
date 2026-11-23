@@ -22,7 +22,7 @@ export interface PerformanceAnalysisResult {
  * RULE 1: Uses Configuration to eliminate hardcoded values
  */
 export class PerformanceAnalysisService {
-  private static readonly Config = PerformanceAnalysisConfiguration;
+  private static readonly config = PerformanceAnalysisConfiguration;
   /**
    * Perform comprehensive performance analysis on project files
    */
@@ -119,9 +119,9 @@ export class PerformanceAnalysisService {
 
     // RULE 1: Use Configuration for recommendations
     result.recommendations.push(
-      this.Config.RECOMMENDATIONS.BUDGETS,
-      this.Config.RECOMMENDATIONS.MONITORING,
-      this.Config.RECOMMENDATIONS.REGRESSION_TESTS
+      this.config.RECOMMENDATIONS.BUDGETS,
+      this.config.RECOMMENDATIONS.MONITORING,
+      this.config.RECOMMENDATIONS.REGRESSION_TESTS
     );
 
     return result;
@@ -135,9 +135,9 @@ export class PerformanceAnalysisService {
 
     // RULE 1: Use Configuration for CI/CD recommendations
     result.recommendations.push(
-      this.Config.RECOMMENDATIONS.CI_CD_INTEGRATION,
-      this.Config.RECOMMENDATIONS.AUTOMATED_ALERTS,
-      this.Config.RECOMMENDATIONS.BASELINE_COMPARISON
+      this.config.RECOMMENDATIONS.CI_CD_INTEGRATION,
+      this.config.RECOMMENDATIONS.AUTOMATED_ALERTS,
+      this.config.RECOMMENDATIONS.BASELINE_COMPARISON
     );
 
     return result;

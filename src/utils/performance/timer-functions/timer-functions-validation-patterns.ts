@@ -9,7 +9,7 @@ import type { MemoryLeakPatterns } from '../../types/memory.types';
 import { TimerFunctionsConfiguration } from './timer-functions-configuration';
 
 export class TimerFunctionsValidationPatterns {
-  private static readonly Config = TimerFunctionsConfiguration;
+  private static readonly config = TimerFunctionsConfiguration;
 
   /**
    * Master orchestrator: Check timer functions for memory leaks
@@ -20,12 +20,12 @@ export class TimerFunctionsValidationPatterns {
     // RULE 1: Pre-compute timer patterns
     const timerPatterns = [
       {
-        pattern: this.Config.TIMER_PATTERNS.SET_INTERVAL,
-        clearMethod: this.Config.TIMER_PATTERNS.CLEAR_INTERVAL,
+        pattern: this.config.TIMER_PATTERNS.SET_INTERVAL,
+        clearMethod: this.config.TIMER_PATTERNS.CLEAR_INTERVAL,
       },
       {
-        pattern: this.Config.TIMER_PATTERNS.SET_TIMEOUT,
-        clearMethod: this.Config.TIMER_PATTERNS.CLEAR_TIMEOUT,
+        pattern: this.config.TIMER_PATTERNS.SET_TIMEOUT,
+        clearMethod: this.config.TIMER_PATTERNS.CLEAR_TIMEOUT,
       },
     ];
 
@@ -80,16 +80,16 @@ export class TimerFunctionsValidationPatterns {
     if (!matches) return;
 
     // RULE 1: Use Configuration to analyze patterns
-    const analysis = this.Config.analyzeTimerPatterns(content);
+    const analysis = this.config.analyzeTimerPatterns(content);
     const hasClear =
-      clearMethod === this.Config.TIMER_PATTERNS.CLEAR_INTERVAL
+      clearMethod === this.config.TIMER_PATTERNS.CLEAR_INTERVAL
         ? analysis.hasClearInterval
         : analysis.hasClearTimeout;
 
     if (!hasClear && !analysis.hasNgOnDestroy) {
       // RULE 1: Use Configuration message function
       violations.push(
-        this.Config.VALIDATION_MESSAGES.setIntervalWithoutClear(
+        this.config.VALIDATION_MESSAGES.setIntervalWithoutClear(
           file,
           pattern.source,
           clearMethod
@@ -115,7 +115,7 @@ export class TimerFunctionsValidationPatterns {
     const recommendations: string[] = [];
 
     // RULE 1: Use Configuration to extract timer assignments
-    const assignments = this.Config.extractTimerAssignments(content);
+    const assignments = this.config.extractTimerAssignments(content);
 
     // RULE 2: Delegate timer analysis to unified helper (eliminates duplication)
     this.analyzeTimers({
@@ -123,7 +123,7 @@ export class TimerFunctionsValidationPatterns {
       variables: assignments.intervals,
       timerType: 'setInterval',
       clearPattern: 'clearInterval',
-      clearMethod: this.Config.TIMER_PATTERNS.CLEAR_INTERVAL,
+      clearMethod: this.config.TIMER_PATTERNS.CLEAR_INTERVAL,
       timers,
       cleanups,
       missingCleanups,
@@ -135,7 +135,7 @@ export class TimerFunctionsValidationPatterns {
       variables: assignments.timeouts,
       timerType: 'setTimeout',
       clearPattern: 'clearTimeout',
-      clearMethod: this.Config.TIMER_PATTERNS.CLEAR_TIMEOUT,
+      clearMethod: this.config.TIMER_PATTERNS.CLEAR_TIMEOUT,
       timers,
       cleanups,
       missingCleanups,
@@ -175,26 +175,26 @@ export class TimerFunctionsValidationPatterns {
     variables.forEach(variable => {
       // RULE 1: Use Configuration message functions
       timers.push(
-        this.Config.VALIDATION_MESSAGES.timerAssignment(variable, timerType)
+        this.config.VALIDATION_MESSAGES.timerAssignment(variable, timerType)
       );
 
       // Check for cleanup using clearPattern
       if (content.includes(`${clearPattern}(${variable})`)) {
         cleanups.push(
-          this.Config.VALIDATION_MESSAGES.cleanupDetected(variable, clearMethod)
+          this.config.VALIDATION_MESSAGES.cleanupDetected(variable, clearMethod)
         );
       } else {
         // Add missing cleanup violation and recommendation
         const missingMessage =
           timerType === 'setInterval'
-            ? this.Config.VALIDATION_MESSAGES.missingClearInterval(variable)
-            : this.Config.VALIDATION_MESSAGES.missingClearTimeout(variable);
+            ? this.config.VALIDATION_MESSAGES.missingClearInterval(variable)
+            : this.config.VALIDATION_MESSAGES.missingClearTimeout(variable);
         missingCleanups.push(missingMessage);
 
         const recommendation =
           timerType === 'setInterval'
-            ? this.Config.RECOMMENDATIONS.ADD_CLEAR_INTERVAL(variable)
-            : this.Config.RECOMMENDATIONS.ADD_CLEAR_TIMEOUT(variable);
+            ? this.config.RECOMMENDATIONS.ADD_CLEAR_INTERVAL(variable)
+            : this.config.RECOMMENDATIONS.ADD_CLEAR_TIMEOUT(variable);
         recommendations.push(recommendation);
       }
     });
@@ -208,14 +208,14 @@ export class TimerFunctionsValidationPatterns {
     const suggestions: string[] = [];
 
     // RULE 1: Use Configuration to analyze RxJS opportunities
-    const opportunities = this.Config.analyzeRxJSOpportunities(content);
+    const opportunities = this.config.analyzeRxJSOpportunities(content);
 
     if (opportunities.canUseInterval) {
-      suggestions.push(this.Config.RECOMMENDATIONS.USE_RXJS_INTERVAL);
+      suggestions.push(this.config.RECOMMENDATIONS.USE_RXJS_INTERVAL);
     }
 
     if (opportunities.canUseDelay) {
-      suggestions.push(this.Config.RECOMMENDATIONS.USE_RXJS_DELAY);
+      suggestions.push(this.config.RECOMMENDATIONS.USE_RXJS_DELAY);
     }
 
     return suggestions;
@@ -226,6 +226,6 @@ export class TimerFunctionsValidationPatterns {
    * RULE 1: Delegates to Configuration
    */
   static getAllTimerRecommendations(): string[] {
-    return this.Config.getAllRecommendations();
+    return this.config.getAllRecommendations();
   }
 }

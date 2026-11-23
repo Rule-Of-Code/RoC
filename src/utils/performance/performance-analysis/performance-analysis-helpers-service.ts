@@ -8,7 +8,7 @@ import { PerformanceAnalysisConfiguration } from './performance-analysis-configu
 import type { PerformanceAnalysisResult } from './performance-analysis-service';
 
 export class PerformanceAnalysisHelpersService {
-  private static readonly Config = PerformanceAnalysisConfiguration;
+  private static readonly config = PerformanceAnalysisConfiguration;
 
   /**
    * Helper: Add issues with proper type and severity
@@ -20,7 +20,7 @@ export class PerformanceAnalysisHelpersService {
     type: string
   ): void {
     const severity =
-      this.Config.getSeverityForType(type) ?? this.Config.SEVERITY.LOW;
+      this.config.getSeverityForType(type) ?? this.config.SEVERITY.LOW;
 
     issues.push(
       ...violations.map((issue: string) => ({
@@ -69,10 +69,10 @@ export class PerformanceAnalysisHelpersService {
   } {
     const total = issues.length;
     const high = issues.filter(
-      i => i.severity === this.Config.SEVERITY.HIGH
+      i => i.severity === this.config.SEVERITY.HIGH
     ).length;
     const medium = issues.filter(
-      i => i.severity === this.Config.SEVERITY.MEDIUM
+      i => i.severity === this.config.SEVERITY.MEDIUM
     ).length;
     const low = total - high - medium;
 

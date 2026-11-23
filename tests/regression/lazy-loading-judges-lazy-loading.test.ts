@@ -149,3 +149,62 @@ describe('#562 Lazy Loading reports lazy loading; the borrowed checks have owner
     });
   });
 });
+
+/**
+ * #562 (QA): with the borrowed findings gone, a project with no routes and no
+ * component came out green, "compliance verified", from nothing (#427). There
+ * is no lazy loading to judge there: the law says it judged nothing.
+ */
+describe('#562 Lazy Loading with no routes and no component judges nothing', () => {
+  afterEach(removeProjects);
+
+  const judge = async (files: Record<string, string>): Promise<LawResult> =>
+    LazyLoadingImplementationLaw.check({
+      projectRoot: project(files),
+      config: FileUtils.getMinimalDefaultConfig(),
+    } as never);
+
+  it('says it judged nothing for an Angular project with only index.html and styles.css', async () => {
+    const result = await judge({
+      'angular.json': JSON.stringify({ version: 1, projects: {} }),
+      'package.json': JSON.stringify({
+        name: 'angular-app',
+        dependencies: { '@angular/core': '17.3.0' },
+      }),
+      'src/index.html':
+        '<!doctype html><html><body><app-root></app-root></body></html>\n',
+      'src/styles.css': 'body { margin: 0; }\n',
+    });
+    expect(result.passed).toBe(false);
+    expect(result.judgedNothing).toBe(true);
+    expect(result.score).toBe(0);
+    expect(result.message).toMatch(
+      /judged nothing: no route configuration .* and no @Component/
+    );
+  });
+
+  it('does not take routes named only in a comment for route configuration', async () => {
+    const result = await judge({
+      ...angular('17.3.0'),
+      'src/app/app.routes.ts':
+        '// Routes come later: loadChildren for admin\nexport const version = 1;\n',
+    });
+    expect(result.judgedNothing).toBe(true);
+  });
+
+  /** The controls: routes with loadChildren, or a component, are judged as before. */
+  it('judges a project with routes and loadChildren', async () => {
+    const result = await judge(angular('17.3.0'));
+    expect(result.judgedNothing).toBeUndefined();
+  });
+
+  it('judges a project with a component and no routes', async () => {
+    const result = await judge({
+      ...angular('17.3.0'),
+      'src/app/app.routes.ts': 'export const version = 1;\n',
+      'src/app/hero.component.ts':
+        "import { Component } from '@angular/core';\n@Component({ selector: 'app-hero', template: '' })\nexport class HeroComponent {}\n",
+    });
+    expect(result.judgedNothing).toBeUndefined();
+  });
+});

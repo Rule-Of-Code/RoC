@@ -5,6 +5,23 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed — Database Query Optimization is selected by a database in the code, not by a word in the manifest
+
+The law asked a shared helper whether the project has a database, and the
+helper tested the raw text of the manifests (`package.json`, `pyproject.toml`,
+`Makefile` …) for a list of words that included `firestore`. A client whose
+only Firestore trace was a plugin dependency, reading one document by id, or a
+project with a `firebase deploy --only firestore` script, was judged for
+composite indexes, query batching and pagination (#555).
+
+A database is now proved by use: a query in a Python source, an import of a
+database module in the JS/TS sources, its schema / rules / indexes files, or an
+awaited read of a declared client that the N+1 call-site registry recognises.
+Without one of these the law is not applicable. A Python project that only
+declares an ORM and never queries is not applicable either.
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

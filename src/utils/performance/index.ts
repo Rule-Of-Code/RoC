@@ -17,6 +17,3 @@ export * from './observable-subscriptions';
 
 // Timer Functions Module
 export * from './timer-functions';
-
-// Performance Analysis Module
-export * from './performance-analysis';

@@ -49,6 +49,16 @@ function readCachedView(file: string): CodeView | null {
  */
 export class SecurityCheckerBase {
   /**
+   * The code files the security checkers read: `src/`, or `apps/` and
+   * `libs/` when there is no `src/` code. Empty when none of those trees
+   * holds code — then nothing was read, and no checker may claim anything
+   * about the code (#561).
+   */
+  static readCodeFiles(projectRoot: string, config: RuleOfCodeConfig) {
+    return this.initializeSecurityCheck(projectRoot, config).codeFiles;
+  }
+
+  /**
    * Common initialization for security checkers
    * Validates src path and returns code files
    * Supports both standard projects and Nx monorepo structure

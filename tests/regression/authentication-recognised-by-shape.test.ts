@@ -17,7 +17,23 @@ import path from 'path';
 
 import { AuthenticationSecurityLaw } from '../../src/checkers/security-laws/authentication-security';
 import { AuthenticationChecker } from '../../src/checkers/security-laws/authentication/authentication-checker';
+import { NO_ROLE_CONCEPT_NOTE } from '../../src/checkers/security-laws/authentication/authorization-checker';
+import { MANAGED_SESSION_NOTE } from '../../src/checkers/security-laws/authentication/session-management-checker';
 import { FileUtils } from '../../src/utils/file-utils';
+import * as tsxSource from '../../src/utils/react/tsx-source';
+
+jest.mock('../../src/utils/react/tsx-source', () => {
+  const actual = jest.requireActual('../../src/utils/react/tsx-source');
+  return { ...actual, loadTypeScript: jest.fn(actual.loadTypeScript) };
+});
+const loadTypeScript = tsxSource.loadTypeScript as jest.MockedFunction<
+  typeof tsxSource.loadTypeScript
+>;
+const realLoad = jest.requireActual<typeof tsxSource>(
+  '../../src/utils/react/tsx-source'
+).loadTypeScript;
+// jest.config resets mocks before every test: give back the real loader.
+beforeEach(() => loadTypeScript.mockImplementation(realLoad));
 
 const config = FileUtils.getMinimalDefaultConfig();
 const made: string[] = [];
@@ -226,6 +242,71 @@ describe('#549 the result says the SDK holds the tokens', () => {
       AuthenticationChecker.checkAuthenticationImplementation(dir, config);
     expect(suggestions).toContainEqual(
       expect.stringContaining('Tokens are held by a managed auth SDK')
+    );
+  });
+});
+
+/** The whole law's result for a project laid out as `files`. */
+function lawResult(files: Record<string, string>) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-561r-'));
+  made.push(dir);
+  fs.writeFileSync(
+    path.join(dir, 'package.json'),
+    JSON.stringify({ name: 'auth-561r', version: '1.0.0' })
+  );
+  for (const [rel, text] of Object.entries(files)) {
+    fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+    fs.writeFileSync(path.join(dir, rel), text);
+  }
+  return AuthenticationSecurityLaw.check({ projectRoot: dir, config });
+}
+
+/** A Next app-router project: roles in lib/ and app/, no src/. */
+const APP_ROUTER_WITH_ROLES = {
+  'lib/db/schema.ts': [
+    "import { pgTable, varchar } from 'drizzle-orm/pg-core';",
+    "export const users = pgTable('users', { role: varchar('role') });",
+    '',
+  ].join('\n'),
+  'lib/auth/roles.ts': [
+    "import { z } from 'zod';",
+    "export const Role = z.enum(['member', 'owner']);",
+    '',
+  ].join('\n'),
+  'app/settings/page.tsx': [
+    'declare const user: { role?: string } | undefined;',
+    "export default function Page() { return user?.role === 'owner' ? 'admin' : 'member'; }",
+    '',
+  ].join('\n'),
+};
+
+describe('#561 nothing read is not "no role concept"', () => {
+  it('roles only in app/ and lib/ (no src/): the law says NOT read, judged nothing', () => {
+    const result = lawResult(APP_ROUTER_WITH_ROLES);
+    expect(result.judgedNothing).toBe(true);
+    expect(result.violations).toContainEqual(
+      expect.stringContaining('NOT read')
+    );
+    expect(result.suggestions ?? []).not.toContain(NO_ROLE_CONCEPT_NOTE);
+    expect(result.violations).not.toContain(RBAC);
+  });
+
+  it('read src/ without roles still says the role checks do not apply (control)', () => {
+    const result = lawResult({
+      'src/app/math.ts':
+        'export const add = (a: number, b: number) => a + b;\n',
+    });
+    expect(result.judgedNothing).toBeUndefined();
+    expect(result.suggestions).toContain(NO_ROLE_CONCEPT_NOTE);
+  });
+
+  it('without the parser neither the role note nor the session note is given', () => {
+    loadTypeScript.mockReturnValue(null);
+    const result = lawResult(MANAGED_SDK_APP);
+    expect(result.suggestions ?? []).not.toContain(NO_ROLE_CONCEPT_NOTE);
+    expect(result.suggestions ?? []).not.toContain(MANAGED_SESSION_NOTE);
+    expect(result.violations).toContainEqual(
+      expect.stringContaining('NOT read')
     );
   });
 });

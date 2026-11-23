@@ -22,15 +22,24 @@ export class AuthorizationChecker extends SecurityCheckerBase {
    */
   static checkAuthorizationPatterns(
     projectRoot: string,
-    _config: RuleOfCodeConfig
+    config: RuleOfCodeConfig
   ): {
     violations: string[];
     suggestions: string[];
   } {
-    const { violations, suggestions, codeFiles } = this.initializeSecurityCheck(
-      projectRoot,
-      _config
+    // Only code that was read is judged (#561): with no file, or no parser,
+    // runSecurityCheck answers before any claim about roles or guards.
+    return this.runSecurityCheck(projectRoot, config, codeFiles =>
+      this.judgeAuthorization(codeFiles)
     );
+  }
+
+  private static judgeAuthorization(codeFiles: string[]): {
+    violations: string[];
+    suggestions: string[];
+  } {
+    const violations: string[] = [];
+    const suggestions: string[] = [];
     const shape = this.authShapeOf(codeFiles);
 
     const hasGuards =

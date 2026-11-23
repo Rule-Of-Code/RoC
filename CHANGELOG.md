@@ -342,6 +342,11 @@ Each signal is now a shape in the parse, shared by the three sub-checks:
 - **Sessions:** with a managed auth SDK and no server session library,
   timeout and invalidation are the SDK's; the result says so and only web
   storage is judged. A sign-out call counts as invalidation.
+- **Nothing read, nothing judged:** the law reads `src/` (or `apps/` and
+  `libs/`). Where none of them holds code, it says the code was NOT read and
+  judges nothing, instead of answering "no role concept" or "no RBAC" about
+  files it never opened. Without the TypeScript parser no sub-check gives
+  the role or session note either.
 
 The law's detection limits describe the shapes.
 

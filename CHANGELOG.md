@@ -377,6 +377,15 @@ programmatic option `suggestExceptions` is gone from `AuditOptions` and
 `RuleOfCodeAuditor.create`; the constructor keeps its positional slot, unused,
 so positional callers keep their mode and options (#527).
 
+### Internal — unused npm audit simulator removed
+
+`NpmAuditSimulator` (`src/utils/security/npm-audit-simulator.ts`) and the
+`audit-results` module that read its type (`AuditResultsAnalyzer`,
+`AuditResultsValidationPatterns`, `AuditResultsConfiguration`) were exported
+from `src/utils` but called by no law and no other code. Dependency Security
+Scanning runs no audit (#545). They are not part of the package entry
+point (`dist/index.js`). No behaviour changes.
+
 ### 🔧 Internal — RoC's own code: logging, types and casts (#559)
 
 The self-audit's small groups on RoC's own code, with no change in behaviour:

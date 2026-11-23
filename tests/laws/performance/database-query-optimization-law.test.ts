@@ -162,10 +162,16 @@ describe('DatabaseQueryOptimizationLaw', () => {
 
     // A real database, read by a stack this analyzer cannot parse: still not a
     // violation — the law says so honestly instead of failing the project.
+    // The database is proved by a query in the code (#555), not by the
+    // dependency alone.
     it('should report N/A when the database is real but the stack is not JS/TS', async () => {
       FileUtils.writeFile(
         PathOperations.join(backendDir, 'pyproject.toml'),
         '[project]\nname = "backend"\ndependencies = ["sqlalchemy"]\n'
+      );
+      FileUtils.writeFile(
+        PathOperations.join(backendDir, 'backend', 'repo.py'),
+        'def users(session):\n    return session.query(User).all()\n'
       );
 
       const result = await DatabaseQueryOptimizationLaw.check({

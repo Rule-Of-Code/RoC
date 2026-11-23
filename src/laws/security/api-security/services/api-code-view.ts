@@ -25,4 +25,4 @@ export function readApiCodeView(
 
 /** The note for a project whose TypeScript parser could not be loaded. */
 export const API_FILES_NOT_READ =
-  'the server and HTTP service files of API Security Standards';
+  'the server, HTTP service and authentication files of API Security Standards';

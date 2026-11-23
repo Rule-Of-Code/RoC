@@ -3,6 +3,8 @@ import type {
   DockerAnalysis,
   EnvironmentDetection,
 } from '../../../types';
+import type { RuleOfCodeConfig } from '../../../config/types';
+import { CheckerUtils } from '../../checker-utils';
 import { FileUtils } from '../../file-utils';
 import { NxWorkspace } from '../../nx-workspace';
 import { PathOperations } from '../../path-operations';
@@ -217,9 +219,10 @@ export class BuildEnvironmentAnalyzerValidation {
    * Validate environment detection
    */
   static validateEnvironmentDetection(
-    projectRoot: string
+    projectRoot: string,
+    config?: RuleOfCodeConfig,
+    lawId?: string
   ): EnvironmentDetection {
-    const mainFilePaths = BuildEnvironmentAnalyzerConfiguration.MAIN_FILE_PATHS;
     const envPatterns = BuildEnvironmentAnalyzerConfiguration.ENV_PATTERNS;
     const configPaths = BuildEnvironmentAnalyzerConfiguration.ENV_CONFIG_PATHS;
     const messages =
@@ -229,12 +232,19 @@ export class BuildEnvironmentAnalyzerValidation {
     const violations = [];
     const suggestions = [];
 
-    // Check main files for environment detection
-    const mainFiles = mainFilePaths
-      .map(file => PathOperations.join(projectRoot, file))
-      .filter(file => FileUtils.exists(file));
+    // Where the code reads its environment: the production sources the law
+    // selects (includes/ignores, test files excluded). It used to be five
+    // fixed paths (src/main.ts, src/index.ts, src/app.ts, server.ts,
+    // index.js), so a read in a config module, a CLI entry or a workspace
+    // app was reported as no detection at all (#532).
+    const sourceFiles = CheckerUtils.findFilesByExtension(
+      projectRoot,
+      [...CheckerUtils.getCommonExtensions().ALL_CODE, '.mjs', '.cjs'],
+      config ?? FileUtils.getMinimalDefaultConfig(),
+      lawId
+    );
 
-    for (const filePath of mainFiles) {
+    for (const filePath of sourceFiles) {
       try {
         const content = FileUtils.readFile(filePath, { encoding: 'utf8' });
 

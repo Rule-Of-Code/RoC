@@ -1,6 +1,7 @@
 import { CodeText } from '../../../../utils/code-text';
 import { PatternMatchingUtils } from '../../../../utils/pattern-matching-utils';
 import { FixtureIsolation } from '../../../../utils/testing/fixture-isolation';
+import { ModuleBindings } from '../../../../utils/testing/module-bindings';
 
 /**
  * Unit Test Isolation - Constants
@@ -23,12 +24,11 @@ export class UnitTestIsolationConstants {
    * Anchoring to column 0 is the whole fix for those. A declaration that is
    * indented is, by construction, inside something.
    */
-  // The type annotation stops at the end of the line: `[^=]+` crossed
-  // newlines, so `let logger: Logger;` — declared here and assigned per test,
-  // the standard isolation pattern — matched against an `=` lines below.
+  // `let` / `var` are ModuleBindings' patterns, shared with Test Data
+  // Management (#552), so the two laws read a declaration the same way.
   static readonly SHARED_MUTABLE_PATTERNS = {
-    MODULE_LET: /^let\s+\w+(?:\s*:\s*[^=;\n]+)?\s*=(?!.*beforeEach)/m,
-    MODULE_VAR: /^var\s+\w+\s*=/m,
+    MODULE_LET: ModuleBindings.MODULE_LET,
+    MODULE_VAR: ModuleBindings.MODULE_VAR,
     MODULE_MUTABLE_OBJECT: /^const\s+\w+\s*=\s*\{/m,
     MODULE_MUTABLE_ARRAY: /^const\s+\w+\s*=\s*\[/m,
   };
@@ -165,12 +165,9 @@ export class UnitTestIsolationConstants {
     // the magic-number analyzer strips them.
     const code = CodeText.stripComments(content);
 
-    // `let`/`var` at module scope is shared mutable state by declaration.
-    const declared = [
-      this.SHARED_MUTABLE_PATTERNS.MODULE_LET,
-      this.SHARED_MUTABLE_PATTERNS.MODULE_VAR,
-    ].some(pattern => PatternMatchingUtils.hasRegexPattern(code, pattern));
-    if (declared) return true;
+    // `let`/`var` at module scope is shared mutable state unless a
+    // beforeEach/afterEach gives it a fresh value around every test (#552).
+    if (ModuleBindings.hasShared(code)) return true;
 
     // A module-scope `const` object or array is shared state only if something
     // WRITES to it. An immutable binding that is never mutated cannot leak

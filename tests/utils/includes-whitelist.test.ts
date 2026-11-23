@@ -25,10 +25,10 @@ describe('applyInclusionFilters (QA-1)', () => {
     ['directory with slash', 'libs/'],
   ])('matches files under the included tree for a %s', (_label, pattern) => {
     const kept = FileFilterUtils.applyInclusionFilters(
-      ['libs/bot/src/risk.ts', 'apps/other/x.ts'],
+      ['libs/app/src/risk.ts', 'apps/other/x.ts'],
       [pattern]
     );
-    expect(kept).toEqual(['libs/bot/src/risk.ts']);
+    expect(kept).toEqual(['libs/app/src/risk.ts']);
   });
 
   it('matches Windows backslash paths against forward-slash patterns', () => {
@@ -49,11 +49,11 @@ describe('shouldIgnoreFile with a whitelist (QA-1)', () => {
 
   it('descends into directories on the include path', () => {
     expect(FileFilterUtils.shouldIgnoreFile('libs', c)).toBe(false);
-    expect(FileFilterUtils.shouldIgnoreFile('libs/bot', c)).toBe(false);
+    expect(FileFilterUtils.shouldIgnoreFile('libs/app', c)).toBe(false);
   });
 
   it('keeps files inside and prunes trees outside the whitelist', () => {
-    expect(FileFilterUtils.shouldIgnoreFile('libs/bot/src/risk.ts', c)).toBe(
+    expect(FileFilterUtils.shouldIgnoreFile('libs/app/src/risk.ts', c)).toBe(
       false
     );
     expect(FileFilterUtils.shouldIgnoreFile('apps/other', c)).toBe(true);
@@ -64,9 +64,9 @@ describe('scanner + whitelist end-to-end (QA-1)', () => {
   it('finds files inside the included tree', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-inc-'));
     try {
-      fs.mkdirSync(path.join(dir, 'libs/bot/src'), { recursive: true });
+      fs.mkdirSync(path.join(dir, 'libs/app/src'), { recursive: true });
       fs.mkdirSync(path.join(dir, 'tools'), { recursive: true });
-      fs.writeFileSync(path.join(dir, 'libs/bot/src/a.ts'), 'export {};');
+      fs.writeFileSync(path.join(dir, 'libs/app/src/a.ts'), 'export {};');
       fs.writeFileSync(path.join(dir, 'tools/b.ts'), 'export {};');
 
       const found = CheckerUtils.findTypeScriptFiles(
@@ -75,7 +75,7 @@ describe('scanner + whitelist end-to-end (QA-1)', () => {
       );
 
       expect(found).toHaveLength(1);
-      expect(found[0]!.replace(/\\/g, '/')).toContain('libs/bot/src/a.ts');
+      expect(found[0]!.replace(/\\/g, '/')).toContain('libs/app/src/a.ts');
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

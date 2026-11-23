@@ -6,12 +6,12 @@ import { AngularValidationUtils } from './angular-validation-utils';
  * Meta-dogfooding: Centralized validation patterns for Angular modules
  */
 export class AngularValidationPatterns {
-  private static readonly Constants = ANGULAR_CONSTANTS;
-  private static readonly ValidationUtils = AngularValidationUtils;
+  private static readonly constants = ANGULAR_CONSTANTS;
+  private static readonly validationUtils = AngularValidationUtils;
   // Lazily resolved: a static field initialized here would run BEFORE
   // VALIDATION_MESSAGES (declared below) is set, yielding undefined. A getter
   // defers to call-time when VALIDATION_MESSAGES is ready.
-  private static get Messages(): ReturnType<
+  private static get messages(): ReturnType<
     typeof AngularValidationPatterns.createValidationMessages
   > {
     return AngularValidationPatterns.createValidationMessages();
@@ -89,20 +89,20 @@ export class AngularValidationPatterns {
   ): void {
     if (isAppModule) return;
 
-    this.ValidationUtils.validateContent(
+    this.validationUtils.validateContent(
       fileName,
       [
         {
           condition:
-            content.includes(this.Constants.IMPORTS) &&
-            !content.includes(this.Constants.COMMON_MODULE),
-          ...this.Messages.COMMON_MODULE_MISSING(this.Constants.COMMON_MODULE),
+            content.includes(this.constants.IMPORTS) &&
+            !content.includes(this.constants.COMMON_MODULE),
+          ...this.messages.COMMON_MODULE_MISSING(this.constants.COMMON_MODULE),
         },
         {
-          condition: content.includes(this.Constants.BROWSER_MODULE),
-          ...this.Messages.BROWSER_MODULE_IN_FEATURE(
-            this.Constants.COMMON_MODULE,
-            this.Constants.BROWSER_MODULE
+          condition: content.includes(this.constants.BROWSER_MODULE),
+          ...this.messages.BROWSER_MODULE_IN_FEATURE(
+            this.constants.COMMON_MODULE,
+            this.constants.BROWSER_MODULE
           ),
         },
       ],
@@ -120,14 +120,14 @@ export class AngularValidationPatterns {
     violations: string[],
     suggestions: string[]
   ): void {
-    this.ValidationUtils.validateContent(
+    this.validationUtils.validateContent(
       fileName,
       [
         {
           condition:
-            content.includes(this.Constants.STANDALONE_TRUE) &&
-            !content.includes(this.Constants.IMPORTS),
-          ...this.Messages.STANDALONE_NO_IMPORTS(),
+            content.includes(this.constants.STANDALONE_TRUE) &&
+            !content.includes(this.constants.IMPORTS),
+          ...this.messages.STANDALONE_NO_IMPORTS(),
         },
       ],
       violations,
@@ -143,15 +143,15 @@ export class AngularValidationPatterns {
     fileName: string,
     suggestions: string[]
   ): void {
-    this.ValidationUtils.validateAndSuggest(
+    this.validationUtils.validateAndSuggest(
       fileName,
       [
         {
           condition:
-            content.includes(this.Constants.ROUTER_MODULE_FOR_CHILD) &&
-            !content.includes(this.Constants.CONST_ROUTES),
-          ...this.Messages.ROUTES_CONSTANT_MISSING(
-            this.Constants.ROUTER_MODULE_FOR_CHILD
+            content.includes(this.constants.ROUTER_MODULE_FOR_CHILD) &&
+            !content.includes(this.constants.CONST_ROUTES),
+          ...this.messages.ROUTES_CONSTANT_MISSING(
+            this.constants.ROUTER_MODULE_FOR_CHILD
           ),
         },
       ],
@@ -170,13 +170,13 @@ export class AngularValidationPatterns {
   ): void {
     if (isAppModule) return;
 
-    this.ValidationUtils.validateAndSuggest(
+    this.validationUtils.validateAndSuggest(
       fileName,
       [
         {
-          condition: content.includes(this.Constants.PROVIDERS),
-          ...this.Messages.PROVIDERS_INSTEAD_OF_ROOT(
-            this.Constants.PROVIDED_IN_ROOT
+          condition: content.includes(this.constants.PROVIDERS),
+          ...this.messages.PROVIDERS_INSTEAD_OF_ROOT(
+            this.constants.PROVIDED_IN_ROOT
           ),
         },
       ],

@@ -68,11 +68,12 @@ const STACKS = {
       }),
       'angular.json': '{}',
       // Nx-monorepo shape — the default includes whitelist scans libs/*/src/**
-      'libs/bot/src/ok.ts': 'export const ok = 1;\n',
+      'libs/app/src/ok.ts': 'export const ok = 1;\n',
     },
-    redFile: { 'libs/bot/src/risk.ts': 'export const equityFloor = 450;\n' },
+    // A Markdown file without the footer, inside the scanned library tree.
+    redFile: { 'libs/app/src/README.md': '# Notes\n\nNo footer here.\n' },
     // Opt-in: the red pass's `laws.severity` entry is what turns it on.
-    redLaw: 'No Risk Literals',
+    redLaw: 'MD Footer Template (MANDATORY)',
     redThresholds: undefined,
     projectType: 'angular',
     // `requires`-gated laws must not be selected where the toolkit is absent.
@@ -94,12 +95,12 @@ const STACKS = {
         },
       }),
       'angular.json': '{}',
-      'libs/bot/src/+state/bot.actions.ts':
+      'libs/app/src/+state/bot.actions.ts':
         "import { createAction, props } from '@ngrx/store';\nexport const loadBot = createAction('[Bot] Load', props<{ id: string }>());\n",
     },
     // An effects class without @Injectable: the NgRx effect-pattern pass reads *.effects.ts (#369).
     redFile: {
-      'libs/bot/src/+state/bot.effects.ts':
+      'libs/app/src/+state/bot.effects.ts':
         "import { createEffect } from '@ngrx/effects';\nexport class BotEffects {\n  load$ = createEffect(() => this.actions$);\n}\n",
     },
     redLaw: 'NgRx RxJS Operators Selection Mandate',
@@ -125,11 +126,11 @@ const STACKS = {
         appId: 'com.example.canary',
         webDir: 'www',
       }),
-      'libs/bot/src/app.component.ts':
+      'libs/app/src/app.component.ts':
         "export const template = '<ion-app><ion-router-outlet></ion-router-outlet></ion-app>';\n",
     },
     redFile: {
-      'libs/bot/src/wizard.ts':
+      'libs/app/src/wizard.ts':
         "export function done(router: { navigate: (c: string[], e: object) => void }): void {\n  router.navigate(['/x'], { skipLocationChange: true });\n}\n",
     },
     redLaw: 'Ionic No Skip Location Change',

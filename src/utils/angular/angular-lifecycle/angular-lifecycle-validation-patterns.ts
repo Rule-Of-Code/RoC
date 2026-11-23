@@ -5,7 +5,7 @@ import { AngularLifecycleConfiguration } from './angular-lifecycle-configuration
  * Meta-dogfooding: Centralized lifecycle validation logic for Angular components
  */
 export class AngularLifecycleValidationPatterns {
-  private static readonly Config = AngularLifecycleConfiguration;
+  private static readonly config = AngularLifecycleConfiguration;
   /**
    * Check interface implementation violations
    */
@@ -15,14 +15,14 @@ export class AngularLifecycleValidationPatterns {
     violations: string[],
     suggestions: string[]
   ): void {
-    const implementedInterfaces = this.Config.getImplementedInterfaces(content);
+    const implementedInterfaces = this.config.getImplementedInterfaces(content);
 
     for (const hookInterface of implementedInterfaces) {
-      const methodName = this.Config.getMethodForInterface(hookInterface);
+      const methodName = this.config.getMethodForInterface(hookInterface);
 
-      if (!this.Config.hasLifecycleMethod(content, methodName)) {
+      if (!this.config.hasLifecycleMethod(content, methodName)) {
         const messages =
-          this.Config.VALIDATION_MESSAGES.INTERFACE_WITHOUT_METHOD(
+          this.config.VALIDATION_MESSAGES.INTERFACE_WITHOUT_METHOD(
             hookInterface,
             methodName,
             fileName
@@ -42,17 +42,17 @@ export class AngularLifecycleValidationPatterns {
     violations: string[],
     suggestions: string[]
   ): void {
-    for (const { method, interface: hookInterface } of this.Config
+    for (const { method, interface: hookInterface } of this.config
       .HOOK_MAPPINGS) {
       if (
-        this.Config.hasLifecycleMethod(content, method) &&
-        !this.Config.PATTERN_DETECTORS.hasInterfaceImplementation(
+        this.config.hasLifecycleMethod(content, method) &&
+        !this.config.PATTERN_DETECTORS.hasInterfaceImplementation(
           content,
           hookInterface
         )
       ) {
         const messages =
-          this.Config.VALIDATION_MESSAGES.METHOD_WITHOUT_INTERFACE(
+          this.config.VALIDATION_MESSAGES.METHOD_WITHOUT_INTERFACE(
             method,
             hookInterface,
             fileName
@@ -72,25 +72,25 @@ export class AngularLifecycleValidationPatterns {
     violations: string[],
     suggestions: string[]
   ): void {
-    if (!this.Config.PATTERN_DETECTORS.hasOnInitAndConstructor(content)) return;
-    if (!this.Config.PATTERN_DETECTORS.hasHttpOrServiceUsage(content)) return;
+    if (!this.config.PATTERN_DETECTORS.hasOnInitAndConstructor(content)) return;
+    if (!this.config.PATTERN_DETECTORS.hasHttpOrServiceUsage(content)) return;
 
-    const constructorIndex = this.Config.findConstructorIndex(content);
-    const ngOnInitIndex = this.Config.findNgOnInitIndex(content);
+    const constructorIndex = this.config.findConstructorIndex(content);
+    const ngOnInitIndex = this.config.findNgOnInitIndex(content);
 
     if (constructorIndex > -1 && ngOnInitIndex > -1) {
-      const constructorContent = this.Config.extractConstructorContent(
+      const constructorContent = this.config.extractConstructorContent(
         content,
         constructorIndex
       );
 
       if (
-        this.Config.PATTERN_DETECTORS.hasAsyncOperationsInConstructor(
+        this.config.PATTERN_DETECTORS.hasAsyncOperationsInConstructor(
           constructorContent
         )
       ) {
         const messages =
-          this.Config.VALIDATION_MESSAGES.HTTP_IN_CONSTRUCTOR(fileName);
+          this.config.VALIDATION_MESSAGES.HTTP_IN_CONSTRUCTOR(fileName);
         violations.push(messages.violationMessage);
         suggestions.push(messages.suggestionMessage);
       }
@@ -107,11 +107,11 @@ export class AngularLifecycleValidationPatterns {
     suggestions: string[]
   ): void {
     if (
-      this.Config.PATTERN_DETECTORS.hasNgOnChanges(content) &&
-      !this.Config.PATTERN_DETECTORS.hasSimpleChanges(content)
+      this.config.PATTERN_DETECTORS.hasNgOnChanges(content) &&
+      !this.config.PATTERN_DETECTORS.hasSimpleChanges(content)
     ) {
       const messages =
-        this.Config.VALIDATION_MESSAGES.ONCHANGES_WITHOUT_SIMPLECHANGES(
+        this.config.VALIDATION_MESSAGES.ONCHANGES_WITHOUT_SIMPLECHANGES(
           fileName
         );
       violations.push(messages.violationMessage);

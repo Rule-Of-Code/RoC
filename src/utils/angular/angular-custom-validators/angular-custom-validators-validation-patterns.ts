@@ -5,7 +5,7 @@ import { AngularCustomValidatorsConfiguration } from './angular-custom-validator
  * Meta-dogfooding: Centralized custom validators validation logic for Angular components
  */
 export class AngularCustomValidatorsValidationPatterns {
-  private static readonly Config = AngularCustomValidatorsConfiguration;
+  private static readonly config = AngularCustomValidatorsConfiguration;
   /**
    * Validate validator return type patterns
    * Meta-dogfooding: Uses centralized pattern detection and validation messages
@@ -19,7 +19,7 @@ export class AngularCustomValidatorsValidationPatterns {
   ): void {
     if (!patterns.hasProperReturnType) {
       const message =
-        this.Config.VALIDATION_MESSAGES.INVALID_VALIDATOR_RETURN_TYPE(
+        this.config.VALIDATION_MESSAGES.INVALID_VALIDATOR_RETURN_TYPE(
           patterns.fileName
         );
       violations.push(message.violationMessage);
@@ -40,7 +40,7 @@ export class AngularCustomValidatorsValidationPatterns {
   ): void {
     if (patterns.hasAsyncValidator && !patterns.hasAsyncReturnType) {
       const message =
-        this.Config.VALIDATION_MESSAGES.INVALID_ASYNC_VALIDATOR_RETURN(
+        this.config.VALIDATION_MESSAGES.INVALID_ASYNC_VALIDATOR_RETURN(
           patterns.fileName
         );
       violations.push(message.violationMessage);
@@ -60,7 +60,7 @@ export class AngularCustomValidatorsValidationPatterns {
   ): void {
     if (!patterns.hasValidatorExport) {
       const message =
-        this.Config.VALIDATION_MESSAGES.SUGGEST_REUSABLE_VALIDATORS(
+        this.config.VALIDATION_MESSAGES.SUGGEST_REUSABLE_VALIDATORS(
           patterns.fileName
         );
       suggestions.push(message.suggestionMessage);
@@ -79,7 +79,7 @@ export class AngularCustomValidatorsValidationPatterns {
   ): void {
     if (patterns.hasFormControl && !patterns.hasValidatorsUsage) {
       const message =
-        this.Config.VALIDATION_MESSAGES.SUGGEST_ADD_VALIDATORS_TO_CONTROL(
+        this.config.VALIDATION_MESSAGES.SUGGEST_ADD_VALIDATORS_TO_CONTROL(
           patterns.fileName
         );
       suggestions.push(message.suggestionMessage);
@@ -101,7 +101,7 @@ export class AngularCustomValidatorsValidationPatterns {
       patterns.hasPasswordFields &&
       !patterns.hasMatchValidator
     ) {
-      const message = this.Config.VALIDATION_MESSAGES.SUGGEST_PASSWORD_MATCHING(
+      const message = this.config.VALIDATION_MESSAGES.SUGGEST_PASSWORD_MATCHING(
         patterns.fileName
       );
       suggestions.push(message.suggestionMessage);
@@ -120,7 +120,7 @@ export class AngularCustomValidatorsValidationPatterns {
   ): void {
     if (patterns.hasFormControl && !patterns.hasErrorHandling) {
       const message =
-        this.Config.VALIDATION_MESSAGES.SUGGEST_ADD_ERROR_HANDLING(
+        this.config.VALIDATION_MESSAGES.SUGGEST_ADD_ERROR_HANDLING(
           patterns.fileName
         );
       suggestions.push(message.suggestionMessage);

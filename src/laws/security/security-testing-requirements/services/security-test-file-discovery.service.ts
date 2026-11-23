@@ -2,6 +2,7 @@ import type { RuleOfCodeConfig } from '../../../../types';
 import { FileUtils, PathOperations } from '../../../../utils';
 import { DirectoryScanner } from '../../../../utils/directory-scanner';
 import { SecurityTestFileConstants } from '../constants/test-file';
+import { errorUser } from '../../../../utils/logging-utils';
 
 /**
  * SecurityTestFileDiscoveryService
@@ -71,10 +72,7 @@ export class SecurityTestFileDiscoveryService {
         }
       });
     } catch (error) {
-      console.error(
-        `[DEBUG] Error in findSecurityTestFiles for ${dir}:`,
-        error
-      );
+      errorUser(`[DEBUG] Error in findSecurityTestFiles for ${dir}:`, error);
       // Ignore errors in directory traversal
     }
 

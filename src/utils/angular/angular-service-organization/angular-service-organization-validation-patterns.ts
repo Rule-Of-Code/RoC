@@ -12,7 +12,7 @@ import { AngularServiceOrganizationConfiguration } from './angular-service-organ
  * Centralized validation methods for service organization analysis
  */
 export class AngularServiceOrganizationValidationPatterns extends AngularConfigurationBase {
-  private static readonly Config = AngularServiceOrganizationConfiguration;
+  private static readonly config = AngularServiceOrganizationConfiguration;
   private static readonly FILE_NAME_PLACEHOLDER = '{fileName}';
   private static readonly CATEGORY_BUSINESS = 'business';
   private static readonly CATEGORY_AUTH = 'auth';
@@ -60,19 +60,19 @@ export class AngularServiceOrganizationValidationPatterns extends AngularConfigu
     const hasServicesDir = FileUtils.exists(
       PathOperations.join(
         appPath,
-        this.Config.ORGANIZATION_PATTERNS.DIRECTORY_NAMES.SERVICES
+        this.config.ORGANIZATION_PATTERNS.DIRECTORY_NAMES.SERVICES
       )
     );
     const hasCoreDir = FileUtils.exists(
       PathOperations.join(
         appPath,
-        this.Config.ORGANIZATION_PATTERNS.DIRECTORY_NAMES.CORE
+        this.config.ORGANIZATION_PATTERNS.DIRECTORY_NAMES.CORE
       )
     );
     const hasSharedDir = FileUtils.exists(
       PathOperations.join(
         appPath,
-        this.Config.ORGANIZATION_PATTERNS.DIRECTORY_NAMES.SHARED
+        this.config.ORGANIZATION_PATTERNS.DIRECTORY_NAMES.SHARED
       )
     );
 
@@ -109,12 +109,12 @@ export class AngularServiceOrganizationValidationPatterns extends AngularConfigu
   ): void {
     const appFiles = FileUtils.safeReadDirectory(appPath, config);
     const serviceFilesInRoot = appFiles.filter(file =>
-      this.Config.isServiceFile(file)
+      this.config.isServiceFile(file)
     );
 
     if (serviceFilesInRoot.length > 0 && !hasServicesDir && !hasCoreDir) {
       suggestions.push(
-        this.Config.VALIDATION_MESSAGES.ORGANIZE_SERVICES_SUGGESTION
+        this.config.VALIDATION_MESSAGES.ORGANIZE_SERVICES_SUGGESTION
       );
     }
   }
@@ -129,17 +129,17 @@ export class AngularServiceOrganizationValidationPatterns extends AngularConfigu
   ): void {
     const servicesPath = PathOperations.join(
       appPath,
-      this.Config.ORGANIZATION_PATTERNS.DIRECTORY_NAMES.SERVICES
+      this.config.ORGANIZATION_PATTERNS.DIRECTORY_NAMES.SERVICES
     );
     const entries = FileUtils.safeReadDirectory(servicesPath, config);
     const serviceFiles = entries.filter(entry =>
-      this.Config.isServiceFile(entry)
+      this.config.isServiceFile(entry)
     );
 
     // Check size threshold
-    const thresholds = this.Config.getThresholds(config);
+    const thresholds = this.config.getThresholds(config);
     if (serviceFiles.length > thresholds.MAX_SERVICES_IN_DIRECTORY) {
-      suggestions.push(this.Config.VALIDATION_MESSAGES.SUBDIRECTORY_SUGGESTION);
+      suggestions.push(this.config.VALIDATION_MESSAGES.SUBDIRECTORY_SUGGESTION);
     }
 
     // Check barrel export
@@ -147,11 +147,11 @@ export class AngularServiceOrganizationValidationPatterns extends AngularConfigu
       entry =>
         entry.isFile() &&
         entry.name ===
-          this.Config.ORGANIZATION_PATTERNS.FILE_PATTERNS.INDEX_FILE
+          this.config.ORGANIZATION_PATTERNS.FILE_PATTERNS.INDEX_FILE
     );
     if (!hasIndex && serviceFiles.length > thresholds.MIN_SERVICES_FOR_BARREL) {
       suggestions.push(
-        this.Config.VALIDATION_MESSAGES.BARREL_EXPORT_SUGGESTION
+        this.config.VALIDATION_MESSAGES.BARREL_EXPORT_SUGGESTION
       );
     }
   }
@@ -166,11 +166,11 @@ export class AngularServiceOrganizationValidationPatterns extends AngularConfigu
   ): void {
     const corePath = PathOperations.join(
       appPath,
-      this.Config.ORGANIZATION_PATTERNS.DIRECTORY_NAMES.CORE
+      this.config.ORGANIZATION_PATTERNS.DIRECTORY_NAMES.CORE
     );
     const entries = FileUtils.safeReadDirectory(corePath, config);
     const serviceFiles = entries.filter(entry =>
-      this.Config.isServiceFile(entry)
+      this.config.isServiceFile(entry)
     );
 
     for (const serviceFile of serviceFiles) {
@@ -183,12 +183,12 @@ export class AngularServiceOrganizationValidationPatterns extends AngularConfigu
       if (
         content &&
         !content.includes(
-          this.Config.ORGANIZATION_PATTERNS.DEPENDENCY_INJECTION
+          this.config.ORGANIZATION_PATTERNS.DEPENDENCY_INJECTION
             .PROVIDED_IN_ROOT
         )
       ) {
         suggestions.push(
-          this.Config.VALIDATION_MESSAGES.CORE_PROVIDED_IN_ROOT_SUGGESTION.replace(
+          this.config.VALIDATION_MESSAGES.CORE_PROVIDED_IN_ROOT_SUGGESTION.replace(
             this.FILE_NAME_PLACEHOLDER,
             serviceFile.name
           )
@@ -207,16 +207,16 @@ export class AngularServiceOrganizationValidationPatterns extends AngularConfigu
   ): void {
     const sharedPath = PathOperations.join(
       appPath,
-      this.Config.ORGANIZATION_PATTERNS.DIRECTORY_NAMES.SHARED
+      this.config.ORGANIZATION_PATTERNS.DIRECTORY_NAMES.SHARED
     );
     const entries = FileUtils.safeReadDirectory(sharedPath, config);
     const serviceFiles = entries.filter(entry =>
-      this.Config.isServiceFile(entry)
+      this.config.isServiceFile(entry)
     );
 
     for (const serviceFile of serviceFiles) {
       const isUtilityService =
-        this.Config.ORGANIZATION_PATTERNS.SERVICE_CATEGORIES.UTILITY_PATTERNS.some(
+        this.config.ORGANIZATION_PATTERNS.SERVICE_CATEGORIES.UTILITY_PATTERNS.some(
           pattern => serviceFile.name.includes(pattern)
         );
 
@@ -230,12 +230,12 @@ export class AngularServiceOrganizationValidationPatterns extends AngularConfigu
         if (
           content &&
           !content.includes(
-            this.Config.ORGANIZATION_PATTERNS.DEPENDENCY_INJECTION
+            this.config.ORGANIZATION_PATTERNS.DEPENDENCY_INJECTION
               .PROVIDED_IN_ANY
           )
         ) {
           suggestions.push(
-            this.Config.VALIDATION_MESSAGES.SHARED_PROVIDED_IN_SUGGESTION.replace(
+            this.config.VALIDATION_MESSAGES.SHARED_PROVIDED_IN_SUGGESTION.replace(
               this.FILE_NAME_PLACEHOLDER,
               serviceFile.name
             )
@@ -254,7 +254,7 @@ export class AngularServiceOrganizationValidationPatterns extends AngularConfigu
     config: RuleOfCodeConfig
   ): void {
     const serviceFiles = this.findAllServiceFiles(srcPath, config);
-    const categories = this.Config.categorizeServices(serviceFiles);
+    const categories = this.config.categorizeServices(serviceFiles);
 
     // Check each categorized service
     for (const [category, files] of Object.entries(categories)) {
@@ -284,11 +284,11 @@ export class AngularServiceOrganizationValidationPatterns extends AngularConfigu
     if (
       category === this.CATEGORY_BUSINESS &&
       content.includes(
-        this.Config.ORGANIZATION_PATTERNS.RESPONSIBILITY_PATTERNS.HTTP_CLIENT
+        this.config.ORGANIZATION_PATTERNS.RESPONSIBILITY_PATTERNS.HTTP_CLIENT
       )
     ) {
       suggestions.push(
-        this.Config.VALIDATION_MESSAGES.SEPARATE_HTTP_LOGIC_SUGGESTION.replace(
+        this.config.VALIDATION_MESSAGES.SEPARATE_HTTP_LOGIC_SUGGESTION.replace(
           this.FILE_NAME_PLACEHOLDER,
           fileName
         )
@@ -298,15 +298,15 @@ export class AngularServiceOrganizationValidationPatterns extends AngularConfigu
     // Check for storage logic in auth services
     const hasStorageLogic =
       content.includes(
-        this.Config.ORGANIZATION_PATTERNS.RESPONSIBILITY_PATTERNS.LOCAL_STORAGE
+        this.config.ORGANIZATION_PATTERNS.RESPONSIBILITY_PATTERNS.LOCAL_STORAGE
       ) ||
       content.includes(
-        this.Config.ORGANIZATION_PATTERNS.RESPONSIBILITY_PATTERNS
+        this.config.ORGANIZATION_PATTERNS.RESPONSIBILITY_PATTERNS
           .SESSION_STORAGE
       );
     if (category === this.CATEGORY_AUTH && hasStorageLogic) {
       suggestions.push(
-        this.Config.VALIDATION_MESSAGES.SEPARATE_STORAGE_LOGIC_SUGGESTION.replace(
+        this.config.VALIDATION_MESSAGES.SEPARATE_STORAGE_LOGIC_SUGGESTION.replace(
           this.FILE_NAME_PLACEHOLDER,
           fileName
         )
@@ -331,10 +331,10 @@ export class AngularServiceOrganizationValidationPatterns extends AngularConfigu
 
         if (
           entry.isDirectory() &&
-          !this.Config.shouldSkipDirectory(entry.name)
+          !this.config.shouldSkipDirectory(entry.name)
         ) {
           searchRecursively(fullPath);
-        } else if (this.Config.isServiceFile(entry)) {
+        } else if (this.config.isServiceFile(entry)) {
           serviceFiles.push(fullPath);
         }
       }

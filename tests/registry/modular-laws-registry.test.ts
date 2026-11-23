@@ -486,8 +486,6 @@ describe('registry/modular-laws-registry', () => {
       const poll = laws.find(l => l.name === 'Poll Via Sanctioned Source');
       expect(poll).toBeDefined();
       expect(poll?.severity).toBe('warning');
-      const noRisk = laws.find(l => l.name === 'No Risk Literals');
-      expect(noRisk?.severity).toBe('warning');
     });
   });
 

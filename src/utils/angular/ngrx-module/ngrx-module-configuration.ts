@@ -30,10 +30,10 @@ export class NgRxModuleConfiguration {
   // Lazy getter, not a static field: under the (now-broken) import cycle a static
   // initializer could capture NgRxSetupConfiguration before it was defined,
   // leaving Config === undefined. A getter resolves it at call time.
-  private static get Config(): typeof NgRxSetupConfiguration {
+  private static get config(): typeof NgRxSetupConfiguration {
     return NgRxSetupConfiguration;
   }
-  private static readonly Patterns = NgRxModuleValidationPatterns;
+  private static readonly patterns = NgRxModuleValidationPatterns;
 
   /**
    * RULE 2: Centralized setup recommendations to eliminate duplication
@@ -51,9 +51,9 @@ export class NgRxModuleConfiguration {
    */
   private static getCachedConfiguration() {
     return {
-      messages: this.Config.VALIDATION_MESSAGES,
-      patterns: this.Config.APP_MODULE_PATTERNS,
-      patternTypes: this.Config.PATTERN_TYPES,
+      messages: this.config.VALIDATION_MESSAGES,
+      patterns: this.config.APP_MODULE_PATTERNS,
+      patternTypes: this.config.PATTERN_TYPES,
       readingConfig: {
         encoding: ANGULAR_CONSTANTS.ENCODING_UTF8 as BufferEncoding,
         fallbackToEmpty: true,
@@ -74,7 +74,7 @@ export class NgRxModuleConfiguration {
 
     // RULE 2: Use centralized configuration helper to eliminate duplication
     const { patterns } = this.getCachedConfiguration();
-    const appModulePath = this.Config.getAppModulePath(projectRoot);
+    const appModulePath = this.config.getAppModulePath(projectRoot);
 
     // RULE 2: Early return for missing module (no violation for standalone architecture)
     if (!FileSystemOperations.exists(appModulePath)) {
@@ -96,7 +96,7 @@ export class NgRxModuleConfiguration {
     // RULE 2: Simplified DevTools integration check
     if (devToolsAnalysis.installed && !devToolsAnalysis.configured) {
       suggestions.push(
-        this.Config.buildMessage(
+        this.config.buildMessage(
           'MISSING_DEVTOOLS_CONFIG',
           patterns.storeDevtoolsModule,
           patterns.appModuleFile
@@ -115,8 +115,8 @@ export class NgRxModuleConfiguration {
     configured: boolean;
   } {
     return {
-      installed: this.Config.checkDevToolsDependencyInstalled(projectRoot),
-      configured: this.Config.checkDevToolsConfigured(projectRoot),
+      installed: this.config.checkDevToolsDependencyInstalled(projectRoot),
+      configured: this.config.checkDevToolsConfigured(projectRoot),
     };
   }
 
@@ -169,7 +169,7 @@ export class NgRxModuleConfiguration {
       patternTypes,
     } = options;
     // RULE 2: Direct call to configuration utility
-    this.Config.checkModuleStandards(
+    this.config.checkModuleStandards(
       moduleContent,
       patterns.appModuleFile,
       violations
@@ -202,10 +202,10 @@ export class NgRxModuleConfiguration {
     // RULE 2: Store module validation with early return optimization
     if (
       dependencies.hasStore &&
-      !this.Config.containsNgRxPattern(moduleContent, patternTypes.storeModule)
+      !this.config.containsNgRxPattern(moduleContent, patternTypes.storeModule)
     ) {
       violations.push(
-        this.Config.buildMessage(
+        this.config.buildMessage(
           'MISSING_STORE_MODULE_CONFIG',
           patterns.storeModuleForRoot,
           patterns.appModuleFile
@@ -222,7 +222,7 @@ export class NgRxModuleConfiguration {
     // RULE 2: Effects module validation with early return optimization
     if (
       dependencies.hasEffects &&
-      !this.Config.containsNgRxPattern(
+      !this.config.containsNgRxPattern(
         moduleContent,
         patternTypes.effectsModule
       )
@@ -240,7 +240,7 @@ export class NgRxModuleConfiguration {
    * Get module validation patterns
    */
   static getValidationPatterns() {
-    return this.Patterns;
+    return this.patterns;
   }
 
   /**
@@ -252,7 +252,7 @@ export class NgRxModuleConfiguration {
     appModulePath?: string;
     errors?: string[];
   } {
-    const appModulePath = this.Config.getAppModulePath(projectRoot);
+    const appModulePath = this.config.getAppModulePath(projectRoot);
 
     // RULE 2: Early return with centralized error message
     if (!FileSystemOperations.exists(appModulePath)) {

@@ -46,6 +46,31 @@ an `anyFileContaining` entry can set `readsCode`, and the pattern is then
 matched with comments and string contents blanked (TS/JS by the JS rules,
 Python by its own lexer). The law's three entries set it.
 
+### ⚠️ BREAKING — No Risk Literals is removed (#558)
+
+The opt-in law No Risk Literals is removed: 265 laws → 264. Its vocabulary
+(`floor`, `risk`, `limit`, `equity`, `stake`, `pnl`, `leverage`, `target`)
+belongs to one business domain, not to a framework or to code quality in
+general, and its own detection limits said so; a law in this catalogue
+should hold for any project of its stack.
+
+**Migration: delete the key.** A config that still names the law in
+`laws.severity`, `laws.enabled` or `laws.notApplicable` (as
+`"No Risk Literals"` or `"no-risk-literals"`) fails the audit through
+Config Integrity Guard, an always-on law at error severity, as every key
+that gates nothing does. The message says what happened:
+`laws.severity: 'no-risk-literals' is no longer a law (removed after 8.0.1, #558): delete this key`.
+Removed laws are listed in `src/data/retired-laws.ts`, so their keys are
+named as removed rather than as unknown. The audit's stderr warning for
+`laws.severity`, `laws.notApplicable` and `ignores`/`includes.byRule` uses
+the same words (`⚠️  laws.notApplicable: 'No Risk Literals' is no longer a
+law …`); a misspelt name is still an "unknown law".
+
+The angular release-canary profile now plants its red violation for MD
+Footer Template (MANDATORY), the other opt-in law that a plain Angular
+fixture can fail, and its fixture paths are neutral (`libs/app/…`). Older
+entries below that describe the law are kept as history.
+
 ### 🐛 Fixed — a module-level `let` reset in `beforeEach` is not shared state (#552)
 
 Test Data Management and Test Isolation Enforcement reported a module-level
@@ -536,6 +561,32 @@ Sample and test trees (`example/`, `examples/`, `sample/`, `samples/`, test
 and fixture trees, `androidTest/`, `Pods/`) are left out, so a library that
 ships an example app is not selected by it. JS shells (React Native, Expo,
 Capacitor, NativeScript) are selected as before.
+
+### 🔧 Internal — RoC's own code: logging, types and casts (#559)
+
+The self-audit's small groups on RoC's own code, with no change in behaviour:
+user-facing warnings and errors of the engine, the audit cache, the config
+loader and the file utilities go through `warnUser` / `errorUser` in
+logging-utils (the same text on stderr) instead of direct `console.warn` /
+`console.error`; the engine reads its config through a typed `EngineSettings`
+instead of `as any`, runs laws as `RunnableLaw`, and builds the open
+selection without `as unknown as`; the audit cache stores a typed
+`StoredAuditResult`; Latency Budget Harness Realism guards instead of
+asserting with `!`. Self-audit: Centralized Logging 7 → 0, Absolute Zero
+Tolerance Doctrine 7 → 0, No Explicit Any / Non-Null Assertion 2 → 0,
+No Double Cast 2 → 0.
+
+### 🔧 Internal — RoC's own code follows a naming convention ESLint enforces (#559)
+
+`@typescript-eslint/eslint-plugin` (8.67.0, the version of the locked
+parser) is a devDependency, and `eslint.config.mjs` turns on
+`@typescript-eslint/naming-convention` with the convention the code follows:
+camelCase values, functions and members, UPPER_CASE constants (and getters
+that stand for one), PascalCase types, keys of object literals and type
+members left to the data they describe. 56 private static aliases
+(`Config`, `Messages`, `Patterns`, …) and one constant-style helper were
+renamed to camelCase in their files; nothing is exempted. The packed tarball
+lists the same files. Self-audit: Naming Convention Enforcement 1 → 0.
 
 ### 🧹 Internal — tests and the release canary remove their temp directories
 

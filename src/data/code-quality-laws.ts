@@ -146,8 +146,8 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Judges presence, not content: any non-empty JSDoc block satisfies it, however little it says.',
       'Only top-level declarations: methods, interfaces, types, enums, non-function constants, namespace members and non-exported code are not judged; a function wrapped in a call (export const f = wrap(() => …)) is not seen as a function.',
       'A re-export (export { a } from …) is judged in the module that declares it, not where it is re-exported; .d.ts files are not judged.',
-      "Reads .ts/.tsx with the project's own typescript; without it the files are reported as not read, and a file that does not parse is named as not read.",
-      'TS only — no Python (Public Docstrings judges Python).',
+      "Reads .ts/.tsx and .js/.jsx/.mjs/.cjs (#493) with the project's own typescript; without it the files are reported as not read, and a file that does not parse is named as not read. CommonJS exports (module.exports = …) are not ES exports and are not judged.",
+      'TypeScript and JavaScript — no Python (Public Docstrings judges Python).',
     ],
     emoji: '📝',
     description:

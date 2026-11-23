@@ -43,6 +43,23 @@ of the law disappearing from the audit. The laws selected by
 `REQUIRES_PRODUCTION_SUBJECT` are unchanged: `firebase.json` is still a deploy
 target there.
 
+### Fixed — an angular.json that cannot be read is said to be not read, never "budgets missing"
+
+The bundle check of Lazy Loading Implementation read an `angular.json` that
+does not parse as an empty object, so its build checks found nothing to
+report, and the budget analyzer swallowed the parse error and answered "not
+configured". The project was told to "Add performance budgets in angular.json
+build configuration" while its budgets may well be there, and nothing said the
+file was not read. A bare `catch` around the budget and webpack analyzers also
+turned any error into the same "missing" advice (#423).
+
+Now a build config that cannot be read (`angular.json`, or a workspace
+`project.json`) is named with its reason, once: `angular.json could not be read:
+<reason> — its build configuration and performance budgets were NOT read`. It
+is a finding, not a pass, and no "missing" advice is given for it. Performance
+Budget Compliance reads the same analyzer and reports the budgets as not read
+instead of "Angular CLI performance budgets not configured".
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

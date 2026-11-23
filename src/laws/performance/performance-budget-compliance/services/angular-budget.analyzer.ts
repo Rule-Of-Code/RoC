@@ -17,26 +17,37 @@ import {
  * - Verify budget setup in angular.json or Nx project.json files
  * - Support both traditional Angular CLI and Nx monorepo structures
  */
+/** Budgets found, and the build configs that could not be read. */
+export interface AngularBudgetAnalysis {
+  configured: boolean;
+  projects: string[];
+  unreadable: string[];
+}
+
 export class AngularBudgetAnalyzerService {
   /**
    * Analyze Angular performance budgets
    */
-  static analyze(projectRoot: string): {
-    configured: boolean;
-    projects: string[];
-  } {
+  static analyze(projectRoot: string): AngularBudgetAnalysis {
     const projects: string[] = [];
+    const unreadable: string[] = [];
 
     // Check traditional angular.json first
     const angularJsonPath = PathOperations.join(projectRoot, 'angular.json');
     if (FileUtils.exists(angularJsonPath)) {
-      this.analyzeAngularJson(angularJsonPath, projects);
+      this.analyzeAngularJson(angularJsonPath, projects, unreadable);
     }
 
     // Also check Nx monorepo project.json files
-    this.analyzeNxProjects(projectRoot, projects);
+    this.analyzeNxProjects(projectRoot, projects, unreadable);
 
-    return { configured: projects.length > 0, projects };
+    return { configured: projects.length > 0, projects, unreadable };
+  }
+
+  /** "<file> could not be read: <reason>" — a file that holds budgets, not read (#423). */
+  private static notRead(file: string, error: unknown): string {
+    const reason = error instanceof Error ? error.message : String(error);
+    return `${file} could not be read: ${reason}`;
   }
 
   /**
@@ -44,7 +55,8 @@ export class AngularBudgetAnalyzerService {
    */
   private static analyzeAngularJson(
     angularJsonPath: string,
-    projects: string[]
+    projects: string[],
+    unreadable: string[]
   ): void {
     try {
       const angularJson =
@@ -72,8 +84,9 @@ export class AngularBudgetAnalyzerService {
           );
         }
       }
-    } catch {
-      // Invalid JSON, skip
+    } catch (error) {
+      // Not "no budgets": the file that would declare them was not read.
+      unreadable.push(this.notRead('angular.json', error));
     }
   }
 
@@ -82,7 +95,8 @@ export class AngularBudgetAnalyzerService {
    */
   private static analyzeNxProjects(
     projectRoot: string,
-    projects: string[]
+    projects: string[],
+    unreadable: string[]
   ): void {
     const projectDirs = ['apps', 'libs'];
 
@@ -101,7 +115,13 @@ export class AngularBudgetAnalyzerService {
             );
 
             if (FileUtils.exists(projectJsonPath)) {
-              this.analyzeProjectJson(projectJsonPath, entry.name, projects);
+              this.analyzeProjectJson(
+                projectJsonPath,
+                `${dir}/${entry.name}/project.json`,
+                entry.name,
+                projects,
+                unreadable
+              );
             }
           }
         }
@@ -116,8 +136,10 @@ export class AngularBudgetAnalyzerService {
    */
   private static analyzeProjectJson(
     projectJsonPath: string,
+    relPath: string,
     projectName: string,
-    projects: string[]
+    projects: string[],
+    unreadable: string[]
   ): void {
     try {
       const projectJson =
@@ -148,8 +170,8 @@ export class AngularBudgetAnalyzerService {
           }
         }
       }
-    } catch {
-      // Invalid JSON or missing fields, skip
+    } catch (error) {
+      unreadable.push(this.notRead(relPath, error));
     }
   }
 }

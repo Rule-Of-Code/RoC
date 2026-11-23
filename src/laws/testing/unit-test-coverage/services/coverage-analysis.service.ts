@@ -41,7 +41,6 @@ export class UnitTestCoverageCoverageAnalysisService {
     details: string[];
     recommendations: string[];
   } {
-    const _level = UnitTestCoverageCoverageConstants.getCoverageLevel(coverage);
     const message = UnitTestCoverageCoverageConstants.getLevelMessage(coverage);
 
     const details: string[] = [

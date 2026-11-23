@@ -73,7 +73,6 @@ export class GitHookComplianceLaw extends GitLawBase {
     // Check hook permissions and execution
     const executableAnalysis = this.checkHookExecutability(
       context.projectRoot,
-      context.config,
       hookFrameworkSatisfied
     );
     violations.push(...executableAnalysis.violations);
@@ -276,7 +275,6 @@ export class GitHookComplianceLaw extends GitLawBase {
 
   private static checkHookExecutability(
     projectRoot: string,
-    config: RuleOfCodeConfig,
     hookFrameworkSatisfied = false
   ): { violations: string[]; suggestions: string[] } {
     const { violations, suggestions, exists, hooksDir } =

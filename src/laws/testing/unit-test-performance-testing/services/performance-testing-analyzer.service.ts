@@ -199,7 +199,6 @@ export class UnitTestPerformanceTestingAnalyzerService extends TestAnalyzerMixin
   ): string[] {
     const searchDirs = this.buildTestSearchDirs(projectRoot, ['performance']);
     return this.findTestFilesInDirectories(
-      projectRoot,
       searchDirs,
       UnitTestPerformanceTestingConstants.isPerformanceTestFile,
       config

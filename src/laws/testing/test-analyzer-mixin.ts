@@ -18,7 +18,6 @@ export class TestAnalyzerMixin {
    * function to do the actual filtering instead.
    */
   protected static findTestFilesInDirectories(
-    projectRoot: string,
     searchDirs: string[],
     isTestFile: (filepath: string) => boolean,
     config: RuleOfCodeConfig

@@ -8,7 +8,7 @@ import { SecurityPatternConstants } from './security-pattern-constants';
  * Single Responsibility: innerHTML, bypassSecurityTrust*, eval, document.write detection
  */
 export class DangerousPatternsConstants extends SecurityPatternConstants {
-  static readonly PATTERNS = {
+  static override readonly PATTERNS = {
     INNER_HTML: /\.innerHTML\s*=/i,
     BYPASS_HTML: /bypassSecurityTrustHtml\(/i,
     BYPASS_SCRIPT: /bypassSecurityTrustScript\(/i,
@@ -18,7 +18,7 @@ export class DangerousPatternsConstants extends SecurityPatternConstants {
     INNER_HTML_BINDING: /\[innerHTML\]\s*=/i,
   };
 
-  static readonly MESSAGES = {
+  static override readonly MESSAGES = {
     INNER_HTML: 'Direct innerHTML usage detected - potential XSS vulnerability',
     BYPASS_HTML: 'bypassSecurityTrustHtml usage without proper sanitization',
     BYPASS_SCRIPT: 'bypassSecurityTrustScript usage - extremely dangerous',

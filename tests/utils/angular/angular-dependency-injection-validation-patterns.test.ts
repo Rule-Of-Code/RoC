@@ -20,12 +20,10 @@ describe('utils/angular/angular-dependency-injection/angular-dependency-injectio
         );
 
       const violations: string[] = [];
-      const suggestions: string[] = [];
 
       AngularDependencyInjectionValidationPatterns.validateConstructorInjection(
         patterns,
         violations,
-        suggestions,
         { thresholds: {} }
       );
 
@@ -46,16 +44,14 @@ describe('utils/angular/angular-dependency-injection/angular-dependency-injectio
         );
 
       const violations: string[] = [];
-      const suggestions: string[] = [];
 
       AngularDependencyInjectionValidationPatterns.validateConstructorInjection(
         patterns,
         violations,
-        suggestions,
         { thresholds: {} }
       );
 
-      expect(suggestions.length).toBeGreaterThanOrEqual(0);
+      expect(violations).toHaveLength(0);
     });
 
     it('should add violation for too many dependencies', () => {
@@ -81,16 +77,14 @@ describe('utils/angular/angular-dependency-injection/angular-dependency-injectio
         );
 
       const violations: string[] = [];
-      const suggestions: string[] = [];
 
       AngularDependencyInjectionValidationPatterns.validateConstructorInjection(
         patterns,
         violations,
-        suggestions,
         { thresholds: {} }
       );
 
-      expect(violations.length + suggestions.length).toBeGreaterThanOrEqual(0);
+      expect(violations.length).toBeGreaterThanOrEqual(0);
     });
 
     it('should skip validation when no constructor exists', () => {
@@ -103,17 +97,14 @@ describe('utils/angular/angular-dependency-injection/angular-dependency-injectio
         );
 
       const violations: string[] = [];
-      const suggestions: string[] = [];
 
       AngularDependencyInjectionValidationPatterns.validateConstructorInjection(
         patterns,
         violations,
-        suggestions,
         { thresholds: {} }
       );
 
       expect(violations).toHaveLength(0);
-      expect(suggestions).toHaveLength(0);
     });
   });
 

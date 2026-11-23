@@ -249,7 +249,8 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
         'Guard routes with @login_required / @jwt_required, check roles, and abort(401/403) for the unauthorized — recognised natively.',
     },
     detectionLimits: [
-      'Keyword/regex presence ANYWHERE in the codebase, not per-route or data-flow — one decorative match satisfies a whole category, and a genuinely unguarded route can pass if the vocabulary appears elsewhere.',
+      'Authentication, guards and roles are recognised by shapes in the parse (a managed auth SDK or session library imported, a sign-in or verify call, an Authorization header attached, a CanActivate guard or @UseGuards, a 401/403 refusal, a role/permission check call or decorator), ANYWHERE in the codebase — not per route and not by data flow: one guarded route satisfies the guard check for all of them.',
+      'Role-based, permission and resource-level checks apply only where the code has a role or permission concept (an identifier such as roles, UserRole, permissions, claims); with a managed auth SDK and no server session library, session timeout and invalidation are left to the SDK and not asked for. Resource-level authorization is still recognised by words (isOwner, ACL, …).',
       'JS/TS shapes; Python only toggles a native pass via auth-guard decorators — it does not positively analyse Python auth beyond that.',
       'Scans src/ (and Nx apps/ and libs/); code outside those trees is not seen.',
     ],

@@ -97,9 +97,15 @@ describe('#426 Authentication Security judges code, not its own patterns', () =>
   });
 
   it('a real service and token storage are recognised (control)', () => {
+    // #549: a service is recognised by what it does (a sign-in call), not by
+    // being called AuthService.
     const v = violations({
       'src/auth.ts': [
+        "import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';",
         'export class AuthService {',
+        '  login(email: string, password: string) {',
+        '    return signInWithEmailAndPassword(getAuth(), email, password);',
+        '  }',
         '  save(t: string): void {',
         "    localStorage.setItem('token', t);",
         '  }',

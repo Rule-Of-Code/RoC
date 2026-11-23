@@ -22,7 +22,7 @@ export class AuthenticationChecker extends SecurityCheckerBase {
         validator: codeFiles => this.hasAuthenticationService(codeFiles),
         violationMessage: 'No authentication service implementation found',
         suggestionMessage:
-          'Implement a dedicated authentication service (AuthService, AuthManager)',
+          'Sign users in through a managed auth SDK or your own sign-in, and attach the credential to requests (an interceptor or middleware)',
       },
       [
         {
@@ -66,32 +66,38 @@ export class AuthenticationChecker extends SecurityCheckerBase {
     });
   }
 
+  /**
+   * Authentication by what the code does (#549): it imports a managed auth
+   * SDK or a server session library, calls a sign-in or verifies a
+   * credential, or attaches a credential to its requests. What a class is
+   * called is not authentication — an empty `class AuthService {}` is none,
+   * and a provider over a managed SDK called anything is one.
+   */
   private static hasAuthenticationService(codeFiles: string[]): boolean {
-    const authPatterns = [
-      /class.*Auth.*Service/,
-      /class.*Authentication.*Service/,
-      /AuthService/,
-      /AuthManager/,
-      /LoginService/,
-      /UserAuthentication/,
-    ];
-
-    return this.anyFileMatchesCode(codeFiles, authPatterns);
+    const shape = this.authShapeOf(codeFiles);
+    return (
+      shape.managedSdk ||
+      shape.serverSession ||
+      shape.signsInOrVerifies ||
+      shape.attachesCredentials
+    );
   }
 
+  /**
+   * Token handling: an SDK that holds the token (and the calls that read it),
+   * a token attached to requests, tokens signed or verified, or kept in web
+   * storage. A variable called `accessToken` or a class called `TokenService`
+   * is not token management (#549).
+   */
   private static hasTokenManagement(codeFiles: string[]): boolean {
-    const tokenPatterns = [
+    const shape = this.authShapeOf(codeFiles);
+    if (shape.managedSdk || shape.readsSdkToken || shape.attachesCredentials)
+      return true;
+    return this.anyFileMatchesCode(codeFiles, [
       /localStorage\.setItem.*token/i,
       /sessionStorage\.setItem.*token/i,
-      /jwt\.sign/,
-      /jwt\.verify/,
-      /TokenManager/,
-      /TokenService/,
-      /refreshToken/,
-      /accessToken/,
-    ];
-
-    return this.anyFileMatchesCode(codeFiles, tokenPatterns);
+      /\bjwt\.(?:sign|verify)\s*\(/,
+    ]);
   }
 
   private static readonly SECURE_PASSWORD_PATTERNS = [

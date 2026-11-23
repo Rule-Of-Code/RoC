@@ -138,7 +138,7 @@ describe('CapacitorPluginStubHasContractTestLaw (#272)', () => {
       CapacitorPluginStubHasContractTestLaw.check(ctx(root))
     );
     expect(result.passed).toBe(false);
-    expect(result.violations?.[0]).toMatch(
+    expect(result.notRead?.[0]).toMatch(
       /module mappings in them were not read/
     );
   });

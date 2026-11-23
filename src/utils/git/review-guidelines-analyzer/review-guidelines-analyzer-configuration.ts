@@ -6,8 +6,6 @@ import { StringTemplateUtils } from '../../string-template-utils';
  * Centralized configuration for code review guidelines analysis patterns
  */
 export class ReviewGuidelinesAnalyzerConfiguration {
-  private static readonly Config = ReviewGuidelinesAnalyzerConfiguration;
-
   /**
    * Guideline file paths to check (RULE 1: 100% internal coverage)
    */

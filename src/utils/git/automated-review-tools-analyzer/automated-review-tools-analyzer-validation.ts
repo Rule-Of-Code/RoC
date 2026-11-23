@@ -26,8 +26,8 @@ export class AutomatedReviewToolsAnalyzerValidation {
 
     this.checkLintingTools(analysisResults, violations, suggestions);
     this.checkCIConfiguration(projectRoot, violations, suggestions, _config);
-    this.checkPreCommitHooks(projectRoot, violations, suggestions);
-    this.checkCodeQualityIntegration(projectRoot, violations, suggestions);
+    this.checkPreCommitHooks(projectRoot, suggestions);
+    this.checkCodeQualityIntegration(projectRoot, suggestions);
 
     return { violations, suggestions };
   }
@@ -217,11 +217,7 @@ export class AutomatedReviewToolsAnalyzerValidation {
   /**
    * Check for pre-commit hooks
    */
-  static checkPreCommitHooks(
-    projectRoot: string,
-    violations: string[],
-    suggestions: string[]
-  ): void {
+  static checkPreCommitHooks(projectRoot: string, suggestions: string[]): void {
     const hasPreCommitHooks = this.detectPreCommitHooks(projectRoot);
 
     if (!hasPreCommitHooks) {
@@ -251,7 +247,6 @@ export class AutomatedReviewToolsAnalyzerValidation {
    */
   static checkCodeQualityIntegration(
     projectRoot: string,
-    violations: string[],
     suggestions: string[]
   ): void {
     this.checkDependencyUpdaters(projectRoot, suggestions);

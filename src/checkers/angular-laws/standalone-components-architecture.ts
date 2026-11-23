@@ -232,18 +232,4 @@ export class StandaloneComponentsArchitectureLaw extends AngularLawBase {
 
     return { violations, suggestions };
   }
-
-  private static findComponentFiles(
-    srcPath: string,
-    config: RuleOfCodeConfig
-  ): string[] {
-    // CheckerUtils.findAngularFiles: Use CheckerUtils to find component files with proper ignore handling
-    // Note: CheckerUtils works with project root, so adjust the search
-    const srcIndex = srcPath.indexOf('/src');
-    const projectRoot =
-      srcIndex !== -1 ? srcPath.substring(0, srcIndex) : srcPath;
-    return AngularComponentFiles.find(projectRoot, config).filter(
-      (file: string) => file.startsWith(srcPath)
-    );
-  }
 }

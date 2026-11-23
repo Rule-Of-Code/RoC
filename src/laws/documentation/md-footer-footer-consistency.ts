@@ -2,13 +2,6 @@ import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { CheckerUtils } from '../../utils/checker-utils';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
-// Interface for footer analysis
-interface FooterAnalysis {
-  consistentFooters: number;
-  inconsistentFooters: number;
-  missingFooters: number;
-  totalFiles: number;
-}
 
 /**
  * MD Footer Footer Consistency Law
@@ -125,17 +118,7 @@ export class MdFooterFooterConsistencyLaw {
 
     return {
       passed: violations.length === 0,
-      message: this.generateMessage(
-        violations.length,
-        {
-          ...footerAnalysis,
-          consistentFooters: 0,
-          inconsistentFooters: 0,
-          missingFooters: 0,
-          totalFiles: 0,
-        } as FooterAnalysis,
-        markdownFiles.length
-      ),
+      message: this.generateMessage(violations.length, markdownFiles.length),
       details: [...violations, ...suggestions],
       violations,
       suggestions,
@@ -172,20 +155,6 @@ export class MdFooterFooterConsistencyLaw {
     } catch (_error) {
       // Skip directories that can't be read
     }
-  }
-
-  private static shouldSkipDirectory(dirName: string): boolean {
-    const skipDirs = [
-      'node_modules',
-      '.git',
-      'dist',
-      'build',
-      'coverage',
-      'tmp',
-      '.nx',
-      '.angular',
-    ];
-    return skipDirs.includes(dirName) || dirName.startsWith('.');
   }
 
   private static analyzeFooterConsistency(
@@ -487,7 +456,6 @@ export class MdFooterFooterConsistencyLaw {
 
   private static generateMessage(
     violationCount: number,
-    footerAnalysis: FooterAnalysis,
     fileCount: number
   ): string {
     if (violationCount === 0) {

@@ -24,7 +24,10 @@ import {
   projectsWithPlatform,
   relative,
 } from '../../utils/capacitor/capacitor-law-support';
-import { notReadReason } from '../../utils/capacitor/committed-shell';
+import {
+  type CommittedShell,
+  notReadReason,
+} from '../../utils/capacitor/committed-shell';
 import { LawBase } from '../law-base';
 
 const ALLOW_BACKUP = 'android:allowBackup';
@@ -101,6 +104,18 @@ export class CapacitorAndroidBackupScopedLaw extends LawBase {
     if (allow?.toLowerCase() === 'false')
       return { violations: [], decisions: [`${where}: backup off`] };
 
+    return this.backupOn(context, native, shell, attributes, allow);
+  }
+
+  /** Backup on: both rule files must exist; what they exclude is reported. */
+  private static backupOn(
+    context: LawCheckContext,
+    native: PlatformProject['native'],
+    shell: CommittedShell,
+    attributes: Map<string, string>,
+    allow: string | undefined
+  ): ProjectVerdict {
+    const where = relative(context, native.androidManifest);
     const stated =
       allow === undefined
         ? `${ALLOW_BACKUP} absent (Android's default is true)`

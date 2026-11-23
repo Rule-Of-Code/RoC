@@ -53,8 +53,8 @@ type Declaration = {
   name: string;
   node: TS.Node;
   container: TS.Node;
-  init?: TS.Expression;
-  param?: TS.ParameterDeclaration;
+  init?: TS.Expression | undefined;
+  param?: TS.ParameterDeclaration | undefined;
 };
 
 /** The analysis of one parsed file. */

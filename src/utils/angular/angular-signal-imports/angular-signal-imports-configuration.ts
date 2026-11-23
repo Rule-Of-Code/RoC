@@ -6,11 +6,6 @@ import { ANGULAR_CONSTANTS } from '../../constants';
  */
 export class AngularSignalImportsConfiguration {
   /**
-   * Config alias for cleaner internal references (RULE 2 pattern)
-   */
-  private static readonly Config = AngularSignalImportsConfiguration;
-
-  /**
    * Angular file extensions for signal analysis
    */
   static readonly FILE_EXTENSIONS = [

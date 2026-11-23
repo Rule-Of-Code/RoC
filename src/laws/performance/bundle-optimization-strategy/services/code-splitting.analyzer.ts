@@ -1,9 +1,6 @@
 import type { RuleOfCodeConfig } from '../../../../types/law.types';
-import { CheckerUtils, FileUtils, PathOperations } from '../../../../utils';
-import {
-  BundleOptimizationStrategyCheckConstants,
-  BundleOptimizationStrategyFileDiscoveryConstants,
-} from '../constants';
+import { CheckerUtils, FileUtils } from '../../../../utils';
+import { BundleOptimizationStrategyCheckConstants } from '../constants';
 import type { ReactPerformanceEvidence } from '../../../../utils/react/react-performance-source';
 import {
   type BundlerReport,

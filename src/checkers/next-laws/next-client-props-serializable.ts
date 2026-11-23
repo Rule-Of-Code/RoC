@@ -21,6 +21,7 @@ import {
 } from '../../utils/react/next-entries';
 import type {
   NextModuleGraph,
+  Visit,
   WalkResult,
 } from '../../utils/react/next-module-graph';
 import {
@@ -31,46 +32,10 @@ import { ReactProject } from '../../utils/react/react-project';
 import type { ImportInfo, TsxSource } from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';
 import { readProject } from './next-server-support';
+import { propProblem } from './client-prop-problems';
 import { notReadInWalk } from './next-walk-messages';
 
-/** Classes React's Flight serializer accepts (react-server-dom renderModelDestructive). */
-const SERIALIZABLE_CLASSES = new Set([
-  'Date',
-  'Map',
-  'Set',
-  'Array',
-  'Object',
-  'Promise',
-  'FormData',
-  'Blob',
-  'ReadableStream',
-  'ArrayBuffer',
-  'DataView',
-  'Int8Array',
-  'Uint8Array',
-  'Uint8ClampedArray',
-  'Int16Array',
-  'Uint16Array',
-  'Int32Array',
-  'Uint32Array',
-  'Float32Array',
-  'Float64Array',
-  'BigInt64Array',
-  'BigUint64Array',
-  'Error',
-  'TypeError',
-  'RangeError',
-  'SyntaxError',
-  'ReferenceError',
-  'EvalError',
-  'URIError',
-  'AggregateError',
-]);
-
 const MAX_REEXPORT_DEPTH = 8;
-const FUNCTION_PROBLEM =
-  "functions cannot be passed from a Server Component to a Client Component unless they are Server Functions ('use server')";
-
 export class NextClientPropsSerializableLaw extends LawBase {
   static readonly LAW_NAME = 'Next Client Props Serializable';
 
@@ -145,7 +110,7 @@ export class NextClientPropsSerializableLaw extends LawBase {
           !ts.isJsxExpression(property.initializer)
         )
           continue;
-        const problem = this.problemOf(ts, property.initializer.expression);
+        const problem = propProblem(ts, property.initializer.expression);
         if (problem) {
           violations.push(
             `${where}:${source.lineOf(property)}: <${element.tag} ${property.name.getText(source.sourceFile)}={…}> ${problem}`
@@ -170,94 +135,12 @@ export class NextClientPropsSerializableLaw extends LawBase {
     if (!ts.isJsxOpeningElement(opening)) return [];
     return opening.parent.children
       .filter((child): child is TS.JsxExpression => ts.isJsxExpression(child))
-      .map(child => ({ child, problem: this.problemOf(ts, child.expression) }))
+      .map(child => ({ child, problem: propProblem(ts, child.expression) }))
       .filter(({ problem }) => problem !== null)
       .map(
         ({ child, problem }) =>
           `${where}:${source.lineOf(child)}: <${tag}> child ${problem}`
       );
-  }
-
-  /** Why a prop value cannot cross to the client, or null. Walks object and array literals. */
-  static problemOf(
-    ts: TsxSource['ts'],
-    expression: TS.Expression | undefined,
-    depth = 0
-  ): string | null {
-    if (!expression || depth > 4) return null;
-    let value: TS.Expression = expression;
-    while (
-      ts.isParenthesizedExpression(value) ||
-      ts.isAsExpression(value) ||
-      ts.isSatisfiesExpression(value)
-    ) {
-      value = value.expression;
-    }
-    if (
-      (ts.isArrowFunction(value) || ts.isFunctionExpression(value)) &&
-      !this.isServerFunction(ts, value)
-    ) {
-      return `is a function — ${FUNCTION_PROBLEM}`;
-    }
-    if (ts.isNewExpression(value)) {
-      const name = value.expression.getText();
-      return SERIALIZABLE_CLASSES.has(name)
-        ? null
-        : `is a \`new ${name}(…)\` — instances of classes other than React's serializable built-ins cannot be passed to a Client Component`;
-    }
-    if (ts.isObjectLiteralExpression(value)) {
-      const values = this.objectValues(ts, value);
-      return values === 'method'
-        ? `holds a method — ${FUNCTION_PROBLEM}`
-        : this.firstProblem(ts, values, depth);
-    }
-    if (ts.isArrayLiteralExpression(value))
-      return this.firstProblem(ts, [...value.elements], depth);
-    return null;
-  }
-
-  private static objectValues(
-    ts: TsxSource['ts'],
-    literal: TS.ObjectLiteralExpression
-  ): TS.Expression[] | 'method' {
-    const values: TS.Expression[] = [];
-    for (const property of literal.properties) {
-      if (ts.isMethodDeclaration(property) || ts.isAccessor(property))
-        return 'method';
-      if (ts.isPropertyAssignment(property)) values.push(property.initializer);
-    }
-    return values;
-  }
-
-  private static firstProblem(
-    ts: TsxSource['ts'],
-    values: TS.Expression[],
-    depth: number
-  ): string | null {
-    for (const value of values) {
-      const problem = this.problemOf(ts, value, depth + 1);
-      if (problem)
-        return problem.startsWith('holds')
-          ? problem
-          : `holds a value that ${problem}`;
-    }
-    return null;
-  }
-
-  /** An inline Server Function: its body opens with the `'use server'` directive. */
-  private static isServerFunction(
-    ts: TsxSource['ts'],
-    fn: TS.ArrowFunction | TS.FunctionExpression
-  ): boolean {
-    const body = fn.body;
-    if (!body || !ts.isBlock(body)) return false;
-    const first = body.statements[0];
-    return (
-      first !== undefined &&
-      ts.isExpressionStatement(first) &&
-      ts.isStringLiteral(first.expression) &&
-      first.expression.text === 'use server'
-    );
   }
 
   /** Local JSX tag names in `file` that resolve to a `'use client'` module (through re-exports). */
@@ -326,25 +209,36 @@ export class NextClientPropsSerializableLaw extends LawBase {
     if (!node || depth >= MAX_REEXPORT_DEPTH) return false;
     const ts = node.source.ts;
     for (const statement of node.source.sourceFile.statements) {
-      if (
-        !ts.isExportDeclaration(statement) ||
-        !statement.moduleSpecifier ||
-        !ts.isStringLiteral(statement.moduleSpecifier)
-      )
-        continue;
-      const specifier = statement.moduleSpecifier.text;
-      const edge = node.edges.find(
-        candidate => candidate.specifier === specifier
-      );
-      if (edge?.resolution.kind !== 'source') continue;
-      const forwarded = this.forwardedName(ts, statement, name);
+      const target = this.reexportTarget(node, statement);
+      if (target === null) continue;
+      const forwarded = this.forwardedName(ts, target.statement, name);
       if (
         forwarded &&
-        this.isClientExport(graph, edge.resolution.file, forwarded, depth + 1)
+        this.isClientExport(graph, target.file, forwarded, depth + 1)
       )
         return true;
     }
     return false;
+  }
+
+  /** An `export … from 'x'` statement whose module resolved to a source file, with that file. */
+  private static reexportTarget(
+    node: Visit,
+    statement: TS.Statement
+  ): { statement: TS.ExportDeclaration; file: string } | null {
+    const ts = node.source.ts;
+    if (
+      !ts.isExportDeclaration(statement) ||
+      !statement.moduleSpecifier ||
+      !ts.isStringLiteral(statement.moduleSpecifier)
+    )
+      return null;
+    const specifier = statement.moduleSpecifier.text;
+    const edge = node.edges.find(
+      candidate => candidate.specifier === specifier
+    );
+    if (edge?.resolution.kind !== 'source') return null;
+    return { statement, file: edge.resolution.file };
   }
 
   /** The name an `export … from` statement forwards `name` as, or null when it does not export it. */

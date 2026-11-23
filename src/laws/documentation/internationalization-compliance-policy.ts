@@ -90,7 +90,7 @@ export class InternationalizationCompliancePolicyLaw {
     }
 
     // 2. Check for translation files
-    const translationFiles = this.analyzeTranslationFiles(projectRoot, context);
+    const translationFiles = this.analyzeTranslationFiles(projectRoot);
     if (!translationFiles.hasTranslationFiles) {
       violations.push('Missing i18n translation files');
       suggestions.push(
@@ -195,15 +195,12 @@ export class InternationalizationCompliancePolicyLaw {
     }
   }
 
-  private static analyzeTranslationFiles(
-    projectRoot: string,
-    context?: LawCheckContext
-  ): {
+  private static analyzeTranslationFiles(projectRoot: string): {
     hasTranslationFiles: boolean;
     translationQuality: string;
   } {
     const hasTranslationFiles =
-      this.checkTranslationDirectories(projectRoot, context) ||
+      this.checkTranslationDirectories(projectRoot) ||
       this.checkAngularExtractionFiles(projectRoot);
 
     return {
@@ -212,10 +209,7 @@ export class InternationalizationCompliancePolicyLaw {
     };
   }
 
-  private static checkTranslationDirectories(
-    projectRoot: string,
-    context?: LawCheckContext
-  ): boolean {
+  private static checkTranslationDirectories(projectRoot: string): boolean {
     // Translation directories AT ANY DEPTH, not five fixed root-relative
     // strings. The previous release fixed how files inside these directories
     // were enumerated and left the directory list rooted — so an Nx workspace

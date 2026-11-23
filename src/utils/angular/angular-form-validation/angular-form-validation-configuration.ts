@@ -9,11 +9,6 @@ import { SignalConfigurationBase } from '../signal-configuration-base';
  */
 export class AngularFormValidationConfiguration extends SignalConfigurationBase {
   /**
-   * Config alias for cleaner internal references (RULE 2 pattern)
-   */
-  private static readonly Config = AngularFormValidationConfiguration;
-
-  /**
    * File extensions for form validation analysis
    */
   static readonly ANGULAR_FILE_EXTENSIONS = [ANGULAR_CONSTANTS.COMPONENT_TS];

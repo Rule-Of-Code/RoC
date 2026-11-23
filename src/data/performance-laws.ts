@@ -315,6 +315,7 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
       'Not seen: synchronous reads in a loop (Django lazy relations, sync SQLAlchemy or pymongo), a read behind a helper the loop calls under a name that is not read-like, and a dependency on the item through shared state (an attribute the body sets on self). An in-memory or fake repository with read-like method names is not told apart from a real one and is reported.',
       'The index, batching, pagination and caching checks are JS/TS-only and read *.service / firestore / database / repository files under src, apps and libs. A Python project without JS/TS sources gets the N+1 check only; when it holds no recognised awaited read the law is N/A, never a pass.',
       "TS/JS is parsed with the project's typescript package (or the one RoC resolves); when neither loads, the files are reported as unread, never as clean.",
+      'A database is proved by use: a query in a Python source (session.query, select(, cursor.execute, collection( …), an import of a database module in the JS/TS sources, a schema / rules / indexes file, or an awaited read of a declared client the N+1 registry recognises. A dependency name in a manifest alone is not a database, and the law is not applicable.',
       'It flags query SHAPES it recognises; it cannot prove a query is slow without running it against real data.',
     ],
     emoji: '🗃️',

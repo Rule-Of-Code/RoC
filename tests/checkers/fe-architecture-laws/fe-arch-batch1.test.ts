@@ -55,16 +55,16 @@ const ctx = (
 describe('ROC-FE-03 Stores In Data Access', () => {
   it('flags a *.store.ts in the feature layer', () => {
     const dir = fixture({
-      'libs/bot/feature-dashboard/src/x.store.ts':
+      'libs/app/feature-dashboard/src/x.store.ts':
         'export const x = signalStore();',
     });
     expect(StoresInDataAccessLaw.check(ctx(dir)).passed).toBe(false);
   });
   it('passes a store in the data-access layer', () => {
     const dir = fixture({
-      'libs/bot/data-access/src/x.store.ts': 'export const x = signalStore();',
+      'libs/app/data-access/src/x.store.ts': 'export const x = signalStore();',
       // the feature layer exists and consumes the store: the law judged it
-      'libs/bot/feature-dashboard/src/page.ts':
+      'libs/app/feature-dashboard/src/page.ts':
         'export const page = inject(Store);',
     });
     expect(StoresInDataAccessLaw.check(ctx(dir)).passed).toBe(true);
@@ -73,14 +73,14 @@ describe('ROC-FE-03 Stores In Data Access', () => {
     // A barrel that re-exports the real store — no signalStore() call — is not a
     // store definition; the old name-only check flagged it.
     const dir = fixture({
-      'libs/bot/feature-dashboard/src/x.store.ts':
+      'libs/app/feature-dashboard/src/x.store.ts':
         "export * from '../../data-access/src/x.store';",
     });
     expect(StoresInDataAccessLaw.check(ctx(dir)).passed).toBe(true);
   });
   it('does not flag signalStore mentioned only in a comment', () => {
     const dir = fixture({
-      'libs/bot/feature-dashboard/src/note.ts':
+      'libs/app/feature-dashboard/src/note.ts':
         '// e.g. signalStore({ ... }) belongs in data-access\nexport const N = 1;',
     });
     expect(StoresInDataAccessLaw.check(ctx(dir)).passed).toBe(true);
@@ -167,7 +167,7 @@ describe('FE architecture laws gate off on a non-Angular project', () => {
     const dir = fixture(
       {
         'pyproject.toml': "[project]\nname='x'\n",
-        'libs/bot/feature-dashboard/src/x.store.ts': 'signalStore()',
+        'libs/app/feature-dashboard/src/x.store.ts': 'signalStore()',
       },
       false // no Angular markers → hasAngularProject is false
     );

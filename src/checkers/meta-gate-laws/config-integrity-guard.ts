@@ -11,6 +11,7 @@
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { ALL_ENHANCED_CONSTITUTIONAL_LAWS } from '../../data/enhanced-laws';
+import { retiredLawNotice } from '../../data/retired-laws';
 import { lawIdentityKeys, isNonLawConfigKey } from '../../utils/law-identity';
 import { LawBase } from '../law-base';
 
@@ -55,6 +56,17 @@ export class ConfigIntegrityGuardLaw extends LawBase {
     return ambiguous;
   }
 
+  /**
+   * The finding for a key that resolves to no law. A removed law is named
+   * for what it is, with what to do (#558); anything else is "unknown".
+   */
+  private static unknownKeyMessage(section: string, key: string): string {
+    return (
+      retiredLawNotice(`laws.${section}`, key) ??
+      `laws.${section}: unknown law '${key}' — this entry gates nothing; check the name with 'roc laws --list'`
+    );
+  }
+
   static check(context: LawCheckContext): LawResult {
     const { config } = context;
     const counts = this.identityKeyCounts();
@@ -69,9 +81,7 @@ export class ConfigIntegrityGuardLaw extends LawBase {
         const resolves = counts.get(key) ?? 0;
 
         if (resolves === 0) {
-          violations.push(
-            `laws.${section}: unknown law '${key}' — this entry gates nothing; check the name with 'roc laws --list'`
-          );
+          violations.push(this.unknownKeyMessage(section, key));
         } else if (resolves > 1) {
           violations.push(
             `laws.${section}: AMBIGUOUS key '${key}' — it resolves to ${resolves} laws, so this entry silently affects all of them. Name the law explicitly (canonical name or slug); the engine refuses to apply ambiguous keys.`

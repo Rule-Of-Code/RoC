@@ -6,6 +6,7 @@
 
 import * as fs from 'fs';
 import { PathOperations } from '../utils/path-operations';
+import { errorUser, warnUser } from './logging-utils';
 export interface FileReadOptions {
   /** File encoding (default: utf8) */
   encoding?: BufferEncoding;
@@ -125,7 +126,7 @@ export class FileSystemOperations {
       return fs.readFileSync(filePath, encoding);
     } catch (error) {
       if (logErrors) {
-        console.warn(`⚠️ Failed to read file ${filePath}:`, error);
+        warnUser(`⚠️ Failed to read file ${filePath}:`, error);
       }
 
       if (fallbackToEmpty) {
@@ -306,7 +307,7 @@ export class FileSystemOperations {
         console.log(`✓ Written file: ${filePath}`);
       }
     } catch (error) {
-      console.error(`❌ Failed to write file ${filePath}:`, error);
+      errorUser(`❌ Failed to write file ${filePath}:`, error);
       throw error;
     }
   }
@@ -351,7 +352,7 @@ export class FileSystemOperations {
 
       fs.appendFileSync(filePath, content, encoding);
     } catch (error) {
-      console.error(`❌ Failed to append to file ${filePath}:`, error);
+      errorUser(`❌ Failed to append to file ${filePath}:`, error);
       throw error;
     }
   }
@@ -381,7 +382,7 @@ export class FileSystemOperations {
         }
       }
     } catch (error) {
-      console.error(`❌ Failed to create directory ${dirPath}:`, error);
+      errorUser(`❌ Failed to create directory ${dirPath}:`, error);
       throw error;
     }
   }
@@ -413,7 +414,7 @@ export class FileSystemOperations {
 
       fs.copyFileSync(source, destination);
     } catch (error) {
-      console.error(`❌ Failed to copy ${source} to ${destination}:`, error);
+      errorUser(`❌ Failed to copy ${source} to ${destination}:`, error);
       throw error;
     }
   }
@@ -433,7 +434,7 @@ export class FileSystemOperations {
 
       fs.renameSync(source, destination);
     } catch (error) {
-      console.error(`❌ Failed to move ${source} to ${destination}:`, error);
+      errorUser(`❌ Failed to move ${source} to ${destination}:`, error);
       throw error;
     }
   }
@@ -451,7 +452,7 @@ export class FileSystemOperations {
         }
       }
     } catch (error) {
-      console.error(`❌ Failed to delete file ${filePath}:`, error);
+      errorUser(`❌ Failed to delete file ${filePath}:`, error);
       throw error;
     }
   }
@@ -469,7 +470,7 @@ export class FileSystemOperations {
         }
       }
     } catch (error) {
-      console.error(`❌ Failed to delete directory ${dirPath}:`, error);
+      errorUser(`❌ Failed to delete directory ${dirPath}:`, error);
       throw error;
     }
   }

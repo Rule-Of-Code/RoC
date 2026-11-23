@@ -46,6 +46,31 @@ an `anyFileContaining` entry can set `readsCode`, and the pattern is then
 matched with comments and string contents blanked (TS/JS by the JS rules,
 Python by its own lexer). The law's three entries set it.
 
+### ⚠️ BREAKING — No Risk Literals is removed (#558)
+
+The opt-in law No Risk Literals is removed: 265 laws → 264. Its vocabulary
+(`floor`, `risk`, `limit`, `equity`, `stake`, `pnl`, `leverage`, `target`)
+belongs to one business domain, not to a framework or to code quality in
+general, and its own detection limits said so; a law in this catalogue
+should hold for any project of its stack.
+
+**Migration: delete the key.** A config that still names the law in
+`laws.severity`, `laws.enabled` or `laws.notApplicable` (as
+`"No Risk Literals"` or `"no-risk-literals"`) fails the audit through
+Config Integrity Guard, an always-on law at error severity, as every key
+that gates nothing does. The message says what happened:
+`laws.severity: 'no-risk-literals' is no longer a law (removed after 8.0.1, #558): delete this key`.
+Removed laws are listed in `src/data/retired-laws.ts`, so their keys are
+named as removed rather than as unknown. The audit's stderr warning for
+`laws.severity`, `laws.notApplicable` and `ignores`/`includes.byRule` uses
+the same words (`⚠️  laws.notApplicable: 'No Risk Literals' is no longer a
+law …`); a misspelt name is still an "unknown law".
+
+The angular release-canary profile now plants its red violation for MD
+Footer Template (MANDATORY), the other opt-in law that a plain Angular
+fixture can fail, and its fixture paths are neutral (`libs/app/…`). Older
+entries below that describe the law are kept as history.
+
 ### 🐛 Fixed — a module-level `let` reset in `beforeEach` is not shared state (#552)
 
 Test Data Management and Test Isolation Enforcement reported a module-level
@@ -537,6 +562,74 @@ Sample and test trees (`example/`, `examples/`, `sample/`, `samples/`, test
 and fixture trees, `androidTest/`, `Pods/`) are left out, so a library that
 ships an example app is not selected by it. JS shells (React Native, Expo,
 Capacitor, NativeScript) are selected as before.
+
+### 🔧 Internal — RoC's own code: logging, types and casts (#559)
+
+The self-audit's small groups on RoC's own code, with no change in behaviour:
+user-facing warnings and errors of the engine, the audit cache, the config
+loader and the file utilities go through `warnUser` / `errorUser` in
+logging-utils (the same text on stderr) instead of direct `console.warn` /
+`console.error`; the engine reads its config through a typed `EngineSettings`
+instead of `as any`, runs laws as `RunnableLaw`, and builds the open
+selection without `as unknown as`; the audit cache stores a typed
+`StoredAuditResult`; Latency Budget Harness Realism guards instead of
+asserting with `!`. Self-audit: Centralized Logging 7 → 0, Absolute Zero
+Tolerance Doctrine 7 → 0, No Explicit Any / Non-Null Assertion 2 → 0,
+No Double Cast 2 → 0.
+
+### 🔧 Internal — RoC's own code follows a naming convention ESLint enforces (#559)
+
+`@typescript-eslint/eslint-plugin` (8.67.0, the version of the locked
+parser) is a devDependency, and `eslint.config.mjs` turns on
+`@typescript-eslint/naming-convention` with the convention the code follows:
+camelCase values, functions and members, UPPER_CASE constants (and getters
+that stand for one), PascalCase types, keys of object literals and type
+members left to the data they describe. 56 private static aliases
+(`Config`, `Messages`, `Patterns`, …) and one constant-style helper were
+renamed to camelCase in their files; nothing is exempted. The packed tarball
+lists the same files. Self-audit: Naming Convention Enforcement 1 → 0.
+
+### Fixed — Environment Parity Standards finds environment detection where the code reads it
+
+`No proper environment detection found` was reported unless one of five fixed
+files (`src/main.ts`, `src/index.ts`, `src/app.ts`, `server.ts`, `index.js`)
+read the environment. A project that reads `process.env` in a config module, a
+CLI entry point such as `src/cli.ts`, or a workspace app (`apps/<name>/src/main.ts`)
+was told it has no environment detection (#532).
+
+The check now reads the production sources the law selects through
+`includes` / `ignores`, with test files excluded. A read only in a test file
+does not count, and a project that reads the environment nowhere is still
+reported.
+
+### Fixed — Database Query Optimization is selected by a database in the code, not by a word in the manifest
+
+The law asked a shared helper whether the project has a database, and the
+helper tested the raw text of the manifests (`package.json`, `pyproject.toml`,
+`Makefile` …) for a list of words that included `firestore`. A client whose
+only Firestore trace was a plugin dependency, reading one document by id, or a
+project with a `firebase deploy --only firestore` script, was judged for
+composite indexes, query batching and pagination (#555).
+
+A database is now proved by use: a query in a Python source, an import of a
+database module in the JS/TS sources, its schema / rules / indexes files, or an
+awaited read of a declared client that the N+1 call-site registry recognises.
+Without one of these the law is not applicable. A Python project that only
+declares an ORM and never queries is not applicable either.
+
+### Internal — the performance analysis that read no file is removed
+
+`PerformanceAnalysisService` ran its DOM-reference, event-listener,
+observable-subscription, timer and lifecycle analyzers on an empty input, so it
+reported no issue for any project. Launch Readiness Checklist, Automated Code
+Quality Gates and the CI/CD tribunal read that as a judgement, and the branches
+built on it never ran; two methods of the performance monitoring inspector built
+on it had no caller (#534).
+
+The service, the five analyzers, their configurations and validation patterns,
+the `utils/performance` barrel and their tests are removed. No law result
+changes: the removed code never produced a finding. Leaks in code are judged by
+Memory Leak Prevention and Timer Cleanup.
 
 ### 🐛 Fixed — API Security Standards recognises authentication by what the code does (#550)
 

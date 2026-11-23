@@ -2,8 +2,8 @@
  * Three defects QA found in the 7.26.1 tarball before it was published.
  *
  * 1. `defaultEnabled: false` was read by nothing that selects laws. The
- *    CHANGELOG and the cards called No Risk Literals, Retention Registry and
- *    Next Route JS Budget opt-in; a project with no config ran all three, and
+ *    CHANGELOG and the cards called three laws, among them Retention Registry
+ *    and Next Route JS Budget, opt-in; a project with no config ran all three, and
  *    the budget law — which needs a build's stats — failed "not measured".
  * 2. An import used only as a type (`import { Row } from '../lib/db'` with no
  *    `type` keyword) counted as a runtime edge in the Next module graph. The
@@ -42,7 +42,6 @@ import {
 afterAll(removeProjects);
 
 const OPT_IN = [
-  'No Risk Literals',
   'Retention Registry Covers Schema',
   'Next Route JS Budget',
   // 7.28.0: its five paths measured 0 of 42 correct on real code (#390).
@@ -92,17 +91,17 @@ describe('opt-in laws (defaultEnabled: false) are not run by default', () => {
       ModularLawsRegistry.getEnabled({
         laws: { severity },
       } as unknown as RuleOfCodeConfig).map(l => l.name);
-    expect(names({ 'No Risk Literals': 'warning' })).toContain(
-      'No Risk Literals'
+    expect(names({ 'MD Footer Template (MANDATORY)': 'warning' })).toContain(
+      'MD Footer Template (MANDATORY)'
     );
-    expect(names({ 'no-risk-literals': 'error' })).toContain(
-      'No Risk Literals'
+    expect(names({ 'md-footer-template': 'error' })).toContain(
+      'MD Footer Template (MANDATORY)'
     );
-    expect(names({ 'No Risk Literals': 'notApplicable' })).not.toContain(
-      'No Risk Literals'
-    );
+    expect(
+      names({ 'MD Footer Template (MANDATORY)': 'notApplicable' })
+    ).not.toContain('MD Footer Template (MANDATORY)');
     // Every other law is still selected: a severity is not an allowlist.
-    expect(names({ 'No Risk Literals': 'warning' })).toContain(
+    expect(names({ 'MD Footer Template (MANDATORY)': 'warning' })).toContain(
       'Professional Component Testing Policy'
     );
   });
@@ -145,7 +144,7 @@ describe('opt-in laws (defaultEnabled: false) are not run by default', () => {
       {},
       {
         'Next Route JS Budget': 'error',
-        'No Risk Literals': 'warning',
+        'MD Footer Template (MANDATORY)': 'warning',
         'Retention Registry Covers Schema': 'info',
       },
     ]) {

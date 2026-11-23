@@ -3,7 +3,6 @@ import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileSystemOperations } from '../../utils/file-system-operations';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
-import { PerformanceAnalysisService } from '../../utils/performance';
 import { ciConfigContent } from '../../utils/project-discovery';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
 import { CoverageThresholdReader } from '../../utils/testing/coverage-threshold-reader';
@@ -101,17 +100,6 @@ export class AutomatedCodeQualityGatesLaw {
         'Enable TypeScript strict mode validation in quality gates'
       );
       score -= 10;
-    }
-
-    // 7. Check for performance analysis integration
-    const performanceGates =
-      PerformanceAnalysisService.analyzePerformanceGates();
-    if (performanceGates.hasPerformanceIssues) {
-      suggestions.push('Consider adding performance analysis to quality gates');
-      performanceGates.recommendations.forEach(rec => {
-        suggestions.push(rec);
-      });
-      score -= 5;
     }
 
     const finalScore = Math.max(0, score);

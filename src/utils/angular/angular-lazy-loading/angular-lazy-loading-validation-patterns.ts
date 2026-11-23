@@ -12,7 +12,7 @@ import { AngularLazyLoadingConfiguration } from './angular-lazy-loading-configur
  * Meta-dogfooding: Centralizes validation logic and eliminates duplicated file processing
  */
 export class AngularLazyLoadingValidationPatterns {
-  private static readonly Config = AngularLazyLoadingConfiguration;
+  private static readonly config = AngularLazyLoadingConfiguration;
 
   /**
    * Helper: Read file with centralized config
@@ -20,8 +20,8 @@ export class AngularLazyLoadingValidationPatterns {
    */
   private static readFileWithConfig(filePath: string): string {
     return FileUtils.readFile(filePath, {
-      encoding: this.Config.FILE_CONFIG.ENCODING,
-      fallbackToEmpty: this.Config.FILE_CONFIG.FALLBACK_TO_EMPTY,
+      encoding: this.config.FILE_CONFIG.ENCODING,
+      fallbackToEmpty: this.config.FILE_CONFIG.FALLBACK_TO_EMPTY,
     });
   }
 
@@ -42,7 +42,7 @@ export class AngularLazyLoadingValidationPatterns {
 
     const fileName = PathOperations.getBasename(moduleFile);
     // ===== INLINED: Centralized pattern analysis (RULE 1) =====
-    const patterns = this.Config.analyzeLazyLoadingPatterns(
+    const patterns = this.config.analyzeLazyLoadingPatterns(
       content,
       fileName,
       moduleFile
@@ -95,7 +95,7 @@ export class AngularLazyLoadingValidationPatterns {
     const isLazyLoaded = this.isModuleLazyLoaded(moduleFile, srcPath, config);
     const hasBarrelExport = AngularModuleUtils.hasBarrelExport(moduleFile);
 
-    const lazySuggestions = this.Config.buildLazyLoadingSuggestions(
+    const lazySuggestions = this.config.buildLazyLoadingSuggestions(
       patterns,
       isLazyLoaded,
       hasBarrelExport
@@ -110,7 +110,7 @@ export class AngularLazyLoadingValidationPatterns {
    * RULE 2: Private helper for organized validation structure
    */
   private static checkModuleStructure(
-    patterns: ReturnType<typeof this.Config.analyzeLazyLoadingPatterns>,
+    patterns: ReturnType<typeof this.config.analyzeLazyLoadingPatterns>,
     fileName: string,
     content: string,
     violations: string[],
@@ -145,7 +145,7 @@ export class AngularLazyLoadingValidationPatterns {
     // Use centralized routing files detection
     const routingFiles = CheckerUtils.findFilesByExtension(
       srcPath,
-      this.Config.ROUTING_FILE_EXTENSIONS,
+      this.config.ROUTING_FILE_EXTENSIONS,
       config
     );
 
@@ -177,7 +177,7 @@ export class AngularLazyLoadingValidationPatterns {
     const content = this.readFileWithConfig(routingFile);
     if (!content) return false;
 
-    const routingPatterns = this.Config.analyzeRoutingPatterns(
+    const routingPatterns = this.config.analyzeRoutingPatterns(
       content,
       moduleClassName,
       moduleName
@@ -198,7 +198,7 @@ export class AngularLazyLoadingValidationPatterns {
   ): void {
     const moduleFiles = CheckerUtils.findFilesByExtension(
       srcPath,
-      this.Config.ANGULAR_FILE_EXTENSIONS,
+      this.config.ANGULAR_FILE_EXTENSIONS,
       config
     );
 

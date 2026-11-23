@@ -200,7 +200,7 @@ export class LatencyBudgetHarnessRealismLaw extends LawBase {
     projectRoot: string,
     ignores: readonly string[]
   ): TextFile[] {
-    return REQUIRES_LATENCY_BUDGET.anyFileContaining!.flatMap(entry =>
+    return (REQUIRES_LATENCY_BUDGET.anyFileContaining ?? []).flatMap(entry =>
       readFilesContaining(projectRoot, entry, ignores).map(
         ({ rel, content }) => ({ rel, content })
       )

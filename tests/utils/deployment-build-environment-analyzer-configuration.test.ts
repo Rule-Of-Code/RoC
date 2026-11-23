@@ -230,44 +230,6 @@ describe('BuildEnvironmentAnalyzerConfiguration', () => {
   });
 
   // ============================================
-  // MAIN_FILE_PATHS Tests
-  // ============================================
-  describe('MAIN_FILE_PATHS', () => {
-    it('should be defined as readonly array', () => {
-      expect(
-        BuildEnvironmentAnalyzerConfiguration.MAIN_FILE_PATHS
-      ).toBeDefined();
-      expect(
-        Array.isArray(BuildEnvironmentAnalyzerConfiguration.MAIN_FILE_PATHS)
-      ).toBe(true);
-    });
-
-    it('should contain src/main.ts', () => {
-      expect(BuildEnvironmentAnalyzerConfiguration.MAIN_FILE_PATHS).toContain(
-        'src/main.ts'
-      );
-    });
-
-    it('should contain src/index.ts', () => {
-      expect(BuildEnvironmentAnalyzerConfiguration.MAIN_FILE_PATHS).toContain(
-        'src/index.ts'
-      );
-    });
-
-    it('should contain src/app.ts', () => {
-      expect(BuildEnvironmentAnalyzerConfiguration.MAIN_FILE_PATHS).toContain(
-        'src/app.ts'
-      );
-    });
-
-    it('should contain server.ts', () => {
-      expect(BuildEnvironmentAnalyzerConfiguration.MAIN_FILE_PATHS).toContain(
-        'server.ts'
-      );
-    });
-  });
-
-  // ============================================
   // ENV_PATTERNS Tests
   // ============================================
   describe('ENV_PATTERNS', () => {

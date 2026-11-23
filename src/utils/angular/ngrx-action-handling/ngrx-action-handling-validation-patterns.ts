@@ -13,10 +13,10 @@ import { NgRxActionHandlingConfiguration } from './ngrx-action-handling-configur
  * Centralized validation methods for NgRx action handling analysis
  */
 export class NgRxActionHandlingValidationPatterns extends AngularConfigurationBase {
-  private static readonly Config = NgRxActionHandlingConfiguration;
-  private static readonly Messages = this.Config.VALIDATION_MESSAGES;
+  private static readonly config = NgRxActionHandlingConfiguration;
+  private static readonly messages = this.config.VALIDATION_MESSAGES;
   private static readonly FILENAME_PLACEHOLDER = '{fileName}';
-  private static readonly ActionAnalysis = Object.create(null) as Record<
+  private static readonly actionAnalysis = Object.create(null) as Record<
     string,
     unknown
   >;
@@ -40,7 +40,7 @@ export class NgRxActionHandlingValidationPatterns extends AngularConfigurationBa
 
     const srcPath = PathOperations.join(projectRoot, DIRECTORY_NAMES.SRC);
     const extensions = [
-      this.Config.ACTION_HANDLING_PATTERNS.FILE_EXTENSIONS.REDUCER_TS,
+      this.config.ACTION_HANDLING_PATTERNS.FILE_EXTENSIONS.REDUCER_TS,
     ];
     const reducerFiles = CheckerUtils.findFilesByExtension(
       srcPath,
@@ -65,14 +65,14 @@ export class NgRxActionHandlingValidationPatterns extends AngularConfigurationBa
   ): void {
     const content = FileUtils.readFile(reducerFile, {
       encoding:
-        this.Config.ACTION_HANDLING_PATTERNS.ANGULAR_CONSTANTS.ENCODING_UTF8,
+        this.config.ACTION_HANDLING_PATTERNS.ANGULAR_CONSTANTS.ENCODING_UTF8,
       fallbackToEmpty: true,
     });
     if (!content) return;
 
     const fileName = PathOperations.getBasename(reducerFile);
-    const patterns: typeof this.ActionAnalysis =
-      this.Config.analyzeActionHandlingPatterns(content);
+    const patterns: typeof this.actionAnalysis =
+      this.config.analyzeActionHandlingPatterns(content);
 
     this.validateActionHandlerPatterns(
       patterns,
@@ -101,7 +101,7 @@ export class NgRxActionHandlingValidationPatterns extends AngularConfigurationBa
    * Validate action handler patterns
    */
   private static validateActionHandlerPatterns(
-    patterns: typeof this.ActionAnalysis,
+    patterns: typeof this.actionAnalysis,
     fileName: string,
     violations: string[],
     suggestions: string[]
@@ -110,11 +110,11 @@ export class NgRxActionHandlingValidationPatterns extends AngularConfigurationBa
 
     if (patterns.onFunctionCount === 0) {
       violations.push(
-        this.formatMessage(this.Messages.NO_ACTION_HANDLERS_VIOLATION, fileName)
+        this.formatMessage(this.messages.NO_ACTION_HANDLERS_VIOLATION, fileName)
       );
       suggestions.push(
         this.formatMessage(
-          this.Messages.NO_ACTION_HANDLERS_SUGGESTION,
+          this.messages.NO_ACTION_HANDLERS_SUGGESTION,
           fileName
         )
       );
@@ -122,13 +122,13 @@ export class NgRxActionHandlingValidationPatterns extends AngularConfigurationBa
 
     if (patterns.hasOnFunction && !patterns.hasImports) {
       suggestions.push(
-        this.formatMessage(this.Messages.PROPER_IMPORTS_SUGGESTION, fileName)
+        this.formatMessage(this.messages.PROPER_IMPORTS_SUGGESTION, fileName)
       );
     }
 
     if (patterns.hasMultiActionPattern) {
       suggestions.push(
-        this.formatMessage(this.Messages.SEPARATE_HANDLERS_SUGGESTION, fileName)
+        this.formatMessage(this.messages.SEPARATE_HANDLERS_SUGGESTION, fileName)
       );
     }
   }
@@ -137,14 +137,14 @@ export class NgRxActionHandlingValidationPatterns extends AngularConfigurationBa
    * Validate action payload handling patterns
    */
   private static validatePayloadHandlingPatterns(
-    patterns: typeof this.ActionAnalysis,
+    patterns: typeof this.actionAnalysis,
     fileName: string,
     suggestions: string[]
   ): void {
     if (!patterns.hasActionPayload && patterns.hasOnFunction) {
       suggestions.push(
         this.formatMessage(
-          this.Messages.USE_ACTION_PAYLOADS_SUGGESTION,
+          this.messages.USE_ACTION_PAYLOADS_SUGGESTION,
           fileName
         )
       );
@@ -155,19 +155,19 @@ export class NgRxActionHandlingValidationPatterns extends AngularConfigurationBa
    * Validate async action patterns (loading, error, success)
    */
   private static validateAsyncActionPatterns(
-    patterns: typeof this.ActionAnalysis,
+    patterns: typeof this.actionAnalysis,
     fileName: string,
     suggestions: string[]
   ): void {
     if (patterns.hasLoadingActions && !patterns.hasErrorActions) {
       suggestions.push(
-        this.formatMessage(this.Messages.ERROR_HANDLING_SUGGESTION, fileName)
+        this.formatMessage(this.messages.ERROR_HANDLING_SUGGESTION, fileName)
       );
     }
 
     if (patterns.hasLoadingActions && !patterns.hasSuccessActions) {
       suggestions.push(
-        this.formatMessage(this.Messages.SUCCESS_ACTIONS_SUGGESTION, fileName)
+        this.formatMessage(this.messages.SUCCESS_ACTIONS_SUGGESTION, fileName)
       );
     }
   }
@@ -176,19 +176,19 @@ export class NgRxActionHandlingValidationPatterns extends AngularConfigurationBa
    * Validate state management patterns
    */
   private static validateStateManagementPatterns(
-    patterns: typeof this.ActionAnalysis,
+    patterns: typeof this.actionAnalysis,
     fileName: string,
     suggestions: string[]
   ): void {
     if (patterns.hasLoadingState && !patterns.hasBooleanValues) {
       suggestions.push(
-        this.formatMessage(this.Messages.LOADING_STATE_SUGGESTION, fileName)
+        this.formatMessage(this.messages.LOADING_STATE_SUGGESTION, fileName)
       );
     }
 
     if (patterns.hasErrorState && !patterns.hasNullValue) {
       suggestions.push(
-        this.formatMessage(this.Messages.ERROR_STATE_SUGGESTION, fileName)
+        this.formatMessage(this.messages.ERROR_STATE_SUGGESTION, fileName)
       );
     }
   }
@@ -197,17 +197,17 @@ export class NgRxActionHandlingValidationPatterns extends AngularConfigurationBa
    * Validate state shape consistency patterns
    */
   private static validateStateShapePatterns(
-    patterns: typeof this.ActionAnalysis,
+    patterns: typeof this.actionAnalysis,
     fileName: string,
     violations: string[],
     suggestions: string[]
   ): void {
     if (patterns.hasOnFunction && !patterns.hasSpreadOperator) {
       violations.push(
-        this.formatMessage(this.Messages.PRESERVE_STATE_VIOLATION, fileName)
+        this.formatMessage(this.messages.PRESERVE_STATE_VIOLATION, fileName)
       );
       suggestions.push(
-        this.formatMessage(this.Messages.PRESERVE_STATE_SUGGESTION, fileName)
+        this.formatMessage(this.messages.PRESERVE_STATE_SUGGESTION, fileName)
       );
     }
   }
@@ -216,17 +216,17 @@ export class NgRxActionHandlingValidationPatterns extends AngularConfigurationBa
    * Validate reducer purity patterns (no side effects)
    */
   private static validateReducerPurityPatterns(
-    patterns: typeof this.ActionAnalysis,
+    patterns: typeof this.actionAnalysis,
     fileName: string,
     violations: string[],
     suggestions: string[]
   ): void {
     if (patterns.hasSideEffects) {
       violations.push(
-        this.formatMessage(this.Messages.SIDE_EFFECT_VIOLATION, fileName)
+        this.formatMessage(this.messages.SIDE_EFFECT_VIOLATION, fileName)
       );
       suggestions.push(
-        this.formatMessage(this.Messages.SIDE_EFFECT_SUGGESTION, fileName)
+        this.formatMessage(this.messages.SIDE_EFFECT_SUGGESTION, fileName)
       );
     }
   }

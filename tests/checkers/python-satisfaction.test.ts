@@ -61,6 +61,8 @@ const satisfied = (): string =>
       '[tool.coverage.report]\nfail_under = 100\n',
     '.pre-commit-config.yaml':
       'repos:\n  - repo: local\n    hooks:\n      - id: ruff\n        name: ruff\n',
+    'src/repo.py':
+      'def users(session):\n    return session.query(User).all()\n',
     'src/app.py':
       'from flask import Flask, abort\n' +
       'from functools import wraps\n' +

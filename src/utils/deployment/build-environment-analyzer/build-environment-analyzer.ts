@@ -25,10 +25,13 @@ export class BuildEnvironmentAnalyzer {
    */
   static checkEnvironmentDetection(
     projectRoot: string,
-    _config: RuleOfCodeConfig
+    config: RuleOfCodeConfig,
+    lawId?: string
   ): EnvironmentDetection {
     return BuildEnvironmentAnalyzerValidation.validateEnvironmentDetection(
-      projectRoot
+      projectRoot,
+      config,
+      lawId
     );
   }
 

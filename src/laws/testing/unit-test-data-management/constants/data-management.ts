@@ -230,7 +230,7 @@ export class UnitTestDataManagementConstants {
     if (!patterns.some(pattern => pattern.test(content))) return false;
     const code = CodeText.codeOnly(content, fileName, projectRoot);
     return (
-      ModuleBindings.hasShared(code) ||
+      ModuleBindings.hasShared(code, projectRoot) ||
       [
         this.SHARED_STATE_PATTERNS.WINDOW_ASSIGNMENT,
         this.SHARED_STATE_PATTERNS.GLOBAL_ASSIGNMENT,

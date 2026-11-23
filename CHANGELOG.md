@@ -15,11 +15,18 @@ gave it a fresh value before every test, which is the isolation pattern both
 laws ask for. The two laws also disagreed on a typed `let`
 (`let state: State = make();`): one reported it, the other did not.
 
-Both laws now read the same definition: a column-0 `let` / `var` with an
-initialiser, typed or not, is shared state unless a `beforeEach` or
-`afterEach` of the same file assigns it. A reset in `beforeAll` (which runs
-once) does not count. Test Data Management can therefore report a typed
-`let` that nothing resets, which it did not see before.
+Both laws now read the same definition, from the syntax tree: every
+declarator of a top-level `let` / `var` with an initialiser, typed or not,
+is shared state unless a `beforeEach` or `afterEach` of the same file
+assigns it. A reset in `beforeAll` (which runs once), an assignment inside
+a string, and a hook that declares its own binding of the same name do not
+count.
+
+Findings can also grow, because the two laws now read a declaration the
+same way: Test Data Management now sees a typed `let`, a declaration
+without a trailing `;` and a name with `$` when nothing resets them; Test
+Isolation Enforcement now sees a `$` name, a typed `var` and the second
+declarator of `let a = 1, b = 2`.
 
 ## [8.0.1] - 2026-11-22
 

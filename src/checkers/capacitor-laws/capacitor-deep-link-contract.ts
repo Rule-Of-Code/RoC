@@ -30,6 +30,11 @@ export interface DeepLinkSides {
   listener: boolean;
 }
 
+/** A platform that is present (not null) and declares no host. */
+function declaresNone(hosts: string[] | null): boolean {
+  return hosts !== null && hosts.length === 0;
+}
+
 export class CapacitorDeepLinkContractLaw extends LawBase {
   static readonly LAW_NAME = 'Capacitor Deep Link Contract';
 
@@ -67,12 +72,12 @@ export class CapacitorDeepLinkContractLaw extends LawBase {
         `${where}: https links are declared for ${hosts} and no App.addListener('appUrlOpen') handles them — the app opens at the launcher and the path is lost`
       );
     }
-    if (listener && androidHosts !== null && androidHosts.length === 0) {
+    if (listener && declaresNone(androidHosts)) {
       violations.push(
         `${where}: an appUrlOpen listener exists and android/ has no VIEW + BROWSABLE + https intent-filter — the listener never fires on Android (hosts elsewhere: ${hosts})`
       );
     }
-    if (listener && iosHosts !== null && iosHosts.length === 0) {
+    if (listener && declaresNone(iosHosts)) {
       violations.push(
         `${where}: an appUrlOpen listener exists and ios/ has no applinks: associated-domains entitlement — the listener never fires on iOS (hosts elsewhere: ${hosts})`
       );

@@ -24,6 +24,8 @@ Each signal is now a shape in the parse, shared by the three sub-checks:
   to requests. A class name is not authentication.
 - **Tokens:** an SDK that holds them (`getIdToken`, `getTokenSilently`…), a
   token attached to requests, `jwt.sign` / `jwt.verify`, or web storage.
+  With a managed SDK the result says token storage is the SDK's; tokens the
+  app itself writes to web storage are still judged.
 - **Guards:** a route guard by its contract (`implements CanActivate`, a
   `CanActivateFn`, `canActivate: […]`, `@UseGuards`), a 401/403 refusal, or
   a credential attached to every request.

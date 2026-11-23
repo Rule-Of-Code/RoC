@@ -209,3 +209,23 @@ describe('#561 authorization and session by what the code does', () => {
     expect(v).toContain(INVALIDATION);
   });
 });
+
+describe('#549 the result says the SDK holds the tokens', () => {
+  it('a managed-SDK app is told token storage is the SDK’s', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-549n-'));
+    made.push(dir);
+    fs.writeFileSync(
+      path.join(dir, 'package.json'),
+      '{"name":"n","version":"1.0.0"}'
+    );
+    for (const [rel, text] of Object.entries(MANAGED_SDK_APP)) {
+      fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+      fs.writeFileSync(path.join(dir, rel), text);
+    }
+    const { suggestions } =
+      AuthenticationChecker.checkAuthenticationImplementation(dir, config);
+    expect(suggestions).toContainEqual(
+      expect.stringContaining('Tokens are held by a managed auth SDK')
+    );
+  });
+});

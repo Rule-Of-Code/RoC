@@ -2,6 +2,10 @@ import type { RuleOfCodeConfig } from '../../../config/types';
 import { SecurityCheckerBase } from './security-checker-base';
 import { AuthenticationPatternValidators } from './shared-authentication-patterns';
 
+/** Said when a managed auth SDK holds the tokens (#549). */
+export const MANAGED_TOKENS_NOTE =
+  'Tokens are held by a managed auth SDK: token storage and refresh are the SDK’s and are not asked for (tokens the app itself writes to web storage are still judged)';
+
 /**
  * Authentication Implementation Checker
  * Validates authentication patterns and implementations
@@ -53,6 +57,12 @@ export class AuthenticationChecker extends SecurityCheckerBase {
 
     return this.runSecurityCheck(projectRoot, config, codeFiles => {
       const { violations, suggestions } = authFlow(codeFiles);
+
+      // A managed SDK holds the tokens (#549): say so, instead of asking how
+      // the app stores them.
+      if (this.authShapeOf(codeFiles).managedSdk) {
+        suggestions.push(MANAGED_TOKENS_NOTE);
+      }
 
       // Additional OAuth check
       const hasOAuthIntegration = this.hasOAuthIntegration(codeFiles);

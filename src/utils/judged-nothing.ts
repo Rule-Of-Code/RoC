@@ -96,9 +96,29 @@ export function saysJudgedNothing(result: unknown): boolean {
   );
 }
 
-/** Apply the one verdict to any law result that judged nothing. */
+/**
+ * A law that found nothing wrong in what it read and says, in `notRead`, what
+ * it could not read (#453). Not judged nothing — it read something — and not
+ * a pass: what was not read cannot have passed.
+ */
+export function readsPartly(result: unknown): boolean {
+  const res = result as
+    (JudgeableResult & { notRead?: unknown }) | null | undefined;
+  if (!res || typeof res !== 'object' || res.judgedNothing === true)
+    return false;
+  const notRead = Array.isArray(res.notRead) ? res.notRead : [];
+  const violations = Array.isArray(res.violations) ? res.violations : [];
+  return notRead.length > 0 && violations.length === 0;
+}
+
+/**
+ * Apply the one verdict to any law result that judged nothing; a result that
+ * read part of its input is marked not passed, its score kept (it is what
+ * the law found in what it read).
+ */
 export function normalizeJudgedNothing<T>(result: T): T {
-  return saysJudgedNothing(result)
-    ? (markJudgedNothing(result as T & object) as T)
-    : result;
+  if (saysJudgedNothing(result))
+    return markJudgedNothing(result as T & object) as T;
+  if (readsPartly(result)) return { ...(result as T & object), passed: false };
+  return result;
 }

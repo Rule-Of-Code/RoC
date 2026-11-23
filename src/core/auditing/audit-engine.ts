@@ -253,6 +253,7 @@ export class RuleOfCodeAuditor {
         failedLaws: processedResults.failedLaws ?? 0,
         warningLaws: processedResults.warningLaws ?? 0,
         judgedNothingLaws: processedResults.judgedNothingLaws ?? 0,
+        partlyReadLaws: processedResults.partlyReadLaws ?? 0,
         substantiveLaws: substantive.length,
         deferredLaws: selected.length - laws.length,
         results: processedResults.results ?? new Map(),
@@ -536,6 +537,7 @@ export class RuleOfCodeAuditor {
       // Filled from the results once the laws ran (see withOutcomes).
       warningLaws: [],
       judgedNothingLaws: [],
+      partlyReadLaws: [],
       narrowedBy,
       // Partial is about the SELECTION: a pre-commit defers the history laws
       // by design, which is not a narrowing. A refusal is not partial — no
@@ -562,15 +564,18 @@ export class RuleOfCodeAuditor {
   ): AuditScope {
     const failOnWarnings =
       (this.options as { failOnWarnings?: boolean })?.failOnWarnings ?? false;
-    const { warningLaws, judgedNothingLaws } = AuditResultProcessor.scopedLaws(
-      results,
-      failOnWarnings
-    );
+    const { warningLaws, judgedNothingLaws, partlyReadLaws } =
+      AuditResultProcessor.scopedLaws(results, failOnWarnings);
     return {
       ...scope,
       warningLaws,
       judgedNothingLaws,
-      partial: scope.partial || judgedNothingLaws.length > 0,
+      partlyReadLaws,
+      // What was not judged or not read cannot have passed (8.0.0, #453).
+      partial:
+        scope.partial ||
+        judgedNothingLaws.length > 0 ||
+        partlyReadLaws.length > 0,
     };
   }
 
@@ -1060,6 +1065,7 @@ export class RuleOfCodeAuditor {
     this.displayFailedLaws(auditResult, chalkForced, options);
     this.displayWarningLaws(auditResult, chalkForced, options);
     this.displayJudgedNothingLaws(auditResult, chalkForced, options);
+    this.displayPartlyReadLaws(auditResult, chalkForced, options);
     this.displayPassedLaws(auditResult, chalkForced, options);
     this.displayWaivers(auditResult.scope, chalkForced);
     this.displayFinalVerdict(auditResult, chalkForced);
@@ -1096,6 +1102,8 @@ export class RuleOfCodeAuditor {
     passed?: boolean;
     severity?: string;
     judgedNothing?: boolean;
+    notRead?: string[] | undefined;
+    violations?: unknown;
   }): ReturnType<typeof AuditResultProcessor.outcomeOf> {
     return AuditResultProcessor.outcomeOf(
       lawResult,
@@ -1184,6 +1192,12 @@ export class RuleOfCodeAuditor {
     if (judgedNothing > 0) {
       console.log(
         `${chalk.magenta('◌ Judged nothing:')} ${chalk.bold.magenta(judgedNothing)} ${chalk.gray('(did not pass)')}`
+      );
+    }
+    const partlyRead = auditResult.partlyReadLaws ?? 0;
+    if (partlyRead > 0) {
+      console.log(
+        `${chalk.magenta('◐ Partly read:')} ${chalk.bold.magenta(partlyRead)} ${chalk.gray('(did not pass)')}`
       );
     }
 
@@ -1307,6 +1321,44 @@ export class RuleOfCodeAuditor {
         options
       )
     );
+  }
+
+  /**
+   * Laws that read part of their input and found nothing wrong in it, at a
+   * non-blocking severity (#453): their own block, listing what each could
+   * not read — never among the findings. At error severity they are
+   * failures and listed with the failed laws.
+   */
+  private displayPartlyReadLaws(
+    auditResult: AuditResult,
+    chalk: chalk.Chalk,
+    options: { verbose: boolean; showScoring: boolean }
+  ): void {
+    const laws = [...auditResult.results.values()].filter(
+      result => this.outcomeOf(result as { passed?: boolean }) === 'partly-read'
+    );
+    if (laws.length === 0) return;
+    console.log(
+      chalk.magenta.bold(
+        '◐ PARTLY READ — found nothing wrong in what they read, and did not read all of it; they did not pass:'
+      )
+    );
+    console.log(chalk.gray('─'.repeat(60)));
+    console.log('');
+    laws.forEach((lawResult, index) => {
+      const law = lawResult as { notRead?: string[] };
+      this.displayFailedLaw(
+        {
+          ...(lawResult as Parameters<
+            RuleOfCodeAuditor['displayFailedLaw']
+          >[0]),
+          violations: law.notRead ?? [],
+        },
+        index + 1,
+        chalk,
+        options
+      );
+    });
   }
 
   private displayFailedLaw(
@@ -1557,12 +1609,21 @@ export class RuleOfCodeAuditor {
    * stats.warningLaws) — a law with warnings did not "pass".
    */
   static passedSentence(
-    auditResult: Pick<AuditResult, 'passedLaws' | 'warningLaws'>
+    auditResult: Pick<
+      AuditResult,
+      'passedLaws' | 'warningLaws' | 'partlyReadLaws'
+    >
   ): string | null {
     const warnings = auditResult.warningLaws ?? 0;
-    return warnings > 0
-      ? `${auditResult.passedLaws} passed, ${warnings} reported warnings (not blocking)`
-      : null;
+    // A law that read part of its input did not pass either (#453).
+    const partlyRead = auditResult.partlyReadLaws ?? 0;
+    if (warnings === 0 && partlyRead === 0) return null;
+    const parts = [`${auditResult.passedLaws} passed`];
+    if (warnings > 0)
+      parts.push(`${warnings} reported warnings (not blocking)`);
+    if (partlyRead > 0)
+      parts.push(`${partlyRead} did not read all of their input`);
+    return parts.join(', ');
   }
 
   /**
@@ -1575,15 +1636,33 @@ export class RuleOfCodeAuditor {
     chalk: chalk.Chalk
   ): void {
     const judgedNothing = scope.judgedNothingLaws.length;
+    const partlyRead = scope.partlyReadLaws?.length ?? 0;
     const others = counted ?? 'The other laws passed';
+    const what = [
+      judgedNothing > 0
+        ? `${judgedNothing} law(s) judged nothing (${scope.judgedNothingLaws.map(l => l.law).join(', ')})`
+        : null,
+      partlyRead > 0
+        ? `${partlyRead} law(s) did not read all of their input (${scope.partlyReadLaws.map(l => l.law).join(', ')})`
+        : null,
+    ]
+      .filter(Boolean)
+      .join('; ');
     console.log(
       chalk.yellowBright.bold(
-        `⚠️  PARTIAL — ${judgedNothing} law(s) judged nothing (${scope.judgedNothingLaws.map(l => l.law).join(', ')}). ${others}; no compliance verdict.`
+        `⚠️  PARTIAL — ${what}. ${others}; no compliance verdict.`
       )
     );
-    console.log(
-      chalk.yellow('   A law that found nothing to judge has not passed.')
-    );
+    if (judgedNothing > 0)
+      console.log(
+        chalk.yellow('   A law that found nothing to judge has not passed.')
+      );
+    if (partlyRead > 0)
+      console.log(
+        chalk.yellow(
+          '   What a law could not read cannot have passed; each says above what it did not read.'
+        )
+      );
     console.log(
       chalk.gray(
         '   For a compliance verdict give it something to judge, or leave it off (it is opt-in or stack-gated where it can be).'
@@ -1623,6 +1702,13 @@ export class RuleOfCodeAuditor {
       console.log(
         chalk.magenta(
           `   And ${judgedNothing} law(s) that ran judged nothing; they did not pass either.`
+        )
+      );
+    const partlyRead = scope.partlyReadLaws?.length ?? 0;
+    if (partlyRead > 0)
+      console.log(
+        chalk.magenta(
+          `   And ${partlyRead} law(s) that ran did not read all of their input; they did not pass either.`
         )
       );
     console.log(chalk.cyan('═'.repeat(60)));

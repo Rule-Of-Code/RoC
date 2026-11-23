@@ -5,15 +5,15 @@
  * path instead of mocking it).
  */
 import fs from 'fs';
-import os from 'os';
 import path from 'path';
 import type { LawCheckContext } from '../../src/types';
+import { makeTempDir } from '../helpers/temp-dirs';
 
 const dirs: string[] = [];
 
 /** A temp project; keys are relative paths (nested directories are created). */
 export function project(files: Record<string, string>): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-toolkit-'));
+  const dir = makeTempDir('roc-toolkit-');
   dirs.push(dir);
   writeFiles(dir, files);
   return dir;

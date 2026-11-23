@@ -1,4 +1,5 @@
 import { ProjectTypeDetectorValidation } from '../../../../utils/config/project-type-detector/project-type-detector-validation';
+import { HttpTestHarness } from '../../../../utils/testing/http-test-harness';
 
 /**
  * UnitTestAPITestingConstants
@@ -133,7 +134,12 @@ export class UnitTestAPITestingConstants {
    * Check if filename is an API test file
    */
   static isAPITestFile(filename: string): boolean {
-    return this.API_TEST_PATTERNS.some(pattern => pattern.test(filename));
+    // A name is one way in, not the only one (#551): a test file whose code
+    // drives an HTTP test harness is an API test whatever it is called.
+    return (
+      this.API_TEST_PATTERNS.some(pattern => pattern.test(filename)) ||
+      HttpTestHarness.drives(filename)
+    );
   }
 
   /**

@@ -18,8 +18,289 @@ laws ask for. The two laws also disagreed on a typed `let`
 Both laws now read the same definition: a column-0 `let` / `var` with an
 initialiser, typed or not, is shared state unless a `beforeEach` or
 `afterEach` of the same file assigns it. A reset in `beforeAll` (which runs
-once) does not count. Test Data Management can therefore report a typed
-`let` that nothing resets, which it did not see before.
+once) does not count.
+
+Test Data Management now also reports a typed module-level `let` that
+nothing resets, as Test Isolation Enforcement does. Findings can grow the
+same way for a declaration without a trailing `;` and for a name with a
+dollar sign, which Test Data Management's old pattern did not see.
+
+### 🐛 Fixed — module bindings are read from the syntax tree (#565)
+
+The definition above read the reset as text in the hook. Three cases were
+wrong: a hook that declared its own binding of the same name
+(`const x = …`, shadowing) counted as a reset, an assignment written inside
+a string counted as a reset, and only the first declarator of
+`let a = 1, b = 2` was read. Both laws now read the bindings and the hooks
+from the syntax tree: every declarator of a top-level `let` / `var` with an
+initialiser, an assignment only where it is code, and a same-named binding
+inside the hook shadows instead of resetting. The second declarator of one
+statement can add a finding where nothing resets it.
+
+### 🐛 Fixed — Test Coverage Constitutional Standard took `domain.ts` for an entry point (#539)
+
+The law does not ask a test of an entry point or a barrel (`index.ts`,
+`main.ts`, `polyfills.ts`), but the patterns matched the end of any file
+name: `domain.ts` ("…main.ts"), `remain.ts` and `app-index.ts` were never
+asked for a test. The patterns now match the file name itself.
+
+This **adds** "source files lack corresponding test files" counts in
+projects with such names: +N source files without a test (measured in the
+PR).
+
+### 🐛 Fixed — Unit Test Quality and Test Data Management read one external boundary (#491, #29)
+
+Both laws ask whether a test reaches something outside its process with no
+double in place, and they answered it from two tables. Test Data Management
+counted the filesystem and a child process as external, Unit Test Quality
+did not; Unit Test Quality took a double named by its role (`fakeClient`)
+and an unmocked global `fetch(` into account, Test Data Management did not.
+The same test was "external data" for one law and "no external dependency"
+for the other.
+
+Both now read one definition (`ExternalBoundary`), with a reason per group:
+node network modules, HTTP and socket clients, databases and brokers, cloud
+SDKs. The filesystem and a child process are not on it: a test in a
+temporary directory, or one that runs the project's own CLI, is legitimate.
+A double named by its role now includes a real in-memory implementation
+(`InMemory…`), next to `Fake…`, `Stub…` and `Mock…` (#29).
+
+Measured before the change, with the laws' own discovery:
+
+| project | Test Data Management findings (fs a boundary / not) | Unit Test Quality "no mocking" findings (fs not a boundary / a boundary) |
+|---|---|---|
+| RoC itself | 0 / 0 (files judged: 192 / 25) | 0 / 127 |
+| a large Angular app | 0 / 0 (files judged: 466 / 271) | 33 / 214 |
+
+### 🐛 Fixed — Performance Test Requirements recognises a spec that asserts a timing budget (#554)
+
+Performance tests were recognised only by file name (`*perf.test.ts`,
+`*benchmark.ts`, …) and critical flows only by words (`login`, `checkout`,
+…). An e2e spec that measures a flow and asserts a budget, such as
+`const ms = performance.now() - start; expect(ms).toBeLessThan(BUDGET_MS);`
+in `cold-start.e2e.spec.ts`, was "No performance test files found".
+
+A spec whose code reads `performance.now()` or `Date.now()` and asserts
+`toBeLessThan` / `toBeLessThanOrEqual` is now a performance test; the name
+patterns stay one way in. Beyond the issue's suggestion, such a budget in a
+spec that drives a browser or a device (`page.goto`, `cy.visit`,
+`browser.url`, `device.launchApp`) also counts as a critical-flow
+performance test: a cold start is as much a user flow as a login, and
+otherwise the finding would only have changed from "No performance test
+files found" to "Critical user flow performance tests not implemented".
+
+### 🐛 Fixed — API Testing Standards recognises an API test by what its code drives (#551)
+
+API tests were recognised only by file name (`api.spec.ts`, `*.api.ts`,
+`request.spec.ts`, …). An Angular HTTP layer tested in
+`user.repository.spec.ts` with `HttpTestingController`, or a server tested
+with `supertest` in `server.spec.ts`, was "No API test files found".
+
+A test file whose syntax tree drives an HTTP test harness (an import of
+`supertest`, `nock`, `msw`, `fetch-mock` or `@angular/common/http/testing`,
+or `HttpTestingController` / `provideHttpClientTesting` / `setupServer(` /
+`nock(` in its code) is now an API test; the name patterns stay one way in.
+A harness named in a comment or a fixture string is not one.
+
+Once found, those files are judged for HTTP method and error-scenario
+coverage, so a project can trade "No API test files found" for findings
+about what its API tests cover: +N findings (measured in the PR).
+
+The same blind spot sat in the mocking check, which looked only at declared
+dependencies (msw, nock, sinon, mirage): API tests that answer every request
+with Angular's `HttpTestingController`, which ships inside `@angular/common`,
+were told "Consider implementing API mocking with tools like MSW or nock"
+and lost 10 points. A mock backend used by the API tests (Angular's, msw,
+nock, fetch-mock) now counts as API mocking; `supertest`, which sends real
+requests in process, does not.
+
+### 🐛 Fixed — a zero-delay `setTimeout` is a yield, not a real-timer wait (#548)
+
+Unit Test Quality reported "setTimeout usage without fake timers may cause
+test flakiness" for `await new Promise((resolve) => setTimeout(resolve))`,
+which waits for one macrotask, not for wall-clock time; the finding was the
+same for a delay of `0` and of `1200`. A call with no delay or a literal `0`
+is no longer counted. A non-zero literal and a delay the law cannot read (a
+name, an expression) still are.
+
+### Changed — Angular Testing Excellence asks for a descriptive test title, not a "should" prefix (#557)
+
+The law reported every test whose title did not start with "should". The
+prefix is a style: `it('returns the cached value on the second call')`
+describes behaviour as well as the "should" form. The law now reports a
+title that describes nothing: empty, a placeholder (`test`, `test 1`,
+`works`, `it works`) or only the name of the unit under test (an enclosing
+describe's title, `getUser()`, `CacheService`), as
+`Test title does not describe behaviour in <file>: "<title>"`.
+
+The prefix is an opt-in convention: `thresholds.angular.testTitlePrefix`
+(unset by default). Set it to `"should"` to keep the previous rule and its
+message.
+
+### 🐛 Fixed — hardcoded-URL findings: identifiers, rendered links and the reported value (#537)
+
+Environment Security Enforcement and Environment Parity Standards (both read
+the same environment-variable usage analyzer) reported as "Hardcoded URL":
+
+- XML namespaces and the schema.org vocabulary (`http://www.w3.org/2000/svg`,
+  `https://schema.org/InStock`). They are identifiers that no environment
+  changes, and are no longer reported.
+- the value of a JSX `xmlns` or `href` attribute: a namespace, or a link the
+  page renders for its reader. A JSX `src`, a `location.href = '…'`
+  assignment and a URL the code fetches are still reported.
+
+The URL is now taken from the value of the string, escapes resolved, not from
+the source text: in a template, `https://api.example.io/v1\n\n${rest}` was
+reported with `\n\n${` attached.
+
+**Message change:** every finding of this analyzer (hardcoded URL, variable
+used without fallback, hardcoded connection string, hardcoded secret) names
+the file relative to the project (`src/lib/api.ts: …`). It named the absolute
+path of the checkout on the machine that ran the audit, so the same finding
+read differently on every machine and in CI.
+
+### 🐛 Fixed — Dependency Security Scanning no longer reports vulnerabilities no audit found (#545)
+
+The law ran no audit, but counted:
+
+- one **moderate** vulnerability for every dependency written as an exact
+  0.x version (`"0.3.2"`, but not `"^0.3.2"`), so exact pinning, the safer
+  practice, was penalised;
+- **critical** / **high** from two hard-coded tables (lodash, moment, axios)
+  matched against the declared range text, not the installed version;
+
+and reported the result as "NPM audit passed" / "NPM audit failed".
+
+All of it is removed. The law judges what its detection limits always said:
+the dependency graph is locked, and a scanner runs in the gate. The
+vulnerabilities of the locked graph are measured by that scanner; every
+result now says so in a note (in the message and the details, not as a
+violation and not as "judged nothing").
+
+A wildcard range is now read as a range: `*`, `x`, `latest`, an empty range
+or a wildcard component (`1.x`, `1.2.*`). The letter x or a `*` in a spec
+with a protocol (`file:../ext`, `npm:x-lib@1.0.0`, `workspace:*`) is no
+longer a wildcard.
+
+The law's first detection limit now names what is actually read: three
+lockfiles, the scanners and the files they are looked for in (GitHub
+Actions workflows are not read), and the legacy audit config files that
+also count. The law's description no longer promises "audit integration"
+and "vulnerability detection"; its id (`security_a0bcc52d`) is unchanged.
+
+### 🐛 Fixed — API Security Standards reads servers and HTTP services as code (#550)
+
+- **CORS.** A file was "an Express server missing CORS configuration" when
+  its name contained `server`, `main` or `app` (which includes `mapper.ts`)
+  and its text matched `express` anywhere, without the word `cors`. The word
+  `expression` (`ts.isExpressionStatement`) and a law's prose about Express
+  were enough: five of the six such findings in this repository's own audit
+  came from `expression`. A server is now a file that imports `express` and
+  creates or starts the app, whatever it is called; CORS is configured when
+  the code (not a comment) uses `cors` or sets Access-Control-Allow-Origin.
+- **Input validation.** A service that uses `HttpClient` had to contain the
+  word `validate` somewhere, and a file whose strings merely listed
+  `'@Injectable()'` and `'HttpClient'` was judged as such a service. A
+  response now counts as validated by a schema library import (zod, yup,
+  joi, io-ts, valibot, superstruct, class-validator, ajv, runtypes, arktype,
+  typebox), a validator call, or a value typed `unknown` and narrowed
+  (`typeof x === …`, a type predicate). The word in a comment is not
+  validation.
+- Without the TypeScript parser these two checks read nothing, and the law
+  says the files were NOT read instead of judging them by words.
+
+Authentication by file name (`AUTH_FILES`) is not changed here; it moves to
+the content-based detector of #549.
+
+### Fixed — Semantic Versioning Standards reads the manifest a Python project releases from
+
+The law compared `package.json` with the latest git tag whenever a
+`package.json` existed. In a Python project that keeps `package.json` only for
+tooling (hooks, lint scripts), its `0.1.0` was reported as "behind the latest
+git tag" while `pyproject.toml` carried the released version. Without a
+`package.json`, the `pyproject.toml` version was format-checked but never
+compared with the tag, so a stale one passed (#546).
+
+Now a Python project whose `pyproject.toml` (`[project]` or `[tool.poetry]`) or
+`setup.cfg` (`[metadata]`) declares a version is judged by that version, also
+when a `package.json` exists, and it is compared with the latest tag. Every
+finding names the manifest it read (`pyproject.toml version (1.3.0) is behind
+the latest git tag (1.4.0)`). Other projects are judged by `package.json` as
+before. A Python project whose version is behind its tag now gets a finding it
+did not get before.
+
+### Fixed — CDN and Caching Strategy: firebase.json is a web surface only with hosting
+
+A `firebase.json` switched the law on by its presence. It configures several
+products, and only its `hosting` key declares something a browser loads. A
+Python API whose `firebase.json` holds Firestore rules and indexes was asked
+for a CDN, caching headers and a service worker (#547).
+
+Without TypeScript/JavaScript sources or another web config, the law now
+counts `firebase.json` (at the root or in a workspace project) only when it
+parses and has a top-level `hosting` key; otherwise it is not applicable. A
+`firebase.json` that does not parse is reported as not read: the law judged
+nothing and does not pass. The `requires` selector (`REQUIRES_WEB_SURFACE`)
+reads `firebase.json` the same way, through a new requirement condition,
+`anyJsonFileWithKey`: a JSON file parsed for a top-level key. A file that does
+not parse selects the law (fail-closed), so its "not read" is reported instead
+of the law disappearing from the audit. The laws selected by
+`REQUIRES_PRODUCTION_SUBJECT` are unchanged: `firebase.json` is still a deploy
+target there.
+
+### Fixed — an angular.json that cannot be read is said to be not read, never "budgets missing"
+
+The bundle check of Lazy Loading Implementation read an `angular.json` that
+does not parse as an empty object, so its build checks found nothing to
+report, and the budget analyzer swallowed the parse error and answered "not
+configured". The project was told to "Add performance budgets in angular.json
+build configuration" while its budgets may well be there, and nothing said the
+file was not read. A bare `catch` around the budget and webpack analyzers also
+turned any error into the same "missing" advice (#423).
+
+Now a build config that cannot be read (`angular.json`, or a workspace
+`project.json`) is named with its reason, once: `angular.json could not be read:
+<reason> — its build configuration and performance budgets were NOT read`. It
+is a finding, not a pass, and no "missing" advice is given for it. Performance
+Budget Compliance reads the same analyzer and reports the budgets as not read
+instead of "Angular CLI performance budgets not configured".
+
+### Fixed — Web Vitals monitoring is recognised by the measurement in the code
+
+Performance Standards, Performance Monitoring Policy and Performance
+Monitoring Standards each recognised Core Web Vitals monitoring through their
+own copy of the web-vitals v3 names (`getLCP`, `getCLS` …), read in a few fixed
+files (`main.ts`, `app.component.ts`), or through a declared `web-vitals`
+dependency. An app that measures LCP, CLS and INP itself with
+`PerformanceObserver` was told monitoring is "not implemented" by all three;
+web-vitals v4 (`onLCP` …) in a module of its own was not seen by Performance
+Monitoring Standards; and a `web-vitals` dependency that nothing calls passed
+the Core Web Vitals check of Performance Monitoring Policy (#553).
+
+The three laws now read one source: a measurement in the production sources
+(tests excluded) — a web-vitals call (v3 `get*` or v4 `on*`) or
+`useReportWebVitals` in a file that imports it, or a `PerformanceObserver` on
+`largest-contentful-paint`, `layout-shift`, `event` or `first-input`. The result
+names what was found and where. A declared `web-vitals` that nothing calls is
+reported as such. In a React/Next project, files the parser could not read are
+reported as not read and are not judged by the text scan.
+
+### Fixed — Performance Monitoring Policy finds an ErrorHandler wherever it is registered
+
+The error-tracking check of Performance Monitoring Policy accepted an own
+Angular `ErrorHandler` only when the word stood in `src/app/app.module.ts` or
+`src/app/app.component.ts`. A standalone app registers it in `app.config.ts` or
+in the providers of `bootstrapApplication`, has no `app.module.ts`, and was told
+error tracking is "not configured" (#553).
+
+The law now reads the production sources (tests excluded) with the TypeScript
+parser and the detector Global Error Handlers uses: an `ErrorHandler` provider
+(`{ provide: ErrorHandler, useClass | useExisting | useFactory | useValue }`)
+wherever it is registered, a `provide…ErrorHandler()` helper, `window.onerror`,
+or a `window` / `process` error listener. An import of `ErrorHandler` or
+`provideHttpClient()` alone is not error tracking. Without the parser the files
+that may register a handler are reported as not read. Global Error Handlers
+also recognises a `provide…ErrorHandler()` helper call.
 
 ### Fixed — Environment Parity Standards finds environment detection where the code reads it
 

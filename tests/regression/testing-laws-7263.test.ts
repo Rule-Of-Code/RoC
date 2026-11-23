@@ -298,7 +298,8 @@ describe('#310 — Test Data Management names its files and judges mocking only 
       v.includes('test double')
     );
     expect(mocking).toBeDefined();
-    expect(mocking).toContain('tests/api.spec.ts (axios, node:fs)');
+    // The filesystem is not a boundary (#491): only the network client is named.
+    expect(mocking).toContain('tests/api.spec.ts (axios)');
     expect(mocking).not.toContain('sum.spec.ts');
     expect(result.details).not.toContain(MOCKING_NOT_JUDGED);
   });

@@ -528,7 +528,7 @@ export const VERSION_CONTROL_LAWS: EnhancedConstitutionalLaw[] = [
         'Keep android versionName and the Xcode MARKETING_VERSION equal to package.json, or inject both at build time from the release script; cap sync touches neither.',
     },
     detectionLimits: [
-      'It reads package.json first and pyproject.toml ([project] or [tool.poetry]) for a Python project; a stack with neither manifest (Rust, Go) declares no version it can read, so the version check stays silent rather than inventing a finding.',
+      'A Python project is judged by the version in pyproject.toml ([project] or [tool.poetry]) or setup.cfg ([metadata]), also when a package.json exists; every other project by package.json. A dynamic version (setuptools-scm, attr:) is not read. A stack with none of these manifests (Rust, Go) declares no version it can read, so the version check stays silent rather than inventing a finding.',
       'It duplicates the version/tag-format logic of Release Tag Standards but with a stricter, violation-level stance on the missing file.',
       'The behind-latest-tag check uses semver.coerce, so loosely-formatted tags may compare in surprising ways.',
       'In a Capacitor project it also reads versionName in android/app/build.gradle and MARKETING_VERSION in project.pbxproj and any ios/App .xcconfig: only a quoted Gradle literal or a non-$(…) Xcode value is compared (as coerced SemVer, so 1.0 equals 1.0.0); a value injected at build time is named as not compared, and versionCode / CURRENT_PROJECT_VERSION are reported only — monotonicity is a history question.',

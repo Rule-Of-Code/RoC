@@ -473,6 +473,46 @@ Each signal is now a shape in the parse, shared by the three sub-checks:
 
 The law's detection limits describe the shapes.
 
+### 🐛 Fixed — an ignores.global entry that matches no file is named
+
+8.0.0 brought every written form of an `ignores.*` pattern to one form, so a
+Windows path, `./`, a trailing slash and an absolute path inside the project
+match. An entry written correctly that still points nowhere — a typo
+(`vendr/**`), a directory that was renamed or removed — excluded nothing in
+silence. The audit now prints a warning for each `ignores.global` entry the
+project wrote that matches no file of the project (the files git shows;
+outside git, the files on disk). The tool's own default entries are not
+judged, and neither is an entry the project's .gitignore also ignores:
+generated output (`coverage/**`) is absent from a fresh clone and still right
+to ignore (#414).
+
+### 🐛 Fixed — what a law did not read is not one of its findings
+
+A law that read part of its input (its own flags in `tsconfig.json` but not a
+base it extends, Python modules but not TypeScript ones) wrote the part it
+could not read into `violations`. It was listed as a finding ("1 violations
+found") although it found nothing wrong, and a consumer counting violations
+counted the note. The result now has a field of its own for it: `notRead`
+(notes, never findings).
+
+A law with `notRead` notes and no violations did not pass: what was not read
+cannot have passed. At warning or info severity it is its own outcome,
+`◐ Partly read`, in its own console block with what it could not read, and
+the run is partial (no compliance verdict) — it is never counted among the
+warnings. At error severity it fails, as a law that judged nothing does. A
+law with notes and findings is judged by its findings.
+
+**JSON change:** law results may carry `notRead: string[]`; `stats.partlyReadLaws`
+counts the partly-read laws apart (passed + failed + warning + judgedNothing +
+partlyRead = executedLaws), and `scope.partlyReadLaws` names them. TypeScript
+Strict Mode (an `extends` link it cannot read), Independent Awaits Run
+Concurrently, Async Cache Single-Flight and Database Read Cache Safety (files
+the request-path reader could not parse), HTML Lang Declared (sources and a
+`next.config` it could not read), Accessibility Linting Enforcement (an ESLint
+config script) and Capacitor Plugin Stub Has Contract Test (test configs and
+mappers it could not read) fill it. A law that read none of its files is still
+judged nothing, whether its note is a violation or in `notRead` (#453).
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

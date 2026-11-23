@@ -55,6 +55,7 @@ type Result = {
   passed: boolean;
   judgedNothing?: boolean;
   violations?: string[];
+  notRead?: string[];
 };
 const run = (
   check: (c: { projectRoot: string; config: never }) => unknown,
@@ -64,7 +65,9 @@ const run = (
     projectRoot: dir,
     config: ConfigLoader.load(dir) as never,
   }) as Result;
-  return { result, text: (result.violations ?? []).join('\n') };
+  // the note may be a violation or, since #453, in notRead
+  const notes = [...(result.violations ?? []), ...(result.notRead ?? [])];
+  return { result, text: notes.join('\n') };
 };
 const NOT_READ = "could not load the 'typescript' package";
 
@@ -83,7 +86,13 @@ describe('HTML Lang Declared: an unread next.config is not "no i18n"', () => {
 
   it('without typescript: the not-read note, not the violation', () => {
     loadTypeScript.mockReturnValue(null);
-    const { text } = run(c => HtmlLangDeclaredLaw.check(c as never), dir);
+    const { text, result } = run(
+      c => HtmlLangDeclaredLaw.check(c as never),
+      dir
+    );
+    // #453: the notes are notRead, not findings
+    expect(result.violations ?? []).toEqual([]);
+    expect(result.notRead?.length).toBeGreaterThan(0);
     expect(text).toContain(`${NOT_READ}`);
     expect(text).toContain('the next.config file(s) were NOT read');
     expect(text).toContain('whether i18n sets <html lang> was not judged');
@@ -117,10 +126,15 @@ describe('Accessibility Linting: an unread config script is not "rules missing"'
 
   it('without typescript: the not-read note, not "rules missing"', () => {
     loadTypeScript.mockReturnValue(null);
-    const { text } = run(
+    const { text, result } = run(
       c => AccessibilityLintingEnforcementLaw.check(c as never),
       dir
     );
+    // #453: the note is notRead, not a finding
+    expect(result.violations ?? []).toEqual([]);
+    expect(result.notRead).toEqual([
+      expect.stringContaining('eslint.config.mjs'),
+    ]);
     expect(text).toContain('eslint.config.mjs');
     expect(text).toContain(
       'whether they enable the jsx-a11y preset was not judged'

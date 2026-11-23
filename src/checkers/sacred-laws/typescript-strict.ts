@@ -3,7 +3,7 @@
  * All TypeScript must be configured with strict settings
  */
 
-import { PARTLY_READ_TEXT } from '../../utils/judged-nothing';
+import { PARTLY_READ_TEXT, withNotRead } from '../../utils/judged-nothing';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { ProjectTypeDetector } from '../../utils/config/project-type-detector';
 import { SacredLawBase } from './sacred-law-base';
@@ -33,6 +33,8 @@ export class TypeScriptStrictLaw {
   static check(context: LawCheckContext): LawResult {
     const { projectRoot } = context;
     const violations: string[] = [];
+    // What could not be read is a note, not a finding (#453).
+    const notRead: string[] = [];
 
     // Check for TypeScript configuration
     if (!ProjectTypeDetector.hasTypeScriptConfig(projectRoot)) {
@@ -62,7 +64,7 @@ export class TypeScriptStrictLaw {
         this.validateCompilerOptions(chain, violations, projectRoot);
       }
       if (chain.notRead === undefined && chain.unread.length > 0) {
-        violations.push(
+        notRead.push(
           `tsconfig.json extends ${chain.unread.map(e => JSON.stringify(e)).join(', ')}, which could not be read — the inherited compiler options were NOT read, and a flag not set in the files that were read is not judged; ${PARTLY_READ_TEXT}`
         );
       }
@@ -76,7 +78,7 @@ export class TypeScriptStrictLaw {
       );
     }
 
-    return SacredLawBase.createResult(
+    const result = SacredLawBase.createResult(
       violations,
       'TypeScript Strict Mode',
       'SACRED_LAW',
@@ -86,6 +88,7 @@ export class TypeScriptStrictLaw {
         'Set target to ES2020 or higher',
       ]
     );
+    return withNotRead(result, notRead);
   }
 
   /** The options `strict: true` switches on (TypeScript's own list). */

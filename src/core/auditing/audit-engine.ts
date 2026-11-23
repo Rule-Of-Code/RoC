@@ -100,8 +100,6 @@ export class RuleOfCodeAuditor {
   private static readonly UNKNOWN_LAW = 'Unknown Law';
   /** Suggestions shown per failing law before --verbose is needed. */
   private static readonly SUGGESTION_PREVIEW_COUNT = 3;
-  /** Width of the rules (═, ─) that frame the printed report. */
-  private static readonly RULE_WIDTH = 60;
 
   /**
    * Human-facing law name: the canonical registry title. Checker-local
@@ -1157,9 +1155,9 @@ export class RuleOfCodeAuditor {
 
   private displayHeader(chalk: chalk.Chalk): void {
     console.log('\n');
-    console.log(chalk.cyan('═'.repeat(RuleOfCodeAuditor.RULE_WIDTH)));
+    console.log(chalk.cyan('═'.repeat(60)));
     console.log(chalk.bold.white('   🏛️  CONSTITUTIONAL AUDIT RESULTS'));
-    console.log(chalk.cyan('═'.repeat(RuleOfCodeAuditor.RULE_WIDTH)));
+    console.log(chalk.cyan('═'.repeat(60)));
     console.log('');
   }
 
@@ -1174,7 +1172,7 @@ export class RuleOfCodeAuditor {
         : 0;
 
     console.log(chalk.bold('📊 AUDIT SUMMARY:'));
-    console.log(chalk.gray('─'.repeat(RuleOfCodeAuditor.RULE_WIDTH)));
+    console.log(chalk.gray('─'.repeat(60)));
     console.log(
       `${chalk.cyan('Total Laws Checked:')} ${chalk.bold.white(auditResult.totalLaws)}`
     );
@@ -1265,7 +1263,7 @@ export class RuleOfCodeAuditor {
     if (auditResult.failedLaws === 0) return;
 
     console.log(chalk.red.bold('❌ FAILED CONSTITUTIONAL LAWS:'));
-    console.log(chalk.gray('─'.repeat(RuleOfCodeAuditor.RULE_WIDTH)));
+    console.log(chalk.gray('─'.repeat(60)));
     console.log('');
 
     let count = 0;
@@ -1299,7 +1297,7 @@ export class RuleOfCodeAuditor {
     console.log(
       chalk.yellow.bold('⚠️  WARNING LAWS (reported, not blocking):')
     );
-    console.log(chalk.gray('─'.repeat(RuleOfCodeAuditor.RULE_WIDTH)));
+    console.log(chalk.gray('─'.repeat(60)));
     console.log('');
 
     let count = 0;
@@ -1339,7 +1337,7 @@ export class RuleOfCodeAuditor {
         '◌ JUDGED NOTHING — found nothing in this project to judge; they did not pass:'
       )
     );
-    console.log(chalk.gray('─'.repeat(RuleOfCodeAuditor.RULE_WIDTH)));
+    console.log(chalk.gray('─'.repeat(60)));
     console.log('');
     laws.forEach((lawResult, index) =>
       this.displayFailedLaw(
@@ -1500,7 +1498,7 @@ export class RuleOfCodeAuditor {
     if (options.onlyFailures || auditResult.passedLaws === 0) return;
 
     console.log(chalk.green.bold('✅ PASSED CONSTITUTIONAL LAWS:'));
-    console.log(chalk.gray('─'.repeat(RuleOfCodeAuditor.RULE_WIDTH)));
+    console.log(chalk.gray('─'.repeat(60)));
     console.log('');
 
     let count = 0;
@@ -1550,7 +1548,7 @@ export class RuleOfCodeAuditor {
     auditResult: AuditResult,
     chalk: chalk.Chalk
   ): void {
-    console.log(chalk.cyan('═'.repeat(RuleOfCodeAuditor.RULE_WIDTH)));
+    console.log(chalk.cyan('═'.repeat(60)));
 
     // A Pareto run checks a SUBSET. It may pass — but it must never call that
     // "compliance", because the laws it did not run cannot have passed. A
@@ -1575,7 +1573,7 @@ export class RuleOfCodeAuditor {
           `\n⚠️  ${auditResult.failedLaws} laws failed. Please address the violations above.`
         )
       );
-      console.log(chalk.cyan('═'.repeat(RuleOfCodeAuditor.RULE_WIDTH)));
+      console.log(chalk.cyan('═'.repeat(60)));
       console.log('');
     }
   }
@@ -1631,7 +1629,7 @@ export class RuleOfCodeAuditor {
         '   For a compliance verdict give it something to judge, or leave it off (it is opt-in or stack-gated where it can be).'
       )
     );
-    console.log(chalk.cyan('═'.repeat(RuleOfCodeAuditor.RULE_WIDTH)));
+    console.log(chalk.cyan('═'.repeat(60)));
     console.log('');
   }
 
@@ -1667,7 +1665,7 @@ export class RuleOfCodeAuditor {
           `   And ${judgedNothing} law(s) that ran judged nothing; they did not pass either.`
         )
       );
-    console.log(chalk.cyan('═'.repeat(RuleOfCodeAuditor.RULE_WIDTH)));
+    console.log(chalk.cyan('═'.repeat(60)));
     console.log('');
   }
 
@@ -1713,7 +1711,7 @@ export class RuleOfCodeAuditor {
         )
       );
     }
-    console.log(chalk.cyan('═'.repeat(RuleOfCodeAuditor.RULE_WIDTH)));
+    console.log(chalk.cyan('═'.repeat(60)));
     console.log('');
     // The art is for the clean pass only: no law failed, waived, warning or
     // judging nothing (a judged-nothing run is partial and never gets here).

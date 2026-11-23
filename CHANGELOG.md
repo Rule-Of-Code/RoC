@@ -377,6 +377,20 @@ programmatic option `suggestExceptions` is gone from `AuditOptions` and
 `RuleOfCodeAuditor.create`; the constructor keeps its positional slot, unused,
 so positional callers keep their mode and options (#527).
 
+### 🔧 Internal — RoC's own code: logging, types and casts (#559)
+
+The self-audit's small groups on RoC's own code, with no change in behaviour:
+user-facing warnings and errors of the engine, the audit cache, the config
+loader and the file utilities go through `warnUser` / `errorUser` in
+logging-utils (the same text on stderr) instead of direct `console.warn` /
+`console.error`; the engine reads its config through a typed `EngineSettings`
+instead of `as any`, runs laws as `RunnableLaw`, and builds the open
+selection without `as unknown as`; the audit cache stores a typed
+`StoredAuditResult`; Latency Budget Harness Realism guards instead of
+asserting with `!`. Self-audit: Centralized Logging 7 → 0, Absolute Zero
+Tolerance Doctrine 7 → 0, No Explicit Any / Non-Null Assertion 2 → 0,
+No Double Cast 2 → 0.
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

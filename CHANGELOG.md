@@ -59,6 +59,31 @@ performance test: a cold start is as much a user flow as a login, and
 otherwise the finding would only have changed from "No performance test
 files found" to "Critical user flow performance tests not implemented".
 
+### 🐛 Fixed — API Testing Standards recognises an API test by what its code drives (#551)
+
+API tests were recognised only by file name (`api.spec.ts`, `*.api.ts`,
+`request.spec.ts`, …). An Angular HTTP layer tested in
+`user.repository.spec.ts` with `HttpTestingController`, or a server tested
+with `supertest` in `server.spec.ts`, was "No API test files found".
+
+A test file whose syntax tree drives an HTTP test harness (an import of
+`supertest`, `nock`, `msw`, `fetch-mock` or `@angular/common/http/testing`,
+or `HttpTestingController` / `provideHttpClientTesting` / `setupServer(` /
+`nock(` in its code) is now an API test; the name patterns stay one way in.
+A harness named in a comment or a fixture string is not one.
+
+Once found, those files are judged for HTTP method and error-scenario
+coverage, so a project can trade "No API test files found" for findings
+about what its API tests cover: +N findings (measured in the PR).
+
+The same blind spot sat in the mocking check, which looked only at declared
+dependencies (msw, nock, sinon, mirage): API tests that answer every request
+with Angular's `HttpTestingController`, which ships inside `@angular/common`,
+were told "Consider implementing API mocking with tools like MSW or nock"
+and lost 10 points. A mock backend used by the API tests (Angular's, msw,
+nock, fetch-mock) now counts as API mocking; `supertest`, which sends real
+requests in process, does not.
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

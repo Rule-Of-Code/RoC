@@ -295,7 +295,7 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Presence, not content: HTTP-method "coverage" is a very loose regex (the word GET anywhere, any .get(), any 4xx-looking number).',
-      'API test files are found by filename, and only .ts (no .js).',
+      'API test files are found by filename, or by a test file whose syntax tree drives an HTTP test harness (supertest, nock, msw, fetch-mock, HttpTestingController / provideHttpClientTesting); only .ts files are scanned (no .js).',
       'Python gets a native pass via test-client tests; otherwise it is Jest/supertest-shaped.',
     ],
     emoji: '🔌',

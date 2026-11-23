@@ -377,6 +377,30 @@ programmatic option `suggestExceptions` is gone from `AuditOptions` and
 `RuleOfCodeAuditor.create`; the constructor keeps its positional slot, unused,
 so positional callers keep their mode and options (#527).
 
+### 🐛 Fixed — a native Android, iOS or Flutter app is a production subject (#577)
+
+The production-subject gate (API Security Standards, Environment Parity
+Standards and the laws gated in 8.0.0) saw a mobile app only through a JS
+dependency (`react-native`, `expo`, `@capacitor/core`,
+`@nativescript/core`). A native app declares none of them, so those laws
+were not selected for an app a store ships to users' devices.
+
+The gate now also reads what a native build declares:
+
+- Android: a Gradle build file applying `com.android.application` (directly
+  or through a version-catalog alias `libs.plugins.android.application`);
+  a module applying only `com.android.library` is not an app;
+- iOS: an Xcode project (`*.xcodeproj/project.pbxproj`) with an application
+  target (`com.apple.product-type.application…`); a framework or library
+  target is not;
+- Flutter: a `pubspec.yaml` on the Flutter SDK together with
+  `lib/main.dart` (a Flutter package has no entry point).
+
+Sample and test trees (`example/`, `examples/`, `sample/`, `samples/`, test
+and fixture trees, `androidTest/`, `Pods/`) are left out, so a library that
+ships an example app is not selected by it. JS shells (React Native, Expo,
+Capacitor, NativeScript) are selected as before.
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

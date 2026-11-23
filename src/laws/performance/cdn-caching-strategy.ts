@@ -5,7 +5,9 @@
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils/file-utils';
+import { markJudgedNothing } from '../../utils/judged-nothing';
 import { PathOperations } from '../../utils/path-operations';
+import { firebaseHosting } from '../../utils/production-subject-requirements';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
 import { CdnCachingStrategyCachingStrategiesConstants as CachingStrategies } from './cdn-caching-strategy/constants/caching-strategies';
 import { CdnCachingStrategyAnalyzerService } from './cdn-caching-strategy/services/analyzer.service';
@@ -14,9 +16,12 @@ import { CdnCachingStrategyAnalyzerService } from './cdn-caching-strategy/servic
 const NOT_APPLICABLE_MESSAGE =
   '📋 Not applicable — no web assets to serve (no TypeScript/JavaScript sources in this project)';
 
-/** Configs that declare a web-serving/CDN surface even without bundled sources. */
+/**
+ * Configs that declare a web-serving/CDN surface even without bundled
+ * sources. firebase.json is not one by its name: only its `hosting` key
+ * serves a page (#547), so it is read by `firebaseHosting`.
+ */
 const WEB_SURFACE_FILES = [
-  'firebase.json',
   'angular.json',
   'ngsw-config.json',
   'netlify.toml',
@@ -25,18 +30,46 @@ const WEB_SURFACE_FILES = [
   'nginx.conf',
 ];
 
+type WebAssets = 'none' | 'served' | { unreadable: string[] };
+
 export class CdnCachingStrategyLaw {
   /**
    * Are there served web assets at all — sources to bundle and ship, or a
-   * declared web-serving/CDN surface? A pure backend serves none.
+   * declared web-serving/CDN surface? A pure backend serves none. A
+   * firebase.json that cannot be parsed may or may not declare hosting: with
+   * no other surface, that is not read, not "nothing to serve".
    */
-  private static hasWebAssets(projectRoot: string): boolean {
-    return (
+  private static webAssets(projectRoot: string): WebAssets {
+    if (
       PythonSatisfaction.hasJsTsSources(projectRoot) ||
       WEB_SURFACE_FILES.some(rel =>
         FileUtils.exists(PathOperations.join(projectRoot, rel))
       )
-    );
+    ) {
+      return 'served';
+    }
+    const firebase = firebaseHosting(projectRoot);
+    if (firebase.hosting) return 'served';
+    return firebase.unreadable.length > 0
+      ? { unreadable: firebase.unreadable }
+      : 'none';
+  }
+
+  private static createNotReadResult(
+    context: LawCheckContext,
+    unreadable: string[]
+  ): LawResult {
+    const note = `firebase.json could not be read (${unreadable.join('; ')}) — whether it declares hosting is NOT read, so this law judged nothing`;
+    return markJudgedNothing({
+      passed: false,
+      score: 0,
+      message: note,
+      details: [note],
+      violations: [note],
+      suggestions: ['Fix the JSON syntax of firebase.json'],
+      fixable: true,
+      config: context.config,
+    });
   }
 
   /**
@@ -59,8 +92,10 @@ export class CdnCachingStrategyLaw {
   }
 
   static async check(context: LawCheckContext): Promise<LawResult> {
-    if (!this.hasWebAssets(context.projectRoot)) {
-      return this.createNotApplicableResult(context);
+    const assets = this.webAssets(context.projectRoot);
+    if (assets === 'none') return this.createNotApplicableResult(context);
+    if (assets !== 'served') {
+      return this.createNotReadResult(context, assets.unreadable);
     }
 
     const analysis = await CdnCachingStrategyAnalyzerService.analyze(

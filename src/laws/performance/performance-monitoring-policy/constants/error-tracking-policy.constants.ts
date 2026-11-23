@@ -25,13 +25,6 @@ export class ErrorTrackingPolicyConstants {
     'bugsnag.config.js',
   ];
 
-  static readonly APP_MODULE_PATTERNS: string[] = [
-    'Sentry',
-    'LogRocket',
-    'Bugsnag',
-    'ErrorHandler',
-  ];
-
   static readonly PERFORMANCE_TRACKING_PATTERNS: string[] = [
     'tracesSampleRate',
     'performance',
@@ -46,10 +39,6 @@ export class ErrorTrackingPolicyConstants {
     return this.ERROR_TRACKING_CONFIG_FILES.some(file =>
       filename.includes(file)
     );
-  }
-
-  static hasErrorTrackingImplementation(content: string): boolean {
-    return this.APP_MODULE_PATTERNS.some(pattern => content.includes(pattern));
   }
 
   static hasPerformanceTracking(content: string): boolean {

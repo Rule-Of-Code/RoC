@@ -127,7 +127,7 @@ export class AngularSignalUsageConfiguration extends SignalConfigurationBase {
     getterMethods: string[];
     fileName: string;
     filePath: string;
-    templateContent?: string;
+    templateContent?: string | undefined;
   } {
     // Cache detector references for reuse
     const detectors = this.PATTERN_DETECTORS;

@@ -35,7 +35,7 @@ export class AngularSignalConfiguration extends SignalConfigurationBase {
    * Eliminates magic numbers in validation logic
    */
   static getThresholds(config: {
-    thresholds?: { angular?: { maxSignalMutations?: number } };
+    thresholds?: { angular?: { maxSignalMutations?: number } } | undefined;
   }) {
     return {
       MAX_MUTATIONS: config.thresholds?.angular?.maxSignalMutations ?? 5,

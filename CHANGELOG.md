@@ -628,6 +628,18 @@ called them; they were exported from `src/utils/index.ts` and
 
 Self-audit of this repository (develop 63690ed → this branch merged with it): verdict compliance-with-warnings → compliance-with-warnings, 0 waived, score 84 → 84, findings 1095 → 1094. This repository is configured by `eslint.config.mjs` and its package.json and tsconfig.json are valid, so no law that reads them changes. The one difference is Commit Size Control (1 → 0): this branch's commits are each under 500 lines and 10 files and move two larger develop commits out of its last-10 window — a window effect, not a fix.
 
+### Internal — the React readers are split below the complexity limits
+
+Code Complexity Control reported five files of `src/utils/react` on the
+self-audit: three too long (eslint-hooks-config, next-app-files,
+react-hooks-ast) and five with a function above complexity 10. They are
+split by what they read — the react-hooks plugin vocabulary
+(`eslint-hooks-vocabulary.ts`), a module's export and import bindings
+(`next-module-bindings.ts`), and the sources a React law reads with its
+inline reasons (`react-law-sources.ts`) — and the branching functions hand
+their sub-steps to named helpers. The old paths re-export every moved name,
+so no importer changed. No law reports anything different.
+
 ### Internal — this repository keeps MD Footer Template on
 
 MD Footer Template became opt-in in this release (#468). This repository does

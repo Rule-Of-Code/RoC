@@ -174,8 +174,13 @@ export class UnitTestDataManagementAnalyzerService {
         if (UnitTestDataManagementConstants.hasTestDouble(content)) {
           anyDouble = true;
         }
-        const clients =
-          UnitTestDataManagementConstants.externalClientsImported(content);
+        // The boundary Unit Test Quality reads too (#491): network and
+        // service clients, or a request the test's own code makes.
+        const clients = UnitTestDataManagementConstants.boundaryReached(
+          content,
+          testFile,
+          projectRoot
+        );
         if (clients.length > 0) {
           externalImports.push(
             `${PathOperations.getRelative(projectRoot, testFile)} (${clients.join(', ')})`

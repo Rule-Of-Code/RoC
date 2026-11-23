@@ -24,7 +24,8 @@ export class PerformanceMonitoringStandardsLaw {
     const analysis =
       await PerformanceMonitoringAnalyzerService.analyzeMonitoring(
         context.projectRoot,
-        context.config
+        context.config,
+        context.lawId
       );
 
     const findings = this.collectFindings(context.projectRoot, analysis);

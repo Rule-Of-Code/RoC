@@ -203,7 +203,7 @@ describe('CoreWebVitalsConstants', () => {
 
     it('should have INTEGRATION_VIOLATION_MESSAGE', () => {
       expect(CoreWebVitalsConstants.INTEGRATION_VIOLATION_MESSAGE).toBe(
-        'Core Web Vitals library not integrated in main application files'
+        'web-vitals is declared but no metric is measured: no onLCP / onINP / onCLS (or v3 get*) call found in the sources'
       );
     });
 
@@ -215,70 +215,6 @@ describe('CoreWebVitalsConstants', () => {
       expect(CoreWebVitalsConstants.VITALS_DEPENDENCY).toBe(
         CoreWebVitalsConstants.VITALS_LIBRARY
       );
-    });
-  });
-
-  describe('VITALS_IMPORTS', () => {
-    it('should include web-vitals', () => {
-      expect(CoreWebVitalsConstants.VITALS_IMPORTS).toContain('web-vitals');
-    });
-
-    it('should include getCLS', () => {
-      expect(CoreWebVitalsConstants.VITALS_IMPORTS).toContain('getCLS');
-    });
-
-    it('should include getFID', () => {
-      expect(CoreWebVitalsConstants.VITALS_IMPORTS).toContain('getFID');
-    });
-
-    it('should include getLCP', () => {
-      expect(CoreWebVitalsConstants.VITALS_IMPORTS).toContain('getLCP');
-    });
-  });
-
-  describe('VITALS_USAGE_PATTERNS', () => {
-    it('should include getCLS pattern', () => {
-      expect(CoreWebVitalsConstants.VITALS_USAGE_PATTERNS).toContain('getCLS(');
-    });
-
-    it('should include getLCP pattern', () => {
-      expect(CoreWebVitalsConstants.VITALS_USAGE_PATTERNS).toContain('getLCP(');
-    });
-  });
-
-  describe('hasWebVitalsDependency', () => {
-    it('should return true when web-vitals in dependencies', () => {
-      const content = '{ "dependencies": { "web-vitals": "^3.0.0" } }';
-      expect(CoreWebVitalsConstants.hasWebVitalsDependency(content)).toBe(true);
-    });
-
-    it('should return true when web-vitals in devDependencies', () => {
-      const content = '{ "devDependencies": { "web-vitals": "^3.0.0" } }';
-      expect(CoreWebVitalsConstants.hasWebVitalsDependency(content)).toBe(true);
-    });
-
-    it('should return false when web-vitals not in package.json', () => {
-      const content = '{ "dependencies": { "lodash": "^4.0.0" } }';
-      expect(CoreWebVitalsConstants.hasWebVitalsDependency(content)).toBe(
-        false
-      );
-    });
-  });
-
-  describe('usesWebVitals', () => {
-    it('should return true when getCLS is used', () => {
-      const content = 'getCLS(console.log)';
-      expect(CoreWebVitalsConstants.usesWebVitals(content)).toBe(true);
-    });
-
-    it('should return true when getLCP is used', () => {
-      const content = 'getLCP(console.log)';
-      expect(CoreWebVitalsConstants.usesWebVitals(content)).toBe(true);
-    });
-
-    it('should return false when web-vitals not used', () => {
-      const content = 'console.log("test")';
-      expect(CoreWebVitalsConstants.usesWebVitals(content)).toBe(false);
     });
   });
 });

@@ -32,7 +32,7 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
         'No service worker is needed for caching in the shell; if the web build registers one, disable it on native or handle SwUpdate (#268).',
     },
     detectionLimits: [
-      'Configuration and source evidence only — it never measures a real Lighthouse score, LCP or CLS. On Angular, "web-vitals usage" is a substring match in main.ts / app.component.ts / *monitoring*.ts; on React/Next it is a parsed CALL of useReportWebVitals or a web-vitals metric function.',
+      'Configuration and source evidence only — it never measures a real Lighthouse score, LCP or CLS. Web Vitals monitoring is a measurement found in the production sources: a web-vitals call (v3 get* or v4 on*) in a file that imports web-vitals, or a PerformanceObserver observing largest-contentful-paint / layout-shift / event / first-input — matched in the source text, comments skipped; on React/Next also a parsed CALL of useReportWebVitals. A declared web-vitals that nothing calls is not monitoring.',
       'The Lighthouse >=90 threshold is checked only IF a config file exists; a missing file yields a different, non-threshold violation.',
       'Next.js / Vite bundle optimization and Next caching are credited to the framework defaults (read in next/dist and vite types): it checks only that next.config / vite.config does not turn minification off or set output: "export". Values imported into the config from another module are not resolved.',
       "next/image counts as image optimization without resolving `src` (Next serves an SVG unoptimized); only the element's `unoptimized` prop and next.config images.unoptimized are read.",
@@ -191,10 +191,11 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
         'Report Web Vitals with useReportWebVitals (or web-vitals) and errors with @sentry/nextjs or @sentry/react from the root layout or instrumentation*.ts; declare a size-limit or Lighthouse budget, an alert definition and a dashboard.',
     },
     detectionLimits: [
-      'Dependency / config / file presence only — no proof monitoring actually reports; a Google Analytics snippet is detected by an index.html substring. On React/Next a parsed useReportWebVitals / web-vitals CALL counts as RUM and Web Vitals monitoring, and an error-tracking SDK import anywhere in the source counts as error tracking.',
+      'Dependency / config / file presence only — no proof monitoring actually reports; a Google Analytics snippet is detected by an index.html substring. Web Vitals monitoring (and the field-metrics part of RUM) is a measurement in the production sources: a web-vitals call (v3 or v4), useReportWebVitals, or a PerformanceObserver of the project on the entry types the vitals are made of; a declared web-vitals that nothing calls does not count. On React/Next an error-tracking SDK import anywhere in the source counts as error tracking.',
       'Alerting and dashboards are keyword / file-presence checks on every stack (newrelic.js, datadog.json, .lighthouserc.js containing "alert", "notification" or "webhook"; grafana.json and similar).',
       'Browser-oriented with NO backend/Python path (unlike Performance Monitoring Standards) — a backend fails most checks.',
       'Conceptually overlaps Performance Monitoring Standards but is a separate, less capable detector.',
+      'Error tracking also counts an own error handler in the production sources, read with the TypeScript parser: an Angular ErrorHandler provider wherever it is registered (or a provide…ErrorHandler() helper), window.onerror, or a window / process error listener. It shows that errors are captured, not that they are sent anywhere.',
     ],
     stack: 'frontend',
     emoji: '📊',
@@ -233,6 +234,7 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'RUM, Core Web Vitals and a Lighthouse budget are checked only for a browser-facing project; a backend has no page and is judged on APM/metrics/alerting instead.',
       'Presence, not proof: it verifies a monitoring/alerting integration is wired in, not that an alert would actually fire when the service degrades.',
+      'Real User Monitoring in a browser project is a Web Vitals measurement in the production sources: a web-vitals call (v3 or v4), useReportWebVitals, or a PerformanceObserver on largest-contentful-paint / layout-shift / event / first-input, matched in the source text.',
       'Selected only where something runs for users: a Node or Python HTTP framework, a web surface (a browser framework, a web build or hosting config, an HTML page), a mobile app shell, or a deploy target (container, PaaS, hosting or serverless config). A CLI tool or a library declares none and does not select it; a server on bare node:http with no deploy config is not recognised.',
     ],
     requires: REQUIRES_PRODUCTION_SUBJECT,
@@ -345,7 +347,8 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
         'Serve assets via a CDN (firebase hosting headers / deployUrl), set cache-control headers, add a service worker, and enable HTTP/2.',
     },
     detectionLimits: [
-      'Selected only for a web surface: a browser framework dependency (@angular/core, react-dom, vue, svelte, next, nuxt, astro, lit …), a web build or hosting config (angular.json, next.config.*, firebase.json, vercel.json, netlify.toml, wrangler.toml, nginx.conf), or an HTML page of the project outside test trees. A pure backend, a CLI tool or a library is not selected.',
+      'Selected only for a web surface: a browser framework dependency (@angular/core, react-dom, vue, svelte, next, nuxt, astro, lit …), a web build or hosting config (angular.json, next.config.*, vercel.json, netlify.toml, wrangler.toml, nginx.conf, or a firebase.json with a top-level hosting key), or an HTML page of the project outside test trees. A pure backend, a CLI tool or a library is not selected.',
+      'Without TS/JS sources or another web config, a firebase.json counts as a web surface only when it parses and has a top-level hosting key (Firestore, Functions or Storage alone serve no page); one that does not parse is reported as not read. The selector reads firebase.json the same way; one that does not parse selects the law (fail-closed) so that it is reported, not skipped.',
       'Its CDN check matches a bare "assets" or "cdn" anywhere in an env file, a trivially-satisfied false pass.',
       'All detection is config-file presence; no runtime CDN/edge verification.',
       'TS/JS + web config only.',

@@ -284,9 +284,12 @@ export class TestFilesExistenceChecker {
       /\.types\./,
       /\.constants\./,
       /\.interfaces\./,
-      /index\.(ts|js)$/,
-      /main\.(ts|js)$/,
-      /polyfills\.(ts|js)$/,
+      // Anchored to the file name (#539): unanchored, they matched the end
+      // of any name, so `domain.ts`, `remain.ts` and `app-index.ts` were
+      // taken for entry points and never asked for a test.
+      /(^|[\\/])index\.(ts|js)$/,
+      /(^|[\\/])main\.(ts|js)$/,
+      /(^|[\\/])polyfills\.(ts|js)$/,
     ];
 
     return !skipPatterns.some(pattern => pattern.test(fileName));

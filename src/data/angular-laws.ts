@@ -143,7 +143,7 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Raw substring over .ts/.html/.scss/.css — a `*ngIf` in a comment, a string, or TS code counts, and .scss/.css are scanned pointlessly; only three directives are matched.',
-      'Gated on the Angular version parsing to >= 18; a non-numeric version string makes it pass vacuously.',
+      'The syntax rules (*ngIf / *ngFor / *ngSwitch, mixed syntax) are gated on the Angular version parsing to >= 18. Below 18, or when the version does not parse, it judges one thing instead: an .html template with *ngFor and no trackBy (comments removed; a .old. backup is skipped), which every version re-renders in full on change (#562).',
       'Regex over raw text, no AST — it cannot tell a template directive from the same token in code.',
     ],
     emoji: '🔄',
@@ -219,7 +219,7 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Both lazy forms count (loadChildren and loadComponent), and preloading is recognised from app.module.ts, app.config.ts or main.ts (preloadingStrategy / PreloadAllModules / withPreloading).',
       'Routing detection is filename-scoped — a file named *routing* or *.routes.* — and substring-based, so a lazy route defined in a differently-named file is invisible and a match inside a comment or string still counts.',
-      'Requires src/; Angular-flavoured.',
+      'Requires src/; Angular-flavoured. It judges lazy loading only: change-detection checks (OnPush, trackBy, ngDoCheck, subscriptions) belong to their own laws (#562).',
     ],
     emoji: '⚡',
     description: 'All feature modules must implement lazy loading',
@@ -327,6 +327,7 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Substring detection — `.subscribe`/`interval`/`timer` also match non-RxJS EventEmitter, router events or d3.timer.',
       'The cleanup sub-check credits modern idioms (takeUntilDestroyed / DestroyRef / toSignal) and strips comments; the hook/ondestroy checks do not strip comments.',
+      'An ngDoCheck( method in the code of a component, directive or service file (comments and strings removed) is reported: it runs on every change-detection pass (#562).',
       'Angular only; regex over source, no AST-level lifecycle analysis.',
     ],
     emoji: '🔄',

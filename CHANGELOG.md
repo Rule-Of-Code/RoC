@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Lazy Loading Implementation reports lazy loading only (#562)
+
+The law's bundle step called three analyzers of `ChangeDetectionOptimizationLaw`
+(components, `trackBy`, observables) and appended their findings to its
+own. In a project without component files the line "No Angular components
+found" appeared twice and cost 20 points. That class was never a
+registered law, so its checks reached the product only through Lazy
+Loading. Lazy Loading now judges routes and bundle configuration only, and
+each check has the law that owns it:
+
+- `ngDoCheck` in a component, directive or service → **Angular Lifecycle
+  Management** (it runs on every change-detection pass);
+- `*ngFor` without `trackBy` → **Modern Angular Control Flow**, below
+  Angular 18 (from 18 its syntax rule already asks for `@for` with `track`);
+- `detectChanges()` / `markForCheck()` without OnPush and manual
+  subscriptions are judged by OnPush Change Detection Strategy and the
+  subscription laws; "any manual subscribe" on its own is dropped;
+- "No Angular components found" is not a finding of any law.
+
+`ChangeDetectionOptimizationLaw` has no caller left and is removed. The
+law count stays 265.
+
 ### 🐛 Fixed — a module-level `let` reset in `beforeEach` is not shared state (#552)
 
 Test Data Management and Test Isolation Enforcement reported a module-level

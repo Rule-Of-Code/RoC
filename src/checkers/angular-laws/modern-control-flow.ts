@@ -27,10 +27,25 @@ export class ModernAngularControlFlowLaw extends AngularLawBase {
     );
     if (earlyReturn) return earlyReturn;
 
-    // Check Angular version - this law only applies to Angular 18+
+    // The syntax rules apply from Angular 18; the key of a repeated list
+    // (`*ngFor` with a `trackBy`) matters on every version (#562).
     const angularVersion = this.getAngularVersion(projectRoot);
     if (!angularVersion || !this.isAngular18Plus(angularVersion)) {
-      return this.createResult([], this.LAW_NAME, 'ANGULAR_LAW', [], context);
+      const missing = this.templatesWithoutTrackBy(projectRoot, safeConfig);
+      return this.createResult(
+        missing.map(
+          file =>
+            `*ngFor without trackBy in ${file} - every change re-renders the whole list`
+        ),
+        this.LAW_NAME,
+        'ANGULAR_LAW',
+        missing.length > 0
+          ? [
+              'Add a trackBy function: *ngFor="let item of items; trackBy: trackById"',
+            ]
+          : [],
+        context
+      );
     }
 
     // Find all Angular template files
@@ -82,6 +97,24 @@ export class ModernAngularControlFlowLaw extends AngularLawBase {
       ],
       context
     );
+  }
+
+  /**
+   * HTML templates with an `*ngFor` and no `trackBy`, relative to the
+   * project, comments removed. A `.old.` backup (`list.component.old.html`)
+   * is not a live template (#369).
+   */
+  private static templatesWithoutTrackBy(
+    projectRoot: string,
+    config: RuleOfCodeConfig
+  ): string[] {
+    return CheckerUtils.findFilesByExtension(projectRoot, ['.html'], config)
+      .filter(file => !PathOperations.getFilename(file).includes('.old.'))
+      .filter(file => {
+        const code = FileUtils.readFile(file).replace(/<!--[\s\S]*?-->/g, '');
+        return code.includes('*ngFor') && !code.includes('trackBy');
+      })
+      .map(file => PathOperations.getRelative(projectRoot, file));
   }
 
   private static isAngular18Plus(version: string): boolean {

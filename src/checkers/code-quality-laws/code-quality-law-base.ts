@@ -176,7 +176,7 @@ export abstract class CodeQualityLawBase {
     'eslint.config.mjs',
   ] as const;
 
-  /** ESLint configs this base does not read: when one is present, no config is judged. */
+  /** ESLint configs this base does not run: when one is present it is said to be NOT read (#508). */
   private static readonly ESLINT_UNREAD_CONFIGS = [
     'eslint.config.cjs',
     'eslint.config.ts',
@@ -190,7 +190,8 @@ export abstract class CodeQualityLawBase {
    * The project's ESLint config: a flat `eslint.config.js/.mjs`, an
    * `.eslintrc.json`/`.eslintrc` (JSONC), or package.json `eslintConfig`.
    * `notRead` holds the note when the file was found and not read (invalid
-   * JSON, YAML); null when there is no config this base reads. Shared by the
+   * JSON, YAML, a JavaScript config this base does not run); null only when
+   * the project has no ESLint config at all. Shared by the
    * code quality laws (complexity, dead code, magic numbers).
    *
    * It looked for `eslint.json` instead of `.eslintrc.json` and read JSON with
@@ -203,10 +204,28 @@ export abstract class CodeQualityLawBase {
     for (const name of this.ESLINT_JS_CONFIGS) {
       if (!FileUtils.exists(at(name))) continue;
       const config = this.loadESLintJsConfig(at(name));
-      return config ? { file: name, config } : null;
+      return config
+        ? { file: name, config }
+        : {
+            file: name,
+            notRead: notReadNote(name, 'could not be loaded', 'its rules were'),
+          };
     }
-    if (this.ESLINT_UNREAD_CONFIGS.some(name => FileUtils.exists(at(name)))) {
-      return null;
+    // A config found and not read is said to be NOT read, never "no config":
+    // null made Dead Code Elimination report "rules not configured" about a
+    // config it never read, and the other two say nothing (#508).
+    const unread = this.ESLINT_UNREAD_CONFIGS.find(name =>
+      FileUtils.exists(at(name))
+    );
+    if (unread !== undefined) {
+      return {
+        file: unread,
+        notRead: notReadNote(
+          unread,
+          'is a config these laws do not run',
+          'its rules were'
+        ),
+      };
     }
     for (const name of ESLINTRC_DATA_FILES) {
       if (FileUtils.exists(at(name))) {

@@ -357,6 +357,19 @@ config in package.json `eslintConfig`, an extensionless `.eslintrc`, or
 same list as Zero Tolerance Doctrine (`ESLINT_CONFIG_FILES`, one list for both
 laws) and accepts `eslintConfig` (an object) in the root package.json (#507).
 
+### 🐛 Fixed — an ESLint config the code-quality laws do not read is said to be NOT read
+
+Dead Code Elimination, Code Complexity Control and Magic Number Prevention
+read an ESLint config by running `eslint.config.js` / `.mjs` or reading
+`.eslintrc.json`, `.eslintrc` and package.json `eslintConfig`. For an
+`eslint.config.cjs` / `.ts` / `.mts` / `.cts`, `.eslintrc.js` or
+`.eslintrc.cjs` the shared reader answered "no config": Dead Code Elimination
+then reported `ESLint dead code detection rules not configured` about a config
+it never read, and the other two said nothing. The reader now returns the file
+with a note in the shared wording (`.eslintrc.js is a config these laws do not
+run — its rules were NOT read`), and all three laws report it the same way
+(#508).
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

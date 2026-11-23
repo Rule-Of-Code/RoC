@@ -3,9 +3,6 @@
  * Professional organization of performance analysis utilities
  */
 
-// Event Listeners Module
-export * from './event-listeners';
-
 // Lifecycle Module
 export * from './lifecycle';
 

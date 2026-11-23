@@ -5,7 +5,6 @@
 
 import type { RuleOfCodeConfig } from '../config/types';
 import { COMMON_EXTENSIONS } from './common-extensions';
-import { getFilePatterns } from './file-patterns';
 import { FileSystemOperations } from './file-system-operations';
 import { logError, logWarn } from './logging-utils';
 import { PathOperations } from './path-operations';

@@ -61,10 +61,7 @@ export class AutomatedCodeQualityGatesLaw {
     }
 
     // 3. Check for test coverage gates
-    const coverageGates = this.analyzeCoverageGates(
-      projectRoot,
-      context.config
-    );
+    const coverageGates = this.analyzeCoverageGates(projectRoot);
     if (!coverageGates.hasCoverageGates) {
       violations.push('Missing test coverage quality gates');
       suggestions.push('Configure minimum test coverage thresholds in CI/CD');
@@ -108,7 +105,7 @@ export class AutomatedCodeQualityGatesLaw {
 
     // 7. Check for performance analysis integration
     const performanceGates =
-      PerformanceAnalysisService.analyzePerformanceGates(projectRoot);
+      PerformanceAnalysisService.analyzePerformanceGates();
     if (performanceGates.hasPerformanceIssues) {
       suggestions.push('Consider adding performance analysis to quality gates');
       performanceGates.recommendations.forEach(rec => {
@@ -247,8 +244,7 @@ export class AutomatedCodeQualityGatesLaw {
   }
 
   private static analyzeCoverageGates(
-    projectRoot: string,
-    config?: RuleOfCodeConfig
+    projectRoot: string
   ): QualityGateAnalysis {
     let hasCoverageConfig = false;
     let hasCoverageThresholds = false;
@@ -397,26 +393,6 @@ export class AutomatedCodeQualityGatesLaw {
     } as QualityGateAnalysis;
   }
 
-  private static analyzePerformanceGates(
-    projectRoot: string,
-    config?: RuleOfCodeConfig
-  ): QualityGateAnalysis {
-    const hasPerformanceInCICD = this.checkPerformanceInPipeline(
-      projectRoot,
-      config
-    );
-
-    const hasBundleAnalysis = this.checkBundleAnalysis(projectRoot);
-
-    const hasPerformanceGates = hasPerformanceInCICD || hasBundleAnalysis;
-
-    return {
-      hasPerformanceGates,
-      violations: [],
-      suggestions: [],
-    } as QualityGateAnalysis;
-  }
-
   private static checkLintingInPipeline(
     projectRoot: string,
     config?: RuleOfCodeConfig
@@ -461,17 +437,6 @@ export class AutomatedCodeQualityGatesLaw {
     );
   }
 
-  private static checkPerformanceInPipeline(
-    projectRoot: string,
-    config?: RuleOfCodeConfig
-  ): boolean {
-    return this.checkPatternInPipelineFiles(
-      projectRoot,
-      [/lighthouse/i, /performance/i, /BundleSizeAnalyzer.*bundle.*size/i],
-      config
-    );
-  }
-
   private static checkPatternInPipelineFiles(
     projectRoot: string,
     patterns: RegExp[],
@@ -506,13 +471,6 @@ export class AutomatedCodeQualityGatesLaw {
     return this.checkScriptInPackageJson(projectRoot, [/audit/i, /security/i]);
   }
 
-  private static checkBundleAnalysis(projectRoot: string): boolean {
-    return this.checkScriptInPackageJson(projectRoot, [
-      /bundle.*analyzer/i,
-      /analyze/i,
-    ]);
-  }
-
   private static checkScriptInPackageJson(
     projectRoot: string,
     patterns: RegExp[]
@@ -543,14 +501,6 @@ export class AutomatedCodeQualityGatesLaw {
       }
     }
     return false;
-  }
-
-  private static hasCoverageConfiguration(content: string): boolean {
-    return /collectCoverage|coverage/i.test(content);
-  }
-
-  private static hasCoverageThresholds(content: string): boolean {
-    return /coverageThreshold|threshold/i.test(content);
   }
 
   private static hasTypeScriptStrict(content: string): boolean {

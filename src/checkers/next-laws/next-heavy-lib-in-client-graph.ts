@@ -16,7 +16,9 @@ import { clientGraph, type GraphChoice } from '../../utils/react/next-entries';
 import {
   isBareSpecifier,
   type ModuleEdge,
+  type NextModuleGraph,
   NOT_RESOLVED,
+  type WalkResult,
 } from '../../utils/react/next-module-graph';
 import { NextSourcesLoader } from '../../utils/react/next-sources';
 import { ReactProject } from '../../utils/react/react-project';
@@ -73,12 +75,7 @@ export class NextHeavyLibInClientGraphLaw extends LawBase {
     }
     if (!graph) return this.result(unread, context);
     const walk = clientGraph(graph, apps, this.GRAPH);
-    if (
-      graph.unread.length === 0 &&
-      walk.unresolved.length === 0 &&
-      walk.configs.length === 0 &&
-      walk.modules.size === 0
-    ) {
+    if (this.shipsNothing(graph, walk)) {
       return NextAppFiles.withoutSubject(
         this.LAW_NAME,
         "no 'use client' module and no Pages Router page — nothing ships a client bundle of its own",
@@ -101,6 +98,19 @@ export class NextHeavyLibInClientGraphLaw extends LawBase {
     return this.result(
       [...graph.unread, ...notReadInWalk(graph, walk), ...violations],
       context
+    );
+  }
+
+  /** No client module, and nothing the walk could not read or resolve. */
+  private static shipsNothing(
+    graph: NextModuleGraph,
+    walk: WalkResult
+  ): boolean {
+    return (
+      graph.unread.length === 0 &&
+      walk.unresolved.length === 0 &&
+      walk.configs.length === 0 &&
+      walk.modules.size === 0
     );
   }
 

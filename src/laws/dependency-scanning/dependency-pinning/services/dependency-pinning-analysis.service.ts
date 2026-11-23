@@ -73,7 +73,7 @@ export class DependencyPinningAnalysisService {
         if (!DependencyPinningConstants.isCriticalPackage(pkg)) continue;
 
         const pinningIssue =
-          DependencyPinningConstants.analyzeDependencyVersion(pkg, version);
+          DependencyPinningConstants.analyzeDependencyVersion(version);
         if (pinningIssue) {
           unpinnedCritical.push(`${pkg}@${version}`);
         }
@@ -104,10 +104,8 @@ export class DependencyPinningAnalysisService {
     for (const [pkg, version] of Object.entries(dependencies)) {
       if (typeof version !== 'string') continue;
 
-      const pinningIssue = DependencyPinningConstants.analyzeDependencyVersion(
-        pkg,
-        version
-      );
+      const pinningIssue =
+        DependencyPinningConstants.analyzeDependencyVersion(version);
       if (!pinningIssue) continue;
 
       this.classifyDependencyIssue(

@@ -27,7 +27,6 @@ export class PerformanceAnalysisService {
    * Perform comprehensive performance analysis on project files
    */
   static analyzePerformance(
-    projectRoot: string,
     options: {
       includeDOM?: boolean;
       includeObservables?: boolean;
@@ -89,10 +88,8 @@ export class PerformanceAnalysisService {
   /**
    * Analyze performance for specific scenarios
    */
-  static analyzePerformanceScenarios(
-    projectRoot: string
-  ): PerformanceAnalysisResult {
-    return this.analyzePerformance(projectRoot, {
+  static analyzePerformanceScenarios(): PerformanceAnalysisResult {
+    return this.analyzePerformance({
       includeDOM: true,
       includeObservables: true,
       includeTimers: false,
@@ -104,10 +101,8 @@ export class PerformanceAnalysisService {
   /**
    * Analyze performance for testing scenarios
    */
-  static analyzePerformanceTesting(
-    projectRoot: string
-  ): PerformanceAnalysisResult {
-    return this.analyzePerformance(projectRoot, {
+  static analyzePerformanceTesting(): PerformanceAnalysisResult {
+    return this.analyzePerformance({
       includeDOM: false,
       includeObservables: false,
       includeTimers: true,
@@ -119,10 +114,8 @@ export class PerformanceAnalysisService {
   /**
    * Analyze performance benchmarks
    */
-  static analyzePerformanceBenchmarks(
-    projectRoot: string
-  ): PerformanceAnalysisResult {
-    const result = this.analyzePerformance(projectRoot);
+  static analyzePerformanceBenchmarks(): PerformanceAnalysisResult {
+    const result = this.analyzePerformance();
 
     // RULE 1: Use Configuration for recommendations
     result.recommendations.push(
@@ -137,10 +130,8 @@ export class PerformanceAnalysisService {
   /**
    * Analyze performance gates for CI/CD
    */
-  static analyzePerformanceGates(
-    projectRoot: string
-  ): PerformanceAnalysisResult {
-    const result = this.analyzePerformance(projectRoot);
+  static analyzePerformanceGates(): PerformanceAnalysisResult {
+    const result = this.analyzePerformance();
 
     // RULE 1: Use Configuration for CI/CD recommendations
     result.recommendations.push(

@@ -16,11 +16,11 @@ export interface ComponentSpec {
   template: string;
   inline?: boolean;
   /** Written to `<file>.css` and referenced by styleUrl. */
-  css?: string;
+  css?: string | undefined;
   /** Class body. */
-  body?: string;
+  body?: string | undefined;
   /** Extra decorator properties, e.g. `host: { '(pointerdown)': 'down()' }`. */
-  meta?: string;
+  meta?: string | undefined;
   /** Lines before the class (imports). */
   head?: string;
 }

@@ -714,12 +714,10 @@ describe('AutomatedReviewToolsAnalyzer', () => {
         // Create .husky directory
         FileUtils.createDirectory(PathOperations.join(tempDir, '.husky'));
 
-        const violations: string[] = [];
         const suggestions: string[] = [];
 
         AutomatedReviewToolsAnalyzerValidation.checkPreCommitHooks(
           tempDir,
-          violations,
           suggestions
         );
 
@@ -733,12 +731,10 @@ describe('AutomatedReviewToolsAnalyzer', () => {
       });
 
       it('should add suggestions when no pre-commit hooks configured', () => {
-        const violations: string[] = [];
         const suggestions: string[] = [];
 
         AutomatedReviewToolsAnalyzerValidation.checkPreCommitHooks(
           tempDir,
-          violations,
           suggestions
         );
 
@@ -778,12 +774,10 @@ describe('AutomatedReviewToolsAnalyzer', () => {
 
     describe('checkCodeQualityIntegration()', () => {
       it('should add suggestions when no dependency updaters found', () => {
-        const violations: string[] = [];
         const suggestions: string[] = [];
 
         AutomatedReviewToolsAnalyzerValidation.checkCodeQualityIntegration(
           tempDir,
-          violations,
           suggestions
         );
 
@@ -803,12 +797,10 @@ describe('AutomatedReviewToolsAnalyzer', () => {
           'coverage:\n  precision: 2'
         );
 
-        const violations: string[] = [];
         const suggestions: string[] = [];
 
         AutomatedReviewToolsAnalyzerValidation.checkCodeQualityIntegration(
           tempDir,
-          violations,
           suggestions
         );
 

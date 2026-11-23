@@ -12,11 +12,6 @@ import { PatternMatchingUtils } from '../../pattern-matching-utils';
  */
 export class AngularLazyLoadingConfiguration {
   /**
-   * Config alias for cleaner internal references (RULE 2 pattern)
-   */
-  private static readonly Config = AngularLazyLoadingConfiguration;
-
-  /**
    * File extensions for lazy loading analysis
    */
   static readonly ANGULAR_FILE_EXTENSIONS = [FILE_EXTENSIONS.MODULE_TS];

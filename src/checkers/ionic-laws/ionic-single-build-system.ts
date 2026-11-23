@@ -152,36 +152,51 @@ export class IonicSingleBuildSystemLaw extends LawBase {
   ): Set<string> | null {
     if (!ts) return null;
     try {
-      const manifestFile = this.installedManifest(projectRoot);
-      if (!manifestFile) return null;
-      const manifest = JSON.parse(fs.readFileSync(manifestFile, 'utf8')) as {
-        exports?: Record<string, { default?: string }>;
-        module?: string;
-      };
-      const entry = manifest.exports?.['.']?.default ?? manifest.module;
-      if (!entry) return null;
-      const file = PathOperations.join(
-        PathOperations.getDirectory(manifestFile),
-        entry
-      );
+      const file = this.installedEntry(projectRoot);
+      if (!file) return null;
       const source = TsxSource.parse(ts, file, fs.readFileSync(file, 'utf8'));
-      const shared = new Set<string>();
-      for (const statement of source.sourceFile.statements) {
-        if (!ts.isExportDeclaration(statement) || !statement.moduleSpecifier)
-          continue;
-        if (
-          !ts.isStringLiteral(statement.moduleSpecifier) ||
-          statement.moduleSpecifier.text !== COMMON_ENTRY
-        )
-          continue;
-        const clause = statement.exportClause;
-        if (!clause || !ts.isNamedExports(clause)) continue;
-        for (const element of clause.elements) shared.add(element.name.text);
-      }
+      const shared = this.commonReexports(ts, source);
       return shared.size > 0 ? shared : null;
     } catch {
       return null;
     }
+  }
+
+  /** The installed `@ionic/angular` entry module (`exports['.'].default`, else `module`); null when none is named. */
+  private static installedEntry(projectRoot: string): string | null {
+    const manifestFile = this.installedManifest(projectRoot);
+    if (!manifestFile) return null;
+    const manifest = JSON.parse(fs.readFileSync(manifestFile, 'utf8')) as {
+      exports?: Record<string, { default?: string }>;
+      module?: string;
+    };
+    const entry = manifest.exports?.['.']?.default ?? manifest.module;
+    if (!entry) return null;
+    return PathOperations.join(
+      PathOperations.getDirectory(manifestFile),
+      entry
+    );
+  }
+
+  /** The names an entry re-exports by name from `@ionic/angular/common`. */
+  private static commonReexports(
+    ts: TypeScriptModule,
+    source: TsxSource
+  ): Set<string> {
+    const shared = new Set<string>();
+    for (const statement of source.sourceFile.statements) {
+      if (!ts.isExportDeclaration(statement) || !statement.moduleSpecifier)
+        continue;
+      if (
+        !ts.isStringLiteral(statement.moduleSpecifier) ||
+        statement.moduleSpecifier.text !== COMMON_ENTRY
+      )
+        continue;
+      const clause = statement.exportClause;
+      if (!clause || !ts.isNamedExports(clause)) continue;
+      for (const element of clause.elements) shared.add(element.name.text);
+    }
+    return shared;
   }
 
   /**

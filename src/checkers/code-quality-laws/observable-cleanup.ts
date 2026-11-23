@@ -11,6 +11,26 @@ import { CodeQualityLawBase } from './code-quality-law-base';
 const REACT_IMPORT = /\bfrom\s+['"]react(?:\/[^'"]*)?['"]/;
 const RXJS_IMPORT = /\bfrom\s+['"]rxjs(?:\/[^'"]*)?['"]/;
 
+/**
+ * Text that shows a file manages its subscriptions; a pattern matches when
+ * the file contains every part of it:
+ * NgRx Effects files (managed by NgRx), an Observable being created (not a
+ * subscription), takeUntilDestroyed (Angular 16+), takeUntil with a destroy$
+ * Subject, manual unsubscribe, a Subscription container, the async pipe in a
+ * template (no manual subscription), and take(1) for one-time operations.
+ */
+const CLEANUP_PATTERNS: ReadonlyArray<readonly string[]> = [
+  ['createEffect'],
+  ['@ngrx/effects'],
+  ['new Observable', 'subscriber'],
+  ['takeUntilDestroyed'],
+  ['takeUntil', 'destroy$'],
+  ['unsubscribe'],
+  ['Subscription', 'add'],
+  ['async'],
+  ['take(1)'],
+];
+
 export class ObservableCleanupLaw extends CodeQualityLawBase {
   static check(context: LawCheckContext): LawResult {
     const { projectRoot } = context;
@@ -29,41 +49,8 @@ export class ObservableCleanupLaw extends CodeQualityLawBase {
         // module imports RxJS itself.
         if (this.isReactModuleWithoutRxjs(content)) continue;
 
-        // Check if file has observable subscriptions but no cleanup
-        if (
-          this.hasObservableSubscriptions(content) &&
-          !this.hasProperCleanupPattern(content)
-        ) {
-          const relativePath = file.replace(projectRoot, '').replace(/^\//, '');
-          violations.push(
-            `Observable subscriptions without proper cleanup: ${relativePath}`
-          );
-        }
-
-        // Check for direct subscription without proper cleanup pattern
-        if (
-          content.includes('.subscribe(') &&
-          !this.hasProperCleanupPattern(content)
-        ) {
-          const relativePath = file.replace(projectRoot, '').replace(/^\//, '');
-          violations.push(
-            `Direct subscription without unsubscribe pattern: ${relativePath}`
-          );
-        }
-
-        // Check for component files without OnDestroy when having subscriptions
-        // (unless using modern takeUntilDestroyed or other valid patterns)
-        if (
-          AngularComponentFiles.isComponentContent(file, content) &&
-          this.hasObservableSubscriptions(content) &&
-          !content.includes('OnDestroy') &&
-          !this.hasProperCleanupPattern(content)
-        ) {
-          const relativePath = file.replace(projectRoot, '').replace(/^\//, '');
-          violations.push(
-            `Component with subscriptions missing OnDestroy: ${relativePath}`
-          );
-        }
+        const relativePath = file.replace(projectRoot, '').replace(/^\//, '');
+        violations.push(...this.fileFindings(file, content, relativePath));
       }
     } catch (_error) {
       violations.push(`Error checking observable cleanup: ${_error}`);
@@ -83,6 +70,48 @@ export class ObservableCleanupLaw extends CodeQualityLawBase {
     );
   }
 
+  /** What one file is reported for: subscriptions, or a component, without a cleanup pattern. */
+  private static fileFindings(
+    file: string,
+    content: string,
+    relativePath: string
+  ): string[] {
+    const found: string[] = [];
+    // Check if file has observable subscriptions but no cleanup
+    if (
+      this.hasObservableSubscriptions(content) &&
+      !this.hasProperCleanupPattern(content)
+    ) {
+      found.push(
+        `Observable subscriptions without proper cleanup: ${relativePath}`
+      );
+    }
+
+    // Check for direct subscription without proper cleanup pattern
+    if (
+      content.includes('.subscribe(') &&
+      !this.hasProperCleanupPattern(content)
+    ) {
+      found.push(
+        `Direct subscription without unsubscribe pattern: ${relativePath}`
+      );
+    }
+
+    // Check for component files without OnDestroy when having subscriptions
+    // (unless using modern takeUntilDestroyed or other valid patterns)
+    if (
+      AngularComponentFiles.isComponentContent(file, content) &&
+      this.hasObservableSubscriptions(content) &&
+      !content.includes('OnDestroy') &&
+      !this.hasProperCleanupPattern(content)
+    ) {
+      found.push(
+        `Component with subscriptions missing OnDestroy: ${relativePath}`
+      );
+    }
+    return found;
+  }
+
   private static isReactModuleWithoutRxjs(content: string): boolean {
     return REACT_IMPORT.test(content) && !RXJS_IMPORT.test(content);
   }
@@ -92,46 +121,8 @@ export class ObservableCleanupLaw extends CodeQualityLawBase {
    * Supports modern Angular patterns: takeUntil, takeUntilDestroyed, unsubscribe, Subscription management
    */
   private static hasProperCleanupPattern(content: string): boolean {
-    // NgRx Effects files - automatically managed by NgRx framework
-    if (content.includes('createEffect') || content.includes('@ngrx/effects')) {
-      return true;
-    }
-
-    // Observable creation pattern - not a subscription that needs cleanup
-    if (content.includes('new Observable') && content.includes('subscriber')) {
-      return true;
-    }
-
-    // Modern Angular 16+ pattern with takeUntilDestroyed
-    if (content.includes('takeUntilDestroyed')) {
-      return true;
-    }
-
-    // Traditional takeUntil pattern with destroy$ Subject
-    if (content.includes('takeUntil') && content.includes('destroy$')) {
-      return true;
-    }
-
-    // Manual subscription management
-    if (content.includes('unsubscribe')) {
-      return true;
-    }
-
-    // Subscription container pattern
-    if (content.includes('Subscription') && content.includes('add')) {
-      return true;
-    }
-
-    // Async pipe in template (no manual subscription needed)
-    if (content.includes('async')) {
-      return true;
-    }
-
-    // take(1) for one-time operations
-    if (content.includes('take(1)')) {
-      return true;
-    }
-
-    return false;
+    return CLEANUP_PATTERNS.some(parts =>
+      parts.every(part => content.includes(part))
+    );
   }
 }

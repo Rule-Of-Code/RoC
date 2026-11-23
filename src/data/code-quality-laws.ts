@@ -360,7 +360,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'A dropped promise is recognised from syntax only (no type checker): a .then chain, or a call to an async function or method declared in the same file, used as a statement. A promise-returning function imported from another module and called as a statement is not seen.',
-      'HTTP and event-listener guarding is still a per-file text check, over code only (strings and comments removed); JS/TS only, Python files are not analysed per-file.',
+      'HTTP guarding is still a per-file text check, over code only (strings and comments removed). An event listener is judged by its handler, from the syntax tree: async, an await, a throw, JSON.parse or a fetch / XMLHttpRequest / axios / http call with no try and no .catch in the handler is a finding; a handler passed by a name not declared in the same file is not judged. JS/TS only, Python files are not analysed per-file.',
       'Global-handler detection reads a fixed list of bootstrap files plus the source of package.json bin/main (dist|lib|build|out → src); a bootstrap file elsewhere gets a false "no global error handling". The handler is recognised in the parse (a listener call, a window.onerror assignment, a framework identifier, or a try around parse()/parseAsync() in the bin entry), not by what the handler body does.',
       'Python satisfies only the global-handler clause, not the per-call gaps.',
     ],

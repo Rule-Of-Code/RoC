@@ -15,7 +15,7 @@
  * imports it.
  */
 
-import { PARTLY_READ_TEXT } from '../../utils/judged-nothing';
+import { PARTLY_READ_TEXT, withNotRead } from '../../utils/judged-nothing';
 import { glob } from 'glob';
 import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
@@ -90,10 +90,12 @@ export class CapacitorPluginStubHasContractTestLaw extends LawBase {
 
   static check(context: LawCheckContext): LawResult {
     const violations: string[] = [];
+    // What could not be read is a note, not a finding (#453).
+    const notRead: string[] = [];
     const ts = loadTypeScript(context.projectRoot);
     const configs = this.configFiles(context.projectRoot);
     if (!ts && configs.some(file => !file.endsWith('.json'))) {
-      violations.push(
+      notRead.push(
         `test configs: ${parserUnavailable(context.projectRoot)} — module mappings in them were not read, so this law does not pass on them; ${PARTLY_READ_TEXT}`
       );
     }
@@ -105,7 +107,7 @@ export class CapacitorPluginStubHasContractTestLaw extends LawBase {
       .filter(name => CAPACITOR_PLUGIN_MODULE.test(name))
       .sort();
     // A mapper this law cannot read could stub any declared plugin.
-    if (plugins.length > 0) violations.push(...unreadMappers);
+    if (plugins.length > 0) notRead.push(...unreadMappers);
     const stubbed = plugins.flatMap(plugin => {
       const mapping = mappings.find(candidate =>
         this.matches(candidate, plugin)
@@ -134,7 +136,7 @@ export class CapacitorPluginStubHasContractTestLaw extends LawBase {
         );
       }
     }
-    return this.createResult(
+    const result = this.createResult(
       violations,
       this.LAW_NAME,
       'TESTING',
@@ -144,6 +146,7 @@ export class CapacitorPluginStubHasContractTestLaw extends LawBase {
       ],
       context
     );
+    return withNotRead(result, notRead);
   }
 
   /** Jest / Vitest configs at the root and in each workspace project, read regardless of ignores. */

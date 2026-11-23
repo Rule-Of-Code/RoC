@@ -5,6 +5,21 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 🐛 Fixed — an ignores.global entry that matches no file is named
+
+8.0.0 brought every written form of an `ignores.*` pattern to one form, so a
+Windows path, `./`, a trailing slash and an absolute path inside the project
+match. An entry written correctly that still points nowhere — a typo
+(`vendr/**`), a directory that was renamed or removed — excluded nothing in
+silence. The audit now prints a warning for each `ignores.global` entry the
+project wrote that matches no file of the project (the files git shows;
+outside git, the files on disk). The tool's own default entries are not
+judged, and neither is an entry the project's .gitignore also ignores:
+generated output (`coverage/**`) is absent from a fresh clone and still right
+to ignore (#414).
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

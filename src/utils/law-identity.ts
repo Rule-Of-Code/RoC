@@ -70,9 +70,9 @@ export function configKeySlug(name: string): string {
  * identically through ALL of them.
  */
 export function lawIdentityKeys(law: {
-  name?: string;
-  id?: string;
-  legacyId?: number | string;
+  name?: string | undefined;
+  id?: string | undefined;
+  legacyId?: number | string | undefined;
 }): string[] {
   const keys: string[] = [];
   if (law.id) keys.push(law.id);
@@ -128,7 +128,11 @@ const SEVERITIES = new Set(['error', 'warning', 'info']);
  * default config generates for every law (no identity has that shape).
  */
 export function runsWithoutAllowlist(
-  law: { name?: string; id?: string; defaultEnabled?: boolean },
+  law: {
+    name?: string | undefined;
+    id?: string | undefined;
+    defaultEnabled?: boolean | undefined;
+  },
   severity: Record<string, unknown> | undefined
 ): boolean {
   if (law.defaultEnabled !== false) return true;
@@ -178,7 +182,7 @@ export function lawAppliesToProjectType(
   stack: string | undefined,
   projectType: string | undefined,
   projectRoot?: string,
-  law?: { staticSiteHtml?: boolean },
+  law?: { staticSiteHtml?: boolean | undefined },
   ignores?: readonly string[]
 ): boolean {
   if (!stack) return true; // universal

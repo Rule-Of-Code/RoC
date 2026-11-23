@@ -79,7 +79,7 @@ export interface ManifestRedirect {
 export interface RedirectReading {
   redirects: ManifestRedirect[];
   /** `manifest.srcFile` calls whose set or target this law cannot follow (a variable, a computed path). */
-  unread: Array<{ line: number; set?: string }>;
+  unread: Array<{ line: number; set?: string | undefined }>;
 }
 
 interface Judged {
@@ -88,7 +88,7 @@ interface Judged {
   set: string;
   shipped: boolean;
   /** How the build script routes this manifest into a shipped variant, when it does. */
-  shippedBy?: string;
+  shippedBy?: string | undefined;
 }
 
 interface Planned {

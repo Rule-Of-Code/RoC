@@ -85,7 +85,7 @@ export class CodeDocumentationLaw extends CodeQualityLawBase {
       );
   }
 
-  protected static findTypeScriptFiles(
+  protected static override findTypeScriptFiles(
     projectRoot: string,
     context: LawCheckContext
   ): string[] {

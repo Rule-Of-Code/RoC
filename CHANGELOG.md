@@ -18,8 +18,124 @@ laws ask for. The two laws also disagreed on a typed `let`
 Both laws now read the same definition: a column-0 `let` / `var` with an
 initialiser, typed or not, is shared state unless a `beforeEach` or
 `afterEach` of the same file assigns it. A reset in `beforeAll` (which runs
-once) does not count. Test Data Management can therefore report a typed
-`let` that nothing resets, which it did not see before.
+once) does not count.
+
+Test Data Management now also reports a typed module-level `let` that
+nothing resets, as Test Isolation Enforcement does. Findings can grow the
+same way for a declaration without a trailing `;` and for a name with a
+dollar sign, which Test Data Management's old pattern did not see.
+
+### 🐛 Fixed — module bindings are read from the syntax tree (#565)
+
+The definition above read the reset as text in the hook. Three cases were
+wrong: a hook that declared its own binding of the same name
+(`const x = …`, shadowing) counted as a reset, an assignment written inside
+a string counted as a reset, and only the first declarator of
+`let a = 1, b = 2` was read. Both laws now read the bindings and the hooks
+from the syntax tree: every declarator of a top-level `let` / `var` with an
+initialiser, an assignment only where it is code, and a same-named binding
+inside the hook shadows instead of resetting. The second declarator of one
+statement can add a finding where nothing resets it.
+
+### 🐛 Fixed — Test Coverage Constitutional Standard took `domain.ts` for an entry point (#539)
+
+The law does not ask a test of an entry point or a barrel (`index.ts`,
+`main.ts`, `polyfills.ts`), but the patterns matched the end of any file
+name: `domain.ts` ("…main.ts"), `remain.ts` and `app-index.ts` were never
+asked for a test. The patterns now match the file name itself.
+
+This **adds** "source files lack corresponding test files" counts in
+projects with such names: +N source files without a test (measured in the
+PR).
+
+### 🐛 Fixed — Unit Test Quality and Test Data Management read one external boundary (#491, #29)
+
+Both laws ask whether a test reaches something outside its process with no
+double in place, and they answered it from two tables. Test Data Management
+counted the filesystem and a child process as external, Unit Test Quality
+did not; Unit Test Quality took a double named by its role (`fakeClient`)
+and an unmocked global `fetch(` into account, Test Data Management did not.
+The same test was "external data" for one law and "no external dependency"
+for the other.
+
+Both now read one definition (`ExternalBoundary`), with a reason per group:
+node network modules, HTTP and socket clients, databases and brokers, cloud
+SDKs. The filesystem and a child process are not on it: a test in a
+temporary directory, or one that runs the project's own CLI, is legitimate.
+A double named by its role now includes a real in-memory implementation
+(`InMemory…`), next to `Fake…`, `Stub…` and `Mock…` (#29).
+
+Measured before the change, with the laws' own discovery:
+
+| project | Test Data Management findings (fs a boundary / not) | Unit Test Quality "no mocking" findings (fs not a boundary / a boundary) |
+|---|---|---|
+| RoC itself | 0 / 0 (files judged: 192 / 25) | 0 / 127 |
+| a large Angular app | 0 / 0 (files judged: 466 / 271) | 33 / 214 |
+
+### 🐛 Fixed — Performance Test Requirements recognises a spec that asserts a timing budget (#554)
+
+Performance tests were recognised only by file name (`*perf.test.ts`,
+`*benchmark.ts`, …) and critical flows only by words (`login`, `checkout`,
+…). An e2e spec that measures a flow and asserts a budget, such as
+`const ms = performance.now() - start; expect(ms).toBeLessThan(BUDGET_MS);`
+in `cold-start.e2e.spec.ts`, was "No performance test files found".
+
+A spec whose code reads `performance.now()` or `Date.now()` and asserts
+`toBeLessThan` / `toBeLessThanOrEqual` is now a performance test; the name
+patterns stay one way in. Beyond the issue's suggestion, such a budget in a
+spec that drives a browser or a device (`page.goto`, `cy.visit`,
+`browser.url`, `device.launchApp`) also counts as a critical-flow
+performance test: a cold start is as much a user flow as a login, and
+otherwise the finding would only have changed from "No performance test
+files found" to "Critical user flow performance tests not implemented".
+
+### 🐛 Fixed — API Testing Standards recognises an API test by what its code drives (#551)
+
+API tests were recognised only by file name (`api.spec.ts`, `*.api.ts`,
+`request.spec.ts`, …). An Angular HTTP layer tested in
+`user.repository.spec.ts` with `HttpTestingController`, or a server tested
+with `supertest` in `server.spec.ts`, was "No API test files found".
+
+A test file whose syntax tree drives an HTTP test harness (an import of
+`supertest`, `nock`, `msw`, `fetch-mock` or `@angular/common/http/testing`,
+or `HttpTestingController` / `provideHttpClientTesting` / `setupServer(` /
+`nock(` in its code) is now an API test; the name patterns stay one way in.
+A harness named in a comment or a fixture string is not one.
+
+Once found, those files are judged for HTTP method and error-scenario
+coverage, so a project can trade "No API test files found" for findings
+about what its API tests cover: +N findings (measured in the PR).
+
+The same blind spot sat in the mocking check, which looked only at declared
+dependencies (msw, nock, sinon, mirage): API tests that answer every request
+with Angular's `HttpTestingController`, which ships inside `@angular/common`,
+were told "Consider implementing API mocking with tools like MSW or nock"
+and lost 10 points. A mock backend used by the API tests (Angular's, msw,
+nock, fetch-mock) now counts as API mocking; `supertest`, which sends real
+requests in process, does not.
+
+### 🐛 Fixed — a zero-delay `setTimeout` is a yield, not a real-timer wait (#548)
+
+Unit Test Quality reported "setTimeout usage without fake timers may cause
+test flakiness" for `await new Promise((resolve) => setTimeout(resolve))`,
+which waits for one macrotask, not for wall-clock time; the finding was the
+same for a delay of `0` and of `1200`. A call with no delay or a literal `0`
+is no longer counted. A non-zero literal and a delay the law cannot read (a
+name, an expression) still are.
+
+### Changed — Angular Testing Excellence asks for a descriptive test title, not a "should" prefix (#557)
+
+The law reported every test whose title did not start with "should". The
+prefix is a style: `it('returns the cached value on the second call')`
+describes behaviour as well as the "should" form. The law now reports a
+title that describes nothing: empty, a placeholder (`test`, `test 1`,
+`works`, `it works`) or only the name of the unit under test (an enclosing
+describe's title, `getUser()`, `CacheService`), as
+`Test title does not describe behaviour in <file>: "<title>"`.
+
+The prefix is an opt-in convention: `thresholds.angular.testTitlePrefix`
+(unset by default). Set it to `"should"` to keep the previous rule and its
+message.
 
 ### 🐛 Fixed — hardcoded-URL findings: identifiers, rendered links and the reported value (#537)
 

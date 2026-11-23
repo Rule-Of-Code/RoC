@@ -5,6 +5,7 @@
  */
 import { TestEdgeCases } from './test-edge-cases';
 import { TestFileReading } from './test-file-reading';
+import { ExternalBoundary } from '../external-boundary';
 import { TestNetworkClients } from './test-network-clients';
 
 /**
@@ -86,8 +87,8 @@ export class TestCoverageAnalyzerConfiguration {
    * Angular's `HttpClient` being used. A URL is not a call — the text
    * `https://example.com` in a comment says nothing about what the test does.
    */
-  static readonly HTTP_CALL_PATTERN =
-    /\bfetch\s*\(|\bXMLHttpRequest\b|\baxios\s*\(|\b(?:axios|got|superagent|https?|httpClient|HttpClient|apiClient)\s*\.\s*(?:get|post|put|patch|delete|del|request|head|options)\s*(?:<[^>]*>\s*)?\(/;
+  /** ExternalBoundary's request pattern, shared with Test Data Management (#491). */
+  static readonly HTTP_CALL_PATTERN = ExternalBoundary.HTTP_CALL;
 
   static readonly MOCKING_ISSUE_MESSAGES = {
     MOCKS_WITHOUT_CLEANUP:

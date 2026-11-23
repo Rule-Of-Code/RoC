@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ Changed — Test Coverage Constitutional Standard judges by real line coverage (#599)
+
+With a coverage report — `coverage/coverage-summary.json` (Jest
+`json-summary`), else `coverage/lcov.info`, or the file
+`thresholds.testing.coverageReportPath` names — each source file is judged
+by its line coverage: below `thresholds.testing.minFileLineCoveragePercent`
+(0–100, default 80) is a finding with the percentage, and the passing
+message names the report. A source file the report does not name is judged
+by the presence of a test, as before; the test-file ratio is not judged.
+
+A report that cannot be used is never read in silence: older than the code
+(a judged source file was modified after it — neither format records a
+commit, so this is the modification time), naming none of the source files,
+not valid json-summary/lcov, or a configured path that cannot be read. The
+reason goes to `notRead`, the files are judged by presence, and the law does
+not pass. Without a report the result is unchanged.
+
 ### Internal — Jest keeps its cache in this checkout (#592)
 
 Jest kept its transform cache in the OS temp directory (`<tmp>/jest`), which

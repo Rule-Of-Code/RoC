@@ -750,6 +750,21 @@ export interface RuleOfCodeConfig {
       /** Minimum Angular component test coverage percentage (0-100) */
       minAngularTestCoveragePercent?: number;
       /**
+       * Test Coverage Constitutional Standard: the minimum LINE coverage
+       * (0-100, default 80) each source file needs in the coverage report.
+       * Read only when a report is found; a value outside 0-100 is reported
+       * and the files are judged by the presence of a test instead.
+       */
+      minFileLineCoveragePercent?: number;
+      /**
+       * Test Coverage Constitutional Standard: the coverage report to judge
+       * by, relative to the project root — a coverage-summary.json (Jest
+       * json-summary) or an lcov.info. Default: coverage/coverage-summary.json,
+       * then coverage/lcov.info. A configured report that cannot be read is
+       * said as not read, never skipped in silence.
+       */
+      coverageReportPath?: string;
+      /**
        * Playwright Locators User Facing: the minimum share (0-100, default 50)
        * of getByRole/Label/Text/Placeholder/AltText/Title among all
        * getByRole…/getByTestId/locator() calls in the Playwright files.

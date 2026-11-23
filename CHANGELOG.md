@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed — No Risk Literals (#558)
+
+The opt-in law No Risk Literals is removed: 265 laws → 264. Its vocabulary
+(`floor`, `risk`, `limit`, `equity`, `stake`, `pnl`, `leverage`, `target`)
+belongs to one business domain, not to a framework or to code quality in
+general, and its own detection limits said so; a law in this catalogue
+should hold for any project of its stack. A config that still names it
+gets Config Integrity Guard's message for an unknown law. The angular
+release-canary profile now plants its red violation for MD Footer Template
+(MANDATORY), the other opt-in law that a plain Angular fixture can fail, and
+its fixture paths are neutral (`libs/app/…`). Older entries below that
+describe the law are kept as history.
+
 ### 🐛 Fixed — a module-level `let` reset in `beforeEach` is not shared state (#552)
 
 Test Data Management and Test Isolation Enforcement reported a module-level

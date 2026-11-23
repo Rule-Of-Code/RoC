@@ -17,7 +17,7 @@ import { ALL_ENHANCED_CONSTITUTIONAL_LAWS } from '../../src/data/enhanced-laws';
  */
 describe('detection-limits ratchet', () => {
   // Raise this when you author more limits. It must never go DOWN.
-  const DECLARED_FLOOR = 265;
+  const DECLARED_FLOOR = 264;
 
   const declared = ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(
     law => Array.isArray(law.detectionLimits) && law.detectionLimits.length > 0
@@ -59,8 +59,8 @@ describe('detection-limits ratchet', () => {
  * has its own floor that may never regress and is meant to grow in public.
  */
 describe('rationale & satisfiedBy ratchet', () => {
-  const RATIONALE_FLOOR = 265;
-  const SATISFIED_FLOOR = 264;
+  const RATIONALE_FLOOR = 264;
+  const SATISFIED_FLOOR = 263;
 
   const withRationale = ALL_ENHANCED_CONSTITUTIONAL_LAWS.filter(
     law => typeof law.rationale === 'string' && law.rationale.trim().length > 0

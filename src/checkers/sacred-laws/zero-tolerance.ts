@@ -5,7 +5,7 @@
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import {
-  ESLINTRC_DATA_FILES,
+  ESLINT_CONFIG_FILES,
   readPackageJsonESLintConfig,
 } from '../../utils/eslint-config-json';
 import { FileUtils } from '../../utils/file-utils';
@@ -61,25 +61,10 @@ export class ZeroToleranceLaw {
     return advice.filter(([applies]) => applies).map(([, text]) => text);
   }
 
-  /** The ESLint config files, flat and legacy, that configure a project. */
-  private static readonly ESLINT_CONFIG_FILES = [
-    'eslint.config.js',
-    'eslint.config.mjs',
-    'eslint.config.cjs',
-    'eslint.config.ts',
-    'eslint.config.mts',
-    'eslint.config.cts',
-    '.eslintrc.js',
-    '.eslintrc.cjs',
-    ...ESLINTRC_DATA_FILES,
-  ];
-
   /** Whether an ESLint config exists; the note when only package.json could tell and was not read. */
   private static eslintConfigured(projectRoot: string): boolean | string {
     const at = (name: string): string => PathOperations.join(projectRoot, name);
-    if (
-      this.ESLINT_CONFIG_FILES.some(name => FileUtils.fileExistsSync(at(name)))
-    ) {
+    if (ESLINT_CONFIG_FILES.some(name => FileUtils.fileExistsSync(at(name)))) {
       return true;
     }
     if (!FileUtils.fileExistsSync(at('package.json'))) return false;

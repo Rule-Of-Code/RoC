@@ -5,6 +5,10 @@
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { ProjectTypeDetectorValidation } from '../../utils/config/project-type-detector/project-type-detector-validation';
+import {
+  ESLINT_CONFIG_FILES,
+  readPackageJsonESLintConfig,
+} from '../../utils/eslint-config-json';
 import { FileUtils } from '../../utils/file-utils';
 import { NxWorkspace } from '../../utils/nx-workspace';
 import { PathOperations } from '../../utils/path-operations';
@@ -103,6 +107,17 @@ export class ProfessionalExcellenceLaw {
     };
   }
 
+  /**
+   * The root package.json holds an ESLint config (`eslintConfig`, an object).
+   * A package.json that could not be read does not count (#507).
+   */
+  private static packageJsonHasESLintConfig(projectRoot: string): boolean {
+    const file = PathOperations.join(projectRoot, 'package.json');
+    if (!FileUtils.exists(file)) return false;
+    const read = readPackageJsonESLintConfig(file);
+    return read !== null && read.notRead === undefined;
+  }
+
   private static checkProfessionalStandards(projectRoot: string): {
     violations: string[];
     suggestions: string[];
@@ -119,17 +134,10 @@ export class ProfessionalExcellenceLaw {
       {
         canonical: 'eslint.config.mjs',
         purpose: 'ESLint configuration',
-        accepts: [
-          'eslint.config.mjs',
-          'eslint.config.js',
-          'eslint.config.cjs',
-          'eslint.config.ts',
-          '.eslintrc.js',
-          '.eslintrc.cjs',
-          '.eslintrc.json',
-          '.eslintrc.yaml',
-          '.eslintrc.yml',
-        ],
+        // The one list Zero Tolerance Doctrine reads too (#507).
+        accepts: [...ESLINT_CONFIG_FILES] as string[],
+        // ESLint also reads package.json eslintConfig.
+        alsoPackageJsonESLint: true,
       },
       {
         canonical: 'tsconfig.json',
@@ -155,9 +163,12 @@ export class ProfessionalExcellenceLaw {
     ];
 
     for (const concern of configConcerns) {
-      const present = concern.accepts.some(
-        name => NxWorkspace.resolveSourceFiles(projectRoot, name).length > 0
-      );
+      const present =
+        concern.accepts.some(
+          name => NxWorkspace.resolveSourceFiles(projectRoot, name).length > 0
+        ) ||
+        ('alsoPackageJsonESLint' in concern &&
+          this.packageJsonHasESLintConfig(projectRoot));
       if (!present) {
         violations.push(`Missing ${concern.canonical}`);
         suggestions.push(`Create ${concern.canonical} for ${concern.purpose}`);

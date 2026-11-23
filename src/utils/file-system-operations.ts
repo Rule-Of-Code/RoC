@@ -426,57 +426,6 @@ export class FileSystemOperations {
     return mtime1 > mtime2;
   }
 
-  // === BATCH OPERATIONS ===
-
-  /**
-   * Find files matching patterns in directories
-   */
-  static findFiles(directories: string[], extensions: string[]): string[] {
-    const foundFiles: string[] = [];
-
-    for (const dir of directories) {
-      if (!this.isDirectory(dir)) continue;
-
-      this.processDirectoryForFiles(dir, extensions, foundFiles);
-    }
-
-    return foundFiles;
-  }
-
-  /**
-   * Helper method to process a directory for file finding
-   */
-  private static processDirectoryForFiles(
-    dir: string,
-    extensions: string[],
-    foundFiles: string[]
-  ): void {
-    const entries = this.readDirectory(dir);
-
-    for (const entry of entries) {
-      this.processEntryForFiles(entry, dir, extensions, foundFiles);
-    }
-  }
-
-  /**
-   * Helper method to process a directory entry for file finding
-   */
-  private static processEntryForFiles(
-    entry: fs.Dirent,
-    dir: string,
-    extensions: string[],
-    foundFiles: string[]
-  ): void {
-    if (!entry.isFile()) return;
-
-    const fullPath = PathOperations.join(dir, entry.name);
-    const ext = PathOperations.getExtension(entry.name).toLowerCase();
-
-    if (extensions.length === 0 || extensions.includes(ext)) {
-      foundFiles.push(fullPath);
-    }
-  }
-
   /**
    * Read directory entries with error handling
    * Centralized method to replace direct fs.readdirSync calls
@@ -487,25 +436,5 @@ export class FileSystemOperations {
     } catch {
       return [];
     }
-  }
-
-  /**
-   * Get disk usage for a directory
-   */
-  static getDirectorySize(dirPath: string): number {
-    let totalSize = 0;
-    const entries = this.readDirectory(dirPath);
-
-    for (const entry of entries) {
-      const fullPath = PathOperations.join(dirPath, entry.name);
-
-      if (entry.isFile()) {
-        totalSize += this.getFileSize(fullPath);
-      } else if (entry.isDirectory()) {
-        totalSize += this.getDirectorySize(fullPath);
-      }
-    }
-
-    return totalSize;
   }
 }

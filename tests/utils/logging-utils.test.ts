@@ -3,11 +3,16 @@
  * @description Tests for centralized logging functionality
  */
 
+import * as path from 'path';
+
+import { spawnSync } from '../../src/utils/child-process';
 import {
+  errorUser,
   logDebug,
   logError,
   logInfo,
   logWarn,
+  warnUser,
 } from '../../src/utils/logging-utils';
 
 describe('utils/logging-utils', () => {
@@ -307,6 +312,73 @@ describe('utils/logging-utils', () => {
       logInfo('Undefined environment', 'UndefinedEnv');
 
       expect(consoleInfoSpy).toHaveBeenCalled();
+    });
+  });
+
+  /**
+   * warnUser/errorUser carry what the command says to its user — config
+   * warnings, a skipped config, a file that could not be written. They moved
+   * here from direct console calls, so they must print exactly what those
+   * printed: the same text, on stderr, in every environment.
+   */
+  describe('warnUser / errorUser: the user-facing line, unchanged', () => {
+    it('passes the message and the details through as console.warn/error got them', () => {
+      const error = new Error('EACCES');
+      warnUser('⚠️ Cannot read directory /x:', error);
+      errorUser('❌ Failed to write file /y:', error);
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '⚠️ Cannot read directory /x:',
+        error
+      );
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '❌ Failed to write file /y:',
+        error
+      );
+    });
+
+    it('adds no argument when there are no details', () => {
+      warnUser('Warning: Failed to write cache');
+
+      expect(consoleWarnSpy.mock.calls).toEqual([
+        ['Warning: Failed to write cache'],
+      ]);
+    });
+
+    it('prints in production too — unlike logWarn, it is not a dev log', () => {
+      process.env.NODE_ENV = 'production';
+      warnUser('shown');
+      errorUser('shown');
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith('shown');
+      expect(consoleErrorSpy).toHaveBeenCalledWith('shown');
+    });
+
+    it('writes on stderr, nothing on stdout, in a real process', () => {
+      const module = path.resolve(
+        __dirname,
+        '../../src/utils/logging-utils.ts'
+      );
+      const script = [
+        `const u = require(${JSON.stringify(module)});`,
+        'u.warnUser("⚠️  laws.severity: unknown law \'X\'");',
+        "u.errorUser('❌ Failed', 'EACCES');",
+      ].join('\n');
+      const run = spawnSync(
+        process.execPath,
+        ['-r', 'ts-node/register/transpile-only', '-e', script],
+        {
+          cwd: path.resolve(__dirname, '../..'),
+          encoding: 'utf8',
+          env: { ...process.env, NODE_ENV: 'production' },
+        }
+      );
+
+      expect(run.status).toBe(0);
+      expect(run.stdout).toBe('');
+      expect(run.stderr).toBe(
+        "⚠️  laws.severity: unknown law 'X'\n❌ Failed EACCES\n"
+      );
     });
   });
 });

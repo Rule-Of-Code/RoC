@@ -161,14 +161,6 @@ describe('the gated set', () => {
     for (const title of ngrxTitled)
       expect(gated('@ngrx/store')).toContain(title);
   });
-
-  it('No Risk Literals is opt-in by domain, not on by default (#214 row 54)', () => {
-    const law = ALL_ENHANCED_CONSTITUTIONAL_LAWS.find(
-      l => l.title === 'No Risk Literals'
-    );
-    expect(law?.defaultEnabled).toBe(false);
-    expect(law?.requires).toBeUndefined();
-  });
 });
 
 /**

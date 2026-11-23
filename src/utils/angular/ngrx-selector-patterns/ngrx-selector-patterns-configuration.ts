@@ -15,7 +15,7 @@ import { AngularConfigurationBase } from '../angular-configuration-base';
  * Centralized configuration for NgRx selector pattern analysis
  */
 export class NgRxSelectorPatternsConfiguration extends AngularConfigurationBase {
-  private static readonly Config = NgRxSelectorPatternsConfiguration;
+  private static readonly config = NgRxSelectorPatternsConfiguration;
 
   /**
    * Selector analysis configuration (RULE 1: 100% internal coverage)
@@ -118,7 +118,7 @@ export class NgRxSelectorPatternsConfiguration extends AngularConfigurationBase 
     checkPropsSelectors: boolean;
     enableAdvancedPatterns: boolean;
   } {
-    return this.Config.SELECTOR_ANALYSIS_CONFIG;
+    return this.config.SELECTOR_ANALYSIS_CONFIG;
   }
 
   static getSelectorValidationPatterns(): {
@@ -128,7 +128,7 @@ export class NgRxSelectorPatternsConfiguration extends AngularConfigurationBase 
     propsPattern: RegExp;
     stateParameterPattern: RegExp;
   } {
-    return this.Config.SELECTOR_VALIDATION_PATTERNS;
+    return this.config.SELECTOR_VALIDATION_PATTERNS;
   }
 
   /**
@@ -140,7 +140,7 @@ export class NgRxSelectorPatternsConfiguration extends AngularConfigurationBase 
     encoding: string;
     fallbackToEmpty: boolean;
   } {
-    return this.Config.SELECTOR_FILE_SETTINGS;
+    return this.config.SELECTOR_FILE_SETTINGS;
   }
 
   /**
@@ -152,7 +152,7 @@ export class NgRxSelectorPatternsConfiguration extends AngularConfigurationBase 
     maxParametersPerSelector: number;
     complexityThreshold: number;
   } {
-    return this.Config.ANALYSIS_THRESHOLDS;
+    return this.config.ANALYSIS_THRESHOLDS;
   }
 
   /**
@@ -166,7 +166,7 @@ export class NgRxSelectorPatternsConfiguration extends AngularConfigurationBase 
     PROPS_WITH_CREATE_SELECTOR_SUGGESTION: (fileName: string) => string;
     CREATE_SELECTOR_FILES_SUGGESTION: string;
   } {
-    const messages = this.Config.VALIDATION_MESSAGES_CONFIG;
+    const messages = this.config.VALIDATION_MESSAGES_CONFIG;
     return {
       MISSING_CREATE_SELECTOR: (fileName: string) =>
         this.buildMessage(messages.MISSING_CREATE_SELECTOR, fileName),
@@ -195,7 +195,7 @@ export class NgRxSelectorPatternsConfiguration extends AngularConfigurationBase 
     FEATURE_SELECTOR_PATTERN: string;
     COMPOSITION_BENEFITS: string;
   } {
-    const recommendations = this.Config.SELECTOR_RECOMMENDATIONS_CONFIG;
+    const recommendations = this.config.SELECTOR_RECOMMENDATIONS_CONFIG;
     return {
       USE_CREATE_SELECTOR: (fileName: string) =>
         this.buildMessage(recommendations.USE_CREATE_SELECTOR, fileName),
@@ -237,8 +237,8 @@ export class NgRxSelectorPatternsConfiguration extends AngularConfigurationBase 
    * Check if content contains specific selector patterns (RULE 2: Caching)
    */
   static containsPattern(content: string, patternType: string): boolean {
-    const patterns = this.Config.SELECTOR_VALIDATION_PATTERNS;
-    const thresholds = this.Config.ANALYSIS_THRESHOLDS;
+    const patterns = this.config.SELECTOR_VALIDATION_PATTERNS;
+    const thresholds = this.config.ANALYSIS_THRESHOLDS;
 
     switch (patternType) {
       case 'createSelector':
@@ -269,7 +269,7 @@ export class NgRxSelectorPatternsConfiguration extends AngularConfigurationBase 
     fallbackToEmpty: boolean;
     skipEmptyFiles: boolean;
   } {
-    const settings = this.Config.SELECTOR_FILE_SETTINGS;
+    const settings = this.config.SELECTOR_FILE_SETTINGS;
     return {
       encoding: settings.encoding,
       fallbackToEmpty: settings.fallbackToEmpty,

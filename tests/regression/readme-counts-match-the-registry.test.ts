@@ -151,11 +151,14 @@ is declared, **${onlyWhere('@ngrx/store')}** only where \`@ngrx/store\` is, and 
           Object.keys(law.satisfiedBy ?? {}).join() === 'angular'
       ).length;
 
-      expect(readme()).toContain(
-        angularOnly === 1
-          ? '1 `frontend` law without a `requires` that carries only `satisfiedBy.angular`'
-          : `The ${angularOnly} \`frontend\` laws without a \`requires\` carry only \`satisfiedBy.angular\`.`
-      );
+      // #558: the last one (No Risk Literals) was removed; the README says none.
+      const expected =
+        angularOnly === 0
+          ? 'none of them carries only\n`satisfiedBy.angular`.'
+          : angularOnly === 1
+            ? '1 `frontend` law without a `requires` that carries only `satisfiedBy.angular`'
+            : `The ${angularOnly} \`frontend\` laws without a \`requires\` carry only \`satisfiedBy.angular\`.`;
+      expect(readme()).toContain(expected);
     });
   });
 

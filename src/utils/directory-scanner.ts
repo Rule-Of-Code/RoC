@@ -6,6 +6,7 @@ import type { RuleOfCodeConfig } from '../config/types';
 import { PathOperations } from '../utils/path-operations';
 import { FileFilterUtils } from './file-filter-utils';
 import { FileSystemOperations } from './file-system-operations';
+import { warnUser } from './logging-utils';
 export interface ScanOptions {
   /** Extensions to include (e.g., CheckerUtils.getCommonExtensions().ALL_CODE) */
   extensions?: string[];
@@ -147,7 +148,7 @@ export class DirectoryScanner {
 
       return FileSystemOperations.readDirectory(dirPath);
     } catch (error) {
-      console.warn(`⚠️ Cannot read directory ${dirPath}:`, error);
+      warnUser(`⚠️ Cannot read directory ${dirPath}:`, error);
       return [];
     }
   }

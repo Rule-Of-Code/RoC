@@ -6,7 +6,7 @@ import { AngularCleanupConfiguration } from './angular-cleanup-configuration';
  * Meta-dogfooding: Centralized cleanup validation logic for Angular components
  */
 export class AngularCleanupValidationPatterns {
-  private static readonly Config = AngularCleanupConfiguration;
+  private static readonly config = AngularCleanupConfiguration;
   /**
    * Validate subscription cleanup patterns
    * Meta-dogfooding: Uses centralized pattern detection and validation messages
@@ -17,13 +17,13 @@ export class AngularCleanupValidationPatterns {
     violations: string[],
     suggestions: string[]
   ): void {
-    const patterns = this.Config.analyzePatterns(content);
+    const patterns = this.config.analyzePatterns(content);
     // `takeUntilDestroyed(destroyRef)` / `toSignal()` unsubscribe on destroy —
     // they are the cancellation, not a substitute for it. Without this, a
     // correctly-cleaned component was told it "has no cleanup mechanism" (FE).
     const hasUnsubscribe =
       ObservableCleanup.hasUnsubscribePattern(content) ||
-      this.Config.MODERN_CLEANUP.test(this.Config.stripComments(content));
+      this.config.MODERN_CLEANUP.test(this.config.stripComments(content));
 
     this.validateBasicSubscriptionCleanup({
       hasSubscriptions: patterns.hasSubscriptions,
@@ -60,11 +60,11 @@ export class AngularCleanupValidationPatterns {
     violations: string[],
     suggestions: string[]
   ): void {
-    const patterns = this.Config.analyzePatterns(content);
+    const patterns = this.config.analyzePatterns(content);
 
     if (patterns.hasTimers && !patterns.hasOnDestroy) {
       const message =
-        this.Config.VALIDATION_MESSAGES.TIMERS_WITHOUT_ONDESTROY(fileName);
+        this.config.VALIDATION_MESSAGES.TIMERS_WITHOUT_ONDESTROY(fileName);
       violations.push(message.violationMessage);
       suggestions.push(message.suggestionMessage);
     }
@@ -79,11 +79,11 @@ export class AngularCleanupValidationPatterns {
     fileName: string,
     suggestions: string[]
   ): void {
-    const patterns = this.Config.analyzePatterns(content);
+    const patterns = this.config.analyzePatterns(content);
 
     if (patterns.hasEventListeners && !patterns.hasOnDestroy) {
       const message =
-        this.Config.VALIDATION_MESSAGES.EVENT_LISTENERS_WITHOUT_CLEANUP(
+        this.config.VALIDATION_MESSAGES.EVENT_LISTENERS_WITHOUT_CLEANUP(
           fileName
         );
       suggestions.push(message.suggestionMessage);
@@ -99,7 +99,7 @@ export class AngularCleanupValidationPatterns {
     fileName: string,
     suggestions: string[]
   ): void {
-    const patterns = this.Config.analyzePatterns(content);
+    const patterns = this.config.analyzePatterns(content);
 
     if (
       patterns.hasSubjects &&
@@ -107,7 +107,7 @@ export class AngularCleanupValidationPatterns {
       !patterns.hasSubjectCompletion
     ) {
       const message =
-        this.Config.VALIDATION_MESSAGES.SUBJECTS_WITHOUT_COMPLETION(fileName);
+        this.config.VALIDATION_MESSAGES.SUBJECTS_WITHOUT_COMPLETION(fileName);
       suggestions.push(message.suggestionMessage);
     }
   }
@@ -134,7 +134,7 @@ export class AngularCleanupValidationPatterns {
 
     if (hasSubscriptions && !hasOnDestroy) {
       const message =
-        this.Config.VALIDATION_MESSAGES.SUBSCRIPTIONS_WITHOUT_ONDESTROY(
+        this.config.VALIDATION_MESSAGES.SUBSCRIPTIONS_WITHOUT_ONDESTROY(
           fileName
         );
       violations.push(message.violationMessage);
@@ -143,7 +143,7 @@ export class AngularCleanupValidationPatterns {
 
     if (hasSubscriptions && hasOnDestroy && !hasUnsubscribe) {
       const message =
-        this.Config.VALIDATION_MESSAGES.SUBSCRIPTIONS_WITHOUT_CLEANUP(fileName);
+        this.config.VALIDATION_MESSAGES.SUBSCRIPTIONS_WITHOUT_CLEANUP(fileName);
       violations.push(message.violationMessage);
       suggestions.push(message.suggestionMessage);
     }
@@ -159,7 +159,7 @@ export class AngularCleanupValidationPatterns {
   ): void {
     if (patterns.hasTakeUntil && !patterns.hasDestroySubject) {
       const message =
-        this.Config.VALIDATION_MESSAGES.TAKEUNTIL_WITHOUT_DESTROY_SUBJECT(
+        this.config.VALIDATION_MESSAGES.TAKEUNTIL_WITHOUT_DESTROY_SUBJECT(
           fileName
         );
       suggestions.push(message.suggestionMessage);
@@ -181,7 +181,7 @@ export class AngularCleanupValidationPatterns {
       !ObservableCleanup.hasUnsubscribePattern(content)
     ) {
       const message =
-        this.Config.VALIDATION_MESSAGES.MANUAL_SUBSCRIPTION_WITHOUT_UNSUBSCRIBE(
+        this.config.VALIDATION_MESSAGES.MANUAL_SUBSCRIPTION_WITHOUT_UNSUBSCRIBE(
           fileName
         );
       violations.push(message.violationMessage);
@@ -204,7 +204,7 @@ export class AngularCleanupValidationPatterns {
       !hasUnsubscribe
     ) {
       const message =
-        this.Config.VALIDATION_MESSAGES.CONSIDER_ASYNC_PIPE(fileName);
+        this.config.VALIDATION_MESSAGES.CONSIDER_ASYNC_PIPE(fileName);
       suggestions.push(message.suggestionMessage);
     }
   }

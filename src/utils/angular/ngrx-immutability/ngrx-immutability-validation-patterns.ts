@@ -14,12 +14,12 @@ export class NgRxImmutabilityValidationPatterns extends AngularConfigurationBase
   /**
    * Class-level alias for Configuration
    */
-  private static readonly Config = NgRxImmutabilityConfiguration;
+  private static readonly config = NgRxImmutabilityConfiguration;
 
   /**
    * Type alias for immutability analysis result
    */
-  private static readonly ImmutabilityAnalysis = Object.create(null) as Record<
+  private static readonly immutabilityAnalysis = Object.create(null) as Record<
     string,
     unknown
   >;
@@ -62,7 +62,7 @@ export class NgRxImmutabilityValidationPatterns extends AngularConfigurationBase
     config: RuleOfCodeConfig
   ): string[] {
     const reducerExtensions = [
-      ...this.Config.REDUCER_FILE_EXTENSIONS,
+      ...this.config.REDUCER_FILE_EXTENSIONS,
     ] as string[];
     return CheckerUtils.findFilesByExtension(
       srcPath,
@@ -81,13 +81,13 @@ export class NgRxImmutabilityValidationPatterns extends AngularConfigurationBase
   ): void {
     const content = FileUtils.readFile(
       reducerFile,
-      this.Config.FILE_READ_OPTIONS
+      this.config.FILE_READ_OPTIONS
     );
 
     if (!content) return;
 
     const fileName = PathOperations.getBasename(reducerFile);
-    const analysis = this.Config.analyzeImmutabilityPatterns(content);
+    const analysis = this.config.analyzeImmutabilityPatterns(content);
 
     // Apply all validation checks
     this.validateDirectStateMutation(
@@ -113,21 +113,21 @@ export class NgRxImmutabilityValidationPatterns extends AngularConfigurationBase
    * Validate direct state mutation patterns
    */
   private static validateDirectStateMutation(
-    analysis: typeof this.ImmutabilityAnalysis,
+    analysis: typeof this.immutabilityAnalysis,
     fileName: string,
     violations: string[],
     suggestions: string[]
   ): void {
     if (analysis.hasDirectMutation) {
       violations.push(
-        this.Config.buildMessage(
-          this.Config.VALIDATION_MESSAGES.DIRECT_STATE_MUTATION,
+        this.config.buildMessage(
+          this.config.VALIDATION_MESSAGES.DIRECT_STATE_MUTATION,
           fileName
         )
       );
       suggestions.push(
-        this.Config.buildMessage(
-          this.Config.VALIDATION_MESSAGES.USE_IMMUTABLE_UPDATE,
+        this.config.buildMessage(
+          this.config.VALIDATION_MESSAGES.USE_IMMUTABLE_UPDATE,
           fileName
         )
       );
@@ -138,14 +138,14 @@ export class NgRxImmutabilityValidationPatterns extends AngularConfigurationBase
    * Validate spread operator usage
    */
   private static validateSpreadOperatorUsage(
-    analysis: typeof this.ImmutabilityAnalysis,
+    analysis: typeof this.immutabilityAnalysis,
     fileName: string,
     suggestions: string[]
   ): void {
     if (analysis.needsSpreadOperator) {
       suggestions.push(
-        this.Config.buildMessage(
-          this.Config.VALIDATION_MESSAGES.USE_SPREAD_OPERATOR,
+        this.config.buildMessage(
+          this.config.VALIDATION_MESSAGES.USE_SPREAD_OPERATOR,
           fileName
         )
       );
@@ -156,14 +156,14 @@ export class NgRxImmutabilityValidationPatterns extends AngularConfigurationBase
    * Validate Immer usage
    */
   private static validateImmerUsage(
-    analysis: typeof this.ImmutabilityAnalysis,
+    analysis: typeof this.immutabilityAnalysis,
     fileName: string,
     suggestions: string[]
   ): void {
     if (analysis.hasImmerWithoutImport) {
       suggestions.push(
-        this.Config.buildMessage(
-          this.Config.VALIDATION_MESSAGES.ENSURE_IMMER_IMPORT,
+        this.config.buildMessage(
+          this.config.VALIDATION_MESSAGES.ENSURE_IMMER_IMPORT,
           fileName
         )
       );
@@ -174,21 +174,21 @@ export class NgRxImmutabilityValidationPatterns extends AngularConfigurationBase
    * Validate nested object updates
    */
   private static validateNestedObjectUpdates(
-    analysis: typeof this.ImmutabilityAnalysis,
+    analysis: typeof this.immutabilityAnalysis,
     fileName: string,
     violations: string[],
     suggestions: string[]
   ): void {
     if (analysis.hasNestedMutation) {
       violations.push(
-        this.Config.buildMessage(
-          this.Config.VALIDATION_MESSAGES.NESTED_OBJECT_MUTATION,
+        this.config.buildMessage(
+          this.config.VALIDATION_MESSAGES.NESTED_OBJECT_MUTATION,
           fileName
         )
       );
       suggestions.push(
-        this.Config.buildMessage(
-          this.Config.VALIDATION_MESSAGES.USE_NESTED_SPREAD,
+        this.config.buildMessage(
+          this.config.VALIDATION_MESSAGES.USE_NESTED_SPREAD,
           fileName
         )
       );
@@ -199,21 +199,21 @@ export class NgRxImmutabilityValidationPatterns extends AngularConfigurationBase
    * Validate array mutations
    */
   private static validateArrayMutations(
-    analysis: typeof this.ImmutabilityAnalysis,
+    analysis: typeof this.immutabilityAnalysis,
     fileName: string,
     violations: string[],
     suggestions: string[]
   ): void {
     if (analysis.hasArrayMutation) {
       violations.push(
-        this.Config.buildMessage(
-          this.Config.VALIDATION_MESSAGES.ARRAY_MUTATION,
+        this.config.buildMessage(
+          this.config.VALIDATION_MESSAGES.ARRAY_MUTATION,
           fileName
         )
       );
       suggestions.push(
-        this.Config.buildMessage(
-          this.Config.VALIDATION_MESSAGES.USE_IMMUTABLE_ARRAYS,
+        this.config.buildMessage(
+          this.config.VALIDATION_MESSAGES.USE_IMMUTABLE_ARRAYS,
           fileName
         )
       );
@@ -224,14 +224,14 @@ export class NgRxImmutabilityValidationPatterns extends AngularConfigurationBase
    * Validate return statements
    */
   private static validateReturnStatements(
-    analysis: typeof this.ImmutabilityAnalysis,
+    analysis: typeof this.immutabilityAnalysis,
     fileName: string,
     suggestions: string[]
   ): void {
     if (analysis.hasImproperReturns) {
       suggestions.push(
-        this.Config.buildMessage(
-          this.Config.VALIDATION_MESSAGES.USE_OBJECT_LITERALS,
+        this.config.buildMessage(
+          this.config.VALIDATION_MESSAGES.USE_OBJECT_LITERALS,
           fileName
         )
       );
@@ -242,21 +242,21 @@ export class NgRxImmutabilityValidationPatterns extends AngularConfigurationBase
    * Validate Object.assign usage
    */
   private static validateObjectAssignUsage(
-    analysis: typeof this.ImmutabilityAnalysis,
+    analysis: typeof this.immutabilityAnalysis,
     fileName: string,
     violations: string[],
     suggestions: string[]
   ): void {
     if (analysis.hasObjectAssignMutation) {
       violations.push(
-        this.Config.buildMessage(
-          this.Config.VALIDATION_MESSAGES.OBJECT_ASSIGN_MUTATION,
+        this.config.buildMessage(
+          this.config.VALIDATION_MESSAGES.OBJECT_ASSIGN_MUTATION,
           fileName
         )
       );
       suggestions.push(
-        this.Config.buildMessage(
-          this.Config.VALIDATION_MESSAGES.USE_PROPER_PATTERNS,
+        this.config.buildMessage(
+          this.config.VALIDATION_MESSAGES.USE_PROPER_PATTERNS,
           fileName
         )
       );

@@ -24,12 +24,12 @@ export class NgRxFeatureStoreValidationPatterns {
   /**
    * Class-level alias for Configuration
    */
-  private static readonly Config = NgRxFeatureStoreConfiguration;
+  private static readonly config = NgRxFeatureStoreConfiguration;
 
   /**
    * Cached validation messages
    */
-  private static readonly Messages = this.Config.getValidationMessages();
+  private static readonly messages = this.config.getValidationMessages();
 
   /**
    * Validate all NgRx feature store structure patterns
@@ -42,19 +42,19 @@ export class NgRxFeatureStoreValidationPatterns {
     const suggestions: string[] = [];
 
     // Find all potential feature directories
-    const allDirectories = this.Config.findPotentialFeatureDirectories(
+    const allDirectories = this.config.findPotentialFeatureDirectories(
       projectRoot,
       config
     );
 
     // Filter for actual feature directories
     const featureDirectories = allDirectories.filter(dir =>
-      this.Config.hasFeatureIndicators(dir, config)
+      this.config.hasFeatureIndicators(dir, config)
     );
 
     // Handle case where no features are found
     if (featureDirectories.length === 0) {
-      suggestions.push(this.Messages.CREATE_FEATURE_DIRECTORIES);
+      suggestions.push(this.messages.CREATE_FEATURE_DIRECTORIES);
       return { violations, suggestions };
     }
 
@@ -75,12 +75,12 @@ export class NgRxFeatureStoreValidationPatterns {
     violations: string[],
     suggestions: string[]
   ): void {
-    const analysis = this.Config.analyzeFeatureStructure(featureDir, config);
+    const analysis = this.config.analyzeFeatureStructure(featureDir, config);
 
     // Check for +state directory
     if (!analysis.hasStateDir) {
-      violations.push(this.Messages.MISSING_PLUS_STATE(analysis.featureName));
-      suggestions.push(this.Messages.CREATE_PLUS_STATE(analysis.featureName));
+      violations.push(this.messages.MISSING_PLUS_STATE(analysis.featureName));
+      suggestions.push(this.messages.CREATE_PLUS_STATE(analysis.featureName));
       return;
     }
 
@@ -101,10 +101,10 @@ export class NgRxFeatureStoreValidationPatterns {
   ): void {
     for (const fileName of analysis.missingFiles) {
       violations.push(
-        this.Messages.MISSING_REQUIRED_FILE(fileName, analysis.featureName)
+        this.messages.MISSING_REQUIRED_FILE(fileName, analysis.featureName)
       );
       suggestions.push(
-        this.Messages.CREATE_REQUIRED_FILE(fileName, analysis.featureName)
+        this.messages.CREATE_REQUIRED_FILE(fileName, analysis.featureName)
       );
     }
   }
@@ -118,7 +118,7 @@ export class NgRxFeatureStoreValidationPatterns {
   ): void {
     for (const fileName of analysis.optionalFiles) {
       suggestions.push(
-        this.Messages.CONSIDER_OPTIONAL_FILE(fileName, analysis.featureName)
+        this.messages.CONSIDER_OPTIONAL_FILE(fileName, analysis.featureName)
       );
     }
   }

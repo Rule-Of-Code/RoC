@@ -65,12 +65,24 @@ export class CompiledImports {
 
   /** True when the compiler removes this import declaration from the emitted module. */
   erased(source: TsxSource, statement: TS.ImportDeclaration): boolean {
-    const ts = this.ts;
     const clause = statement.importClause;
     if (!clause) return false;
     if (clause.isTypeOnly) return true;
     if (JAVASCRIPT.test(source.fileName)) return false;
     if (this.keepsImports(source.fileName)) return false;
+    const { locals, named } = this.importedValues(clause);
+    // `import { type A, type B } from 'x'`: every binding a type.
+    if (locals.length === 0) return named.length > 0;
+    const used = source.valueReferences();
+    return !locals.some(name => used.has(name));
+  }
+
+  /** The local names an import clause binds as values, and its named bindings. */
+  private importedValues(clause: TS.ImportClause): {
+    locals: string[];
+    named: readonly TS.ImportSpecifier[];
+  } {
+    const ts = this.ts;
     const locals: string[] = [];
     if (clause.name) locals.push(clause.name.text);
     const bindings = clause.namedBindings;
@@ -81,10 +93,7 @@ export class CompiledImports {
     for (const element of named) {
       if (!element.isTypeOnly) locals.push(element.name.text);
     }
-    // `import { type A, type B } from 'x'`: every binding a type.
-    if (locals.length === 0) return named.length > 0;
-    const used = source.valueReferences();
-    return !locals.some(name => used.has(name));
+    return { locals, named };
   }
 
   /**

@@ -16,10 +16,8 @@ describe('utils/angular/angular-validation/angular-validation-patterns', () => {
       it('should add violation message when condition is true', () => {
         const violations: string[] = [];
         const suggestions: string[] = [];
-        const content = 'test content';
 
         AngularValidationUtils.validateContent(
-          content,
           'test.ts',
           [
             {
@@ -39,10 +37,8 @@ describe('utils/angular/angular-validation/angular-validation-patterns', () => {
       it('should not add messages when condition is false', () => {
         const violations: string[] = [];
         const suggestions: string[] = [];
-        const content = 'test content';
 
         AngularValidationUtils.validateContent(
-          content,
           'test.ts',
           [
             {
@@ -62,10 +58,8 @@ describe('utils/angular/angular-validation/angular-validation-patterns', () => {
       it('should handle multiple checks', () => {
         const violations: string[] = [];
         const suggestions: string[] = [];
-        const content = 'test content';
 
         AngularValidationUtils.validateContent(
-          content,
           'test.ts',
           [
             {
@@ -92,10 +86,8 @@ describe('utils/angular/angular-validation/angular-validation-patterns', () => {
       it('should only add violation when suggestion is not provided', () => {
         const violations: string[] = [];
         const suggestions: string[] = [];
-        const content = 'test content';
 
         AngularValidationUtils.validateContent(
-          content,
           'test.ts',
           [
             {
@@ -114,10 +106,8 @@ describe('utils/angular/angular-validation/angular-validation-patterns', () => {
       it('should only add suggestion when violation is not provided', () => {
         const violations: string[] = [];
         const suggestions: string[] = [];
-        const content = 'test content';
 
         AngularValidationUtils.validateContent(
-          content,
           'test.ts',
           [
             {
@@ -136,10 +126,8 @@ describe('utils/angular/angular-validation/angular-validation-patterns', () => {
       it('should append fileName to messages', () => {
         const violations: string[] = [];
         const suggestions: string[] = [];
-        const content = 'test content';
 
         AngularValidationUtils.validateContent(
-          content,
           'my-module.ts',
           [
             {
@@ -159,10 +147,8 @@ describe('utils/angular/angular-validation/angular-validation-patterns', () => {
       it('should handle empty checks array', () => {
         const violations: string[] = [];
         const suggestions: string[] = [];
-        const content = 'test content';
 
         AngularValidationUtils.validateContent(
-          content,
           'test.ts',
           [],
           violations,
@@ -176,10 +162,8 @@ describe('utils/angular/angular-validation/angular-validation-patterns', () => {
       it('should handle all false conditions', () => {
         const violations: string[] = [];
         const suggestions: string[] = [];
-        const content = 'test content';
 
         AngularValidationUtils.validateContent(
-          content,
           'test.ts',
           [
             { condition: false, violationMessage: 'V1' },
@@ -201,10 +185,8 @@ describe('utils/angular/angular-validation/angular-validation-patterns', () => {
       it('should handle all true conditions', () => {
         const violations: string[] = [];
         const suggestions: string[] = [];
-        const content = 'test content';
 
         AngularValidationUtils.validateContent(
-          content,
           'test.ts',
           [
             { condition: true, violationMessage: 'V1' },
@@ -227,10 +209,8 @@ describe('utils/angular/angular-validation/angular-validation-patterns', () => {
     describe('validateAndSuggest', () => {
       it('should add suggestion when condition is true', () => {
         const suggestions: string[] = [];
-        const content = 'test content';
 
         AngularValidationUtils.validateAndSuggest(
-          content,
           'test.ts',
           [
             {
@@ -246,10 +226,8 @@ describe('utils/angular/angular-validation/angular-validation-patterns', () => {
 
       it('should not add suggestion when condition is false', () => {
         const suggestions: string[] = [];
-        const content = 'test content';
 
         AngularValidationUtils.validateAndSuggest(
-          content,
           'test.ts',
           [
             {
@@ -265,10 +243,8 @@ describe('utils/angular/angular-validation/angular-validation-patterns', () => {
 
       it('should handle multiple checks', () => {
         const suggestions: string[] = [];
-        const content = 'test content';
 
         AngularValidationUtils.validateAndSuggest(
-          content,
           'test.ts',
           [
             {
@@ -292,10 +268,8 @@ describe('utils/angular/angular-validation/angular-validation-patterns', () => {
 
       it('should append fileName to suggestions', () => {
         const suggestions: string[] = [];
-        const content = 'test content';
 
         AngularValidationUtils.validateAndSuggest(
-          content,
           'feature.module.ts',
           [
             {
@@ -311,24 +285,16 @@ describe('utils/angular/angular-validation/angular-validation-patterns', () => {
 
       it('should handle empty checks array', () => {
         const suggestions: string[] = [];
-        const content = 'test content';
 
-        AngularValidationUtils.validateAndSuggest(
-          content,
-          'test.ts',
-          [],
-          suggestions
-        );
+        AngularValidationUtils.validateAndSuggest('test.ts', [], suggestions);
 
         expect(suggestions).toHaveLength(0);
       });
 
       it('should skip checks without suggestionMessage', () => {
         const suggestions: string[] = [];
-        const content = 'test content';
 
         AngularValidationUtils.validateAndSuggest(
-          content,
           'test.ts',
           [
             {

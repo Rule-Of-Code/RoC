@@ -42,6 +42,16 @@ const GUIDE =
 
 type StoreKind = 'IndexedDB' | 'localStorage' | 'sessionStorage';
 
+/** Web Storage writes, in the order they are tried: `localStorage.setItem`, `sessionStorage.setItem`. */
+const WEB_STORAGE_WRITES: ReadonlyArray<{
+  method: string;
+  receiver: RegExp;
+  kind: StoreKind;
+}> = [
+  { method: 'setItem', receiver: LOCAL_STORAGE, kind: 'localStorage' },
+  { method: 'setItem', receiver: SESSION_STORAGE, kind: 'sessionStorage' },
+];
+
 /** One write to WebView storage. */
 export interface StorageWrite {
   kind: StoreKind;
@@ -152,12 +162,8 @@ export class CapacitorDurableStateOffWebviewStorageLaw extends LawBase {
     const ts = source.ts;
     const line = source.lineOf(node);
     const first = node.arguments?.[0];
-    if (ts.isNewExpression(node)) {
-      return ts.isIdentifier(node.expression) &&
-        node.expression.text === 'Dexie'
-        ? { kind: 'IndexedDB', key: stringValue(source, first), line }
-        : null;
-    }
+    if (ts.isNewExpression(node))
+      return this.dexieWrite(source, node, first, line);
     const callee = node.expression;
     if (ts.isIdentifier(callee)) {
       return callee.text === 'openDB' && this.importsFrom(source, 'idb')
@@ -177,16 +183,29 @@ export class CapacitorDurableStateOffWebviewStorageLaw extends LawBase {
     return { kind, key: keyed ? stringValue(source, first) : null, line };
   }
 
+  /** A Dexie constructor call: an IndexedDB database, keyed by its name. */
+  private static dexieWrite(
+    source: TsxSource,
+    node: TS.NewExpression,
+    first: TS.Expression | undefined,
+    line: number
+  ): StorageWrite | null {
+    const ts = source.ts;
+    return ts.isIdentifier(node.expression) && node.expression.text === 'Dexie'
+      ? { kind: 'IndexedDB', key: stringValue(source, first), line }
+      : null;
+  }
+
   /** `<receiver>.<method>(…)`: which store it writes, or null. */
   private static memberWrite(
     receiver: string,
     method: string,
     idbWrites: boolean
   ): StoreKind | null {
-    if (method === 'setItem' && LOCAL_STORAGE.test(receiver))
-      return 'localStorage';
-    if (method === 'setItem' && SESSION_STORAGE.test(receiver))
-      return 'sessionStorage';
+    const stored = WEB_STORAGE_WRITES.find(
+      write => write.method === method && write.receiver.test(receiver)
+    );
+    if (stored) return stored.kind;
     if (method === 'open' && INDEXED_DB.test(receiver))
       return idbWrites ? 'IndexedDB' : null;
     const localforage =

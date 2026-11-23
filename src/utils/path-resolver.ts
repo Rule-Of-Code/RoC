@@ -9,7 +9,7 @@ import type { RuleOfCodeConfig } from '../config/types';
 import { PathOperations } from './path-operations';
 
 export class PathResolver {
-  private config?: RuleOfCodeConfig;
+  private config: RuleOfCodeConfig | undefined;
   private projectRoot: string;
 
   constructor(config: RuleOfCodeConfig | undefined, projectRoot: string) {
@@ -120,7 +120,7 @@ export class PathResolver {
 
     // Add all pathMappings variants
     if (this.config?.pathMappings) {
-      for (const [key, value] of Object.entries(this.config.pathMappings)) {
+      for (const value of Object.values(this.config.pathMappings)) {
         const patterns = Array.isArray(value) ? value : [value];
 
         for (const pattern of patterns) {

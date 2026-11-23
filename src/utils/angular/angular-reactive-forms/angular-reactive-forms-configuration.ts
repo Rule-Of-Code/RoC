@@ -7,11 +7,6 @@ import { SignalConfigurationBase } from '../signal-configuration-base';
 
 export class AngularReactiveFormsConfiguration extends SignalConfigurationBase {
   /**
-   * Config alias for cleaner internal references (RULE 2 pattern)
-   */
-  private static readonly Config = AngularReactiveFormsConfiguration;
-
-  /**
    * Reactive forms detection patterns
    */
   static readonly REACTIVE_FORMS_PATTERNS = {
@@ -59,7 +54,10 @@ export class AngularReactiveFormsConfiguration extends SignalConfigurationBase {
    * Build validation message with fileName placeholder
    * RULE 2: Eliminates repeated message.replace() calls throughout the codebase
    */
-  static buildMessage(messageTemplate: string, fileName: string): string {
+  static override buildMessage(
+    messageTemplate: string,
+    fileName: string
+  ): string {
     return this.applyFileNamePlaceholder(messageTemplate, fileName);
   }
 

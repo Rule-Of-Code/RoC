@@ -8,10 +8,6 @@ import { SignalConfigurationBase } from '../signal-configuration-base';
  */
 export class AngularServiceOrganizationConfiguration extends SignalConfigurationBase {
   /**
-   * Config alias for cleaner internal references (RULE 2 pattern)
-   */
-  private static readonly Config = AngularServiceOrganizationConfiguration;
-  /**
    * Service organization detection patterns
    */
   static readonly ORGANIZATION_PATTERNS = {

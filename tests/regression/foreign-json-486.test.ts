@@ -223,14 +223,15 @@ describe('Code quality laws reading the ESLint config', () => {
   it('Dead Code Elimination says NOT read for an invalid .eslintrc.json', () => {
     write('package.json', pkg);
     write('.eslintrc.json', INVALID);
-    const violations = DeadCodeEliminationLaw.check(context())
-      .violations as string[];
-    expect(violations).not.toContain(
+    const result = DeadCodeEliminationLaw.check(context());
+    expect(result.violations).not.toContain(
       'ESLint dead code detection rules not configured'
     );
-    expect(violations.some(v => /^\.eslintrc\.json .* NOT read$/.test(v))).toBe(
-      true
-    );
+    // The note is in notRead, not among the findings (#453, #508).
+    expect(
+      (result.notRead ?? []).some(v => /^\.eslintrc\.json .* NOT read$/.test(v))
+    ).toBe(true);
+    expect(result.passed).toBe(false);
   });
 
   // Fail-open places: the config was never read, so a missing rule was never

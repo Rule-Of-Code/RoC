@@ -481,8 +481,10 @@ read an ESLint config by running `eslint.config.js` / `.mjs` or reading
 then reported `ESLint dead code detection rules not configured` about a config
 it never read, and the other two said nothing. The reader now returns the file
 with a note in the shared wording (`.eslintrc.js is a config these laws do not
-run — its rules were NOT read`), and all three laws report it the same way
-(#508).
+run — its rules were NOT read`), and all three laws report it the same way:
+in `notRead` (#453), not among the findings. A law with no finding read its
+input in part (`◐ Partly read` at warning or info severity), not a law with
+one finding (#508).
 
 ### Internal — unused npm audit simulator removed
 
@@ -577,8 +579,10 @@ Strict Mode (an `extends` link it cannot read), Independent Awaits Run
 Concurrently, Async Cache Single-Flight and Database Read Cache Safety (files
 the request-path reader could not parse), HTML Lang Declared (sources and a
 `next.config` it could not read), Accessibility Linting Enforcement (an ESLint
-config script) and Capacitor Plugin Stub Has Contract Test (test configs and
-mappers it could not read) fill it. A law that read none of its files is still
+config script), Capacitor Plugin Stub Has Contract Test (test configs and
+mappers it could not read) and Dead Code Elimination, Code Complexity Control
+and Magic Number Prevention (an ESLint config they do not run or could not
+read, #508) fill it. A law that read none of its files is still
 judged nothing, whether its note is a violation or in `notRead` (#453).
 
 ## [8.0.1] - 2026-11-22

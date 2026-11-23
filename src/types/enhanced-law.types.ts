@@ -91,6 +91,21 @@ export interface LawRequirement {
    * law is not selected where the subject is absent.
    */
   anyFileContaining?: readonly FileContaining[] | undefined;
+  /**
+   * At least one entry holds: a JSON file of this name, at the workspace
+   * root or in a workspace project directory, parses to an object with this
+   * top-level key. The file is parsed, never searched: the key nested under
+   * another one does not count. A file that cannot be read or parsed also
+   * selects the law (fail-closed), so the law reports it as not read
+   * instead of disappearing from the audit (#547).
+   */
+  anyJsonFileWithKey?: readonly JsonFileWithKey[] | undefined;
+}
+
+/** One `anyJsonFileWithKey` entry: `firebase.json` with a top-level `hosting`. */
+export interface JsonFileWithKey {
+  file: string;
+  key: string;
 }
 
 /** One `anyFileContaining` entry: where to look, and what must be there. */

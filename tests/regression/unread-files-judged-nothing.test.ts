@@ -54,6 +54,7 @@ const project = (files: Record<string, string>): string => {
 type Result = {
   passed: boolean;
   judgedNothing?: boolean;
+  notRead?: string[];
   score?: number;
   violations?: string[];
 };
@@ -125,7 +126,8 @@ describe('a law that read part of its input did not judge nothing', () => {
       }),
     });
     const result = audited(c => TypeScriptStrictLaw.check(c), dir);
-    const text = result.violations?.join('\n') ?? '';
+    // #453: the note is in notRead, not among the findings
+    const text = result.notRead?.join('\n') ?? '';
     expect(text).toContain(
       'tsconfig.json extends "./not-here.json", which could not be read'
     );

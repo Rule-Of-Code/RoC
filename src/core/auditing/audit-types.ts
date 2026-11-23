@@ -49,6 +49,8 @@ export interface AuditResult {
   warningLaws?: number;
   /** Laws that judged nothing at a non-blocking severity: neither passed nor failed; the run is partial. */
   judgedNothingLaws?: number;
+  /** Laws that read part of their input and found nothing wrong in it, at a non-blocking severity (#453): not passed, not failed; the run is partial. */
+  partlyReadLaws?: number;
   /**
    * Laws that count as EVIDENCE — everything except the always-on meta-gates.
    * This is the number the liveness floor (laws.minLawsChecked) is compared
@@ -144,6 +146,12 @@ export interface AuditScope {
    */
   judgedNothingLaws: ScopedLaw[];
   /**
+   * Laws that read part of their input, found nothing wrong in it, and say
+   * in `notRead` what they could not read (#453). They did not pass,
+   * whatever their severity; the run is partial. Sorted by `law`.
+   */
+  partlyReadLaws: ScopedLaw[];
+  /**
    * No compliance verdict is printed: narrowed AND fewer laws selected than
    * apply, or a law that judged nothing. Always false on a refusal (no law
    * ran; see `refused`).
@@ -191,11 +199,13 @@ export interface AuditStats {
   warningLaws?: number;
   /**
    * Laws that judged nothing at a non-blocking severity, apart from the
-   * warnings and the failures: passed + failed + warning + judgedNothing =
-   * executedLaws. One at error severity is in failedLaws; `scope.judgedNothingLaws`
-   * names them all (8.0.1).
+   * warnings and the failures: passed + failed + warning + judgedNothing +
+   * partlyRead = executedLaws. One at error severity is in failedLaws;
+   * `scope.judgedNothingLaws` names them all (8.0.1).
    */
   judgedNothingLaws?: number;
+  /** Laws that read part of their input (#453), counted like judgedNothingLaws; `scope.partlyReadLaws` names them all. */
+  partlyReadLaws?: number;
   score: number;
   duration: number;
 }

@@ -20,6 +20,28 @@ judged, and neither is an entry the project's .gitignore also ignores:
 generated output (`coverage/**`) is absent from a fresh clone and still right
 to ignore (#414).
 
+### 🐛 Fixed — what a law did not read is not one of its findings
+
+A law that read part of its input (its own flags in `tsconfig.json` but not a
+base it extends, Python modules but not TypeScript ones) wrote the part it
+could not read into `violations`. It was listed as a finding ("1 violations
+found") although it found nothing wrong, and a consumer counting violations
+counted the note. The result now has a field of its own for it: `notRead`
+(notes, never findings).
+
+A law with `notRead` notes and no violations did not pass: what was not read
+cannot have passed. At warning or info severity it is its own outcome,
+`◐ Partly read`, in its own console block with what it could not read, and
+the run is partial (no compliance verdict) — it is never counted among the
+warnings. At error severity it fails, as a law that judged nothing does. A
+law with notes and findings is judged by its findings.
+
+**JSON change:** law results may carry `notRead: string[]`; `stats.partlyReadLaws`
+counts the partly-read laws apart (passed + failed + warning + judgedNothing +
+partlyRead = executedLaws), and `scope.partlyReadLaws` names them. TypeScript
+Strict Mode is the first law that fills it (an `extends` link it cannot read);
+the laws whose notes come from the shared readers follow (#453).
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the
@@ -4520,7 +4542,6 @@ Both law-model types documented `legacyId` as *"usable as a notApplicable key"*.
 is not — 25 legacyIds are shared by 51 laws, and v7.10.0 refuses ambiguous keys.
 The comment now says so. (Documentation that describes a detector which no longer
 does what it claims is the exact failure this tool exists to catch.)
-
 
 ---
 

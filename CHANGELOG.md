@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — NgRx Selectors Memoization Mandate sees a raw selector with a typed parameter (#530)
+
+A selector that reads state with no `createSelector` was reported only when
+its parameter had no type: `(state) => state.items` was found,
+`(state: AppState) => state.items` was not, and a typed parameter is the
+usual form. Raw selectors are now read from the syntax tree: an exported
+`const` whose value is a one-parameter arrow, typed or not, that reads a
+property of that parameter. A `createSelector` / `createFeatureSelector`
+value and a projector inside one are not raw selectors. This adds findings
+where typed raw selectors exist.
+
 ### 🐛 Fixed — a module-level `let` reset in `beforeEach` is not shared state (#552)
 
 Test Data Management and Test Isolation Enforcement reported a module-level

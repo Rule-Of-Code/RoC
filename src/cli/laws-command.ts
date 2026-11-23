@@ -36,7 +36,7 @@ export interface LawsOptions {
   list?: boolean;
   enabled?: boolean;
   pareto?: boolean;
-  category?: string;
+  category?: string | undefined;
   json?: boolean;
   config?: string;
 }

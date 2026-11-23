@@ -28,10 +28,10 @@ export class AngularSignalUsageAnalyzer extends AngularSignalAnalyzerBase {
   protected analyzeFile(
     filePath: string,
     _projectRoot: string,
-    violations: string[],
+    _violations: string[],
     suggestions: string[]
   ): void {
-    this.analyzeComponentFile(filePath, violations, suggestions);
+    this.analyzeComponentFile(filePath, suggestions);
   }
 
   /**
@@ -40,7 +40,6 @@ export class AngularSignalUsageAnalyzer extends AngularSignalAnalyzerBase {
    */
   private analyzeComponentFile(
     componentFile: string,
-    violations: string[],
     suggestions: string[]
   ): void {
     const content = FileUtils.readFile(componentFile, {

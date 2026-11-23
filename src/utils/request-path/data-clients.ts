@@ -18,221 +18,18 @@ import {
   declaredPythonDependencies,
   normalizePythonName,
 } from '../python-dependencies';
+import {
+  type ClientApi,
+  DATA_CLIENTS,
+  type DataClient,
+} from './data-client-registry';
 import type { CallSite, SourceLanguage } from './model';
 
-export interface ClientApi {
-  /** Packages that declare the client (PEP 503 names for Python, npm names for Node). */
-  packages: readonly string[];
-  /** One read or one query: a round trip each. */
-  reads: readonly string[];
-  /** Many keys read in one round trip. */
-  batchReads: readonly string[];
-  /** Calls that return a whole result set (every document or row). */
-  fetchAll: readonly string[];
-  /** Server-side count aggregations. */
-  counts: readonly string[];
-  writes: readonly string[];
-}
-
-export interface DataClient {
-  id: string;
-  label: string;
-  python?: ClientApi;
-  node?: ClientApi;
-}
-
-export const DATA_CLIENTS: readonly DataClient[] = [
-  {
-    id: 'firestore',
-    label: 'Firestore',
-    python: {
-      packages: ['google-cloud-firestore', 'firebase-admin'],
-      reads: ['get', 'stream'],
-      batchReads: ['get_all'],
-      fetchAll: ['get', 'stream'],
-      counts: ['count'],
-      writes: ['set', 'update', 'delete', 'add', 'create', 'commit'],
-    },
-    node: {
-      packages: [
-        '@google-cloud/firestore',
-        'firebase-admin',
-        'firebase',
-        '@angular/fire',
-      ],
-      reads: [
-        'get',
-        'getDoc',
-        'getDocs',
-        'getDocFromServer',
-        'getDocsFromServer',
-        'getDocFromCache',
-        'getDocsFromCache',
-      ],
-      batchReads: ['getAll'],
-      fetchAll: ['get', 'getDocs', 'getDocsFromServer', 'getDocsFromCache'],
-      counts: ['count', 'getCountFromServer', 'getAggregateFromServer'],
-      writes: [
-        'set',
-        'update',
-        'delete',
-        'add',
-        'create',
-        'commit',
-        'setDoc',
-        'updateDoc',
-        'deleteDoc',
-        'addDoc',
-      ],
-    },
-  },
-  {
-    id: 'mongodb',
-    label: 'MongoDB',
-    python: {
-      packages: ['pymongo', 'motor'],
-      reads: ['find_one', 'find', 'aggregate', 'to_list', 'distinct'],
-      batchReads: [],
-      fetchAll: ['find', 'to_list'],
-      counts: ['count_documents', 'estimated_document_count'],
-      writes: [
-        'insert_one',
-        'insert_many',
-        'update_one',
-        'update_many',
-        'replace_one',
-        'delete_one',
-        'delete_many',
-        'find_one_and_update',
-        'bulk_write',
-      ],
-    },
-    node: {
-      packages: ['mongodb', 'mongoose'],
-      reads: [
-        'findOne',
-        'find',
-        'findById',
-        'aggregate',
-        'toArray',
-        'distinct',
-      ],
-      batchReads: [],
-      fetchAll: ['find', 'toArray'],
-      counts: ['countDocuments', 'estimatedDocumentCount'],
-      writes: [
-        'insertOne',
-        'insertMany',
-        'updateOne',
-        'updateMany',
-        'replaceOne',
-        'deleteOne',
-        'deleteMany',
-        'findOneAndUpdate',
-        'bulkWrite',
-        'save',
-        'create',
-      ],
-    },
-  },
-  {
-    id: 'sqlalchemy',
-    label: 'SQLAlchemy',
-    python: {
-      packages: ['sqlalchemy', 'sqlmodel'],
-      reads: ['get', 'execute', 'scalar', 'scalars'],
-      batchReads: [],
-      fetchAll: ['all'],
-      counts: ['count'],
-      writes: ['add', 'add_all', 'delete', 'merge', 'flush', 'commit'],
-    },
-  },
-  {
-    id: 'django',
-    label: 'Django ORM',
-    python: {
-      packages: ['django'],
-      reads: ['aget', 'afirst', 'alast', 'aexists'],
-      batchReads: ['in_bulk', 'ain_bulk'],
-      fetchAll: ['all', 'filter'],
-      counts: ['count', 'acount'],
-      writes: [
-        'save',
-        'asave',
-        'create',
-        'acreate',
-        'update',
-        'aupdate',
-        'delete',
-        'adelete',
-        'bulk_create',
-        'abulk_create',
-      ],
-    },
-  },
-  {
-    id: 'prisma',
-    label: 'Prisma',
-    node: {
-      packages: ['@prisma/client'],
-      reads: [
-        'findUnique',
-        'findUniqueOrThrow',
-        'findFirst',
-        'findFirstOrThrow',
-        'findMany',
-      ],
-      batchReads: [],
-      fetchAll: ['findMany'],
-      counts: ['count'],
-      writes: [
-        'create',
-        'createMany',
-        'update',
-        'updateMany',
-        'upsert',
-        'delete',
-        'deleteMany',
-      ],
-    },
-  },
-  {
-    id: 'typeorm',
-    label: 'TypeORM',
-    node: {
-      packages: ['typeorm'],
-      reads: [
-        'findOne',
-        'findOneBy',
-        'findOneOrFail',
-        'findOneByOrFail',
-        'find',
-        'findBy',
-        'findAndCount',
-        'getOne',
-        'getMany',
-        'getRawOne',
-        'getRawMany',
-      ],
-      batchReads: [],
-      fetchAll: ['find', 'findBy', 'getMany', 'getRawMany'],
-      counts: ['count', 'countBy', 'getCount'],
-      writes: ['save', 'insert', 'update', 'delete', 'remove', 'upsert'],
-    },
-  },
-  {
-    id: 'sequelize',
-    label: 'Sequelize',
-    node: {
-      packages: ['sequelize'],
-      reads: ['findByPk', 'findOne', 'findAll', 'findAndCountAll'],
-      batchReads: [],
-      fetchAll: ['findAll'],
-      counts: ['count'],
-      writes: ['create', 'bulkCreate', 'update', 'destroy', 'save'],
-    },
-  },
-];
+export {
+  type ClientApi,
+  DATA_CLIENTS,
+  type DataClient,
+} from './data-client-registry';
 
 function apiFor(
   client: DataClient,
@@ -375,11 +172,15 @@ export function isBatchedText(text: string): boolean {
   return BATCH_OPERATOR.test(text) || PAGED.test(text);
 }
 
-/** What an awaited call is, read with the given client APIs. */
-export function classifyRead(
+/**
+ * What a call is before its name is weighed: never a read (a concurrency
+ * helper, a bare generic name, a receiver that is not a data client), a
+ * batch (a registry batch read, a batch operator in its text), or null.
+ */
+function settledKind(
   call: CallSite,
   apis: readonly ClientApi[]
-): ReadKind {
+): ReadKind | null {
   const method = call.method;
   if (NOT_A_READ.has(method)) return 'none';
   if (names(apis, 'batchReads').has(method)) return 'batch';
@@ -387,6 +188,17 @@ export function classifyRead(
   if (call.receiver === '' && GENERIC_METHODS.has(method)) return 'none';
   const lastReceiver = call.receiver.split('.').pop() ?? '';
   if (NOT_A_DATA_RECEIVER.test(lastReceiver)) return 'none';
+  return null;
+}
+
+/** What an awaited call is, read with the given client APIs. */
+export function classifyRead(
+  call: CallSite,
+  apis: readonly ClientApi[]
+): ReadKind {
+  const settled = settledKind(call, apis);
+  if (settled !== null) return settled;
+  const method = call.method;
   if (names(apis, 'reads').has(method) || names(apis, 'fetchAll').has(method))
     return 'read';
   if (BATCH_NAME.test(method)) return 'batch';

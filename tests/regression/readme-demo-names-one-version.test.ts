@@ -34,11 +34,11 @@ const REPO_RAW = 'https://raw.githubusercontent.com/Rule-Of-Code/RoC';
 const REPO_BLOB = 'https://github.com/Rule-Of-Code/RoC/blob';
 
 interface DemoBlock {
-  alt?: string;
-  altText?: string;
-  image?: string;
-  caption?: string;
-  link?: string;
+  alt: string | undefined;
+  altText: string | undefined;
+  image: string | undefined;
+  caption: string | undefined;
+  link: string | undefined;
 }
 
 /** The versions, the alt text and the URLs the README's demo block names. */

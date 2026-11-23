@@ -17,7 +17,6 @@ export abstract class UniversalCheckerBase {
   protected static createResult(
     violations: string[],
     lawName: string,
-    category: string,
     recommendations: string[],
     fixable = true
   ): LawResult {
@@ -114,7 +113,6 @@ export abstract class UniversalCheckerBase {
     filePath: string,
     projectRoot?: string
   ): string {
-    const _path = require('path');
     const root = projectRoot ?? this.getProjectRoot();
     return PathOperations.getRelative(root, filePath);
   }

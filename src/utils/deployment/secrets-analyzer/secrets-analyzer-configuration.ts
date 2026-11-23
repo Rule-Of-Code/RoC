@@ -3,8 +3,6 @@
  * Centralized configuration for secrets analysis patterns and detection rules
  */
 export class SecretsAnalyzerConfiguration {
-  private static readonly Config = SecretsAnalyzerConfiguration;
-
   /**
    * Hardcoded secrets detection indicators (RULE 1: 100% internal coverage)
    */

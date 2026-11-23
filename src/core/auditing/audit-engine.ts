@@ -47,13 +47,13 @@ chalk.level = 1;
 
 /** What the config validators need to know about a law named by a key. */
 interface KnownLaw {
-  stack?: string;
-  requires?: LawRequirement;
-  staticSiteHtml?: boolean;
+  stack?: string | undefined;
+  requires?: LawRequirement | undefined;
+  staticSiteHtml?: boolean | undefined;
   name?: string;
   id?: string;
-  legacyId?: number | string;
-  defaultEnabled?: boolean;
+  legacyId?: number | string | undefined;
+  defaultEnabled?: boolean | undefined;
 }
 
 export class RuleOfCodeAuditor {
@@ -77,7 +77,6 @@ export class RuleOfCodeAuditor {
 
   private readonly config: RuleOfCodeConfig;
   private readonly projectRoot: string;
-  private readonly suggestExceptions: boolean;
   private readonly mode: string;
   private readonly options: AuditOptions;
 
@@ -85,11 +84,11 @@ export class RuleOfCodeAuditor {
     projectRoot?: string;
     config: RuleOfCodeConfig;
     mode?: string;
-    suggestExceptions?: boolean;
-    verbose?: boolean;
-    onlyFailures?: boolean;
-    parallel?: boolean;
-    failOnWarnings?: boolean;
+    suggestExceptions?: boolean | undefined;
+    verbose?: boolean | undefined;
+    onlyFailures?: boolean | undefined;
+    parallel?: boolean | undefined;
+    failOnWarnings?: boolean | undefined;
   }): Promise<RuleOfCodeAuditor> {
     await Promise.resolve(); // Satisfy async requirement
 
@@ -114,7 +113,8 @@ export class RuleOfCodeAuditor {
   constructor(
     _config: unknown,
     projectRoot: string = process.cwd(),
-    suggestExceptions = false,
+    // Positional slot of the public constructor; no code reads it.
+    _suggestExceptions = false,
     mode = 'fast',
     options: AuditOptions = {}
   ) {
@@ -125,7 +125,6 @@ export class RuleOfCodeAuditor {
         ? (_config as RuleOfCodeConfig)
         : ConfigLoader.loadConfig(projectRoot);
     this.projectRoot = projectRoot;
-    this.suggestExceptions = suggestExceptions;
     this.mode = mode;
 
     // Read settings from config
@@ -185,8 +184,6 @@ export class RuleOfCodeAuditor {
 
     // Check cache if enabled
     const cacheEnabled = (this.config as any).performance?.cache ?? false;
-    const incrementalEnabled =
-      (this.config as any).performance?.incremental ?? false;
 
     // The key is computed ONCE, before the run, and the same key is written
     // after it. Recomputing it after the run hashed the config the run had
@@ -221,9 +218,7 @@ export class RuleOfCodeAuditor {
 
     try {
       const selected = this.getSelectedLaws();
-      const laws = selected.filter(
-        law => !this.isHistoryLawBlockedByCommit(law as { name?: string })
-      );
+      const laws = this.getLawsToAudit(selected);
 
       // FAIL-CLOSED: a collapsed law selection is never compliance. The two
       // meta-gates are always-on (they cannot be configured away), so they do
@@ -410,8 +405,10 @@ export class RuleOfCodeAuditor {
   }
 
   /** The laws this run executes: the selection, minus what the mode defers. */
-  private getLawsToAudit(): unknown[] {
-    return this.getSelectedLaws().filter(
+  private getLawsToAudit(
+    selected: unknown[] = this.getSelectedLaws()
+  ): unknown[] {
+    return selected.filter(
       law => !this.isHistoryLawBlockedByCommit(law as { name?: string })
     );
   }
@@ -714,9 +711,9 @@ export class RuleOfCodeAuditor {
    * AuditResultProcessor.
    */
   private resolveLawSeverity(law: {
-    name?: string;
-    id?: string;
-    legacyId?: number | string;
+    name?: string | undefined;
+    id?: string | undefined;
+    legacyId?: number | string | undefined;
     severity?: 'error' | 'info' | 'warning';
   }): 'error' | 'info' | 'warning' {
     const overrides = (
@@ -742,9 +739,9 @@ export class RuleOfCodeAuditor {
    * as a violation — so the config fails loudly instead of gating quietly.
    */
   private unambiguousIdentityKeys(law: {
-    name?: string;
-    id?: string;
-    legacyId?: number | string;
+    name?: string | undefined;
+    id?: string | undefined;
+    legacyId?: number | string | undefined;
   }): string[] {
     return ModularLawsRegistry.unambiguousIdentityKeys(law);
   }
@@ -1746,11 +1743,6 @@ export class RuleOfCodeAuditor {
     return showScoring && score !== undefined
       ? chalk.gray(` (Score: ${score}/100)`)
       : '';
-  }
-
-  private displaySummary(_summary: unknown): void {
-    // Display summary logic would go here
-    process.stdout.write(`${chalk.blue('📊 Summary available')}\n`);
   }
 
   /**

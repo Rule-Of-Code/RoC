@@ -9,27 +9,6 @@ import type { PackageJson } from './shared-types';
  * License Compatibility Checker
  */
 export class LicenseCompatibilityChecker {
-  private static readonly APPROVED_LICENSES = [
-    'MIT',
-    'Apache-2.0',
-    'BSD-2-Clause',
-    'BSD-3-Clause',
-    'ISC',
-    'Unlicense',
-    'CC0-1.0',
-  ];
-
-  private static readonly RESTRICTED_LICENSES = [
-    'GPL-2.0',
-    'GPL-3.0',
-    'AGPL-3.0',
-    'LGPL-2.1',
-    'LGPL-3.0',
-    'MPL-2.0',
-    'EPL-1.0',
-    'EPL-2.0',
-  ];
-
   /**
    * Check license compatibility
    */

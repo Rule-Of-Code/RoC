@@ -18,7 +18,6 @@ export class AuthenticationChecker extends SecurityCheckerBase {
     suggestions: string[];
   } {
     const authFlow = AuthenticationPatternValidators.createSecurityAnalysisFlow(
-      'AuthenticationImplementation',
       {
         validator: codeFiles => this.hasAuthenticationService(codeFiles),
         violationMessage: 'No authentication service implementation found',

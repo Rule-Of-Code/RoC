@@ -5,8 +5,6 @@ import type { RuleOfCodeConfig } from '../../../config/types';
  * Centralized configuration management for configuration merging operations
  */
 export class ConfigurationMergerConfiguration {
-  private static readonly Config = ConfigurationMergerConfiguration;
-
   /**
    * Default ignore patterns (RULE 1: 100% internal coverage)
    */

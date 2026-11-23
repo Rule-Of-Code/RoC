@@ -215,14 +215,18 @@ export class ReactPerformanceSource {
     if (module === NEXT_DYNAMIC && defaultName) {
       bindings.calls.set(defaultName, { kind: 'lazy', label: NEXT_DYNAMIC });
     }
-    if (NEXT_FONT_MODULES.has(module)) {
-      if (defaultName) bindings.fontLoaders.add(defaultName);
-      for (const binding of info.named) bindings.fontLoaders.add(binding.local);
-    }
+    this.bindFontLoaders(info, bindings);
     for (const binding of info.named) {
       const meaning = this.memberMeaning(module, binding.imported);
       if (meaning) bindings.calls.set(binding.local, meaning);
     }
+  }
+
+  /** A next/font module's default and named imports are font loaders. */
+  private static bindFontLoaders(info: ImportInfo, bindings: Bindings): void {
+    if (!NEXT_FONT_MODULES.has(info.module)) return;
+    if (info.defaultName) bindings.fontLoaders.add(info.defaultName);
+    for (const binding of info.named) bindings.fontLoaders.add(binding.local);
   }
 
   /** What `module`'s export `member` means when called, if anything. */

@@ -2,19 +2,25 @@
  * #562 — Lazy Loading Implementation called three analyzers of Change
  * Detection Optimization (components, trackBy, observables) and appended
  * their findings to its own. With no component files the line "No Angular
- * components found" appeared twice and cost 20 points, and a project saw
- * change-detection findings under two laws. Lazy Loading judges lazy loading.
+ * components found" appeared twice and cost 20 points. That class was never
+ * a registered law, so its checks lived only there. Decision: Lazy Loading
+ * judges lazy loading; the checks move to the laws that own them —
+ * `ngDoCheck` to Angular Lifecycle Management, `*ngFor` without `trackBy`
+ * below Angular 18 to Modern Angular Control Flow; OnPush and subscriptions
+ * were already judged by their own laws.
  */
+import { AngularLifecycleManagementLaw } from '../../src/checkers/angular-laws/angular-lifecycle-management';
 import { LazyLoadingImplementationLaw } from '../../src/checkers/angular-laws/lazy-loading-implementation';
-import { ChangeDetectionOptimizationLaw } from '../../src/checkers/performance-laws/change-detection-optimization';
+import { ModernAngularControlFlowLaw } from '../../src/checkers/angular-laws/modern-control-flow';
+import type { LawResult } from '../../src/types/law.types';
 import { FileUtils } from '../../src/utils/file-utils';
 import { project, removeProjects } from '../checkers/toolkit-fixture';
 
-const ANGULAR = {
+const angular = (version: string): Record<string, string> => ({
   'angular.json': JSON.stringify({ version: 1, projects: {} }),
   'package.json': JSON.stringify({
     name: 'angular-app',
-    dependencies: { '@angular/core': '18.0.0', '@angular/router': '18.0.0' },
+    dependencies: { '@angular/core': version, '@angular/router': version },
   }),
   'src/app/app.routes.ts': [
     "import { Routes } from '@angular/router';",
@@ -22,61 +28,123 @@ const ANGULAR = {
     "  { path: 'admin', loadChildren: () => import('./admin/admin.routes').then(m => m.ADMIN_ROUTES) },",
     '];',
   ].join('\n'),
-};
+});
 
-const violations = (files: Record<string, string>): string[] =>
-  LazyLoadingImplementationLaw.check({
-    projectRoot: project({ ...ANGULAR, ...files }),
-    config: FileUtils.getMinimalDefaultConfig(),
-  }).violations ?? [];
+const LIST_TEMPLATE = '<li *ngFor="let item of items">{{ item }}</li>\n';
+const DO_CHECK_COMPONENT = [
+  "import { Component, DoCheck } from '@angular/core';",
+  "@Component({ selector: 'app-list', templateUrl: './list.component.html' })",
+  'export class ListComponent implements DoCheck {',
+  '  items = [1, 2, 3];',
+  '  ngDoCheck(): void { this.items = [...this.items]; }',
+  '}',
+].join('\n');
 
-describe('#562 Lazy Loading reports lazy loading, not change detection', () => {
+const check = (
+  law: { check(context: never): LawResult | Promise<LawResult> },
+  files: Record<string, string>
+): Promise<string[]> =>
+  Promise.resolve(
+    law.check({
+      projectRoot: project(files),
+      config: FileUtils.getMinimalDefaultConfig(),
+    } as never)
+  ).then(result => (result.violations ?? []).map(String));
+
+describe('#562 Lazy Loading reports lazy loading; the borrowed checks have owners', () => {
   afterEach(removeProjects);
 
-  it('does not report "No Angular components found" in a project without components', () => {
-    expect(violations({})).not.toContain('No Angular components found');
+  it('Lazy Loading does not report "No Angular components found" in a project without components', async () => {
+    expect(
+      await check(LazyLoadingImplementationLaw, angular('17.3.0'))
+    ).not.toContain('No Angular components found');
   });
 
-  it("does not repeat Change Detection Optimization's findings", () => {
-    // Whatever that law finds is reported by that law, once.
-    const finding = {
-      violations: ['a change-detection finding'],
-      suggestions: [],
-    };
-    const spies = [
-      jest
-        .spyOn(ChangeDetectionOptimizationLaw, 'analyzeComponents')
-        .mockReturnValue(finding),
-      jest
-        .spyOn(ChangeDetectionOptimizationLaw, 'analyzeTrackByUsage')
-        .mockReturnValue(finding),
-      jest
-        .spyOn(ChangeDetectionOptimizationLaw, 'analyzeObservableUsage')
-        .mockReturnValue(finding),
-    ];
-    try {
-      expect(violations({})).not.toContain('a change-detection finding');
-    } finally {
-      spies.forEach(spy => spy.mockRestore());
-    }
-  });
-
-  it('still reports what it is about: no lazy routes', () => {
-    const found = LazyLoadingImplementationLaw.check({
-      projectRoot: project({
-        ...ANGULAR,
-        'src/app/app-routing.module.ts': [
-          "import { NgModule } from '@angular/core';",
-          "import { RouterModule } from '@angular/router';",
-          "import { AdminComponent } from './admin.component';",
-          '@NgModule({',
-          "  imports: [RouterModule.forRoot([{ path: 'admin', component: AdminComponent }])],",
-          '})',
-          'export class AppRoutingModule {}',
-        ].join('\n'),
-      }),
-      config: FileUtils.getMinimalDefaultConfig(),
+  it('Lazy Loading does not report trackBy or ngDoCheck', async () => {
+    const found = await check(LazyLoadingImplementationLaw, {
+      ...angular('17.3.0'),
+      'src/app/list.component.html': LIST_TEMPLATE,
+      'src/app/list.component.ts': DO_CHECK_COMPONENT,
     });
-    expect(found.violations?.length ?? 0).toBeGreaterThan(0);
+    expect(found.filter(v => /trackBy|ngDoCheck/.test(v))).toEqual([]);
+  });
+
+  it('Lazy Loading still reports what it is about: no lazy routes', async () => {
+    const found = await check(LazyLoadingImplementationLaw, {
+      ...angular('17.3.0'),
+      'src/app/app-routing.module.ts': [
+        "import { NgModule } from '@angular/core';",
+        "import { RouterModule } from '@angular/router';",
+        "import { AdminComponent } from './admin.component';",
+        '@NgModule({',
+        "  imports: [RouterModule.forRoot([{ path: 'admin', component: AdminComponent }])],",
+        '})',
+        'export class AppRoutingModule {}',
+      ].join('\n'),
+    });
+    expect(found.length).toBeGreaterThan(0);
+  });
+
+  describe('Modern Angular Control Flow judges *ngFor without trackBy below Angular 18', () => {
+    it('reports it on Angular 17', async () => {
+      expect(
+        await check(ModernAngularControlFlowLaw, {
+          ...angular('17.3.0'),
+          'src/app/list.component.html': LIST_TEMPLATE,
+        })
+      ).toEqual([
+        expect.stringContaining(
+          '*ngFor without trackBy in src/app/list.component.html'
+        ),
+      ]);
+    });
+
+    it('does not report a list with trackBy, a commented one or a .old. backup', async () => {
+      expect(
+        await check(ModernAngularControlFlowLaw, {
+          ...angular('17.3.0'),
+          'src/app/a.component.html':
+            '<li *ngFor="let item of items; trackBy: byId">{{ item }}</li>\n',
+          'src/app/b.component.html': `<!-- ${LIST_TEMPLATE} -->\n`,
+          'src/app/list.component.old.html': LIST_TEMPLATE,
+        })
+      ).toEqual([]);
+    });
+
+    it('on Angular 18+ keeps its syntax rule and adds no trackBy finding', async () => {
+      const found = await check(ModernAngularControlFlowLaw, {
+        ...angular('18.2.0'),
+        'src/app/list.component.html': LIST_TEMPLATE,
+      });
+      expect(found.some(v => /Legacy \*ngFor/.test(v))).toBe(true);
+      expect(found.some(v => /without trackBy/.test(v))).toBe(false);
+    });
+  });
+
+  describe('Angular Lifecycle Management judges ngDoCheck', () => {
+    it('reports a component that implements ngDoCheck', async () => {
+      const found = await check(AngularLifecycleManagementLaw, {
+        ...angular('17.3.0'),
+        'src/app/list.component.ts': DO_CHECK_COMPONENT,
+      });
+      expect(
+        found.some(v => /ngDoCheck found in list\.component/.test(v))
+      ).toBe(true);
+    });
+
+    it('does not report ngDoCheck named in a comment', async () => {
+      const found = await check(AngularLifecycleManagementLaw, {
+        ...angular('17.3.0'),
+        'src/app/list.component.ts': [
+          "import { Component } from '@angular/core';",
+          '// no ngDoCheck() here: OnPush with signals instead',
+          "@Component({ selector: 'app-list', template: '' })",
+          'export class ListComponent {}',
+        ].join('\n'),
+      });
+      // The hook rule reads code. (The older "method without interface"
+      // rule of the same law still reads raw text; that is not this rule.)
+      expect(found.some(v => /ngDoCheck found/.test(v))).toBe(false);
+    });
   });
 });

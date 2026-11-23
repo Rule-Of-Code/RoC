@@ -302,6 +302,14 @@ or a `window` / `process` error listener. An import of `ErrorHandler` or
 that may register a handler are reported as not read. Global Error Handlers
 also recognises a `provide…ErrorHandler()` helper call.
 
+### 🐛 Fixed — MD Footer Template's "nothing was judged" names the fix
+
+When the configured includes select no Markdown file, the opt-in law reported
+the cause and not the fix. The message now ends with
+`Give this law the Markdown files with includes.byRule: { "md-footer-template-mandatory": ["**/*.md"] }`,
+the key derived from the law's title the way the registry derives every
+config key, so it stays right if the title changes (#501).
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

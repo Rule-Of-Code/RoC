@@ -119,7 +119,7 @@ describe('MdFooterTemplateLaw', () => {
       });
       expect(result.judgedNothing).toBe(true);
       expect(result.violations).toEqual([
-        '2 Markdown file(s) exist, but the configured includes / ignores select none of them — nothing was judged',
+        '2 Markdown file(s) exist, but the configured includes / ignores select none of them — nothing was judged. Give this law the Markdown files with includes.byRule: { "md-footer-template-mandatory": ["**/*.md"] }',
       ]);
       expect(result.violations).not.toContain(
         'No markdown files found in project'

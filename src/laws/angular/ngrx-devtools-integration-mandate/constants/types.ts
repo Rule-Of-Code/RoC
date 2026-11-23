@@ -4,7 +4,7 @@
 
 export interface DependencyCheckResult {
   installed: boolean;
-  version?: string;
+  version?: string | undefined;
 }
 
 export interface DevToolsConfigResult {

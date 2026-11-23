@@ -12,7 +12,7 @@ export interface AnalysisResult {
   suggestions: string[];
   passed?: boolean;
   score?: number;
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown> | undefined;
 }
 
 /**
@@ -22,7 +22,7 @@ export interface AnalysisResult {
 export interface CheckerResult extends AnalysisResult {
   passed: boolean;
   score: number;
-  lawId?: string;
+  lawId?: string | undefined;
   severity?: 'error' | 'info' | 'warning';
 }
 

@@ -13,11 +13,6 @@ import { StringTemplateUtils } from '../../string-template-utils';
  */
 export class NgRxNamingConventionsConfiguration {
   /**
-   * Config alias for cleaner internal references (RULE 2 pattern)
-   */
-  private static readonly Config = NgRxNamingConventionsConfiguration;
-
-  /**
    * NgRx file extensions for analysis - RULE 1: Inlined from getter method
    */
   static readonly NGRX_FILE_EXTENSIONS = [

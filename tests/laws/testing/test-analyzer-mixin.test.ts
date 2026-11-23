@@ -22,16 +22,10 @@ const testConfig = {
  */
 class TestableAnalyzerMixin extends TestAnalyzerMixin {
   static findTestFiles(
-    projectRoot: string,
     searchDirs: string[],
     isTestFile: (filepath: string) => boolean
   ): string[] {
-    return this.findTestFilesInDirectories(
-      projectRoot,
-      searchDirs,
-      isTestFile,
-      testConfig
-    );
+    return this.findTestFilesInDirectories(searchDirs, isTestFile, testConfig);
   }
 
   static getTestSearchDirs(
@@ -71,7 +65,6 @@ describe('TestAnalyzerMixin', () => {
 
       const isComponentFile = (file: string) => file.includes('.component.');
       const result = TestableAnalyzerMixin.findTestFiles(
-        tempDir,
         [srcDir],
         isComponentFile
       );
@@ -96,7 +89,6 @@ describe('TestAnalyzerMixin', () => {
 
       const isComponentFile = (file: string) => file.includes('.component.');
       const result = TestableAnalyzerMixin.findTestFiles(
-        tempDir,
         [srcDir, libDir],
         isComponentFile
       );
@@ -115,7 +107,6 @@ describe('TestAnalyzerMixin', () => {
 
       const isComponentFile = (file: string) => file.includes('.component.');
       const result = TestableAnalyzerMixin.findTestFiles(
-        tempDir,
         [srcDir, nonExistentDir],
         isComponentFile
       );
@@ -133,7 +124,6 @@ describe('TestAnalyzerMixin', () => {
 
       const isComponentFile = (file: string) => file.includes('.component.');
       const result = TestableAnalyzerMixin.findTestFiles(
-        tempDir,
         [srcDir],
         isComponentFile
       );
@@ -155,7 +145,6 @@ describe('TestAnalyzerMixin', () => {
 
       const isServiceFile = (file: string) => file.includes('.service.');
       const result = TestableAnalyzerMixin.findTestFiles(
-        tempDir,
         [srcDir],
         isServiceFile
       );
@@ -174,7 +163,6 @@ describe('TestAnalyzerMixin', () => {
 
       const isComponentFile = (file: string) => file.includes('.component.');
       const result = TestableAnalyzerMixin.findTestFiles(
-        tempDir,
         [srcDir],
         isComponentFile
       );
@@ -189,7 +177,6 @@ describe('TestAnalyzerMixin', () => {
 
       const isComponentFile = (file: string) => file.includes('.component.');
       const result = TestableAnalyzerMixin.findTestFiles(
-        tempDir,
         [srcDir],
         isComponentFile
       );
@@ -211,7 +198,6 @@ describe('TestAnalyzerMixin', () => {
 
       const isModuleFile = (file: string) => file.includes('.module.');
       const result = TestableAnalyzerMixin.findTestFiles(
-        tempDir,
         [srcDir],
         isModuleFile
       );
@@ -241,7 +227,6 @@ describe('TestAnalyzerMixin', () => {
         file.includes('.component.') || file.includes('.service.');
 
       const result = TestableAnalyzerMixin.findTestFiles(
-        tempDir,
         [srcDir],
         isAngularFile
       );
@@ -333,7 +318,6 @@ describe('TestAnalyzerMixin', () => {
       const searchDirs = TestableAnalyzerMixin.getTestSearchDirs(tempDir);
       const isComponentFile = (file: string) => file.includes('.component.');
       const result = TestableAnalyzerMixin.findTestFiles(
-        tempDir,
         searchDirs,
         isComponentFile
       );
@@ -356,7 +340,6 @@ describe('TestAnalyzerMixin', () => {
       const searchDirs = TestableAnalyzerMixin.getTestSearchDirs(tempDir);
       const isComponentFile = (file: string) => file.includes('.component.');
       const result = TestableAnalyzerMixin.findTestFiles(
-        tempDir,
         searchDirs,
         isComponentFile
       );
@@ -391,7 +374,6 @@ describe('TestAnalyzerMixin', () => {
         file.includes('.module.');
 
       const result = TestableAnalyzerMixin.findTestFiles(
-        tempDir,
         [srcDir],
         isAngularPattern
       );

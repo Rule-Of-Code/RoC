@@ -106,7 +106,6 @@ export class CapacitorLocalPluginContractLaw extends LawBase {
   // ── web side ────────────────────────────────────────────────────────────
 
   static webPlugins(context: LawCheckContext, source: TsxSource): WebPlugin[] {
-    const ts = source.ts;
     const registers = registerPluginNames(source);
     if (registers.size === 0) return [];
     const found: WebPlugin[] = [];

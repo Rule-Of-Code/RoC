@@ -10,11 +10,6 @@ import { SignalConfigurationBase } from '../signal-configuration-base';
  * Meta-dogfooding: Centralized configuration, patterns, and detection logic for NgRx effect analysis
  */
 export class NgRxEffectPatternsConfiguration extends SignalConfigurationBase {
-  /**
-   * Config alias for cleaner internal references (RULE 2 pattern)
-   */
-  private static readonly Config = NgRxEffectPatternsConfiguration;
-
   static readonly EFFECT_PATTERNS = {
     KEYWORDS: NGRX_KEYWORDS,
     FILE_EXTENSIONS,

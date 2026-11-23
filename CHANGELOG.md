@@ -21,6 +21,28 @@ initialiser, typed or not, is shared state unless a `beforeEach` or
 once) does not count. Test Data Management can therefore report a typed
 `let` that nothing resets, which it did not see before.
 
+### 🐛 Fixed — hardcoded-URL findings: identifiers, rendered links and the reported value (#537)
+
+Environment Security Enforcement and Environment Parity Standards (both read
+the same environment-variable usage analyzer) reported as "Hardcoded URL":
+
+- XML namespaces and the schema.org vocabulary (`http://www.w3.org/2000/svg`,
+  `https://schema.org/InStock`). They are identifiers that no environment
+  changes, and are no longer reported.
+- the value of a JSX `xmlns` or `href` attribute: a namespace, or a link the
+  page renders for its reader. A JSX `src`, a `location.href = '…'`
+  assignment and a URL the code fetches are still reported.
+
+The URL is now taken from the value of the string, escapes resolved, not from
+the source text: in a template, `https://api.example.io/v1\n\n${rest}` was
+reported with `\n\n${` attached.
+
+**Message change:** every finding of this analyzer (hardcoded URL, variable
+used without fallback, hardcoded connection string, hardcoded secret) names
+the file relative to the project (`src/lib/api.ts: …`). It named the absolute
+path of the checkout on the machine that ran the audit, so the same finding
+read differently on every machine and in CI.
+
 ### 🐛 Fixed — Dependency Security Scanning no longer reports vulnerabilities no audit found (#545)
 
 The law ran no audit, but counted:
@@ -49,6 +71,30 @@ lockfiles, the scanners and the files they are looked for in (GitHub
 Actions workflows are not read), and the legacy audit config files that
 also count. The law's description no longer promises "audit integration"
 and "vulnerability detection"; its id (`security_a0bcc52d`) is unchanged.
+
+### 🐛 Fixed — API Security Standards reads servers and HTTP services as code (#550)
+
+- **CORS.** A file was "an Express server missing CORS configuration" when
+  its name contained `server`, `main` or `app` (which includes `mapper.ts`)
+  and its text matched `express` anywhere, without the word `cors`. The word
+  `expression` (`ts.isExpressionStatement`) and a law's prose about Express
+  were enough: five of the six such findings in this repository's own audit
+  came from `expression`. A server is now a file that imports `express` and
+  creates or starts the app, whatever it is called; CORS is configured when
+  the code (not a comment) uses `cors` or sets Access-Control-Allow-Origin.
+- **Input validation.** A service that uses `HttpClient` had to contain the
+  word `validate` somewhere, and a file whose strings merely listed
+  `'@Injectable()'` and `'HttpClient'` was judged as such a service. A
+  response now counts as validated by a schema library import (zod, yup,
+  joi, io-ts, valibot, superstruct, class-validator, ajv, runtypes, arktype,
+  typebox), a validator call, or a value typed `unknown` and narrowed
+  (`typeof x === …`, a type predicate). The word in a comment is not
+  validation.
+- Without the TypeScript parser these two checks read nothing, and the law
+  says the files were NOT read instead of judging them by words.
+
+Authentication by file name (`AUTH_FILES`) is not changed here; it moves to
+the content-based detector of #549.
 
 ### 🐛 Fixed — Dependency Security Scanning sees a scanner in any CI the tool knows (#563)
 

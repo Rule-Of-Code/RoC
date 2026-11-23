@@ -1,7 +1,12 @@
 /**
  * Tests for InputValidationConstants
  */
+import * as ts from 'typescript';
+
 import { InputValidationConstants } from '../../../src/laws/security/api-security/constants/input-validation';
+import { readCodeView } from '../../../src/utils/security/code-view';
+
+const view = (content: string) => readCodeView(ts, content, 'x.service.ts');
 
 describe('InputValidationConstants', () => {
   describe('VALIDATION_PATTERNS', () => {
@@ -35,9 +40,9 @@ describe('InputValidationConstants', () => {
       ).toBeInstanceOf(RegExp);
     });
 
-    it('should have VALIDATE pattern', () => {
+    it('should have VALIDATE_CALL pattern', () => {
       expect(
-        InputValidationConstants.VALIDATION_PATTERNS.VALIDATE
+        InputValidationConstants.VALIDATION_PATTERNS.VALIDATE_CALL
       ).toBeInstanceOf(RegExp);
     });
 
@@ -117,23 +122,42 @@ describe('InputValidationConstants', () => {
   });
 
   describe('hasHttpValidation()', () => {
-    it('should return true for HttpClient with validate', () => {
-      const content = 'constructor(private http: HttpClient) {} validate()';
-      expect(InputValidationConstants.hasHttpValidation(content)).toBe(true);
+    const HTTP =
+      'class S { constructor(private http: HttpClient) {} load() { return this.http.get("/x"); } }\n';
+
+    it('should return true for HttpClient with a validator call', () => {
+      const content = `${HTTP}export const check = (r: unknown) => validate(r);`;
+      expect(InputValidationConstants.hasHttpValidation(view(content))).toBe(
+        true
+      );
     });
 
-    it('should return false for HttpClient without validate', () => {
+    it('should return false for HttpClient without validation', () => {
+      expect(InputValidationConstants.hasHttpValidation(view(HTTP))).toBe(
+        false
+      );
+    });
+
+    it('should return false for validate in a comment', () => {
       expect(
         InputValidationConstants.hasHttpValidation(
-          'constructor(private http: HttpClient) {}'
+          view(`// validate the response\n${HTTP}`)
         )
       ).toBe(false);
     });
 
+    it('should return true for a schema library import', () => {
+      expect(
+        InputValidationConstants.hasHttpValidation(
+          view(`import { z } from 'zod';\n${HTTP}`)
+        )
+      ).toBe(true);
+    });
+
     it('should return false for validate without HttpClient', () => {
-      expect(InputValidationConstants.hasHttpValidation('validate()')).toBe(
-        false
-      );
+      expect(
+        InputValidationConstants.hasHttpValidation(view('validate();'))
+      ).toBe(false);
     });
   });
 });

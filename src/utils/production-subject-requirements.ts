@@ -175,13 +175,65 @@ export const REQUIRES_WEB_SURFACE: LawRequirement = {
   ],
 };
 
-/** A mobile app shell: what a store ships to users' devices. */
+/**
+ * Sample and test trees: an example app a library ships, or a fixture, is
+ * not the repository's own app (#577).
+ */
+const NOT_THE_APP: readonly string[] = [
+  ...TEST_TREES,
+  '**/example/**',
+  '**/examples/**',
+  '**/sample/**',
+  '**/samples/**',
+  '**/androidTest/**',
+  '**/Pods/**',
+];
+
+/**
+ * A mobile app: what a store ships to users' devices. A JS shell is a
+ * dependency; a native app is what its build declares (#577) — read, not
+ * guessed from a folder name:
+ * - Android: a Gradle module applying `com.android.application` (directly
+ *   or through a version-catalog alias); `com.android.library` is a library;
+ * - iOS: an Xcode project with an application target
+ *   (`com.apple.product-type.application…`), not a framework or a library;
+ * - Flutter: a `pubspec.yaml` on the Flutter SDK with an entry point
+ *   `lib/main.dart` (a Flutter package has none).
+ */
 export const REQUIRES_MOBILE_APP: LawRequirement = {
-  anyDependency: [
-    'react-native',
-    'expo',
-    '@capacitor/core',
-    '@nativescript/core',
+  anyOf: [
+    {
+      anyDependency: [
+        'react-native',
+        'expo',
+        '@capacitor/core',
+        '@nativescript/core',
+      ],
+    },
+    {
+      anyFileContaining: [
+        {
+          files: ['**/build.gradle', '**/build.gradle.kts'],
+          pattern: String.raw`com\.android\.application\b|\bplugins\.android\.application\b`,
+          exclude: NOT_THE_APP,
+        },
+        {
+          files: ['**/*.xcodeproj/project.pbxproj'],
+          pattern: String.raw`com\.apple\.product-type\.application\b`,
+          exclude: NOT_THE_APP,
+        },
+      ],
+    },
+    {
+      anyFile: ['lib/main.dart'],
+      anyFileContaining: [
+        {
+          files: ['pubspec.yaml'],
+          pattern: String.raw`^\s+sdk:\s*flutter\b`,
+          exclude: NOT_THE_APP,
+        },
+      ],
+    },
   ],
 };
 

@@ -2,9 +2,9 @@ import type { RuleOfCodeConfig } from '../../../../config/types';
 import { ProjectTypeDetectorValidation } from '../../../../utils/config/project-type-detector/project-type-detector-validation';
 import { FileUtils } from '../../../../utils/file-utils';
 import { PathOperations } from '../../../../utils/path-operations';
-import { PathResolver } from '../../../../utils/path-resolver';
 import type { ReactPerformanceEvidence } from '../../../../utils/react/react-performance-source';
 import { ErrorTrackingPolicyConstants } from '../constants/error-tracking-policy.constants';
+import { ownErrorCapture } from './own-error-capture';
 
 /**
  * Error Tracking Policy Analyzer Service
@@ -15,14 +15,21 @@ export class ErrorTrackingPolicyAnalyzerService {
   static async checkErrorAndPerformanceTracking(
     projectRoot: string,
     config?: RuleOfCodeConfig,
-    react?: ReactPerformanceEvidence
+    react?: ReactPerformanceEvidence,
+    lawId?: string
   ): Promise<{
     hasTracking: boolean;
     tools: string[];
+    unread: string[];
   }> {
     const packageTools = this.checkTrackingInPackageJson(projectRoot);
     const configTools = this.checkTrackingConfigFiles(projectRoot);
-    const appTools = await this.checkTrackingInAppFiles(projectRoot, config);
+    const own = ownErrorCapture(projectRoot, config, lawId);
+    const appTools = own.files
+      .slice(0, 1)
+      .map(
+        file => `Custom error tracking (error handler registered in ${file})`
+      );
     // React/Next: an error-tracking SDK imported by the source - typically
     // `instrumentation.ts` / `instrumentation-client.ts` or the root layout.
     // In a monorepo the SDK is declared by the app's own manifest, which the
@@ -39,10 +46,11 @@ export class ErrorTrackingPolicyAnalyzerService {
     ];
     const uniqueTools = [...new Set(allTools)];
 
-    return {
+    return Promise.resolve({
       hasTracking: uniqueTools.length > 0,
       tools: uniqueTools,
-    };
+      unread: own.unread,
+    });
   }
 
   private static checkTrackingInPackageJson(projectRoot: string): string[] {
@@ -76,42 +84,5 @@ export class ErrorTrackingPolicyAnalyzerService {
     }
 
     return tools;
-  }
-
-  private static async checkTrackingInAppFiles(
-    projectRoot: string,
-    config?: RuleOfCodeConfig
-  ): Promise<string[]> {
-    let appFiles: string[];
-    if (config?.pathMappings) {
-      const resolver = PathResolver.create(config, projectRoot);
-      const [appModulePaths, appComponentPaths] = await Promise.all([
-        resolver.getAppModulePaths(),
-        resolver.getAppComponentPaths(),
-      ]);
-      appFiles = [...appModulePaths, ...appComponentPaths];
-    } else {
-      appFiles = [
-        PathOperations.join(projectRoot, 'src/app/app.module.ts'),
-        PathOperations.join(projectRoot, 'src/app/app.component.ts'),
-      ];
-    }
-
-    for (const fullPath of appFiles) {
-      try {
-        if (FileUtils.exists(fullPath)) {
-          const content = FileUtils.readFile(fullPath, { encoding: 'utf8' });
-          if (
-            ErrorTrackingPolicyConstants.hasErrorTrackingImplementation(content)
-          ) {
-            return ['Custom error tracking'];
-          }
-        }
-      } catch {
-        // Ignore read errors
-      }
-    }
-
-    return [];
   }
 }

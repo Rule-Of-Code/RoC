@@ -212,6 +212,96 @@ and "vulnerability detection"; its id (`security_a0bcc52d`) is unchanged.
 Authentication by file name (`AUTH_FILES`) is not changed here; it moves to
 the content-based detector of #549.
 
+### Fixed — Semantic Versioning Standards reads the manifest a Python project releases from
+
+The law compared `package.json` with the latest git tag whenever a
+`package.json` existed. In a Python project that keeps `package.json` only for
+tooling (hooks, lint scripts), its `0.1.0` was reported as "behind the latest
+git tag" while `pyproject.toml` carried the released version. Without a
+`package.json`, the `pyproject.toml` version was format-checked but never
+compared with the tag, so a stale one passed (#546).
+
+Now a Python project whose `pyproject.toml` (`[project]` or `[tool.poetry]`) or
+`setup.cfg` (`[metadata]`) declares a version is judged by that version, also
+when a `package.json` exists, and it is compared with the latest tag. Every
+finding names the manifest it read (`pyproject.toml version (1.3.0) is behind
+the latest git tag (1.4.0)`). Other projects are judged by `package.json` as
+before. A Python project whose version is behind its tag now gets a finding it
+did not get before.
+
+### Fixed — CDN and Caching Strategy: firebase.json is a web surface only with hosting
+
+A `firebase.json` switched the law on by its presence. It configures several
+products, and only its `hosting` key declares something a browser loads. A
+Python API whose `firebase.json` holds Firestore rules and indexes was asked
+for a CDN, caching headers and a service worker (#547).
+
+Without TypeScript/JavaScript sources or another web config, the law now
+counts `firebase.json` (at the root or in a workspace project) only when it
+parses and has a top-level `hosting` key; otherwise it is not applicable. A
+`firebase.json` that does not parse is reported as not read: the law judged
+nothing and does not pass. The `requires` selector (`REQUIRES_WEB_SURFACE`)
+reads `firebase.json` the same way, through a new requirement condition,
+`anyJsonFileWithKey`: a JSON file parsed for a top-level key. A file that does
+not parse selects the law (fail-closed), so its "not read" is reported instead
+of the law disappearing from the audit. The laws selected by
+`REQUIRES_PRODUCTION_SUBJECT` are unchanged: `firebase.json` is still a deploy
+target there.
+
+### Fixed — an angular.json that cannot be read is said to be not read, never "budgets missing"
+
+The bundle check of Lazy Loading Implementation read an `angular.json` that
+does not parse as an empty object, so its build checks found nothing to
+report, and the budget analyzer swallowed the parse error and answered "not
+configured". The project was told to "Add performance budgets in angular.json
+build configuration" while its budgets may well be there, and nothing said the
+file was not read. A bare `catch` around the budget and webpack analyzers also
+turned any error into the same "missing" advice (#423).
+
+Now a build config that cannot be read (`angular.json`, or a workspace
+`project.json`) is named with its reason, once: `angular.json could not be read:
+<reason> — its build configuration and performance budgets were NOT read`. It
+is a finding, not a pass, and no "missing" advice is given for it. Performance
+Budget Compliance reads the same analyzer and reports the budgets as not read
+instead of "Angular CLI performance budgets not configured".
+
+### Fixed — Web Vitals monitoring is recognised by the measurement in the code
+
+Performance Standards, Performance Monitoring Policy and Performance
+Monitoring Standards each recognised Core Web Vitals monitoring through their
+own copy of the web-vitals v3 names (`getLCP`, `getCLS` …), read in a few fixed
+files (`main.ts`, `app.component.ts`), or through a declared `web-vitals`
+dependency. An app that measures LCP, CLS and INP itself with
+`PerformanceObserver` was told monitoring is "not implemented" by all three;
+web-vitals v4 (`onLCP` …) in a module of its own was not seen by Performance
+Monitoring Standards; and a `web-vitals` dependency that nothing calls passed
+the Core Web Vitals check of Performance Monitoring Policy (#553).
+
+The three laws now read one source: a measurement in the production sources
+(tests excluded) — a web-vitals call (v3 `get*` or v4 `on*`) or
+`useReportWebVitals` in a file that imports it, or a `PerformanceObserver` on
+`largest-contentful-paint`, `layout-shift`, `event` or `first-input`. The result
+names what was found and where. A declared `web-vitals` that nothing calls is
+reported as such. In a React/Next project, files the parser could not read are
+reported as not read and are not judged by the text scan.
+
+### Fixed — Performance Monitoring Policy finds an ErrorHandler wherever it is registered
+
+The error-tracking check of Performance Monitoring Policy accepted an own
+Angular `ErrorHandler` only when the word stood in `src/app/app.module.ts` or
+`src/app/app.component.ts`. A standalone app registers it in `app.config.ts` or
+in the providers of `bootstrapApplication`, has no `app.module.ts`, and was told
+error tracking is "not configured" (#553).
+
+The law now reads the production sources (tests excluded) with the TypeScript
+parser and the detector Global Error Handlers uses: an `ErrorHandler` provider
+(`{ provide: ErrorHandler, useClass | useExisting | useFactory | useValue }`)
+wherever it is registered, a `provide…ErrorHandler()` helper, `window.onerror`,
+or a `window` / `process` error listener. An import of `ErrorHandler` or
+`provideHttpClient()` alone is not error tracking. Without the parser the files
+that may register a handler are reported as not read. Global Error Handlers
+also recognises a `provide…ErrorHandler()` helper call.
+
 ### 🐛 Fixed — API Security and Environment Parity need something that runs for users
 
 API Security Standards (HTTPS, authentication, rate limiting, CORS, headers)

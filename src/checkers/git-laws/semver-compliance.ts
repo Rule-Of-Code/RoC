@@ -4,12 +4,10 @@
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { FileSystemOperations } from '../../utils/file-system-operations';
-import { FileUtils } from '../../utils/file-utils';
 import { GitTagVersion } from '../../utils/git-tag-version';
-import { PathOperations } from '../../utils/path-operations';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
 import { CapacitorNativeVersions } from './capacitor-native-versions';
+import { type DeclaredVersion, declaredVersion } from './declared-version';
 import { GitLawBase } from './git-law-base';
 
 export class SemVerComplianceLaw extends GitLawBase {
@@ -17,8 +15,8 @@ export class SemVerComplianceLaw extends GitLawBase {
     const { projectRoot } = context;
     const violations: string[] = [];
 
-    // Check package.json version
-    this.checkDeclaredVersion(projectRoot, violations);
+    // The version the project declares, from the manifest it releases from
+    const declared = this.checkDeclaredVersion(projectRoot, violations);
 
     // A Capacitor project declares it twice more, in the native shells.
     const native = CapacitorNativeVersions.check(projectRoot);
@@ -27,7 +25,7 @@ export class SemVerComplianceLaw extends GitLawBase {
     // Check git tags and consistency if git repository
     if (this.isGitRepository(projectRoot)) {
       this.checkGitTags(projectRoot, violations);
-      this.checkVersionConsistency(projectRoot, violations);
+      this.checkVersionConsistency(projectRoot, declared, violations);
     }
 
     const result = this.createResult(
@@ -36,9 +34,9 @@ export class SemVerComplianceLaw extends GitLawBase {
       'GIT_LAW',
       [
         'Use SemVer format: MAJOR.MINOR.PATCH',
-        'Add version field to package.json',
+        'Declare the version in the manifest you release from: package.json, or pyproject.toml / setup.cfg in a Python project',
         'Tag releases with SemVer versions',
-        'Keep package.json and git tags in sync',
+        'Keep the declared version and git tags in sync',
         'Use v prefix for git tags (e.g., v1.0.0) — a namespace your pipeline ' +
           'matches on is fine too, e.g. release/v1.0.0',
         'In a Capacitor project, keep versionName and MARKETING_VERSION equal to package.json, or inject them at build time',
@@ -57,65 +55,38 @@ export class SemVerComplianceLaw extends GitLawBase {
    * Until v7.13.0 this was package.json or nothing: a missing package.json was
    * pushed as a VIOLATION, so every Python project failed SemVer unconditionally
    * with no honest way to pass. A law you can only satisfy by adding a Node
-   * manifest to a Python repo is a law that rewards a lie.
+   * manifest to a Python repo is a law that rewards a lie. The same holds for
+   * a tooling package.json beside pyproject.toml (#546): the Python manifest
+   * is read first.
    */
   private static checkDeclaredVersion(
     projectRoot: string,
     violations: string[]
-  ): void {
-    const packageJsonPath = PathOperations.join(projectRoot, 'package.json');
+  ): DeclaredVersion | null {
+    const declared = declaredVersion(projectRoot);
 
-    if (!FileUtils.exists(packageJsonPath)) {
-      this.checkPythonVersion(projectRoot, violations);
-      return;
-    }
-
-    try {
-      const packageJson =
-        FileSystemOperations.readJsonFile<Record<string, unknown>>(
-          packageJsonPath
+    if (!declared) {
+      // No manifest declares a version. On a Python project that is a finding;
+      // anywhere else there is no manifest this law knows how to read, and it
+      // stays silent rather than inventing one.
+      if (PythonSatisfaction.isPython(projectRoot)) {
+        violations.push(
+          'pyproject.toml declares no version — add [project] version (PEP 621) or [tool.poetry] version'
         );
-
-      if (!packageJson.version) {
-        violations.push('package.json missing version field');
-      } else {
-        const version = String(packageJson.version as string);
-        if (!GitTagVersion.isSemVer(version)) {
-          violations.push(
-            `package.json version "${version}" does not follow SemVer format`
-          );
-        }
       }
-    } catch {
-      violations.push('Unable to parse package.json');
-    }
-  }
-
-  /**
-   * No package.json. On a Python project the version lives in pyproject.toml
-   * (PEP 621 `[project]` or Poetry); anywhere else, there is no manifest this
-   * law knows how to read, and it stays silent rather than inventing a finding.
-   */
-  private static checkPythonVersion(
-    projectRoot: string,
-    violations: string[]
-  ): void {
-    if (!PythonSatisfaction.isPython(projectRoot)) {
-      return;
+      return null;
     }
 
-    const version = PythonSatisfaction.projectVersion(projectRoot);
-    if (version === null) {
+    if (declared.unreadable) {
+      violations.push(`Unable to parse ${declared.manifest}`);
+    } else if (declared.version === null) {
+      violations.push(`${declared.manifest} missing version field`);
+    } else if (!GitTagVersion.isSemVer(declared.version)) {
       violations.push(
-        'pyproject.toml declares no version — add [project] version (PEP 621) or [tool.poetry] version'
-      );
-      return;
-    }
-    if (!GitTagVersion.isSemVer(version)) {
-      violations.push(
-        `pyproject.toml version "${version}" does not follow SemVer format`
+        `${declared.manifest} version "${declared.version}" does not follow SemVer format`
       );
     }
+    return declared;
   }
 
   /**
@@ -146,22 +117,19 @@ export class SemVerComplianceLaw extends GitLawBase {
     }
   }
 
+  /**
+   * The declared version against the latest tag, for every manifest kind.
+   * Until #546 only package.json was compared, so a pyproject version left
+   * behind its release tag was never reported.
+   */
   private static checkVersionConsistency(
     projectRoot: string,
+    declared: DeclaredVersion | null,
     violations: string[]
   ): void {
-    const packageJsonPath = PathOperations.join(projectRoot, 'package.json');
-    if (!FileUtils.exists(packageJsonPath)) return;
+    if (!declared?.version) return;
 
     try {
-      const packageJson = FileSystemOperations.readJsonFile(
-        packageJsonPath,
-        {}
-      ) as {
-        version?: string;
-      };
-      if (!packageJson.version) return;
-
       const tagResult = this.executeGitCommand(
         'git describe --tags --abbrev=0',
         projectRoot
@@ -171,24 +139,23 @@ export class SemVerComplianceLaw extends GitLawBase {
       const latestTag = tagResult.stdout.trim();
       // The version segment, so a namespaced tag compares by what it carries.
       const cleanTag = GitTagVersion.versionOf(latestTag);
-      const pkgVersion = String(packageJson.version);
 
-      // package.json AHEAD of the latest tag is the NORMAL pending-release state
+      // The declared version AHEAD of the latest tag is the NORMAL pending-release state
       // (version is bumped on a release branch BEFORE the release commit is tagged).
-      // Only flag when package.json is BEHIND the latest tag (a stale/forgotten bump).
+      // Only flag when it is BEHIND the latest tag (a stale/forgotten bump).
       const semver = require('semver');
-      const pkgV = semver.coerce(pkgVersion)?.version;
+      const declaredV = semver.coerce(declared.version)?.version;
       const tagV = semver.coerce(cleanTag)?.version;
 
       // Nothing to compare unless BOTH carry a version. A tag like `nightly`
       // names no version, so "behind it" states nothing — and the check beside
       // this one already reports its format. The old fallback compared the two
       // as strings and declared the project behind a tag that is not a version.
-      if (!pkgV || !tagV) return;
+      if (!declaredV || !tagV) return;
 
-      if (semver.lt(pkgV, tagV)) {
+      if (semver.lt(declaredV, tagV)) {
         violations.push(
-          `package.json version (${pkgVersion}) is behind the latest git tag (${cleanTag}) — bump it`
+          `${declared.manifest} version (${declared.version}) is behind the latest git tag (${cleanTag}) — bump it`
         );
       }
     } catch (error) {

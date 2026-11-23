@@ -1,6 +1,9 @@
 import type { RuleOfCodeConfig } from '../../../../types/law.types';
 import type { ReactPerformanceEvidence } from '../../../../utils/react/react-performance-source';
-import { AngularBudgetAnalyzerService } from './angular-budget.analyzer';
+import {
+  type AngularBudgetAnalysis,
+  AngularBudgetAnalyzerService,
+} from './angular-budget.analyzer';
 import { BundleSizeAnalyzerService } from './bundle-size.analyzer';
 import { CICDPerformanceGatesAnalyzerService } from './cicd-gates.analyzer';
 import { LighthouseBudgetAnalyzerService } from './lighthouse-budget.analyzer';
@@ -20,10 +23,7 @@ export class PerformanceBudgetComplianceAnalyzerService {
   /**
    * Analyze Angular performance budgets
    */
-  static analyzeAngularBudgets(projectRoot: string): {
-    configured: boolean;
-    projects: string[];
-  } {
+  static analyzeAngularBudgets(projectRoot: string): AngularBudgetAnalysis {
     return AngularBudgetAnalyzerService.analyze(projectRoot);
   }
 

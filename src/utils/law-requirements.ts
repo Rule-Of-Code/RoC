@@ -26,6 +26,7 @@ import * as path from 'path';
 import { glob } from 'glob';
 import type {
   FileContaining,
+  JsonFileWithKey,
   LawRequirement,
 } from '../types/enhanced-law.types';
 import { minimatch } from 'minimatch';
@@ -241,16 +242,72 @@ export function lawRequirementsMet(
       return false;
     }
   }
-  if (requires.anyFileContaining?.length) {
-    if (
-      !requires.anyFileContaining.some(entry =>
-        fileContains(projectRoot, entry, ignores)
-      )
-    ) {
-      return false;
+  return contentRequirementsMet(requires, projectRoot, ignores);
+}
+
+/** The conditions that read file contents: `anyFileContaining`, `anyJsonFileWithKey`. */
+function contentRequirementsMet(
+  requires: LawRequirement,
+  projectRoot: string,
+  ignores: readonly string[]
+): boolean {
+  if (
+    requires.anyFileContaining?.length &&
+    !requires.anyFileContaining.some(entry =>
+      fileContains(projectRoot, entry, ignores)
+    )
+  ) {
+    return false;
+  }
+  return !(
+    requires.anyJsonFileWithKey?.length &&
+    !requires.anyJsonFileWithKey.some(entry => {
+      const found = jsonFilesWithKey(projectRoot, entry);
+      // Fail-closed: a file that was not read may hold the key (#547).
+      return found.matched.length > 0 || found.unreadable.length > 0;
+    })
+  );
+}
+
+/** The files of an `anyJsonFileWithKey` entry that hold the key, and those not read. */
+export interface JsonKeyFiles {
+  /** Project-relative files whose top-level object has the key. */
+  matched: string[];
+  /** `<file>: <reason>` for each file that could not be read or parsed. */
+  unreadable: string[];
+}
+
+/**
+ * Parse every `entry.file` at the workspace root and in each workspace
+ * project directory, and say which have `entry.key` at the top level. The
+ * shared reader of the selector and of the laws that ask the same question
+ * (#547), so what selects a law is what it judges.
+ */
+export function jsonFilesWithKey(
+  projectRoot: string,
+  entry: JsonFileWithKey
+): JsonKeyFiles {
+  const matched: string[] = [];
+  const unreadable: string[] = [];
+  for (const file of NxWorkspace.resolveSourceFiles(projectRoot, entry.file)) {
+    const rel = path.relative(projectRoot, file).split(path.sep).join('/');
+    try {
+      const parsed: unknown = JSON.parse(fs.readFileSync(file, 'utf8'));
+      if (
+        parsed !== null &&
+        typeof parsed === 'object' &&
+        !Array.isArray(parsed) &&
+        Object.prototype.hasOwnProperty.call(parsed, entry.key)
+      ) {
+        matched.push(rel);
+      }
+    } catch (error) {
+      unreadable.push(
+        `${rel}: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
-  return true;
+  return { matched, unreadable };
 }
 
 /** Trees that hold installed, built, generated or virtualenv files, not the project's own. */
@@ -621,6 +678,9 @@ export function describeRequirement(requires: LawRequirement): string {
     parts.push(
       `a file (${entry.files.join(' or ')}) containing /${entry.pattern}/`
     );
+  }
+  for (const entry of requires.anyJsonFileWithKey ?? []) {
+    parts.push(`${entry.file} with a top-level "${entry.key}" key`);
   }
   if (requires.anyOf?.length) {
     parts.push(

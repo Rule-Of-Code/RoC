@@ -16,6 +16,9 @@ import { PathOperations } from '../../utils/path-operations';
 import { LawBase } from '../law-base';
 import { AngularLawBase } from './angular-law-base';
 
+/** The Angular major from which a component is standalone by default. */
+const STANDALONE_DEFAULT_MAJOR = 19;
+
 export class StandaloneComponentsArchitectureLaw extends AngularLawBase {
   static check(context: LawCheckContext): LawResult {
     const violations: string[] = [];
@@ -88,7 +91,7 @@ export class StandaloneComponentsArchitectureLaw extends AngularLawBase {
    */
   private static standaloneIsDefault(projectRoot: string): boolean {
     const major = this.getAngularMajor(projectRoot);
-    return major !== null && major >= 19;
+    return major !== null && major >= STANDALONE_DEFAULT_MAJOR;
   }
 
   /**

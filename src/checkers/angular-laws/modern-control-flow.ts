@@ -10,6 +10,9 @@ import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 import { AngularLawBase } from './angular-law-base';
 
+/** The Angular version whose built-in control flow (@if, @for) is stable. */
+const CONTROL_FLOW_VERSION = 18.0;
+
 export class ModernAngularControlFlowLaw extends AngularLawBase {
   private static readonly LAW_NAME = 'Modern Angular Control Flow';
 
@@ -86,7 +89,7 @@ export class ModernAngularControlFlowLaw extends AngularLawBase {
 
   private static isAngular18Plus(version: string): boolean {
     const versionNumber = parseFloat(version.replace(/[^0-9.]/g, ''));
-    return versionNumber >= 18.0;
+    return versionNumber >= CONTROL_FLOW_VERSION;
   }
 
   private static findTemplateFiles(

@@ -12,6 +12,9 @@ import { AngularSignalUsageAnalyzer } from '../../utils/angular/angular-signal-u
 import { AngularSignalPatternsAnalyzer } from '../../utils/angular/angular-signals';
 import { AngularComponentFiles } from '../../utils/angular-component-files';
 
+/** The Angular major that introduced signals. */
+const SIGNALS_MAJOR = 16;
+
 export class AngularSignalAdoptionLaw {
   private static readonly COMPONENT_STATE_SUBJECT =
     /\b(?:private|public|protected|readonly)\s+[\w$]+\s*=\s*new\s+(?:Behavior)?Subject\s*[<(]/;
@@ -128,7 +131,7 @@ export class AngularSignalAdoptionLaw {
         ver.replace(/[^\d.]/g, '').split('.')[0] ?? '0',
         10
       );
-      return major >= 16;
+      return major >= SIGNALS_MAJOR;
     } catch {
       return false;
     }

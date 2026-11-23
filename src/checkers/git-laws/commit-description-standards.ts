@@ -15,6 +15,9 @@ import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { describeCommitScope } from './commit-scope';
 import { GitLawBase } from './git-law-base';
 
+/** Characters of a commit subject quoted in a finding. */
+const SUBJECT_QUOTE_LENGTH = 50;
+
 export class CommitDescriptionStandardsLaw extends GitLawBase {
   private static readonly LAW_NAME = 'Commit Description Standards';
   /** A git trailer/footer line, e.g. "Closes: #1", "BREAKING CHANGE: x". */
@@ -145,6 +148,8 @@ export class CommitDescriptionStandardsLaw extends GitLawBase {
   }
 
   private static truncate(s: string): string {
-    return s.length > 50 ? `${s.substring(0, 50)}...` : s;
+    return s.length > SUBJECT_QUOTE_LENGTH
+      ? `${s.substring(0, SUBJECT_QUOTE_LENGTH)}...`
+      : s;
   }
 }

@@ -204,13 +204,13 @@ describe('cli/audit-command', () => {
       expect(options).toContain('--json');
     });
 
-    it('should have suggest-exceptions option', () => {
+    it('has no suggest-exceptions option (#527: removed)', () => {
       const program = new Command();
       auditCommand(program);
 
       const cmd = program.commands.find(c => c.name() === 'audit');
       const options = cmd?.options.map(o => o.long);
-      expect(options).toContain('--suggest-exceptions');
+      expect(options).not.toContain('--suggest-exceptions');
     });
 
     it('should have staged option', () => {
@@ -304,18 +304,6 @@ describe('cli/audit-command', () => {
       const calls = consoleSpy.mock.calls.map(c => c[0]).join(' ');
       expect(calls).toContain('SELF-EXCLUSION');
     }, 30000);
-
-    it('should handle suggest-exceptions option', async () => {
-      const options: AuditActionOptions = {
-        suggestExceptions: true,
-        mode: 'fast',
-      };
-
-      const { exitCode, result } = await executeAuditAction(options, tempDir);
-
-      expect([0, 1]).toContain(exitCode);
-      expect(result).toBeDefined();
-    }, 60000);
 
     it('should handle json option', async () => {
       // #306: the document is the ONLY thing on stdout, written once the run
@@ -441,7 +429,6 @@ describe('cli/audit-command', () => {
         config: '/path/to/config',
         export: 'json',
         json: true,
-        suggestExceptions: true,
         staged: true,
       };
 
@@ -452,7 +439,6 @@ describe('cli/audit-command', () => {
       expect(options.config).toBe('/path/to/config');
       expect(options.export).toBe('json');
       expect(options.json).toBe(true);
-      expect(options.suggestExceptions).toBe(true);
       expect(options.staged).toBe(true);
     });
 

@@ -24,6 +24,11 @@
  *
  * Record (only ever from code that predates the change being guarded):
  *   ROC_RECORD_GOLDEN=1 npx jest tests/regression/waivers-named-verdict-golden.test.ts
+ * A recording made on today's engine carries the fields listed above; they
+ * are removed from it the way this test removes them before it is kept.
+ * Re-recorded for #428: API Security Standards and Environment Parity
+ * Standards are not selected for this project (no production subject), so
+ * it selects 70 laws, not 72.
  */
 import fs from 'fs';
 import path from 'path';
@@ -44,7 +49,7 @@ interface Mode {
 }
 
 const DEFAULT_FLOOR =
-  'floor 18 — default 25% of 72 stack-applicable laws (meta-gates included, counted before waivers)';
+  'floor 18 — default 25% of 70 stack-applicable laws (meta-gates included, counted before waivers)';
 const MODES: Mode[] = [
   {
     name: 'full',
@@ -133,7 +138,7 @@ describe('#350 golden: a W = 0 project is unchanged in every mode', () => {
       expect(statsPartlyRead).toBe(0);
       expect(applicableBeforeWaivers).toBe(scope.applicableLaws);
       expect(waivedLaws).toEqual([]);
-      expect(livenessJson.applicableLaws).toBe(72);
+      expect(livenessJson.applicableLaws).toBe(70);
       const livenessResult = rest.results.find(
         (r: { lawTitle?: string }) => r.lawTitle === 'Audit Liveness Assertion'
       );

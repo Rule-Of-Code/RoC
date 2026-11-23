@@ -96,7 +96,6 @@ export interface AuditOptions {
   parallel?: boolean;
   projectRoot?: string;
   configPath?: string;
-  suggestExceptions?: boolean;
   maxConcurrent?: number;
   timeout?: number;
   includeWarnings?: boolean;

@@ -302,6 +302,81 @@ or a `window` / `process` error listener. An import of `ErrorHandler` or
 that may register a handler are reported as not read. Global Error Handlers
 also recognises a `provide…ErrorHandler()` helper call.
 
+### 🐛 Fixed — API Security and Environment Parity need something that runs for users
+
+API Security Standards (HTTPS, authentication, rate limiting, CORS, headers)
+and Environment Parity Standards (a `.env.example` contract for the
+environments a service is deployed to) were selected for every TypeScript
+project, and Environment Parity for every project. A CLI tool or a library has
+no endpoint and no deployed environment, so both reported findings that could
+not be fixed honestly. They now declare the same `requires` as the other laws
+about a running product (#428): a Node or Python HTTP framework, a web
+surface, a mobile app shell or a deploy target. A project with none of these
+no longer selects them (#428). The advertised applicable-law counts of the
+recommended config follow: python 93 → 92, frontend 96 → 94, node 72 → 70
+(the recommended floor is 90% of them). The W = 0 goldens are re-recorded:
+the two law lines, the renumbering and the counts, nothing else.
+
+### 🐛 Fixed — the audit run through the package's own bin counts as running it
+
+Constitutional Supremacy and Continuous Compliance read one probe for
+"this project runs the audit" (#470). It matched
+`ruleofcode audit` / `roc audit` only, so a package that runs its own build
+(`"constitutional-check": "node dist/cli.js audit"`), where package.json maps
+the `ruleofcode` or `roc` bin to `dist/cli.js`, was told it enforced nothing.
+A script, hook or CI step that runs the file a `ruleofcode` / `roc` bin entry
+points at, with `audit`, now counts. The same command under a bin of another
+name does not (#434).
+
+### 🐛 Fixed — reinstall-hooks keeps the lines a project added to a hook
+
+`reinstall-hooks` wrote every hook over with the template, with or without
+`--force`, and kept no copy: a step the project had added (a secret scan, a
+formatter, a repository-specific flag) was gone after the next upgrade.
+Now a hook that differs from the template by more than its version stamp is
+kept and named, and the command exits 1. With `--force` it is replaced, and
+the old file is first saved as `.husky/<hook>.bak`, whose path is printed
+(#556).
+
+### ✨ Added — reinstall-hooks --no-stash (opt-in)
+
+`reinstall-hooks --no-stash` writes `npx lint-staged --no-stash` into the
+pre-commit hook. lint-staged keeps its backup with `git stash`, and the stash
+list belongs to the repository, not the worktree: with several worktrees
+committing at once one hook could restore another worktree's backup. Without
+the stash a failed task cannot restore files it rewrote, so it is not the
+default. A hook that carries the opt-in keeps it on every later reinstall, and
+is not reported as outdated or as edited (#480).
+
+### 🔧 Internal — one table of the places that name the current version
+
+A release has to move every place that names the current version: the README
+demo and its `laws --json` example, `docs/demo/README.md`, the demo
+recording and the git hooks. Two narrow tests held part of it; the rest was
+remembered by hand. `scripts/current-version-mentions.js` lists them (file,
+pattern, count), and `tests/regression/current-version-mentions.test.ts`
+checks each against package.json, with the file, the line and both versions
+on a failure, and fails when a marked place is reworded or removed.
+`node scripts/version-sweep.js --to=X.Y.Z [--dry-run]` rewrites the
+hand-written ones and nothing else; the release checklist
+(PRE_DEPLOYMENT_CHECKLIST.md, linked from CONTRIBUTING.md) has the step
+(#560).
+
+### ⚠️ BREAKING — `audit --suggest-exceptions` is removed
+
+The flag was accepted and did nothing: it was stored by the engine and never
+read, while `--help` promised "suggest exception patterns for failures". It is
+removed rather than implemented, because a generator of exceptions argues
+against this tool's rule that a finding is fixed, or declared inapplicable
+with a reason (`laws.notApplicable`), and never waived so that a run passes.
+
+A script that still passes `--suggest-exceptions` now stops with
+`error: unknown option '--suggest-exceptions'` and exit 1, instead of a run
+that pretends the flag did something. Remove the flag from the script. The
+programmatic option `suggestExceptions` is gone from `AuditOptions` and
+`RuleOfCodeAuditor.create`; the constructor keeps its positional slot, unused,
+so positional callers keep their mode and options (#527).
+
 ### 🐛 Fixed — an ignores.global entry that matches no file is named
 
 8.0.0 brought every written form of an `ignores.*` pattern to one form, so a

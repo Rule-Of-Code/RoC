@@ -30,7 +30,9 @@ export class APISecurityAnalyzerService {
 
     // Coordinate specialized analyzers
     violations.push(...HttpsEnforcementAnalyzer.analyze(projectRoot));
-    violations.push(...APIAuthenticationAnalyzer.analyze(projectRoot, config));
+    violations.push(
+      ...APIAuthenticationAnalyzer.analyze(projectRoot, config, ts)
+    );
     violations.push(...RateLimitingAnalyzer.analyze(projectRoot, config));
     violations.push(
       ...InputValidationAnalyzer.analyze(projectRoot, config, ts)

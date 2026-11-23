@@ -288,6 +288,8 @@ describe('laws/security/api-security/services/api-security-coordinator.service',
         export class AuthService {
           login() { return this.http.post('/login', {}); }
         }
+        // #550: authentication is what the code does — the sign-in is called.
+        export const signInPage = (auth: AuthService) => auth.login();
       `;
       FileUtils.writeFile(
         PathOperations.join(srcDir, 'auth.service.ts'),
@@ -317,6 +319,10 @@ describe('laws/security/api-security/services/api-security-coordinator.service',
           }
           setToken(token: string) {
             localStorage.setItem('token', token);
+          }
+          // #550: the token is attached to requests — authentication by shape.
+          headers() {
+            return { Authorization: 'Bearer ' + this.getToken() };
           }
         }
       `;

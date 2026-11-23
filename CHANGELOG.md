@@ -216,8 +216,9 @@ and "vulnerability detection"; its id (`security_a0bcc52d`) is unchanged.
 - Without the TypeScript parser these two checks read nothing, and the law
   says the files were NOT read instead of judging them by words.
 
-Authentication by file name (`AUTH_FILES`) is not changed here; it moves to
-the content-based detector of #549.
+Authentication by file name (`AUTH_FILES`) was not changed by this entry;
+it moved to the content-based detector of #549 (see "API Security Standards
+recognises authentication by what the code does" below).
 
 ### Fixed — Semantic Versioning Standards reads the manifest a Python project releases from
 
@@ -440,6 +441,21 @@ Each signal is now a shape in the parse, shared by the three sub-checks:
   the role or session note either.
 
 The law's detection limits describe the shapes.
+
+### 🐛 Fixed — API Security Standards recognises authentication by what the code does (#550)
+
+The law looked for authentication in five exact file names
+(`auth.service.ts`, `authentication.service.ts`, `token.service.ts`,
+`auth.interceptor.ts`, `auth.guard.ts`): an interceptor in `http-auth.ts`
+that attaches the credential was "No authentication service implementation
+found", and an empty `auth.service.ts` satisfied the check. It now uses the
+detector of #549: a managed auth SDK or a session library imported, a
+sign-in or verify call, or an `Authorization` header attached to requests,
+in a file of any name. The Authorization-header, refresh and storage checks
+read the files that authenticate; a managed SDK is not asked for a refresh
+mechanism (it refreshes its own tokens). Without the TypeScript parser
+authentication is not judged and the law says the files were NOT read. The
+detection limits say so.
 
 ## [8.0.1] - 2026-11-22
 

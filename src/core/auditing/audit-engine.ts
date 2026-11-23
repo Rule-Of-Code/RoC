@@ -6,6 +6,7 @@ import chalk from 'chalk';
 import { execFileSync } from '../../utils/child-process';
 import * as fs from 'fs';
 import { ConfigLoader } from '../../config/loader';
+import { retiredLawNotice } from '../../data/retired-laws';
 import { GitHooksInstaller } from '../../hooks/installer';
 import { ModularLawsRegistry } from '../../registry/modular-laws-registry';
 import type { LawRequirement } from '../../types/enhanced-law.types';
@@ -55,6 +56,15 @@ interface KnownLaw {
   id?: string;
   legacyId?: number | string | undefined;
   defaultEnabled?: boolean | undefined;
+}
+
+/**
+ * The stderr line for a config key that names no law. A removed law is named
+ * as removed, in Config Integrity Guard's words (#558); any other key keeps
+ * its "unknown law" message.
+ */
+function keyWarning(where: string, key: string, unknown: string): string {
+  return `⚠️  ${retiredLawNotice(where, key) ?? unknown}`;
 }
 
 export class RuleOfCodeAuditor {
@@ -791,7 +801,11 @@ export class RuleOfCodeAuditor {
       const law = known.get(key);
       if (!law) {
         console.warn(
-          `⚠️  laws.severity: unknown law '${key}' — this override gates nothing. Check the name with 'roc laws --list'.`
+          keyWarning(
+            'laws.severity',
+            key,
+            `laws.severity: unknown law '${key}' — this override gates nothing. Check the name with 'roc laws --list'.`
+          )
         );
       } else if (
         !ModularLawsRegistry.lawAppliesToProjectType(
@@ -853,7 +867,11 @@ export class RuleOfCodeAuditor {
         if (LawIdentity.isNonLawConfigKey(key)) continue; // annotation or legacy map
         if (known.has(key)) continue;
         console.warn(
-          `⚠️  ${label}: unknown law '${key}' — these patterns filter nothing. Check the name with 'roc laws --list'.`
+          keyWarning(
+            label,
+            key,
+            `${label}: unknown law '${key}' — these patterns filter nothing. Check the name with 'roc laws --list'.`
+          )
         );
       }
     }
@@ -937,7 +955,11 @@ export class RuleOfCodeAuditor {
       if (LawIdentity.isNonLawConfigKey(key)) continue;
       if (!known.has(key)) {
         console.warn(
-          `⚠️  laws.notApplicable: unknown law '${key}' — this waives nothing and the law still runs. Check the name with 'roc laws --list'.`
+          keyWarning(
+            'laws.notApplicable',
+            key,
+            `laws.notApplicable: unknown law '${key}' — this waives nothing and the law still runs. Check the name with 'roc laws --list'.`
+          )
         );
         continue;
       }

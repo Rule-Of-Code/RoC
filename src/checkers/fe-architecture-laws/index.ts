@@ -13,4 +13,3 @@ export { NoHostnameGatingLaw } from './no-hostname-gating';
 export { DefensiveArrayCoercionLaw } from './defensive-array-coercion';
 export { NoPassthroughCastLaw } from './no-passthrough-cast';
 export { TimerCleanupLaw } from './timer-cleanup';
-export { NoRiskLiteralsLaw } from './no-risk-literals';

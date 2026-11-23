@@ -61,7 +61,7 @@ export class PathResolver {
    * Returns the root-level standard path (e.g. `<root>/src/main.ts`) AND any matches
    * under common monorepo project folders (`apps/*`, `libs/*`, `packages/*`,
    * `projects/*`, nested one level), so an Nx workspace like
-   * `apps/bot-admin/src/main.ts` is found even when no `pathMappings` is configured.
+   * `apps/admin/src/main.ts` is found even when no `pathMappings` is configured.
    */
   private async resolveWithMonorepoDetection(
     canonicalPath: string

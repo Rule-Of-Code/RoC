@@ -20,7 +20,7 @@ import { HttpTestHarness } from '../../../../utils/testing/http-test-harness';
  */
 export class UnitTestAPITestingConstants {
   // API test file patterns. The `api[.-_]…spec` form (preceded by a separator or
-  // start) catches real-world names like `bot-api.service.spec.ts` and
+  // start) catches real-world names like `user-api.service.spec.ts` and
   // `api.integration.spec.ts`, not just the strict `api.spec.ts`.
   static readonly API_TEST_PATTERNS = [
     /api\.test\.ts$/,

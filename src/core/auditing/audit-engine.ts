@@ -1358,7 +1358,7 @@ export class RuleOfCodeAuditor {
         '◐ PARTLY READ — found nothing wrong in what they read, and did not read all of it; they did not pass:'
       )
     );
-    console.log(chalk.gray('─'.repeat(60)));
+    console.log(chalk.gray('─'.repeat(RULE_WIDTH)));
     console.log('');
     laws.forEach((lawResult, index) => {
       const law = lawResult as { notRead?: string[] };

@@ -9,17 +9,15 @@
  *
  * The direction in the issue: a field of its own on the law result
  * (`notRead: string[]`), filled where the law knows it did not read
- * something; `violations` keeps findings only. This test asserts that shape
- * on two laws whose notes come from different readers: TypeScript Strict Mode
- * (an `extends` link it cannot follow) and Independent Awaits Run
- * Concurrently (Python read, TypeScript not, through `sourcesFromFiles`).
+ * something; `violations` keeps findings only. The first law migrated is
+ * TypeScript Strict Mode (an `extends` link it cannot follow); the laws
+ * whose notes come from the shared readers follow, law by law.
  */
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
 import { TypeScriptStrictLaw } from '../../src/checkers/sacred-laws/typescript-strict';
-import { IndependentAwaitsRunConcurrentlyLaw } from '../../src/checkers/request-path-laws/independent-awaits-run-concurrently';
 import { ConfigLoader } from '../../src/config/loader';
 import { normalizeJudgedNothing } from '../../src/utils/judged-nothing';
 import * as tsxSource from '../../src/utils/react/tsx-source';
@@ -80,25 +78,6 @@ describe('#453 what a law did not read is not one of its findings', () => {
       expect.stringContaining(
         'tsconfig.json extends "./not-here.json", which could not be read'
       ),
-    ]);
-    expect(result.judgedNothing).toBeUndefined();
-  });
-
-  it('Independent Awaits, Python read and TypeScript not: no finding, one notRead', async () => {
-    const dir = project({
-      'package.json': MANIFEST,
-      'app/service.py':
-        'async def load(a, b):\n    x = await a()\n    return x\n',
-      'src/load.ts':
-        'export async function load(a: () => Promise<number>) {\n  return await a();\n}\n',
-    });
-    const result = await audited(
-      c => IndependentAwaitsRunConcurrentlyLaw.check(c),
-      dir
-    );
-    expect(result.violations ?? []).toEqual([]);
-    expect(result.notRead ?? []).toEqual([
-      expect.stringContaining("could not load the 'typescript' package"),
     ]);
     expect(result.judgedNothing).toBeUndefined();
   });

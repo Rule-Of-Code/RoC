@@ -64,7 +64,6 @@ export {
 } from './vulnerability-management';
 
 // Specialized Security Utilities
-export { AuditResultsConfiguration } from './audit-results';
 export {
   DependencyVulnerabilityAnalyzer,
   DependencyVulnerabilityConfiguration,

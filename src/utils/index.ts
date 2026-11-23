@@ -43,7 +43,6 @@ export * from './types';
 export * from './angular';
 
 // Security exports - explicitly import PackageJson to avoid conflicts
-export * from './security/audit-results';
 export * from './security/cryptographic-libraries';
 export * from './security/data-storage-security';
 export {

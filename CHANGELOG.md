@@ -96,6 +96,15 @@ and "vulnerability detection"; its id (`security_a0bcc52d`) is unchanged.
 Authentication by file name (`AUTH_FILES`) is not changed here; it moves to
 the content-based detector of #549.
 
+### Internal — unused npm audit simulator removed
+
+`NpmAuditSimulator` (`src/utils/security/npm-audit-simulator.ts`) and the
+`audit-results` module that read its type (`AuditResultsAnalyzer`,
+`AuditResultsValidationPatterns`, `AuditResultsConfiguration`) were exported
+from `src/utils` but called by no law and no other code. Dependency Security
+Scanning runs no audit (#545). They are not part of the package entry
+point (`dist/index.js`). No behaviour changes.
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

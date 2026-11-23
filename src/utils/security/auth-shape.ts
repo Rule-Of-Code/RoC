@@ -219,11 +219,50 @@ function conceptName(ts: typeof TS, node: TS.Node): string | null {
   return null;
 }
 
+/** `x.role` / `x?.roles` — a property access that names a role concept. */
+function rolePropertyName(ts: typeof TS, node: TS.Node): string | null {
+  return ts.isPropertyAccessExpression(node) &&
+    isRoleOrPermission(node.name.text)
+    ? node.name.text
+    : null;
+}
+
+/**
+ * An inline role check (#574): `user?.role === 'owner'`, `role !== 'admin'`,
+ * `user.roles.includes('admin')`. The code enforces the role where it
+ * compares it, without a helper named hasRole.
+ */
+function readInlineRoleCheck(ts: typeof TS, node: TS.Node, s: AuthShape) {
+  if (ts.isBinaryExpression(node)) {
+    const op = node.operatorToken.kind;
+    const k = ts.SyntaxKind;
+    const equality =
+      op === k.EqualsEqualsEqualsToken ||
+      op === k.ExclamationEqualsEqualsToken ||
+      op === k.EqualsEqualsToken ||
+      op === k.ExclamationEqualsToken;
+    if (
+      equality &&
+      (rolePropertyName(ts, node.left) || rolePropertyName(ts, node.right))
+    )
+      s.roleCheck = true;
+    return;
+  }
+  if (
+    ts.isCallExpression(node) &&
+    ts.isPropertyAccessExpression(node.expression) &&
+    node.expression.name.text === 'includes' &&
+    rolePropertyName(ts, node.expression.expression)
+  )
+    s.roleCheck = true;
+}
+
 function readNode(ts: typeof TS, node: TS.Node, s: AuthShape): void {
   readModule(ts, node, s);
   if (ts.isCallExpression(node)) readCall(ts, node, s);
   readDecoratorOrNew(ts, node, s);
   readKeyOrType(ts, node, s);
+  readInlineRoleCheck(ts, node, s);
   const name = conceptName(ts, node);
   if (name && isRoleOrPermission(name)) s.roleConcept = true;
 }

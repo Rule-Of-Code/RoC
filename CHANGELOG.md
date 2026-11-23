@@ -302,6 +302,14 @@ or a `window` / `process` error listener. An import of `ErrorHandler` or
 that may register a handler are reported as not read. Global Error Handlers
 also recognises a `provide…ErrorHandler()` helper call.
 
+### 🐛 Fixed — Professional Excellence Mandate reads every ESLint config ESLint reads
+
+The ESLint concern accepted a fixed list of files, so a project with its
+config in package.json `eslintConfig`, an extensionless `.eslintrc`, or
+`eslint.config.mts` / `.cts` got `Missing eslint.config.mjs`. It now reads the
+same list as Zero Tolerance Doctrine (`ESLINT_CONFIG_FILES`, one list for both
+laws) and accepts `eslintConfig` (an object) in the root package.json (#507).
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

@@ -284,10 +284,11 @@ describe('the engine: a git-ignored file with the text does not count the law', 
     );
     expect(ignored).toBe(none);
     // The published deploy selects this law, and a deploy target selects the
-    // four laws about a product that runs for users (#428): Performance
+    // six laws about a product that runs for users (#428): Performance
     // Monitoring Standards, Incident Response Protocol, Launch Readiness,
-    // Authentication Security.
-    expect(published).toBe(none + 1 + 4);
+    // Authentication Security, API Security Standards, Environment Parity
+    // Standards.
+    expect(published).toBe(none + 1 + 6);
   });
 });
 

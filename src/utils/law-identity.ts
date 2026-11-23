@@ -5,7 +5,7 @@
  * checkers — a cycle).
  */
 
-import { hasHtmlDocument, hasJsTsToolchain } from './law-requirements';
+import { hasHtmlDocument, hasJsTsToolchain } from './project-substrate';
 
 /** The audit output prints slugged law names — same transform as law-base. */
 export function slugifyLawName(name: string): string {

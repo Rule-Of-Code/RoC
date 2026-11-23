@@ -47,26 +47,6 @@ describe('ErrorTrackingPolicyConstants', () => {
     });
   });
 
-  describe('APP_MODULE_PATTERNS', () => {
-    it('should include Sentry', () => {
-      expect(ErrorTrackingPolicyConstants.APP_MODULE_PATTERNS).toContain(
-        'Sentry'
-      );
-    });
-
-    it('should include LogRocket', () => {
-      expect(ErrorTrackingPolicyConstants.APP_MODULE_PATTERNS).toContain(
-        'LogRocket'
-      );
-    });
-
-    it('should include ErrorHandler', () => {
-      expect(ErrorTrackingPolicyConstants.APP_MODULE_PATTERNS).toContain(
-        'ErrorHandler'
-      );
-    });
-  });
-
   describe('isErrorTrackingTool', () => {
     it('should return true for @sentry/browser', () => {
       expect(
@@ -107,32 +87,6 @@ describe('ErrorTrackingPolicyConstants', () => {
     it('should return false for regular file', () => {
       expect(
         ErrorTrackingPolicyConstants.isErrorTrackingConfigFile('app.config.js')
-      ).toBe(false);
-    });
-  });
-
-  describe('hasErrorTrackingImplementation', () => {
-    it('should return true for content with Sentry', () => {
-      expect(
-        ErrorTrackingPolicyConstants.hasErrorTrackingImplementation(
-          'Sentry.init({})'
-        )
-      ).toBe(true);
-    });
-
-    it('should return true for content with LogRocket', () => {
-      expect(
-        ErrorTrackingPolicyConstants.hasErrorTrackingImplementation(
-          'LogRocket.init()'
-        )
-      ).toBe(true);
-    });
-
-    it('should return false for unrelated content', () => {
-      expect(
-        ErrorTrackingPolicyConstants.hasErrorTrackingImplementation(
-          'const x = 1;'
-        )
       ).toBe(false);
     });
   });

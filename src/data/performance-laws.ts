@@ -195,6 +195,7 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
       'Alerting and dashboards are keyword / file-presence checks on every stack (newrelic.js, datadog.json, .lighthouserc.js containing "alert", "notification" or "webhook"; grafana.json and similar).',
       'Browser-oriented with NO backend/Python path (unlike Performance Monitoring Standards) — a backend fails most checks.',
       'Conceptually overlaps Performance Monitoring Standards but is a separate, less capable detector.',
+      'Error tracking also counts an own error handler in the production sources, read with the TypeScript parser: an Angular ErrorHandler provider wherever it is registered (or a provide…ErrorHandler() helper), window.onerror, or a window / process error listener. It shows that errors are captured, not that they are sent anywhere.',
     ],
     stack: 'frontend',
     emoji: '📊',

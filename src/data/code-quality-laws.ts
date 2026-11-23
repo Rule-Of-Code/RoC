@@ -32,6 +32,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Reads the code and the comments from the TypeScript parse: console, `: any` annotations, `as any` casts and empty catch in code only, TODO tags (capitals, at the start of a // comment) and eslint-disable in comments only; without a loadable `typescript` the files are NOT read and the law judges nothing. Only the ROOT tsconfig is read.',
       'In a package whose nearest package.json declares `bin`, console.log/info are not counted anywhere in it — a stray log in such a package is not told apart from output; console.warn is not counted in the entry modules derived from `bin` (the source of each bin target, the directory named after it and a commands/ directory beside it), and is counted in the rest. A logging module (logger.*, logging*, log.*) is not counted.',
       'TS/Angular only; a Python project has no tsconfig and cannot pass.',
+      'Owns the hand-written `any` of a declaration or a cast (`: any`, `as any`, `any[]`): No Explicit Any / Non-Null Assertion does not count them again (#482).',
     ],
     stack: 'typescript',
     emoji: '❌',
@@ -398,6 +399,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Regex over the code of the TypeScript parse — strings, templates, regexes and comments are not read (without a loadable `typescript` the files are NOT read and the law judges nothing); `: Object` / `: Function` fire on user types named Object/Function, but not on a value after a colon (`Object.keys(`, `Function(`).',
       'The empty-object `{}` type is deliberately not detected; the per-file collapse hides the true count.',
+      '`: any`, `as any` and `any[]` in a declaration or a cast are counted by Absolute Zero Tolerance Doctrine (error severity), which owns them, and not here (#482); this law counts `<any>` assertions and type arguments, the weak `Function` / `Object` types and non-null `!`.',
       'TypeScript; not Angular-gated; no Python.',
     ],
     stack: 'typescript',

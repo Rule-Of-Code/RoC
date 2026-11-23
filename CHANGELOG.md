@@ -302,6 +302,17 @@ or a `window` / `process` error listener. An import of `ErrorHandler` or
 that may register a handler are reported as not read. Global Error Handlers
 also recognises a `provide…ErrorHandler()` helper call.
 
+### 🐛 Fixed — one `any` is one finding: Absolute Zero Tolerance Doctrine owns it
+
+An `x as any` (or a `: any` / `any[]` declaration) was a finding of two laws:
+Absolute Zero Tolerance Doctrine (error) and No Explicit Any / Non-Null
+Assertion (warning). One defect read as two. Absolute Zero Tolerance
+Doctrine, the error-severity gate that already judges these from the code
+(#459), owns them; No Explicit Any no longer counts them again and keeps what
+the other law does not judge: `<any>` assertions and type arguments, the weak
+`Function` / `Object` types and non-null `!`. Both law cards say so. No
+finding is unblocked: the owner of the overlap is the law that blocks (#482).
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

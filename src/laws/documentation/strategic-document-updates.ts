@@ -2,6 +2,7 @@ import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils/file-utils';
 import { hasIssueTracker } from '../../utils/issue-tracker';
 import { PathOperations } from '../../utils/path-operations';
+import { STRATEGIC_DOCS as DOCS } from './documentation-penalties';
 // Interfaces for strategic document analysis
 interface DocumentAnalysis {
   hasDocument: boolean;
@@ -61,12 +62,12 @@ export class StrategicDocumentUpdatesLaw {
       suggestions.push(
         'Create comprehensive README.md with project overview, setup, and usage instructions'
       );
-      score -= 30;
+      score -= DOCS.penalty.readmeMissing;
     } else if (readmeAnalysis.quality === 'basic') {
       suggestions.push(
         'Enhance README.md with more detailed sections (installation, usage, contributing)'
       );
-      score -= 10;
+      score -= DOCS.penalty.readmeBasic;
     }
 
     // 2. Check for PROJECT_STATUS.md — or the same record kept elsewhere: a
@@ -86,7 +87,7 @@ export class StrategicDocumentUpdatesLaw {
       suggestions.push(
         'Create PROJECT_STATUS.md to track project milestones and current status'
       );
-      score -= 25;
+      score -= DOCS.penalty.statusRecord;
     }
 
     // 3. Check for CHANGELOG.md
@@ -95,7 +96,7 @@ export class StrategicDocumentUpdatesLaw {
       suggestions.push(
         'Create CHANGELOG.md to track version changes and releases'
       );
-      score -= 20;
+      score -= DOCS.penalty.changelog;
     }
 
     // 4. Check document freshness
@@ -104,7 +105,7 @@ export class StrategicDocumentUpdatesLaw {
       suggestions.push(
         'Update strategic documents - some appear to be outdated'
       );
-      score -= 15;
+      score -= DOCS.penalty.freshness;
     }
 
     // 5. Check for version consistency
@@ -113,7 +114,7 @@ export class StrategicDocumentUpdatesLaw {
       suggestions.push(
         'Ensure version numbers are consistent across all strategic documents'
       );
-      score -= 10;
+      score -= DOCS.penalty.versionConsistency;
     }
 
     // The verdict is violations-driven; the score is informational.
@@ -289,7 +290,7 @@ export class StrategicDocumentUpdatesLaw {
     let documentsAreFresh = true;
     const staleFiles: string[] = [];
     const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - DOCS.freshnessDays);
 
     for (const file of strategicFiles) {
       const filePath = PathOperations.join(projectRoot, file);

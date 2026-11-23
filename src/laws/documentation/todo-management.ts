@@ -11,6 +11,7 @@ import { PathOperations } from '../../utils/path-operations';
 import type { TodoAnalysisResult } from './todo-analysis-result';
 import { TodoAnalysisResultBuilder } from './todo-analysis-result';
 import { todoCommentSource } from './todo-comment-source';
+import { TODO_RULES as RULES } from './documentation-penalties';
 /**
  * TODO Management Constitutional Requirements Law
  *
@@ -40,7 +41,8 @@ export class TodoManagementLaw {
 
     // 2. Check TODO count limits
     const maxTodoCount =
-      context.config.thresholds?.documentation?.maxTodoCount ?? 30;
+      context.config.thresholds?.documentation?.maxTodoCount ??
+      RULES.defaultMax;
     if (todoAnalysis.totalCount > maxTodoCount) {
       violations.push(
         `${todoAnalysis.totalCount} TODOs found (limit: ${maxTodoCount})`
@@ -48,25 +50,25 @@ export class TodoManagementLaw {
       suggestions.push(
         'Convert excess TODOs to GitHub Issues or remove obsolete ones'
       );
-      score -= Math.min(40, ((todoAnalysis.totalCount - 30) / 30) * 40);
+      score -= RULES.excessPenalty(todoAnalysis.totalCount);
     }
 
     // 3. Check TODO format compliance
     const formatCompliance =
       (todoAnalysis.properlyFormatted / todoAnalysis.totalCount) * 100 || 0;
-    if (formatCompliance < 80 && todoAnalysis.totalCount > 0) {
+    if (formatCompliance < RULES.minFormatted && todoAnalysis.totalCount > 0) {
       violations.push(
         `${Math.round(100 - formatCompliance)}% of TODOs improperly formatted`
       );
       suggestions.push('Use format: TODO (Sprint X): Description');
-      score -= 25;
+      score -= RULES.penalty.improperFormat;
     }
 
     // 4. Check for descriptive TODOs
     if (todoAnalysis.vagueTodos > 0) {
       violations.push(`${todoAnalysis.vagueTodos} vague or incomplete TODOs`);
       suggestions.push('Make TODOs descriptive with clear action items');
-      score -= 15;
+      score -= RULES.penalty.vague;
     }
 
     // 5. Check for GitHub issue references
@@ -77,7 +79,7 @@ export class TodoManagementLaw {
       suggestions.push(
         'Convert complex TODOs to GitHub Issues with proper tracking'
       );
-      score -= 10;
+      score -= RULES.penalty.needsIssue;
     }
 
     // 6. Check for old/stale TODOs
@@ -88,7 +90,7 @@ export class TodoManagementLaw {
       suggestions.push(
         'Review and update old sprint TODOs or mark as completed'
       );
-      score -= 10;
+      score -= RULES.penalty.stale;
     }
 
     // Calculate compliance metrics
@@ -278,7 +280,7 @@ export class TodoManagementLaw {
     const now = new Date();
     const sprintStartDate = new Date('2024-12-01'); // Approximate start
     const weeksSinceStart = Math.floor(
-      (now.getTime() - sprintStartDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
+      (now.getTime() - sprintStartDate.getTime()) / RULES.weekMs
     );
     const estimatedCurrentSprint = Math.max(1, weeksSinceStart);
 

@@ -142,7 +142,6 @@ describe('AuditTypes', () => {
         parallel: true,
         projectRoot: '/my/project',
         configPath: './ruleofcode.config.json',
-        suggestExceptions: true,
         maxConcurrent: 4,
         timeout: 30000,
         includeWarnings: true,

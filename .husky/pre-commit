@@ -12,10 +12,10 @@ if [ "$roc_lint_staged" = 0 ] && node -e "process.exit(require('./package.json')
   roc_lint_staged=1
 fi
 if [ "$roc_lint_staged" = 1 ]; then
-  # This repository only: no backup stash. The stash list belongs to the
-  # repository, not the worktree, so with several worktrees committing at
-  # once one hook could restore another worktree's backup (0350ddf). The
-  # only lint-staged task is the audit, which changes no file.
+  # Opt-in (reinstall-hooks --no-stash): no backup stash. The stash list
+  # belongs to the repository, not the worktree, so with several worktrees
+  # committing at once one hook could restore another worktree's backup.
+  # Only safe when no lint-staged task rewrites files.
   npx lint-staged --no-stash
 fi
 

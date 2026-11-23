@@ -31,6 +31,9 @@ Read this before your first PR.
 | `master` | **releases only**; the tag is cut here and merged back to `develop` |
 
 - Feature PRs target `develop`, **never `master`**.
+- A release follows [PRE_DEPLOYMENT_CHECKLIST.md](PRE_DEPLOYMENT_CHECKLIST.md), step by
+  step: the candidate, the version sweep (`scripts/version-sweep.js`), the gate, the
+  GO on the untagged candidate, the tag and the publish.
 - The tag is **annotated** (`git tag -a vX.Y.Z -m "..."`), cut on `master` after merge,
   and only once the release canary is green (see below).
 - The prefix matters: Branch Governance accepts only

@@ -44,7 +44,10 @@
  * ungated universal ones, 17 of the 76 laws a plain TypeScript (node)
  * project selects, 22.4%. All seven would be 19 of 76, at the edge of the
  * band; protecting every SECURITY `error` law at any priority would add two
- * universal ones and push node over it.
+ * universal ones and push node over it. (Counted before API Security
+ * Standards and Environment Parity Standards were gated on a production
+ * subject, #428: a project without one selects neither, and API Security
+ * is not in its core; where it is selected, step 4 still protects it.)
  * Absolute Zero Tolerance Doctrine (its concern overlaps the SACRED Zero
  * Tolerance Doctrine) and Jest Unit Test 100% Coverage Mandate run in a
  * full audit, not in the fast one. A new law that enters by step 4 and

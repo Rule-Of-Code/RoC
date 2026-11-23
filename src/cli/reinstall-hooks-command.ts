@@ -11,6 +11,11 @@ import { getVersion } from './utils';
 
 export interface ReinstallHooksOptions {
   force?: boolean;
+  /**
+   * commander's `--no-stash`: false writes `npx lint-staged --no-stash`
+   * (#480). Left out, the existing hook decides.
+   */
+  stash?: boolean;
 }
 
 /**
@@ -37,7 +42,8 @@ export async function executeReinstallHooksAction(
       config,
     });
 
-    if (validation.valid && !options.force) {
+    // --no-stash changes what is written, so it reinstalls an up-to-date hook.
+    if (validation.valid && !options.force && options.stash !== false) {
       console.log(
         chalk.green(`\n✅ All git hooks are up to date (v${getVersion()})`)
       );
@@ -59,12 +65,23 @@ export async function executeReinstallHooksAction(
 
     console.log(chalk.cyanBright('\n🔧 Reinstalling hooks...\n'));
 
-    // Reinstall hooks
-    GitHooksInstaller.reinstall({
+    // Reinstall hooks. Without --force a hook with lines of its own is kept
+    // and named; with it, it is saved as <hook>.bak first (#556).
+    const written = GitHooksInstaller.reinstall({
       projectRoot,
       config,
-      force: true,
+      force: options.force === true,
+      ...(options.stash === false ? { lintStagedNoStash: true } : {}),
     });
+    if (written.refused.length > 0) {
+      console.error(
+        chalk.red(
+          `\n❌ Not reinstalled: ${written.refused.join(', ')} — lines this version does not generate are kept. Run 'reinstall-hooks --force' to replace them; each is saved as <hook>.bak first.\n`
+        )
+      );
+      process.exitCode = 1;
+      return;
+    }
 
     // The scripts are rewritten; whether git runs them is a separate fact,
     // asked of the target repository itself (#372).
@@ -107,6 +124,10 @@ export function reinstallHooksCommand(program: Command): void {
       `🔄 Reinstall/update git hooks to latest version (v${getVersion()})`
     )
     .option('-f, --force', 'Force reinstall even if hooks are up to date')
+    .option(
+      '--no-stash',
+      'run lint-staged without its backup stash (several worktrees committing at once; only when no lint-staged task rewrites files) — kept on later reinstalls'
+    )
     .action(async (options: ReinstallHooksOptions) => {
       await executeReinstallHooksAction(options);
     });

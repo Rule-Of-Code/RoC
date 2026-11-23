@@ -65,6 +65,39 @@ describe('ModuleBindings.shared', () => {
     ).toEqual([]);
   });
 
+  it('does not take a same-named binding the hook declares for a reset (shadowing)', () => {
+    expect(
+      ModuleBindings.shared(
+        lines(
+          'let calls = 0;',
+          'beforeEach(() => {',
+          '  const calls = 0;',
+          '  expect(calls).toBe(0);',
+          '});'
+        )
+      )
+    ).toEqual(['calls']);
+  });
+
+  it('does not take an assignment written inside a string for a reset', () => {
+    expect(
+      ModuleBindings.shared(
+        lines('let calls = 0;', "beforeEach(() => { log('calls = 0'); });")
+      )
+    ).toEqual(['calls']);
+  });
+
+  it('reads every declarator of one statement', () => {
+    expect(
+      ModuleBindings.shared(
+        lines(
+          'let first = 1, second = 2, third;',
+          'beforeEach(() => { first = 1; });'
+        )
+      )
+    ).toEqual(['second']);
+  });
+
   it('keeps its exported patterns stateless', () => {
     expect(ModuleBindings.MODULE_LET.global).toBe(false);
     expect(ModuleBindings.MODULE_VAR.global).toBe(false);

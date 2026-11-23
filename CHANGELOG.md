@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Dead Code Elimination says what it reads; a dead-code tool that runs counts (#439)
+
+The card promised "Remove all unused imports, functions, and variables",
+and the law never looked for unused code: it reads a `debugger`, a statement
+after a `return` and commented-out declarations, and it asked for ESLint's
+`no-unused-vars` / `no-unreachable` rule. A dead-code tool counted only as a
+devDependency, and only in a suggestion.
+
+- The description, violation message, remediation, `satisfiedBy` and
+  detection limits now say exactly that; unused code is not promised.
+- A dead-code tool the project runs — knip, ts-prune, ts-unused-exports or
+  unimported, from a package script, a committed git hook or a CI step —
+  proves the "unused" part, in place of the ESLint rule. A tool that is only
+  a devDependency, an install line (`npm i -D knip`), a step name or a
+  comment does not count; the suggestion says when a tool is installed and
+  run nowhere. `depcheck` (unused dependencies, not dead code) is no longer
+  suggested.
+- The places are read by `commandInvocations`, the reader the audit
+  invocation probe uses (#434): every workspace script, `.husky`/`.githooks`,
+  lefthook, `.pre-commit-config.yaml`, `simple-git-hooks`, and the CI
+  providers the tool knows or a declared `pathMappings.cicdConfig`.
+
 ### 🐛 Fixed — Angular Testing Excellence reports a one-letter test title (#570)
 
 The descriptive-title rule (#557) reported an empty title, a placeholder or

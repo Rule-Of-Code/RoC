@@ -312,6 +312,17 @@ is now selected only for an Nx workspace (`nx.json`, or the `nx` /
 Angular project in an Nx workspace is still judged. The canary angular, ngrx
 and ionic profiles no longer select it (#475).
 
+### 🐛 Fixed — one `any` is one finding: Absolute Zero Tolerance Doctrine owns it
+
+An `x as any` (or a `: any` / `any[]` declaration) was a finding of two laws:
+Absolute Zero Tolerance Doctrine (error) and No Explicit Any / Non-Null
+Assertion (warning). One defect read as two. Absolute Zero Tolerance
+Doctrine, the error-severity gate that already judges these from the code
+(#459), owns them; No Explicit Any no longer counts them again and keeps what
+the other law does not judge: `<any>` assertions and type arguments, the weak
+`Function` / `Object` types and non-null `!`. Both law cards say so. No
+finding is unblocked: the owner of the overlap is the law that blocks (#482).
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the
@@ -4812,7 +4823,6 @@ Both law-model types documented `legacyId` as *"usable as a notApplicable key"*.
 is not — 25 legacyIds are shared by 51 laws, and v7.10.0 refuses ambiguous keys.
 The comment now says so. (Documentation that describes a detector which no longer
 does what it claims is the exact failure this tool exists to catch.)
-
 
 ---
 

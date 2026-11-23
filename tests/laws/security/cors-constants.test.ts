@@ -1,7 +1,10 @@
 /**
  * Tests for CORSConstants
  */
+import * as ts from 'typescript';
+
 import { CORSConstants } from '../../../src/laws/security/api-security/constants/cors';
+import { readCodeView } from '../../../src/utils/security/code-view';
 
 describe('CORSConstants', () => {
   describe('CORS_PATTERNS', () => {
@@ -17,8 +20,9 @@ describe('CORSConstants', () => {
       );
     });
 
-    it('should have EXPRESS pattern', () => {
-      expect(CORSConstants.CORS_PATTERNS.EXPRESS).toBeInstanceOf(RegExp);
+    it('should have EXPRESS_MODULE and EXPRESS_APP patterns', () => {
+      expect(CORSConstants.CORS_PATTERNS.EXPRESS_MODULE).toBeInstanceOf(RegExp);
+      expect(CORSConstants.CORS_PATTERNS.EXPRESS_APP).toBeInstanceOf(RegExp);
     });
 
     it('CORS_MIDDLEWARE should match cors', () => {
@@ -87,19 +91,36 @@ describe('CORSConstants', () => {
   });
 
   describe('isExpressServerMissingCors()', () => {
+    const view = (content: string) => readCodeView(ts, content, 'server.ts');
+    const IMPORT = "import express from 'express';\n";
+
     it('should return true for express without cors', () => {
-      const content = 'const app = express(); app.use(helmet());';
-      expect(CORSConstants.isExpressServerMissingCors(content)).toBe(true);
+      const content = `${IMPORT}const app = express(); app.use(helmet());`;
+      expect(CORSConstants.isExpressServerMissingCors(view(content))).toBe(
+        true
+      );
     });
 
     it('should return false for express with cors', () => {
-      const content = 'const app = express(); app.use(cors());';
-      expect(CORSConstants.isExpressServerMissingCors(content)).toBe(false);
+      const content = `${IMPORT}const app = express(); app.use(cors());`;
+      expect(CORSConstants.isExpressServerMissingCors(view(content))).toBe(
+        false
+      );
     });
 
     it('should return false for non-express server', () => {
       expect(
-        CORSConstants.isExpressServerMissingCors('const http = require("http")')
+        CORSConstants.isExpressServerMissingCors(
+          view('const http = require("http"); http.createServer().listen(1);')
+        )
+      ).toBe(false);
+    });
+
+    it('should return false when express is only named in a string', () => {
+      expect(
+        CORSConstants.isExpressServerMissingCors(
+          view("export const NOTE = 'an express() app.listen(3000)';")
+        )
       ).toBe(false);
     });
   });

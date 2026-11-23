@@ -322,7 +322,7 @@ export function scanDuplicateReads(
     }
   }
   const keys = all.map(d => new Set(d.sites.map(siteKey)));
-  const kept = all.filter((d, i) => {
+  const kept = all.filter((_d, i) => {
     const mine = keys[i] as Set<string>;
     return !keys.some(
       (other, j) =>

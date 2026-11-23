@@ -6,11 +6,6 @@ import { NgRxConfigurationBase } from '../ngrx-configuration-base';
 
 export class NgRxActionHandlingConfiguration extends NgRxConfigurationBase {
   /**
-   * Config alias for cleaner internal references (RULE 2 pattern)
-   */
-  private static readonly Config = NgRxActionHandlingConfiguration;
-
-  /**
    * NgRx action handling detection patterns
    */
   static readonly ACTION_HANDLING_PATTERNS = {

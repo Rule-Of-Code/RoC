@@ -5,7 +5,6 @@ import { FileUtils } from '../../utils/file-utils';
 import { resolveRemoteUrls } from '../../utils/git/git-layout';
 import { PathOperations } from '../../utils/path-operations';
 import { ciConfigContent } from '../../utils/project-discovery';
-import { DeploymentValidationUtilities } from './shared-deployment-utilities';
 // Interfaces for pre-PR quality gates analysis
 interface PreCommitHooksAnalysis {
   hasPreCommitHooks: boolean;
@@ -161,22 +160,9 @@ export class PrePrQualityGatesLaw {
       '.azuredevops/pull_request_template.md',
     ];
 
-    let hasPRTemplate = false;
-    let _templateQuality = 'none';
-
-    for (const templatePath of prTemplatePaths) {
-      const fullPath = PathOperations.join(projectRoot, templatePath);
-      if (FileUtils.exists(fullPath)) {
-        hasPRTemplate = true;
-        try {
-          const content = FileUtils.readFile(fullPath, { encoding: 'utf8' });
-          _templateQuality = this.assessTemplateQuality(content);
-        } catch (_error) {
-          _templateQuality = 'basic';
-        }
-        break;
-      }
-    }
+    const hasPRTemplate = prTemplatePaths.some(templatePath =>
+      FileUtils.exists(PathOperations.join(projectRoot, templatePath))
+    );
 
     return {
       hasPRTemplate,
@@ -347,25 +333,6 @@ export class PrePrQualityGatesLaw {
     const hasCodeOwners = FileUtils.exists(codeOwnersPath);
 
     return { hasCodeReviewRequirements: hasCodeOwners };
-  }
-
-  private static assessTemplateQuality(content: string): string {
-    const qualityIndicators = [
-      /checklist/i,
-      /checkbox/i,
-      /\[.\]/, // Checkbox syntax
-      /description/i,
-      /testing/i,
-      /changes/i,
-    ];
-
-    const matches = qualityIndicators.filter(pattern =>
-      pattern.test(content)
-    ).length;
-
-    if (matches >= 4) return 'comprehensive';
-    if (matches >= 2) return 'good';
-    return 'basic';
   }
 
   private static hasStatusCheckConfiguration(content: string): boolean {

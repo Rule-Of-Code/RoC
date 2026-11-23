@@ -5,7 +5,7 @@
 
 import { minimatch } from 'minimatch';
 import type { RuleOfCodeConfig } from '../config/types';
-import { PATTERNS, SKIP_DIRECTORIES, TEST_FILE_GLOBS } from './constants';
+import { SKIP_DIRECTORIES, TEST_FILE_GLOBS } from './constants';
 import { PathOperations } from './path-operations';
 export class FileFilterUtils {
   /**

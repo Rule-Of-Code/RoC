@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — a module-level `let` reset in `beforeEach` is not shared state (#552)
+
+Test Data Management and Test Isolation Enforcement reported a module-level
+`let` with an initialiser as shared mutable state even when a `beforeEach`
+gave it a fresh value before every test, which is the isolation pattern both
+laws ask for. The two laws also disagreed on a typed `let`
+(`let state: State = make();`): one reported it, the other did not.
+
+Both laws now read the same definition: a column-0 `let` / `var` with an
+initialiser, typed or not, is shared state unless a `beforeEach` or
+`afterEach` of the same file assigns it. A reset in `beforeAll` (which runs
+once) does not count. Test Data Management can therefore report a typed
+`let` that nothing resets, which it did not see before.
+
 ### 🐛 Fixed — an ignores.global entry that matches no file is named
 
 8.0.0 brought every written form of an `ignores.*` pattern to one form, so a
@@ -46,20 +60,6 @@ the request-path reader could not parse), HTML Lang Declared (sources and a
 config script) and Capacitor Plugin Stub Has Contract Test (test configs and
 mappers it could not read) fill it. A law that read none of its files is still
 judged nothing, whether its note is a violation or in `notRead` (#453).
-
-### 🐛 Fixed — a module-level `let` reset in `beforeEach` is not shared state (#552)
-
-Test Data Management and Test Isolation Enforcement reported a module-level
-`let` with an initialiser as shared mutable state even when a `beforeEach`
-gave it a fresh value before every test, which is the isolation pattern both
-laws ask for. The two laws also disagreed on a typed `let`
-(`let state: State = make();`): one reported it, the other did not.
-
-Both laws now read the same definition: a column-0 `let` / `var` with an
-initialiser, typed or not, is shared state unless a `beforeEach` or
-`afterEach` of the same file assigns it. A reset in `beforeAll` (which runs
-once) does not count. Test Data Management can therefore report a typed
-`let` that nothing resets, which it did not see before.
 
 ## [8.0.1] - 2026-11-22
 

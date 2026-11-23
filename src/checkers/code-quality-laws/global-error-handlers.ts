@@ -109,26 +109,36 @@ function propertyName(ts: typeof TS, name: TS.PropertyName): string | null {
 }
 
 /** `{ provide: ErrorHandler, useClass | useExisting | useFactory | useValue: … }`. */
+/** `ErrorHandler` or `ng.ErrorHandler` — the token a provider names. */
+function namesErrorHandler(ts: typeof TS, node: TS.Expression): boolean {
+  if (ts.isIdentifier(node)) return node.text === 'ErrorHandler';
+  return (
+    ts.isPropertyAccessExpression(node) && node.name.text === 'ErrorHandler'
+  );
+}
+
+/** `provide: ErrorHandler` in an object literal. */
+function providesErrorHandler(
+  ts: typeof TS,
+  property: TS.ObjectLiteralElementLike
+): boolean {
+  return (
+    ts.isPropertyAssignment(property) &&
+    propertyName(ts, property.name) === 'provide' &&
+    namesErrorHandler(ts, property.initializer)
+  );
+}
+
 function isErrorHandlerProvider(ts: typeof TS, node: TS.Node): boolean {
   if (!ts.isObjectLiteralExpression(node)) return false;
-  let provides = false;
-  let uses = false;
-  for (const property of node.properties) {
-    const name = property.name ? propertyName(ts, property.name) : null;
-    if (name === null) continue;
-    if (
-      name === 'provide' &&
-      ts.isPropertyAssignment(property) &&
-      ((ts.isIdentifier(property.initializer) &&
-        property.initializer.text === 'ErrorHandler') ||
-        (ts.isPropertyAccessExpression(property.initializer) &&
-          property.initializer.name.text === 'ErrorHandler'))
-    ) {
-      provides = true;
-    }
-    if (PROVIDER_USE_KEYS.has(name)) uses = true;
-  }
-  return provides && uses;
+  const properties = node.properties;
+  return (
+    properties.some(property => providesErrorHandler(ts, property)) &&
+    properties.some(property => {
+      const name = property.name ? propertyName(ts, property.name) : null;
+      return name !== null && PROVIDER_USE_KEYS.has(name);
+    })
+  );
 }
 
 /** A call of a `provide…ErrorHandler()` helper. */

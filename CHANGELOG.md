@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Error Handling Completeness judges the event handler, not the file (#536)
+
+"event handlers without error handling" was reported for a file that calls
+`addEventListener` and has no `try` / `catch` anywhere, whatever the
+handler does: a synchronous handler that removes itself and resolves a
+promise was a finding, and a file passed when the word `try` appeared in a
+comment. Each handler is judged now, inline or declared by name in the same
+file: it is a finding, with its line, when it can fail (`async`, an
+`await`, a `throw`, `JSON.parse`, a `fetch` / `XMLHttpRequest` / `axios` /
+HTTP client call) and has no `try` and no `.catch(` of its own.
+
 ### 🐛 Fixed — a module-level `let` reset in `beforeEach` is not shared state (#552)
 
 Test Data Management and Test Isolation Enforcement reported a module-level

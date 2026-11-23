@@ -1,6 +1,9 @@
+import type * as TS from 'typescript';
 import type { RuleOfCodeConfig } from '../../../../types';
 import { CheckerUtils, FileUtils, PathOperations } from '../../../../utils';
+import { loadTypeScript } from '../../../../utils/react/tsx-source';
 import { CORSConstants } from '../constants';
+import { readApiCodeView } from './api-code-view';
 
 /**
  * CORSAnalyzer
@@ -9,13 +12,21 @@ import { CORSConstants } from '../constants';
  * Single Responsibility: CORS headers and middleware validation
  */
 export class CORSAnalyzer {
-  static analyze(projectRoot: string, config: RuleOfCodeConfig): string[] {
+  /**
+   * `ts` is the parser the server files are read with; without it they are
+   * not judged (the coordinator says so once for the law).
+   */
+  static analyze(
+    projectRoot: string,
+    config: RuleOfCodeConfig,
+    ts: typeof TS | null = loadTypeScript(projectRoot)
+  ): string[] {
     const violations: string[] = [];
 
     violations.push(...this.checkProxyConfiguration(projectRoot));
     violations.push(...this.checkFirebaseFunctions(projectRoot));
     violations.push(...this.checkHealthEndpoints(projectRoot));
-    violations.push(...this.checkServerFiles(projectRoot, config));
+    if (ts) violations.push(...this.checkServerFiles(projectRoot, config, ts));
 
     return violations;
   }
@@ -146,11 +157,16 @@ export class CORSAnalyzer {
   }
 
   /**
-   * Check server files for CORS configuration
+   * Express servers without CORS (#550, #559). A server is a file that
+   * imports express and creates or starts the app — read in code, whatever
+   * the file is called. The file name (`server`, `main`, `app` — which also
+   * matched `mapper.ts`) and the word "express" anywhere in the text (inside
+   * `isExpressionStatement`, in a law's prose) made a server of any file.
    */
   private static checkServerFiles(
     projectRoot: string,
-    config: RuleOfCodeConfig
+    config: RuleOfCodeConfig,
+    ts: typeof TS
   ): string[] {
     const violations: string[] = [];
     const allFiles = CheckerUtils.findFilesByExtension(
@@ -158,25 +174,21 @@ export class CORSAnalyzer {
       ['.ts', '.js'],
       config
     );
-    const serverFiles = allFiles.filter(f => {
-      const name = PathOperations.getBasename(f).toLowerCase();
-      return (
-        name.includes('server') || name.includes('main') || name.includes('app')
-      );
-    });
 
-    for (const file of serverFiles) {
+    for (const file of allFiles) {
+      let content: string;
       try {
-        const content = FileUtils.readFile(file, { encoding: 'utf8' });
-        const relativePath = PathOperations.getRelative(projectRoot, file);
-
-        if (CORSConstants.isExpressServerMissingCors(content)) {
-          violations.push(
-            `${relativePath}: Express server missing CORS configuration`
-          );
-        }
+        content = FileUtils.readFile(file, { encoding: 'utf8' });
       } catch (_error) {
-        // Continue
+        continue;
+      }
+      // Only a file that names the module is parsed.
+      if (!content.includes('express')) continue;
+      const view = readApiCodeView(ts, file, content);
+      if (view && CORSConstants.isExpressServerMissingCors(view)) {
+        violations.push(
+          `${PathOperations.getRelative(projectRoot, file)}: Express server missing CORS configuration`
+        );
       }
     }
 

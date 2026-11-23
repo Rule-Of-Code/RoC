@@ -7,6 +7,7 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import { TODO_RULES } from '../../../src/laws/documentation/documentation-penalties';
 import { TodoManagementLaw } from '../../../src/laws/documentation/todo-management';
 import type { LawCheckContext, RuleOfCodeConfig } from '../../../src/types';
 
@@ -59,5 +60,26 @@ describe('TODO Management — string-literal markers are not real TODOs', () => 
 
     // The real marker (unformatted, no sprint reference) is detected and flagged.
     expect(result.passed).toBe(false);
+  });
+});
+
+/**
+ * The excess deduction was computed inline as
+ * min(40, ((count - 30) / 30) * 40); it moved to TODO_RULES.excessPenalty
+ * and must give the same points at the allowance, past it and at the cap.
+ */
+describe('TODO Management — the excess deduction, at the limit and beyond', () => {
+  const inline = (count: number): number =>
+    Math.min(40, ((count - 30) / 30) * 40);
+
+  it.each([30, 31, 45, 59, 60, 61, 200])('%i TODOs', count => {
+    expect(TODO_RULES.excessPenalty(count)).toBe(inline(count));
+  });
+
+  it('is zero at the default allowance and capped at the max', () => {
+    expect(TODO_RULES.excessPenalty(TODO_RULES.defaultMax)).toBe(0);
+    expect(TODO_RULES.excessPenalty(1000)).toBe(40);
+    expect(TODO_RULES.minFormatted).toBe(80);
+    expect(TODO_RULES.weekMs).toBe(604800000);
   });
 });

@@ -241,27 +241,28 @@ export class GuardFunctionHasProductionCallerLaw extends LawBase {
   /** An identifier that names something rather than using it: declarations, keys, import/export lists. */
   private static isPlumbing(ts: TsxSource['ts'], node: TS.Identifier): boolean {
     const parent = node.parent;
-    if (
-      ts.isImportSpecifier(parent) ||
-      ts.isImportClause(parent) ||
-      ts.isNamespaceImport(parent) ||
-      ts.isExportSpecifier(parent) ||
-      ts.isTypeQueryNode(parent)
-    ) {
-      return true;
-    }
+    // Import/export lists and `typeof x` name the identifier wherever it is.
+    const lists: Array<(n: TS.Node) => boolean> = [
+      ts.isImportSpecifier,
+      ts.isImportClause,
+      ts.isNamespaceImport,
+      ts.isExportSpecifier,
+      ts.isTypeQueryNode,
+    ];
+    if (lists.some(is => is(parent))) return true;
+    // A declaration names it only as its own name.
+    const declarations: Array<(n: TS.Node) => boolean> = [
+      ts.isFunctionDeclaration,
+      ts.isVariableDeclaration,
+      ts.isMethodDeclaration,
+      ts.isPropertyDeclaration,
+      ts.isPropertyAssignment,
+      ts.isPropertySignature,
+      ts.isMethodSignature,
+      ts.isParameter,
+      ts.isClassDeclaration,
+    ];
     const named = parent as { name?: TS.Node };
-    return (
-      named.name === node &&
-      (ts.isFunctionDeclaration(parent) ||
-        ts.isVariableDeclaration(parent) ||
-        ts.isMethodDeclaration(parent) ||
-        ts.isPropertyDeclaration(parent) ||
-        ts.isPropertyAssignment(parent) ||
-        ts.isPropertySignature(parent) ||
-        ts.isMethodSignature(parent) ||
-        ts.isParameter(parent) ||
-        ts.isClassDeclaration(parent))
-    );
+    return named.name === node && declarations.some(is => is(parent));
   }
 }

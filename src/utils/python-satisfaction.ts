@@ -448,16 +448,15 @@ export class PythonSatisfaction {
     return tools;
   }
 
-  /** Does the project talk to a database at all (any stack)? */
+  /**
+   * Does the Python code query a database? Proved by a query in a Python
+   * source, not by a word in the manifests: the text of package.json,
+   * pyproject.toml or a Makefile matched `firestore` in a plugin name or a
+   * deploy script, and a project with no query was judged for indexes and
+   * pagination (#555). JS/TS use is proved by the law itself (an import of a
+   * database module).
+   */
   static hasDatabaseLayer(projectRoot: string): boolean {
-    const deps = this.gateConfig(projectRoot);
-    if (
-      /\b(sqlalchemy|django|psycopg2?|asyncpg|pymongo|motor|firebase-admin|firestore|prisma|typeorm|mongoose|knex|sequelize)\b/i.test(
-        deps
-      )
-    ) {
-      return true;
-    }
     return this.anyPythonSource(
       projectRoot,
       /\b(session\.query|select\(|cursor\.execute|collection\(|\.find_one\(|\.aggregate\()/

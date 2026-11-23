@@ -281,8 +281,8 @@ const APP_ROUTER_WITH_ROLES = {
 };
 
 describe('#561 nothing read is not "no role concept"', () => {
-  it('roles only in app/ and lib/ (no src/): the law says NOT read, judged nothing', () => {
-    const result = lawResult(APP_ROUTER_WITH_ROLES);
+  it('a project with no code file at all: the law says NOT read, judged nothing', () => {
+    const result = lawResult({ 'docs/README.md': '# Shop\n' });
     expect(result.judgedNothing).toBe(true);
     expect(result.violations).toContainEqual(
       expect.stringContaining('NOT read')
@@ -308,5 +308,60 @@ describe('#561 nothing read is not "no role concept"', () => {
     expect(result.violations).toContainEqual(
       expect.stringContaining('NOT read')
     );
+  });
+});
+
+describe('#574 code outside src/ is read', () => {
+  it('an app-router project (app/, lib/, no src/) is read and its roles are judged', () => {
+    const result = lawResult(APP_ROUTER_WITH_ROLES);
+    expect(result.judgedNothing).toBeUndefined();
+    expect(result.violations ?? []).not.toContainEqual(
+      expect.stringContaining('NOT read')
+    );
+    // The roles exist, and `user?.role === 'owner'` enforces them inline.
+    expect(result.suggestions ?? []).not.toContain(NO_ROLE_CONCEPT_NOTE);
+    expect(result.violations).not.toContain(RBAC);
+  });
+
+  it('roles defined in lib/ and never compared are still an RBAC finding', () => {
+    const result = lawResult({
+      'lib/auth/member.ts':
+        "export interface Member { id: string; role: 'owner' | 'member' }\n",
+      'app/page.tsx': 'export default function Page() { return null; }\n',
+    });
+    expect(result.violations).toContain(RBAC);
+  });
+
+  it('an Express service with code at server/ is read', () => {
+    const result = lawResult({
+      'server/index.ts': [
+        "import express from 'express';",
+        "import session from 'express-session';",
+        'const app = express();',
+        "app.use(session({ secret: process.env.SESSION_SECRET ?? '' }));",
+        "app.post('/logout', (req, res) => req.session.destroy(() => res.sendStatus(204)));",
+        '',
+      ].join('\n'),
+    });
+    expect(result.judgedNothing).toBeUndefined();
+    expect(result.violations).not.toContain(INVALIDATION);
+  });
+
+  it('build output in .next/ is not read as the project code', () => {
+    const result = lawResult({
+      '.next/server/app/page.js':
+        "const roles = ['admin']; module.exports = { roles };\n",
+    });
+    expect(result.judgedNothing).toBe(true);
+  });
+
+  it('a src/ project is read as before (control)', () => {
+    const result = lawResult({
+      'src/app/math.ts':
+        'export const add = (a: number, b: number) => a + b;\n',
+      'app/ignored.ts': 'export const roles = [];\n',
+    });
+    // src/ holds code: the root is not scanned, so app/ adds no role concept.
+    expect(result.suggestions).toContain(NO_ROLE_CONCEPT_NOTE);
   });
 });

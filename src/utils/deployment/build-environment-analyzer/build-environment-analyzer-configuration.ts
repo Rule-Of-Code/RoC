@@ -59,17 +59,6 @@ export class BuildEnvironmentAnalyzerConfiguration {
   } as const;
 
   /**
-   * Main file paths for environment detection (RULE 1: 100% internal coverage)
-   */
-  static readonly MAIN_FILE_PATHS = [
-    'src/main.ts',
-    'src/index.ts',
-    'src/app.ts',
-    'server.ts',
-    'index.js',
-  ] as readonly string[];
-
-  /**
    * Environment detection patterns (RULE 1: 100% internal coverage)
    */
   static readonly ENV_PATTERNS = [

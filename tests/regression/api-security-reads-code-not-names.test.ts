@@ -257,3 +257,61 @@ describe('#550 without the parser, servers and services are not judged', () => {
     expect(v).toContainEqual(expect.stringContaining('were NOT read'));
   });
 });
+
+/** An HTTP interceptor that attaches credentials — authentication by shape. */
+const HTTP_AUTH = [
+  "import { Injectable } from '@angular/core';",
+  "import { HttpEvent, HttpHandler, HttpInterceptor, HttpRequest } from '@angular/common/http';",
+  "import { Observable } from 'rxjs';",
+  '',
+  'declare const currentToken: () => string;',
+  '',
+  '@Injectable()',
+  'export class HttpCredentials implements HttpInterceptor {',
+  '  intercept(req: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {',
+  '    const withAuth = req.clone({ setHeaders: { Authorization: `Bearer ${currentToken()}` } });',
+  '    return next.handle(withAuth);',
+  '  }',
+  '  refresh(): void {}',
+  '}',
+  '',
+].join('\n');
+
+const NO_AUTH = 'No authentication service implementation found';
+
+describe('#550 point 1: authentication is recognised by what the code does', () => {
+  it('an interceptor that sets Authorization in http-auth.ts is authentication', async () => {
+    const v = await violations({ 'src/app/core/http-auth.ts': HTTP_AUTH });
+    expect(v).not.toContain(NO_AUTH);
+  });
+
+  it('an empty auth.service.ts is not authentication', async () => {
+    const v = await violations({
+      'src/app/core/auth.service.ts': 'export class AuthService {}\n',
+    });
+    expect(v).toContain(NO_AUTH);
+  });
+
+  it('a managed SDK is not asked for a token refresh mechanism', async () => {
+    const v = await violations({
+      'src/app/core/session.ts': [
+        "import { getAuth, getIdToken } from 'firebase/auth';",
+        'export const bearer = async () => {',
+        '  const user = getAuth().currentUser;',
+        '  return user ? { Authorization: `Bearer ${await getIdToken(user)}` } : {};',
+        '};',
+        '',
+      ].join('\n'),
+    });
+    expect(v).not.toContain(NO_AUTH);
+    expect(v).not.toContain('Authentication: Missing token refresh mechanism');
+  });
+
+  it('a project with no authentication is still told so (control)', async () => {
+    const v = await violations({
+      'src/app/math.ts':
+        'export const add = (a: number, b: number) => a + b;\n',
+    });
+    expect(v).toContain(NO_AUTH);
+  });
+});

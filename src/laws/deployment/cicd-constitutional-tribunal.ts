@@ -1,7 +1,6 @@
 import type { RuleOfCodeConfig } from '../../config/types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { PathOperations } from '../../utils/path-operations';
-import { PerformanceAnalysisService } from '../../utils/performance';
 import { ciConfigContent, ciConfigPaths } from '../../utils/project-discovery';
 interface PipelineAnalysis {
   hasPipeline: boolean;
@@ -121,19 +120,6 @@ export class CicdConstitutionalTribunalLaw {
       violations.push('CI/CD pipeline missing security scanning');
       suggestions.push('Add security vulnerability scanning to pipeline');
       score -= thresholds.noSecurityScanningDeduction;
-    }
-
-    // 5. Check for performance testing in the pipeline (suggestions only, not violations)
-    const performanceTesting =
-      PerformanceAnalysisService.analyzePerformanceTesting();
-    if (performanceTesting.hasPerformanceIssues) {
-      suggestions.push(
-        'Consider adding performance tests to the CI/CD pipeline'
-      );
-      performanceTesting.recommendations.forEach(rec => {
-        suggestions.push(rec);
-      });
-      // Optional enhancement - don't penalize score for suggestions
     }
 
     // 6. Check for deployment approval process (suggestions only, not violations)

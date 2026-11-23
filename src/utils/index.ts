@@ -36,7 +36,6 @@ export * from './deployment';
 export * from './git';
 export * from './licensing';
 export * from './naming';
-export * from './performance';
 export * from './types';
 
 // Angular exports - explicitly import to avoid conflicts

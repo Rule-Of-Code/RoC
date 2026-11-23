@@ -215,11 +215,11 @@ describe('ZeroToleranceLaw', () => {
       const ctx = createMockContext();
       const result = await ZeroToleranceLaw.check(ctx);
 
-      // ZeroToleranceLaw only checks for strict and noImplicitAny, not noImplicitReturns
-      // When strict is true and noImplicitAny is missing, it will have violation for noImplicitAny
+      // ZeroToleranceLaw only checks for strict and noImplicitAny, not noImplicitReturns.
+      // strict: true turns noImplicitAny on, so it is not reported (#506).
       expect(
         result.violations!.some((v: string) => v.includes('noImplicitAny'))
-      ).toBe(true);
+      ).toBe(false);
     });
 
     it('should check noUnusedLocals', async () => {
@@ -238,11 +238,11 @@ describe('ZeroToleranceLaw', () => {
       const ctx = createMockContext();
       const result = await ZeroToleranceLaw.check(ctx);
 
-      // ZeroToleranceLaw only checks for strict and noImplicitAny, not noUnusedLocals
-      // When noImplicitAny is missing, it will have violation for noImplicitAny
+      // ZeroToleranceLaw only checks for strict and noImplicitAny, not noUnusedLocals.
+      // strict: true turns noImplicitAny on, so it is not reported (#506).
       expect(
         result.violations!.some((v: string) => v.includes('noImplicitAny'))
-      ).toBe(true);
+      ).toBe(false);
     });
 
     it('should check noUnusedParameters', async () => {
@@ -261,11 +261,11 @@ describe('ZeroToleranceLaw', () => {
       const ctx = createMockContext();
       const result = await ZeroToleranceLaw.check(ctx);
 
-      // ZeroToleranceLaw only checks for strict and noImplicitAny, not noUnusedParameters
-      // When noImplicitAny is missing, it will have violation for noImplicitAny
+      // ZeroToleranceLaw only checks for strict and noImplicitAny, not noUnusedParameters.
+      // strict: true turns noImplicitAny on, so it is not reported (#506).
       expect(
         result.violations!.some((v: string) => v.includes('noImplicitAny'))
-      ).toBe(true);
+      ).toBe(false);
     });
   });
 

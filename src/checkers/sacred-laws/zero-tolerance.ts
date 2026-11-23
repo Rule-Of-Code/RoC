@@ -118,12 +118,20 @@ export class ZeroToleranceLaw {
       return;
     }
     const unknown: string[] = [];
+    // `strict` turns noImplicitAny on: unset under strict is enabled, and only
+    // an explicit `false` turns it off (#506).
+    const valueOf = (flag: 'strict' | 'noImplicitAny'): unknown =>
+      flag === 'noImplicitAny' &&
+      chain.options.noImplicitAny === undefined &&
+      chain.options.strict === true
+        ? true
+        : chain.options[flag];
     for (const [flag, finding] of [
       ['strict', STRICT_OFF],
       ['noImplicitAny', NO_IMPLICIT_ANY_OFF],
     ] as const) {
-      if (chain.options[flag]) continue;
-      if (chain.unread.length > 0 && chain.options[flag] === undefined) {
+      if (valueOf(flag)) continue;
+      if (chain.unread.length > 0 && valueOf(flag) === undefined) {
         unknown.push(flag);
       } else {
         violations.push(finding);

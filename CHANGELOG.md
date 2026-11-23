@@ -340,6 +340,15 @@ the cause and not the fix. The message now ends with
 the key derived from the law's title the way the registry derives every
 config key, so it stays right if the title changes (#501).
 
+### 🐛 Fixed — Zero Tolerance Doctrine: strict turns noImplicitAny on
+
+A tsconfig that sets `"strict": true` and does not repeat `noImplicitAny` got
+`TypeScript noImplicitAny not enabled`. TypeScript's `strict` turns
+`noImplicitAny` on, so the finding was false. The flag now counts as enabled
+when it is `true`, or when it is unset and `strict` is `true` (in the file or
+a base it extends); only an explicit `"noImplicitAny": false` is reported
+(#506).
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

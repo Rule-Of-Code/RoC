@@ -36,12 +36,12 @@ export const STRATEGIC_DOCS = {
   freshnessDays: 30,
 } as const;
 
-/** TODO allowance used when thresholds.documentation.maxTodoCount is not set. */
+/** The allowance of TODOs used when thresholds.documentation.maxTodoCount is not set. */
 const DEFAULT_MAX_TODOS = 30;
 /** The most the TODO count can cost. */
 const EXCESS_TODOS_MAX_PENALTY = 40;
 
-/** TODO Management: its deductions and limits. */
+/** The deductions and limits of TODO Management. */
 export const TODO_RULES = {
   penalty: { improperFormat: 25, vague: 15, needsIssue: 10, stale: 10 },
   defaultMax: DEFAULT_MAX_TODOS,

@@ -6,6 +6,7 @@ import { FileUtils } from '../../utils/file-utils';
 import { PathResolver } from '../../utils/path-resolver';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
 import { DeploymentValidationUtilities } from './shared-deployment-utilities';
+import { HEALTH_CHECK_PENALTY as PENALTY } from './deployment-penalties';
 /**
  * Health Check Monitoring Law
  *
@@ -59,7 +60,7 @@ export class HealthCheckMonitoringLaw {
     if (!healthEndpoints.hasHealthEndpoints) {
       violations.push('Missing health check endpoints');
       suggestions.push('Implement /health or /status endpoints');
-      score -= 30;
+      score -= PENALTY.endpoints;
     }
 
     // Checks 2 and 3 read `src/health.ts` & friends — substrate a Python
@@ -71,7 +72,7 @@ export class HealthCheckMonitoringLaw {
     if (tsProbesApply && !databaseHealth.hasDatabaseHealthChecks) {
       violations.push('Missing database connectivity health checks');
       suggestions.push('Add database connectivity validation to health checks');
-      score -= 25;
+      score -= PENALTY.database;
     }
 
     // 3. Check for external service health checks
@@ -83,14 +84,14 @@ export class HealthCheckMonitoringLaw {
     ) {
       violations.push('Missing external service dependency health checks');
       suggestions.push('Add health checks for external service dependencies');
-      score -= 20;
+      score -= PENALTY.externalServices;
     }
 
     // 4. Check for Kubernetes health probes
     const kubernetesProbes = this.analyzeKubernetesHealthProbes(projectRoot);
     if (!kubernetesProbes.hasKubernetesProbes) {
       suggestions.push('Configure Kubernetes liveness and readiness probes');
-      score -= 15;
+      score -= PENALTY.kubernetesProbes;
     }
 
     // 5. Check for monitoring integration
@@ -98,7 +99,7 @@ export class HealthCheckMonitoringLaw {
       this.analyzeMonitoringIntegration(projectRoot);
     if (!monitoringIntegration.hasMonitoringIntegration) {
       suggestions.push('Integrate health checks with monitoring systems');
-      score -= 10;
+      score -= PENALTY.monitoring;
     }
 
     return {

@@ -5,6 +5,7 @@ import { FileUtils } from '../../utils/file-utils';
 import { resolveRemoteUrls } from '../../utils/git/git-layout';
 import { PathOperations } from '../../utils/path-operations';
 import { ciConfigContent } from '../../utils/project-discovery';
+import { PRE_PR_PENALTY as PENALTY } from './deployment-penalties';
 // Interfaces for pre-PR quality gates analysis
 interface PreCommitHooksAnalysis {
   hasPreCommitHooks: boolean;
@@ -48,7 +49,7 @@ export class PrePrQualityGatesLaw {
       suggestions.push(
         'Install and configure pre-commit hooks with husky or similar'
       );
-      score -= 25;
+      score -= PENALTY.preCommitHooks;
     }
 
     // 2. Check for PR templates
@@ -56,7 +57,7 @@ export class PrePrQualityGatesLaw {
     if (!prTemplates.hasPRTemplate) {
       violations.push('Missing pull request templates');
       suggestions.push('Create PR templates with quality checklists');
-      score -= 20;
+      score -= PENALTY.prTemplates;
     }
 
     // 3. Check for branch protection rules
@@ -66,7 +67,7 @@ export class PrePrQualityGatesLaw {
       suggestions.push(
         'Configure branch protection rules with required status checks'
       );
-      score -= 20;
+      score -= PENALTY.branchProtection;
     }
 
     // 4. Check for required status checks configuration
@@ -76,21 +77,21 @@ export class PrePrQualityGatesLaw {
       suggestions.push(
         'Configure required CI/CD status checks for PR validation'
       );
-      score -= 15;
+      score -= PENALTY.statusChecks;
     }
 
     // 5. Check for automated PR validation
     const prValidation = this.analyzePRValidation(projectRoot);
     if (!prValidation.hasPRValidation) {
       suggestions.push('Add automated PR validation workflows');
-      score -= 10;
+      score -= PENALTY.prValidation;
     }
 
     // 6. Check for code review requirements
     const codeReview = this.analyzeCodeReviewRequirements(projectRoot);
     if (!codeReview.hasCodeReviewRequirements) {
       suggestions.push('Configure minimum code review requirements');
-      score -= 10;
+      score -= PENALTY.codeReview;
     }
 
     return {

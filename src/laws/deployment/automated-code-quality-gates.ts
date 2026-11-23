@@ -7,6 +7,7 @@ import { PerformanceAnalysisService } from '../../utils/performance';
 import { ciConfigContent } from '../../utils/project-discovery';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
 import { CoverageThresholdReader } from '../../utils/testing/coverage-threshold-reader';
+import { QUALITY_GATES_PENALTY as PENALTY } from './deployment-penalties';
 // Interfaces for quality gate analysis
 interface QualityGateAnalysis {
   hasLintingGates?: boolean;
@@ -44,7 +45,7 @@ export class AutomatedCodeQualityGatesLaw {
       suggestions.push(
         'Configure ESLint, TSLint, or similar with CI/CD integration'
       );
-      score -= 20;
+      score -= PENALTY.linting;
     }
 
     // 2. Check for formatting gates
@@ -57,7 +58,7 @@ export class AutomatedCodeQualityGatesLaw {
       suggestions.push(
         'Configure Prettier or similar formatting with automated checks'
       );
-      score -= 15;
+      score -= PENALTY.formatting;
     }
 
     // 3. Check for test coverage gates
@@ -65,7 +66,7 @@ export class AutomatedCodeQualityGatesLaw {
     if (!coverageGates.hasCoverageGates) {
       violations.push('Missing test coverage quality gates');
       suggestions.push('Configure minimum test coverage thresholds in CI/CD');
-      score -= 20;
+      score -= PENALTY.coverage;
     }
 
     // 4. Check for build validation gates
@@ -73,7 +74,7 @@ export class AutomatedCodeQualityGatesLaw {
     if (!buildGates.hasBuildGates) {
       violations.push('Missing build validation gates');
       suggestions.push('Ensure builds are validated in CI/CD pipeline');
-      score -= 15;
+      score -= PENALTY.build;
     }
 
     // 5. Check for security scanning gates
@@ -86,7 +87,7 @@ export class AutomatedCodeQualityGatesLaw {
       suggestions.push(
         'Add DependencyVulnerabilityAnalyzer dependency vulnerability scanning and security analysis'
       );
-      score -= 15;
+      score -= PENALTY.security;
     }
 
     // 6. Check for TypeScript strict mode validation — TypeScript projects only.
@@ -100,7 +101,7 @@ export class AutomatedCodeQualityGatesLaw {
       suggestions.push(
         'Enable TypeScript strict mode validation in quality gates'
       );
-      score -= 10;
+      score -= PENALTY.typeScriptStrict;
     }
 
     // 7. Check for performance analysis integration
@@ -111,7 +112,7 @@ export class AutomatedCodeQualityGatesLaw {
       performanceGates.recommendations.forEach(rec => {
         suggestions.push(rec);
       });
-      score -= 5;
+      score -= PENALTY.performance;
     }
 
     const finalScore = Math.max(0, score);

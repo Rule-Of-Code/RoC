@@ -5,14 +5,14 @@
  * setup — not false-failed for lacking webpack / vendorChunk.
  */
 import fs from 'fs';
-import os from 'os';
 import path from 'path';
 import { BundleSizeOptimizationLaw } from '../../src/checkers/performance-laws/bundle-size-optimization';
 import { AngularBundleConfig } from '../../src/utils/angular-bundle-config';
 import type { LawCheckContext } from '../../src/types';
+import { makeTempDir } from '../helpers/temp-dirs';
 
 function fixture(files: Record<string, string>): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-bundle-'));
+  const dir = makeTempDir('roc-bundle-');
   for (const [rel, content] of Object.entries(files)) {
     const p = path.join(dir, rel);
     fs.mkdirSync(path.dirname(p), { recursive: true });

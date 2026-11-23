@@ -17,7 +17,7 @@ export class AngularBundleOptimizationAnalyzer {
    */
   static checkBundleOptimization(
     projectRoot: string,
-    config: RuleOfCodeConfig
+    _config: RuleOfCodeConfig
   ): { violations: string[]; suggestions: string[] } {
     const violations: string[] = [];
     const suggestions: string[] = [];
@@ -80,14 +80,6 @@ export class AngularBundleOptimizationAnalyzer {
         `${unread.join('; ')} — its build configuration and performance budgets were NOT read, so they were not judged`
       );
     }
-
-    // Check source code optimization using specialized patterns
-    AngularBundleValidationPatterns.validateSourceCodeOptimization(
-      projectRoot,
-      config,
-      violations,
-      suggestions
-    );
 
     return { violations, suggestions };
   }

@@ -1,5 +1,3 @@
-import { ChangeDetectionOptimizationLaw } from '../../../checkers/performance-laws/change-detection-optimization';
-import type { RuleOfCodeConfig } from '../../../config/types';
 import { PerformanceBudgetComplianceAnalyzerService } from '../../../laws/performance/performance-budget-compliance/services';
 import { ProjectTypeDetector } from '../../config/project-type-detector';
 import { ANGULAR_CONSTANTS } from '../../constants';
@@ -192,37 +190,5 @@ export class AngularBundleValidationPatterns {
       return false;
     }
     return this.CUSTOM_WEBPACK_BUILDERS.some(token => text.includes(token));
-  }
-
-  /**
-   * Validate source code optimization patterns
-   * Meta-dogfooding: Uses specialized change detection optimization law
-   */
-  static validateSourceCodeOptimization(
-    projectRoot: string,
-    config: RuleOfCodeConfig,
-    violations: string[],
-    suggestions: string[]
-  ): void {
-    try {
-      const law = ChangeDetectionOptimizationLaw;
-      const componentAnalysis = law.analyzeComponents(projectRoot, config);
-      violations.push(...componentAnalysis.violations);
-      suggestions.push(...componentAnalysis.suggestions);
-
-      const trackByAnalysis = law.analyzeTrackByUsage(projectRoot, config);
-      violations.push(...trackByAnalysis.violations);
-      suggestions.push(...trackByAnalysis.suggestions);
-
-      const observableAnalysis = law.analyzeObservableUsage(
-        projectRoot,
-        config
-      );
-      violations.push(...observableAnalysis.violations);
-      suggestions.push(...observableAnalysis.suggestions);
-    } catch {
-      const message = this.config.VALIDATION_MESSAGES.SOURCE_CODE_REVIEW();
-      suggestions.push(message.suggestionMessage);
-    }
   }
 }

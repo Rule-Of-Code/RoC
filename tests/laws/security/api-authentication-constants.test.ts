@@ -23,12 +23,6 @@ describe('APIAuthenticationConstants', () => {
       ).toBeInstanceOf(RegExp);
     });
 
-    it('should have AUTH_SERVICE pattern', () => {
-      expect(
-        APIAuthenticationConstants.AUTH_PATTERNS.AUTH_SERVICE
-      ).toBeInstanceOf(RegExp);
-    });
-
     it('AUTHORIZATION_HEADER should match Authorization', () => {
       expect(
         APIAuthenticationConstants.AUTH_PATTERNS.AUTHORIZATION_HEADER.test(
@@ -89,26 +83,6 @@ describe('APIAuthenticationConstants', () => {
           'sessionStorage.setItem'
         )
       ).toBe(true);
-    });
-  });
-
-  describe('AUTH_FILES', () => {
-    it('should include auth.service.ts', () => {
-      expect(APIAuthenticationConstants.AUTH_FILES).toContain(
-        'auth.service.ts'
-      );
-    });
-
-    it('should include authentication.service.ts', () => {
-      expect(APIAuthenticationConstants.AUTH_FILES).toContain(
-        'authentication.service.ts'
-      );
-    });
-
-    it('should include token.service.ts', () => {
-      expect(APIAuthenticationConstants.AUTH_FILES).toContain(
-        'token.service.ts'
-      );
     });
   });
 

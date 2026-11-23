@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Internal — Jest keeps its cache in this checkout (#592)
+
+Jest kept its transform cache in the OS temp directory (`<tmp>/jest`), which
+every project on a machine shares; on one development machine it had grown
+to about 180 GB. `jest.config.js` now sets `cacheDirectory` to
+`<rootDir>/node_modules/.cache/jest`: ignored by git, removed with
+`node_modules`, emptied by `npx jest --clearCache` (noted in CONTRIBUTING).
+No law changes.
+
 ### 🐛 Fixed — Dead Code Elimination says what it reads; a dead-code tool that runs counts (#439)
 
 The card promised "Remove all unused imports, functions, and variables",
@@ -92,6 +101,46 @@ The angular release-canary profile now plants its red violation for MD
 Footer Template (MANDATORY), the other opt-in law that a plain Angular
 fixture can fail, and its fixture paths are neutral (`libs/app/…`). Older
 entries below that describe the law are kept as history.
+
+### 🐛 Fixed — Lazy Loading Implementation reports lazy loading only (#562)
+
+The law's bundle step called three analyzers of `ChangeDetectionOptimizationLaw`
+(components, `trackBy`, observables) and appended their findings to its
+own. In a project without component files the line "No Angular components
+found" appeared twice and cost 20 points. That class was never a
+registered law, so its checks reached the product only through Lazy
+Loading. Lazy Loading now judges routes and bundle configuration only, and
+each check has the law that owns it:
+
+- `ngDoCheck` in a component, directive or service → **Angular Lifecycle
+  Management** (it runs on every change-detection pass);
+- `*ngFor` without `trackBy` → **Modern Angular Control Flow**, below
+  Angular 18 (from 18 its syntax rule already asks for `@for` with `track`);
+- `detectChanges()` / `markForCheck()` without OnPush and manual
+  subscriptions are judged by OnPush Change Detection Strategy and the
+  subscription laws; "any manual subscribe" on its own is dropped;
+- "No Angular components found" is not a finding of any law. A project
+  with no route configuration and no `@Component` in its code has no lazy
+  loading to judge: Lazy Loading now says it judged nothing there, instead
+  of passing with nothing judged (#427).
+
+`ChangeDetectionOptimizationLaw` has no caller left and is removed. It
+was not a registered law, so the law count does not change.
+
+### 🐛 Fixed — two leftovers of the 8.0.0 self-audit (#439)
+
+- **Commit Size Control** counted the same change twice when it reached the
+  history as a commit and its cherry-pick. A change is now counted once, by
+  its `git patch-id --stable`; when git cannot give patch-ids, every commit
+  is counted as before.
+- **Pre-Deployment Checklist** took any code file whose name contained
+  "health", "status" or "ping" for a health check (`order-status.ts`,
+  `shopping-cart.ts`), and missed a server that answers `GET /healthz` from
+  `server.ts`. A health check is now a file named for one (`health…`,
+  `liveness`, `readiness`) or a router call or decorator for `/health`,
+  `/healthz`, `/ready`, `/live`, `/ping` or `/status`.
+
+Still open in #439: Dead Code Elimination does not detect unused code.
 
 ### 🐛 Fixed — a module-level `let` reset in `beforeEach` is not shared state (#552)
 
@@ -295,8 +344,9 @@ and "vulnerability detection"; its id (`security_a0bcc52d`) is unchanged.
 - Without the TypeScript parser these two checks read nothing, and the law
   says the files were NOT read instead of judging them by words.
 
-Authentication by file name (`AUTH_FILES`) is not changed here; it moves to
-the content-based detector of #549.
+Authentication by file name (`AUTH_FILES`) was not changed by this entry;
+it moved to the content-based detector of #549 (see "API Security Standards
+recognises authentication by what the code does" below).
 
 ### Fixed — Semantic Versioning Standards reads the manifest a Python project releases from
 
@@ -609,6 +659,109 @@ members left to the data they describe. 56 private static aliases
 (`Config`, `Messages`, `Patterns`, …) and one constant-style helper were
 renamed to camelCase in their files; nothing is exempted. The packed tarball
 lists the same files. Self-audit: Naming Convention Enforcement 1 → 0.
+
+### Fixed — Environment Parity Standards finds environment detection where the code reads it
+
+`No proper environment detection found` was reported unless one of five fixed
+files (`src/main.ts`, `src/index.ts`, `src/app.ts`, `server.ts`, `index.js`)
+read the environment. A project that reads `process.env` in a config module, a
+CLI entry point such as `src/cli.ts`, or a workspace app (`apps/<name>/src/main.ts`)
+was told it has no environment detection (#532).
+
+The check now reads the production sources the law selects through
+`includes` / `ignores`, with test files excluded. A read only in a test file
+does not count, and a project that reads the environment nowhere is still
+reported.
+
+### Fixed — Database Query Optimization is selected by a database in the code, not by a word in the manifest
+
+The law asked a shared helper whether the project has a database, and the
+helper tested the raw text of the manifests (`package.json`, `pyproject.toml`,
+`Makefile` …) for a list of words that included `firestore`. A client whose
+only Firestore trace was a plugin dependency, reading one document by id, or a
+project with a `firebase deploy --only firestore` script, was judged for
+composite indexes, query batching and pagination (#555).
+
+A database is now proved by use: a query in a Python source, an import of a
+database module in the JS/TS sources, its schema / rules / indexes files, or an
+awaited read of a declared client that the N+1 call-site registry recognises.
+Without one of these the law is not applicable. A Python project that only
+declares an ORM and never queries is not applicable either.
+
+### Internal — the performance analysis that read no file is removed
+
+`PerformanceAnalysisService` ran its DOM-reference, event-listener,
+observable-subscription, timer and lifecycle analyzers on an empty input, so it
+reported no issue for any project. Launch Readiness Checklist, Automated Code
+Quality Gates and the CI/CD tribunal read that as a judgement, and the branches
+built on it never ran; two methods of the performance monitoring inspector built
+on it had no caller (#534).
+
+The service, the five analyzers, their configurations and validation patterns,
+the `utils/performance` barrel and their tests are removed. No law result
+changes: the removed code never produced a finding. Leaks in code are judged by
+Memory Leak Prevention and Timer Cleanup.
+
+### 🐛 Fixed — API Security Standards recognises authentication by what the code does (#550)
+
+The law looked for authentication in five exact file names
+(`auth.service.ts`, `authentication.service.ts`, `token.service.ts`,
+`auth.interceptor.ts`, `auth.guard.ts`): an interceptor in `http-auth.ts`
+that attaches the credential was "No authentication service implementation
+found", and an empty `auth.service.ts` satisfied the check. It now uses the
+detector of #549: a managed auth SDK or a session library imported, a
+sign-in or verify call, or an `Authorization` header attached to requests,
+in a file of any name. The Authorization-header, refresh and storage checks
+read the files that authenticate; a managed SDK is not asked for a refresh
+mechanism (it refreshes its own tokens). Without the TypeScript parser
+authentication is not judged and the law says the files were NOT read. The
+detection limits say so.
+
+### 🐛 Fixed — Authentication Security reads code outside src/ (#574)
+
+The law read `src/`, or `apps/` and `libs/` in an Nx layout, and nothing
+else. A Next.js app-router project (`app/`, `lib/`), a pages-router project
+(`pages/`) or an Express service with `server/` gave its checks no file;
+after #561 the law said the code was not read. When neither layout holds
+code, the law now reads the project as the other laws do, less tests,
+ignored trees and build output (`.next/`, `out/`, `build/`, `.output/`,
+`.nuxt/`, `.svelte-kit/`, `.vercel/`, `.netlify/`, `.turbo/`, `.cache/`,
+`coverage/`, `storybook-static/`). A project with code in `src/` is read as
+before. A project with no code file at all is still told its code was not
+read.
+
+Role enforcement written inline now counts as a role check:
+`user?.role === 'owner'`, `role !== 'admin'`, `user.roles.includes('admin')`.
+A role that appears only as an object key (`{ role: 'user' }`, as in a chat
+message or an ARIA attribute object) is not a role concept.
+
+### 🧹 Internal — tests and the release canary remove their temp directories
+
+Test runs and `scripts/release-canary.js` left `roc-*` directories in the OS
+temp dir; on one machine they filled the system drive (a canary consumer is an
+installed tarball of about 50 MB). The hook-generation test removed the parent
+of its directory — the OS temp dir itself — until it reached a locked file, so
+it deleted other programs' temp files and left its own (#582).
+
+Tests make temp directories through `tests/helpers/temp-dirs.ts`, which removes
+them after the suite, also when a test fails. The canary removes its fixture,
+consumer and provenance directories when it finishes, green or red; with
+`--keep` it leaves them and prints their paths. The provenance tree's
+`node_modules` junction is removed as a link first. No law result changes.
+
+### 🧹 Internal — the CLI tests refuse a dist/ built from a different src/
+
+The tests that run `dist/cli.js` checked only that the file exists. In a
+worktree where a branch was merged or checked out without a rebuild they ran
+the old build: a correct change failed, and a broken `src/` could pass (#586).
+
+`npm run build` now writes `dist/.build-stamp.json`, a hash of the content of
+`src/` and `tsconfig.json` (line endings read as LF; it is not in the npm
+package). The CLI tests compare it through `tests/helpers/built-cli.ts` and
+stop with `dist/ was built from a different src/ — run npm run build` when it
+differs; they never build themselves. A checkout or merge that leaves the
+content unchanged does not trip the check. A `dist/` with no stamp (built with
+`tsc` alone) is refused as well. No law result changes.
 
 ## [8.0.1] - 2026-11-22
 

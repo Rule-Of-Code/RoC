@@ -20,7 +20,6 @@
  * what is tested.
  */
 import fs from 'fs';
-import os from 'os';
 import path from 'path';
 import { RuleOfCodeAuditor } from '../../src/core/auditing/audit-engine';
 import type { AuditResult } from '../../src/core/auditing/audit-types';
@@ -35,6 +34,7 @@ import {
 import { lawRequirementsMet } from '../../src/utils/law-requirements';
 import { livenessFloorOf } from '../../src/utils/liveness-floor';
 import { stubLawChecks, writeFiles } from './waivers-named-verdict.harness';
+import { makeTempDir } from '../helpers/temp-dirs';
 
 const META_GATES = ['Audit Liveness Assertion', 'Config Integrity Guard'];
 const BARE_PASS = /✅ CONSTITUTIONAL COMPLIANCE: PASSED/;
@@ -59,18 +59,11 @@ const PY_PROJECT: Record<string, string> = {
     'from app.main import add\n\n\ndef test_add() -> None:\n    assert add(1, 2) == 3\n',
 };
 
-const made: string[] = [];
-afterAll(() => {
-  for (const dir of made.splice(0))
-    fs.rmSync(dir, { recursive: true, force: true });
-});
-
 function fixture(
   files: Record<string, string>,
   config: Record<string, unknown>
 ): string {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-engine-'));
-  made.push(root);
+  const root = makeTempDir('roc-engine-');
   writeFiles(root, {
     ...files,
     'ruleofcode.config.json': JSON.stringify(config, null, 2),

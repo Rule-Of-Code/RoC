@@ -79,5 +79,11 @@ export class AngularLifecycleHooksAnalyzer extends AngularSignalAnalyzerBase {
       violations,
       suggestions
     );
+    AngularLifecycleValidationPatterns.validateDoCheck(
+      content,
+      fileName,
+      violations,
+      suggestions
+    );
   }
 }

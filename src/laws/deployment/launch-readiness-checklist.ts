@@ -6,7 +6,6 @@ import type {
 import { CheckerUtils } from '../../utils/checker-utils';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
-import { PerformanceAnalysisService } from '../../utils/performance';
 import { QualityAssessmentUtils } from '../../utils/quality-assessment-utils';
 /**
  * Launch Readiness Checklist Law
@@ -51,20 +50,6 @@ export class LaunchReadinessChecklistLaw {
         'Document testing completion status and coverage metrics'
       );
       score -= 25;
-    }
-
-    // 3. Check for performance benchmarking
-    const performanceBenchmarks =
-      PerformanceAnalysisService.analyzePerformanceBenchmarks();
-    if (performanceBenchmarks.hasPerformanceIssues) {
-      violations.push('Missing performance benchmark validation');
-      suggestions.push(
-        'Validate performance benchmarks and load testing results'
-      );
-      performanceBenchmarks.recommendations.forEach(rec => {
-        suggestions.push(rec);
-      });
-      score -= 20;
     }
 
     // 4. Check for security review documentation

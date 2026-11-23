@@ -20,6 +20,7 @@ import { spawnSync } from '../../src/utils/child-process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import { builtCli } from '../helpers/built-cli';
 
 const CLI =
   process.env.ROC_CLI ?? path.resolve(__dirname, '..', '..', 'dist', 'cli.js');
@@ -145,8 +146,9 @@ const plain = (text: string): string[] =>
  * Computed by each row for itself, so no state is shared between rows.
  */
 function backgroundWaivers(): Record<string, string> {
-  if (!fs.existsSync(CLI))
-    throw new Error(`${CLI} missing — run \`npm run build\` before jest`);
+  // ROC_CLI is another build (an installed tarball), not this tree's dist/.
+  if (process.env.ROC_CLI === undefined) builtCli();
+  else if (!fs.existsSync(CLI)) throw new Error(`${CLI} missing`);
   const failing = audit({})
     .json.results.filter(
       r => !r.passed && r.lawTitle && !META_GATES.includes(r.lawTitle)

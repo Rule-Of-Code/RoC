@@ -14,10 +14,6 @@ describe('Performance Laws Index', () => {
       expect(PerformanceLaws.BundleSizeOptimizationLaw).toBeDefined();
     });
 
-    it('should export ChangeDetectionOptimizationLaw', () => {
-      expect(PerformanceLaws.ChangeDetectionOptimizationLaw).toBeDefined();
-    });
-
     // LazyLoadingImplementationLaw is intentionally NOT exported here — it was a
     // dead duplicate of the wired angular-laws law; removed to end the confusion.
 
@@ -42,14 +38,6 @@ describe('Performance Laws Index', () => {
       });
     });
 
-    describe('ChangeDetectionOptimizationLaw', () => {
-      it('should have check method', () => {
-        expect(
-          typeof PerformanceLaws.ChangeDetectionOptimizationLaw.check
-        ).toBe('function');
-      });
-    });
-
     describe('MemoryManagementLaw', () => {
       it('should have check method', () => {
         expect(typeof PerformanceLaws.MemoryManagementLaw.check).toBe(
@@ -71,15 +59,15 @@ describe('Performance Laws Index', () => {
   // No Extra Exports
   // ============================================
   describe('export count', () => {
-    it('should export exactly 4 modules', () => {
+    it('should export exactly 3 modules', () => {
       const exportedKeys = Object.keys(PerformanceLaws);
 
       expect(exportedKeys).toContain('BundleSizeOptimizationLaw');
-      expect(exportedKeys).toContain('ChangeDetectionOptimizationLaw');
       expect(exportedKeys).toContain('MemoryManagementLaw');
       expect(exportedKeys).toContain('PerformanceLawBase');
       expect(exportedKeys).not.toContain('LazyLoadingImplementationLaw');
-      expect(exportedKeys.length).toBe(4);
+      expect(exportedKeys).not.toContain('ChangeDetectionOptimizationLaw');
+      expect(exportedKeys.length).toBe(3);
     });
   });
 });

@@ -14,19 +14,14 @@ import { TodoManagementLaw } from '../../src/laws/documentation/todo-management'
 import { TodoManagementStandardsLaw } from '../../src/laws/documentation/todo-management-standards';
 import type { LawCheckContext } from '../../src/types/law.types';
 import { execFileSync } from '../../src/utils/child-process';
-
-const dirs: string[] = [];
-afterAll(() => {
-  for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
-});
+import { makeTempDir } from '../helpers/temp-dirs';
 
 /** A git repository holding `files`; `ignored` files are written and gitignored. */
 function repo(
   files: Record<string, string>,
   ignored: Record<string, string> = {}
 ): string {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-todo-'));
-  dirs.push(root);
+  const root = makeTempDir('roc-todo-');
   const write = (name: string, text: string): void => {
     fs.mkdirSync(path.dirname(path.join(root, name)), { recursive: true });
     fs.writeFileSync(path.join(root, name), text);

@@ -5,6 +5,38 @@ All notable changes to RuleOfCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 🐛 Fixed — Authentication Security recognises authentication, guards and roles by what the code does (#549, #561)
+
+The law recognised an authentication implementation by class-name words
+(`AuthService`, `AuthManager`, `LoginService`…), token management by
+`TokenService` / `accessToken`, guards by a name ending in `Guard`, roles
+by `UserRole`, sessions by `maxAge` / `expires`. An app that signs in
+through a managed SDK behind a provider called anything else got six
+findings; an empty `class AuthService {}` satisfied one check and an
+unused `enum UserRole` another.
+
+Each signal is now a shape in the parse, shared by the three sub-checks:
+
+- **Authentication:** a managed auth SDK or a server session library
+  imported, a sign-in or verify call, or an `Authorization` header attached
+  to requests. A class name is not authentication.
+- **Tokens:** an SDK that holds them (`getIdToken`, `getTokenSilently`…), a
+  token attached to requests, `jwt.sign` / `jwt.verify`, or web storage.
+- **Guards:** a route guard by its contract (`implements CanActivate`, a
+  `CanActivateFn`, `canActivate: […]`, `@UseGuards`), a 401/403 refusal, or
+  a credential attached to every request.
+- **Roles:** asked for only where the code has a role or permission concept;
+  then a role check call or decorator must enforce it (one finding, not
+  separate RBAC and permission findings). Without one, the result says the
+  role checks do not apply.
+- **Sessions:** with a managed auth SDK and no server session library,
+  timeout and invalidation are the SDK's; the result says so and only web
+  storage is judged. A sign-out call counts as invalidation.
+
+The law's detection limits describe the shapes.
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

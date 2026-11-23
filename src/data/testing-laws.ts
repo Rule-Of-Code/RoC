@@ -141,7 +141,7 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Coverage is a test-file-to-source FILE ratio (default 80%), not real coverage.',
       'Substring checks: a "TestBed" in a comment passes, and its absence fails a genuinely-fine test.',
-      'A test title is judged by its form, not its meaning: empty, a placeholder (test, test 1, works, it works) or only the unit name (a describe title, getUser(), CacheService) is reported; a vague sentence is not. thresholds.angular.testTitlePrefix (unset by default) adds a required prefix.',
+      'A test title is judged by its form, not its meaning: empty, a title with no word of two or more letters (x, a1), a placeholder (test, test 1, works, it works) or only the unit name (a describe title, getUser(), CacheService) is reported; a vague sentence is not. thresholds.angular.testTitlePrefix (unset by default) adds a required prefix.',
       'Angular-gated; string matching, no AST.',
     ],
     stack: 'frontend',

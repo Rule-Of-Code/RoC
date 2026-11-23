@@ -23,6 +23,7 @@ import { findFloatingPromises } from './floating-promises';
 import { registersGlobalHandler, wrapsCliParse } from './global-error-handlers';
 import { packageEntrySources } from './package-entry-sources';
 import { readSource } from './source-view';
+import { findUnguardedListeners } from './unguarded-listeners';
 
 export class ErrorHandlingCompletenessLaw extends CodeQualityLawBase {
   static check(context: LawCheckContext): LawResult {
@@ -156,24 +157,32 @@ export class ErrorHandlingCompletenessLaw extends CodeQualityLawBase {
       );
     }
 
-    violations.push(...this.guardingGaps(code));
+    violations.push(...this.guardingGaps(ts, source, code));
 
     return { violations, suggestions: [] };
   }
 
   /**
-   * HTTP calls and event listeners in a file with no try/catch at all —
-   * judged on the code view (strings and comments blanked). Angular config
-   * files only provide the HTTP client and the global listeners; they are
-   * not judged.
+   * HTTP calls in a file with no try/catch at all — judged on the code view
+   * (strings and comments blanked) — and event handlers that can fail with
+   * nothing to catch it, judged per handler (#536). Angular config files
+   * only provide the HTTP client and the global listeners; they are not
+   * judged.
    */
-  private static guardingGaps(code: string): string[] {
+  private static guardingGaps(
+    ts: NonNullable<ReturnType<typeof loadTypeScript>>,
+    source: Parameters<typeof findUnguardedListeners>[1],
+    code: string
+  ): string[] {
     const isAngularConfig =
       code.includes('ApplicationConfig') ||
       code.includes('provideRouter') ||
       code.includes('CapacitorConfig');
     if (isAngularConfig) return [];
-    return [...this.unguardedHttp(code), ...this.unguardedListeners(code)];
+    return [
+      ...this.unguardedHttp(code),
+      ...this.unguardedListeners(ts, source),
+    ];
   }
 
   /** fetch / axios / HttpClient calls in a file with no try {} and no .catch(). */
@@ -184,12 +193,14 @@ export class ErrorHandlingCompletenessLaw extends CodeQualityLawBase {
     return hasHttp && !guarded ? ['HTTP requests without error handling'] : [];
   }
 
-  /** addEventListener in a file with no try and no catch. */
-  private static unguardedListeners(code: string): string[] {
-    const hasListener = code.includes('addEventListener(');
-    const guarded = code.includes('try') || code.includes('catch');
-    return hasListener && !guarded
-      ? ['event handlers without error handling']
+  /** Event handlers that can fail with nothing to catch it (#536). */
+  private static unguardedListeners(
+    ts: NonNullable<ReturnType<typeof loadTypeScript>>,
+    source: Parameters<typeof findUnguardedListeners>[1]
+  ): string[] {
+    const lines = findUnguardedListeners(ts, source);
+    return lines.length > 0
+      ? [`event handlers without error handling (line ${lines.join(', ')})`]
       : [];
   }
 

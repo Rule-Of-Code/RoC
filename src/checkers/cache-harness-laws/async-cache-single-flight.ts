@@ -72,16 +72,19 @@ export const ASYNC_CACHE_FILES: readonly FileContaining[] = [
       String.raw`(?<![\w.])([A-Za-z_][\w.]*)\.get\(`
     ),
     exclude: PY_TESTS,
+    readsCode: true,
   },
   {
     files: ['**/*.py'],
     pattern: pythonCheckThenStore(String.raw`\bin\s+([A-Za-z_][\w.]*)\s*:`),
     exclude: PY_TESTS,
+    readsCode: true,
   },
   {
     files: ['**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}'],
     pattern: String.raw`${FILE_START}[\s\S]*?${TS_NAME_START}([A-Za-z_$][\w$.]*)\.(?:get|has)\((?:[\s\S]${REACH}?${TS_ASYNC}[\s\S]${REACH}?${TS_NAME_START}\1\.set\(|[\s\S]${REACH}?${TS_NAME_START}\1\.set\([^\n]*${TS_ASYNC})`,
     exclude: TS_TESTS,
+    readsCode: true,
   },
 ];
 

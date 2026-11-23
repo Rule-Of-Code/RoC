@@ -1,9 +1,12 @@
+import type * as TS from 'typescript';
+
 import {
   ANGULAR_CONSTANTS,
   FILE_EXTENSIONS,
   NGRX_KEYWORDS,
   PERFORMANCE_CONSTANTS,
 } from '../../constants';
+import { loadTypeScript } from '../../react/tsx-source';
 import { SignalConfigurationBase } from '../signal-configuration-base';
 
 /**
@@ -113,8 +116,72 @@ export class NgRxMemoizationConfiguration extends SignalConfigurationBase {
   /**
    * Check if content has direct state access patterns
    */
-  static hasDirectStateAccess(content: string): RegExpMatchArray | null {
-    return content.match(this.DIRECT_STATE_ACCESS_PATTERN);
+  static hasDirectStateAccess(content: string): string[] | null {
+    const ts = loadTypeScript(process.cwd());
+    if (!ts) return content.match(this.DIRECT_STATE_ACCESS_PATTERN);
+    const names = this.rawSelectors(ts, content);
+    return names.length > 0 ? names : null;
+  }
+
+  /**
+   * The exported raw selectors of a file, read from its syntax tree (#530):
+   * an exported `const` whose value is an arrow with one parameter — typed or
+   * not — that reads a property of that parameter. A `createSelector(…)` or
+   * `createFeatureSelector(…)` value is a call, not an arrow, and a projector
+   * arrow inside one is not an exported declaration, so neither is read.
+   */
+  private static rawSelectors(ts: typeof TS, content: string): string[] {
+    const source = ts.createSourceFile(
+      'selectors.ts',
+      content,
+      ts.ScriptTarget.Latest,
+      true
+    );
+    const names: string[] = [];
+    for (const statement of source.statements) {
+      if (!ts.isVariableStatement(statement)) continue;
+      const exported = ts
+        .getModifiers(statement)
+        ?.some(m => m.kind === ts.SyntaxKind.ExportKeyword);
+      if (!exported) continue;
+      for (const declaration of statement.declarationList.declarations) {
+        const value = declaration.initializer;
+        if (
+          value &&
+          ts.isArrowFunction(value) &&
+          ts.isIdentifier(declaration.name) &&
+          this.readsParameter(ts, value)
+        ) {
+          names.push(declaration.name.text);
+        }
+      }
+    }
+    return names;
+  }
+
+  /** Whether a one-parameter arrow reads a property of its parameter. */
+  private static readsParameter(
+    ts: typeof TS,
+    arrow: TS.ArrowFunction
+  ): boolean {
+    const [parameter] = arrow.parameters;
+    if (arrow.parameters.length !== 1 || !parameter) return false;
+    if (!ts.isIdentifier(parameter.name)) return false;
+    const name = parameter.name.text;
+    let reads = false;
+    const visit = (node: TS.Node): void => {
+      if (
+        (ts.isPropertyAccessExpression(node) ||
+          ts.isElementAccessExpression(node)) &&
+        ts.isIdentifier(node.expression) &&
+        node.expression.text === name
+      ) {
+        reads = true;
+      }
+      if (!reads) ts.forEachChild(node, visit);
+    };
+    visit(arrow.body);
+    return reads;
   }
 
   /**

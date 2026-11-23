@@ -280,7 +280,20 @@ export class AngularTestingExcellenceLaw extends AngularLawBase {
    */
   private static saysNothing(title: string, describeTitles: string[]): boolean {
     const text = title.trim();
-    if (text === '' || this.PLACEHOLDER_TITLE.test(text)) return true;
+    // No word of two or more letters (#570): `x`, `y`, `a1`, `1`.
+    if (!this.HAS_WORD.test(text)) return true;
+    if (this.PLACEHOLDER_TITLE.test(text)) return true;
+    return this.isUnitName(text, describeTitles);
+  }
+
+  /** A word of two or more letters, in any script. */
+  private static readonly HAS_WORD = /\p{L}{2,}/u;
+
+  /**
+   * Only the name of the unit under test: an enclosing describe's title, a
+   * call (`getUser()`) or a camel/Pascal-case name (`CacheService`).
+   */
+  private static isUnitName(text: string, describeTitles: string[]): boolean {
     if (describeTitles.some(d => d.trim().toLowerCase() === text.toLowerCase()))
       return true;
     return (

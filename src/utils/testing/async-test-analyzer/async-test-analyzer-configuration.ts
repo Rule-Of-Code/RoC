@@ -142,6 +142,10 @@ export class AsyncTestAnalyzerConfiguration {
    * `clearTimeout(handle)` (a guard on a real process, not a sleep), or any
    * timer under fake timers (`jest.`, `vi.` or `sinon.useFakeTimers`). Read
    * on the code of the file, so a timer in a fixture string is not one.
+   *
+   * Nor is a yield (#548): `setTimeout(resolve)` or `setTimeout(resolve, 0)`
+   * waits for one macrotask, not for wall-clock time. A non-zero literal
+   * delay and a delay the law cannot read (a name, an expression) count.
    */
   static waitsOnRealTimer(code: string): boolean {
     if (/\buseFakeTimers\s*\(/.test(code)) return false;
@@ -150,9 +154,42 @@ export class AsyncTestAnalyzerConfiguration {
       const cleared =
         handle !== undefined &&
         new RegExp(`\\bclearTimeout\\s*\\(\\s*${handle}\\s*\\)`).test(code);
-      if (!cleared) return true;
+      const delay = this.argumentAt(
+        code,
+        (match.index ?? 0) + match[0].length,
+        1
+      );
+      const yields = delay === undefined || /^0+$/.test(delay);
+      if (!cleared && !yields) return true;
     }
     return false;
+  }
+
+  /**
+   * The text of the `index`-th top-level argument of the call whose argument
+   * list starts at `start` (just after its `(`), trimmed; undefined when the
+   * call has fewer arguments.
+   */
+  private static argumentAt(
+    code: string,
+    start: number,
+    index: number
+  ): string | undefined {
+    const args: string[] = [];
+    let depth = 0;
+    let from = start;
+    for (let at = start; at < code.length; at++) {
+      const char = code.charAt(at);
+      if ('([{'.includes(char)) depth++;
+      else if (')]}'.includes(char) && depth > 0) depth--;
+      else if (char === ')' || (char === ',' && depth === 0)) {
+        args.push(code.slice(from, at).trim());
+        if (char === ')') break;
+        from = at + 1;
+      }
+    }
+    const value = args[index];
+    return value === undefined || value === '' ? undefined : value;
   }
 
   static readonly AWAITED_LITERAL =

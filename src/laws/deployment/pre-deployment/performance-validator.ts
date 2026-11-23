@@ -3,6 +3,29 @@ import type { LawCheckContext } from '../../../types/law.types';
 import { FileSystemOperations, FileUtils } from '../../../utils';
 import { CheckerUtils } from '../../../utils/checker-utils';
 import { PathOperations } from '../../../utils/path-operations';
+
+/** A file named for a health check: `health.ts`, `healthz.py`, `health.controller.ts`, `healthcheck.js`. */
+const HEALTH_FILE_NAME = /^(?:health(?:z|[-_]?check)?|liveness|readiness)\b/i;
+
+/**
+ * A route that answers a health probe, in the router's own call or
+ * decorator: `app.get('/healthz', …)`, `router.get('/api/status', …)`,
+ * `@Get('health')`, `@app.get("/ping")`.
+ */
+const HEALTH_ROUTE =
+  /\b(?:get|head|all|route|use)\s*\(\s*['"`]\/?(?:api\/)?(?:health|healthz|healthcheck|ready|readyz|live|livez|ping|status)['"`/?]/i;
+
+/** Whether the file declares a health route; false when it cannot be read. */
+function servesHealthRoute(filePath: string): boolean {
+  try {
+    return HEALTH_ROUTE.test(
+      FileUtils.readFile(filePath, { encoding: 'utf8' })
+    );
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Performance Validation Checker
  * Validates performance benchmarks and monitoring setup
@@ -191,18 +214,14 @@ export class PerformanceValidationChecker {
           config
         );
 
-        for (const filePath of allFiles) {
-          const filename = PathOperations.getBasename(filePath);
-          if (
-            filename.toLowerCase().includes('health') ||
-            filename.toLowerCase().includes('status') ||
-            filename.toLowerCase().includes('ping')
-          ) {
-            return true;
-          }
-        }
-
-        return false;
+        // A file named for a health check, or a route that answers one
+        // (#439). A name that merely contains "status" or "ping"
+        // (order-status.ts, shopping-cart.ts) is not one.
+        return allFiles.some(
+          filePath =>
+            HEALTH_FILE_NAME.test(PathOperations.getBasename(filePath)) ||
+            servesHealthRoute(filePath)
+        );
       } catch (_error) {
         return false;
       }

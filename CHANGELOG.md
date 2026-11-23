@@ -80,6 +80,46 @@ Footer Template (MANDATORY), the other opt-in law that a plain Angular
 fixture can fail, and its fixture paths are neutral (`libs/app/…`). Older
 entries below that describe the law are kept as history.
 
+### 🐛 Fixed — Lazy Loading Implementation reports lazy loading only (#562)
+
+The law's bundle step called three analyzers of `ChangeDetectionOptimizationLaw`
+(components, `trackBy`, observables) and appended their findings to its
+own. In a project without component files the line "No Angular components
+found" appeared twice and cost 20 points. That class was never a
+registered law, so its checks reached the product only through Lazy
+Loading. Lazy Loading now judges routes and bundle configuration only, and
+each check has the law that owns it:
+
+- `ngDoCheck` in a component, directive or service → **Angular Lifecycle
+  Management** (it runs on every change-detection pass);
+- `*ngFor` without `trackBy` → **Modern Angular Control Flow**, below
+  Angular 18 (from 18 its syntax rule already asks for `@for` with `track`);
+- `detectChanges()` / `markForCheck()` without OnPush and manual
+  subscriptions are judged by OnPush Change Detection Strategy and the
+  subscription laws; "any manual subscribe" on its own is dropped;
+- "No Angular components found" is not a finding of any law. A project
+  with no route configuration and no `@Component` in its code has no lazy
+  loading to judge: Lazy Loading now says it judged nothing there, instead
+  of passing with nothing judged (#427).
+
+`ChangeDetectionOptimizationLaw` has no caller left and is removed. It
+was not a registered law, so the law count does not change.
+
+### 🐛 Fixed — two leftovers of the 8.0.0 self-audit (#439)
+
+- **Commit Size Control** counted the same change twice when it reached the
+  history as a commit and its cherry-pick. A change is now counted once, by
+  its `git patch-id --stable`; when git cannot give patch-ids, every commit
+  is counted as before.
+- **Pre-Deployment Checklist** took any code file whose name contained
+  "health", "status" or "ping" for a health check (`order-status.ts`,
+  `shopping-cart.ts`), and missed a server that answers `GET /healthz` from
+  `server.ts`. A health check is now a file named for one (`health…`,
+  `liveness`, `readiness`) or a router call or decorator for `/health`,
+  `/healthz`, `/ready`, `/live`, `/ping` or `/status`.
+
+Still open in #439: Dead Code Elimination does not detect unused code.
+
 ### 🐛 Fixed — a module-level `let` reset in `beforeEach` is not shared state (#552)
 
 Test Data Management and Test Isolation Enforcement reported a module-level

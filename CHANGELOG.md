@@ -527,6 +527,20 @@ consumer and provenance directories when it finishes, green or red; with
 `--keep` it leaves them and prints their paths. The provenance tree's
 `node_modules` junction is removed as a link first. No law result changes.
 
+### 🧹 Internal — the CLI tests refuse a dist/ built from a different src/
+
+The tests that run `dist/cli.js` checked only that the file exists. In a
+worktree where a branch was merged or checked out without a rebuild they ran
+the old build: a correct change failed, and a broken `src/` could pass (#586).
+
+`npm run build` now writes `dist/.build-stamp.json`, a hash of the content of
+`src/` and `tsconfig.json` (line endings read as LF; it is not in the npm
+package). The CLI tests compare it through `tests/helpers/built-cli.ts` and
+stop with `dist/ was built from a different src/ — run npm run build` when it
+differs; they never build themselves. A checkout or merge that leaves the
+content unchanged does not trip the check. A `dist/` with no stamp (built with
+`tsc` alone) is refused as well. No law result changes.
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

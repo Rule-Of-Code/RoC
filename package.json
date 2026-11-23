@@ -9,7 +9,7 @@
     "roc": "dist/cli.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node scripts/build-stamp.js",
     "dev": "tsc --watch",
     "lint": "eslint .",
     "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\" \"scripts/**/*.js\"",
@@ -71,6 +71,7 @@
   "homepage": "https://ruleofcode.dev",
   "files": [
     "dist",
+    "!dist/.build-stamp.json",
     "templates",
     "scripts/recommend-config.js",
     "README.md",

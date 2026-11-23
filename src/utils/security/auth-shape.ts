@@ -130,15 +130,26 @@ function moduleOf(ts: typeof TS, node: TS.Node): string | null {
   return null;
 }
 
-function readCall(ts: typeof TS, call: TS.CallExpression, s: AuthShape): void {
-  const name = lastName(ts, call.expression);
-  if (!name) return;
+/** Unauthorized and Forbidden: the statuses that refuse a request. */
+const REFUSAL_STATUSES = new Set([401, 403]);
+
+/** What a call's name alone says. */
+function readCallName(name: string, s: AuthShape): void {
   if (SIGN_IN_CALL.test(name) || VERIFY_CALL.test(name))
     s.signsInOrVerifies = true;
   if (SDK_TOKEN_CALL.test(name)) s.readsSdkToken = true;
   if (SIGN_OUT_CALL.test(name)) s.signsOut = true;
   if (ROLE_CHECK.test(name)) s.roleCheck = true;
   if (name === 'UseGuards') s.routeGuard = true;
+}
+
+/** `headers.set('Authorization', …)` and `res.status(401)`. */
+function readCallArguments(
+  ts: typeof TS,
+  name: string,
+  call: TS.CallExpression,
+  s: AuthShape
+): void {
   if (
     /^(?:set|append|setRequestHeader)$/.test(name) &&
     stringArg(ts, call, 0)?.toLowerCase() === 'authorization'
@@ -146,8 +157,16 @@ function readCall(ts: typeof TS, call: TS.CallExpression, s: AuthShape): void {
     s.attachesCredentials = true;
   if (/^(?:status|sendStatus|code)$/.test(name)) {
     const status = numberArg(ts, call, 0);
-    if (status === 401 || status === 403) s.refusesRequests = true;
+    if (status !== null && REFUSAL_STATUSES.has(status))
+      s.refusesRequests = true;
   }
+}
+
+function readCall(ts: typeof TS, call: TS.CallExpression, s: AuthShape): void {
+  const name = lastName(ts, call.expression);
+  if (!name) return;
+  readCallName(name, s);
+  readCallArguments(ts, name, call, s);
 }
 
 function readModule(ts: typeof TS, node: TS.Node, s: AuthShape): void {

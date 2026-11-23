@@ -437,6 +437,12 @@ export interface RuleOfCodeConfig {
        * (e.g. ["ui"] for a design-system library, like Material's "mat").
        */
       allowedComponentPrefixes?: string[];
+      /**
+       * Angular Testing Excellence: a prefix every test title must start
+       * with (e.g. "should"). Not set by default: a title must describe
+       * behaviour, and no prefix is asked for (#557).
+       */
+      testTitlePrefix?: string;
       /** Extra callee names allowed in template bindings (e.g. ["$any"]). */
       templateMethodAllowlist?: string[];
       /** Times an identical template expression may repeat before aliasing. Default 3. */

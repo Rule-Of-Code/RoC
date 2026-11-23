@@ -136,11 +136,12 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
       'An Angular test that never touches TestBed is testing a class, not a component — it misses the template, change detection and DI that make it Angular. Excellence is testing the thing as it actually runs.',
     satisfiedBy: {
       angular:
-        'Use TestBed + ComponentFixture in component specs, TestBed.inject in service specs, async/fakeAsync for Observables, and "should" descriptions.',
+        'Use TestBed + ComponentFixture in component specs, TestBed.inject in service specs, async/fakeAsync for Observables, and test titles that describe behaviour (a prefix such as "should" only if thresholds.angular.testTitlePrefix asks for it).',
     },
     detectionLimits: [
       'Coverage is a test-file-to-source FILE ratio (default 80%), not real coverage.',
-      'Substring checks: a "TestBed" in a comment passes, and its absence fails a genuinely-fine test; the "must start with should" rule is stylistic and easily false-positive.',
+      'Substring checks: a "TestBed" in a comment passes, and its absence fails a genuinely-fine test.',
+      'A test title is judged by its form, not its meaning: empty, a placeholder (test, test 1, works, it works) or only the unit name (a describe title, getUser(), CacheService) is reported; a vague sentence is not. thresholds.angular.testTitlePrefix (unset by default) adds a required prefix.',
       'Angular-gated; string matching, no AST.',
     ],
     stack: 'frontend',

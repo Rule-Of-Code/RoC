@@ -55,7 +55,7 @@ export class AngularTestingExcellenceLaw extends AngularLawBase {
         'Achieve 80%+ test coverage',
         'Use TestBed for component tests',
         'Implement proper async testing',
-        'Write descriptive test cases starting with "should"',
+        'Give every test a title that describes behaviour (a "should" prefix only where thresholds.angular.testTitlePrefix asks for it)',
         'Add E2E tests for critical user flows',
       ],
       context
@@ -237,6 +237,10 @@ export class AngularTestingExcellenceLaw extends AngularLawBase {
     // complaining about.
     const itPattern =
       /\b(?:fit|xit|it|test)\s*\(\s*(['"`])((?:\\.|(?!\1)[\s\S])*)\1/g;
+    const describeTitles = (describeMatches ?? []).map(
+      match => match.match(/['"`]([^'"`]+)['"`]/)?.[1] ?? ''
+    );
+    const prefix = context.config.thresholds?.angular?.testTitlePrefix;
 
     let itMatch: RegExpExecArray | null;
     while ((itMatch = itPattern.exec(content)) !== null) {
@@ -251,12 +255,38 @@ export class AngularTestingExcellenceLaw extends AngularLawBase {
       // every case, destroying that. Interpolated descriptions are skipped.
       if (quote === '`' && description.includes('${')) continue;
 
-      if (!description.startsWith('should')) {
+      // A title must describe behaviour (#557); "should" is a style, asked
+      // for only when the project sets thresholds.angular.testTitlePrefix.
+      if (this.saysNothing(description, describeTitles)) {
         violations.push(
-          `Test case should start with "should" in ${relativePath}: "${description}"`
+          `Test title does not describe behaviour in ${relativePath}: "${description}"`
+        );
+      } else if (prefix !== undefined && !description.startsWith(prefix)) {
+        violations.push(
+          `Test case should start with "${prefix}" in ${relativePath}: "${description}"`
         );
       }
     }
+  }
+
+  /** A placeholder title: `test`, `test 1`, `works`, `it works`, `spec 2`. */
+  private static readonly PLACEHOLDER_TITLE =
+    /^(?:test|tests|spec|works|it works|should work)(?:\s*\d+)?$/i;
+
+  /**
+   * Whether a test title says nothing about behaviour (#557): empty, a
+   * placeholder, or only the name of the unit under test — an enclosing
+   * describe's title, a call (`getUser()`) or a camel/Pascal-case name.
+   */
+  private static saysNothing(title: string, describeTitles: string[]): boolean {
+    const text = title.trim();
+    if (text === '' || this.PLACEHOLDER_TITLE.test(text)) return true;
+    if (describeTitles.some(d => d.trim().toLowerCase() === text.toLowerCase()))
+      return true;
+    return (
+      /^[A-Za-z_$][\w$]*(?:\(\))?$/.test(text) &&
+      (/\(\)$/.test(text) || /[a-z0-9][A-Z]/.test(text) || /^[A-Z]/.test(text))
+    );
   }
 
   private static checkE2ETests(

@@ -73,4 +73,24 @@ describe('#557 a test title must describe behaviour; "should" is a convention', 
   it('reports an empty title', () => {
     expect(titleFindings([''])).toHaveLength(1);
   });
+
+  it.each([['CacheService behaviour'], ['getUser()'], ['CacheService']])(
+    'reports "%s", only the name of the unit under test',
+    title => {
+      expect(titleFindings([title])).toHaveLength(1);
+    }
+  );
+
+  it('asks for a prefix only where thresholds.angular.testTitlePrefix sets one', () => {
+    const config = FileUtils.getMinimalDefaultConfig();
+    const withPrefix: RuleOfCodeConfig = {
+      ...config,
+      thresholds: { angular: { testTitlePrefix: 'should' } },
+    };
+    const title = 'returns the cached value on the second call';
+    expect(titleFindings([title])).toEqual([]);
+    expect(titleFindings([title], withPrefix)).toEqual([
+      `Test case should start with "should" in src/app/cache.service.spec.ts: "${title}"`,
+    ]);
+  });
 });

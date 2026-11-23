@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — two leftovers of the 8.0.0 self-audit (#439)
+
+- **Commit Size Control** counted the same change twice when it reached the
+  history as a commit and its cherry-pick. A change is now counted once, by
+  its `git patch-id --stable`; when git cannot give patch-ids, every commit
+  is counted as before.
+- **Pre-Deployment Checklist** took any code file whose name contained
+  "health", "status" or "ping" for a health check (`order-status.ts`,
+  `shopping-cart.ts`), and missed a server that answers `GET /healthz` from
+  `server.ts`. A health check is now a file named for one (`health…`,
+  `liveness`, `readiness`) or a router call or decorator for `/health`,
+  `/healthz`, `/ready`, `/live`, `/ping` or `/status`.
+
+Still open in #439: Dead Code Elimination does not detect unused code.
+
 ### 🐛 Fixed — a module-level `let` reset in `beforeEach` is not shared state (#552)
 
 Test Data Management and Test Isolation Enforcement reported a module-level

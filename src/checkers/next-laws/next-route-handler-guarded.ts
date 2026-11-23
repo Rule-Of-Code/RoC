@@ -94,23 +94,9 @@ export class NextRouteHandlerGuardedLaw extends LawBase {
     const isPublic = (h: Handler): boolean =>
       config.publicRoutes.some(p => p.key === h.route.path);
     const guarded = handlers.filter(h => !isPublic(h));
-    if (
-      guarded.length > 0 &&
-      !config.guards?.length &&
-      guards.problems.length === 0
-    ) {
-      violations.push(
-        `${guarded.length} mutating route handler(s) (${listed(guarded.map(h => `${h.entry.name} ${h.route.path}`))}) and no ${GUARD_KEY} — the law cannot tell a guard from any other call. Declare the guards (or list deliberately public routes in ${PUBLIC_KEY})`
-      );
-    } else if (config.guards?.length) {
-      for (const handler of guarded) {
-        const problem = this.guardProblem(handler, config.guards);
-        if (problem)
-          violations.push(
-            `${where(handler)}: ${handler.entry.name} ${handler.route.path} ${problem}`
-          );
-      }
-    }
+    violations.push(
+      ...this.guardFindings(guarded, config, guards.problems.length, where)
+    );
     for (const handler of handlers) {
       const problem = this.bodyProblem(handler, config.validators);
       if (problem)
@@ -125,6 +111,31 @@ export class NextRouteHandlerGuardedLaw extends LawBase {
       );
     }
     return this.result(violations, context);
+  }
+
+  /** No guard declared while handlers need one; else each guarded handler that calls none. */
+  private static guardFindings(
+    guarded: readonly Handler[],
+    config: Config,
+    guardProblems: number,
+    where: (h: Handler) => string
+  ): string[] {
+    if (guarded.length > 0 && !config.guards?.length && guardProblems === 0) {
+      return [
+        `${guarded.length} mutating route handler(s) (${listed(guarded.map(h => `${h.entry.name} ${h.route.path}`))}) and no ${GUARD_KEY} — the law cannot tell a guard from any other call. Declare the guards (or list deliberately public routes in ${PUBLIC_KEY})`,
+      ];
+    }
+    const declared = config.guards;
+    if (!declared?.length) return [];
+    const found: string[] = [];
+    for (const handler of guarded) {
+      const problem = this.guardProblem(handler, declared);
+      if (problem)
+        found.push(
+          `${where(handler)}: ${handler.entry.name} ${handler.route.path} ${problem}`
+        );
+    }
+    return found;
   }
 
   private static result(

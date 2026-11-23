@@ -475,6 +475,55 @@ one of the flags TypeScript Strict Mode (SACRED LAW) asks for. Every member that
 replaces a base-class member says so with `override` (11 in `src/`, 3 in a test
 subclass). No behaviour changes.
 
+### Internal — `exactOptionalPropertyTypes` is on
+
+This repository's `tsconfig.json` now sets `exactOptionalPropertyTypes: true`,
+one of the flags TypeScript Strict Mode (SACRED LAW) asks for. With it, an
+optional property `x?: T` no longer accepts an explicit `undefined`; the code
+passed one in 33 places in `src/` and 12 in the tests.
+
+Every place the code really hands over `undefined` (a law with no `stack`, a
+CLI flag that was not given, a config whose `includes` is cleared for a
+security scan, a law result without a name) now says so in the type:
+`x?: T | undefined`. One cast that let `undefined` through is narrowed instead
+(`NonNullable<…>`), and three test fixtures stop passing an `undefined` that
+meant nothing. Types only; no runtime code changes.
+
+### Internal — `noUnusedParameters` is on
+
+This repository's `tsconfig.json` now sets `noUnusedParameters: true`, one of
+the flags TypeScript Strict Mode (SACRED LAW) asks for. The 33 parameters it
+found are gone: a parameter nobody reads is removed and its callers pass one
+argument less. Only where the signature is set from outside (a callback, a
+base-class hook) is the parameter kept, as `_name`.
+
+One of them says more than the others: `PerformanceAnalysisService` took a
+`projectRoot` and never read it, so its result never depended on the project.
+The parameter is removed, so the signature now says what the code does.
+
+### Internal — `noUnusedLocals` is on
+
+This repository's `tsconfig.json` now sets `noUnusedLocals: true`, one of the
+flags TypeScript Strict Mode (SACRED LAW) asks for. The 82 declarations it found
+are gone: unused imports, private helpers no code calls (a second copy of a
+test-file finder in two services, four project-type checks, an "old" README
+assessor, five performance helpers whose callers had moved on), `Config`
+aliases nothing read, and locals computed and dropped. Exported code is not
+touched here.
+
+Three of them were not plain dead code:
+
+- The engine filtered the laws to run inline, while the tests asserted on a
+  private `getLawsToAudit()` that only they called. The engine now calls it, so
+  the tests check the selection the audit really runs.
+- `PathOperations.findWorkspaceRoot` walked the parent directories, built a
+  path per marker file, looked at none of them and returned its argument. It now
+  just returns its argument and says so; `ConfigFileUtils.findWorkspaceRoot` is
+  the one that searches.
+- `RuleOfCodeAuditor` stored the `suggestExceptions` option and never read it,
+  so `audit --suggest-exceptions` changes nothing. The field is gone; the
+  constructor keeps the positional parameter because the constructor is public.
+
 ### Internal — two copied helpers read through their one implementation
 
 Code Duplication Control reported three copies in our own code; two are
@@ -609,6 +658,37 @@ Control Labeling (complexity 11 each) on the self-audit. The first hands
 the onClick handler test to `callsWithBoolean`, the second the slot checks
 of an Ionic control to `slotNames`. No law reports anything different.
 
+### Internal — the Next law checkers are split below the complexity limits
+
+Code Complexity Control reported seven checkers of `src/checkers/next-laws`
+on the self-audit: each had a function above complexity 10, and Next Client
+Props Serializable was also too long. Why a prop cannot cross to a Client
+Component is now read in `client-prop-problems.ts`, and the branching
+functions (the client IP boundary, the route handler guards, the inline
+full-reload reason, the script target, the reference test, the empty client
+graph) hand their sub-steps to named helpers. No law reports anything
+different.
+
+### Internal — Capacitor readers and checkers split below the complexity limits
+
+Code Complexity Control reported, on the self-audit, two files of
+`src/utils/capacitor` as too long (capacitor-project, capacitor-sources) and
+four Capacitor checkers with a function above complexity 10. Running
+`cap config --json` and reading what it prints moves to `capacitor-cli.ts`,
+the shared syntax helpers to `capacitor-ast.ts` (both re-exported where
+importers expect them), and the branching functions hand their sub-steps to
+named helpers. No law reports anything different.
+
+### Internal — Ionic readers and checkers split below the complexity limits
+
+Code Complexity Control reported, on the self-audit, `angular-components.ts`
+and Ionic View Hooks Only On Pages as too long, and four Ionic files with a
+function above complexity 10. A component decorator's selectors, host keys,
+template and styles are now read in `angular-component-meta.ts`, how a
+hook class is referred to in `ionic-hook-uses.ts` (both re-exported or
+imported where they were used), and the branching functions hand their
+sub-steps to named helpers or tables. No law reports anything different.
+
 ### Internal — eslint is a direct devDependency
 
 `npm run lint` runs `eslint .`, but `eslint` was only installed as a peer of
@@ -653,6 +733,31 @@ called them; they were exported from `src/utils/index.ts` and
 `src/utils/security/index.ts`, not from the package entry point.
 
 Self-audit of this repository (develop 63690ed → this branch merged with it): verdict compliance-with-warnings → compliance-with-warnings, 0 waived, score 84 → 84, findings 1095 → 1094. This repository is configured by `eslint.config.mjs` and its package.json and tsconfig.json are valid, so no law that reads them changes. The one difference is Commit Size Control (1 → 0): this branch's commits are each under 500 lines and 10 files and move two larger develop commits out of its last-10 window — a window effect, not a fix.
+
+### Internal — the React readers are split below the complexity limits
+
+Code Complexity Control reported five files of `src/utils/react` on the
+self-audit: three too long (eslint-hooks-config, next-app-files,
+react-hooks-ast) and five with a function above complexity 10. They are
+split by what they read — the react-hooks plugin vocabulary
+(`eslint-hooks-vocabulary.ts`), a module's export and import bindings
+(`next-module-bindings.ts`), and the sources a React law reads with its
+inline reasons (`react-law-sources.ts`) — and the branching functions hand
+their sub-steps to named helpers. The old paths re-export every moved name,
+so no importer changed. No law reports anything different.
+
+### Internal — the request-path readers are split below the complexity limits
+
+Code Complexity Control reported six files of `src/utils/request-path` on
+the self-audit: four too long (python-model, python-expr, read-caches,
+data-clients) and five with a function above complexity 10. The Python
+reader is now one file per step — def-use (`python-def-use.ts`), the
+statement walk (`python-statements.ts`), calls and awaits
+(`python-calls.ts`), comprehensions (`python-comprehensions.ts`) — the data
+client registry is its own file (`data-client-registry.ts`), and cache
+policies and stores are read in `cache-policy.ts` and `cache-stores.ts`.
+The old paths re-export every name their importers use, so no importer
+outside the module changed. No law reports anything different.
 
 ### Internal — this repository keeps MD Footer Template on
 

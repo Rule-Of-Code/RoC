@@ -198,7 +198,7 @@ export class AngularOnDestroyConfiguration {
     hasDestroyComplete: boolean;
     hasSubscriptionArray: boolean;
     hasAsync: boolean;
-    ngOnDestroyMethodBody?: string;
+    ngOnDestroyMethodBody?: string | undefined;
   } {
     // A comment that MENTIONS `.subscribe()` is documentation, not a
     // subscription; and `takeUntilDestroyed(destroyRef)` / `takeUntil(destroy$)`

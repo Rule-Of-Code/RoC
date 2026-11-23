@@ -90,7 +90,6 @@ export class AngularValidationPatterns {
     if (isAppModule) return;
 
     this.ValidationUtils.validateContent(
-      content,
       fileName,
       [
         {
@@ -122,7 +121,6 @@ export class AngularValidationPatterns {
     suggestions: string[]
   ): void {
     this.ValidationUtils.validateContent(
-      content,
       fileName,
       [
         {
@@ -146,7 +144,6 @@ export class AngularValidationPatterns {
     suggestions: string[]
   ): void {
     this.ValidationUtils.validateAndSuggest(
-      content,
       fileName,
       [
         {
@@ -174,7 +171,6 @@ export class AngularValidationPatterns {
     if (isAppModule) return;
 
     this.ValidationUtils.validateAndSuggest(
-      content,
       fileName,
       [
         {

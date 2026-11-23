@@ -57,7 +57,6 @@ export class AngularCustomValidatorsAnalyzer extends AngularConfigurationBase {
     componentFiles.forEach(componentFile => {
       AngularCustomValidatorsAnalyzer.analyzeComponentFile(
         componentFile,
-        violations,
         suggestions
       );
     });
@@ -114,7 +113,6 @@ export class AngularCustomValidatorsAnalyzer extends AngularConfigurationBase {
    */
   private static analyzeComponentFile(
     componentFile: string,
-    violations: string[],
     suggestions: string[]
   ): void {
     const content = FileUtils.readFile(componentFile, {

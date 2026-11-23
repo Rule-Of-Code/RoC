@@ -18,7 +18,6 @@ describe('AngularValidationUtils', () => {
       ];
 
       AngularValidationUtils.validateContent(
-        'content',
         'test.component.ts',
         checks,
         violations,
@@ -42,7 +41,6 @@ describe('AngularValidationUtils', () => {
       ];
 
       AngularValidationUtils.validateContent(
-        'content',
         'test.component.ts',
         checks,
         violations,
@@ -67,7 +65,6 @@ describe('AngularValidationUtils', () => {
       ];
 
       AngularValidationUtils.validateContent(
-        'content',
         'test.component.ts',
         checks,
         violations,
@@ -90,7 +87,6 @@ describe('AngularValidationUtils', () => {
       ];
 
       AngularValidationUtils.validateContent(
-        'content',
         'test.component.ts',
         checks,
         violations,
@@ -116,7 +112,6 @@ describe('AngularValidationUtils', () => {
       ];
 
       AngularValidationUtils.validateContent(
-        'content',
         'test.ts',
         checks,
         violations,
@@ -133,7 +128,6 @@ describe('AngularValidationUtils', () => {
       const checks = [{ condition: true, violationMessage: 'New violation' }];
 
       AngularValidationUtils.validateContent(
-        'content',
         'test.ts',
         checks,
         violations,
@@ -149,7 +143,6 @@ describe('AngularValidationUtils', () => {
       const suggestions: string[] = [];
 
       AngularValidationUtils.validateContent(
-        'content',
         'test.ts',
         [],
         violations,
@@ -166,7 +159,6 @@ describe('AngularValidationUtils', () => {
       const checks = [{ condition: true, violationMessage: 'Error' }];
 
       AngularValidationUtils.validateContent(
-        'content',
         'my-component.ts',
         checks,
         violations,
@@ -188,7 +180,6 @@ describe('AngularValidationUtils', () => {
       ];
 
       AngularValidationUtils.validateAndSuggest(
-        'content',
         'app.module.ts',
         checks,
         suggestions
@@ -207,7 +198,6 @@ describe('AngularValidationUtils', () => {
       ];
 
       AngularValidationUtils.validateAndSuggest(
-        'content',
         'app.module.ts',
         checks,
         suggestions
@@ -225,7 +215,6 @@ describe('AngularValidationUtils', () => {
       ];
 
       AngularValidationUtils.validateAndSuggest(
-        'content',
         'app.module.ts',
         checks,
         suggestions
@@ -242,12 +231,7 @@ describe('AngularValidationUtils', () => {
         { condition: true, suggestionMessage: 'Suggestion 3' },
       ];
 
-      AngularValidationUtils.validateAndSuggest(
-        'content',
-        'test.ts',
-        checks,
-        suggestions
-      );
+      AngularValidationUtils.validateAndSuggest('test.ts', checks, suggestions);
 
       expect(suggestions).toHaveLength(2);
     });
@@ -256,12 +240,7 @@ describe('AngularValidationUtils', () => {
       const suggestions: string[] = ['Existing suggestion'];
       const checks = [{ condition: true, suggestionMessage: 'New suggestion' }];
 
-      AngularValidationUtils.validateAndSuggest(
-        'content',
-        'test.ts',
-        checks,
-        suggestions
-      );
+      AngularValidationUtils.validateAndSuggest('test.ts', checks, suggestions);
 
       expect(suggestions).toHaveLength(2);
       expect(suggestions[0]).toBe('Existing suggestion');
@@ -270,12 +249,7 @@ describe('AngularValidationUtils', () => {
     it('should handle empty checks array', () => {
       const suggestions: string[] = [];
 
-      AngularValidationUtils.validateAndSuggest(
-        'content',
-        'test.ts',
-        [],
-        suggestions
-      );
+      AngularValidationUtils.validateAndSuggest('test.ts', [], suggestions);
 
       expect(suggestions).toHaveLength(0);
     });
@@ -285,7 +259,6 @@ describe('AngularValidationUtils', () => {
       const checks = [{ condition: true, suggestionMessage: 'Optimize' }];
 
       AngularValidationUtils.validateAndSuggest(
-        'content',
         'my-service.ts',
         checks,
         suggestions

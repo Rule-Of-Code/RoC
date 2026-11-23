@@ -47,6 +47,9 @@ interface HeaderRead {
   header: string;
 }
 
+/** `file:line` of a header read, for a message. */
+const at = (read: HeaderRead): string => `${read.file}:${read.line}`;
+
 export class ClientIpSingleBoundaryLaw extends LawBase {
   static readonly LAW_NAME = 'Client IP Single Boundary';
 
@@ -68,31 +71,13 @@ export class ClientIpSingleBoundaryLaw extends LawBase {
       .sourcesOf(files)
       .flatMap(source => this.reads(graph, source));
     violations.push(...graph.unread);
-    const at = (read: HeaderRead): string => `${read.file}:${read.line}`;
     if (boundary.value && notUsed.value) {
       violations.push(
         `${MODULE_KEY} and ${NOT_USED_KEY} are both declared — a project either reads client IPs in one module or not at all. Keep one`
       );
     }
     if (boundary.value) {
-      const module = PathOperations.normalize(boundary.value).replace(
-        /^\.\//,
-        ''
-      );
-      if (
-        !FileSystemOperations.isFile(
-          PathOperations.join(context.projectRoot, module)
-        )
-      ) {
-        violations.push(
-          `${MODULE_KEY}: '${module}' does not exist — a boundary that names no file bounds nothing`
-        );
-      }
-      for (const read of reads.filter(r => r.file !== module)) {
-        violations.push(
-          `${at(read)}: reads '${read.header}' outside ${module} — a second reading of the client IP drifts from the first. Call the boundary module instead`
-        );
-      }
+      violations.push(...this.boundaryFindings(context, boundary.value, reads));
     } else if (notUsed.value) {
       for (const read of reads) {
         violations.push(
@@ -110,6 +95,31 @@ export class ClientIpSingleBoundaryLaw extends LawBase {
       );
     }
     return this.result(violations, context);
+  }
+
+  /** The declared boundary module must exist, and be the only module that reads the headers. */
+  private static boundaryFindings(
+    context: LawCheckContext,
+    declared: string,
+    reads: readonly HeaderRead[]
+  ): string[] {
+    const found: string[] = [];
+    const module = PathOperations.normalize(declared).replace(/^\.\//, '');
+    if (
+      !FileSystemOperations.isFile(
+        PathOperations.join(context.projectRoot, module)
+      )
+    ) {
+      found.push(
+        `${MODULE_KEY}: '${module}' does not exist — a boundary that names no file bounds nothing`
+      );
+    }
+    for (const read of reads.filter(r => r.file !== module)) {
+      found.push(
+        `${at(read)}: reads '${read.header}' outside ${module} — a second reading of the client IP drifts from the first. Call the boundary module instead`
+      );
+    }
+    return found;
   }
 
   private static result(

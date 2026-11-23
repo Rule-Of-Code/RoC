@@ -3,7 +3,10 @@
  */
 
 import type { RuleOfCodeConfig } from '../../types';
-import { normalizeJudgedNothing } from '../../utils/judged-nothing';
+import {
+  normalizeJudgedNothing,
+  readsPartly,
+} from '../../utils/judged-nothing';
 import type {
   AuditRefusal,
   AuditResult,
@@ -13,12 +16,15 @@ import type {
 } from './audit-types';
 
 /** Where one law's result counts: the four buckets of a run. */
-export type LawOutcome = 'passed' | 'warning' | 'judged-nothing' | 'failed';
+export type LawOutcome =
+  'passed' | 'warning' | 'judged-nothing' | 'partly-read' | 'failed';
 
 interface ClassifiableResult {
   passed?: boolean;
   severity?: string;
   judgedNothing?: boolean;
+  notRead?: string[] | undefined;
+  violations?: unknown;
   lawId?: string;
   lawTitle?: string;
   lawName?: string;
@@ -42,7 +48,8 @@ export class AuditResultProcessor {
   }
 
   /**
-   * Where a law's result counts. A law that judged nothing is its own bucket
+   * Where a law's result counts. A law that judged nothing, or that read
+   * part of its input and found nothing wrong in it (#453), is its own bucket
    * at a non-blocking severity — never a warning — and a failure at error
    * severity (or under failOnWarnings), like any other failing law.
    */
@@ -53,7 +60,8 @@ export class AuditResultProcessor {
     if (lawResult.passed) return 'passed';
     if (!AuditResultProcessor.isWarningResult(lawResult, failOnWarnings))
       return 'failed';
-    return lawResult.judgedNothing === true ? 'judged-nothing' : 'warning';
+    if (lawResult.judgedNothing === true) return 'judged-nothing';
+    return readsPartly(lawResult) ? 'partly-read' : 'warning';
   }
 
   /**
@@ -64,9 +72,14 @@ export class AuditResultProcessor {
   static scopedLaws(
     results: Map<string, unknown>,
     failOnWarnings = false
-  ): { warningLaws: ScopedLaw[]; judgedNothingLaws: ScopedLaw[] } {
+  ): {
+    warningLaws: ScopedLaw[];
+    judgedNothingLaws: ScopedLaw[];
+    partlyReadLaws: ScopedLaw[];
+  } {
     const warningLaws: ScopedLaw[] = [];
     const judgedNothingLaws: ScopedLaw[] = [];
+    const partlyReadLaws: ScopedLaw[] = [];
     for (const [id, result] of results) {
       const lawResult = result as ClassifiableResult;
       const named: ScopedLaw = {
@@ -74,6 +87,7 @@ export class AuditResultProcessor {
         lawId: lawResult.lawId ?? id,
       };
       if (lawResult.judgedNothing === true) judgedNothingLaws.push(named);
+      else if (readsPartly(lawResult)) partlyReadLaws.push(named);
       else if (
         AuditResultProcessor.outcomeOf(lawResult, failOnWarnings) === 'warning'
       )
@@ -84,6 +98,7 @@ export class AuditResultProcessor {
     return {
       warningLaws: warningLaws.sort(byLaw),
       judgedNothingLaws: judgedNothingLaws.sort(byLaw),
+      partlyReadLaws: partlyReadLaws.sort(byLaw),
     };
   }
 
@@ -130,6 +145,7 @@ export class AuditResultProcessor {
       passed: 0,
       warning: 0,
       'judged-nothing': 0,
+      'partly-read': 0,
       failed: 0,
     };
     let score = 0;
@@ -157,6 +173,7 @@ export class AuditResultProcessor {
       failedLaws,
       warningLaws,
       judgedNothingLaws: count['judged-nothing'],
+      partlyReadLaws: count['partly-read'],
       results,
       duration: 0,
       paretoMode: false,
@@ -177,6 +194,9 @@ export class AuditResultProcessor {
       // the outcome, apart from failedLaws: the four counts sum to executedLaws
       // (8.0.1); scope.judgedNothingLaws names every law that judged nothing
       judgedNothingLaws: result.judgedNothingLaws ?? 0,
+      // read part of their input, found nothing wrong in it (#453): the five
+      // counts sum to executedLaws
+      partlyReadLaws: result.partlyReadLaws ?? 0,
       score: result.score,
       duration: result.duration,
     };

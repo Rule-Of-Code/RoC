@@ -8,6 +8,12 @@ module.exports = {
   testEnvironment: 'node',
   roots: ['<rootDir>/src', '<rootDir>/tests'],
 
+  // The transform cache belongs to this checkout, not to the OS temp
+  // directory every project on the machine shares, where it grew without
+  // bound (#592). node_modules is ignored and removing it removes the cache;
+  // `npx jest --clearCache` empties it.
+  cacheDirectory: '<rootDir>/node_modules/.cache/jest',
+
   // 🔍 COMPREHENSIVE TEST DISCOVERY
   testMatch: [
     '**/__tests__/**/*.+(ts|tsx|js)',

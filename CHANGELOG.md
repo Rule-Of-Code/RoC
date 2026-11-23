@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Async Cache Single-Flight is selected by code, not by text in strings (#437)
+
+The last open point of #437: the law's selection matched its pattern over
+the whole file text, so a file holding the card's own example in a string
+(or a comment, or a Python docstring) selected the law, which then found
+nothing to judge and passed with no finding. Selection now reads the code:
+an `anyFileContaining` entry can set `readsCode`, and the pattern is then
+matched with comments and string contents blanked (TS/JS by the JS rules,
+Python by its own lexer). The law's three entries set it.
+
 ### 🐛 Fixed — a module-level `let` reset in `beforeEach` is not shared state (#552)
 
 Test Data Management and Test Isolation Enforcement reported a module-level

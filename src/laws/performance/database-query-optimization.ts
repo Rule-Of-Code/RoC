@@ -190,26 +190,37 @@ export class DatabaseQueryOptimizationLaw {
     };
   }
 
-  static async check(context: LawCheckContext): Promise<LawResult> {
-    const { projectRoot } = context;
-
-    // A database is proved by use: a query or an import in the sources, its
-    // schema files, or an awaited read of a client the project declares (a
-    // parsed dependency) that the N+1 registry recognises at a call site
-    // (#555). A word in a manifest is not. Without a declared client the
-    // registry reads every client's API, so its count proves nothing then.
+  /**
+   * The N+1 analysis of a project that uses a database, or null when none is
+   * proved. A database is proved by use: a query or an import in the
+   * sources, its schema files, or an awaited read of a client the project
+   * declares (a parsed dependency) that the N+1 registry recognises at a call
+   * site (#555). A word in a manifest is not. Without a declared client the
+   * registry reads every client's API, so its count proves nothing then.
+   */
+  private static databaseInUse(
+    context: LawCheckContext,
+    hasJsTs: boolean
+  ): NPlusOneAnalysis | null {
     const provedBySource = this.hasDatabaseLayer(context);
-    if (!provedBySource && declaredClients(projectRoot).labels.length === 0) {
-      return Promise.resolve(this.createNotApplicableResult(context));
+    if (
+      !provedBySource &&
+      declaredClients(context.projectRoot).labels.length === 0
+    ) {
+      return null;
     }
-
-    const hasJsTs = PythonSatisfaction.hasJsTsSources(projectRoot);
-    const nPlusOneDetection =
+    const nPlusOne =
       DatabaseQueryOptimizationAnalyzerService.analyzeNPlusOneQueryPrevention(
         context,
         hasJsTs ? ['python', 'typescript'] : ['python']
       );
-    if (!provedBySource && nPlusOneDetection.recognisedReads === 0) {
+    return provedBySource || nPlusOne.recognisedReads > 0 ? nPlusOne : null;
+  }
+
+  static async check(context: LawCheckContext): Promise<LawResult> {
+    const hasJsTs = PythonSatisfaction.hasJsTsSources(context.projectRoot);
+    const nPlusOneDetection = this.databaseInUse(context, hasJsTs);
+    if (!nPlusOneDetection) {
       return Promise.resolve(this.createNotApplicableResult(context));
     }
 

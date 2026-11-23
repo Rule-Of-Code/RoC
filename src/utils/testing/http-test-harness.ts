@@ -29,8 +29,43 @@ export class HttpTestHarness {
   static readonly HARNESS_CALL =
     /\bHttpTestingController\b|\bprovideHttpClientTesting\s*\(|\bHttpClientTestingModule\b|\bsetupServer\s*\(|\bnock\s*\(/;
 
+  /**
+   * The harnesses that stand in for the HTTP backend: a request answered by
+   * the test, not by a server. `supertest` is absent on purpose: it sends
+   * real requests to the application in process.
+   */
+  static readonly MOCK_BACKEND_MODULE =
+    /^(?:nock|fetch-mock|msw|msw\/node|@angular\/common\/http\/testing)$/;
+
+  /** A mock backend used in the code itself. */
+  static readonly MOCK_BACKEND_CALL =
+    /\bHttpTestingController\b|\bprovideHttpClientTesting\s*\(|\bHttpClientTestingModule\b|\bsetupServer\s*\(|\bnock\s*\(/;
+
   /** Whether the test file at `filePath` drives an HTTP test harness. */
   static drives(filePath: string): boolean {
+    return this.uses(filePath, this.HARNESS_MODULE, this.HARNESS_CALL);
+  }
+
+  /**
+   * Whether the test file at `filePath` answers its HTTP requests with a mock
+   * backend: Angular's `HttpTestingController`, msw, nock or fetch-mock. That
+   * is API mocking, whether or not the package is a declared dependency —
+   * Angular's ships inside `@angular/common`.
+   */
+  static mocksBackend(filePath: string): boolean {
+    return this.uses(
+      filePath,
+      this.MOCK_BACKEND_MODULE,
+      this.MOCK_BACKEND_CALL
+    );
+  }
+
+  /** Whether a test file loads one of `modules` or its code matches `call`. */
+  private static uses(
+    filePath: string,
+    modules: RegExp,
+    call: RegExp
+  ): boolean {
     if (!this.TEST_FILE.test(filePath)) return false;
     const directory = PathOperations.getDirectory(filePath);
     const ts = loadTypeScript(directory);
@@ -42,16 +77,17 @@ export class HttpTestHarness {
       return false;
     }
     return (
-      this.importsHarness(ts, content, filePath) ||
-      this.HARNESS_CALL.test(CodeText.codeOnly(content, filePath, directory))
+      this.imports(ts, content, filePath, modules) ||
+      call.test(CodeText.codeOnly(content, filePath, directory))
     );
   }
 
-  /** Whether the file loads a harness module (import, require, import()). */
-  private static importsHarness(
+  /** Whether the file loads a module matching `modules` (import, require, import()). */
+  private static imports(
     ts: typeof TS,
     content: string,
-    fileName: string
+    fileName: string,
+    modules: RegExp
   ): boolean {
     const source = ts.createSourceFile(
       fileName,
@@ -63,7 +99,7 @@ export class HttpTestHarness {
     const visit = (node: TS.Node): void => {
       if (found) return;
       const specifier = this.specifier(ts, node);
-      if (specifier !== null && this.HARNESS_MODULE.test(specifier)) {
+      if (specifier !== null && modules.test(specifier)) {
         found = true;
         return;
       }

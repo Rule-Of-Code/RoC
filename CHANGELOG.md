@@ -24,6 +24,14 @@ Once found, those files are judged for HTTP method and error-scenario
 coverage, so a project can trade "No API test files found" for findings
 about what its API tests cover: +N findings (measured in the PR).
 
+The same blind spot sat in the mocking check, which looked only at declared
+dependencies (msw, nock, sinon, mirage): API tests that answer every request
+with Angular's `HttpTestingController`, which ships inside `@angular/common`,
+were told "Consider implementing API mocking with tools like MSW or nock"
+and lost 10 points. A mock backend used by the API tests (Angular's, msw,
+nock, fetch-mock) now counts as API mocking; `supertest`, which sends real
+requests in process, does not.
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

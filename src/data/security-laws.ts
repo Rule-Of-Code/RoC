@@ -252,7 +252,7 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Authentication, guards and roles are recognised by shapes in the parse (a managed auth SDK or session library imported, a sign-in or verify call, an Authorization header attached, a CanActivate guard or @UseGuards, a 401/403 refusal, a role/permission check call or decorator), ANYWHERE in the codebase — not per route and not by data flow: one guarded route satisfies the guard check for all of them.',
       'Role-based, permission and resource-level checks apply only where the code has a role or permission concept (an identifier such as roles, UserRole, permissions, claims); with a managed auth SDK and no server session library, session timeout and invalidation are left to the SDK and not asked for. Resource-level authorization is still recognised by words (isOwner, ACL, …).',
       'JS/TS shapes; Python only toggles a native pass via auth-guard decorators — it does not positively analyse Python auth beyond that.',
-      'Scans src/ (and Nx apps/ and libs/); code outside those trees is not seen.',
+      'Reads src/ (or Nx apps/ and libs/); when neither holds code, the whole project as the other laws read it (app/, lib/, pages/, server/, the root), less tests, ignored trees and build output (.next/, out/, build/, …). A project with code in src/ is not read beyond it. Inline role checks count (user.role === …, roles.includes(…)); a role written only as an object key (role: …) is not a role concept.',
     ],
     emoji: '🔐',
     description: 'Secure authentication and authorization mechanisms',

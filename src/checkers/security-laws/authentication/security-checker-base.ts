@@ -26,6 +26,32 @@ const VIEW_CACHE_LIMIT = 5000;
 /** The auth shape of a parsed file; dropped with its view. */
 const SHAPE_CACHE = new WeakMap<CodeView, AuthShape>();
 
+/**
+ * Build and tool output a root scan would otherwise read as the project's
+ * code (#574): framework builds, deploy bundles and caches.
+ */
+const BUILD_OUTPUT_DIRS = new Set([
+  '.next',
+  'out',
+  'build',
+  '.output',
+  '.nuxt',
+  '.svelte-kit',
+  '.vercel',
+  '.netlify',
+  '.turbo',
+  '.cache',
+  'coverage',
+  'storybook-static',
+]);
+
+function isBuildOutput(projectRoot: string, file: string): boolean {
+  return PathOperations.getRelative(projectRoot, file)
+    .split('/')
+    .slice(0, -1)
+    .some(segment => BUILD_OUTPUT_DIRS.has(segment));
+}
+
 function readCachedView(file: string): CodeView | null {
   let content: string;
   try {
@@ -110,6 +136,19 @@ export class SecurityCheckerBase {
         );
         codeFiles = [...codeFiles, ...libsFiles];
       }
+    }
+
+    // Neither layout holds code: read the project as the other laws do
+    // (#574) — a Next.js app router (app/, lib/), a pages router (pages/),
+    // an Express service (server/, routes/, the root). The shared scan leaves
+    // out tests, ignores and installed trees; build output it does not know
+    // is left out here.
+    if (codeFiles.length === 0) {
+      codeFiles = CheckerUtils.findFilesByExtension(
+        projectRoot,
+        CheckerUtils.getCommonExtensions().ALL_CODE,
+        scanConfig
+      ).filter(file => !isBuildOutput(projectRoot, file));
     }
 
     return { violations, suggestions, codeFiles };

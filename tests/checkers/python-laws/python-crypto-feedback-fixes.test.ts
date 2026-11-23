@@ -84,7 +84,7 @@ describe('Bug 2 — Public Docstrings robust to trailing comment on class line',
 
 describe('Bug 4 — TS-only laws are scoped typescript (skip Python, run Angular)', () => {
   const all = ModularLawsRegistry.getAll();
-  const law = (name: string): { stack?: string } | undefined =>
+  const law = (name: string): { stack?: string | undefined } | undefined =>
     all.find(l => l.name === name);
   const TS_ONLY = [
     'Zero Tolerance Doctrine (SACRED LAW)',

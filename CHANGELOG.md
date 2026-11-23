@@ -442,6 +442,13 @@ the name alone decides, and the finding says the imports were NOT read. The
 "Low test coverage ratio" check is unchanged (test files per source file):
 counting covered files instead would fail projects that pass it today.
 
+### Internal — `noImplicitOverride` is on
+
+This repository's `tsconfig.json` now sets `noImplicitOverride: true`,
+one of the flags TypeScript Strict Mode (SACRED LAW) asks for. Every member that
+replaces a base-class member says so with `override` (11 in `src/`, 3 in a test
+subclass). No behaviour changes.
+
 ### Internal — two copied helpers read through their one implementation
 
 Code Duplication Control reported three copies in our own code; two are
@@ -561,6 +568,21 @@ app.module.ts` while importing it. Each pattern type now names the entry it
 looks for. Three unit tests asserted the wrong `false` ("mapping mismatch");
 they now expect the pattern to be found.
 
+### Internal — two code-quality checkers below the complexity limit
+
+Code Complexity Control reported Observable Cleanup (complexity 13, twice)
+and Prefer Union Over Enum (12) on the self-audit. Observable Cleanup now
+reads its cleanup patterns from a table and its per-file findings in
+`fileFindings`; Prefer Union Over Enum names `isJustified`. No law reports
+anything different.
+
+### Internal — two accessibility checkers below the complexity limit
+
+Code Complexity Control reported Disclosure Control ARIA State and Form
+Control Labeling (complexity 11 each) on the self-audit. The first hands
+the onClick handler test to `callsWithBoolean`, the second the slot checks
+of an Ionic control to `slotNames`. No law reports anything different.
+
 ### Internal — the Next law checkers are split below the complexity limits
 
 Code Complexity Control reported seven checkers of `src/checkers/next-laws`
@@ -616,6 +638,18 @@ called them; they were exported from `src/utils/index.ts` and
 `src/utils/security/index.ts`, not from the package entry point.
 
 Self-audit of this repository (develop 63690ed → this branch merged with it): verdict compliance-with-warnings → compliance-with-warnings, 0 waived, score 84 → 84, findings 1095 → 1094. This repository is configured by `eslint.config.mjs` and its package.json and tsconfig.json are valid, so no law that reads them changes. The one difference is Commit Size Control (1 → 0): this branch's commits are each under 500 lines and 10 files and move two larger develop commits out of its last-10 window — a window effect, not a fix.
+
+### Internal — the React readers are split below the complexity limits
+
+Code Complexity Control reported five files of `src/utils/react` on the
+self-audit: three too long (eslint-hooks-config, next-app-files,
+react-hooks-ast) and five with a function above complexity 10. They are
+split by what they read — the react-hooks plugin vocabulary
+(`eslint-hooks-vocabulary.ts`), a module's export and import bindings
+(`next-module-bindings.ts`), and the sources a React law reads with its
+inline reasons (`react-law-sources.ts`) — and the branching functions hand
+their sub-steps to named helpers. The old paths re-export every moved name,
+so no importer changed. No law reports anything different.
 
 ### Internal — this repository keeps MD Footer Template on
 

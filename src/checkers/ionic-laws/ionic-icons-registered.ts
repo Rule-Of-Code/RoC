@@ -229,29 +229,40 @@ export class IonicIconsRegisteredLaw extends LawBase {
       return;
     }
     for (const property of arg.properties) {
-      if (
-        ts.isSpreadAssignment(property) &&
-        ts.isIdentifier(property.expression) &&
-        allIcons.has(property.expression.text)
-      ) {
-        registry.everything = true;
-        continue;
-      }
-      const name = property.name;
-      const key =
-        name && (ts.isIdentifier(name) || ts.isStringLiteral(name))
-          ? name.text
-          : null;
-      if (key === null) {
-        registry.unread.push(
-          `${where}: an addIcons entry whose key is computed or spread — what it registers was NOT read`
-        );
-        continue;
-      }
-      const kebab = ioniconsKebab(key);
-      registry.keys.add(key);
-      registry.keys.add(kebab);
-      if (!registry.sites.has(kebab)) registry.sites.set(kebab, where);
+      this.registerProperty(ts, property, allIcons, where, registry);
     }
+  }
+
+  /** One entry of the object literal `addIcons` is called with. */
+  private static registerProperty(
+    ts: typeof TS,
+    property: TS.ObjectLiteralElementLike,
+    allIcons: Set<string>,
+    where: string,
+    registry: Registry
+  ): void {
+    if (
+      ts.isSpreadAssignment(property) &&
+      ts.isIdentifier(property.expression) &&
+      allIcons.has(property.expression.text)
+    ) {
+      registry.everything = true;
+      return;
+    }
+    const name = property.name;
+    const key =
+      name && (ts.isIdentifier(name) || ts.isStringLiteral(name))
+        ? name.text
+        : null;
+    if (key === null) {
+      registry.unread.push(
+        `${where}: an addIcons entry whose key is computed or spread — what it registers was NOT read`
+      );
+      return;
+    }
+    const kebab = ioniconsKebab(key);
+    registry.keys.add(key);
+    registry.keys.add(kebab);
+    if (!registry.sites.has(kebab)) registry.sites.set(kebab, where);
   }
 }

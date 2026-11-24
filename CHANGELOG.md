@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — TODO Management measures the excess TODOs against the configured limit (#601)
+
+The excess-TODO deduction was measured against a fixed allowance of 30,
+while the check that triggers it used `thresholds.documentation.maxTodoCount`.
+With a limit below 30 and a count between the limit and 30 the deduction was
+negative: "20 TODOs found (limit: 10)" came with a score of 103. Above 30
+TODOs the deduction was the same for every limit. It is now the excess over
+the configured limit, relative to it, up to the same 40-point maximum; a
+limit of 0 or below costs the maximum for any TODO over it, and the score
+is capped at 100. With the default limit the deduction is unchanged.
+
 ### Internal — Jest keeps its cache in this checkout (#592)
 
 Jest kept its transform cache in the OS temp directory (`<tmp>/jest`), which
@@ -809,6 +820,19 @@ Role enforcement written inline now counts as a role check:
 `user?.role === 'owner'`, `role !== 'admin'`, `user.roles.includes('admin')`.
 A role that appears only as an object key (`{ role: 'user' }`, as in a chat
 message or an ARIA attribute object) is not a role concept.
+
+### Changed — the default config writes no positional `laws.severity` map (#585)
+
+The default config built `laws.severity` as `law-1` … `law-N`, one key per
+registry entry by index, each set to the law's default severity. No law is
+named `law-N`, so the engine and Config Integrity Guard skipped these keys
+and they changed nothing; they still travelled in the `config` section of
+every `--json` result and every export, and shifted with every registry
+change, so a diff of two results' configs showed hundreds of meaningless
+lines. The map is gone: each law's authored `defaultSeverity` is the source
+of truth when no override is written. Every law's severity is unchanged. A
+user's config that still carries `law-N` keys keeps working: they are
+skipped as before.
 
 ### 🧹 Internal — tests and the release canary remove their temp directories
 

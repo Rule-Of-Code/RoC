@@ -19,6 +19,14 @@ import {
  * - Testing strategy documentation
  */
 export class UnitTestDocumentationConstants {
+  /** The coverage (percent) at or above which each documentation level starts. */
+  static readonly DOCUMENTATION_LEVELS = {
+    EXCELLENT: 90,
+    GOOD: 75,
+    ACCEPTABLE: 60,
+    POOR: 40,
+  };
+
   // ============================================
   // 1. Test Documentation File Patterns
   // ============================================
@@ -308,10 +316,18 @@ export class UnitTestDocumentationConstants {
    * Get documentation quality level
    */
   static getDocumentationLevel(coverage: number): string {
-    if (coverage >= 90) return 'EXCELLENT';
-    if (coverage >= 75) return 'GOOD';
-    if (coverage >= 60) return 'ACCEPTABLE';
-    if (coverage >= 40) return 'POOR';
+    if (
+      coverage >= UnitTestDocumentationConstants.DOCUMENTATION_LEVELS.EXCELLENT
+    )
+      return 'EXCELLENT';
+    if (coverage >= UnitTestDocumentationConstants.DOCUMENTATION_LEVELS.GOOD)
+      return 'GOOD';
+    if (
+      coverage >= UnitTestDocumentationConstants.DOCUMENTATION_LEVELS.ACCEPTABLE
+    )
+      return 'ACCEPTABLE';
+    if (coverage >= UnitTestDocumentationConstants.DOCUMENTATION_LEVELS.POOR)
+      return 'POOR';
     return 'CRITICAL';
   }
 

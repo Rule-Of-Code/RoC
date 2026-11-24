@@ -7,6 +7,7 @@ import { CheckerUtils } from '../../utils/checker-utils';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 import { QualityAssessmentUtils } from '../../utils/quality-assessment-utils';
+import { LAUNCH_READINESS_PENALTY as PENALTY } from './deployment-penalties';
 /**
  * Launch Readiness Checklist Law
  *
@@ -39,7 +40,7 @@ export class LaunchReadinessChecklistLaw {
       suggestions.push(
         'Create LAUNCH_CHECKLIST.md with comprehensive deployment requirements'
       );
-      score -= 30;
+      score -= PENALTY.checklist;
     }
 
     // 2. Check for testing completeness indicators
@@ -49,21 +50,21 @@ export class LaunchReadinessChecklistLaw {
       suggestions.push(
         'Document testing completion status and coverage metrics'
       );
-      score -= 25;
+      score -= PENALTY.testingCompleteness;
     }
 
     // 4. Check for security review documentation
     const securityReview = this.analyzeSecurityReview(projectRoot);
     if (!securityReview.hasSecurityReview) {
       suggestions.push('Complete security review and document findings');
-      score -= 15;
+      score -= PENALTY.securityReview;
     }
 
     // 5. Check for monitoring readiness
     const monitoringReadiness = this.analyzeMonitoringReadiness(projectRoot);
     if (!monitoringReadiness.hasMonitoringReadiness) {
       suggestions.push('Verify monitoring and alerting configuration');
-      score -= 10;
+      score -= PENALTY.monitoring;
     }
 
     return {

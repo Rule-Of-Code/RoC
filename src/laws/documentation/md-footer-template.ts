@@ -4,6 +4,7 @@ import { FileUtils } from '../../utils/file-utils';
 import { markJudgedNothing } from '../../utils/judged-nothing';
 import { configKeySlug } from '../../utils/law-identity';
 import { PathOperations } from '../../utils/path-operations';
+import { MD_FOOTER_PENALTY as PENALTY } from './documentation-penalties';
 /**
  * MD Footer Template Law
  *
@@ -51,7 +52,7 @@ export class MdFooterTemplateLaw {
         `${missingCount}/${totalCount} markdown files missing constitutional footers`
       );
       suggestions.push('Add mandatory constitutional footer to all MD files');
-      score -= Math.min(40, (missingCount / totalCount) * 100);
+      score -= Math.min(PENALTY.missingMax, (missingCount / totalCount) * 100);
     }
 
     // 3. Check footer format consistency
@@ -60,7 +61,7 @@ export class MdFooterTemplateLaw {
         `${footerAnalysis.invalidFormatFooters.length} files have incorrect footer format`
       );
       suggestions.push('Use standardized constitutional footer template');
-      score -= 20;
+      score -= PENALTY.invalidFormat;
     }
 
     // 4. Check for required footer elements
@@ -76,7 +77,7 @@ export class MdFooterTemplateLaw {
       suggestions.push(
         'Include all mandatory footer elements: version, date, status, investment rating'
       );
-      score -= 15;
+      score -= PENALTY.missingElements;
     }
 
     // 5. Check investment rating consistency
@@ -87,7 +88,7 @@ export class MdFooterTemplateLaw {
       suggestions.push(
         'Give the rating a readable value — N/10, a letter grade, or a declared status word (reviewed / needs-review / superseded)'
       );
-      score -= 10;
+      score -= PENALTY.invalidRatings;
     }
 
     // 6. Check date format consistency
@@ -96,7 +97,7 @@ export class MdFooterTemplateLaw {
         `${footerAnalysis.invalidDates.length} files have incorrect date format`
       );
       suggestions.push('Use standard date format: December 27, 2025');
-      score -= 10;
+      score -= PENALTY.invalidDates;
     }
 
     // Calculate final compliance percentage

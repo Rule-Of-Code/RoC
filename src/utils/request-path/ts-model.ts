@@ -27,6 +27,9 @@ import { chainPrefixes, collapse } from './expr-text';
 import { finishLoop, type WalkedLoop } from './loop-dependence';
 import { TsxSource, type TypeScriptModule } from '../react/tsx-source';
 
+/** Characters of a statement's or a body's source a model keeps as its text. */
+const MODEL_TEXT_LENGTH = 2000;
+
 /** A call whose callback runs inside a database transaction. */
 const TRANSACTION_CALL =
   /^(?:runTransaction|\$transaction|transaction|withTransaction)$/;
@@ -342,7 +345,7 @@ class TsModelBuilder {
       ),
       used,
       mutableBindings: mutable,
-      text: this.norm(statement).slice(0, 2000),
+      text: this.norm(statement).slice(0, MODEL_TEXT_LENGTH),
     };
   }
 
@@ -582,7 +585,7 @@ class TsModelBuilder {
       bound: [],
       used: this.namesIn(body),
       mutableBindings: [],
-      text: this.norm(body).slice(0, 2000),
+      text: this.norm(body).slice(0, MODEL_TEXT_LENGTH),
     };
   }
 

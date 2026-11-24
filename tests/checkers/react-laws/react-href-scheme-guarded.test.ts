@@ -70,6 +70,20 @@ describe('ReactHrefSchemeGuarded (#248): red', () => {
     ).toHaveLength(1);
   });
 
+  // The quote is cut by codeExcerpt (src/utils/code-excerpt.ts), shared with
+  // four other laws: whitespace collapsed, over the 60-character limit cut to
+  // 57 and "...".
+  it('quotes a long expression cut at the limit, whitespace collapsed', () => {
+    const [finding] = violations(
+      check(
+        '<a href={user.profile.links.primary.website\n    .toString().trim().toLowerCase()}>x</a>'
+      )
+    );
+    expect(finding).toContain(
+      '<a href={user.profile.links.primary.website .toString().trim().toL...}>'
+    );
+  });
+
   it('one safe and one unsafe branch', () => {
     expect(
       violations(check('<a href={id ? `/u/${id}` : user.website}>x</a>'))

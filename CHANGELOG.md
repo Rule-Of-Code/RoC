@@ -839,6 +839,19 @@ differs; they never build themselves. A checkout or merge that leaves the
 content unchanged does not trip the check. A `dist/` with no stamp (built with
 `tsc` alone) is refused as well. No law result changes.
 
+### Internal — RoC's own code names its numbers (#559)
+
+Magic Number Prevention reported 66 of RoC's own files: score weights
+(`score -= 25`), version cut-offs (Angular 16/18/19, Next.js 16), quote
+lengths, lookahead windows and the report's rule width written as bare
+numbers. Each is now a named constant beside the code that reads it — a
+`PENALTY` table per law, or one named value. The deployment and
+documentation laws keep their tables in `deployment-penalties.ts` and
+`documentation-penalties.ts`, beside files already past the size limit, and
+the code excerpt five readers quoted the same way is one helper, `codeExcerpt`.
+No score, threshold or message changes. The finding that remains is the
+ESLint `no-magic-numbers` rule not being configured for this repository.
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

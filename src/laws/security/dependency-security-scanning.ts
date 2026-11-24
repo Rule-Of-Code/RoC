@@ -11,6 +11,10 @@ import {
 import { LawErrorHandlingUtils } from '../../utils/law-error-handling-utils';
 import type { PackageJsonLicense } from '../../utils/licensing/licensing-types';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
+
+/** Points of the score of 100 each dependency security violation costs. */
+const POINTS_PER_VIOLATION = 30;
+
 /**
  * DependencyVulnerabilityAnalyzer Dependency Security Scanning Law - Refactored Modular Version
  *
@@ -73,7 +77,7 @@ export class DependencySecurityScanningLaw {
       ],
       violations,
       suggestions,
-      score: Math.max(0, 100 - violations.length * 30),
+      score: Math.max(0, 100 - violations.length * POINTS_PER_VIOLATION),
       fixable: !passed,
       config,
     };

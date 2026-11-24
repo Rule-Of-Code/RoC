@@ -6,6 +6,7 @@
 
 import * as fs from 'fs';
 import { PathOperations } from '../utils/path-operations';
+import { stripJsonComments } from './jsonc-text';
 import { errorUser, warnUser } from './logging-utils';
 export interface FileReadOptions {
   /** File encoding (default: utf8) */
@@ -186,86 +187,9 @@ export class FileSystemOperations {
     }
   }
 
-  /**
-   * Remove `//` and block comments and trailing commas, respecting string
-   * literals so a `//` or `,` inside a value is never touched. Two passes: strip
-   * comments first, then trailing commas, so a comment between a comma and its
-   * closing brace does not leave the comma stranded.
-   */
+  /** JSONC text without its comments and trailing commas (see jsonc-text). */
   static stripJsonComments(input: string): string {
-    let out = '';
-    let i = 0;
-    while (i < input.length) {
-      const c = input[i];
-      const next = input[i + 1];
-      if (c === '"') {
-        const end = this.endOfString(input, i);
-        out += input.slice(i, end);
-        i = end;
-      } else if (c === '/' && next === '/') {
-        i = this.skipLineComment(input, i);
-      } else if (c === '/' && next === '*') {
-        i = this.skipBlockComment(input, i);
-      } else {
-        out += c;
-        i++;
-      }
-    }
-    return this.stripTrailingCommas(out);
-  }
-
-  /** Index just past a `//` line comment starting at `start`. */
-  private static skipLineComment(input: string, start: number): number {
-    let i = start + 2;
-    while (i < input.length && input[i] !== '\n') i++;
-    return i;
-  }
-
-  /** Index just past the closing of a block comment starting at `start`. */
-  private static skipBlockComment(input: string, start: number): number {
-    let i = start + 2;
-    while (i < input.length && !(input[i] === '*' && input[i + 1] === '/')) i++;
-    return i + 2;
-  }
-
-  private static stripTrailingCommas(input: string): string {
-    let out = '';
-    let i = 0;
-    while (i < input.length) {
-      const c = input[i];
-      if (c === '"') {
-        const end = this.endOfString(input, i);
-        out += input.slice(i, end);
-        i = end;
-      } else if (c === ',' && this.isTrailingComma(input, i)) {
-        i++; // drop it
-      } else {
-        out += c;
-        i++;
-      }
-    }
-    return out;
-  }
-
-  /** From an opening quote at `start`, the index just past its closing quote. */
-  private static endOfString(input: string, start: number): number {
-    let i = start + 1;
-    while (i < input.length) {
-      if (input[i] === '\\') {
-        i += 2;
-        continue;
-      }
-      if (input[i] === '"') return i + 1;
-      i++;
-    }
-    return i;
-  }
-
-  /** Is the comma at `commaIndex` immediately followed (past whitespace) by } or ]? */
-  private static isTrailingComma(input: string, commaIndex: number): boolean {
-    let j = commaIndex + 1;
-    while (j < input.length && /\s/.test(input[j] as string)) j++;
-    return input[j] === '}' || input[j] === ']';
+    return stripJsonComments(input);
   }
 
   /**
@@ -502,57 +426,6 @@ export class FileSystemOperations {
     return mtime1 > mtime2;
   }
 
-  // === BATCH OPERATIONS ===
-
-  /**
-   * Find files matching patterns in directories
-   */
-  static findFiles(directories: string[], extensions: string[]): string[] {
-    const foundFiles: string[] = [];
-
-    for (const dir of directories) {
-      if (!this.isDirectory(dir)) continue;
-
-      this.processDirectoryForFiles(dir, extensions, foundFiles);
-    }
-
-    return foundFiles;
-  }
-
-  /**
-   * Helper method to process a directory for file finding
-   */
-  private static processDirectoryForFiles(
-    dir: string,
-    extensions: string[],
-    foundFiles: string[]
-  ): void {
-    const entries = this.readDirectory(dir);
-
-    for (const entry of entries) {
-      this.processEntryForFiles(entry, dir, extensions, foundFiles);
-    }
-  }
-
-  /**
-   * Helper method to process a directory entry for file finding
-   */
-  private static processEntryForFiles(
-    entry: fs.Dirent,
-    dir: string,
-    extensions: string[],
-    foundFiles: string[]
-  ): void {
-    if (!entry.isFile()) return;
-
-    const fullPath = PathOperations.join(dir, entry.name);
-    const ext = PathOperations.getExtension(entry.name).toLowerCase();
-
-    if (extensions.length === 0 || extensions.includes(ext)) {
-      foundFiles.push(fullPath);
-    }
-  }
-
   /**
    * Read directory entries with error handling
    * Centralized method to replace direct fs.readdirSync calls
@@ -563,25 +436,5 @@ export class FileSystemOperations {
     } catch {
       return [];
     }
-  }
-
-  /**
-   * Get disk usage for a directory
-   */
-  static getDirectorySize(dirPath: string): number {
-    let totalSize = 0;
-    const entries = this.readDirectory(dirPath);
-
-    for (const entry of entries) {
-      const fullPath = PathOperations.join(dirPath, entry.name);
-
-      if (entry.isFile()) {
-        totalSize += this.getFileSize(fullPath);
-      } else if (entry.isDirectory()) {
-        totalSize += this.getDirectorySize(fullPath);
-      }
-    }
-
-    return totalSize;
   }
 }

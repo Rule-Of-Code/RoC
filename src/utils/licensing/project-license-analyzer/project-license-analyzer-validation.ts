@@ -69,29 +69,42 @@ export class ProjectLicenseAnalyzerValidation extends LicensingValidationBase {
 
     // Check for license consistency
     if (projectLicense && hasLicenseFile) {
-      const licenseFilePath =
-        ProjectLicenseAnalyzerValidation.findLicenseFilePath(projectRoot);
-      if (licenseFilePath) {
-        const consistency =
-          ProjectLicenseAnalyzerValidation.validateLicenseConsistency(
-            projectLicense,
-            licenseFilePath
-          );
-        // Only a mismatch we can actually establish is a violation. When the
-        // identifier is one we do not know, we say nothing — an unverifiable
-        // claim is not evidence, and a violation nobody can fix is a waiver
-        // waiting to happen.
-        if (consistency.determinable && !consistency.consistent) {
-          violations.push(
-            messages.licenseMismatch(projectLicense, consistency.fileLicense)
-          );
-          suggestions.push(suggestionMessages.ensureConsistency);
-          score -= scoringConfig.mismatchPenalty;
-        }
+      const fileLicense = ProjectLicenseAnalyzerValidation.provenMismatch(
+        projectRoot,
+        projectLicense
+      );
+      if (fileLicense !== undefined) {
+        violations.push(messages.licenseMismatch(projectLicense, fileLicense));
+        suggestions.push(suggestionMessages.ensureConsistency);
+        score -= scoringConfig.mismatchPenalty;
       }
     }
 
     return { violations, suggestions, score };
+  }
+
+  /**
+   * The licence the LICENSE file names, when it provably differs from the
+   * package.json one. Only a mismatch we can actually establish is a
+   * violation. When the identifier is one we do not know, we say nothing — an
+   * unverifiable claim is not evidence, and a violation nobody can fix is a
+   * waiver waiting to happen.
+   */
+  private static provenMismatch(
+    projectRoot: string,
+    projectLicense: string
+  ): string | undefined {
+    const licenseFilePath =
+      ProjectLicenseAnalyzerValidation.findLicenseFilePath(projectRoot);
+    if (!licenseFilePath) return undefined;
+    const consistency =
+      ProjectLicenseAnalyzerValidation.validateLicenseConsistency(
+        projectLicense,
+        licenseFilePath
+      );
+    return consistency.determinable && !consistency.consistent
+      ? consistency.fileLicense
+      : undefined;
   }
 
   /**

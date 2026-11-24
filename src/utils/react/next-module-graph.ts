@@ -39,6 +39,9 @@ import {
   type TypeScriptModule,
 } from './tsx-source';
 
+/** Modules an import chain shows before it is cut — a finding names a path, not a dump. */
+const MAX_CHAIN_STEPS = 20;
+
 /**
  * Modules that must never reach the browser bundle: the Node built-ins Next
  * does NOT polyfill for the client (the polyfilled ones — crypto, path,
@@ -582,7 +585,7 @@ export class NextModuleGraph {
   chain(modules: Map<string, Visit>, file: string): string {
     const steps: string[] = [];
     let current: string | null = file;
-    while (current && steps.length < 20) {
+    while (current && steps.length < MAX_CHAIN_STEPS) {
       steps.unshift(this.relative(current));
       current = modules.get(current)?.via ?? null;
     }

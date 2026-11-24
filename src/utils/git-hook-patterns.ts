@@ -19,6 +19,12 @@ export class GitHookPatterns {
    */
   static readonly HOOK_TOOLS = ['husky', 'pre-commit', 'ghooks', 'yorkie'];
 
+  /** Characters of a commit-message pattern quoted in the generated hook's comment. */
+  static readonly PATTERN_COMMENT_LENGTH = 50;
+
+  /** A hook file shorter than this that mentions 'sample' is git's sample, not a hook. */
+  private static readonly SAMPLE_HOOK_MAX_LENGTH = 200;
+
   /**
    * Common hook configuration files
    */
@@ -139,8 +145,10 @@ export class GitHookPatterns {
       }
 
       const content = FileUtils.readFile(hookPath);
-      // Samples are usually < 200 chars and contain 'sample'
-      return content.includes('sample') && content.length < 200;
+      return (
+        content.includes('sample') &&
+        content.length < GitHookPatterns.SAMPLE_HOOK_MAX_LENGTH
+      );
     } catch (_error) {
       return false;
     }

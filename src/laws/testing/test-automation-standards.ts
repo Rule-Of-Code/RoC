@@ -1,6 +1,17 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { UnitTestAutomationStandardsAnalyzerService } from './unit-test-automation-standards/services/automation-analyzer.service';
 
+/** Points of the score of 100 each missing piece of test automation costs. */
+const PENALTY = {
+  testScripts: 25,
+  testRunner: 20,
+  testEnvironment: 10,
+  parallelization: 10,
+  cicdConfig: 20,
+  cicdTests: 15,
+  runnerConfig: 5,
+} as const;
+
 /**
  * Test Automation Standards Law
  *
@@ -35,7 +46,7 @@ export class TestAutomationStandardsLaw {
       if (!automationAnalysis.hasTestScripts) {
         violations.push('Missing test scripts in package.json');
         suggestions.push('Add test script commands to package.json');
-        score -= 25;
+        score -= PENALTY.testScripts;
       }
 
       if (!automationAnalysis.hasTestRunner) {
@@ -43,7 +54,7 @@ export class TestAutomationStandardsLaw {
         suggestions.push(
           'Install and configure Jest, Mocha, Vitest, or similar'
         );
-        score -= 20;
+        score -= PENALTY.testRunner;
       }
 
       if (!automationAnalysis.hasTestEnvironment) {
@@ -51,12 +62,12 @@ export class TestAutomationStandardsLaw {
         suggestions.push(
           'Create test setup files and environment configuration'
         );
-        score -= 10;
+        score -= PENALTY.testEnvironment;
       }
 
       if (!automationAnalysis.hasParallelization) {
         suggestions.push('Configure test parallelization for faster execution');
-        score -= 10;
+        score -= PENALTY.parallelization;
       }
 
       // 2. Analyze CI/CD integration
@@ -70,13 +81,13 @@ export class TestAutomationStandardsLaw {
         suggestions.push(
           'Set up GitHub Actions, GitLab CI, Bitbucket Pipelines, or similar'
         );
-        score -= 20;
+        score -= PENALTY.cicdConfig;
       }
 
       if (cicdAnalysis.hasCICDConfig && !cicdAnalysis.hasAutomatedTests) {
         violations.push('CI/CD configured but tests not automated');
         suggestions.push('Add test execution to CI/CD pipeline');
-        score -= 15;
+        score -= PENALTY.cicdTests;
       }
 
       // 3. Analyze test runner configuration
@@ -92,7 +103,7 @@ export class TestAutomationStandardsLaw {
         !runnerAnalysis.hasOther
       ) {
         suggestions.push('Configure a test runner (Jest recommended)');
-        score -= 5;
+        score -= PENALTY.runnerConfig;
       }
 
       // 4. Overall readiness assessment

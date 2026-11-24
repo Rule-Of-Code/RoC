@@ -10,6 +10,7 @@ import { ChecklistDocumentValidator } from './pre-deployment/checklist-validator
 import { PerformanceValidationChecker } from './pre-deployment/performance-validator';
 import { SecurityValidationChecker } from './pre-deployment/security-validator';
 import { DeploymentValidationUtilities } from './shared-deployment-utilities';
+import { PRE_DEPLOYMENT_PENALTY as PENALTY } from './deployment-penalties';
 
 /**
  * Pre-Deployment Checklist Law - Refactored Modular Version
@@ -70,17 +71,17 @@ export class PreDeploymentChecklistLaw {
     if (!hasTestScripts && !hasTestFiles) {
       violations.push('Testing setup incomplete or no test files found');
       suggestions.push('Configure test scripts and create comprehensive tests');
-      score -= 20;
+      score -= PENALTY.testingSetup;
     } else if (!hasTestScripts) {
       // Has test files but no scripts - minor violation
       suggestions.push(
         'Consider adding test scripts to package.json for better automation'
       );
-      score -= 5;
+      score -= PENALTY.testScriptsOrFilesOnly;
     } else if (!hasTestFiles) {
       // Has scripts but no files - minor violation
       suggestions.push('Consider adding more test files to improve coverage');
-      score -= 5;
+      score -= PENALTY.testScriptsOrFilesOnly;
     }
 
     // 4. Check security scanning. `npm audit` is not the only scanner there is:
@@ -98,7 +99,7 @@ export class PreDeploymentChecklistLaw {
       suggestions.push(
         'Configure a dependency and code scanner in the gate (npm audit, or pip-audit + bandit)'
       );
-      score -= 25;
+      score -= PENALTY.securityScanning;
     }
 
     // Authentication, benchmarking, health checks and production logging are
@@ -136,7 +137,7 @@ export class PreDeploymentChecklistLaw {
     ) {
       violations.push('Authentication/authorization setup not detected');
       suggestions.push('Implement proper authentication and security measures');
-      score -= 20;
+      score -= PENALTY.authentication;
     }
 
     // 6. Check performance benchmarking. A service benchmarks with Prometheus /
@@ -154,7 +155,7 @@ export class PreDeploymentChecklistLaw {
       suggestions.push(
         'Configure performance monitoring and benchmarking tools'
       );
-      score -= 15;
+      score -= PENALTY.performanceBenchmarking;
     }
 
     // 7. Check monitoring setup.
@@ -177,7 +178,7 @@ export class PreDeploymentChecklistLaw {
     ) {
       violations.push('Health checks not configured');
       suggestions.push('Implement health check endpoints for monitoring');
-      score -= 10;
+      score -= PENALTY.healthChecks;
     }
 
     const loggingConfigured =
@@ -190,7 +191,7 @@ export class PreDeploymentChecklistLaw {
     ) {
       violations.push('Logging not properly configured');
       suggestions.push('Configure structured logging for production');
-      score -= 10;
+      score -= PENALTY.logging;
     }
 
     // Calculate final score
@@ -287,7 +288,7 @@ export class PreDeploymentChecklistLaw {
           suggestions.push(
             'Create comprehensive PRE_DEPLOYMENT_CHECKLIST.md with validation steps'
           );
-          return 35;
+          return PENALTY.checklistMissing;
         } else if (!checklistStatus.isComplete) {
           // We judge what the checklist COVERS, never whether its boxes are
           // ticked: the boxes belong to a deployment, not to the repository.
@@ -302,7 +303,7 @@ export class PreDeploymentChecklistLaw {
               ? `Add checklist steps covering ${missing.join(', ')} — leave the boxes UNTICKED; they are ticked at deployment time, not committed`
               : 'Add checklist steps (- [ ] ...) for build & tests, security, and rollback'
           );
-          return 25;
+          return PENALTY.checklistIncomplete;
         }
 
         for (const advised of checklistStatus.missingAdvisedConcerns ?? []) {
@@ -342,7 +343,7 @@ export class PreDeploymentChecklistLaw {
           suggestions.push(
             'Set up proper build scripts and configuration validation'
           );
-          return 20;
+          return PENALTY.buildSetup;
         }
         return 0;
       }

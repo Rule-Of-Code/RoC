@@ -36,6 +36,7 @@ import {
   type TypeScriptModule,
 } from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';
+import { codeExcerpt } from '../../utils/code-excerpt';
 
 const CONFIG_NAMES = [
   'jest.config.ts',
@@ -310,8 +311,7 @@ export class CapacitorPluginStubHasContractTestLaw extends LawBase {
   }
 
   private static excerpt(source: TsxSource, value: TS.Expression): string {
-    const text = value.getText(source.sourceFile).replace(/\s+/g, ' ');
-    return text.length > 60 ? `${text.slice(0, 57)}...` : text;
+    return codeExcerpt(value.getText(source.sourceFile));
   }
 
   private static objectEntries(

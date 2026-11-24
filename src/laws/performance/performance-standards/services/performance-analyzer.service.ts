@@ -11,6 +11,17 @@ import { ImageOptimizationAnalyzer } from './image-optimization.analyzer';
 import { LighthouseAnalyzer } from './lighthouse.analyzer';
 import { PerformanceBudgetsAnalyzer } from './performance-budgets.analyzer';
 
+/** Points each kind of performance finding takes off the score. */
+const PENALTY = {
+  lighthouse: 25,
+  budgets: 20,
+  vitals: 20,
+  bundle: 15,
+  images: 10,
+  caching: 10,
+  unread: 10,
+} as const;
+
 /**
  * Performance Analyzer Service
  *
@@ -40,7 +51,7 @@ export class PerformanceAnalyzerService {
     // Lighthouse analysis
     const lighthouseViolations = LighthouseAnalyzer.analyze(projectRoot);
     violations.push(...lighthouseViolations);
-    if (lighthouseViolations.length > 0) scoreImpact += 25;
+    if (lighthouseViolations.length > 0) scoreImpact += PENALTY.lighthouse;
 
     // Performance budgets analysis
     const budgetsViolations = PerformanceBudgetsAnalyzer.analyze(
@@ -48,7 +59,7 @@ export class PerformanceAnalyzerService {
       config
     );
     violations.push(...budgetsViolations);
-    if (budgetsViolations.length > 0) scoreImpact += 20;
+    if (budgetsViolations.length > 0) scoreImpact += PENALTY.budgets;
 
     // Core Web Vitals analysis
     const vitalsViolations = await CoreWebVitalsAnalyzer.analyze(
@@ -58,7 +69,7 @@ export class PerformanceAnalyzerService {
       lawId
     );
     violations.push(...vitalsViolations);
-    if (vitalsViolations.length > 0) scoreImpact += 20;
+    if (vitalsViolations.length > 0) scoreImpact += PENALTY.vitals;
 
     // Bundle optimization analysis
     const bundleViolations = BundleOptimizationAnalyzer.analyze(
@@ -66,7 +77,7 @@ export class PerformanceAnalyzerService {
       bundler
     );
     violations.push(...bundleViolations);
-    if (bundleViolations.length > 0) scoreImpact += 15;
+    if (bundleViolations.length > 0) scoreImpact += PENALTY.bundle;
 
     // Image optimization analysis
     const imageViolations = await ImageOptimizationAnalyzer.analyze(
@@ -76,7 +87,7 @@ export class PerformanceAnalyzerService {
       bundler
     );
     violations.push(...imageViolations);
-    if (imageViolations.length > 0) scoreImpact += 10;
+    if (imageViolations.length > 0) scoreImpact += PENALTY.images;
 
     // Caching strategy analysis
     const cachingViolations = await CachingStrategyAnalyzer.analyze(
@@ -84,13 +95,13 @@ export class PerformanceAnalyzerService {
       config
     );
     violations.push(...cachingViolations);
-    if (cachingViolations.length > 0) scoreImpact += 10;
+    if (cachingViolations.length > 0) scoreImpact += PENALTY.caching;
 
     // Files the React scan could not read were not inspected: say so, never
     // let their absence read as compliance.
     if (react.unread.length > 0) {
       violations.push(unreadViolation(react.unread));
-      scoreImpact += 10;
+      scoreImpact += PENALTY.unread;
     }
 
     return { violations, scoreImpact };

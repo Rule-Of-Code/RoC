@@ -15,6 +15,10 @@ import { PathOperations } from '../../utils/path-operations';
 import { LawBase } from '../law-base';
 import type { QualityTool } from './package-json-utilities';
 import { PackageJsonUtilities } from './package-json-utilities';
+
+/** Points of the score of 100 each professional-standard violation costs. */
+const POINTS_PER_VIOLATION = 15;
+
 export class ProfessionalExcellenceLaw {
   static check(context: LawCheckContext): LawResult {
     const violations: string[] = [];
@@ -49,7 +53,7 @@ export class ProfessionalExcellenceLaw {
       score:
         violations.length === 0
           ? 100
-          : Math.max(0, 100 - violations.length * 15),
+          : Math.max(0, 100 - violations.length * POINTS_PER_VIOLATION),
       context,
     });
   }

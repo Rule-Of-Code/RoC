@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — NgRx / Signals analyzers: false findings and checks that never fire (#612)
+
+Twelve places in the Signals and NgRx analyzers reported something that is
+not there, or held a check that could never report:
+
+- Angular Signal Adoption: `WritableSignal<T>` is no longer "Signal type used
+  but not imported"; `import { type Signal }` is an import of `Signal`; any
+  Angular from 16 on supports signals (^19, ^20, ~21 were told they were too
+  old by a fixed list of 16, 17, 18).
+- NgRx RxJS Operators Selection Mandate: `@Injectable({ providedIn: 'root' })`
+  is an `@Injectable`; an empty or unreadable effects file is not "Missing
+  error handling".
+- NgRx Feature Store Structure Mandate: `*.spec.ts` / `*.test.ts` in a
+  `+state` folder are neither badly named nor a second reducer; a `+state`
+  directory that cannot be read is skipped; names follow the feature folder
+  in PascalCase (`[User]`, `UserEffects`, `selectUserFeature`,
+  `initialUserState` for a folder `user`; `UserProfile…` for `user-profile`).
+  "Selector should start with select" now fires: a selector is what
+  `createSelector` / `createFeatureSelector` makes, whatever its name.
+- NgRx Reducers Immutability Mandate: `state.loading === true` is a comparison,
+  not a mutation; `(state) => ({ ...state, … })` is an object literal return.
+- NgRx Selectors Memoization Mandate: "Direct store.select usage" now fires on
+  a `store.select` with a string key or an inline projector; a selector
+  argument (`selectUsers`, `fromUser.selectAll`, `selectUserById(id)`) is not
+  judged.
+
+Each false finding has a control in `tests/regression/ngrx-signals-analyzers-612.test.ts`:
+the real defect is still reported.
+
 ### ✨ Changed — Test Coverage Constitutional Standard judges by real line coverage (#599)
 
 With a coverage report — `coverage/coverage-summary.json` (Jest

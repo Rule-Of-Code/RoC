@@ -321,3 +321,81 @@ const naming = (files: Record<string, string>) =>
     project(files),
     config
   );
+
+describe('#612 point 11: a lower-case feature folder does not set the case of names', () => {
+  it("'[User] Load Users' has the feature prefix of folder user", () => {
+    const result = naming({
+      [`${STATE}/user.actions.ts`]:
+        "export const loadUsers = createAction('[User] Load Users');\n",
+    });
+    expect(result.violations).toEqual([]);
+  });
+
+  it('UserEffects is the effects class name', () => {
+    const result = naming({
+      [`${STATE}/user.effects.ts`]:
+        'export class UserEffects { load$ = createEffect(() => x); }\n',
+    });
+    expect(result.suggestions).toEqual([]);
+  });
+
+  it('selectUserFeature / initialUserState are the expected names', () => {
+    const result = naming({
+      [`${STATE}/user.selectors.ts`]:
+        "export const selectUserFeature = createFeatureSelector('user');\n",
+      [`${STATE}/user.reducer.ts`]:
+        'export const initialState: UserState = {};\nexport const initialUserState = initialState;\n',
+    });
+    expect(result.suggestions).toEqual([]);
+  });
+
+  it('a kebab-case folder maps to PascalCase names', () => {
+    const result = naming({
+      'src/app/user-profile/+state/user-profile.actions.ts':
+        "export const load = createAction('[User Profile] Load');\n",
+      'src/app/user-profile/+state/user-profile.effects.ts':
+        'export class UserProfileEffects { load$ = createEffect(() => x); }\n',
+    });
+    expect(result).toEqual({ violations: [], suggestions: [] });
+  });
+
+  it('control: another feature prefix and class name are still reported, in PascalCase', () => {
+    const result = naming({
+      [`${STATE}/user.actions.ts`]:
+        "export const loadUsers = createAction('[Admin] Load Users');\n",
+      [`${STATE}/user.effects.ts`]:
+        'export class AdminEffects { load$ = createEffect(() => x); }\n',
+    });
+    expect(result.violations).toEqual([
+      "Action '[Admin] Load Users' should start with '[User]' prefix in user.actions",
+    ]);
+    expect(result.suggestions).toEqual(
+      expect.arrayContaining([
+        "Rename action to '[User] [Admin] Load Users'",
+        "Effects class should be named 'UserEffects' in user.effects",
+      ])
+    );
+  });
+});
+
+describe('#612 point 12: "Selector should start with select" fires on a selector not named select*', () => {
+  it('getUsers = createSelector(...) gets the prefix suggestion', () => {
+    const result = naming({
+      [`${STATE}/user.selectors.ts`]:
+        'export const getUsers = createSelector(selectState, s => s.users);\n',
+    });
+    expect(result.suggestions).toEqual([
+      "Selector 'getUsers' should start with 'select' prefix in user.selectors",
+    ]);
+  });
+
+  it('control: selectUsers = createSelector(...) and a non-selector const get none', () => {
+    const result = naming({
+      [`${STATE}/user.selectors.ts`]: [
+        'export const selectUsers = createSelector(selectState, s => s.users);',
+        'export const PAGE_SIZE = 20;',
+      ].join('\n'),
+    });
+    expect(result.suggestions).toEqual([]);
+  });
+});

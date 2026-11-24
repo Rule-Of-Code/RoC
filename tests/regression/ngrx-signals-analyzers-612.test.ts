@@ -12,6 +12,7 @@ import { NgRxEffectPatternsValidation } from '../../src/utils/angular/ngrx-effec
 import { NgRxErrorHandlingValidationPatterns } from '../../src/utils/angular/ngrx-error-handling/ngrx-error-handling-validation-patterns';
 import { NgRxFileOrganizationValidationPatterns } from '../../src/utils/angular/ngrx-file-organization/ngrx-file-organization-validation-patterns';
 import { NgRxImmutabilityValidationPatterns } from '../../src/utils/angular/ngrx-immutability/ngrx-immutability-validation-patterns';
+import { NgRxMemoizationValidationPatterns } from '../../src/utils/angular/ngrx-memoization/ngrx-memoization-validation-patterns';
 import { NgRxNamingConventionsValidationPatterns } from '../../src/utils/angular/ngrx-naming-conventions/ngrx-naming-conventions-validation-patterns';
 import { FileUtils } from '../../src/utils/file-utils';
 import { manifest, project } from '../checkers/toolkit-fixture';
@@ -284,6 +285,34 @@ describe('#612 point 9: the arrow reducer returning ({ ...state }) is an object 
     expect(result.suggestions).toEqual([
       'Use object literal returns for state updates in user.reducer',
     ]);
+  });
+});
+
+describe('#612 point 10: "Direct store.select usage" fires on a select that bypasses selectors', () => {
+  const component = (content: string) =>
+    NgRxMemoizationValidationPatterns.validateAllMemoizationPatterns(
+      project({ 'src/app/user/user.component.ts': content }),
+      config
+    );
+  const DIRECT =
+    'Direct store.select usage instead of selector in user.component';
+
+  it.each([
+    "this.users$ = this.store.select('users');",
+    'this.users$ = this.store.select("users");',
+    'this.users$ = this.store.select(state => state.users);',
+    'this.users$ = this.store.select((state: AppState) => state.users);',
+  ])('%s is reported', line => {
+    expect(component(`${line}\n`).violations).toEqual([DIRECT]);
+  });
+
+  it.each([
+    'this.users$ = this.store.select(selectUsers);',
+    'this.users$ = this.store.select(fromUser.selectAll);',
+    'this.user$ = this.store.select(selectUserById(id));',
+    'this.users$ = this.store.pipe(select(selectUsers));',
+  ])('control: %s is not reported', line => {
+    expect(component(`${line}\n`).violations).toEqual([]);
   });
 });
 

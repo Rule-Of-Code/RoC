@@ -264,21 +264,29 @@ export class NgRxMemoizationConfiguration extends SignalConfigurationBase {
   }
 
   /**
-   * Check if content has valid direct select usage
+   * Does every store.select in the content go through a selector? This used
+   * to be true whenever the content held the word `select`, which every
+   * `store.select` does, so "Direct store.select usage" could never fire
+   * (#612).
    */
   static hasValidDirectSelectUsage(content: string): boolean {
-    return (
-      !content.includes('store.select') ||
-      content.includes(NGRX_KEYWORDS.SELECT_PREFIX)
-    );
+    const selects = this.findDirectSelects(content) ?? [];
+    return !selects.some(select => this.isInvalidDirectSelect(select));
   }
 
   /**
-   * Check if direct select is invalid
+   * A store.select that bypasses memoized selectors: its argument is a
+   * string key (`store.select('users')`) or an inline projector
+   * (`store.select(state => state.users)`). An identifier or a call
+   * (`selectUsers`, `fromUser.selectAll`, `selectUserById(id)`) is a
+   * selector and is not judged.
    */
   static isInvalidDirectSelect(select: string): boolean {
+    const argument = select.replace(/^.*?store\.select\(\s*/, '');
     return (
-      !select.includes('select') || select.includes("'") || select.includes('"')
+      /^['"`]/.test(argument) ||
+      /^(?:\(|function\b|async\b)/.test(argument) ||
+      /^[\w$]+\s*=>/.test(argument)
     );
   }
 

@@ -361,13 +361,18 @@ describe('utils/angular/ngrx-memoization/ngrx-memoization-configuration', () => 
         ).toBe(true);
       });
 
-      it('should return true when store.select contains select word', () => {
-        // hasValidDirectSelectUsage returns true if content contains SELECT_PREFIX ('select')
-        // 'store.select' contains 'select', so this returns true
+      it('should return false for an inline projector (#612: the word select no longer passes it)', () => {
         const content = 'this.store.select(state => state.users)';
         expect(
           NgRxMemoizationConfiguration.hasValidDirectSelectUsage(content)
-        ).toBe(true);
+        ).toBe(false);
+      });
+
+      it('should return false for a string key', () => {
+        const content = "this.store.select('users')";
+        expect(
+          NgRxMemoizationConfiguration.hasValidDirectSelectUsage(content)
+        ).toBe(false);
       });
     });
 

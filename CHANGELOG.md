@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ Added — Angular laws name what they counted (#43, angular)
+
+Three Angular laws said how many and never which: "OnPush usage: 33.3% (1/3
+components)" with five names, "2/3 components are not standalone",
+"<file>: 2 constructor(s) using parameter-property DI". Each law already
+held what it counted. It now puts it in `violationDetails`, which the
+console prints under the violation and `--export json` carries in full.
+
+- **OnPush Change Detection Strategy**: every component the law says should
+  use OnPush, where the line names five.
+- **Standalone Components Architecture**: each component that is not
+  standalone, with the reason for the Angular version (`standalone: false`
+  on 19+, no `standalone: true` before).
+- **Inject Over Constructor DI**: each injected constructor at its line.
+
+Not in this change: Functional IO and Query API, No Subscribe In Effect and
+Declarative Read Subscriptions already name the file. They count matches in
+comment-stripped text whose lines do not map back to the source without new
+code. The NgRx and signal laws are left to the work on their analyzers.
+File paths are relative to the audited project. The violation lines,
+verdicts and scores are unchanged, and nothing new is searched for.
+
 ### ✨ Changed — Test Coverage Constitutional Standard judges by real line coverage (#599)
 
 With a coverage report — `coverage/coverage-summary.json` (Jest

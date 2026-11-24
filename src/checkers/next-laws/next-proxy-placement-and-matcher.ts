@@ -86,16 +86,28 @@ export class NextProxyPlacementAndMatcherLaw extends LawBase {
     const source = graph.source(effective);
     if (!source) return violations;
     violations.push(
-      ...this.exportProblems(
+      ...this.sourceProblems(
         source,
         rel(effective),
-        effective === proxy ? 'proxy' : 'middleware'
+        effective === proxy ? 'proxy' : 'middleware',
+        withoutMatcher
       )
     );
+    return violations;
+  }
+
+  /** What the loaded proxy/middleware file exports, then its matcher. */
+  private static sourceProblems(
+    source: TsxSource,
+    where: string,
+    name: string,
+    withoutMatcher: string | undefined
+  ): string[] {
+    const problems = [...this.exportProblems(source, where, name)];
     const matcher = this.matcherProblem(source);
     if (matcher && !(withoutMatcher && matcher.absent))
-      violations.push(`${rel(effective)}: ${matcher.message}`);
-    return violations;
+      problems.push(`${where}: ${matcher.message}`);
+    return problems;
   }
 
   /** proxy/middleware files at the app root and in src/: the ones Next loads, and the ones it never will. */

@@ -11,6 +11,10 @@
  * in `notRead`, not among the findings (#453). A law with no finding is read
  * in part — not passed, not judged nothing. A law reports "rules not
  * configured" only after reading a config that has none.
+ *
+ * Since #594 Code Complexity Control and Magic Number Prevention do not
+ * require an ESLint rule, so a config they could not read hides nothing they
+ * judge: no note, no finding. Dead Code Elimination keeps the note.
  */
 import fs from 'fs';
 import os from 'os';
@@ -45,8 +49,10 @@ const project = (config: string, text: string): string => {
   return dir;
 };
 
-const LAWS = [
-  ['Dead Code Elimination', DeadCodeEliminationLaw],
+const NOTE_LAWS = [['Dead Code Elimination', DeadCodeEliminationLaw]] as const;
+
+/** Laws whose verdict does not depend on the ESLint config (#594). */
+const NO_NOTE_LAWS = [
   ['Code Complexity Control', CodeComplexityControlLaw],
   ['Magic Number Prevention', MagicNumberPreventionLaw],
 ] as const;
@@ -64,7 +70,7 @@ describe('#508 an ESLint config the laws do not read is said to be NOT read', ()
   describe.each(['.eslintrc.js', 'eslint.config.cjs', 'eslint.config.ts'])(
     '%s',
     config => {
-      it.each(LAWS)(
+      it.each(NOTE_LAWS)(
         '%s names it in notRead, not as a finding',
         async (_name, law) => {
           const dir = project(
@@ -87,6 +93,20 @@ describe('#508 an ESLint config the laws do not read is said to be NOT read', ()
           expect(result.passed).toBe(false);
           expect(readsPartly(result)).toBe(true);
           expect(saysJudgedNothing(result)).toBe(false);
+        }
+      );
+
+      it.each(NO_NOTE_LAWS)(
+        '%s says nothing about it: the config is not part of its verdict',
+        async (_name, law) => {
+          const dir = project(
+            config,
+            "module.exports = { rules: { 'no-unused-vars': 'error' } };\n"
+          );
+          const result = await run(law, dir);
+          expect(result.notRead).toBeUndefined();
+          expect(result.violations ?? []).toEqual([]);
+          expect(result.passed).toBe(true);
         }
       );
     }

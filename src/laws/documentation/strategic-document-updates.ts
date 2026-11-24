@@ -3,6 +3,13 @@ import { FileUtils } from '../../utils/file-utils';
 import { hasIssueTracker } from '../../utils/issue-tracker';
 import { PathOperations } from '../../utils/path-operations';
 import { STRATEGIC_DOCS as DOCS } from './documentation-penalties';
+import {
+  assessChangelogQuality,
+  assessProjectStatusQuality,
+  assessReadmeQuality,
+  extractVersionFromSource,
+  isFileStale,
+} from './strategic-doc-text';
 // Interfaces for strategic document analysis
 interface DocumentAnalysis {
   hasDocument: boolean;
@@ -182,7 +189,7 @@ export class StrategicDocumentUpdatesLaw {
         lastModified = stats?.mtime ?? new Date(0);
 
         const content = FileUtils.readFile(readmePath, { encoding: 'utf8' });
-        quality = this.assessReadmeQuality(content);
+        quality = assessReadmeQuality(content);
       } catch (_error) {
         quality = 'basic';
       }
@@ -220,7 +227,7 @@ export class StrategicDocumentUpdatesLaw {
           lastModified = stats?.mtime ?? new Date(0);
 
           const content = FileUtils.readFile(fullPath, { encoding: 'utf8' });
-          quality = this.assessProjectStatusQuality(content);
+          quality = assessProjectStatusQuality(content);
         } catch (_error) {
           quality = 'basic';
         }
@@ -260,7 +267,7 @@ export class StrategicDocumentUpdatesLaw {
           lastModified = stats?.mtime ?? new Date(0);
 
           const content = FileUtils.readFile(fullPath, { encoding: 'utf8' });
-          quality = this.assessChangelogQuality(content);
+          quality = assessChangelogQuality(content);
         } catch (_error) {
           quality = 'basic';
         }
@@ -295,7 +302,7 @@ export class StrategicDocumentUpdatesLaw {
     for (const file of strategicFiles) {
       const filePath = PathOperations.join(projectRoot, file);
       if (FileUtils.exists(filePath)) {
-        if (this.isFileStale(filePath, thirtyDaysAgo, file)) {
+        if (isFileStale(filePath, thirtyDaysAgo, file)) {
           documentsAreFresh = false;
           staleFiles.push(file);
         }
@@ -323,7 +330,7 @@ export class StrategicDocumentUpdatesLaw {
       if (FileUtils.exists(filePath)) {
         try {
           const content = FileUtils.readFile(filePath, { encoding: 'utf8' });
-          this.extractVersionFromSource(content, source, versions);
+          extractVersionFromSource(content, source, versions);
         } catch (_error) {
           // Skip files that can't be read or parsed
         }
@@ -333,67 +340,6 @@ export class StrategicDocumentUpdatesLaw {
     versionsConsistent = versions.size <= 1;
 
     return { isConsistent: versionsConsistent, versions: Array.from(versions) };
-  }
-
-  private static assessReadmeQuality(content: string): string {
-    const qualityIndicators = [
-      /## installation/i,
-      /## usage/i,
-      /## contributing/i,
-      /## license/i,
-      /## getting started/i,
-      /## requirements/i,
-      /## api/i,
-      /## examples/i,
-    ];
-
-    return this.assessQualityByPatterns(content, qualityIndicators);
-  }
-
-  private static assessProjectStatusQuality(content: string): string {
-    const qualityIndicators = [
-      /milestone/i,
-      /sprint/i,
-      /progress/i,
-      /status/i,
-      /roadmap/i,
-      /timeline/i,
-      /completed/i,
-      /in progress/i,
-    ];
-
-    return this.assessQualityByPatterns(content, qualityIndicators);
-  }
-
-  private static assessChangelogQuality(content: string): string {
-    const qualityIndicators = [
-      /## \[?\d+\.\d+\.\d+\]?/i, // Version headers
-      /### added/i,
-      /### changed/i,
-      /### fixed/i,
-      /### removed/i,
-      /### deprecated/i,
-      /### security/i,
-      /unreleased/i,
-    ];
-
-    return this.assessQualityByPatterns(content, qualityIndicators);
-  }
-
-  /**
-   * Generic quality assessment helper
-   * Consolidates duplicate quality evaluation pattern
-   */
-  private static assessQualityByPatterns(
-    content: string,
-    patterns: RegExp[]
-  ): string {
-    const matches = patterns.filter(pattern => pattern.test(content)).length;
-
-    if (matches >= 5) return 'comprehensive';
-    if (matches >= 3) return 'good';
-    if (matches >= 1) return 'basic';
-    return 'minimal';
   }
 
   private static generateMessage(
@@ -418,41 +364,5 @@ export class StrategicDocumentUpdatesLaw {
     if (!changelog.hasDocument) missingDocs.push(this.CHANGELOG_FILE);
 
     return `⚠️ Strategic Documents: Missing ${missingDocs.join(', ')}`;
-  }
-
-  /**
-   * Extract version information from source content
-   */
-  private static extractVersionFromSource(
-    content: string,
-    source: { field?: string; pattern?: RegExp },
-    versions: Set<string>
-  ): void {
-    if (source.field) {
-      // JSON parsing for package.json
-      const json = JSON.parse(content);
-      if (json[source.field]) {
-        versions.add(json[source.field]);
-      }
-    } else if (source.pattern) {
-      // Regex matching for markdown files
-      const match = content.match(source.pattern);
-      if (match?.[1]) {
-        versions.add(match[1]);
-      }
-    }
-  }
-
-  private static isFileStale(
-    filePath: string,
-    threshold: Date,
-    _fileName: string
-  ): boolean {
-    try {
-      const stats = FileUtils.getFileStats(filePath);
-      return (stats?.mtime ?? new Date(0)) < threshold;
-    } catch {
-      return false; // File doesn't exist or can't be read
-    }
   }
 }

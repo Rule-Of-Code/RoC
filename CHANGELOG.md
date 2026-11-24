@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ Added — Version-control laws name what they counted (#43, version control)
+
+Three version-control laws said how many and never which: "1 of the last 3
+authored commits exceed the size limit", "Found unresolved conflict markers
+in 2 files", "Invalid tag formats found: <the first three>". Each law
+already held the list it counted. It now puts that list in
+`violationDetails`, which the console prints under the violation and
+`--export json` carries in full.
+
+- **Commit Size Control**: each oversized commit, by its hash, with the
+  files and lines it measured (generated files not counted, as before).
+- **Merge Conflict Prevention**: each file with a conflict marker, and each
+  file git holds unmerged, with its status (`UU`, `AA`, `DD`).
+- **Release Tag Standards**: every invalid tag, where the line quotes three,
+  and, for mixed prefixing, the tags of the smaller style, named against the
+  size of the other (both styles when they are equal).
+
+The violation lines, verdicts and scores are unchanged. Nothing new is
+searched for. This is the first of the per-category changes for #43.
+
 ### ✨ Added — Documentation laws name what they counted (#43, documentation)
 
 Four documentation laws said how many and never which: "1/2 markdown files
@@ -738,9 +758,8 @@ Concurrently, Async Cache Single-Flight and Database Read Cache Safety (files
 the request-path reader could not parse), HTML Lang Declared (sources and a
 `next.config` it could not read), Accessibility Linting Enforcement (an ESLint
 config script), Capacitor Plugin Stub Has Contract Test (test configs and
-mappers it could not read) and Dead Code Elimination, Code Complexity Control
-and Magic Number Prevention (an ESLint config they do not run or could not
-read, #508) fill it. A law that read none of its files is still
+mappers it could not read) and Dead Code Elimination (an ESLint config it
+does not run or could not read, #508) fill it. A law that read none of its files is still
 judged nothing, whether its note is a violation or in `notRead` (#453).
 
 ### 🐛 Fixed — a native Android, iOS or Flutter app is a production subject (#577)
@@ -950,6 +969,26 @@ documentation laws keep their tables in `deployment-penalties.ts` and
 the code excerpt five readers quoted the same way is one helper, `codeExcerpt`.
 No score, threshold or message changes. The finding that remains is the
 ESLint `no-magic-numbers` rule not being configured for this repository.
+
+### 🐛 Fixed — Magic Number Prevention and Code Complexity Control do not require an ESLint rule (#594)
+
+Both laws failed a project that did not set an ESLint rule:
+`ESLint magic numbers rule not configured` and `ESLint complexity rules not
+configured`. The rules contradict the laws' own definitions. Magic Number
+Prevention counts the fallback of `??`, a constant expression in an
+initializer and the elements of a `new Set` that initialises a constant as
+named; `no-magic-numbers` has no option for them and reports them (on this
+repository, after its own findings were fixed: 102 warnings in 36 files).
+Code Complexity Control does not count `??`, optional chaining or default
+parameters; ESLint's `complexity` does, so it reports more functions than
+the law.
+
+The law is the check. The rule is no longer a condition to pass; when the
+project sets it, the result says so in `details`, as information, and the
+verdict is the same with or without it. Neither law reads the ESLint config
+for its verdict any more, so a config it cannot read gives no note: the #508
+note now comes from Dead Code Elimination only. The law cards say exactly
+what each law counts.
 
 ### ✨ Added — React guidance for Observable Cleanup; P1 guidance proved on a React app (#12)
 

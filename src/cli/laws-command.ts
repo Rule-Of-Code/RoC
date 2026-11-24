@@ -1,20 +1,19 @@
 import chalk from 'chalk';
 import type { Command } from 'commander';
 import { ConfigLoader } from '../config/loader';
-import { ALL_ENHANCED_CONSTITUTIONAL_LAWS } from '../data/enhanced-laws';
 import { ModularLawsRegistry } from '../registry/modular-laws-registry';
 import type { ConstitutionalLaw } from '../types/law.types';
-import { TOTAL_LAWS_COUNT, getToolName, getVersion } from './utils';
-import {
-  type LawsJson,
-  SATISFIED_BY_KEYS,
-  type SerializedLaw,
-} from './laws-json';
+import { TOTAL_LAWS_COUNT, getVersion } from './utils';
+import { buildLawsJson, categoryOf, populatedCategories } from './laws-json';
 
 export {
   type LawsJson,
   SATISFIED_BY_KEYS,
   type SerializedLaw,
+  buildLawsJson,
+  categoryOf,
+  populatedCategories,
+  serializeLaw,
 } from './laws-json';
 
 /**
@@ -55,13 +54,6 @@ export function isKnownCategory(category: string): category is LawCategory {
   );
 }
 
-/** The authored category of a law, or null when the registry carries none. */
-export function categoryOf(law: ConstitutionalLaw): string | null {
-  AUTHORED ??= authoredByTitle(law => law.category);
-  const stripped = law.name.replace(/\s*\([^)]*\)\s*$/, '').trim();
-  return AUTHORED.get(law.name) ?? AUTHORED.get(stripped) ?? null;
-}
-
 /**
  * Base set: the whole registry, or only what the project's config leaves
  * enabled (`--enabled`).
@@ -96,151 +88,6 @@ export function filterLaws(
   }
 
   return selected;
-}
-
-/**
- * Index an authored field by law title, skipping laws that do not carry it.
- *
- * The AUTHORED fields (category, detectionLimits) live next to each law in
- * `src/data/*.ts`. They are NOT the runtime `ConstitutionalLaw` fields: e.g.
- * `ConstitutionalLaw.category` is a DERIVED tier (foundational / maintainability /
- * …) computed from priority, while the authored category is one of eleven concern
- * labels (SECURITY, PYTHON, SACRED_LAW…). Serialising the derived value as
- * "category" would hand a consumer a filter over a value nobody wrote (a downstream consumer), so
- * both travel, each under its own name, neither pretending to be the other.
- */
-function authoredByTitle<T>(
-  pick: (
-    law: (typeof ALL_ENHANCED_CONSTITUTIONAL_LAWS)[number]
-  ) => T | undefined
-): Map<string, T> {
-  const byName = new Map<string, T>();
-  for (const law of ALL_ENHANCED_CONSTITUTIONAL_LAWS) {
-    const value = law.title ? pick(law) : undefined;
-    if (value !== undefined) byName.set(law.title, value);
-  }
-  return byName;
-}
-
-type SatisfiedBy = NonNullable<SerializedLaw['satisfiedBy']>;
-
-let AUTHORED: Map<string, string> | undefined;
-let LIMITS: Map<string, string[]> | undefined;
-let RATIONALE: Map<string, string> | undefined;
-let SATISFIED: Map<string, SatisfiedBy> | undefined;
-
-/**
- * One law as `ruleofcode laws --json` prints it: its identity (id, legacyId,
- * name, slugs, identity keys and the unambiguous config keys), the derived
- * tier and severity, and the authored card fields (category,
- * detectionLimits, rationale, satisfiedBy) looked up by title, `null` when
- * the card does not declare them.
- */
-export function serializeLaw(law: ConstitutionalLaw): SerializedLaw {
-  AUTHORED ??= authoredByTitle(law => law.category);
-  LIMITS ??= authoredByTitle(law =>
-    law.detectionLimits?.length ? law.detectionLimits : undefined
-  );
-  RATIONALE ??= authoredByTitle(law => law.rationale);
-  SATISFIED ??= authoredByTitle(law => law.satisfiedBy);
-  const stripped = law.name.replace(/\s*\([^)]*\)\s*$/, '').trim();
-  const authored = <T>(map: Map<string, T>): T | null =>
-    map.get(law.name) ?? map.get(stripped) ?? null;
-
-  return {
-    id: law.id,
-    legacyId: law.legacyId ?? null,
-    name: law.name,
-    slug: ModularLawsRegistry.slugifyLawName(law.name),
-    /** URL-safe, registry-unique — route `/laws/:slug` by THIS, not `slug`. */
-    urlSlug: ModularLawsRegistry.urlSlugForLawName(law.name),
-    identityKeys: ModularLawsRegistry.lawIdentityKeys(law),
-    /**
-     * The keys a config may actually use. `legacyId` is NOT unique (25 values are
-     * shared by 51 laws), so keying a config by it silently affects several laws.
-     * A consumer generating config from this JSON must use these.
-     */
-    configKeys: ModularLawsRegistry.unambiguousIdentityKeys(law),
-    description: law.description,
-    category: authored(AUTHORED),
-    tier: law.category,
-    severity: law.severity,
-    impact: law.impact,
-    paretoCore: law.paretoCore,
-    alwaysEnabled: law.alwaysEnabled ?? false,
-    stack: law.stack ?? null,
-    applicableFrameworks: law.applicableFrameworks,
-    /**
-     * The authored Law-Card fields. All declared next to the law, in code,
-     * reviewed as code — never prose on a website that drifts from the detector.
-     * `null` = not declared yet (honest debt); the declared counts are published
-     * on /dogfood and are meant to grow in public.
-     */
-    detectionLimits: authored(LIMITS),
-    rationale: authored(RATIONALE),
-    satisfiedBy: authored(SATISFIED),
-    requires: law.requires ?? null,
-  };
-}
-
-/**
- * The whole `ruleofcode laws --json` document (schemaVersion 2): tool and
- * version, registry total and how many laws are returned, the filters used,
- * the categories laws actually carry, the satisfiedBy stack keys with their
- * stack/project-type mappings, and the serialized laws.
- */
-export function buildLawsJson(
-  laws: ConstitutionalLaw[],
-  options: LawsOptions
-): LawsJson {
-  return {
-    schemaVersion: 2,
-    tool: getToolName(),
-    version: getVersion(),
-    registryTotal: TOTAL_LAWS_COUNT,
-    returned: laws.length,
-    filters: {
-      enabled: options.enabled === true,
-      pareto: options.pareto === true,
-      category: options.category ?? null,
-    },
-    registryCategories: populatedCategories(),
-    satisfiedByStacks: {
-      keys: [...SATISFIED_BY_KEYS],
-      stackToKey: {
-        frontend: 'angular',
-        typescript: 'typescript',
-        python: 'python',
-      },
-      projectTypeToKey: {
-        angular: 'angular',
-        react: 'react',
-        ionic: 'ionic',
-        python: 'python',
-        typescript: 'typescript',
-        node: 'typescript',
-      },
-    },
-    laws: laws.map(serializeLaw),
-  };
-}
-
-/**
- * Categories the registry actually assigns to at least one law.
- *
- * This is NOT the same as LAW_CATEGORIES: `category` is currently derived from
- * a law's priority/automation rather than its concern, so declared categories
- * exist that no law ever carries. An empty result must therefore never be read
- * as "this tool has no such checks".
- */
-export function populatedCategories(): string[] {
-  return [
-    ...new Set(
-      ModularLawsRegistry.getAll()
-        .map(law => categoryOf(law))
-        .filter((category): category is string => category !== null)
-    ),
-  ].sort();
 }
 
 /**

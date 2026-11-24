@@ -1,14 +1,15 @@
 /**
  * @fileoverview Tests for angular-signal-usage-analyzer.ts
- * @description Tests for Angular Signal Usage Analyzer utility
+ * @description Tests for Angular Signal Usage Analyzer utility, on real
+ * project fixtures: the analyzer finds *.component.ts files under src/ (and
+ * unsuffixed components by their decorator), reads each one and the
+ * .component.html next to it, so the tests write those files.
  */
 
 import type { RuleOfCodeConfig } from '../../../src/config/types';
 import { AngularSignalUsageAnalyzer } from '../../../src/utils/angular/angular-signal-usage/angular-signal-usage-analyzer';
-import { CheckerUtils } from '../../../src/utils/checker-utils';
-import { FileUtils } from '../../../src/utils/file-utils';
-import { PathOperations } from '../../../src/utils/path-operations';
 import { AngularSignalUsageConfiguration } from '../../../src/utils/angular/angular-signal-usage/angular-signal-usage-configuration';
+import { FileUtils } from '../../../src/utils/file-utils';
 import { project } from '../../checkers/toolkit-fixture';
 
 const config: RuleOfCodeConfig = FileUtils.getMinimalDefaultConfig();
@@ -33,13 +34,6 @@ const COMPONENT = 'src/app/app.component.ts';
 const TEMPLATE = 'src/app/app.component.html';
 
 describe('utils/angular/angular-signal-usage/angular-signal-usage-analyzer', () => {
-  const mockConfig = {
-    projectRoot: '/test/project',
-    verbose: false,
-    excludePatterns: ['node_modules', 'dist'],
-    includePatterns: ['**/*.ts'],
-  } as unknown as RuleOfCodeConfig;
-
   describe('AngularSignalUsageAnalyzer', () => {
     describe('checkSignalUsage', () => {
       it('should return empty results when src directory does not exist', () => {
@@ -127,239 +121,157 @@ describe('utils/angular/angular-signal-usage/angular-signal-usage-analyzer', () 
       });
 
       it('should suggest computed() over getter methods', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
-
-        existsSpy.mockImplementation((path: string) => {
-          if (path.includes('.html')) return false;
-          return true;
+        const result = check({
+          [COMPONENT]: `
+            export class AppComponent {
+              get total() { return this.a + this.b; }
+            }
+          `,
         });
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
-        );
-        findFilesSpy.mockReturnValue(['/test/project/src/app.component.ts']);
-        readFileSpy.mockReturnValue(`
-          get fullName() {
-            return this.firstName + ' ' + this.lastName;
-          }
-        `);
 
-        const result = AngularSignalUsageAnalyzer.checkSignalUsage(
-          '/test/project',
-          mockConfig
-        );
-
-        expect(result.suggestions.some(s => s.includes('computed'))).toBe(true);
-
-        existsSpy.mockRestore();
-        findFilesSpy.mockRestore();
-        readFileSpy.mockRestore();
-        joinSpy.mockRestore();
+        expect(result.suggestions).toEqual([
+          about(M.CONSIDER_COMPUTED_OVER_GETTERS),
+        ]);
       });
 
       it('should not suggest computed when already using computed()', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
-
-        existsSpy.mockImplementation((path: string) => {
-          if (path.includes('.html')) return false;
-          return true;
+        const result = check({
+          [COMPONENT]: `
+            export class AppComponent {
+              doubled = computed(() => this.count() * 2);
+              get total() { return this.a + this.b; }
+            }
+          `,
         });
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
-        );
-        findFilesSpy.mockReturnValue(['/test/project/src/app.component.ts']);
-        readFileSpy.mockReturnValue(`
-          get fullName() { return ''; }
-          fullName = computed(() => this.firstName() + ' ' + this.lastName());
-        `);
 
-        const result = AngularSignalUsageAnalyzer.checkSignalUsage(
-          '/test/project',
-          mockConfig
-        );
-
-        expect(
-          result.suggestions.filter(s => s.includes('computed'))
-        ).toHaveLength(0);
-
-        existsSpy.mockRestore();
-        findFilesSpy.mockRestore();
-        readFileSpy.mockRestore();
-        joinSpy.mockRestore();
+        expect(result.suggestions).toEqual([]);
       });
 
       it('should suggest signals over async pipe when template has async pipe', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
-
-        existsSpy.mockReturnValue(true);
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
-        );
-        findFilesSpy.mockReturnValue(['/test/project/src/app.component.ts']);
-        readFileSpy.mockImplementation((filePath: string) => {
-          if (filePath.includes('.html')) {
-            return '{{ data$ | async }}';
-          }
-          return `export class AppComponent {}`;
+        const result = check({
+          [COMPONENT]: `export class AppComponent {}\n`,
+          [TEMPLATE]: `<p>{{ data$ | async }}</p>\n`,
         });
 
-        const result = AngularSignalUsageAnalyzer.checkSignalUsage(
-          '/test/project',
-          mockConfig
-        );
+        expect(result.suggestions).toEqual([
+          about(M.CONSIDER_SIGNALS_OVER_ASYNC),
+        ]);
+      });
 
-        expect(
-          result.suggestions.some(
-            s => s.includes('async pipe') || s.includes('performance')
-          )
-        ).toBe(true);
+      it('should not read an async pipe written in the component class', () => {
+        const result = check({
+          [COMPONENT]: `const note = '{{ data$ | async }}';\n`,
+        });
 
-        existsSpy.mockRestore();
-        findFilesSpy.mockRestore();
-        readFileSpy.mockRestore();
-        joinSpy.mockRestore();
+        expect(result.suggestions).toEqual([]);
+      });
+
+      it('should not suggest replacing the async pipe when the component uses signals', () => {
+        const result = check({
+          [COMPONENT]: `count = signal(0);\n`,
+          [TEMPLATE]: `<p>{{ data$ | async }}</p>\n`,
+        });
+
+        expect(result.suggestions).toEqual([]);
       });
 
       it('should suggest eliminating ChangeDetectorRef with signals', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
-
-        existsSpy.mockImplementation((path: string) => {
-          if (path.includes('.html')) return false;
-          return true;
+        const result = check({
+          [COMPONENT]: `
+            export class AppComponent {
+              constructor(cdr: ChangeDetectorRef) {}
+            }
+          `,
         });
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
-        );
-        findFilesSpy.mockReturnValue(['/test/project/src/app.component.ts']);
-        readFileSpy.mockReturnValue(`
-          constructor(private cdr: ChangeDetectorRef) {}
-          update() {
-            this.cdr.detectChanges();
-          }
-        `);
 
-        const result = AngularSignalUsageAnalyzer.checkSignalUsage(
-          '/test/project',
-          mockConfig
-        );
-
-        expect(
-          result.suggestions.some(s => s.includes('change detection'))
-        ).toBe(true);
-
-        existsSpy.mockRestore();
-        findFilesSpy.mockRestore();
-        readFileSpy.mockRestore();
-        joinSpy.mockRestore();
+        expect(result.suggestions).toEqual([
+          about(M.ELIMINATE_CHANGE_DETECTION),
+        ]);
       });
 
       it('should suggest signals with OnPush strategy', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
-
-        existsSpy.mockImplementation((path: string) => {
-          if (path.includes('.html')) return false;
-          return true;
+        const result = check({
+          [COMPONENT]: `
+            @Component({
+              selector: 'app-root',
+              changeDetection: ChangeDetectionStrategy.OnPush,
+            })
+            export class AppComponent {}
+          `,
         });
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
-        );
-        findFilesSpy.mockReturnValue(['/test/project/src/app.component.ts']);
-        readFileSpy.mockReturnValue(`
-          @Component({
-            changeDetection: ChangeDetectionStrategy.OnPush
-          })
-        `);
 
-        const result = AngularSignalUsageAnalyzer.checkSignalUsage(
-          '/test/project',
-          mockConfig
-        );
+        expect(result.suggestions).toEqual([
+          about(M.OPTIMIZE_ONPUSH_WITH_SIGNALS),
+        ]);
+      });
 
-        expect(result.suggestions.some(s => s.includes('OnPush'))).toBe(true);
+      it('should make no suggestion for a component that already uses signals', () => {
+        const result = check({
+          [COMPONENT]: `
+            @Component({ changeDetection: ChangeDetectionStrategy.OnPush })
+            export class AppComponent {
+              private label: string = '';
+              name = new FormControl('');
+              count = signal(0);
+              constructor(cdr: ChangeDetectorRef) {}
+            }
+          `,
+        });
 
-        existsSpy.mockRestore();
-        findFilesSpy.mockRestore();
-        readFileSpy.mockRestore();
-        joinSpy.mockRestore();
+        expect(result.suggestions).toEqual([]);
       });
 
       it('should handle empty file content gracefully', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
+        const result = check({ [COMPONENT]: '' });
 
-        existsSpy.mockReturnValue(true);
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
-        );
-        findFilesSpy.mockReturnValue(['/test/project/src/app.component.ts']);
-        readFileSpy.mockReturnValue('');
-
-        const result = AngularSignalUsageAnalyzer.checkSignalUsage(
-          '/test/project',
-          mockConfig
-        );
-
-        expect(result.violations).toHaveLength(0);
-        expect(result.suggestions).toHaveLength(0);
-
-        existsSpy.mockRestore();
-        findFilesSpy.mockRestore();
-        readFileSpy.mockRestore();
-        joinSpy.mockRestore();
+        expect(result).toEqual({ violations: [], suggestions: [] });
       });
 
       it('should analyze multiple component files', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
-
-        existsSpy.mockImplementation((path: string) => {
-          if (path.includes('.html')) return false;
-          return true;
-        });
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
-        );
-        findFilesSpy.mockReturnValue([
-          '/test/project/src/app.component.ts',
-          '/test/project/src/user.component.ts',
-        ]);
-        readFileSpy.mockImplementation((filePath: string) => {
-          if (filePath.includes('app.component')) {
-            return 'private data$ = new BehaviorSubject("");';
-          }
-          return 'private name: string = "";';
+        const result = check({
+          [COMPONENT]: `data$ = new BehaviorSubject(0);\n`,
+          'src/app/user/user.component.ts': `name = new FormControl('');\n`,
         });
 
-        const result = AngularSignalUsageAnalyzer.checkSignalUsage(
-          '/test/project',
-          mockConfig
+        expect(result.suggestions).toEqual(
+          expect.arrayContaining([
+            about(M.CONSIDER_SUBJECT_MIGRATION),
+            about(M.CONSIDER_REACTIVE_FORMS_MIGRATION, 'user.component.ts'),
+          ])
         );
-
-        expect(result.suggestions.length).toBeGreaterThan(0);
-
-        existsSpy.mockRestore();
-        findFilesSpy.mockRestore();
-        readFileSpy.mockRestore();
-        joinSpy.mockRestore();
+        expect(result.suggestions).toHaveLength(2);
       });
+
+      it('should read an unsuffixed Angular 20 component by its decorator', () => {
+        const result = check({
+          'src/app/hero.ts': `
+            @Component({ selector: 'app-hero', template: '' })
+            export class Hero {
+              data$ = new BehaviorSubject(0);
+            }
+          `,
+        });
+
+        expect(result.suggestions).toEqual([
+          about(M.CONSIDER_SUBJECT_MIGRATION, 'hero.ts'),
+        ]);
+      });
+    });
+  });
+
+  describe('AngularSignalUsageConfiguration', () => {
+    it('should look for component files only', () => {
+      expect(AngularSignalUsageConfiguration.ANGULAR_FILE_EXTENSIONS).toEqual([
+        '.component.ts',
+      ]);
+    });
+
+    it('should find the template next to the component', () => {
+      expect(
+        AngularSignalUsageConfiguration.PATTERN_DETECTORS.GET_TEMPLATE_FILE_PATH(
+          'src/app/app.component.ts'
+        )
+      ).toBe('src/app/app.component.html');
     });
   });
 });

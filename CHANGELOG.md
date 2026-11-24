@@ -776,6 +776,22 @@ the code excerpt five readers quoted the same way is one helper, `codeExcerpt`.
 No score, threshold or message changes. The finding that remains is the
 ESLint `no-magic-numbers` rule not being configured for this repository.
 
+### ✨ Added — React guidance for Observable Cleanup; P1 guidance proved on a React app (#12)
+
+Observable Cleanup Requirements runs on any project that declares rxjs, a
+React one included, and had only Angular guidance. Its card now says what
+passes in React: return `() => sub.unsubscribe()` from the effect that
+subscribes (or use take(1)), in the same .ts/.tsx file; its detection limits
+say that .jsx and plain .js files are not read and that a React module
+without an rxjs import is skipped.
+
+The React guidance of the five security, documentation and code-quality
+frontend laws (Observable Cleanup, Web Storage Encapsulation, Angular Security
+XSS Prevention Policy, Security Standards (XSS Prevention) Policy,
+Internationalization (i18n) Compliance Policy) is proved by a regression
+test on a React + Vite project: each law reports the project, and doing what
+`satisfiedBy.react` says clears it.
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

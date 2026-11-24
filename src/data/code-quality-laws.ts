@@ -101,8 +101,11 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
     satisfiedBy: {
       angular:
         'Clean up subscriptions with takeUntilDestroyed / DestroyRef, the async pipe, take(1), or unsubscribe in ngOnDestroy.',
+      react:
+        'Return the cleanup from the effect that subscribes: const sub = source$.subscribe(…); return () => sub.unsubscribe(); — or take(1) for a one-shot value. Keep the subscription and its cleanup in the same .ts/.tsx file: the detector looks for them per file.',
     },
     detectionLimits: [
+      'Reads .ts and .tsx files only — a subscription in a .jsx or plain .js file is not seen. A React module that imports react and not rxjs is skipped: its .subscribe( is a store API (useSyncExternalStore), not an RxJS Observable.',
       'Whole-file, lenient exemption: ANY occurrence of the substring `async` (an async function anywhere) marks the whole file as cleaned up — a large false negative.',
       'A single uncleaned subscription in a component can trigger three near-duplicate violations (three overlapping checks).',
       'Regex, no AST; matches in comments/strings; no Python.',

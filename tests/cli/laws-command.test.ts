@@ -256,7 +256,7 @@ describe('cli/laws-command', () => {
 
       const payload = emittedJson();
       expect(isRuleOfCodePackageName(payload.tool)).toBe(true);
-      expect(payload.schemaVersion).toBe(2);
+      expect(payload.schemaVersion).toBe(3);
     });
 
     it('should emit every law in the registry when unfiltered', () => {
@@ -377,6 +377,27 @@ describe('cli/laws-command', () => {
         ])
       );
       expect(carried.filter(key => !keys.has(key))).toEqual([]);
+    });
+
+    // #12: `frontend` guidance is authored under two keys (angular, react), so
+    // a stack maps to a SET of keys (schemaVersion 3), each a known key that
+    // at least one law of that stack carries.
+    it('stackToKey maps each stack to the set of keys its laws carry', () => {
+      const payload = buildLawsJson(ModularLawsRegistry.getAll(), {});
+      const { keys, stackToKey } = payload.satisfiedByStacks;
+
+      expect(stackToKey.frontend).toEqual(['angular', 'react']);
+      for (const [stack, stackKeys] of Object.entries(stackToKey)) {
+        expect(Array.isArray(stackKeys)).toBe(true);
+        for (const key of stackKeys) {
+          expect(keys).toContain(key);
+          expect(
+            payload.laws.some(
+              law => law.stack === stack && key in (law.satisfiedBy ?? {})
+            )
+          ).toBe(true);
+        }
+      }
     });
 
     it('every law carries requires — null where nothing beyond the stack is required', () => {

@@ -100,8 +100,10 @@ export interface LawsJson {
    * `satisfiedBy` is keyed by the language/framework the how-to-pass guidance
    * targets — a FINER axis than `stack`. The mismatch that bites a naive
    * consumer: a `stack: "frontend"` law carries its guidance under the
-   * `"angular"` key, so `satisfiedBy[law.stack]` misses. Read `stackToKey` to
-   * resolve it instead of maintaining your own frontend→angular table (a downstream consumer).
+   * `"angular"` and `"react"` keys, so `satisfiedBy[law.stack]` misses. Read
+   * `stackToKey` to resolve it instead of maintaining your own table: it maps
+   * each stack to the SET of keys its guidance is authored under (schemaVersion
+   * 3; it was a single key, and `frontend` had two keys by then, #12).
    * `"typescript"` also appears as cross-cutting guidance on laws of other
    * stacks, so it is not a 1:1 image of `stack: "typescript"`.
    * `"ionic"` and `"capacitor"` are carried by `stack: "frontend"` laws whose
@@ -115,7 +117,7 @@ export interface LawsJson {
    */
   satisfiedByStacks: {
     keys: string[];
-    stackToKey: Record<string, string>;
+    stackToKey: Record<string, string[]>;
     projectTypeToKey: Record<string, string>;
   };
   laws: SerializedLaw[];
@@ -214,7 +216,7 @@ export function serializeLaw(law: ConstitutionalLaw): SerializedLaw {
 }
 
 /**
- * The whole `ruleofcode laws --json` document (schemaVersion 2): tool and
+ * The whole `ruleofcode laws --json` document (schemaVersion 3): tool and
  * version, registry total and how many laws are returned, the filters used,
  * the categories laws actually carry, the satisfiedBy stack keys with their
  * stack/project-type mappings, and the serialized laws.
@@ -224,7 +226,7 @@ export function buildLawsJson(
   options: LawsOptions
 ): LawsJson {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     tool: getToolName(),
     version: getVersion(),
     registryTotal: TOTAL_LAWS_COUNT,
@@ -238,9 +240,9 @@ export function buildLawsJson(
     satisfiedByStacks: {
       keys: [...SATISFIED_BY_KEYS],
       stackToKey: {
-        frontend: 'angular',
-        typescript: 'typescript',
-        python: 'python',
+        frontend: ['angular', 'react'],
+        typescript: ['typescript'],
+        python: ['python'],
       },
       projectTypeToKey: {
         angular: 'angular',

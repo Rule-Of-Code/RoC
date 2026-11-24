@@ -905,6 +905,31 @@ the code excerpt five readers quoted the same way is one helper, `codeExcerpt`.
 No score, threshold or message changes. The finding that remains is the
 ESLint `no-magic-numbers` rule not being configured for this repository.
 
+### ⚠️ BREAKING — `laws --json`: `stackToKey` maps a stack to a set of keys (schemaVersion 3, #12)
+
+`satisfiedByStacks.stackToKey` mapped each stack to one `satisfiedBy` key:
+`"frontend": "angular"`. The `frontend` laws carry their guidance under two
+keys by now (`angular` on 58, `react` on 57), so the single key sent a
+consumer that only knew the stack to the Angular text alone. Each value is
+now the set of keys that stack's guidance is written under:
+`"frontend": ["angular", "react"]`, `"typescript": ["typescript"]`,
+`"python": ["python"]`.
+
+**JSON change:** `schemaVersion` is 3; a `stackToKey` value is an array of
+keys, where it was a string. Nothing else in the document changes: each
+law's `satisfiedBy` (keyed by `angular`, `react`, `typescript`, …),
+`satisfiedByStacks.keys` and `projectTypeToKey` are as they were. A
+consumer that accepts only schemaVersion 1–2, or reads a `stackToKey`
+value as a string, has to be updated. A test checks that every key listed
+for a stack is a known key that a law of that stack carries.
+
+```jsonc
+// before (schemaVersion 2)
+"satisfiedByStacks": { "stackToKey": { "frontend": "angular", "typescript": "typescript", "python": "python" } }
+// after (schemaVersion 3)
+"satisfiedByStacks": { "stackToKey": { "frontend": ["angular", "react"], "typescript": ["typescript"], "python": ["python"] } }
+```
+
 ## [8.0.1] - 2026-11-22
 
 A summary-count fix, general examples in three law rationales, and the

@@ -11,7 +11,7 @@ import { AngularRoutingConfiguration } from './angular-routing-configuration';
  * Centralized validation methods for routing configuration analysis
  */
 export class AngularRoutingValidationPatterns extends AngularConfigurationBase {
-  private static readonly Config = AngularRoutingConfiguration;
+  private static readonly config = AngularRoutingConfiguration;
   /**
    * Validate all routing configuration patterns in a project
    */
@@ -25,7 +25,7 @@ export class AngularRoutingValidationPatterns extends AngularConfigurationBase {
       files: routingFiles,
     } = AngularRoutingValidationPatterns.initializeAnalysis(
       projectRoot,
-      [...this.Config.ROUTING_PATTERNS.ROUTING_FILE_EXTENSIONS],
+      [...this.config.ROUTING_PATTERNS.ROUTING_FILE_EXTENSIONS],
       config
     );
 
@@ -35,7 +35,7 @@ export class AngularRoutingValidationPatterns extends AngularConfigurationBase {
 
     if (routingFiles.length === 0) {
       suggestions.push(
-        this.Config.VALIDATION_MESSAGES.NO_ROUTING_MODULES_SUGGESTION
+        this.config.VALIDATION_MESSAGES.NO_ROUTING_MODULES_SUGGESTION
       );
       return ResultFactory.createAngularResult([], suggestions);
     }
@@ -68,7 +68,7 @@ export class AngularRoutingValidationPatterns extends AngularConfigurationBase {
 
     const fileName = PathOperations.getBasename(routingFile);
     // ===== INLINED: Centralized pattern analysis (RULE 1) =====
-    const patterns = this.Config.analyzeRoutingPatterns(content);
+    const patterns = this.config.analyzeRoutingPatterns(content);
 
     // Delegate to private validation helpers with pre-computed patterns (RULE 2)
     this.checkLazyLoadingPatterns(patterns, fileName, violations, suggestions);
@@ -79,21 +79,21 @@ export class AngularRoutingValidationPatterns extends AngularConfigurationBase {
   }
 
   private static checkLazyLoadingPatterns(
-    patterns: ReturnType<typeof this.Config.analyzeRoutingPatterns>,
+    patterns: ReturnType<typeof this.config.analyzeRoutingPatterns>,
     fileName: string,
     violations: string[],
     suggestions: string[]
   ): void {
     if (patterns.hasEagerLoading && !patterns.hasLazyLoading) {
       violations.push(
-        this.Config.buildMessage(
-          this.Config.VALIDATION_MESSAGES.NO_LAZY_LOADING_VIOLATION,
+        this.config.buildMessage(
+          this.config.VALIDATION_MESSAGES.NO_LAZY_LOADING_VIOLATION,
           fileName
         )
       );
       suggestions.push(
-        this.Config.buildMessage(
-          this.Config.VALIDATION_MESSAGES.LAZY_LOADING_SUGGESTION,
+        this.config.buildMessage(
+          this.config.VALIDATION_MESSAGES.LAZY_LOADING_SUGGESTION,
           fileName
         )
       );
@@ -106,7 +106,7 @@ export class AngularRoutingValidationPatterns extends AngularConfigurationBase {
    * RULE 2: Private helper for organized validation structure
    */
   private static checkLoadChildrenSyntax(
-    patterns: ReturnType<typeof this.Config.analyzeRoutingPatterns>,
+    patterns: ReturnType<typeof this.config.analyzeRoutingPatterns>,
     fileName: string,
     violations: string[],
     suggestions: string[]
@@ -118,9 +118,9 @@ export class AngularRoutingValidationPatterns extends AngularConfigurationBase {
     this.validateAndReportPattern({
       condition: patterns.hasStringBasedLazy,
       violationMessage:
-        this.Config.VALIDATION_MESSAGES.STRING_BASED_LAZY_VIOLATION,
+        this.config.VALIDATION_MESSAGES.STRING_BASED_LAZY_VIOLATION,
       suggestionMessage:
-        this.Config.VALIDATION_MESSAGES.STRING_BASED_LAZY_SUGGESTION,
+        this.config.VALIDATION_MESSAGES.STRING_BASED_LAZY_SUGGESTION,
       fileName,
       violations,
       suggestions,
@@ -129,9 +129,9 @@ export class AngularRoutingValidationPatterns extends AngularConfigurationBase {
     this.validateAndReportPattern({
       condition: !patterns.hasDynamicImportSyntax,
       violationMessage:
-        this.Config.VALIDATION_MESSAGES.IMPROPER_LAZY_SYNTAX_VIOLATION,
+        this.config.VALIDATION_MESSAGES.IMPROPER_LAZY_SYNTAX_VIOLATION,
       suggestionMessage:
-        this.Config.VALIDATION_MESSAGES.IMPROPER_LAZY_SYNTAX_SUGGESTION,
+        this.config.VALIDATION_MESSAGES.IMPROPER_LAZY_SYNTAX_SUGGESTION,
       fileName,
       violations,
       suggestions,
@@ -159,8 +159,8 @@ export class AngularRoutingValidationPatterns extends AngularConfigurationBase {
       suggestions,
     } = options;
     if (condition) {
-      violations.push(this.Config.buildMessage(violationMessage, fileName));
-      suggestions.push(this.Config.buildMessage(suggestionMessage, fileName));
+      violations.push(this.config.buildMessage(violationMessage, fileName));
+      suggestions.push(this.config.buildMessage(suggestionMessage, fileName));
     }
   }
 
@@ -170,7 +170,7 @@ export class AngularRoutingValidationPatterns extends AngularConfigurationBase {
    * RULE 2: Private helper for organized validation structure
    */
   private static checkPreloadingStrategy(
-    patterns: ReturnType<typeof this.Config.analyzeRoutingPatterns>,
+    patterns: ReturnType<typeof this.config.analyzeRoutingPatterns>,
     fileName: string,
     violations: string[],
     suggestions: string[]
@@ -181,8 +181,8 @@ export class AngularRoutingValidationPatterns extends AngularConfigurationBase {
 
     if (!patterns.hasPreloadingStrategy) {
       suggestions.push(
-        this.Config.buildMessage(
-          this.Config.VALIDATION_MESSAGES.PRELOADING_STRATEGY_SUGGESTION,
+        this.config.buildMessage(
+          this.config.VALIDATION_MESSAGES.PRELOADING_STRATEGY_SUGGESTION,
           fileName
         )
       );
@@ -191,14 +191,14 @@ export class AngularRoutingValidationPatterns extends AngularConfigurationBase {
     // Check for enableTracing in production
     if (patterns.hasTracingEnabled) {
       violations.push(
-        this.Config.buildMessage(
-          this.Config.VALIDATION_MESSAGES.TRACING_PRODUCTION_VIOLATION,
+        this.config.buildMessage(
+          this.config.VALIDATION_MESSAGES.TRACING_PRODUCTION_VIOLATION,
           fileName
         )
       );
       suggestions.push(
-        this.Config.buildMessage(
-          this.Config.VALIDATION_MESSAGES.TRACING_PRODUCTION_SUGGESTION,
+        this.config.buildMessage(
+          this.config.VALIDATION_MESSAGES.TRACING_PRODUCTION_SUGGESTION,
           fileName
         )
       );
@@ -211,14 +211,14 @@ export class AngularRoutingValidationPatterns extends AngularConfigurationBase {
    * RULE 2: Private helper for organized validation structure
    */
   private static checkRouteGuards(
-    patterns: ReturnType<typeof this.Config.analyzeRoutingPatterns>,
+    patterns: ReturnType<typeof this.config.analyzeRoutingPatterns>,
     fileName: string,
     suggestions: string[]
   ): void {
     if (!patterns.hasRouteGuards && patterns.hasLoadChildren) {
       suggestions.push(
-        this.Config.buildMessage(
-          this.Config.VALIDATION_MESSAGES.ROUTE_GUARDS_SUGGESTION,
+        this.config.buildMessage(
+          this.config.VALIDATION_MESSAGES.ROUTE_GUARDS_SUGGESTION,
           fileName
         )
       );
@@ -231,14 +231,14 @@ export class AngularRoutingValidationPatterns extends AngularConfigurationBase {
    * RULE 2: Private helper for organized validation structure
    */
   private static checkRouteData(
-    patterns: ReturnType<typeof this.Config.analyzeRoutingPatterns>,
+    patterns: ReturnType<typeof this.config.analyzeRoutingPatterns>,
     fileName: string,
     suggestions: string[]
   ): void {
     if (patterns.hasRouteData && !patterns.hasActivatedRoute) {
       suggestions.push(
-        this.Config.buildMessage(
-          this.Config.VALIDATION_MESSAGES.ACTIVATED_ROUTE_SUGGESTION,
+        this.config.buildMessage(
+          this.config.VALIDATION_MESSAGES.ACTIVATED_ROUTE_SUGGESTION,
           fileName
         )
       );

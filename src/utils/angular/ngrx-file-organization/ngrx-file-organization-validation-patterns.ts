@@ -27,12 +27,12 @@ export class NgRxFileOrganizationValidationPatterns {
   /**
    * Class-level alias for Configuration
    */
-  private static readonly Config = NgRxFileOrganizationConfiguration;
+  private static readonly config = NgRxFileOrganizationConfiguration;
 
   /**
    * Cached validation messages
    */
-  private static readonly Messages = this.Config.getValidationMessages();
+  private static readonly messages = this.config.getValidationMessages();
 
   /**
    * Validate all NgRx file organization patterns
@@ -71,7 +71,7 @@ export class NgRxFileOrganizationValidationPatterns {
     config: RuleOfCodeConfig
   ): string[] {
     // Use configuration utility approach
-    const configDirectories = this.Config.findStateDirectories(
+    const configDirectories = this.config.findStateDirectories(
       projectRoot,
       config
     );
@@ -102,7 +102,7 @@ export class NgRxFileOrganizationValidationPatterns {
         config
       ) as FileEntry[];
 
-      const analysis = this.Config.analyzeStateDirectoryStructure(
+      const analysis = this.config.analyzeStateDirectoryStructure(
         stateDir,
         files
       );
@@ -133,10 +133,10 @@ export class NgRxFileOrganizationValidationPatterns {
   ): void {
     if (!analysis.hasBarrelExport) {
       violations.push(
-        this.Messages.MISSING_BARREL_EXPORT(analysis.featureName)
+        this.messages.MISSING_BARREL_EXPORT(analysis.featureName)
       );
       suggestions.push(
-        this.Messages.CREATE_BARREL_EXPORT(analysis.featureName)
+        this.messages.CREATE_BARREL_EXPORT(analysis.featureName)
       );
     }
   }
@@ -152,19 +152,19 @@ export class NgRxFileOrganizationValidationPatterns {
       const fileName = file.name;
 
       // Check if file has proper NgRx suffix
-      if (!this.Config.hasValidNgRxSuffix(fileName)) {
+      if (!this.config.hasValidNgRxSuffix(fileName)) {
         suggestions.push(
-          this.Messages.IMPROPER_FILE_NAMING(fileName, analysis.featureName)
+          this.messages.IMPROPER_FILE_NAMING(fileName, analysis.featureName)
         );
       }
 
       // Check if file has proper feature name prefix
       if (
-        this.Config.shouldHaveFeaturePrefix(fileName) &&
+        this.config.shouldHaveFeaturePrefix(fileName) &&
         !fileName.startsWith(analysis.featureName)
       ) {
         suggestions.push(
-          this.Messages.MISSING_FEATURE_PREFIX(fileName, analysis.featureName)
+          this.messages.MISSING_FEATURE_PREFIX(fileName, analysis.featureName)
         );
       }
     }
@@ -178,7 +178,7 @@ export class NgRxFileOrganizationValidationPatterns {
     suggestions: string[]
   ): void {
     if (!analysis.hasTestFiles) {
-      suggestions.push(this.Messages.CONSIDER_TEST_FILES(analysis.featureName));
+      suggestions.push(this.messages.CONSIDER_TEST_FILES(analysis.featureName));
     }
   }
 
@@ -192,19 +192,19 @@ export class NgRxFileOrganizationValidationPatterns {
     // Check for multiple files of the same type
     if (analysis.actionFiles.length > 1) {
       suggestions.push(
-        this.Messages.MULTIPLE_ACTION_FILES(analysis.featureName)
+        this.messages.MULTIPLE_ACTION_FILES(analysis.featureName)
       );
     }
 
     if (analysis.reducerFiles.length > 1) {
       suggestions.push(
-        this.Messages.MULTIPLE_REDUCER_FILES(analysis.featureName)
+        this.messages.MULTIPLE_REDUCER_FILES(analysis.featureName)
       );
     }
 
     if (analysis.selectorFiles.length > 1) {
       suggestions.push(
-        this.Messages.MULTIPLE_SELECTOR_FILES(analysis.featureName)
+        this.messages.MULTIPLE_SELECTOR_FILES(analysis.featureName)
       );
     }
   }

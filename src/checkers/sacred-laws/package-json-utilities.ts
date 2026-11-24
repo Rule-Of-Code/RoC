@@ -42,7 +42,7 @@ export class PackageJsonUtilities {
   /**
    * Standard error result for package.json reading failures
    */
-  private static readonly ERROR_READING_PACKAGE = (): QualityCheckResult => ({
+  private static readonly errorReadingPackage = (): QualityCheckResult => ({
     violations: ['Error reading package.json'],
     suggestions: [],
   });
@@ -94,7 +94,7 @@ export class PackageJsonUtilities {
 
     const packageJson = this.readPackageJson(projectRoot);
     if (!packageJson) {
-      return this.ERROR_READING_PACKAGE();
+      return this.errorReadingPackage();
     }
 
     const result: QualityCheckResult = {
@@ -171,13 +171,13 @@ export class PackageJsonUtilities {
 
     const packageJson = this.readPackageJson(projectRoot);
     if (!packageJson) {
-      return this.ERROR_READING_PACKAGE();
+      return this.errorReadingPackage();
     }
 
     try {
       return checker(packageJson, projectRoot);
     } catch (_error) {
-      return this.ERROR_READING_PACKAGE();
+      return this.errorReadingPackage();
     }
   }
 }

@@ -18,6 +18,11 @@
  *   node scripts/release-canary.js                 # against the built dist/
  *   node scripts/release-canary.js --tarball X.tgz # against the packed tarball
  *                                                  # (installs it like a consumer)
+ *   add --keep to leave the fixture, consumer and provenance directories in
+ *   the OS temp dir for inspection; their paths are printed.
+ *
+ * Every directory the canary makes in the OS temp dir is removed when it
+ * finishes, green or red (#582): a consumer is an installed tarball of ~50 MB.
  *
  * Exit code: 0 only when every cell of the matrix is correct.
  */
@@ -35,6 +40,7 @@ const TARBALL =
   tarballArgIndex !== -1
     ? path.resolve(process.argv[tarballArgIndex + 1])
     : null;
+const KEEP = process.argv.includes('--keep');
 
 // Floors: today's applicable-law counts with safety margin. A drop below the
 // floor means the selection collapsed — a blocker, not a warning.
@@ -62,11 +68,12 @@ const STACKS = {
       }),
       'angular.json': '{}',
       // Nx-monorepo shape — the default includes whitelist scans libs/*/src/**
-      'libs/bot/src/ok.ts': 'export const ok = 1;\n',
+      'libs/app/src/ok.ts': 'export const ok = 1;\n',
     },
-    redFile: { 'libs/bot/src/risk.ts': 'export const equityFloor = 450;\n' },
+    // A Markdown file without the footer, inside the scanned library tree.
+    redFile: { 'libs/app/src/README.md': '# Notes\n\nNo footer here.\n' },
     // Opt-in: the red pass's `laws.severity` entry is what turns it on.
-    redLaw: 'No Risk Literals',
+    redLaw: 'MD Footer Template (MANDATORY)',
     redThresholds: undefined,
     projectType: 'angular',
     // `requires`-gated laws must not be selected where the toolkit is absent.
@@ -88,12 +95,12 @@ const STACKS = {
         },
       }),
       'angular.json': '{}',
-      'libs/bot/src/+state/bot.actions.ts':
+      'libs/app/src/+state/bot.actions.ts':
         "import { createAction, props } from '@ngrx/store';\nexport const loadBot = createAction('[Bot] Load', props<{ id: string }>());\n",
     },
     // An effects class without @Injectable: the NgRx effect-pattern pass reads *.effects.ts (#369).
     redFile: {
-      'libs/bot/src/+state/bot.effects.ts':
+      'libs/app/src/+state/bot.effects.ts':
         "import { createEffect } from '@ngrx/effects';\nexport class BotEffects {\n  load$ = createEffect(() => this.actions$);\n}\n",
     },
     redLaw: 'NgRx RxJS Operators Selection Mandate',
@@ -119,11 +126,11 @@ const STACKS = {
         appId: 'com.example.canary',
         webDir: 'www',
       }),
-      'libs/bot/src/app.component.ts':
+      'libs/app/src/app.component.ts':
         "export const template = '<ion-app><ion-router-outlet></ion-router-outlet></ion-app>';\n",
     },
     redFile: {
-      'libs/bot/src/wizard.ts':
+      'libs/app/src/wizard.ts':
         "export function done(router: { navigate: (c: string[], e: object) => void }): void {\n  router.navigate(['/x'], { skipLocationChange: true });\n}\n",
     },
     redLaw: 'Ionic No Skip Location Change',
@@ -190,8 +197,61 @@ const STACKS = {
   },
 };
 
+/** Every directory this run made in the OS temp dir, in creation order. */
+const tempDirs = [];
+
 function makeTempDir(prefix) {
-  return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  tempDirs.push(dir);
+  return dir;
+}
+
+/**
+ * Remove the directories this run made, or with `keep` print where they are.
+ * A directory that cannot be removed is printed with the reason. Returns the
+ * paths that are still on disk.
+ */
+function removeTempDirs(keep = KEEP) {
+  const dirs = tempDirs.splice(0).filter(dir => fs.existsSync(dir));
+  if (keep) {
+    dirs.forEach(dir => console.log(`kept: ${dir}`));
+    return dirs;
+  }
+  const left = [];
+  for (const dir of dirs.reverse()) {
+    try {
+      fs.rmSync(dir, {
+        recursive: true,
+        force: true,
+        maxRetries: 3,
+        retryDelay: 100,
+      });
+    } catch (error) {
+      console.log(`could not remove ${dir}: ${error.message}`);
+      left.push(dir);
+    }
+  }
+  return left;
+}
+
+/**
+ * Remove the provenance worktree. Its `node_modules` is a junction to the
+ * repository's own: it goes first, as a link, so nothing removes through it.
+ * `git worktree remove` then unregisters the tree, and the directory is
+ * removed in any case (git left it behind with the junction in it).
+ */
+function removeProvenanceTree(tree, keep = KEEP) {
+  fs.rmSync(path.join(tree, 'node_modules'), { force: true });
+  if (keep) return;
+  try {
+    execSync(`git worktree remove --force "${tree}"`, {
+      cwd: REPO,
+      stdio: 'ignore',
+    });
+  } catch {
+    /* the directory is removed below; git's record of it stays, as before */
+  }
+  fs.rmSync(tree, { recursive: true, force: true });
 }
 
 function writeFiles(dir, files) {
@@ -327,7 +387,26 @@ function writeConfig(dir, stackKey, stack, extra = {}) {
   );
 }
 
+/**
+ * Run the matrix and the provenance check, then remove what the run made in
+ * the OS temp dir (or keep it with --keep), also when the canary itself
+ * throws. The exit comes after the removal: `process.exit` skips `finally`.
+ */
 function main() {
+  let ok = false;
+  try {
+    ok = runCanary();
+  } catch (error) {
+    console.log(`\n❌ the canary itself failed: ${error.message}`);
+    console.log('❌ CANARY RED — DO NOT TAG');
+  } finally {
+    removeTempDirs();
+  }
+  process.exit(ok ? 0 : 1);
+}
+
+/** The matrix and the provenance check; prints the table and returns whether it is green. */
+function runCanary() {
   const cli = resolveCli();
   const rows = [];
   let ok = true;
@@ -352,7 +431,6 @@ function main() {
         `${stackKey.padEnd(8)} | ❌ the audited CLI produced no report — it did not run (exit ${cal.code}). First line: ${(cal.out.split('\n').find(Boolean) ?? '(no output)').slice(0, 90)}`
       );
       ok = false;
-      fs.rmSync(dir, { recursive: true, force: true });
       continue;
     }
 
@@ -392,8 +470,6 @@ function main() {
     rows.push(
       `${stackKey.padEnd(8)} | laws=${String(floorCount).padEnd(4)} floor>=${String(stack.floor).padEnd(3)} ${floorOk ? '✅' : '❌'} | green exit ${green.code} ${greenOk ? '✅' : '❌'} | red exit ${red.code} ${redOk ? '✅' : '❌'} | zero-laws exit ${zero.code}${zeroRefused ? ' (refused)' : ''} ${zeroOk ? '✅' : '❌'} | no-TypeError ${noNoise ? '✅' : '❌'}${stack.mustRun || stack.mustNotRun ? ` | requires-gate ${gateOk ? '✅' : '❌'}` : ''}`
     );
-
-    fs.rmSync(dir, { recursive: true, force: true });
   }
 
   if (TARBALL) {
@@ -432,7 +508,7 @@ function main() {
   console.log(
     ok ? '✅ CANARY GREEN — release may proceed' : '❌ CANARY RED — DO NOT TAG'
   );
-  process.exit(ok ? 0 : 1);
+  return ok;
 }
 
 /**
@@ -562,20 +638,19 @@ function verifyProvenance(tarball) {
       changed: [],
     };
   } finally {
-    try {
-      execSync(`git worktree remove --force "${tree}"`, {
-        cwd: REPO,
-        stdio: 'ignore',
-      });
-    } catch {
-      fs.rmSync(tree, { recursive: true, force: true });
-    }
-    fs.rmSync(out, { recursive: true, force: true });
+    removeProvenanceTree(tree);
   }
 }
 
 // The project profiles are read by the Pareto ratchet test (#383): one table
 // of what each kind of project looks like, for the canary and the ratchet.
-module.exports = { STACKS };
+// makeTempDir / removeTempDirs / removeProvenanceTree are read by the cleanup
+// test (#582).
+module.exports = {
+  STACKS,
+  makeTempDir,
+  removeTempDirs,
+  removeProvenanceTree,
+};
 
 if (require.main === module) main();

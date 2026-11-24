@@ -184,24 +184,33 @@ describe('#369 rows reachable from a registered law: red on 7.27.0, green now', 
     );
   }, 60000);
 
+  // The trackBy check moved from Lazy Loading to Modern Angular Control Flow
+  // (#562), which judges it below Angular 18; the backup rule moved with it.
   it('row 9 — a ".old." template backup is skipped by the trackBy check (found by the guard)', async () => {
-    const files = {
+    const angular17 = {
       ...ANGULAR,
+      'package.json': pkg({
+        '@angular/core': '17.3.0',
+        '@angular/router': '17.3.0',
+        rxjs: '7.8.1',
+      }),
+    };
+    const backup = await run('Modern Angular Control Flow', {
+      ...angular17,
       'src/app/list.component.old.html':
         '<li *ngFor="let item of items">{{ item }}</li>\n',
-    };
-    const backup = await run('Lazy Loading Implementation', files);
+    });
     expect(
       violations(backup.result).filter(v => v.includes('list.component.old'))
     ).toEqual([]);
-    const live = await run('Lazy Loading Implementation', {
-      ...ANGULAR,
+    const live = await run('Modern Angular Control Flow', {
+      ...angular17,
       'src/app/list.component.html':
         '<li *ngFor="let item of items">{{ item }}</li>\n',
     });
     expect(
       violations(live.result).some(v =>
-        v.includes('Templates missing trackBy functions: list.component')
+        v.includes('*ngFor without trackBy in src/app/list.component.html')
       )
     ).toBe(true);
   }, 60000);

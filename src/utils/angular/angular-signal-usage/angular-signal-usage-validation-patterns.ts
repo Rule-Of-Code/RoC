@@ -5,7 +5,7 @@ import { AngularSignalUsageConfiguration } from './angular-signal-usage-configur
  * Meta-dogfooding: Centralized signal usage validation logic for Angular components
  */
 export class AngularSignalUsageValidationPatterns {
-  private static readonly Config = AngularSignalUsageConfiguration;
+  private static readonly config = AngularSignalUsageConfiguration;
 
   /**
    * Validate all signal usage patterns - master validation method
@@ -20,8 +20,8 @@ export class AngularSignalUsageValidationPatterns {
   ): void {
     // Subject/BehaviorSubject migration opportunities
     if (patterns.hasSubjectUsage && !patterns.hasSignalUsage) {
-      const message = this.Config.buildMessageObject(
-        this.Config.VALIDATION_MESSAGES.CONSIDER_SUBJECT_MIGRATION,
+      const message = this.config.buildMessageObject(
+        this.config.VALIDATION_MESSAGES.CONSIDER_SUBJECT_MIGRATION,
         patterns.fileName
       );
       suggestions.push(message.suggestionMessage);
@@ -29,8 +29,8 @@ export class AngularSignalUsageValidationPatterns {
 
     // Reactive forms migration opportunities
     if (patterns.hasFormControl && !patterns.hasSignalUsage) {
-      const message = this.Config.buildMessageObject(
-        this.Config.VALIDATION_MESSAGES.CONSIDER_REACTIVE_FORMS_MIGRATION,
+      const message = this.config.buildMessageObject(
+        this.config.VALIDATION_MESSAGES.CONSIDER_REACTIVE_FORMS_MIGRATION,
         patterns.fileName
       );
       suggestions.push(message.suggestionMessage);
@@ -38,8 +38,8 @@ export class AngularSignalUsageValidationPatterns {
 
     // Component state management with signals
     if (patterns.hasComponentState && !patterns.hasSignalUsage) {
-      const message = this.Config.buildMessageObject(
-        this.Config.VALIDATION_MESSAGES.CONSIDER_STATE_MANAGEMENT,
+      const message = this.config.buildMessageObject(
+        this.config.VALIDATION_MESSAGES.CONSIDER_STATE_MANAGEMENT,
         patterns.fileName
       );
       suggestions.push(message.suggestionMessage);
@@ -47,8 +47,8 @@ export class AngularSignalUsageValidationPatterns {
 
     // Getter methods that could be computed signals
     if (patterns.hasGetterMethods && !patterns.hasComputedUsage) {
-      const message = this.Config.buildMessageObject(
-        this.Config.VALIDATION_MESSAGES.CONSIDER_COMPUTED_OVER_GETTERS,
+      const message = this.config.buildMessageObject(
+        this.config.VALIDATION_MESSAGES.CONSIDER_COMPUTED_OVER_GETTERS,
         patterns.fileName
       );
       suggestions.push(message.suggestionMessage);
@@ -56,8 +56,8 @@ export class AngularSignalUsageValidationPatterns {
 
     // Template optimization opportunities
     if (patterns.hasAsyncPipe && !patterns.hasSignalUsage) {
-      const message = this.Config.buildMessageObject(
-        this.Config.VALIDATION_MESSAGES.CONSIDER_SIGNALS_OVER_ASYNC,
+      const message = this.config.buildMessageObject(
+        this.config.VALIDATION_MESSAGES.CONSIDER_SIGNALS_OVER_ASYNC,
         patterns.fileName
       );
       suggestions.push(message.suggestionMessage);
@@ -65,16 +65,16 @@ export class AngularSignalUsageValidationPatterns {
 
     // Change detection optimization opportunities
     if (patterns.hasChangeDetectorRef && !patterns.hasSignalUsage) {
-      const message = this.Config.buildMessageObject(
-        this.Config.VALIDATION_MESSAGES.ELIMINATE_CHANGE_DETECTION,
+      const message = this.config.buildMessageObject(
+        this.config.VALIDATION_MESSAGES.ELIMINATE_CHANGE_DETECTION,
         patterns.fileName
       );
       suggestions.push(message.suggestionMessage);
     }
 
     if (patterns.hasOnPush && !patterns.hasSignalUsage) {
-      const message = this.Config.buildMessageObject(
-        this.Config.VALIDATION_MESSAGES.OPTIMIZE_ONPUSH_WITH_SIGNALS,
+      const message = this.config.buildMessageObject(
+        this.config.VALIDATION_MESSAGES.OPTIMIZE_ONPUSH_WITH_SIGNALS,
         patterns.fileName
       );
       suggestions.push(message.suggestionMessage);

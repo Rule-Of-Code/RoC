@@ -251,15 +251,16 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Dead code is a lie the reader has to disprove — a commented-out block, an unreachable branch, a stray debugger. Each is a question ("is this needed?") the next engineer must answer before they can safely change anything.',
     satisfiedBy: {
       typescript:
-        'Enable ESLint no-unused-vars / no-unreachable; keep <=3 commented function/const/let lines per file; no code after return; no debugger.',
+        'No debugger; no statement after a return; <=3 commented const/let/function lines per file; and a check for unused code: a dead-code tool (knip, ts-prune, ts-unused-exports or unimported) run from a package script, a committed git hook or a CI step, or, when ESLint is a devDependency, its no-unused-vars / no-unreachable rule.',
     },
     detectionLimits: [
-      'The "unused vars/imports" in the title are enforced only by the PRESENCE of an ESLint rule — never actually detected in the code.',
+      'Unused imports, exports and variables are NOT detected by this law. It asks for a tool that detects them: a dead-code tool (knip, ts-prune, ts-unused-exports or unimported) run from a package script, a committed git hook or a CI step — a tool that is only a devDependency, run nowhere, does not count — or, when ESLint is a devDependency, an ESLint no-unused-vars / no-unreachable rule (its presence in the config; the lint run itself is not checked).',
       'Read from the TypeScript parse (without a loadable `typescript` the files are NOT read and the law judges nothing): a `debugger;` statement, a statement after a `return` in the same block (a hoisted function or a type after it is not), and more than three `//` comments that hold a const/let declaration or a function header. Words in strings and prose comments are not code.',
       'TS/JS only; no Python.',
     ],
     emoji: '🧟',
-    description: 'Remove all unused imports, functions, and variables',
+    description:
+      'No debugger, no code after a return, no commented-out code, and a check for unused code that runs',
     priority: 'MEDIUM',
     category: 'CODE_QUALITY',
     defaultEnabled: true,
@@ -267,8 +268,9 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
     automation: 'AUTOMATED',
     checkFunction: 'checkDeadCodeElimination',
     violationMessage:
-      'CONSTITUTIONAL VIOLATION Article II.2.7: Dead code detected',
-    remediation: 'Remove all unused code elements and imports',
+      'CONSTITUTIONAL VIOLATION Article II.2.7: debugger, code after a return or commented-out code found, or no check for unused code configured',
+    remediation:
+      'Remove debugger statements, code after a return and commented-out code; run knip (or ts-prune, ts-unused-exports, unimported) from a script, a git hook or CI, or enable ESLint no-unused-vars / no-unreachable',
   },
 
   {

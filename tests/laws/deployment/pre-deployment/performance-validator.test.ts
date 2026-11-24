@@ -299,7 +299,8 @@ describe('PerformanceValidationChecker', () => {
       FileUtils.createDirectory(PathOperations.join(tempDir, 'src'));
       FileUtils.writeFile(
         PathOperations.join(tempDir, 'src', 'status.ts'),
-        'export function status() { return "ok"; }'
+        // #439: a route answers the probe; a file name alone does not.
+        "app.get('/status', (_req, res) => res.send('ok'));"
       );
       const result = validator.checkMonitoringSetup(tempDir, mockConfig);
       expect(result.healthChecksConfigured).toBe(true);
@@ -309,7 +310,8 @@ describe('PerformanceValidationChecker', () => {
       FileUtils.createDirectory(PathOperations.join(tempDir, 'src'));
       FileUtils.writeFile(
         PathOperations.join(tempDir, 'src', 'ping.ts'),
-        'export function ping() { return "pong"; }'
+        // #439: a route answers the probe; a file name alone does not.
+        "router.get('/ping', (_req, res) => res.send('pong'));"
       );
       const result = validator.checkMonitoringSetup(tempDir, mockConfig);
       expect(result.healthChecksConfigured).toBe(true);

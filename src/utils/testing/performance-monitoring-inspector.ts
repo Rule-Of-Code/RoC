@@ -1,41 +1,12 @@
 import { ProjectTypeDetectorValidation } from '../config/project-type-detector/project-type-detector-validation';
-import { DirectoryScanner } from '../directory-scanner';
 import { FileUtils } from '../file-utils';
 import { PathOperations } from '../path-operations';
-import { PerformanceAnalysisService } from '../performance';
 import { ciConfigContent } from '../project-discovery';
 /**
  * Performance Monitoring Integration Inspector (Streamlined)
  * Simplified utility for analyzing performance monitoring setup and integration
  */
 export class PerformanceMonitoringInspector {
-  /**
-   * Shared default config for DirectoryScanner to avoid duplication
-   */
-  private static readonly DEFAULT_SCANNER_CONFIG = {
-    project: {
-      name: 'temp',
-      componentPrefix: 'temp',
-      type: 'generic' as const,
-    },
-    ignores: { global: [], tests: [], build: [], design: [] },
-    laws: { paretoMode: false, severity: {} },
-    hooks: { preCommit: false, prePush: false, commitMsg: false },
-    reporting: {
-      format: 'console' as const,
-      verbose: false,
-      onlyFailures: false,
-      scoring: false,
-    },
-    performance: {
-      parallel: false,
-      maxConcurrent: 1,
-      cache: false,
-      incremental: false,
-    },
-    cli: { autofix: false },
-    severity: 'error' as const,
-  };
   /**
    * Check for performance monitoring integration
    */
@@ -58,45 +29,6 @@ export class PerformanceMonitoringInspector {
       integrationFiles,
       configFiles,
       ciIntegration: ciIntegration.length > 0,
-    };
-  }
-
-  /**
-   * Check for critical flow performance tests
-   */
-  static checkCriticalFlowPerformanceTests(projectRoot: string): {
-    hasCriticalFlowTests: boolean;
-    testFiles: string[];
-    scenarios: string[];
-  } {
-    const criticalFlowTests = this.findCriticalFlowTestsSimple(projectRoot);
-    const performanceAnalysis =
-      PerformanceAnalysisService.analyzePerformanceScenarios();
-
-    return {
-      hasCriticalFlowTests: criticalFlowTests.length > 0,
-      testFiles: criticalFlowTests,
-      scenarios: performanceAnalysis.recommendations,
-    };
-  }
-
-  /**
-   * Check for performance CI/CD integration
-   */
-  static checkPerformanceCICDIntegration(projectRoot: string): {
-    hasPerformanceCI: boolean;
-    configs: string[];
-    steps: string[];
-  } {
-    const ciConfigs = this.findPerformanceCIConfigsSimple(projectRoot);
-    const performanceAnalysis =
-      PerformanceAnalysisService.analyzePerformanceTesting();
-
-    return {
-      hasPerformanceCI:
-        ciConfigs.length > 0 || !performanceAnalysis.hasPerformanceIssues,
-      configs: ciConfigs,
-      steps: performanceAnalysis.recommendations,
     };
   }
 
@@ -160,47 +92,6 @@ export class PerformanceMonitoringInspector {
 
     return /performance|monitoring/i.test(pipelineText)
       ? ['Performance monitoring in CI pipeline']
-      : [];
-  }
-
-  private static findCriticalFlowTestsSimple(projectRoot: string): string[] {
-    const testFiles: string[] = [];
-    const testDirs = ['test', 'tests', 'cypress/e2e'];
-
-    for (const dir of testDirs) {
-      const dirPath = PathOperations.join(projectRoot, dir);
-      if (FileUtils.exists(dirPath)) {
-        try {
-          const files = DirectoryScanner.safeReadDirectory(
-            dirPath,
-            PerformanceMonitoringInspector.DEFAULT_SCANNER_CONFIG
-          ).map(entry => entry.name);
-          const perfFiles = files.filter(
-            file => file.includes('performance') || file.includes('critical')
-          );
-          testFiles.push(
-            ...perfFiles.map(file => PathOperations.join(dir, file))
-          );
-        } catch (_error) {
-          // Ignore errors
-        }
-      }
-    }
-
-    return testFiles;
-  }
-
-  /**
-   * A performance job in CI, named by what it DOES rather than by the file it
-   * lives in. Two GitHub workflow filenames were the whole search, so the same
-   * Lighthouse step in a differently-named workflow, or on another provider,
-   * counted for nothing.
-   */
-  private static findPerformanceCIConfigsSimple(projectRoot: string): string[] {
-    const pipelineText = ciConfigContent(projectRoot);
-
-    return /lighthouse|web-vitals|performance/i.test(pipelineText)
-      ? ['Performance job in CI pipeline']
       : [];
   }
 }

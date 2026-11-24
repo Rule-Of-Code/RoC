@@ -23,7 +23,7 @@ export interface FileEntry {
  * Centralizes file organization patterns, naming conventions, and validation logic
  */
 export class NgRxFileOrganizationConfiguration {
-  private static readonly Config = NgRxFileOrganizationConfiguration;
+  private static readonly config = NgRxFileOrganizationConfiguration;
 
   /**
    * Valid NgRx file suffixes for naming convention validation (RULE 1: 100% internal coverage)
@@ -70,14 +70,14 @@ export class NgRxFileOrganizationConfiguration {
    * Get valid NgRx file suffixes for naming convention validation (RULE 2: Caching)
    */
   static getValidNgRxFileSuffixes(): readonly string[] {
-    return this.Config.VALID_NGRX_SUFFIXES;
+    return this.config.VALID_NGRX_SUFFIXES;
   }
 
   /**
    * Get test file extensions for testing validation (RULE 2: Caching)
    */
   static getTestFileExtensions(): readonly string[] {
-    return this.Config.TEST_FILE_EXTENSIONS;
+    return this.config.TEST_FILE_EXTENSIONS;
   }
 
   /**
@@ -93,7 +93,7 @@ export class NgRxFileOrganizationConfiguration {
     MULTIPLE_REDUCER_FILES: (featureName: string) => string;
     MULTIPLE_SELECTOR_FILES: (featureName: string) => string;
   } {
-    const messages = this.Config.VALIDATION_MESSAGES_CONFIG;
+    const messages = this.config.VALIDATION_MESSAGES_CONFIG;
     return {
       MISSING_BARREL_EXPORT: (featureName: string) =>
         StringTemplateUtils.formatTemplate(
@@ -180,7 +180,7 @@ export class NgRxFileOrganizationConfiguration {
    * Check if a file has a valid NgRx suffix (RULE 2: Caching)
    */
   static hasValidNgRxSuffix(fileName: string): boolean {
-    const validSuffixes = this.Config.VALID_NGRX_SUFFIXES;
+    const validSuffixes = this.config.VALID_NGRX_SUFFIXES;
     return validSuffixes.some(suffix => fileName.endsWith(suffix));
   }
 
@@ -195,7 +195,7 @@ export class NgRxFileOrganizationConfiguration {
    * Check if files contain test files (RULE 2: Caching)
    */
   static hasTestFiles(files: FileEntry[]): boolean {
-    const testExtensions = this.Config.TEST_FILE_EXTENSIONS;
+    const testExtensions = this.config.TEST_FILE_EXTENSIONS;
     return files.some(file =>
       testExtensions.some(ext => file.name.includes(ext))
     );

@@ -5,10 +5,10 @@
  * display string in law-card.ts was flagged though the file had no real TODO).
  */
 import fs from 'fs';
-import os from 'os';
 import path from 'path';
 import { TodoManagementLaw } from '../../../src/laws/documentation/todo-management';
 import type { LawCheckContext, RuleOfCodeConfig } from '../../../src/types';
+import { makeTempDir } from '../../helpers/temp-dirs';
 
 const config = {
   project: { name: 't', root: '', type: 'generic' },
@@ -27,7 +27,7 @@ const config = {
 } as unknown as RuleOfCodeConfig;
 
 function fixture(files: Record<string, string>): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-todo-'));
+  const dir = makeTempDir('roc-todo-');
   for (const [rel, content] of Object.entries(files)) {
     const p = path.join(dir, rel);
     fs.mkdirSync(path.dirname(p), { recursive: true });

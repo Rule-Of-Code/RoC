@@ -9,7 +9,7 @@ import { AngularConfigurationBase } from '../angular-configuration-base';
  * Centralized configuration for NgRx reducer pattern analysis
  */
 export class NgRxReducerPatternsConfiguration extends AngularConfigurationBase {
-  private static readonly Config = NgRxReducerPatternsConfiguration;
+  private static readonly config = NgRxReducerPatternsConfiguration;
 
   /**
    * Analyzer orchestration configuration (RULE 1: 100% internal coverage)
@@ -62,7 +62,7 @@ export class NgRxReducerPatternsConfiguration extends AngularConfigurationBase {
       description: string;
     };
   } {
-    return this.Config.ANALYZER_ORCHESTRATION_CONFIG;
+    return this.config.ANALYZER_ORCHESTRATION_CONFIG;
   }
 
   /**
@@ -74,7 +74,7 @@ export class NgRxReducerPatternsConfiguration extends AngularConfigurationBase {
     deduplicateResults: boolean;
     prioritizeViolations: boolean;
   } {
-    return this.Config.RESULT_AGGREGATION_CONFIG;
+    return this.config.RESULT_AGGREGATION_CONFIG;
   }
 
   /**
@@ -86,7 +86,7 @@ export class NgRxReducerPatternsConfiguration extends AngularConfigurationBase {
     enableDeepAnalysis: boolean;
     reportDetailLevel: 'detailed' | 'summary' | 'verbose';
   } {
-    return this.Config.DEFAULT_ANALYSIS_OPTIONS;
+    return this.config.DEFAULT_ANALYSIS_OPTIONS;
   }
 
   /**

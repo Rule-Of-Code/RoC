@@ -57,11 +57,6 @@ export class NgRxMemoizationConfiguration extends SignalConfigurationBase {
   );
 
   /**
-   * Direct store.select pattern for validation - RULE 1: Inlined from getter method
-   */
-  static readonly DIRECT_SELECT_PATTERN = /store\.select\([^)]+\)/g;
-
-  /**
    * Selector subscription pattern for validation - RULE 1: Inlined from getter method
    */
   static readonly SELECTOR_SUBSCRIPTION_PATTERN =
@@ -257,40 +252,6 @@ export class NgRxMemoizationConfiguration extends SignalConfigurationBase {
   }
 
   /**
-   * Find direct store.select patterns
-   */
-  static findDirectSelects(content: string): RegExpMatchArray | null {
-    return content.match(this.DIRECT_SELECT_PATTERN);
-  }
-
-  /**
-   * Does every store.select in the content go through a selector? This used
-   * to be true whenever the content held the word `select`, which every
-   * `store.select` does, so "Direct store.select usage" could never fire
-   * (#612).
-   */
-  static hasValidDirectSelectUsage(content: string): boolean {
-    const selects = this.findDirectSelects(content) ?? [];
-    return !selects.some(select => this.isInvalidDirectSelect(select));
-  }
-
-  /**
-   * A store.select that bypasses memoized selectors: its argument is a
-   * string key (`store.select('users')`) or an inline projector
-   * (`store.select(state => state.users)`). An identifier or a call
-   * (`selectUsers`, `fromUser.selectAll`, `selectUserById(id)`) is a
-   * selector and is not judged.
-   */
-  static isInvalidDirectSelect(select: string): boolean {
-    const argument = select.replace(/^.*?store\.select\(\s*/, '');
-    return (
-      /^['"`]/.test(argument) ||
-      /^(?:\(|function\b|async\b)/.test(argument) ||
-      /^[\w$]+\s*=>/.test(argument)
-    );
-  }
-
-  /**
    * Find selector subscriptions
    */
   static findSelectorSubscriptions(content: string): RegExpMatchArray | null {
@@ -348,12 +309,10 @@ export class NgRxMemoizationConfiguration extends SignalConfigurationBase {
    * Analyze component selector usage patterns
    */
   static analyzeComponentSelectorPatterns(content: string): {
-    hasValidDirectSelects: boolean;
     hasTooManySubscriptions: boolean;
     needsCleanup: boolean;
   } {
     return {
-      hasValidDirectSelects: this.hasValidDirectSelectUsage(content),
       hasTooManySubscriptions: this.hasTooManySubscriptions(content),
       needsCleanup: this.needsSubscriptionCleanup(content),
     };

@@ -61,7 +61,7 @@ export const META_GATE_LAWS: EnhancedConstitutionalLaw[] = [
     subsection: '1.91',
     title: 'Config Integrity Guard',
     rationale:
-      "A typo'd or stale key in laws.severity / notApplicable / enabled gates nothing — the config looks strict while the gate is disarmed (v7.5.0). Worse, a key that resolves to MORE THAN ONE law (25 legacyIds are shared by 51 laws) silences several while the team thinks it silenced one: a hidden waiver. This law makes an unknown or ambiguous key a finding, so the config fails loudly instead of lying quietly.",
+      "A typo'd or stale key in laws.severity / notApplicable / enabled gates nothing — the config looks strict while the gate is disarmed (v7.5.0). Worse, a key that resolves to MORE THAN ONE law (some legacyIds are shared by more than one law) silences several while the team thinks it silenced one: a hidden waiver. This law makes an unknown or ambiguous key a finding, so the config fails loudly instead of lying quietly.",
     satisfiedBy: {
       typescript:
         'Key config by canonical name or slug, never legacyId; each key must resolve to exactly one law (see configKeys in `roc laws --json`).',
@@ -86,7 +86,7 @@ export const META_GATE_LAWS: EnhancedConstitutionalLaw[] = [
     violationMessage:
       'CONSTITUTIONAL VIOLATION Article I.1.91: Config references an unknown law',
     remediation:
-      "Fix the key (canonical name / printed slug / id / legacyId all resolve — see 'roc laws --list') or remove the stale entry",
+      "Fix the key (canonical name, printed slug or law id; a legacyId only where a single law carries it — see 'roc laws --list') or remove the stale entry",
   },
 
   {

@@ -219,7 +219,8 @@ across **all public spellings** of a law:
 - canonical name: `Module Size`, `Zero Tolerance Doctrine (SACRED LAW)`
 - name without the decorative suffix: `Zero Tolerance Doctrine`
 - the printed slug from the audit output: `module-size`
-- the law id and legacyId
+- the law id
+- a legacyId, only where a single law carries it (a legacyId never turns on an opt-in law)
 
 A key that matches no law **warns out loud** at audit start
 (`⚠️ unknown law — this override gates nothing`). A law that exists but is stack-gated

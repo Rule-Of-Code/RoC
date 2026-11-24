@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 📝 Changed — law texts the code had moved past (#625)
+
+Texts only; no verdict, score or severity changes.
+
+- `legacyId` as a config key: Config Integrity Guard's remediation and the
+  README said every public spelling resolves, while its suggestion said
+  never to use one. They now say the same: canonical name, printed slug or
+  law id; a `legacyId` only where a single law carries it, and it never
+  turns on an opt-in law. The stale counts ("25 legacyIds shared by 51
+  laws"; 21 and 43 today) are replaced by words that do not go stale.
+- Commit Size Control: the window is the default; `maxCommits` and
+  `baseline` change it.
+- Zero Tolerance Doctrine and TypeScript Strict Mode: `extends` is followed
+  (`references` are not, #640); TypeScript Strict accepts `bundler`,
+  `node16`, `nodenext` and `node`, and rejects a target only when it is
+  missing, ES3 or ES5. Its violation and suggestion said "ES2020 or
+  higher"; they now say what is rejected.
+- Professional Excellence Mandate: any ESLint config and ten Prettier file
+  names count; only the package.json `prettier` key is not read.
+- CI/CD Constitutional Tribunal: every CI file is read, not the first one.
+- Dependency Security Scanning: the licence check needs `node_modules` and
+  stops after the first 20 dependencies it can read.
+
 ### ✨ Added — Version-control laws name what they counted (#43, version control)
 
 Three version-control laws said how many and never which: "1 of the last 3

@@ -3,7 +3,6 @@
  * Professional-grade FileHeaderComplianceAnalyzer system
  */
 
-import { CONSTITUTIONAL_LAWS } from '../data/constitutional-laws';
 import { CONSTITUTIONAL_PATHS, TEST_FILE_GLOBS } from '../utils/constants';
 
 export interface RuleOfCodeConfig {
@@ -1029,25 +1028,14 @@ export const DEFAULT_CONFIG: RuleOfCodeConfig = {
     // the engine consumed it (the v7.5.1 zero-laws-checked P0). A law
     // allowlist only means something when the user writes one.
     paretoMode: false,
-    severity: (() => {
-      // Generate severity mapping from CONSTITUTIONAL_LAWS
-      const severityMap: Record<string, 'error' | 'info' | 'warning'> = {};
-
-      CONSTITUTIONAL_LAWS.forEach((law, index) => {
-        const lawId = `law-${index + 1}`;
-        // Each law's authored defaultSeverity is the source of truth (v7.2.0).
-        // Falls back to priority-derived severity if a law omits the field.
-        severityMap[lawId] =
-          law.defaultSeverity ??
-          (law.priority === 'CRITICAL' || law.priority === 'HIGH'
-            ? 'error'
-            : law.priority === 'MEDIUM'
-              ? 'warning'
-              : 'info');
-      });
-
-      return severityMap;
-    })(),
+    // No default severity map (#585): each law's authored defaultSeverity is
+    // the source of truth when the user writes no override. The positional
+    // `law-1` … `law-N` map that stood here named no law (the engine and
+    // Config Integrity Guard skipped it), shifted with every registry change
+    // and travelled as noise in the config section of every result. A user's
+    // old config that still carries `law-N` keys keeps working: they are
+    // skipped as before (isNonLawConfigKey).
+    severity: {},
   },
 
   hooks: {

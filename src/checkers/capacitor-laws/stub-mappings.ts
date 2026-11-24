@@ -67,6 +67,11 @@ export function configFiles(projectRoot: string): string[] {
   ];
 }
 
+/**
+ * The module mappings one test config states: JSON read as JSON, a script
+ * config parsed (none without the parser). A config that cannot be read is
+ * pushed to `violations`, a mapper value that cannot be followed to `unread`.
+ */
 export function configMappings(
   context: LawCheckContext,
   ts: TypeScriptModule | null,
@@ -301,6 +306,7 @@ function stubText(source: TsxSource, value: TS.Expression): string {
   return value.getText(source.sourceFile);
 }
 
+/** Does a mapping catch the plugin: its regex tests it, or the alias is its exact name. */
 export function matches(mapping: StubMapping, plugin: string): boolean {
   if (!mapping.regex) return mapping.pattern === plugin;
   try {

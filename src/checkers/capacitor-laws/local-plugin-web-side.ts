@@ -28,6 +28,7 @@ export interface WebPlugin {
   methods: string[] | null;
 }
 
+/** Every `registerPlugin(…)` call in one source, with its name and methods. */
 export function webPlugins(
   context: LawCheckContext,
   source: TsxSource

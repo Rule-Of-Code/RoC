@@ -54,6 +54,7 @@ function attribute(tag: string, name: string): string | null {
   return match[1] ?? match[2] ?? match[3] ?? '';
 }
 
+/** The files as project-relative texts; a file that cannot be read is left out. */
 export function read(context: LawCheckContext, files: string[]): Text[] {
   return files.flatMap(file => {
     try {
@@ -96,6 +97,7 @@ export function facesIn(rel: string, text: string, firstLine = 1): FontFace[] {
   });
 }
 
+/** The @font-face blocks of a document's <style> elements, with their lines in the document. */
 export function styleBlocks(document: Text): FontFace[] {
   return [
     ...document.text.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi),
@@ -123,6 +125,7 @@ export function splitFamilies(faces: FontFace[]): Map<string, FontFace[]> {
   );
 }
 
+/** The locale each <html lang> of a document declares. */
 export function htmlLang(document: Text): DeclaredLocale[] {
   return [...document.text.matchAll(/<html\b[^>]*>/gi)].flatMap(match => {
     const lang = attribute(match[0], 'lang');
@@ -137,6 +140,7 @@ export function htmlLang(document: Text): DeclaredLocale[] {
   });
 }
 
+/** The locales a pattern finds in the texts (group 1 or 2), labelled with where. */
 export function patternLocales(
   texts: Text[],
   pattern: RegExp,
@@ -150,6 +154,7 @@ export function patternLocales(
   );
 }
 
+/** The <link rel="preload" as="font"> tags of a document. */
 export function preloadsIn(document: Text): Preload[] {
   return [...document.text.matchAll(/<link\b[^>]*>/gi)].flatMap(match => {
     const tag = match[0];
@@ -170,6 +175,7 @@ export function preloadsIn(document: Text): Preload[] {
   });
 }
 
+/** The `Link: <…>; rel=preload` entries of hosting header files. */
 export function headerPreloads(texts: Text[]): Preload[] {
   return texts.flatMap(({ rel, text }) =>
     [...text.matchAll(/<([^<>\s]+)>\s*;[^,"\n]*rel="?preload"?/gi)].map(

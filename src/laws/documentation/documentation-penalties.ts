@@ -50,14 +50,18 @@ export const TODO_RULES = {
   /** One sprint as the law counts them: a week, in milliseconds. */
   weekMs: 7 * 24 * 60 * 60 * 1000,
   /**
-   * The deduction for `count` TODOs: the excess over the DEFAULT allowance,
-   * relative to it, up to EXCESS_TODOS_MAX_PENALTY — the allowance a config
-   * sets decides whether this applies, not how much it costs.
+   * The deduction for `count` TODOs over the allowance `limit` (the
+   * configured thresholds.documentation.maxTodoCount, else the default):
+   * the excess relative to that allowance, up to EXCESS_TODOS_MAX_PENALTY
+   * (#601). Never negative. An allowance of 0 or below cannot be divided
+   * by: any TODO over it costs the maximum.
    */
-  excessPenalty: (count: number): number =>
-    Math.min(
+  excessPenalty: (count: number, limit: number): number => {
+    if (count <= limit) return 0;
+    if (limit <= 0) return EXCESS_TODOS_MAX_PENALTY;
+    return Math.min(
       EXCESS_TODOS_MAX_PENALTY,
-      ((count - DEFAULT_MAX_TODOS) / DEFAULT_MAX_TODOS) *
-        EXCESS_TODOS_MAX_PENALTY
-    ),
+      ((count - limit) / limit) * EXCESS_TODOS_MAX_PENALTY
+    );
+  },
 } as const;

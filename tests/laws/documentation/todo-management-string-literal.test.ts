@@ -65,20 +65,32 @@ describe('TODO Management — string-literal markers are not real TODOs', () => 
 
 /**
  * The excess deduction was computed inline as
- * min(40, ((count - 30) / 30) * 40); it moved to TODO_RULES.excessPenalty
- * and must give the same points at the allowance, past it and at the cap.
+ * min(40, ((count - 30) / 30) * 40); it moved to TODO_RULES.excessPenalty.
+ * At the default allowance it gives the same points at the allowance, past
+ * it and at the cap; a configured allowance is the base it is measured
+ * against (#601).
  */
 describe('TODO Management — the excess deduction, at the limit and beyond', () => {
   const inline = (count: number): number =>
     Math.min(40, ((count - 30) / 30) * 40);
+  const atDefault = (count: number): number =>
+    TODO_RULES.excessPenalty(count, TODO_RULES.defaultMax);
 
   it.each([30, 31, 45, 59, 60, 61, 200])('%i TODOs', count => {
-    expect(TODO_RULES.excessPenalty(count)).toBe(inline(count));
+    expect(atDefault(count)).toBe(inline(count));
+  });
+
+  it('is measured against a configured allowance, never negative (#601)', () => {
+    expect(TODO_RULES.excessPenalty(15, 10)).toBe(20);
+    expect(TODO_RULES.excessPenalty(20, 10)).toBe(40);
+    expect(TODO_RULES.excessPenalty(25, 20)).toBe(10);
+    expect(TODO_RULES.excessPenalty(10, 20)).toBe(0);
+    expect(TODO_RULES.excessPenalty(1, 0)).toBe(40);
   });
 
   it('is zero at the default allowance and capped at the max', () => {
-    expect(TODO_RULES.excessPenalty(TODO_RULES.defaultMax)).toBe(0);
-    expect(TODO_RULES.excessPenalty(1000)).toBe(40);
+    expect(atDefault(TODO_RULES.defaultMax)).toBe(0);
+    expect(atDefault(1000)).toBe(40);
     expect(TODO_RULES.minFormatted).toBe(80);
     expect(TODO_RULES.weekMs).toBe(604800000);
   });

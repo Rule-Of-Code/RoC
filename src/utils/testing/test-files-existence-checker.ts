@@ -29,49 +29,23 @@ export class TestFilesExistenceChecker {
     const violations: string[] = [];
     const suggestions: string[] = [];
 
-    // Find source files that should have tests
-    const sourceFiles = this.findSourceFiles(projectRoot, config, lawId);
-    const testFiles = this.findTestFiles(projectRoot, config, lawId);
-
-    // The files this law can actually ask a test of. A barrel, a build config or
-    // a bootstrap has no behaviour a spec could assert — counting them makes the
-    // ratio below a statement about project layout rather than about testing.
-    const testableSources = sourceFiles.filter(file =>
-      this.shouldHaveTest(file)
+    const testableSources = this.findTestableSources(
+      projectRoot,
+      config,
+      lawId
     );
-
-    // A file is covered when a test is named after it OR imports it directly
-    // (see TestImportReader). Without the TypeScript package the imports are
-    // not read: the name rule alone decides, and the finding says so.
-    const ts = loadTypeScript(projectRoot);
-    const imported = ts
-      ? new TestImportReader(ts, projectRoot).importedBy(testFiles)
-      : new Set<string>();
-
-    const uncovered = testableSources.filter(
-      sourceFile =>
-        !this.hasTestByName(sourceFile, testFiles) &&
-        !imported.has(canonicalPath(sourceFile))
+    const { uncovered, testFiles, unread } = this.uncoveredByPresence(
+      projectRoot,
+      config,
+      testableSources,
+      lawId
     );
 
     if (uncovered.length > 0) {
-      // With no test file there are no imports to read: the note would be noise.
-      const unread =
-        ts || testFiles.length === 0
-          ? ''
-          : ` — ${parserUnavailable(projectRoot, `the imports of the ${testFiles.length} test file(s)`)}, so a file a test imports but is not named after was counted as lacking a test; ${PARTLY_READ_TEXT}`;
       violations.push(
         `${uncovered.length} source files lack corresponding test files (a test that imports a file counts)${unread}`
       );
-      suggestions.push(
-        `Add test files for: ${uncovered
-          .slice(0, MISSING_TEST_EXAMPLES)
-          .map(file => PathOperations.getRelative(projectRoot, file))
-          .join(', ')}${uncovered.length > MISSING_TEST_EXAMPLES ? '...' : ''}`
-      );
-      suggestions.push(
-        'A test covers a file when it is named after it (foo.ts ↔ foo.spec.ts / foo.test.ts) or imports it directly — a relative path or a tsconfig/jsconfig `paths`/`baseUrl` alias; an alias declared only in a Jest `moduleNameMapper` or a bundler config is not followed'
-      );
+      suggestions.push(...this.presenceSuggestions(projectRoot, uncovered));
     }
 
     // The ratio stays test files per testable source file. Counting the files
@@ -96,6 +70,65 @@ export class TestFilesExistenceChecker {
     }
 
     return { violations, suggestions };
+  }
+
+  /**
+   * The source files this law can ask a test of. A barrel, a build config or
+   * a bootstrap has no behaviour a spec could assert — counting them makes the
+   * ratio a statement about project layout rather than about testing.
+   */
+  static findTestableSources(
+    projectRoot: string,
+    config: RuleOfCodeConfig,
+    lawId?: string
+  ): string[] {
+    return this.findSourceFiles(projectRoot, config, lawId).filter(file =>
+      this.shouldHaveTest(file)
+    );
+  }
+
+  /**
+   * Which of `sources` no test covers. A file is covered when a test is named
+   * after it OR imports it directly (see TestImportReader). Without the
+   * TypeScript package the imports are not read: the name rule alone decides,
+   * and `unread` is the note that says so (empty when nothing was unread).
+   */
+  static uncoveredByPresence(
+    projectRoot: string,
+    config: RuleOfCodeConfig,
+    sources: string[],
+    lawId?: string
+  ): { uncovered: string[]; testFiles: string[]; unread: string } {
+    const testFiles = this.findTestFiles(projectRoot, config, lawId);
+    const ts = loadTypeScript(projectRoot);
+    const imported = ts
+      ? new TestImportReader(ts, projectRoot).importedBy(testFiles)
+      : new Set<string>();
+    const uncovered = sources.filter(
+      sourceFile =>
+        !this.hasTestByName(sourceFile, testFiles) &&
+        !imported.has(canonicalPath(sourceFile))
+    );
+    // With no test file there are no imports to read: the note would be noise.
+    const unread =
+      ts || testFiles.length === 0
+        ? ''
+        : ` — ${parserUnavailable(projectRoot, `the imports of the ${testFiles.length} test file(s)`)}, so a file a test imports but is not named after was counted as lacking a test; ${PARTLY_READ_TEXT}`;
+    return { uncovered, testFiles, unread };
+  }
+
+  /** What to do about files no test covers: name them, and say what counts. */
+  static presenceSuggestions(
+    projectRoot: string,
+    uncovered: string[]
+  ): string[] {
+    return [
+      `Add test files for: ${uncovered
+        .slice(0, MISSING_TEST_EXAMPLES)
+        .map(file => PathOperations.getRelative(projectRoot, file))
+        .join(', ')}${uncovered.length > MISSING_TEST_EXAMPLES ? '...' : ''}`,
+      'A test covers a file when it is named after it (foo.ts ↔ foo.spec.ts / foo.test.ts) or imports it directly — a relative path or a tsconfig/jsconfig `paths`/`baseUrl` alias; an alias declared only in a Jest `moduleNameMapper` or a bundler config is not followed',
+    ];
   }
 
   /**

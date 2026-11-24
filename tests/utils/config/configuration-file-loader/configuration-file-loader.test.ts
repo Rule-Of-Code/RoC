@@ -158,15 +158,14 @@ describe('ConfigurationFileLoader.loadFromEnvironment', () => {
 
   it('turns prefixed variables into nested keys with typed values', () => {
     process.env.ROC_REPORTING_VERBOSE = 'true';
-    process.env.ROC_HOOKS_PREPUSH = 'false';
-    process.env.RULEOFCODE_PERFORMANCE_MAXCONCURRENT = '4';
+    process.env.ROC_PERFORMANCE_CACHE = 'false';
+    process.env.RULEOFCODE_REPORTING_SCORING = '1';
     process.env.ROC_PROJECT_NAME = 'demo';
     process.env.ROC_EMPTY = '';
 
     expect(Loader.loadFromEnvironment()).toEqual({
-      reporting: { verbose: true },
-      hooks: { prepush: false },
-      performance: { maxconcurrent: 4 },
+      reporting: { verbose: true, scoring: 1 },
+      performance: { cache: false },
       project: { name: 'demo' },
     });
   });

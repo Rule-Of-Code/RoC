@@ -6,7 +6,10 @@
  * (no mocks of the analyzer under test). Each false finding has a control
  * next to it: the real defect is still reported.
  */
+import path from 'path';
 import { AngularSignalImportsAnalyzer } from '../../src/utils/angular/angular-signal-imports/angular-signal-imports-analyzer';
+import { NgRxEffectPatternsValidation } from '../../src/utils/angular/ngrx-effect-patterns/ngrx-effect-patterns-validation';
+import { NgRxErrorHandlingValidationPatterns } from '../../src/utils/angular/ngrx-error-handling/ngrx-error-handling-validation-patterns';
 import { FileUtils } from '../../src/utils/file-utils';
 import { manifest, project } from '../checkers/toolkit-fixture';
 
@@ -96,4 +99,73 @@ describe('#612 point 3: any Angular from 16 on supports signals', () => {
       ]);
     }
   );
+});
+
+describe('#612 point 4: @Injectable({ providedIn: "root" }) is an @Injectable', () => {
+  const effects = (content: string) =>
+    NgRxEffectPatternsValidation.validateAllEffectPatterns(
+      project({ 'src/state/user.effects.ts': content }),
+      config
+    );
+
+  it('an @Injectable with options is not reported missing', () => {
+    const result = effects(`
+      @Injectable({ providedIn: 'root' })
+      export class UserEffects {
+        load$ = createEffect(() => this.actions$.pipe(catchError(() => EMPTY)));
+      }
+    `);
+    expect(result.violations).toEqual([]);
+  });
+
+  it('control: an effects class with no @Injectable is still reported', () => {
+    const result = effects(`
+      export class UserEffects {
+        load$ = createEffect(() => this.actions$.pipe(catchError(() => EMPTY)));
+      }
+    `);
+    expect(result.violations).toEqual([
+      'Missing @Injectable decorator in user.effects',
+    ]);
+  });
+});
+
+describe('#612 point 5: an empty or unreadable effects file is not judged', () => {
+  it('a file that cannot be read is skipped', () => {
+    const root = project({ 'package.json': '{}' });
+    const violations: string[] = [];
+    const suggestions: string[] = [];
+    NgRxErrorHandlingValidationPatterns.analyzeErrorHandlingFile(
+      path.join(root, 'src/state/missing.effects.ts'),
+      violations,
+      suggestions
+    );
+    expect({ violations, suggestions }).toEqual({
+      violations: [],
+      suggestions: [],
+    });
+  });
+
+  it('an empty effects file is skipped', () => {
+    const result =
+      NgRxErrorHandlingValidationPatterns.validateAllErrorHandlingPatterns(
+        project({ 'src/state/empty.effects.ts': '' }),
+        config
+      );
+    expect(result.violations).toEqual([]);
+  });
+
+  it('control: an effect with no catchError is still reported', () => {
+    const result =
+      NgRxErrorHandlingValidationPatterns.validateAllErrorHandlingPatterns(
+        project({
+          'src/state/user.effects.ts':
+            'load$ = createEffect(() => this.actions$.pipe(map(() => done())));\n',
+        }),
+        config
+      );
+    expect(result.violations).toEqual([
+      'Missing error handling (catchError) in user.effects',
+    ]);
+  });
 });

@@ -68,7 +68,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Selected only for an Nx workspace (nx.json, or the nx / @nx/workspace / @nrwl/workspace package). An Angular CLI workspace without Nx is not selected (adopting Nx is a choice, not a defect), and neither is a TypeScript, React or Node project without Nx.',
-      'The docs scan is effectively dead (it looks for .md among ts/js/json results), so only the root README.md is checked for `ng` usage.',
+      'Documentation means the root README.md and Markdown (.md, .mdx) under docs/; other files (CHANGELOG, notes elsewhere, .txt / .rst) are not read for `ng` usage.',
       'Reads scripts / config / README, not build invocations; Angular/Nx only.',
     ],
     stack: 'typescript',

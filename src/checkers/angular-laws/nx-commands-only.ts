@@ -16,6 +16,9 @@ import {
   ProjectTypeDetector,
 } from './shared-imports';
 export class NxCommandsOnlyLaw extends AngularLawBase {
+  /** Documentation formats read under docs/ (#614). */
+  private static readonly DOC_EXTENSIONS = ['md', 'mdx'];
+
   static check(context: LawCheckContext): LawResult {
     const { projectRoot, config } = context;
     const violations: string[] = [];
@@ -99,7 +102,10 @@ export class NxCommandsOnlyLaw extends AngularLawBase {
     config: RuleOfCodeConfig
   ): string[] {
     const docFiles: string[] = [];
-    const searchDirs = ['docs', 'README.md', '.'];
+    // The documentation is the root README.md and docs/. The project root
+    // itself is not walked: it would read every Markdown file in the
+    // repository (changelogs, notes) and README.md a second time.
+    const searchDirs = ['docs', 'README.md'];
 
     for (const searchDir of searchDirs) {
       const searchPath = PathOperations.join(projectRoot, searchDir);
@@ -128,25 +134,18 @@ export class NxCommandsOnlyLaw extends AngularLawBase {
     }
 
     try {
+      // Listed by the documentation extensions themselves: a ts/js/json
+      // listing filtered for `.md` never held one, so docs/ was never read
+      // (#614).
       const items = CheckerUtils.findFilesByExtension(
         dir,
-        ['ts', 'js', 'json'],
+        this.DOC_EXTENSIONS,
         config
       );
 
-      for (const item of items) {
-        const fullPath = item; // CheckerUtils already returns full paths
-        // Process the file directly since CheckerUtils handles directory traversal
-        if (
-          fullPath.endsWith('.md') ||
-          fullPath.endsWith('.txt') ||
-          fullPath.endsWith('.rst')
-        ) {
-          if (
-            !FileUtils.shouldIgnoreFile(fullPath, config, 'nx-commands-only')
-          ) {
-            results.push(fullPath);
-          }
+      for (const fullPath of items) {
+        if (!FileUtils.shouldIgnoreFile(fullPath, config, 'nx-commands-only')) {
+          results.push(fullPath);
         }
       }
     } catch (_error) {

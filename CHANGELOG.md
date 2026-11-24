@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ Added — Version-control laws name what they counted (#43, version control)
+
+Three version-control laws said how many and never which: "1 of the last 3
+authored commits exceed the size limit", "Found unresolved conflict markers
+in 2 files", "Invalid tag formats found: <the first three>". Each law
+already held the list it counted. It now puts that list in
+`violationDetails`, which the console prints under the violation and
+`--export json` carries in full.
+
+- **Commit Size Control**: each oversized commit, by its hash, with the
+  files and lines it measured (generated files not counted, as before).
+- **Merge Conflict Prevention**: each file with a conflict marker, and each
+  file git holds unmerged, with its status (`UU`, `AA`, `DD`).
+- **Release Tag Standards**: every invalid tag, where the line quotes three,
+  and, for mixed prefixing, the tags of the smaller style, named against the
+  size of the other (both styles when they are equal).
+
+The violation lines, verdicts and scores are unchanged. Nothing new is
+searched for. This is the first of the per-category changes for #43.
+
 ### 🐛 Fixed — TODO Management measures the excess TODOs against the configured limit (#601)
 
 The excess-TODO deduction was measured against a fixed allowance of 30,

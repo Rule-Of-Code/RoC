@@ -8,6 +8,7 @@ import type {
   LawCheckContext,
   LawResult,
   RuleOfCodeConfig,
+  ViolationDetail,
 } from '../../types/law.types';
 import { FileUtils } from '../../utils';
 import { CheckerUtils } from '../../utils/checker-utils';
@@ -16,6 +17,9 @@ import { PathOperations } from '../../utils/path-operations';
 import { CommitHistoryStats } from './commit-history-stats';
 import { describeCommitScope } from './commit-scope';
 import { GitLawBase } from './git-law-base';
+
+/** Enough of a commit hash to name it unambiguously in `git show`. */
+const SHORT_HASH_LENGTH = 12;
 
 export class CommitSizeControlLaw extends GitLawBase {
   static check(context: LawCheckContext): LawResult {
@@ -53,13 +57,19 @@ export class CommitSizeControlLaw extends GitLawBase {
     violations.push(...diffAnalysis.violations);
     suggestions.push(...diffAnalysis.suggestions);
 
-    return this.createResult(
+    const result = this.createResult(
       violations,
       'Commit Size Control',
       'Version Control',
       suggestions,
       context
     );
+    // Which commits the count is made of (#43): the line says how many, the
+    // details say which, so the reader can open them with `git show`.
+    if (commitSizeAnalysis.details.length > 0) {
+      result.violationDetails = commitSizeAnalysis.details;
+    }
+    return result;
   }
 
   /**
@@ -78,9 +88,14 @@ export class CommitSizeControlLaw extends GitLawBase {
   private static checkRecentCommitSizes(
     projectRoot: string,
     config: RuleOfCodeConfig
-  ): { violations: string[]; suggestions: string[] } {
+  ): {
+    violations: string[];
+    suggestions: string[];
+    details: ViolationDetail[];
+  } {
     const violations: string[] = [];
     const suggestions: string[] = [];
+    const details: ViolationDetail[] = [];
     const git = config.thresholds?.git;
     const maxFiles = git?.maxFilesPerCommit ?? 10;
     const maxLines = git?.maxLinesPerCommit ?? 500;
@@ -127,13 +142,19 @@ export class CommitSizeControlLaw extends GitLawBase {
         CommitHistoryStats.patchIds(projectRoot, range)
       );
 
-      const oversized = commits.filter(
+      const oversizedCommits = commits.filter(
         commit => commit.files > maxFiles || commit.lines > maxLines
-      ).length;
+      );
+      const oversized = oversizedCommits.length;
 
       if (oversized > 0) {
         violations.push(
           `${oversized} of the last ${commits.length} authored commits exceed the size limit (>${maxFiles} files or >${maxLines} lines changed)`
+        );
+        details.push(
+          ...oversizedCommits.map(commit => ({
+            message: `commit ${commit.hash.slice(0, SHORT_HASH_LENGTH)}: ${commit.files} files, ${commit.lines} lines changed (generated files not counted)`,
+          }))
         );
         // The scope leads: a commit reported here that the reader did not
         // write means a stale baseline, not history they have to rewrite.
@@ -161,7 +182,7 @@ export class CommitSizeControlLaw extends GitLawBase {
       );
     }
 
-    return { violations, suggestions };
+    return { violations, suggestions, details };
   }
 
   private static checkAtomicCommitPolicies(

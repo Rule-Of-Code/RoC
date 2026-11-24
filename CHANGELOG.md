@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ Added — Documentation laws name what they counted (#43, documentation)
+
+Four documentation laws said how many and never which: "1/2 markdown files
+missing constitutional footers", "3 TODOs with improper formatting",
+"Hardcoded text found in JSX: 4 text(s), e.g. <three of them>". Each law
+already held the files and TODOs it counted. It now puts them in
+`violationDetails`, which the console prints under the violation and
+`--export json` carries in full.
+
+- **MD Footer Template (MANDATORY)**: each file without a footer, and each
+  file whose footer format, rating or date is off, one detail per reason.
+  The "missing footer elements" line names elements, not files, and has none.
+- **TODO Management Constitutional Requirements**: each TODO a line counted,
+  at its file and line, with every reason it was counted for (format, vague,
+  reads as work for an issue, old sprint). Over the limit, every TODO is
+  named.
+- **TODO Management Standards**: each TODO behind the formatting and the
+  missing-reference lines, at its file and line, with its reasons. The
+  advisory counts stay suggestions and get no details.
+- **Internationalization (i18n) Compliance Policy**: every hardcoded JSX
+  text at its file and line, where the line quotes three; for templates,
+  the one file where the check stops (it stops at the first).
+
+File paths are relative to the audited project. The violation lines,
+verdicts and scores are unchanged, and nothing new is searched for.
+
 ### 🐛 Fixed — TODO Management measures the excess TODOs against the configured limit (#601)
 
 The excess-TODO deduction was measured against a fixed allowance of 30,

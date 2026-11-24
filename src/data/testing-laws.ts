@@ -221,6 +221,7 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
       'Mocking is judged only where a test reaches a network or a shared service (the boundary unit-test-quality-standards reads; the filesystem and a child process are not on it), and one test double anywhere in the suite satisfies it.',
       'Hardcoded-data detection is a crude 20-char-string-literal heuristic; factory detection keys off filenames (factory/builder/fixture/mock/test-data).',
       'JS/TS .spec/.test files only — no Python. realDataMode suppresses the hardcoded-data finding.',
+      'A module-level `let` / `var` (top level, with an initialiser; every declarator of the statement) is shared state unless a `beforeEach` / `afterEach` of the same file assigns it; a reset in `beforeAll` does not count. Bindings and hooks are read from the syntax tree: an assignment counts only where it is code, and a same-named binding declared inside the hook shadows the module binding instead of resetting it.',
       'Test files are the .spec/.test (.ts, .tsx, .js, .jsx) and .e2e-spec files under src/, apps/, libs/, test/, tests/ and e2e/, found with the project’s ignores and includes matched from the project root — the same discovery as test-isolation-enforcement. A test file outside those six roots (a packages/ workspace, a Jest __tests__ file without the suffix) is not read.',
     ],
     emoji: '📊',
@@ -256,6 +257,7 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Shared mutable state is a module-scope let, or a module-scope const that is later written to (push, property or index assignment); the analysis is regex over code with comments stripped, not a data-flow trace.',
+      'A module-level `let` / `var` (top level, with an initialiser; every declarator of the statement) is shared state unless a `beforeEach` / `afterEach` of the same file assigns it; a reset in `beforeAll` does not count. Bindings and hooks are read from the syntax tree: an assignment counts only where it is code, and a same-named binding declared inside the hook shadows the module binding instead of resetting it.',
       'External resources are read from code, not comments, and each offending file is named. Browser storage in a Playwright spec whose tests destructure a fixture is not counted — every test gets its own BrowserContext — unless a beforeAll could share a page; databases, sockets and network calls still count.',
       'Test files are the .spec/.test (.ts, .tsx, .js, .jsx) and .e2e-spec files under src/, apps/, libs/, test/, tests/ and e2e/, found with the project’s ignores and includes matched from the project root — the same discovery as test-data-management, which carries the same resource check. A test file outside those six roots (a packages/ workspace, a Jest __tests__ file without the suffix) is not read.',
       'it.only/fit are flagged as an order dependency (really a focus/CI concern), and a lone describe() satisfies "framework isolation".',

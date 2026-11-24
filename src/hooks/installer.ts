@@ -12,6 +12,12 @@ import { GitHookPatterns } from '../utils/git-hook-patterns';
 import { hookInstallation } from '../utils/git-hook-status';
 import { PathOperations } from '../utils/path-operations';
 import { PythonSatisfaction } from '../utils/python-satisfaction';
+import {
+  customHookScript,
+  lintStagedCall,
+  prePushScript,
+  preCommitScript,
+} from './hook-scripts';
 
 export interface HooksInstallOptions {
   projectRoot: string;
@@ -167,37 +173,18 @@ export class GitHooksInstaller {
   }
 
   /**
-   * The lint-staged call of the pre-commit hook. lint-staged saves a backup
-   * with `git stash` and restores it when a task fails; the stash list
-   * belongs to the repository, not the worktree, so with several worktrees
-   * committing at once one hook can restore another's backup. `--no-stash`
-   * avoids that, and loses the backup a task that rewrites files relies on:
-   * opt-in only (`reinstall-hooks --no-stash`).
-   */
-  private static lintStagedCall(noStash: boolean): string {
-    if (!noStash) return '  npx lint-staged';
-    return [
-      '  # Opt-in (reinstall-hooks --no-stash): no backup stash. The stash list',
-      '  # belongs to the repository, not the worktree, so with several worktrees',
-      "  # committing at once one hook could restore another worktree's backup.",
-      '  # Only safe when no lint-staged task rewrites files.',
-      '  npx lint-staged --no-stash',
-    ].join('\n');
-  }
-
-  /**
    * The two hooks are the same apart from version stamps, line endings and
    * the generated lint-staged call — with or without the #480 opt-in, which
    * is this tool's own text, not a line of the project's.
    */
   private static sameButVersion(a: string, b: string): boolean {
-    const optIn = this.lintStagedCall(true);
+    const optIn = lintStagedCall(true);
     const plain = (text: string): string =>
       text
         .replace(/\r\n/g, '\n')
         .replace(VERSION_STAMP, 'v*')
         .split(optIn)
-        .join(this.lintStagedCall(false));
+        .join(lintStagedCall(false));
     return plain(a) === plain(b);
   }
 
@@ -224,37 +211,11 @@ export class GitHooksInstaller {
       return;
     }
 
-    const hookContent = `# RuleOfCode v${this.VERSION} Constitutional Checkpoint (husky v9+ native hook)
-echo "🏛️ RuleOfCode v${this.VERSION} Constitutional Checkpoint"
-
-# lint-staged only where the project configured it: init installs neither the
-# package nor a config, and husky runs this with sh -e, so an unconditional
-# call failed the very first commit of a fresh project (B2).
-roc_lint_staged=0
-for roc_f in .lintstagedrc .lintstagedrc.* lint-staged.config.*; do
-  if [ -e "$roc_f" ]; then roc_lint_staged=1; fi
-done
-if [ "$roc_lint_staged" = 0 ] && node -e "process.exit(require('./package.json')['lint-staged'] ? 0 : 1)" 2>/dev/null; then
-  roc_lint_staged=1
-fi
-if [ "$roc_lint_staged" = 1 ]; then
-${this.lintStagedCall(mode.lintStagedNoStash)}
-fi
-
-# Run constitutional audit on staged files
-npx ruleofcode audit --mode=pre-commit --staged
-
-# Check exit code
-if [ $? -ne 0 ]; then
-    echo ""
-    echo "❌ Constitutional violations detected - commit blocked"
-    echo "   Run 'npx ruleofcode audit --verbose' for details, fix the cause, and commit again"
-    echo "   (a law that does not apply: laws.notApplicable with a reason — never --no-verify)"
-    exit 1
-fi
-${this.pythonHookBlock(config, this.PRE_COMMIT_HOOK)}
-echo "✅ Constitutional compliance verified - proceeding with commit"
-`;
+    const hookContent = preCommitScript(
+      this.VERSION,
+      config,
+      mode.lintStagedNoStash
+    );
 
     if (!this.writeHook(hookPath, this.PRE_COMMIT_HOOK, hookContent, mode))
       return;
@@ -284,74 +245,11 @@ echo "✅ Constitutional compliance verified - proceeding with commit"
       return;
     }
 
-    const hookContent = `# RuleOfCode v${this.VERSION} Constitutional Compliance Pre-Push Hook (husky v9+ native)
-echo "🏛️ RuleOfCode v${this.VERSION} Constitutional Checkpoint - Pre-Push Mode"
-echo "═════════════════════════════════════════════════════"
-
-# Run full RuleOfCode audit before push
-npx ruleofcode audit --mode=pre-push
-
-# Exit with audit result
-if [ $? -ne 0 ]; then
-    echo ""
-    echo "❌ Constitutional violations detected - push blocked"
-    echo "   Run 'npx ruleofcode audit --verbose' for details"
-    echo "   Fix violations before pushing to maintain code quality"
-    exit 1
-fi
-${this.pythonHookBlock(config, 'pre-push')}
-echo "✅ Full constitutional compliance verified - proceeding with push"
-`;
+    const hookContent = prePushScript(this.VERSION, config);
 
     if (!this.writeHook(hookPath, this.PRE_PUSH_HOOK, hookContent, mode))
       return;
     console.log(chalk.greenBright('✅ pre-push hook installed'));
-  }
-
-  /**
-   * Portable POSIX-sh helper that runs a Python tool via `uv run` when available,
-   * else directly, else skips with a warning (so a missing tool never hard-fails
-   * the hook with a confusing error).
-   */
-  private static readonly PY_RUNNER = `roc_py() {
-  tool="$1"; shift
-  if command -v uv >/dev/null 2>&1 && uv run "$tool" --version >/dev/null 2>&1; then
-    uv run "$tool" "$@"
-  elif command -v "$tool" >/dev/null 2>&1; then
-    "$tool" "$@"
-  else
-    echo "⚠️  $tool not found — skipping"; return 0
-  fi
-}`;
-
-  /**
-   * Python tool steps injected into a hook for `project.type === 'python'`
-   * ('pre-commit' → ruff + mypy; 'pre-push' → pytest + bandit). Empty string for
-   * any other project type, so non-Python projects are unaffected.
-   */
-  private static pythonHookBlock(
-    config: RuleOfCodeConfig,
-    phase: 'pre-commit' | 'pre-push'
-  ): string {
-    if (config.project?.type !== 'python') return '';
-
-    const steps =
-      phase === this.PRE_COMMIT_HOOK
-        ? `echo "🐍 ruff"
-roc_py ruff check . || { echo "❌ ruff check failed"; exit 1; }
-roc_py ruff format --check . || { echo "❌ ruff format check failed"; exit 1; }
-echo "🐍 mypy"
-roc_py mypy . || { echo "❌ mypy failed"; exit 1; }`
-        : `echo "🐍 pytest"
-roc_py pytest -q || { echo "❌ tests failed"; exit 1; }
-echo "🐍 bandit (security)"
-roc_py bandit -q -ll -r . -x ./tests,./.venv,./venv,./build || { echo "❌ bandit found security issues"; exit 1; }`;
-
-    return `
-# RuleOfCode Python (${phase}) — FastAPI + Clean Architecture/CQRS toolchain
-${this.PY_RUNNER}
-${steps}
-`;
   }
 
   /**
@@ -591,13 +489,7 @@ echo "✅ Commit message format validated (RuleOfCode v${this.VERSION})"
       return;
     }
 
-    const hookContent = `# RuleOfCode Custom Hook: ${hookName} (husky v9+ native)
-echo "🔧 Running custom hook: ${hookName}"
-
-${commands.join('\n')}
-
-echo "✅ Custom hook ${hookName} completed"
-`;
+    const hookContent = customHookScript(hookName, commands);
 
     if (!this.writeHook(hookPath, hookName, hookContent, mode)) return;
     console.log(`✅ ${hookName} hook installed`);

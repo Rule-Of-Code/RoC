@@ -196,12 +196,11 @@ describe("#619: RuleOfCode's own variables are not config", () => {
         const full = path.join(dir, entry.name);
         if (entry.isDirectory()) scan(full);
         else if (/\.(?:ts|js|mjs|cjs)$/.test(entry.name)) {
-          const reads = fs
-            .readFileSync(full, 'utf8')
-            .matchAll(
-              /process\.env(?:\.|\[['"])((?:ROC|RULEOFCODE)_[A-Z0-9_]+)/g
-            );
-          for (const match of reads) read.add(match[1] ?? '');
+          const reads = fs.readFileSync(full, 'utf8').matchAll(
+            // A read, not a test that sets or deletes a variable.
+            /(?<!delete\s+)process\.env(?:\.((?:ROC|RULEOFCODE)_[A-Z0-9_]+)\b|\[['"]((?:ROC|RULEOFCODE)_[A-Z0-9_]+)['"]\])(?!\s*=(?!=))/g
+          );
+          for (const match of reads) read.add(match[1] ?? match[2] ?? '');
         }
       }
     };

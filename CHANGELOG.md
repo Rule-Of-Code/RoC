@@ -735,6 +735,19 @@ Role enforcement written inline now counts as a role check:
 A role that appears only as an object key (`{ role: 'user' }`, as in a chat
 message or an ARIA attribute object) is not a role concept.
 
+### Changed — the default config writes no positional `laws.severity` map (#585)
+
+The default config built `laws.severity` as `law-1` … `law-N`, one key per
+registry entry by index, each set to the law's default severity. No law is
+named `law-N`, so the engine and Config Integrity Guard skipped these keys
+and they changed nothing; they still travelled in the `config` section of
+every `--json` result and every export, and shifted with every registry
+change, so a diff of two results' configs showed hundreds of meaningless
+lines. The map is gone: each law's authored `defaultSeverity` is the source
+of truth when no override is written. Every law's severity is unchanged. A
+user's config that still carries `law-N` keys keeps working: they are
+skipped as before.
+
 ### 🧹 Internal — tests and the release canary remove their temp directories
 
 Test runs and `scripts/release-canary.js` left `roc-*` directories in the OS

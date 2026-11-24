@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — E2E Testing Standards judges a Nuxt project (#644)
+
+The law runs for applications, and it knew `vue` but not `nuxt`. A Nuxt
+project that declares `nuxt` alone (no `src/main.ts`, no other listed
+dependency) passed with "E2E Testing Standards satisfied" without being
+judged. `nuxt` now marks an application. Stricter: a Nuxt project without
+an E2E runner, config or spec gains the violation.
+
 ### ✨ Added — Version-control laws name what they counted (#43, version control)
 
 Three version-control laws said how many and never which: "1 of the last 3

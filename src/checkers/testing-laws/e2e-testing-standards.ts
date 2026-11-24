@@ -95,6 +95,8 @@ export class E2ETestingStandardsLaw extends TestingLawBase {
       '@angular/core',
       'react-dom',
       'vue',
+      // A Nuxt app may declare nuxt alone (#644).
+      'nuxt',
       '@nestjs/core',
       'next',
     ].some(d => d in deps);

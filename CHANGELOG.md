@@ -822,6 +822,35 @@ Role enforcement written inline now counts as a role check:
 A role that appears only as an object key (`{ role: 'user' }`, as in a chat
 message or an ARIA attribute object) is not a role concept.
 
+### 🐛 Fixed — security laws on a Next.js app-router project: five false findings (#590)
+
+Once Authentication Security and API Security Standards read a Next.js
+app-router project (#574), five older detectors made findings that do not
+hold for the way such a project is written:
+
+- **Plaintext password.** `/plaintext.*password/i` took a parameter name
+  (`plainTextPassword` handed to a bcrypt compare) for a plaintext password.
+  Plaintext handling is now a stored password compared directly (one side
+  is a password field of a record: `user.password === password`) or hashed
+  with md5/sha1/btoa; a name is not evidence. Two inputs compared to each
+  other (`confirmPassword !== newPassword`, or `data.password !==
+  data.confirmPassword` on one form object) are validation, not storage.
+- **Token management.** A JWT library (`jose`'s `SignJWT` / `jwtVerify` /
+  `jwtDecrypt`, `jsonwebtoken`, …) counts as token management.
+- **Route guard.** A `middleware.ts` / `middleware.js` at the root or in
+  `src/` that redirects or refuses a request on the strength of a cookie or a
+  token counts as a guard. A middleware that redirects on something else
+  (the locale) does not.
+- **Token refresh.** Re-issuing the session cookie with a new `expires` /
+  `maxAge` (`cookies().set(…, { expires })`, `res.cookies.set({ … expires })`,
+  a `Set-Cookie` header) is the refresh of a cookie session.
+- **Authorization header.** API Security asks for an `Authorization` header
+  only where the project does not authenticate with a cookie session (a
+  session library, or cookies read or re-issued).
+
+A password compared directly, a bearer API without the header and a bearer
+API without a refresh are still reported.
+
 ### Changed — the default config writes no positional `laws.severity` map (#585)
 
 The default config built `laws.severity` as `law-1` … `law-N`, one key per

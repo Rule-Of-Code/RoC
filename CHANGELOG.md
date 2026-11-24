@@ -24,7 +24,10 @@ Constitutional Standard uses (#599), with the same rules:
   measured on lines, the metric the reader takes from it.
 - A usable coverage-summary.json is measured as before, on the `total` of
   every metric, as Jest's `coverageThreshold.global` judges it. No report at
-  all is unchanged too: the law passes and suggests running with coverage.
+  all is unchanged too: the configured thresholds alone decide.
+- The card's detection limits say these rules. They no longer say that a
+  threshold below 100 satisfies the law (every threshold is checked) or name
+  a "source files lack unit tests" check, which the law does not have.
 
 ### ✨ Changed — Test Coverage Constitutional Standard judges by real line coverage (#599)
 

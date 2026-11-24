@@ -5,6 +5,7 @@
  */
 import type { RuleOfCodeConfig } from '../config/types';
 import { GitHookPatterns } from '../utils/git-hook-patterns';
+import { shellComment, shellPrint, shellQuote } from './shell-quote';
 
 /**
  * The lint-staged call of the pre-commit hook. lint-staged saves a backup
@@ -146,6 +147,9 @@ echo "✅ Custom hook ${hookName} completed"
 `;
 }
 
+/** The subject limit when the config sets none. */
+const DEFAULT_SUBJECT_LENGTH = 72;
+
 /** The commit message settings a commit-msg hook is generated from. */
 interface CommitMsgSettings {
   conventionalCommits?: boolean;
@@ -196,7 +200,7 @@ function commitMsgPatterns(commitConfig: CommitMsgSettings): string[] {
     commitConfig.emojiTypes.length > 0
   ) {
     const emojis = commitConfig.emojiTypes
-      .map((e: string) => e.replace(/[.*+?^${}()|[\]\\]/g, '\\\\$&'))
+      .map((e: string) => e.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
       .join('|');
     patterns.push(`^(${emojis})\\s+.+$`);
   }
@@ -221,6 +225,42 @@ function commitMsgPatterns(commitConfig: CommitMsgSettings): string[] {
   return patterns;
 }
 
+/** The subject limit the config sets; a value that is not a number is the default. */
+function subjectLimitOf(config: RuleOfCodeConfig): number {
+  const configured =
+    config.thresholds?.git?.maxCommitMessageLength ?? DEFAULT_SUBJECT_LENGTH;
+  const written = String(configured).trim();
+  const limit = written === '' ? NaN : Number(written);
+  return Number.isFinite(limit) ? Math.trunc(limit) : DEFAULT_SUBJECT_LENGTH;
+}
+
+/** The check of one pattern. `-e` only where grep would read it as an option. */
+function patternCheck(pattern: string, index: number): string {
+  const option = pattern.startsWith('-') ? '-e ' : '';
+  const shown = pattern.substring(0, GitHookPatterns.PATTERN_COMMENT_LENGTH);
+  return `
+# Pattern ${index + 1}: ${shellComment(shown)}...
+if echo "$COMMIT_MSG" | grep -qE ${option}${shellQuote(pattern)}; then
+    VALID=true
+fi`;
+}
+
+/** The lines that name the commit types and emojis of the config. */
+function allowedValuesLines(commitConfig: CommitMsgSettings): string {
+  const types =
+    commitConfig.conventionalTypes?.join(', ') ||
+    'feat, fix, docs, style, refactor, test, chore, perf, ci, build, revert';
+  const typesLine = shellPrint(`Types: ${types}`);
+  if (!commitConfig.allowEmoji || !commitConfig.emojiTypes) return typesLine;
+  const emojis = `Emojis: ${commitConfig.emojiTypes.slice(0, 10).join(' ')}...`;
+  const printed = shellPrint(emojis);
+  // The plain form keeps the line break it has always been written with.
+  const emojiLine = printed.startsWith('echo ')
+    ? `echo "\\n${emojis}"`
+    : printed;
+  return `${typesLine}\n    ${emojiLine}`;
+}
+
 /** The commit-msg hook: subject patterns, subject length and body wrapping. */
 export function commitMsgScript(
   version: string,
@@ -233,15 +273,7 @@ export function commitMsgScript(
   // The SAME limit Commit Message Standards audits history against, read from
   // the same config key — so the hook and the law agree by construction
   // rather than by both happening to be configured correctly.
-  const maxSubjectLength = config.thresholds?.git?.maxCommitMessageLength ?? 72;
-
-  const typesDisplay =
-    commitConfig.conventionalTypes?.join(', ') ||
-    'feat, fix, docs, style, refactor, test, chore, perf, ci, build, revert';
-  const emojiDisplay =
-    commitConfig.allowEmoji && commitConfig.emojiTypes
-      ? `\\nEmojis: ${commitConfig.emojiTypes.slice(0, 10).join(' ')}...`
-      : '';
+  const maxSubjectLength = subjectLimitOf(config);
 
   return `# RuleOfCode v${version} Commit Message Validation
 # Config-driven validation with ${patterns.length} pattern(s)
@@ -264,15 +296,7 @@ case "$FIRST_LINE" in
 esac
 
 # Check against all configured patterns
-${patterns
-  .map(
-    (pattern, idx) => `
-# Pattern ${idx + 1}: ${pattern.substring(0, GitHookPatterns.PATTERN_COMMENT_LENGTH)}...
-if echo "$COMMIT_MSG" | grep -qE '${pattern.replace(/'/g, "'\\\\''")}'; then
-    VALID=true
-fi`
-  )
-  .join('')}
+${patterns.map(patternCheck).join('')}
 
 if [ "$VALID" = false ]; then
     echo "❌ Invalid commit message format!"
@@ -280,12 +304,7 @@ if [ "$VALID" = false ]; then
     echo "🏛️ RuleOfCode v${version} Constitutional Commit Message Format:"
     echo "   Your message must match one of the configured patterns"
     echo ""
-    echo "Types: ${typesDisplay}"${
-      emojiDisplay
-        ? `
-    echo "${emojiDisplay}"`
-        : ''
-    }
+    ${allowedValuesLines(commitConfig)}
     echo ""
     echo "Examples:"
     echo "   feat(auth): add user authentication"

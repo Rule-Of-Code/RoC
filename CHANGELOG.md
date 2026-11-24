@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Config values written into a git hook are quoted (#624)
+
+A commit pattern, a commit type or an emoji from the config is written into the
+generated `commit-msg` hook. A value with an apostrophe, a quote, a dollar sign,
+a backtick, a backslash or a line break was not quoted for `sh`, so the hook
+could stop with a syntax error on every commit or print something other than the
+value; and an emoji with a regex character, such as `:+1:`, refused a valid
+message. Every such value is now quoted in one place, and the emoji is escaped
+once. A pattern that starts with `-` is read as a pattern, and a
+`maxCommitMessageLength` that is not a number is the default 72. A hook
+generated from values without such characters is unchanged, byte for byte;
+`hooks.custom` holds commands and is written as it is.
+
+The fix reaches a project when its hooks are generated again:
+`npx ruleofcode reinstall-hooks`.
+
 ### 📝 Changed — law texts the code had moved past (#625)
 
 Texts only; no verdict, score or severity changes.

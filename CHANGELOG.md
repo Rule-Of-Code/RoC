@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Test Documentation Requirements judges nothing without a test file (#646)
+
+A project with no JS/TS test file under `src`, `apps`, `libs`, `test`,
+`tests` or `e2e` was reported as "Excellent test documentation practices"
+when a README mentioned tests: there was nothing left to judge but that
+README. The law now says it judged nothing (`judgedNothing`, the note the
+other test laws give) and does not pass. A project with test files is
+judged as before. Stricter: such a project changes from passed to judged
+nothing; the law's default severity is `info`.
+
 ### ✨ Changed — Test Coverage Constitutional Standard judges by real line coverage (#599)
 
 With a coverage report — `coverage/coverage-summary.json` (Jest

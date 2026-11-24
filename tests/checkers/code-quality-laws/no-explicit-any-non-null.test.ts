@@ -49,10 +49,10 @@ const joined = (r: { violations?: string[] }): string =>
   (r.violations ?? []).join(' || ');
 
 describe('NoExplicitAnyNonNullLaw', () => {
-  it('flags explicit any forms (annotation, as any, any[])', () => {
+  // `: any`, `as any` and `any[]` are owned by Absolute Zero Tolerance (#482)
+  it('flags the any forms it owns (<any>, Array<any>)', () => {
     const dir = fixture({
-      'a.ts':
-        'const x = res as any;\nlet y: any = 1;\nconst arr: any[] = [];\n',
+      'a.ts': 'const x = <any>res;\nconst arr: Array<any> = [];\n',
     });
     const result = NoExplicitAnyNonNullLaw.check(ctx(dir));
     expect(result.passed).toBe(false);

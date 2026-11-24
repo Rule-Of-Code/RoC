@@ -186,7 +186,11 @@ const STACKS = {
       'tsconfig.json': '{}',
       'src/ok.ts': 'export const ok = 1;\n',
     },
-    redFile: { 'src/bad.ts': 'export const risky: any = JSON.parse("{}");\n' },
+    // An `any` type argument: what No Explicit Any owns. `: any` and `as any`
+    // are counted by Absolute Zero Tolerance Doctrine, which owns them (#482).
+    redFile: {
+      'src/bad.ts': 'export const risky = JSON.parse("{}") as Array<any>;\n',
+    },
     redLaw: 'No Explicit Any / Non-Null Assertion',
     redThresholds: undefined,
     projectType: 'node',

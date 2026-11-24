@@ -11,7 +11,7 @@ import type {
 import { FileUtils } from '../../utils';
 import { CheckerUtils } from '../../utils/checker-utils';
 import { ProjectTypeDetectorValidation } from '../../utils/config/project-type-detector/project-type-detector-validation';
-import { markJudgedNothing } from '../../utils/judged-nothing';
+import { markJudgedNothing, withNotRead } from '../../utils/judged-nothing';
 import { PathOperations } from '../../utils/path-operations';
 import {
   loadTypeScript,
@@ -61,35 +61,42 @@ export class CodeComplexityControlLaw extends CodeQualityLawBase {
     );
     suggestions.push(...architecturalComplexity.suggestions);
 
-    return {
-      passed: violations.length === 0,
-      message:
-        violations.length === 0
-          ? 'Code complexity under control'
-          : `${violations.length} complexity violations found`,
-      violations,
-      suggestions: violations.length > 0 ? suggestions : [],
-      score:
-        violations.length === 0
-          ? 100
-          : Math.max(0, 100 - violations.length * 10),
-      fixable: violations.length > 0,
-      config: context.config,
-    };
+    // An ESLint config found and not read goes to notRead (#453, #508): it is
+    // not a finding about the code, and it keeps the law from passing.
+    return withNotRead(
+      {
+        passed: violations.length === 0,
+        message:
+          violations.length === 0
+            ? 'Code complexity under control'
+            : `${violations.length} complexity violations found`,
+        violations,
+        suggestions: violations.length > 0 ? suggestions : [],
+        score:
+          violations.length === 0
+            ? 100
+            : Math.max(0, 100 - violations.length * 10),
+        fixable: violations.length > 0,
+        config: context.config,
+      },
+      complexityTools.notRead
+    );
   }
 
   private static checkComplexityTools(projectRoot: string): {
     violations: string[];
     suggestions: string[];
+    notRead: string[];
   } {
     const violations: string[] = [];
     const suggestions: string[] = [];
+    const notRead: string[] = [];
 
     try {
       const packageJson =
         ProjectTypeDetectorValidation.getPackageJson(projectRoot);
       if (!packageJson || typeof packageJson !== 'object') {
-        return { violations, suggestions };
+        return { violations, suggestions, notRead };
       }
 
       const pkg = packageJson as Record<string, unknown>;
@@ -102,7 +109,7 @@ export class CodeComplexityControlLaw extends CodeQualityLawBase {
       if (devDependencies.eslint) {
         const eslint = this.readESLintConfig(projectRoot);
         if (eslint?.notRead !== undefined) {
-          violations.push(eslint.notRead);
+          notRead.push(eslint.notRead);
         } else if (eslint && !this.hasComplexityRules(eslint.config)) {
           violations.push('ESLint complexity rules not configured');
           suggestions.push(
@@ -128,7 +135,7 @@ export class CodeComplexityControlLaw extends CodeQualityLawBase {
       // Continue if dependencies can't be read
     }
 
-    return { violations, suggestions };
+    return { violations, suggestions, notRead };
   }
 
   private static analyzeCodeComplexity(

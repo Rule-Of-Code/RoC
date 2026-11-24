@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ Changed — Test Coverage Constitutional Standard judges by real line coverage (#599)
+
+With a coverage report — `coverage/coverage-summary.json` (Jest
+`json-summary`), else `coverage/lcov.info`, or the file
+`thresholds.testing.coverageReportPath` names — each source file is judged
+by its line coverage: below `thresholds.testing.minFileLineCoveragePercent`
+(0–100, default 80) is a finding with the percentage, and the passing
+message names the report. A source file the report does not name is judged
+by the presence of a test, as before; the test-file ratio is not judged.
+A file with no runtime code — only interfaces, type aliases, type-only
+imports and exports, `declare` — is not judged by the report: coverage tools
+still list it with one line at 0%, and there is nothing a test can run.
+
+A report that cannot be used is never read in silence: older than the code
+(a judged source file was modified after it — neither format records a
+commit, so this is the modification time), naming none of the source files,
+not valid json-summary/lcov, or a configured path that cannot be read. The
+reason goes to `notRead`, the files are judged by presence, and the law does
+not pass. Without a report the result is unchanged.
+
+### 🐛 Fixed — TODO Management measures the excess TODOs against the configured limit (#601)
+
+The excess-TODO deduction was measured against a fixed allowance of 30,
+while the check that triggers it used `thresholds.documentation.maxTodoCount`.
+With a limit below 30 and a count between the limit and 30 the deduction was
+negative: "20 TODOs found (limit: 10)" came with a score of 103. Above 30
+TODOs the deduction was the same for every limit. It is now the excess over
+the configured limit, relative to it, up to the same 40-point maximum; a
+limit of 0 or below costs the maximum for any TODO over it, and the score
+is capped at 100. With the default limit the deduction is unchanged.
+
 ### Internal — Jest keeps its cache in this checkout (#592)
 
 Jest kept its transform cache in the OS temp directory (`<tmp>/jest`), which
@@ -513,6 +544,80 @@ programmatic option `suggestExceptions` is gone from `AuditOptions` and
 `RuleOfCodeAuditor.create`; the constructor keeps its positional slot, unused,
 so positional callers keep their mode and options (#527).
 
+### 🐛 Fixed — NX Commands Only Policy is selected only for an Nx workspace
+
+The law was selected for an Nx workspace or any Angular project, and then
+required `nx.json`: an Angular CLI workspace that never chose Nx failed it at
+error severity. Adopting a monorepo tool is a choice, not a defect, so the law
+is now selected only for an Nx workspace (`nx.json`, or the `nx` /
+`@nx/workspace` / `@nrwl/workspace` package; `REQUIRES_NX_WORKSPACE`). An
+Angular project in an Nx workspace is still judged. The canary angular, ngrx
+and ionic profiles no longer select it (#475).
+
+### 🐛 Fixed — one `any` is one finding: Absolute Zero Tolerance Doctrine owns it
+
+An `x as any` (or a `: any` / `any[]` declaration) was a finding of two laws:
+Absolute Zero Tolerance Doctrine (error) and No Explicit Any / Non-Null
+Assertion (warning). One defect read as two. Absolute Zero Tolerance
+Doctrine, the error-severity gate that already judges these from the code
+(#459), owns them; No Explicit Any no longer counts them again and keeps what
+the other law does not judge: `<any>` assertions and type arguments, the weak
+`Function` / `Object` types and non-null `!`. Both law cards say so. No
+finding is unblocked: the owner of the overlap is the law that blocks (#482).
+
+### 🐛 Fixed — Code Documentation Standards reads JavaScript exports
+
+The law judged exported classes and functions in `.ts` / `.tsx` only: the
+exports of a `.js`, `.jsx`, `.mjs` or `.cjs` file were never looked at, with
+no note, so a JavaScript project got a clean result from a law that did not
+read its code. JavaScript is now read through the same parser with the same
+rule; CommonJS `module.exports` is not an ES export and stays out, as the card
+says (#493).
+
+### 🐛 Fixed — MD Footer Template's "nothing was judged" names the fix
+
+When the configured includes select no Markdown file, the opt-in law reported
+the cause and not the fix. The message now ends with
+`Give this law the Markdown files with includes.byRule: { "md-footer-template-mandatory": ["**/*.md"] }`,
+the key derived from the law's title the way the registry derives every
+config key, so it stays right if the title changes (#501).
+
+### 🐛 Fixed — Zero Tolerance Doctrine: strict turns noImplicitAny on
+
+A tsconfig that sets `"strict": true` and does not repeat `noImplicitAny` got
+`TypeScript noImplicitAny not enabled`. TypeScript's `strict` turns
+`noImplicitAny` on, so the finding was false. The flag now counts as enabled
+when it is `true`, or when it is unset and `strict` is `true` (in the file or
+a base it extends); only an explicit `"noImplicitAny": false` is reported.
+That holds only when every file of the `extends` chain was read: a base that
+could not be read may set `"noImplicitAny": false`, which `strict: true` in
+the file does not undo. There the law says `… which could not be read —
+noImplicitAny was NOT read` in `notRead` (#453): not a finding, not passed,
+and no claim that the flag is on or off (#506).
+
+### 🐛 Fixed — Professional Excellence Mandate reads every ESLint config ESLint reads
+
+The ESLint concern accepted a fixed list of files, so a project with its
+config in package.json `eslintConfig`, an extensionless `.eslintrc`, or
+`eslint.config.mts` / `.cts` got `Missing eslint.config.mjs`. It now reads the
+same list as Zero Tolerance Doctrine (`ESLINT_CONFIG_FILES`, one list for both
+laws) and accepts `eslintConfig` (an object) in the root package.json (#507).
+
+### 🐛 Fixed — an ESLint config the code-quality laws do not read is said to be NOT read
+
+Dead Code Elimination, Code Complexity Control and Magic Number Prevention
+read an ESLint config by running `eslint.config.js` / `.mjs` or reading
+`.eslintrc.json`, `.eslintrc` and package.json `eslintConfig`. For an
+`eslint.config.cjs` / `.ts` / `.mts` / `.cts`, `.eslintrc.js` or
+`.eslintrc.cjs` the shared reader answered "no config": Dead Code Elimination
+then reported `ESLint dead code detection rules not configured` about a config
+it never read, and the other two said nothing. The reader now returns the file
+with a note in the shared wording (`.eslintrc.js is a config these laws do not
+run — its rules were NOT read`), and all three laws report it the same way:
+in `notRead` (#453), not among the findings. A law with no finding read its
+input in part (`◐ Partly read` at warning or info severity), not a law with
+one finding (#508).
+
 ### Internal — unused npm audit simulator removed
 
 `NpmAuditSimulator` (`src/utils/security/npm-audit-simulator.ts`) and the
@@ -606,8 +711,10 @@ Strict Mode (an `extends` link it cannot read), Independent Awaits Run
 Concurrently, Async Cache Single-Flight and Database Read Cache Safety (files
 the request-path reader could not parse), HTML Lang Declared (sources and a
 `next.config` it could not read), Accessibility Linting Enforcement (an ESLint
-config script) and Capacitor Plugin Stub Has Contract Test (test configs and
-mappers it could not read) fill it. A law that read none of its files is still
+config script), Capacitor Plugin Stub Has Contract Test (test configs and
+mappers it could not read) and Dead Code Elimination, Code Complexity Control
+and Magic Number Prevention (an ESLint config they do not run or could not
+read, #508) fill it. A law that read none of its files is still
 judged nothing, whether its note is a violation or in `notRead` (#453).
 
 ### 🐛 Fixed — a native Android, iOS or Flutter app is a production subject (#577)
@@ -735,6 +842,48 @@ Role enforcement written inline now counts as a role check:
 A role that appears only as an object key (`{ role: 'user' }`, as in a chat
 message or an ARIA attribute object) is not a role concept.
 
+### 🐛 Fixed — security laws on a Next.js app-router project: five false findings (#590)
+
+Once Authentication Security and API Security Standards read a Next.js
+app-router project (#574), five older detectors made findings that do not
+hold for the way such a project is written:
+
+- **Plaintext password.** `/plaintext.*password/i` took a parameter name
+  (`plainTextPassword` handed to a bcrypt compare) for a plaintext password.
+  Plaintext handling is now a stored password compared directly (one side
+  is a password field of a record: `user.password === password`) or hashed
+  with md5/sha1/btoa; a name is not evidence. Two inputs compared to each
+  other (`confirmPassword !== newPassword`, or `data.password !==
+  data.confirmPassword` on one form object) are validation, not storage.
+- **Token management.** A JWT library (`jose`'s `SignJWT` / `jwtVerify` /
+  `jwtDecrypt`, `jsonwebtoken`, …) counts as token management.
+- **Route guard.** A `middleware.ts` / `middleware.js` at the root or in
+  `src/` that redirects or refuses a request on the strength of a cookie or a
+  token counts as a guard. A middleware that redirects on something else
+  (the locale) does not.
+- **Token refresh.** Re-issuing the session cookie with a new `expires` /
+  `maxAge` (`cookies().set(…, { expires })`, `res.cookies.set({ … expires })`,
+  a `Set-Cookie` header) is the refresh of a cookie session.
+- **Authorization header.** API Security asks for an `Authorization` header
+  only where the project does not authenticate with a cookie session (a
+  session library, or cookies read or re-issued).
+
+A password compared directly, a bearer API without the header and a bearer
+API without a refresh are still reported.
+
+### Changed — the default config writes no positional `laws.severity` map (#585)
+
+The default config built `laws.severity` as `law-1` … `law-N`, one key per
+registry entry by index, each set to the law's default severity. No law is
+named `law-N`, so the engine and Config Integrity Guard skipped these keys
+and they changed nothing; they still travelled in the `config` section of
+every `--json` result and every export, and shifted with every registry
+change, so a diff of two results' configs showed hundreds of meaningless
+lines. The map is gone: each law's authored `defaultSeverity` is the source
+of truth when no override is written. Every law's severity is unchanged. A
+user's config that still carries `law-N` keys keeps working: they are
+skipped as before.
+
 ### 🧹 Internal — tests and the release canary remove their temp directories
 
 Test runs and `scripts/release-canary.js` left `roc-*` directories in the OS
@@ -791,6 +940,31 @@ XSS Prevention Policy, Security Standards (XSS Prevention) Policy,
 Internationalization (i18n) Compliance Policy) is proved by a regression
 test on a React + Vite project: each law reports the project, and doing what
 `satisfiedBy.react` says clears it.
+
+### ⚠️ BREAKING — `laws --json`: `stackToKey` maps a stack to a set of keys (schemaVersion 3, #12)
+
+`satisfiedByStacks.stackToKey` mapped each stack to one `satisfiedBy` key:
+`"frontend": "angular"`. The `frontend` laws carry their guidance under two
+keys by now (`angular` on 58, `react` on 57), so the single key sent a
+consumer that only knew the stack to the Angular text alone. Each value is
+now the set of keys that stack's guidance is written under:
+`"frontend": ["angular", "react"]`, `"typescript": ["typescript"]`,
+`"python": ["python"]`.
+
+**JSON change:** `schemaVersion` is 3; a `stackToKey` value is an array of
+keys, where it was a string. Nothing else in the document changes: each
+law's `satisfiedBy` (keyed by `angular`, `react`, `typescript`, …),
+`satisfiedByStacks.keys` and `projectTypeToKey` are as they were. A
+consumer that accepts only schemaVersion 1–2, or reads a `stackToKey`
+value as a string, has to be updated. A test checks that every key listed
+for a stack is a known key that a law of that stack carries.
+
+```jsonc
+// before (schemaVersion 2)
+"satisfiedByStacks": { "stackToKey": { "frontend": "angular", "typescript": "typescript", "python": "python" } }
+// after (schemaVersion 3)
+"satisfiedByStacks": { "stackToKey": { "frontend": ["angular", "react"], "typescript": ["typescript"], "python": ["python"] } }
+```
 
 ## [8.0.1] - 2026-11-22
 

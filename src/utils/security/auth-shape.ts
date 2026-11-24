@@ -81,6 +81,16 @@ export interface AuthShape {
   roleConcept: boolean;
   /** Enforces a role or permission (a check call or decorator). */
   roleCheck: boolean;
+  /** Handles JWTs through a library (`jose`, `jsonwebtoken`, …) (#590). */
+  jwtLibrary: boolean;
+  /** Redirects a request (`NextResponse.redirect`, `redirect('/sign-in')`). */
+  redirects: boolean;
+  /** Reads a cookie (`cookies().get(…)`, `request.cookies.get(…)`). */
+  readsCookie: boolean;
+  /** Re-issues a cookie with a lifetime (`cookies.set(…, { expires })`, Set-Cookie). */
+  reissuesCookie: boolean;
+  /** Compares a password value directly, without a hash (`user.password === password`). */
+  comparesPasswordDirectly: boolean;
 }
 
 const EMPTY: AuthShape = {
@@ -94,7 +104,24 @@ const EMPTY: AuthShape = {
   refusesRequests: false,
   roleConcept: false,
   roleCheck: false,
+  jwtLibrary: false,
+  redirects: false,
+  readsCookie: false,
+  reissuesCookie: false,
+  comparesPasswordDirectly: false,
 };
+
+/** JWT libraries: the code signs, verifies or decrypts tokens (#590). */
+const JWT_MODULE =
+  /^(?:jose|jsonwebtoken|@node-rs\/jsonwebtoken|jwt-decode|@tsndr\/cloudflare-worker-jwt|@fastify\/jwt|@nestjs\/jwt)$/;
+/** `new SignJWT(…)`, `new EncryptJWT(…)` (jose). */
+const JWT_CLASS = /^(?:SignJWT|EncryptJWT|CompactSign)$/;
+/** A redirect: `NextResponse.redirect(…)`, `redirect('/sign-in')`. */
+const REDIRECT_CALL = /^(?:redirect|permanentRedirect)$/;
+/** A cookie option that gives the cookie a lifetime. */
+const COOKIE_LIFETIME_KEY = /^(?:expires|maxAge|max-age)$/i;
+/** A name that holds a password value. */
+const PASSWORD_NAME = /password/i;
 
 /** `a.b.c(…)` → `c`; `new X()` → `X`. */
 function lastName(ts: typeof TS, expr: TS.Expression): string | null {
@@ -141,6 +168,51 @@ function readCallName(name: string, s: AuthShape): void {
   if (SIGN_OUT_CALL.test(name)) s.signsOut = true;
   if (ROLE_CHECK.test(name)) s.roleCheck = true;
   if (name === 'UseGuards') s.routeGuard = true;
+  if (REDIRECT_CALL.test(name)) s.redirects = true;
+}
+
+/** `cookies`, `request.cookies`, `cookies()` — the receiver of a cookie call. */
+function isCookieJar(ts: typeof TS, expr: TS.Expression): boolean {
+  if (ts.isCallExpression(expr)) return isCookieJar(ts, expr.expression);
+  if (ts.isAwaitExpression(expr) || ts.isParenthesizedExpression(expr))
+    return isCookieJar(ts, expr.expression);
+  return lastName(ts, expr) === 'cookies';
+}
+
+/** An object argument with an `expires` / `maxAge` option. */
+function hasLifetimeOption(ts: typeof TS, call: TS.CallExpression): boolean {
+  return call.arguments.some(
+    arg =>
+      ts.isObjectLiteralExpression(arg) &&
+      arg.properties.some(p => {
+        const key = p.name ? propertyKey(ts, p.name as TS.PropertyName) : null;
+        return !!key && COOKIE_LIFETIME_KEY.test(key);
+      })
+  );
+}
+
+/**
+ * Cookies (#590): `cookies().get('session')` reads one; `cookies().set(…,
+ * { expires })` or a `Set-Cookie` header re-issues one with a lifetime — a
+ * refresh of a cookie session.
+ */
+function readCookieCall(
+  ts: typeof TS,
+  name: string,
+  call: TS.CallExpression,
+  s: AuthShape
+) {
+  const callee = call.expression;
+  const onJar =
+    ts.isPropertyAccessExpression(callee) && isCookieJar(ts, callee.expression);
+  if (onJar && name === 'get') s.readsCookie = true;
+  if (onJar && name === 'set' && hasLifetimeOption(ts, call))
+    s.reissuesCookie = true;
+  if (
+    /^(?:set|append|setHeader)$/.test(name) &&
+    stringArg(ts, call, 0)?.toLowerCase() === 'set-cookie'
+  )
+    s.reissuesCookie = true;
 }
 
 /** `headers.set('Authorization', …)` and `res.status(401)`. */
@@ -160,6 +232,7 @@ function readCallArguments(
     if (status !== null && REFUSAL_STATUSES.has(status))
       s.refusesRequests = true;
   }
+  readCookieCall(ts, name, call, s);
 }
 
 function readCall(ts: typeof TS, call: TS.CallExpression, s: AuthShape): void {
@@ -174,6 +247,7 @@ function readModule(ts: typeof TS, node: TS.Node, s: AuthShape): void {
   if (mod === null) return;
   if (MANAGED_AUTH_MODULE.test(mod)) s.managedSdk = true;
   if (SERVER_SESSION_MODULE.test(mod)) s.serverSession = true;
+  if (JWT_MODULE.test(mod)) s.jwtLibrary = true;
 }
 
 /** `@Roles(…)` / `@Permissions(…)`, and `new UnauthorizedException()`. */
@@ -184,6 +258,7 @@ function readDecoratorOrNew(ts: typeof TS, node: TS.Node, s: AuthShape) {
   } else if (ts.isNewExpression(node)) {
     const name = lastName(ts, node.expression);
     if (name && REFUSAL_CLASS.test(name)) s.refusesRequests = true;
+    if (name && JWT_CLASS.test(name)) s.jwtLibrary = true;
   }
 }
 
@@ -266,12 +341,69 @@ function equalityTokens(ts: typeof TS): ReadonlySet<TS.SyntaxKind> {
   ]);
 }
 
+/** A value that is not a stored password: a literal, `null`, `undefined`. */
+function isPlainLiteral(ts: typeof TS, expr: TS.Expression): boolean {
+  return (
+    ts.isStringLiteralLike(expr) ||
+    ts.isNumericLiteral(expr) ||
+    expr.kind === ts.SyntaxKind.NullKeyword ||
+    (ts.isIdentifier(expr) && expr.text === 'undefined')
+  );
+}
+
+/**
+ * A password field of a record (`user.password`, `row.password`): the side
+ * of a comparison that holds a stored value.
+ */
+function storedPassword(ts: typeof TS, e: TS.Expression): boolean {
+  return ts.isPropertyAccessExpression(e) && PASSWORD_NAME.test(e.name.text);
+}
+
+/** `data.password` and `data.confirmPassword`: two fields of one object. */
+function sameReceiver(
+  ts: typeof TS,
+  left: TS.Expression,
+  right: TS.Expression
+): boolean {
+  return (
+    ts.isPropertyAccessExpression(left) &&
+    ts.isPropertyAccessExpression(right) &&
+    left.expression.getText() === right.expression.getText()
+  );
+}
+
+/**
+ * A password compared directly (#590): `user.password === password`. The
+ * value is equal only if it is stored as written — no hash compares that
+ * way. One side must be a stored value, a password field of a record. Two
+ * inputs compared to each other (`confirmPassword !== newPassword`, or
+ * `data.password !== data.confirmPassword` on one form object) are
+ * validation. A name (`plainTextPassword` handed to `bcrypt.compare`) is not
+ * a comparison; a check against a literal (`password === ''`) is validation.
+ */
+function readPasswordComparison(ts: typeof TS, node: TS.Node, s: AuthShape) {
+  if (
+    !ts.isBinaryExpression(node) ||
+    !equalityTokens(ts).has(node.operatorToken.kind)
+  )
+    return;
+  const { left, right } = node;
+  if (
+    (storedPassword(ts, left) || storedPassword(ts, right)) &&
+    !sameReceiver(ts, left, right) &&
+    !isPlainLiteral(ts, left) &&
+    !isPlainLiteral(ts, right)
+  )
+    s.comparesPasswordDirectly = true;
+}
+
 function readNode(ts: typeof TS, node: TS.Node, s: AuthShape): void {
   readModule(ts, node, s);
   if (ts.isCallExpression(node)) readCall(ts, node, s);
   readDecoratorOrNew(ts, node, s);
   readKeyOrType(ts, node, s);
   readInlineRoleCheck(ts, node, s);
+  readPasswordComparison(ts, node, s);
   const name = conceptName(ts, node);
   if (name && isRoleOrPermission(name)) s.roleConcept = true;
 }

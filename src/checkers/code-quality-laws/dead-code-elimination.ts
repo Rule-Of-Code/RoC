@@ -15,6 +15,7 @@ import type {
 import { commandInvocations } from '../../utils/audit-invocation';
 import { ConfigFileUtils } from '../../utils/config-file-utils';
 import { FileUtils } from '../../utils/file-utils';
+import { withNotRead } from '../../utils/judged-nothing';
 import { PathOperations } from '../../utils/path-operations';
 import {
   loadTypeScript,
@@ -49,7 +50,9 @@ export class DeadCodeEliminationLaw extends CodeQualityLawBase {
     violations.push(...deadCodeAnalysis.violations);
     suggestions.push(...deadCodeAnalysis.suggestions);
 
-    return LawBase.buildDetailedResult({
+    // An ESLint config found and not read goes to notRead (#453, #508): it is
+    // not a finding about the code, and it keeps the law from passing.
+    const result = LawBase.buildDetailedResult({
       passed: violations.length === 0,
       message:
         violations.length === 0
@@ -63,6 +66,7 @@ export class DeadCodeEliminationLaw extends CodeQualityLawBase {
           : Math.max(0, 100 - violations.length * POINTS_PER_VIOLATION),
       context,
     });
+    return withNotRead(result, toolsAnalysis.notRead);
   }
 
   /**
@@ -90,9 +94,11 @@ export class DeadCodeEliminationLaw extends CodeQualityLawBase {
   ): {
     violations: string[];
     suggestions: string[];
+    notRead: string[];
   } {
     const violations: string[] = [];
     const suggestions: string[] = [];
+    const notRead: string[] = [];
 
     const packageJson = ConfigFileUtils.readPackageJson<{
       devDependencies?: Record<string, string>;
@@ -108,7 +114,7 @@ export class DeadCodeEliminationLaw extends CodeQualityLawBase {
         !this.INSTALLS.test(command) && this.RUNS_DEAD_CODE_TOOL.test(command),
       config
     );
-    if (runs.length > 0) return { violations, suggestions };
+    if (runs.length > 0) return { violations, suggestions, notRead };
 
     const installed = this.DEAD_CODE_TOOLS.filter(tool => devDeps[tool]);
     suggestions.push(
@@ -121,7 +127,7 @@ export class DeadCodeEliminationLaw extends CodeQualityLawBase {
     if (devDeps.eslint) {
       const eslint = this.readESLintConfig(projectRoot);
       if (eslint?.notRead !== undefined) {
-        violations.push(eslint.notRead);
+        notRead.push(eslint.notRead);
       } else if (!this.hasDeadCodeRules(eslint?.config ?? null)) {
         violations.push('ESLint dead code detection rules not configured');
         suggestions.push(
@@ -130,7 +136,7 @@ export class DeadCodeEliminationLaw extends CodeQualityLawBase {
       }
     }
 
-    return { violations, suggestions };
+    return { violations, suggestions, notRead };
   }
 
   private static analyzeDeadCode(

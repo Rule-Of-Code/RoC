@@ -6,7 +6,7 @@
 import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
 import {
-  REQUIRES_NX_OR_ANGULAR,
+  REQUIRES_NX_WORKSPACE,
   REQUIRES_RXJS,
 } from '../utils/framework-requirements';
 
@@ -32,6 +32,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Reads the code and the comments from the TypeScript parse: console, `: any` annotations, `as any` casts and empty catch in code only, TODO tags (capitals, at the start of a // comment) and eslint-disable in comments only; without a loadable `typescript` the files are NOT read and the law judges nothing. Only the ROOT tsconfig is read.',
       'In a package whose nearest package.json declares `bin`, console.log/info are not counted anywhere in it — a stray log in such a package is not told apart from output; console.warn is not counted in the entry modules derived from `bin` (the source of each bin target, the directory named after it and a commands/ directory beside it), and is counted in the rest. A logging module (logger.*, logging*, log.*) is not counted.',
       'TS/Angular only; a Python project has no tsconfig and cannot pass.',
+      'Owns the hand-written `any` of a declaration or a cast (`: any`, `as any`, `any[]`): No Explicit Any / Non-Null Assertion does not count them again (#482).',
     ],
     stack: 'typescript',
     emoji: '❌',
@@ -66,12 +67,12 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
         'Commit nx.json, use `nx ...` (not `ng ...`) in package.json scripts, and prefer workspace.json over a standalone angular.json.',
     },
     detectionLimits: [
-      'Selected only for an Nx workspace (nx.json, or the nx / @nx/workspace / @nrwl/workspace package) or an Angular project (@angular/core). There it requires nx.json, so an Angular CLI workspace without Nx fails it; a TypeScript, React or Node project without Nx is not selected.',
+      'Selected only for an Nx workspace (nx.json, or the nx / @nx/workspace / @nrwl/workspace package). An Angular CLI workspace without Nx is not selected (adopting Nx is a choice, not a defect), and neither is a TypeScript, React or Node project without Nx.',
       'The docs scan is effectively dead (it looks for .md among ts/js/json results), so only the root README.md is checked for `ng` usage.',
       'Reads scripts / config / README, not build invocations; Angular/Nx only.',
     ],
     stack: 'typescript',
-    requires: REQUIRES_NX_OR_ANGULAR,
+    requires: REQUIRES_NX_WORKSPACE,
     emoji: '🛠️',
     description: 'All build/test commands must use NX workspace architecture',
     priority: 'HIGH',
@@ -148,8 +149,8 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Judges presence, not content: any non-empty JSDoc block satisfies it, however little it says.',
       'Only top-level declarations: methods, interfaces, types, enums, non-function constants, namespace members and non-exported code are not judged; a function wrapped in a call (export const f = wrap(() => …)) is not seen as a function.',
       'A re-export (export { a } from …) is judged in the module that declares it, not where it is re-exported; .d.ts files are not judged.',
-      "Reads .ts/.tsx with the project's own typescript; without it the files are reported as not read, and a file that does not parse is named as not read.",
-      'TS only — no Python (Public Docstrings judges Python).',
+      "Reads .ts/.tsx and .js/.jsx/.mjs/.cjs (#493) with the project's own typescript; without it the files are reported as not read, and a file that does not parse is named as not read. CommonJS exports (module.exports = …) are not ES exports and are not judged.",
+      'TypeScript and JavaScript — no Python (Public Docstrings judges Python).',
     ],
     emoji: '📝',
     description:
@@ -403,6 +404,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Regex over the code of the TypeScript parse — strings, templates, regexes and comments are not read (without a loadable `typescript` the files are NOT read and the law judges nothing); `: Object` / `: Function` fire on user types named Object/Function, but not on a value after a colon (`Object.keys(`, `Function(`).',
       'The empty-object `{}` type is deliberately not detected; the per-file collapse hides the true count.',
+      '`: any`, `as any` and `any[]` in a declaration or a cast are counted by Absolute Zero Tolerance Doctrine (error severity), which owns them, and not here (#482); this law counts `<any>` assertions and type arguments, the weak `Function` / `Object` types and non-null `!`.',
       'TypeScript; not Angular-gated; no Python.',
     ],
     stack: 'typescript',

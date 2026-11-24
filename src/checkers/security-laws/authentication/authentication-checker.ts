@@ -101,7 +101,14 @@ export class AuthenticationChecker extends SecurityCheckerBase {
    */
   private static hasTokenManagement(codeFiles: string[]): boolean {
     const shape = this.authShapeOf(codeFiles);
-    if (shape.managedSdk || shape.readsSdkToken || shape.attachesCredentials)
+    // A JWT library (jose's SignJWT / jwtVerify, jsonwebtoken, …) is token
+    // management too (#590).
+    if (
+      shape.managedSdk ||
+      shape.readsSdkToken ||
+      shape.attachesCredentials ||
+      shape.jwtLibrary
+    )
       return true;
     return this.anyFileMatchesCode(codeFiles, [
       /localStorage\.setItem.*token/i,
@@ -129,16 +136,23 @@ export class AuthenticationChecker extends SecurityCheckerBase {
     /md5.*password/i,
     /sha1.*password/i,
     /btoa.*password/i,
-    /password.*plain/i,
-    /plaintext.*password/i,
   ];
 
   private static hasSecurePasswordHandling(codeFiles: string[]): boolean {
     return this.anyFileMatchesCode(codeFiles, this.SECURE_PASSWORD_PATTERNS);
   }
 
+  /**
+   * Weak hashing of a password, or a password compared directly
+   * (`user.password === password`): only a value stored as written compares
+   * that way (#590). A name such as `plainTextPassword` handed to
+   * `bcrypt.compare` is not plaintext handling.
+   */
   private static hasInsecurePasswordHandling(codeFiles: string[]): boolean {
-    return this.anyFileMatchesCode(codeFiles, this.INSECURE_PASSWORD_PATTERNS);
+    return (
+      this.authShapeOf(codeFiles).comparesPasswordDirectly ||
+      this.anyFileMatchesCode(codeFiles, this.INSECURE_PASSWORD_PATTERNS)
+    );
   }
 
   /** The code handles passwords at all — the word as an identifier or key. */

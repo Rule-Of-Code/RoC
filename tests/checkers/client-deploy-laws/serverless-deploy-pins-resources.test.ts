@@ -325,4 +325,73 @@ describe('deploy command reading', () => {
       argsCommands(yamlEntries('steps:\n- name: node\n  args: [run, deploy]'))
     ).toEqual([]);
   });
+
+  it('Cloud Build in JSON: gcloud steps by entrypoint or builder image, at the line of their args', () => {
+    const cloudbuild = JSON.stringify(
+      {
+        steps: [
+          { name: 'gcr.io/cloud-builders/docker', args: ['build', '.'] },
+          {
+            name: 'gcr.io/google.com/cloudsdktool/cloud-sdk',
+            entrypoint: 'gcloud',
+            args: ['run', 'deploy', 'api', '--image', 'img'],
+          },
+          {
+            name: 'gcr.io/cloud-builders/gcloud',
+            args: ['run', 'deploy', 'web', ...ALL_FLAGS.split(' ')],
+          },
+        ],
+      },
+      null,
+      2
+    );
+    const argsLine =
+      cloudbuild.split('\n').findIndex(l => l.includes('"entrypoint"')) + 2;
+
+    expect(run({ 'cloudbuild.json': cloudbuild }).violations).toEqual([
+      expect.stringMatching(
+        new RegExp(
+          `^cloudbuild\.json:${argsLine}: gcloud run deploy leaves cpu`
+        )
+      ),
+    ]);
+  });
+
+  it('Cloud Build in JSON: no steps, or JSON that does not parse, is no command', () => {
+    // No deploy command anywhere: the law says it judged nothing.
+    const nothing = [expect.stringMatching(/this law judged nothing$/)];
+    expect(
+      run({ 'cloudbuild.json': '{"timeout": "600s"}' }).violations
+    ).toEqual(nothing);
+    expect(run({ 'cloudbuild.json': '{ "steps": [' }).violations).toEqual(
+      nothing
+    );
+  });
+
+  it('SAM template in JSON: a function without MemorySize is named', () => {
+    const template = JSON.stringify(
+      {
+        Transform: 'AWS::Serverless-2016-10-31',
+        Globals: { Function: { Timeout: 10 } },
+        Resources: {
+          Api: {
+            Type: 'AWS::Serverless::Function',
+            Properties: { MemorySize: 512 },
+          },
+          Worker: {
+            Type: 'AWS::Serverless::Function',
+            Properties: { Handler: 'worker.handler' },
+          },
+        },
+      },
+      null,
+      2
+    );
+
+    expect(run({ 'template.json': template }).violations).toEqual([
+      expect.stringMatching(
+        /^template\.json:\d+: function Worker \(AWS::Serverless::Function\) leaves memory/
+      ),
+    ]);
+  });
 });

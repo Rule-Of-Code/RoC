@@ -156,13 +156,101 @@ import {
   NextServerOnlyBoundaryLaw,
 } from '../checkers/next-laws';
 import {
+  CapacitorAndroidBackupScopedLaw,
+  CapacitorAndroidCleartextDebugOnlyLaw,
+  CapacitorDeepLinkContractLaw,
+  CapacitorFirebaseNativeConfigNotSkippedLaw,
+  CapacitorIosPrivacyManifestDeclaredLaw,
+  CapacitorAndroidBackHasOneOwnerLaw,
+  CapacitorDurableStateOffWebviewStorageLaw,
+  CapacitorListenerHandlesReleasedLaw,
+  CapacitorLocalPluginContractLaw,
   CapacitorLoggingNeverProductionLaw,
+  CapacitorSigningSecretsOutsideRepoLaw,
   CapacitorNoDevOnlyServerKeysLaw,
   CapacitorPluginConfigDeclaredLaw,
   CapacitorPluginPlatformDeclarationsLaw,
+  CapacitorPluginStubHasContractTestLaw,
+  CapacitorServiceWorkerNativeDecisionLaw,
   CapacitorSinglePlatformBoundaryLaw,
+  CapacitorSyncArtefactsMatchDependenciesLaw,
   CapacitorWebviewOriginDeclaredLaw,
 } from '../checkers/capacitor-laws';
+import {
+  PrimaryLocaleFontPreloadedLaw,
+  ServerlessDeployPinsResourcesLaw,
+  StartupRequestFanOutLaw,
+} from '../checkers/client-deploy-laws';
+import {
+  HostingRewriteRegionMatchesDeployLaw,
+  JobDefinitionDumpsMaskedLaw,
+  ProxyTargetKeepsOriginHostLaw,
+  TestBuildsUseOwnFirebaseConfigLaw,
+  WorkerPublicUrlsDeclaredLaw,
+} from '../checkers/edge-deploy-laws';
+import {
+  DrizzleMigrationJournalIntegrityLaw,
+  GuardFunctionHasProductionCallerLaw,
+  RetentionRegistryCoversSchemaLaw,
+  SqlCheckConstraintNullPassesLaw,
+  TsconfigExcludeLeavesCodeUntypedLaw,
+} from '../checkers/integrity-laws';
+import {
+  LatencyBudgetHarnessRealismLaw,
+  TestServerLoopbackAddressMatchLaw,
+  TracingExplainsLatencyLaw,
+} from '../checkers/measurement-laws';
+import {
+  AsyncCacheSingleFlightLaw,
+  DatabaseReadCacheSafetyLaw,
+  PerfHarnessMatchesProductionLaw,
+  TestRigKeepsRouteGuardsLaw,
+} from '../checkers/cache-harness-laws';
+import {
+  NextOpenRedirectGuardedLaw,
+  ReactDangerousHtmlGuardedLaw,
+  ReactHrefSchemeGuardedLaw,
+} from '../checkers/react-laws';
+import {
+  IonicE2eLocatorsTargetTheShownPageLaw,
+  IonicIconsRegisteredLaw,
+  IonicLeaveCancelsWhatEnterStartedLaw,
+  IonicNavigationSpecsMountTheOutletLaw,
+  IonicNoSkipLocationChangeLaw,
+  IonicPageStateReadOnEnterLaw,
+  IonicRouteReuseStrategyProvidedLaw,
+  IonicScrollThroughIonContentLaw,
+  IonicSessionExitUsesNavigateRootLaw,
+  IonicSingleBuildSystemLaw,
+  IonicUniqueUrlKeyPerViewLaw,
+  IonicViewHooksOnlyOnPagesLaw,
+  IonicViewLifecycleInterfacesLaw,
+  IonicViewportFitCoverLaw,
+} from '../checkers/ionic-laws';
+import {
+  HtmlLangDeclaredLaw,
+  NextClientPropsSerializableLaw,
+  NextHeavyLibInClientGraphLaw,
+  NextImageHasDimensionsLaw,
+  NextInternalLinkComponentLaw,
+  NextLoadingForAsyncPageLaw,
+  NextMetadataDeclaredLaw,
+  NextRouteJsBudgetLaw,
+  NextSegmentConfigConsistentLaw,
+  NextThirdPartyScriptDeclaredLaw,
+  NextUseClientAtLeavesLaw,
+} from '../checkers/next-laws';
+import {
+  ClientFetchResponseCheckedLaw,
+  ReactContextValueStableLaw,
+  ReactEffectFetchRaceGuardedLaw,
+  ReactEffectResourceCleanupLaw,
+  ReactHooksLintEnforcedLaw,
+  ReactListKeyStabilityLaw,
+  ReactPollVisibilityGatedLaw,
+  ReactRenderNoBrowserGlobalLaw,
+  ReactStoreSubscriptionUsesSyncExternalStoreLaw,
+} from '../checkers/react-laws';
 import { NgRxDevToolsIntegrationMandateLaw } from '../laws/angular/ngrx-devtools-integration-mandate';
 import { NgRxStateNormalizationMandateLaw } from '../laws/angular/ngrx-state-normalization-mandate';
 import { ComponentSelectorPrefixLaw } from '../checkers/angular-laws/component-selector-prefix';
@@ -348,4 +436,114 @@ export const LAW_CLASS_MAPPING = {
     CapacitorSinglePlatformBoundaryLaw,
   'CapacitorPluginPlatformDeclarationsLaw.check':
     CapacitorPluginPlatformDeclarationsLaw,
+  'CapacitorDeepLinkContractLaw.check': CapacitorDeepLinkContractLaw,
+  'CapacitorSyncArtefactsMatchDependenciesLaw.check':
+    CapacitorSyncArtefactsMatchDependenciesLaw,
+  // Capacitor native-shell laws (gated on the platform package as well)
+  'CapacitorAndroidCleartextDebugOnlyLaw.check':
+    CapacitorAndroidCleartextDebugOnlyLaw,
+  'CapacitorFirebaseNativeConfigNotSkippedLaw.check':
+    CapacitorFirebaseNativeConfigNotSkippedLaw,
+  'CapacitorAndroidBackupScopedLaw.check': CapacitorAndroidBackupScopedLaw,
+  'CapacitorIosPrivacyManifestDeclaredLaw.check':
+    CapacitorIosPrivacyManifestDeclaredLaw,
+  'CapacitorSigningSecretsOutsideRepoLaw.check':
+    CapacitorSigningSecretsOutsideRepoLaw,
+
+  // Capacitor bridge laws (back button, local plugins, listeners, web-side decisions)
+  'CapacitorAndroidBackHasOneOwnerLaw.check':
+    CapacitorAndroidBackHasOneOwnerLaw,
+  'CapacitorLocalPluginContractLaw.check': CapacitorLocalPluginContractLaw,
+  'CapacitorListenerHandlesReleasedLaw.check':
+    CapacitorListenerHandlesReleasedLaw,
+  'CapacitorServiceWorkerNativeDecisionLaw.check':
+    CapacitorServiceWorkerNativeDecisionLaw,
+  'CapacitorDurableStateOffWebviewStorageLaw.check':
+    CapacitorDurableStateOffWebviewStorageLaw,
+  'CapacitorPluginStubHasContractTestLaw.check':
+    CapacitorPluginStubHasContractTestLaw,
+
+  // React Laws (gated on react / next)
+  'ReactDangerousHtmlGuardedLaw.check': ReactDangerousHtmlGuardedLaw,
+  'ReactHrefSchemeGuardedLaw.check': ReactHrefSchemeGuardedLaw,
+  'NextOpenRedirectGuardedLaw.check': NextOpenRedirectGuardedLaw,
+
+  // React Laws (gated on react; React Render No Browser Global on next)
+  'ReactHooksLintEnforcedLaw.check': ReactHooksLintEnforcedLaw,
+  'ReactEffectResourceCleanupLaw.check': ReactEffectResourceCleanupLaw,
+  'ReactEffectFetchRaceGuardedLaw.check': ReactEffectFetchRaceGuardedLaw,
+  'ReactContextValueStableLaw.check': ReactContextValueStableLaw,
+  'ReactStoreSubscriptionUsesSyncExternalStoreLaw.check':
+    ReactStoreSubscriptionUsesSyncExternalStoreLaw,
+  'ReactRenderNoBrowserGlobalLaw.check': ReactRenderNoBrowserGlobalLaw,
+  'ClientFetchResponseCheckedLaw.check': ClientFetchResponseCheckedLaw,
+  'ReactPollVisibilityGatedLaw.check': ReactPollVisibilityGatedLaw,
+  'ReactListKeyStabilityLaw.check': ReactListKeyStabilityLaw,
+
+  // Next.js client laws (gated on next)
+  'NextMetadataDeclaredLaw.check': NextMetadataDeclaredLaw,
+  'NextHeavyLibInClientGraphLaw.check': NextHeavyLibInClientGraphLaw,
+  'NextImageHasDimensionsLaw.check': NextImageHasDimensionsLaw,
+  'NextThirdPartyScriptDeclaredLaw.check': NextThirdPartyScriptDeclaredLaw,
+  'HtmlLangDeclaredLaw.check': HtmlLangDeclaredLaw,
+  'NextInternalLinkComponentLaw.check': NextInternalLinkComponentLaw,
+  'NextUseClientAtLeavesLaw.check': NextUseClientAtLeavesLaw,
+  'NextClientPropsSerializableLaw.check': NextClientPropsSerializableLaw,
+  'NextRouteJsBudgetLaw.check': NextRouteJsBudgetLaw,
+  'NextSegmentConfigConsistentLaw.check': NextSegmentConfigConsistentLaw,
+  'NextLoadingForAsyncPageLaw.check': NextLoadingForAsyncPageLaw,
+
+  // Integrity Laws (migrations, CHECKs, guards, tsconfig, retention)
+  'DrizzleMigrationJournalIntegrityLaw.check':
+    DrizzleMigrationJournalIntegrityLaw,
+  'SqlCheckConstraintNullPassesLaw.check': SqlCheckConstraintNullPassesLaw,
+  'GuardFunctionHasProductionCallerLaw.check':
+    GuardFunctionHasProductionCallerLaw,
+  'TsconfigExcludeLeavesCodeUntypedLaw.check':
+    TsconfigExcludeLeavesCodeUntypedLaw,
+  'RetentionRegistryCoversSchemaLaw.check': RetentionRegistryCoversSchemaLaw,
+
+  // Client start-up and deploy-settings laws
+  'StartupRequestFanOutLaw.check': StartupRequestFanOutLaw,
+  'PrimaryLocaleFontPreloadedLaw.check': PrimaryLocaleFontPreloadedLaw,
+  'ServerlessDeployPinsResourcesLaw.check': ServerlessDeployPinsResourcesLaw,
+  // Edge proxy and deploy-security laws
+  'ProxyTargetKeepsOriginHostLaw.check': ProxyTargetKeepsOriginHostLaw,
+  'WorkerPublicUrlsDeclaredLaw.check': WorkerPublicUrlsDeclaredLaw,
+  'HostingRewriteRegionMatchesDeployLaw.check':
+    HostingRewriteRegionMatchesDeployLaw,
+  'TestBuildsUseOwnFirebaseConfigLaw.check': TestBuildsUseOwnFirebaseConfigLaw,
+  'JobDefinitionDumpsMaskedLaw.check': JobDefinitionDumpsMaskedLaw,
+  // Measurement Laws (latency budget harness, tracing, test-server loopback)
+  'LatencyBudgetHarnessRealismLaw.check': LatencyBudgetHarnessRealismLaw,
+  'TracingExplainsLatencyLaw.check': TracingExplainsLatencyLaw,
+  'TestServerLoopbackAddressMatchLaw.check': TestServerLoopbackAddressMatchLaw,
+  // Cache and harness laws
+  'DatabaseReadCacheSafetyLaw.check': DatabaseReadCacheSafetyLaw,
+  'AsyncCacheSingleFlightLaw.check': AsyncCacheSingleFlightLaw,
+  'TestRigKeepsRouteGuardsLaw.check': TestRigKeepsRouteGuardsLaw,
+  'PerfHarnessMatchesProductionLaw.check': PerfHarnessMatchesProductionLaw,
+
+  // Ionic Laws (gated on an Ionic binding)
+  'IonicViewLifecycleInterfacesLaw.check': IonicViewLifecycleInterfacesLaw,
+  'IonicPageStateReadOnEnterLaw.check': IonicPageStateReadOnEnterLaw,
+  'IonicLeaveCancelsWhatEnterStartedLaw.check':
+    IonicLeaveCancelsWhatEnterStartedLaw,
+  'IonicNoSkipLocationChangeLaw.check': IonicNoSkipLocationChangeLaw,
+  'IonicUniqueUrlKeyPerViewLaw.check': IonicUniqueUrlKeyPerViewLaw,
+  'IonicSessionExitUsesNavigateRootLaw.check':
+    IonicSessionExitUsesNavigateRootLaw,
+  'IonicRouteReuseStrategyProvidedLaw.check':
+    IonicRouteReuseStrategyProvidedLaw,
+  'IonicNavigationSpecsMountTheOutletLaw.check':
+    IonicNavigationSpecsMountTheOutletLaw,
+  'IonicE2eLocatorsTargetTheShownPageLaw.check':
+    IonicE2eLocatorsTargetTheShownPageLaw,
+
+  // Ionic rendering-model laws (gated on an Ionic binding)
+  'IonicViewHooksOnlyOnPagesLaw.check': IonicViewHooksOnlyOnPagesLaw,
+  'IonicSingleBuildSystemLaw.check': IonicSingleBuildSystemLaw,
+  'IonicIconsRegisteredLaw.check': IonicIconsRegisteredLaw,
+  'IonicScrollThroughIonContentLaw.check': IonicScrollThroughIonContentLaw,
+  'IonicViewportFitCoverLaw.check': IonicViewportFitCoverLaw,
 };

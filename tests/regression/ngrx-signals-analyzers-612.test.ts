@@ -10,6 +10,8 @@ import path from 'path';
 import { AngularSignalImportsAnalyzer } from '../../src/utils/angular/angular-signal-imports/angular-signal-imports-analyzer';
 import { NgRxEffectPatternsValidation } from '../../src/utils/angular/ngrx-effect-patterns/ngrx-effect-patterns-validation';
 import { NgRxErrorHandlingValidationPatterns } from '../../src/utils/angular/ngrx-error-handling/ngrx-error-handling-validation-patterns';
+import { NgRxFileOrganizationValidationPatterns } from '../../src/utils/angular/ngrx-file-organization/ngrx-file-organization-validation-patterns';
+import { NgRxNamingConventionsValidationPatterns } from '../../src/utils/angular/ngrx-naming-conventions/ngrx-naming-conventions-validation-patterns';
 import { FileUtils } from '../../src/utils/file-utils';
 import { manifest, project } from '../checkers/toolkit-fixture';
 
@@ -169,3 +171,68 @@ describe('#612 point 5: an empty or unreadable effects file is not judged', () =
     ]);
   });
 });
+
+const STATE = 'src/app/user/+state';
+
+describe('#612 point 6: test files in +state are not misnamed or a second reducer', () => {
+  const organize = (files: Record<string, string>) =>
+    NgRxFileOrganizationValidationPatterns.validateAllFileOrganizationPatterns(
+      project(files),
+      config
+    );
+
+  it('user.reducer.spec.ts next to user.reducer.ts gets no suggestion', () => {
+    const result = organize({
+      [`${STATE}/index.ts`]: '',
+      [`${STATE}/user.reducer.ts`]: '',
+      [`${STATE}/user.reducer.spec.ts`]: '',
+    });
+    expect(result.suggestions).toEqual([]);
+  });
+
+  it('control: two reducers and a non-NgRx file are still reported', () => {
+    const result = organize({
+      [`${STATE}/index.ts`]: '',
+      [`${STATE}/user.reducer.ts`]: '',
+      [`${STATE}/user-extra.reducer.ts`]: '',
+      [`${STATE}/user.helpers.ts`]: '',
+      [`${STATE}/user.reducer.spec.ts`]: '',
+    });
+    expect(result.suggestions).toEqual(
+      expect.arrayContaining([
+        'Consider using standard NgRx file naming for user.helpers.ts in user/+state/',
+        'Multiple reducer files found in user/+state/, consider consolidating',
+      ])
+    );
+  });
+});
+
+describe('#612 point 7: a directory that does not exist is skipped', () => {
+  it('a missing +state directory is not judged', () => {
+    const root = project({ 'package.json': '{}' });
+    const result =
+      NgRxFileOrganizationValidationPatterns.processStateDirectoryComprehensive(
+        path.join(root, 'src/app/missing/+state'),
+        config
+      );
+    expect(result).toEqual({ violations: [], suggestions: [] });
+  });
+
+  it('control: an existing +state without index.ts is still reported', () => {
+    const root = project({ [`${STATE}/user.reducer.ts`]: '' });
+    const result =
+      NgRxFileOrganizationValidationPatterns.processStateDirectoryComprehensive(
+        path.join(root, STATE),
+        config
+      );
+    expect(result.violations).toEqual([
+      'Missing index.ts barrel export in user/+state/',
+    ]);
+  });
+});
+
+const naming = (files: Record<string, string>) =>
+  NgRxNamingConventionsValidationPatterns.validateAllNamingConventions(
+    project(files),
+    config
+  );

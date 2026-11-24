@@ -6,6 +6,14 @@ import { PathOperations } from '../../utils/path-operations';
 /** Points of the score of 100 a missing lock file costs. */
 const MISSING_LOCK_FILE_PENALTY = 25;
 
+/** What one declared version range is judged to be. */
+interface VersionVerdict {
+  isViolation: boolean;
+  issue?: string;
+  suggestion?: string;
+  severityScore: number;
+}
+
 /**
  * Dependency Pinning Checker
  * Validates that dependencies are properly pinned to specific versions
@@ -203,12 +211,15 @@ export class DependencyPinningChecker {
   /**
    * Analyze individual version range for compliance
    */
-  private static analyzeVersionRange(version: string): {
-    isViolation: boolean;
-    issue?: string;
-    suggestion?: string;
-    severityScore: number;
-  } {
+  private static analyzeVersionRange(version: string): VersionVerdict {
+    return this.protocolVerdict(version) ?? this.rangeVerdict(version);
+  }
+
+  /**
+   * The verdict on a version given by protocol (workspace:, file:, git),
+   * or null when the version is not one.
+   */
+  private static protocolVerdict(version: string): VersionVerdict | null {
     // Allow workspace protocol for monorepos
     if (version.startsWith('workspace:')) {
       return { isViolation: false, severityScore: 0 };
@@ -226,19 +237,21 @@ export class DependencyPinningChecker {
       /^git(\+(ssh|https?|file))?:\/\//.test(version) ||
       /^(github|gitlab|bitbucket|gist):/.test(version) ||
       version.startsWith('git@');
-    if (isGitDependency) {
-      if (!version.includes('#')) {
-        return {
-          isViolation: true,
-          issue: 'Git dependency not pinned to specific commit',
-          suggestion:
-            'Pin git dependencies to specific commits using #commit-hash',
-          severityScore: 15,
-        };
-      }
-      return { isViolation: false, severityScore: 0 };
+    if (!isGitDependency) return null;
+    if (!version.includes('#')) {
+      return {
+        isViolation: true,
+        issue: 'Git dependency not pinned to specific commit',
+        suggestion:
+          'Pin git dependencies to specific commits using #commit-hash',
+        severityScore: 15,
+      };
     }
+    return { isViolation: false, severityScore: 0 };
+  }
 
+  /** The verdict on a registry version: a range, a wildcard or exact. */
+  private static rangeVerdict(version: string): VersionVerdict {
     // Caret ranges (^) are acceptable - semver compliant for minor/patch updates
     if (version.startsWith('^')) {
       return {

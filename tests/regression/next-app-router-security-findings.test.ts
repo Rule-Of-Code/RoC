@@ -150,6 +150,55 @@ describe('#590 1. a parameter name is not a plaintext password', () => {
     });
     expect(v).toContain('Insecure password handling detected');
   });
+
+  it('two form inputs compared to each other are validation, not plaintext storage', () => {
+    const v = authViolations({
+      ...NEXT_APP,
+      'app/settings/actions.ts': [
+        'export async function updatePassword(',
+        '  currentPassword: string,',
+        '  newPassword: string,',
+        '  confirmPassword: string',
+        ') {',
+        '  if (currentPassword === newPassword) {',
+        "    return { error: 'New password must be different' };",
+        '  }',
+        '  if (confirmPassword !== newPassword) {',
+        "    return { error: 'Passwords do not match' };",
+        '  }',
+        '  return { ok: true };',
+        '}',
+        '',
+      ].join('\n'),
+    });
+    expect(v).not.toContain('Insecure password handling detected');
+  });
+
+  it('two fields of one form object compared to each other are validation', () => {
+    const v = authViolations({
+      ...NEXT_APP,
+      'app/sign-up/schema.ts': [
+        'export const check = (data: { password: string; confirmPassword: string }) =>',
+        '  data.password !== data.confirmPassword;',
+        '',
+      ].join('\n'),
+    });
+    expect(v).not.toContain('Insecure password handling detected');
+  });
+
+  it('a stored field compared to an input field is still insecure (control)', () => {
+    const v = authViolations({
+      ...NEXT_APP,
+      'lib/auth/legacy.ts': [
+        'export const matches = (',
+        '  row: { password: string },',
+        '  input: { password: string }',
+        ') => row.password === input.password;',
+        '',
+      ].join('\n'),
+    });
+    expect(v).toContain('Insecure password handling detected');
+  });
 });
 
 describe('#590 2. jose is token management', () => {

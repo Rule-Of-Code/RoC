@@ -681,9 +681,11 @@ hold for the way such a project is written:
 
 - **Plaintext password.** `/plaintext.*password/i` took a parameter name
   (`plainTextPassword` handed to a bcrypt compare) for a plaintext password.
-  Plaintext handling is now a password compared directly
-  (`user.password === password`) or hashed with md5/sha1/btoa; a name is
-  not evidence.
+  Plaintext handling is now a stored password compared directly (one side
+  is a password field of a record: `user.password === password`) or hashed
+  with md5/sha1/btoa; a name is not evidence. Two inputs compared to each
+  other (`confirmPassword !== newPassword`, or `data.password !==
+  data.confirmPassword` on one form object) are validation, not storage.
 - **Token management.** A JWT library (`jose`'s `SignJWT` / `jwtVerify` /
   `jwtDecrypt`, `jsonwebtoken`, …) counts as token management.
 - **Route guard.** A `middleware.ts` / `middleware.js` at the root or in

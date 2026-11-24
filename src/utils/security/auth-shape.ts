@@ -352,10 +352,34 @@ function isPlainLiteral(ts: typeof TS, expr: TS.Expression): boolean {
 }
 
 /**
+ * A password field of a record (`user.password`, `row.password`): the side
+ * of a comparison that holds a stored value.
+ */
+function storedPassword(ts: typeof TS, e: TS.Expression): boolean {
+  return ts.isPropertyAccessExpression(e) && PASSWORD_NAME.test(e.name.text);
+}
+
+/** `data.password` and `data.confirmPassword`: two fields of one object. */
+function sameReceiver(
+  ts: typeof TS,
+  left: TS.Expression,
+  right: TS.Expression
+): boolean {
+  return (
+    ts.isPropertyAccessExpression(left) &&
+    ts.isPropertyAccessExpression(right) &&
+    left.expression.getText() === right.expression.getText()
+  );
+}
+
+/**
  * A password compared directly (#590): `user.password === password`. The
  * value is equal only if it is stored as written — no hash compares that
- * way. A name (`plainTextPassword` handed to `bcrypt.compare`) is not one;
- * a check against a literal (`password === ''`) is validation.
+ * way. One side must be a stored value, a password field of a record. Two
+ * inputs compared to each other (`confirmPassword !== newPassword`, or
+ * `data.password !== data.confirmPassword` on one form object) are
+ * validation. A name (`plainTextPassword` handed to `bcrypt.compare`) is not
+ * a comparison; a check against a literal (`password === ''`) is validation.
  */
 function readPasswordComparison(ts: typeof TS, node: TS.Node, s: AuthShape) {
   if (
@@ -363,10 +387,10 @@ function readPasswordComparison(ts: typeof TS, node: TS.Node, s: AuthShape) {
     !equalityTokens(ts).has(node.operatorToken.kind)
   )
     return;
-  const named = (e: TS.Expression) => PASSWORD_NAME.test(lastName(ts, e) ?? '');
   const { left, right } = node;
   if (
-    (named(left) || named(right)) &&
+    (storedPassword(ts, left) || storedPassword(ts, right)) &&
+    !sameReceiver(ts, left, right) &&
     !isPlainLiteral(ts, left) &&
     !isPlainLiteral(ts, right)
   )

@@ -1,3 +1,4 @@
+import { CONFIG_KEY_PATHS } from '../../../config/config-key-paths';
 import { CONFIG_FILES } from '../../constants';
 
 /**
@@ -6,6 +7,11 @@ import { CONFIG_FILES } from '../../constants';
  */
 export class ConfigurationFileLoaderConfiguration {
   private static readonly config = ConfigurationFileLoaderConfiguration;
+
+  /** The config's settings, split into path segments (schema spelling). */
+  private static readonly configKeySegments = CONFIG_KEY_PATHS.map(path =>
+    path.split('.')
+  );
 
   /**
    * Supported configuration files (RULE 1: 100% internal coverage)
@@ -159,5 +165,39 @@ export class ConfigurationFileLoaderConfiguration {
     return normalizedKey
       .toLowerCase()
       .replace(new RegExp(config.separators.value, 'g'), config.separators.key);
+  }
+
+  /**
+   * The config path an environment variable names, in the schema's spelling.
+   *
+   * The variable is upper-case and split on `_`, so lower-casing it lost the
+   * case of every camelCase key: ROC_LAWS_PARETOMODE became laws.paretomode,
+   * a key nothing reads (#619). Each segment is now matched against the
+   * config's settings without regard to case (`*` takes any entry of a
+   * free-form map, as written in lower case). `known` is false when no
+   * setting matches; the path is then the lower-cased one, as before.
+   */
+  static resolveEnvKey(key: string): { path: string[]; known: boolean } {
+    const segments = this.normalizeEnvKey(key).split(
+      this.config.ENVIRONMENT_CONFIG.separators.key
+    );
+    if (segments.some(segment => segment.length === 0)) {
+      return { path: segments, known: false };
+    }
+    const match = this.configKeySegments.find(
+      known =>
+        known.length === segments.length &&
+        known.every(
+          (part, index) =>
+            part === '*' || part.toLowerCase() === segments[index]
+        )
+    );
+    if (!match) return { path: segments, known: false };
+    return {
+      path: match.map((part, index) =>
+        part === '*' ? (segments[index] ?? part) : part
+      ),
+      known: true,
+    };
   }
 }

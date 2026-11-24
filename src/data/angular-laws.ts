@@ -182,7 +182,7 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       "The 'signal used but not imported' check parses the named specifiers of each import, so grouped, multiline, `import type` and aliased forms all count — but it never resolves the module path, so a `signal` imported from anywhere satisfies it.",
-      'The Subject check strips comments but not strings and matches by filename suffix, not framework detection; `Signal<` matches inside `WritableSignal<` (double-count).',
+      'The Subject check strips comments but not strings and matches by filename suffix, not framework detection.',
       'Regex over source, no AST — a Subject in a string literal is not distinguished.',
     ],
     emoji: '📡',
@@ -490,7 +490,8 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Scans *.selector(s).ts and *.component.ts by name; the direct-state-access regex is line-shaped and misses multiline selectors; comment/string-blind.',
-      "Real issues are DOUBLE-counted (two analyzers push identical violations); 'proper import' is a bare `@ngrx/store` substring.",
+      'A direct store.select is read from the syntax tree of *.component.ts: the receiver must be typed or injected as the `Store` of @ngrx/store in that file, or be named `store` and not declared there as another class; `store.pipe(select(…))` and a receiver reached through another object are not judged. Without the typescript package the files are reported as not read.',
+      "Other real issues are DOUBLE-counted (two analyzers push identical violations); 'proper import' is a bare `@ngrx/store` substring.",
       'Not gated — runs on any project.',
     ],
     emoji: '⚡',
@@ -530,7 +531,8 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
         'Return new state (spread / Immer) from reducers; never mutate state.x, push/pop, or delete state.y.',
     },
     detectionLimits: [
-      'The mutation regex `state.x =` also matches equality `state.x === y` (the `=` of `===`) — a phantom mutation false positive.',
+      'The mutation check is a regex over an object named `state`: an assignment through another name, or a compound one (`state.count += 1`), is not seen.',
+      'The "object literal returns" suggestion is whole-file: one `return { … }` or `=> ({ … })` anywhere in the file satisfies it for every handler.',
       "The 'no spread' check is whole-file, so an on() reducer using Immer or returning object literals without `...` is false-flagged; violations are double-counted.",
       'Only .reducer.ts; comment/string-blind; not gated.',
     ],

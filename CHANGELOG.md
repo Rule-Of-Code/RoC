@@ -29,9 +29,13 @@ not there, or held a check that could never report:
 - NgRx Reducers Immutability Mandate: `state.loading === true` is a comparison,
   not a mutation; `(state) => ({ ...state, … })` is an object literal return.
 - NgRx Selectors Memoization Mandate: "Direct store.select usage" now fires on
-  a `store.select` with a string key or an inline projector; a selector
-  argument (`selectUsers`, `fromUser.selectAll`, `selectUserById(id)`) is not
-  judged.
+  a `store.select` with a string key or an inline projector, once per file. The
+  call is read from the syntax tree: the receiver is the `Store` of
+  `@ngrx/store` as the file types or injects it, or a `store` the file does not
+  declare as another class (a ComponentStore is not judged); a selector
+  argument is not a finding. This is a new finding, and the law passes only
+  without one. Without the `typescript` package, or when a component does not
+  parse, its calls are reported as not read and the law does not pass.
 
 Each false finding has a control in `tests/regression/ngrx-signals-analyzers-612.test.ts`:
 the real defect is still reported.

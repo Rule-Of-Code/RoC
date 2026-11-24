@@ -7,6 +7,7 @@ import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { NgRxMemoizationComplianceAnalyzer } from '../../utils/angular/ngrx-memoization';
 import { NgRxSelectorPatternsAnalyzer } from '../../utils/angular/ngrx-selector-patterns';
 import { NgRxSetupAnalyzer } from '../../utils/angular/ngrx-setup';
+import { withNotRead } from '../../utils/judged-nothing';
 
 export class NgRxSelectorsMemoizationMandateLaw {
   static check(context: LawCheckContext): LawResult {
@@ -41,7 +42,7 @@ export class NgRxSelectorsMemoizationMandateLaw {
     const score =
       violations.length === 0 ? 100 : Math.max(0, 100 - violations.length * 10);
 
-    return {
+    const result: LawResult = {
       passed: score >= 100,
       lawName: 'NgRx Selectors Memoization Mandate',
       message:
@@ -53,5 +54,7 @@ export class NgRxSelectorsMemoizationMandateLaw {
       score,
       config: context.config,
     };
+    // Component files whose store.select calls could not be read (#612).
+    return withNotRead(result, memoizationAnalysis.notRead ?? []);
   }
 }

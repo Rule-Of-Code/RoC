@@ -7,6 +7,7 @@
  * next to it: the real defect is still reported.
  */
 import path from 'path';
+import { NgRxSelectorsMemoizationMandateLaw } from '../../src/checkers/angular-laws/ngrx-selectors-memoization-mandate';
 import { AngularSignalImportsAnalyzer } from '../../src/utils/angular/angular-signal-imports/angular-signal-imports-analyzer';
 import { NgRxEffectPatternsValidation } from '../../src/utils/angular/ngrx-effect-patterns/ngrx-effect-patterns-validation';
 import { NgRxErrorHandlingValidationPatterns } from '../../src/utils/angular/ngrx-error-handling/ngrx-error-handling-validation-patterns';
@@ -15,6 +16,7 @@ import { NgRxImmutabilityValidationPatterns } from '../../src/utils/angular/ngrx
 import { NgRxMemoizationValidationPatterns } from '../../src/utils/angular/ngrx-memoization/ngrx-memoization-validation-patterns';
 import { NgRxNamingConventionsValidationPatterns } from '../../src/utils/angular/ngrx-naming-conventions/ngrx-naming-conventions-validation-patterns';
 import { FileUtils } from '../../src/utils/file-utils';
+import * as tsxSource from '../../src/utils/react/tsx-source';
 import { manifest, project } from '../checkers/toolkit-fixture';
 
 const config = FileUtils.getMinimalDefaultConfig();
@@ -297,22 +299,103 @@ describe('#612 point 10: "Direct store.select usage" fires on a select that bypa
   const DIRECT =
     'Direct store.select usage instead of selector in user.component';
 
+  const NGRX = "import { Store } from '@ngrx/store';";
+
   it.each([
     "this.users$ = this.store.select('users');",
     'this.users$ = this.store.select("users");',
     'this.users$ = this.store.select(state => state.users);',
     'this.users$ = this.store.select((state: AppState) => state.users);',
+    'this.users$ = this.store.select<User[]>(s => s.users);',
+    'this.users$ = this.store.select(function (s) { return s.users; });',
+    'this.users$ = this.store.select((s => s.users) as Projector);',
+    `${NGRX} class C { private readonly state$ = inject(Store); u = this.state$.select('users'); }`,
+    `${NGRX} class C { constructor(private ngrx: Store<AppState>) { this.ngrx.select('users'); } }`,
+    `${NGRX} class C { #store = inject(Store); u = this.#store.select('users'); }`,
   ])('%s is reported', line => {
     expect(component(`${line}\n`).violations).toEqual([DIRECT]);
   });
 
+  it('two calls in one file are one finding', () => {
+    expect(
+      component("this.store.select('a');\nthis.store.select('b');\n").violations
+    ).toEqual([DIRECT]);
+  });
+
   it.each([
     'this.users$ = this.store.select(selectUsers);',
+    'this.users$ = this.store.select((selectUsers));',
     'this.users$ = this.store.select(fromUser.selectAll);',
     'this.user$ = this.store.select(selectUserById(id));',
+    "this.user$ = this.store.select(selectById('x'));",
     'this.users$ = this.store.pipe(select(selectUsers));',
+    "// was: this.store.select('users')",
+    '/* this.store.select(s => s.users) */ this.store.select(selectUsers);',
+    'const hint = "this.store.select(\'users\')";',
+    "this.restore.select('users');",
+    "this.backupRestore.select('users');",
+    "this.service.store.select('users');",
+    'class C { private store = inject(UsersStore); u = this.store.select(s => s.users); }',
+    'class C { constructor(private store: UsersStore) { this.store.select(s => s.users); } }',
+    "import { Store } from '@ngxs/store'; class C { store = inject(Store); u = this.store.select('users'); }",
   ])('control: %s is not reported', line => {
     expect(component(`${line}\n`).violations).toEqual([]);
+  });
+
+  it('the law reports it once, not once per analyzer', () => {
+    const root = project({
+      'package.json': manifest({ '@ngrx/store': '^20.0.0' }),
+      'src/app/user/user.component.ts': "this.store.select('users');\n",
+    });
+    const result = NgRxSelectorsMemoizationMandateLaw.check({
+      projectRoot: root,
+      config,
+    });
+    expect(result.violations).toEqual([DIRECT]);
+    expect(result.passed).toBe(false);
+    expect(result.notRead).toBeUndefined();
+  });
+
+  describe('a component that cannot be read is said, not judged as text', () => {
+    const law = (content: string) =>
+      NgRxSelectorsMemoizationMandateLaw.check({
+        projectRoot: project({
+          'package.json': manifest({ '@ngrx/store': '^20.0.0' }),
+          'src/app/user/user.component.ts': content,
+        }),
+        config,
+      });
+    afterEach(() => jest.restoreAllMocks());
+
+    it('no TypeScript: notRead, not passed, no finding', () => {
+      jest.spyOn(tsxSource, 'loadTypeScript').mockReturnValue(null);
+      const result = law("this.store.select('users');\n");
+      expect(result.violations).toEqual([]);
+      expect(result.passed).toBe(false);
+      expect(result.notRead).toEqual([
+        expect.stringContaining(
+          'the store.select calls of 1 component file(s) were NOT read'
+        ),
+      ]);
+    });
+
+    it('a file with syntax errors: notRead names it', () => {
+      const result = law("this.store.select('users'\n");
+      expect(result.violations).toEqual([]);
+      expect(result.passed).toBe(false);
+      expect(result.notRead).toEqual([
+        expect.stringMatching(
+          /user\.component\.ts: could not be parsed — its store\.select calls were NOT read$/
+        ),
+      ]);
+    });
+
+    it('control: no TypeScript and no .select call in any component: nothing to read', () => {
+      jest.spyOn(tsxSource, 'loadTypeScript').mockReturnValue(null);
+      const result = law('export class UserComponent {}\n');
+      expect(result.notRead).toBeUndefined();
+      expect(result.passed).toBe(true);
+    });
   });
 });
 

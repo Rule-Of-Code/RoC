@@ -50,7 +50,7 @@ export class TodoManagementLaw {
       suggestions.push(
         'Convert excess TODOs to GitHub Issues or remove obsolete ones'
       );
-      score -= RULES.excessPenalty(todoAnalysis.totalCount);
+      score -= RULES.excessPenalty(todoAnalysis.totalCount, maxTodoCount);
     }
 
     // 3. Check TODO format compliance
@@ -101,7 +101,7 @@ export class TodoManagementLaw {
 
     return Promise.resolve({
       passed: violations.length === 0,
-      score: Math.max(0, score),
+      score: Math.min(100, Math.max(0, score)),
       message:
         violations.length === 0
           ? `TODO management compliant: ${todoAnalysis.totalCount} TODOs, ${overallCompliance}% properly formatted`

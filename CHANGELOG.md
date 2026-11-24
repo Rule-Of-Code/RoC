@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — TODO Management measures the excess TODOs against the configured limit (#601)
+
+The excess-TODO deduction was measured against a fixed allowance of 30,
+while the check that triggers it used `thresholds.documentation.maxTodoCount`.
+With a limit below 30 and a count between the limit and 30 the deduction was
+negative: "20 TODOs found (limit: 10)" came with a score of 103. Above 30
+TODOs the deduction was the same for every limit. It is now the excess over
+the configured limit, relative to it, up to the same 40-point maximum; a
+limit of 0 or below costs the maximum for any TODO over it, and the score
+is capped at 100. With the default limit the deduction is unchanged.
+
 ### Internal — Jest keeps its cache in this checkout (#592)
 
 Jest kept its transform cache in the OS temp directory (`<tmp>/jest`), which

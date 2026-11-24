@@ -122,16 +122,6 @@ describe('utils/angular/angular-bundle/angular-bundle-configuration', () => {
       });
     });
 
-    describe('SOURCE_CODE_REVIEW', () => {
-      it('should return suggestion for source code review', () => {
-        const result =
-          AngularBundleConfiguration.VALIDATION_MESSAGES.SOURCE_CODE_REVIEW();
-
-        expect(result.suggestionMessage).toContain('source code');
-        expect(result.suggestionMessage).toContain('performance');
-      });
-    });
-
     describe('WEBPACK_PERFORMANCE_CONFIGURED', () => {
       it('should return message with config file list', () => {
         const result =

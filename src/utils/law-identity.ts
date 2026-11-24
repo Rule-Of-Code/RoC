@@ -5,7 +5,7 @@
  * checkers — a cycle).
  */
 
-import { hasHtmlDocument, hasJsTsToolchain } from './law-requirements';
+import { hasHtmlDocument, hasJsTsToolchain } from './project-substrate';
 
 /** The audit output prints slugged law names — same transform as law-base. */
 export function slugifyLawName(name: string): string {
@@ -165,6 +165,23 @@ export const STACK_PROJECT_TYPES: Record<string, string[]> = {
 };
 
 /**
+ * The root to read for a static site: a `stack: frontend` law whose card says
+ * `staticSiteHtml`, on a `generic` project with a known root (#323).
+ */
+function staticSiteRoot(
+  stack: string,
+  projectType: string,
+  projectRoot: string | undefined,
+  law: { staticSiteHtml?: boolean | undefined } | undefined
+): string | undefined {
+  const readsHtml =
+    stack === 'frontend' &&
+    projectType === 'generic' &&
+    law?.staticSiteHtml === true;
+  return readsHtml ? projectRoot : undefined;
+}
+
+/**
  * Whether a law applies to a project type given its stack scope. Universal laws
  * (no stack) always apply; an unknown project type is treated permissively
  * (everything applies) so detection gaps never silently drop coverage.
@@ -190,14 +207,8 @@ export function lawAppliesToProjectType(
   if (!projectType) return true; // unknown type → don't drop coverage
   const types = STACK_PROJECT_TYPES[stack];
   if (!types) return true;
-  if (
-    stack === 'frontend' &&
-    projectType === 'generic' &&
-    law?.staticSiteHtml === true &&
-    projectRoot !== undefined
-  ) {
-    return hasHtmlDocument(projectRoot, ignores);
-  }
+  const siteRoot = staticSiteRoot(stack, projectType, projectRoot, law);
+  if (siteRoot !== undefined) return hasHtmlDocument(siteRoot, ignores);
   if (!types.includes(projectType)) return false;
   if (
     stack === 'typescript' &&

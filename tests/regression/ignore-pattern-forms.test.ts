@@ -19,6 +19,7 @@ import {
 } from '../../src/utils/config/path-patterns';
 import { FileUtils } from '../../src/utils/file-utils';
 import { spawnSync } from '../../src/utils/child-process';
+import { builtCli } from '../helpers/built-cli';
 
 const CLI = path.resolve(__dirname, '..', '..', 'dist', 'cli.js');
 
@@ -160,8 +161,7 @@ describe('#414 an absolute path outside the project is named, not ignored in sil
   });
 
   it('the audit prints a warning that names it', () => {
-    if (!fs.existsSync(CLI))
-      throw new Error('dist/cli.js missing — run `npm run build` before jest');
+    builtCli();
     fs.writeFileSync(
       path.join(dir, 'ruleofcode.config.json'),
       JSON.stringify({ ignores: { global: [outside] } })
@@ -270,8 +270,7 @@ describe('#414 a literal [name] is a glob class: excluded as written, and named'
   });
 
   it('the audit prints a warning that names the class and the literal form', () => {
-    if (!fs.existsSync(CLI))
-      throw new Error('dist/cli.js missing — run `npm run build` before jest');
+    builtCli();
     load(['app/[slug]/page.tsx']);
     const run = spawnSync(process.execPath, [CLI, 'audit', '--json'], {
       cwd: dir,

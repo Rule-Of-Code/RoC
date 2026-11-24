@@ -30,6 +30,7 @@ export const DEPLOYMENT_LAWS: EnhancedConstitutionalLaw[] = [
       "Judges the checklist's STRUCTURE (does it have steps for build & tests, security, rollback), NEVER the state of its boxes — the boxes belong to a deployment, not the repo.",
       "The build/test/security/auth checks are presence heuristics; a Node project's build check reads package.json.",
       'Universal — Python is recognised natively; the checklist file itself must exist.',
+      'A health check (JS/TS) is a code file named for one (health, healthz, healthcheck, liveness, readiness) or a router call or decorator for /health, /healthz, /ready, /live, /ping or /status (optionally under /api); a probe declared only in a Dockerfile HEALTHCHECK or a Kubernetes manifest is not read.',
       'The authentication, benchmarking, health-check and production-logging clauses are asked only where something runs for users (a Node or Python HTTP framework, a web surface, a mobile app shell, or a deploy target); a CLI tool or a library is judged on the checklist, build, tests and security scanning alone.',
     ],
     emoji: '✅',

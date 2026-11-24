@@ -9,6 +9,10 @@ import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 import { AngularLawBase } from './angular-law-base';
+
+/** Angular versions below this one are considered outdated. */
+const OLDEST_CURRENT_ANGULAR = 16.0;
+
 export class GenericAngularLaw extends AngularLawBase {
   static check(context: LawCheckContext): LawResult {
     const { projectRoot, config } = context;
@@ -189,7 +193,7 @@ export class GenericAngularLaw extends AngularLawBase {
 
   private static isOutdatedVersion(version: string): boolean {
     const versionNumber = parseFloat(version.replace(/[^0-9.]/g, ''));
-    return versionNumber < 16.0; // Versions below 16 are considered outdated
+    return versionNumber < OLDEST_CURRENT_ANGULAR;
   }
 
   private static findAngularSourceFiles(

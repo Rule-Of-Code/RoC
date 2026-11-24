@@ -19,6 +19,7 @@ import os from 'os';
 import path from 'path';
 
 import { spawnSync } from '../../src/utils/child-process';
+import { builtCli } from '../helpers/built-cli';
 
 const CLI = path.resolve(__dirname, '..', '..', 'dist', 'cli.js');
 
@@ -48,8 +49,7 @@ describe('#414 an ignores.global entry that matches no file is named', () => {
   afterAll(() => fs.rmSync(dir, { recursive: true, force: true }));
 
   const audit = (): string => {
-    if (!fs.existsSync(CLI))
-      throw new Error('dist/cli.js missing — run `npm run build` before jest');
+    builtCli();
     const run = spawnSync(
       process.execPath,
       [CLI, 'audit', '--mode=full', '--json'],
@@ -95,8 +95,7 @@ describe('#414 an entry the project also gitignores is generated output, not a t
   afterAll(() => fs.rmSync(dir, { recursive: true, force: true }));
 
   it('the gitignored entry is not named, the typo still is', () => {
-    if (!fs.existsSync(CLI))
-      throw new Error('dist/cli.js missing — run `npm run build` before jest');
+    builtCli();
     const run = spawnSync(
       process.execPath,
       [CLI, 'audit', '--mode=full', '--json'],

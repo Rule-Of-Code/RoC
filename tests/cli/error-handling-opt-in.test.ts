@@ -11,6 +11,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { spawnSync } from '../../src/utils/child-process';
+import { builtCli } from '../helpers/built-cli';
 
 const CLI = path.resolve(__dirname, '..', '..', 'dist', 'cli.js');
 const LAW = 'Error Handling Standards';
@@ -38,8 +39,7 @@ describe('#390 Error Handling Standards is opt-in', () => {
   let dir: string;
 
   beforeAll(() => {
-    if (!fs.existsSync(CLI))
-      throw new Error('dist/cli.js missing — run `npm run build` before jest');
+    builtCli();
     dir = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-390-'));
     fs.writeFileSync(
       path.join(dir, 'package.json'),

@@ -27,6 +27,9 @@
 
 import { commandsInText } from '../deployment/deploy-commands';
 
+/** How far past a command's name its argument is looked for. */
+const ARGUMENT_LOOKAHEAD = 400;
+
 export interface DumpVerdict {
   line: number;
   command: string;
@@ -310,7 +313,7 @@ export function pythonDumps(text: string): DumpVerdict[] {
       ),
     ].map(match => {
       const at = match.index ?? 0;
-      const rest = text.slice(at, at + 400);
+      const rest = text.slice(at, at + ARGUMENT_LOOKAHEAD);
       const argument = rest
         .slice(0, Math.max(1, rest.search(/[\])]/)))
         .replace(/["',]/g, ' ');

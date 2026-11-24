@@ -167,25 +167,7 @@ export class DirectoryScanner {
     const { currentPath, rootPath, config, options, result, currentDepth } =
       params;
 
-    // Check depth limit
-    if (options.maxDepth !== undefined && currentDepth > options.maxDepth) {
-      return;
-    }
-
-    // Check if path should be ignored
-    if (options.useConfigFiltering) {
-      const relativePath = PathOperations.getRelative(rootPath, currentPath);
-      if (
-        FileFilterUtils.shouldIgnoreFile(
-          relativePath,
-          config,
-          options.lawId,
-          options.includeTests
-        )
-      ) {
-        return;
-      }
-    }
+    if (this.skipsPath(params)) return;
 
     try {
       const entries = FileSystemOperations.readDirectory(currentPath);
@@ -224,6 +206,28 @@ export class DirectoryScanner {
         error: error instanceof Error ? error.message : String(error),
       });
     }
+  }
+
+  /** Past the depth limit, or ignored by the config: not scanned. */
+  private static skipsPath(params: {
+    currentPath: string;
+    rootPath: string;
+    config: RuleOfCodeConfig;
+    options: ScanOptions;
+    currentDepth: number;
+  }): boolean {
+    const { currentPath, rootPath, config, options, currentDepth } = params;
+    if (options.maxDepth !== undefined && currentDepth > options.maxDepth) {
+      return true;
+    }
+    if (!options.useConfigFiltering) return false;
+    const relativePath = PathOperations.getRelative(rootPath, currentPath);
+    return FileFilterUtils.shouldIgnoreFile(
+      relativePath,
+      config,
+      options.lawId,
+      options.includeTests
+    );
   }
 
   private static processDirectory(params: {

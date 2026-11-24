@@ -101,6 +101,16 @@ export class UnitTestProfessionalComponentTestingConstants {
     CRITICAL: 0,
   };
 
+  /** The score for coverage at or above each threshold. */
+  static readonly COVERAGE_SCORES = {
+    EXCELLENT: 100,
+    VERY_GOOD: 95,
+    GOOD: 85,
+    ACCEPTABLE: 70,
+    POOR: 50,
+    CRITICAL: 20,
+  };
+
   // Score deductions
   static readonly SCORE_DEDUCTIONS = {
     MISSING_SPEC_FILE: 5,
@@ -276,16 +286,16 @@ export class UnitTestProfessionalComponentTestingConstants {
    */
   static getScoreForCoverage(coveragePercent: number): number {
     if (coveragePercent >= this.COVERAGE_THRESHOLDS.EXCELLENT) {
-      return 100;
+      return this.COVERAGE_SCORES.EXCELLENT;
     } else if (coveragePercent >= this.COVERAGE_THRESHOLDS.VERY_GOOD) {
-      return 95;
+      return this.COVERAGE_SCORES.VERY_GOOD;
     } else if (coveragePercent >= this.COVERAGE_THRESHOLDS.GOOD) {
-      return 85;
+      return this.COVERAGE_SCORES.GOOD;
     } else if (coveragePercent >= this.COVERAGE_THRESHOLDS.ACCEPTABLE) {
-      return 70;
+      return this.COVERAGE_SCORES.ACCEPTABLE;
     } else if (coveragePercent >= this.COVERAGE_THRESHOLDS.POOR) {
-      return 50;
+      return this.COVERAGE_SCORES.POOR;
     }
-    return 20;
+    return this.COVERAGE_SCORES.CRITICAL;
   }
 }

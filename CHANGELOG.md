@@ -16,6 +16,28 @@ to about 180 GB. `jest.config.js` now sets `cacheDirectory` to
 `node_modules`, emptied by `npx jest --clearCache` (noted in CONTRIBUTING).
 No law changes.
 
+### 🐛 Fixed — Dead Code Elimination says what it reads; a dead-code tool that runs counts (#439)
+
+The card promised "Remove all unused imports, functions, and variables",
+and the law never looked for unused code: it reads a `debugger`, a statement
+after a `return` and commented-out declarations, and it asked for ESLint's
+`no-unused-vars` / `no-unreachable` rule. A dead-code tool counted only as a
+devDependency, and only in a suggestion.
+
+- The description, violation message, remediation, `satisfiedBy` and
+  detection limits now say exactly that; unused code is not promised.
+- A dead-code tool the project runs — knip, ts-prune, ts-unused-exports or
+  unimported, from a package script, a committed git hook or a CI step —
+  proves the "unused" part, in place of the ESLint rule. A tool that is only
+  a devDependency, an install line (`npm i -D knip`), a step name or a
+  comment does not count; the suggestion says when a tool is installed and
+  run nowhere. `depcheck` (unused dependencies, not dead code) is no longer
+  suggested.
+- The places are read by `commandInvocations`, the reader the audit
+  invocation probe uses (#434): every workspace script, `.husky`/`.githooks`,
+  lefthook, `.pre-commit-config.yaml`, `simple-git-hooks`, and the CI
+  providers the tool knows or a declared `pathMappings.cicdConfig`.
+
 ### 🐛 Fixed — Angular Testing Excellence reports a one-letter test title (#570)
 
 The descriptive-title rule (#557) reported an empty title, a placeholder or
@@ -79,6 +101,46 @@ The angular release-canary profile now plants its red violation for MD
 Footer Template (MANDATORY), the other opt-in law that a plain Angular
 fixture can fail, and its fixture paths are neutral (`libs/app/…`). Older
 entries below that describe the law are kept as history.
+
+### 🐛 Fixed — Lazy Loading Implementation reports lazy loading only (#562)
+
+The law's bundle step called three analyzers of `ChangeDetectionOptimizationLaw`
+(components, `trackBy`, observables) and appended their findings to its
+own. In a project without component files the line "No Angular components
+found" appeared twice and cost 20 points. That class was never a
+registered law, so its checks reached the product only through Lazy
+Loading. Lazy Loading now judges routes and bundle configuration only, and
+each check has the law that owns it:
+
+- `ngDoCheck` in a component, directive or service → **Angular Lifecycle
+  Management** (it runs on every change-detection pass);
+- `*ngFor` without `trackBy` → **Modern Angular Control Flow**, below
+  Angular 18 (from 18 its syntax rule already asks for `@for` with `track`);
+- `detectChanges()` / `markForCheck()` without OnPush and manual
+  subscriptions are judged by OnPush Change Detection Strategy and the
+  subscription laws; "any manual subscribe" on its own is dropped;
+- "No Angular components found" is not a finding of any law. A project
+  with no route configuration and no `@Component` in its code has no lazy
+  loading to judge: Lazy Loading now says it judged nothing there, instead
+  of passing with nothing judged (#427).
+
+`ChangeDetectionOptimizationLaw` has no caller left and is removed. It
+was not a registered law, so the law count does not change.
+
+### 🐛 Fixed — two leftovers of the 8.0.0 self-audit (#439)
+
+- **Commit Size Control** counted the same change twice when it reached the
+  history as a commit and its cherry-pick. A change is now counted once, by
+  its `git patch-id --stable`; when git cannot give patch-ids, every commit
+  is counted as before.
+- **Pre-Deployment Checklist** took any code file whose name contained
+  "health", "status" or "ping" for a health check (`order-status.ts`,
+  `shopping-cart.ts`), and missed a server that answers `GET /healthz` from
+  `server.ts`. A health check is now a file named for one (`health…`,
+  `liveness`, `readiness`) or a router call or decorator for `/health`,
+  `/healthz`, `/ready`, `/live`, `/ping` or `/status`.
+
+Still open in #439: Dead Code Elimination does not detect unused code.
 
 ### 🐛 Fixed — a module-level `let` reset in `beforeEach` is not shared state (#552)
 
@@ -685,6 +747,47 @@ lines. The map is gone: each law's authored `defaultSeverity` is the source
 of truth when no override is written. Every law's severity is unchanged. A
 user's config that still carries `law-N` keys keeps working: they are
 skipped as before.
+
+### 🧹 Internal — tests and the release canary remove their temp directories
+
+Test runs and `scripts/release-canary.js` left `roc-*` directories in the OS
+temp dir; on one machine they filled the system drive (a canary consumer is an
+installed tarball of about 50 MB). The hook-generation test removed the parent
+of its directory — the OS temp dir itself — until it reached a locked file, so
+it deleted other programs' temp files and left its own (#582).
+
+Tests make temp directories through `tests/helpers/temp-dirs.ts`, which removes
+them after the suite, also when a test fails. The canary removes its fixture,
+consumer and provenance directories when it finishes, green or red; with
+`--keep` it leaves them and prints their paths. The provenance tree's
+`node_modules` junction is removed as a link first. No law result changes.
+
+### 🧹 Internal — the CLI tests refuse a dist/ built from a different src/
+
+The tests that run `dist/cli.js` checked only that the file exists. In a
+worktree where a branch was merged or checked out without a rebuild they ran
+the old build: a correct change failed, and a broken `src/` could pass (#586).
+
+`npm run build` now writes `dist/.build-stamp.json`, a hash of the content of
+`src/` and `tsconfig.json` (line endings read as LF; it is not in the npm
+package). The CLI tests compare it through `tests/helpers/built-cli.ts` and
+stop with `dist/ was built from a different src/ — run npm run build` when it
+differs; they never build themselves. A checkout or merge that leaves the
+content unchanged does not trip the check. A `dist/` with no stamp (built with
+`tsc` alone) is refused as well. No law result changes.
+
+### Internal — RoC's own code names its numbers (#559)
+
+Magic Number Prevention reported 66 of RoC's own files: score weights
+(`score -= 25`), version cut-offs (Angular 16/18/19, Next.js 16), quote
+lengths, lookahead windows and the report's rule width written as bare
+numbers. Each is now a named constant beside the code that reads it — a
+`PENALTY` table per law, or one named value. The deployment and
+documentation laws keep their tables in `deployment-penalties.ts` and
+`documentation-penalties.ts`, beside files already past the size limit, and
+the code excerpt five readers quoted the same way is one helper, `codeExcerpt`.
+No score, threshold or message changes. The finding that remains is the
+ESLint `no-magic-numbers` rule not being configured for this repository.
 
 ## [8.0.1] - 2026-11-22
 

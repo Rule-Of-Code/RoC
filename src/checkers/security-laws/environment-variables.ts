@@ -10,6 +10,10 @@ import { readPublishableFiles } from '../../utils/git/git-layout';
 import { PathOperations } from '../../utils/path-operations';
 import { SecretManagementAnalyzer } from '../../utils/security/secret-management';
 import { SecurityLawBase } from './security-law-base';
+
+/** Characters of a suspected secret quoted in a finding. */
+const SECRET_QUOTE_LENGTH = 30;
+
 export class EnvironmentVariablesLaw {
   static check(context: LawCheckContext): LawResult {
     const violations: string[] = [];
@@ -103,7 +107,7 @@ export class EnvironmentVariablesLaw {
       const matches = content.match(pattern);
       if (matches && !this.isPlaceholder(matches, placeholderPatterns)) {
         violations.push(
-          `Potential secret found in ${envFile}: ${matches[0].substring(0, 30)}...`
+          `Potential secret found in ${envFile}: ${matches[0].substring(0, SECRET_QUOTE_LENGTH)}...`
         );
         suggestions.push(
           ...SecretManagementAnalyzer.getSecretManagementRecommendations()

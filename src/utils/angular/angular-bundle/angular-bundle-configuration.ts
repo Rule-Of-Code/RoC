@@ -50,11 +50,6 @@ export class AngularBundleConfiguration {
         'Review angular.json build configuration for optimization settings',
     }),
 
-    SOURCE_CODE_REVIEW: () => ({
-      suggestionMessage:
-        'Review source code for performance optimization opportunities',
-    }),
-
     WEBPACK_PERFORMANCE_CONFIGURED: (configs: string[]) => ({
       suggestionMessage: `Webpack performance configured in: ${configs.join(', ')}`,
     }),

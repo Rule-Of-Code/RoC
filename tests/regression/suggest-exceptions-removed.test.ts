@@ -17,6 +17,7 @@ import os from 'os';
 import path from 'path';
 
 import { spawnSync } from '../../src/utils/child-process';
+import { builtCli } from '../helpers/built-cli';
 
 const CLI = path.resolve(__dirname, '..', '..', 'dist', 'cli.js');
 
@@ -38,8 +39,7 @@ describe('#527 --suggest-exceptions is not an option of audit', () => {
   const cli = (
     args: string[]
   ): { status: number | null; stdout: string; stderr: string } => {
-    if (!fs.existsSync(CLI))
-      throw new Error('dist/cli.js missing — run `npm run build` before jest');
+    builtCli();
     const run = spawnSync(process.execPath, [CLI, ...args], {
       cwd: dir,
       encoding: 'utf8',

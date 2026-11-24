@@ -18,6 +18,7 @@ import path from 'path';
 
 import { EXIT_BACKUP_MS, exitWhenDone } from '../../src/cli/audit-command';
 import { spawn, spawnSync } from '../../src/utils/child-process';
+import { builtCli } from '../helpers/built-cli';
 
 const CLI = path.resolve(__dirname, '..', '..', 'dist', 'cli.js');
 const MARK = 'ROC_TEST_PROCESS_EXIT_CALLED';
@@ -67,8 +68,7 @@ describe('#385 the audit CLI exits on its own', () => {
   let keepAlive: string;
 
   beforeAll(() => {
-    if (!fs.existsSync(CLI))
-      throw new Error('dist/cli.js missing — run `npm run build` before jest');
+    builtCli();
     dir = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-385-'));
     fs.writeFileSync(
       path.join(dir, 'package.json'),

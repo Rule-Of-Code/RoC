@@ -184,10 +184,19 @@ export class TsClasses {
       paren += this.depthDelta(code[k], '([', ')]');
       const stop = paren === 0 ? this.fieldStop(code, k, close, assigned) : -1;
       if (stop !== -1) return stop;
-      assigned ||= paren === 0 && code[k] === '=' && this.isAssignment(code, k);
+      assigned ||= this.opensInitializer(code, k, paren);
       k++;
     }
     return close;
+  }
+
+  /** A `=` at bracket depth 0 that assigns: a field initializer starts here. */
+  private static opensInitializer(
+    code: string,
+    k: number,
+    paren: number
+  ): boolean {
+    return paren === 0 && code[k] === '=' && this.isAssignment(code, k);
   }
 
   /** Index just past the block whose `{` is at `k`, capped at the class's `}`. */

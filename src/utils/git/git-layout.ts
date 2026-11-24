@@ -220,6 +220,12 @@ function gitRun(
   return { status: result.status, stdout: result.stdout ?? '' };
 }
 
+/** Does git answer here, inside a working tree? */
+function insideWorkTree(projectRoot: string): boolean {
+  const inside = gitRun(INSIDE_WORK_TREE, projectRoot);
+  return !!inside && inside.status === 0 && inside.stdout.trim() === 'true';
+}
+
 /**
  * The {@link GitExposure} of each path (relative to `projectRoot`), or null
  * when git cannot answer — no git binary, or not inside a working tree. The
@@ -229,10 +235,7 @@ export function gitExposure(
   projectRoot: string,
   paths: readonly string[]
 ): Map<string, GitExposure> | null {
-  const inside = gitRun(INSIDE_WORK_TREE, projectRoot);
-  if (!inside || inside.status !== 0 || inside.stdout.trim() !== 'true') {
-    return null;
-  }
+  if (!insideWorkTree(projectRoot)) return null;
 
   const listed = gitRun(['ls-files', '-z', '--', ...paths], projectRoot);
   if (!listed || listed.status !== 0) return null;

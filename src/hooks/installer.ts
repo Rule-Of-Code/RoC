@@ -8,6 +8,7 @@ import type { RuleOfCodeConfig } from '../config/types';
 import { execFileSync, execSync } from '../utils/child-process';
 import { ProjectTypeDetectorValidation } from '../utils/config/project-type-detector/project-type-detector-validation';
 import { FileUtils } from '../utils/file-utils';
+import { GitHookPatterns } from '../utils/git-hook-patterns';
 import { hookInstallation } from '../utils/git-hook-status';
 import { PathOperations } from '../utils/path-operations';
 import { PythonSatisfaction } from '../utils/python-satisfaction';
@@ -478,7 +479,7 @@ esac
 ${patterns
   .map(
     (pattern, idx) => `
-# Pattern ${idx + 1}: ${pattern.substring(0, 50)}...
+# Pattern ${idx + 1}: ${pattern.substring(0, GitHookPatterns.PATTERN_COMMENT_LENGTH)}...
 if echo "$COMMIT_MSG" | grep -qE '${pattern.replace(/'/g, "'\\\\''")}'; then
     VALID=true
 fi`

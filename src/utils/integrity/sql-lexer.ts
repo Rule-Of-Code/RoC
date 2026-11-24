@@ -10,6 +10,9 @@
 
 export type TokenKind = 'ident' | 'number' | 'op' | 'punct' | 'string';
 
+/** The longest dollar-quote tag (`$tag$`) the lexer looks for. */
+const MAX_DOLLAR_TAG_LENGTH = 64;
+
 export interface SqlToken {
   kind: TokenKind;
   /** Identifiers: unquoted and lower-cased. Everything else: the text as written. */
@@ -24,7 +27,9 @@ const blank = (text: string): string => text.replace(/[^\n]/g, ' ');
 
 /** Length of the dollar-quote tag at `i` (`$$`, `$fn$`), or 0. */
 function dollarTag(text: string, i: number): string {
-  const match = /^\$[A-Za-z_]*\$/.exec(text.slice(i, i + 64));
+  const match = /^\$[A-Za-z_]*\$/.exec(
+    text.slice(i, i + MAX_DOLLAR_TAG_LENGTH)
+  );
   return match ? match[0] : '';
 }
 

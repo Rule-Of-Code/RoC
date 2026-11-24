@@ -22,6 +22,7 @@ import {
   flagValue,
   type FoundCommand,
 } from '../deployment/deploy-commands';
+import { QUOTE_LENGTH } from './proxy-target';
 
 export const PUBLIC_URL_KEYS = ['workers_dev', 'preview_urls'] as const;
 
@@ -108,7 +109,7 @@ export function secretUploads(text: string): SecretOrder[] {
     return {
       line: secret.line,
       verdict,
-      command: secret.text.trim().replace(/\s+/g, ' ').slice(0, 80),
+      command: secret.text.trim().replace(/\s+/g, ' ').slice(0, QUOTE_LENGTH),
     };
   });
 }

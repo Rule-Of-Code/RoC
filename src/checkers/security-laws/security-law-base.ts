@@ -6,6 +6,9 @@
 import type { LawResult, RuleOfCodeConfig } from '../../types/law.types';
 import { ConfigFileUtils } from '../../utils/config-file-utils';
 
+/** Points of the score of 100 each security violation costs. */
+const POINTS_PER_VIOLATION = 15;
+
 export class SecurityLawBase {
   static createResult(
     violations: string[],
@@ -15,7 +18,9 @@ export class SecurityLawBase {
     context?: { config: RuleOfCodeConfig }
   ): LawResult {
     const passed = violations.length === 0;
-    const score = passed ? 100 : Math.max(0, 100 - violations.length * 15);
+    const score = passed
+      ? 100
+      : Math.max(0, 100 - violations.length * POINTS_PER_VIOLATION);
 
     if (passed) {
       return {

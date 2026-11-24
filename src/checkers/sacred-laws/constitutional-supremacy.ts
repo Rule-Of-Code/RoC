@@ -17,6 +17,10 @@ import {
   runsConstitutionalAudit,
   complianceScriptSuggestion,
 } from '../../utils/compliance-scripts';
+
+/** Points of the score of 100 each constitutional violation costs. */
+const POINTS_PER_VIOLATION = 20;
+
 export class ConstitutionalSupremacyLaw {
   static check(context: LawCheckContext): LawResult {
     const violations: string[] = [];
@@ -48,7 +52,7 @@ export class ConstitutionalSupremacyLaw {
       score:
         violations.length === 0
           ? 100
-          : Math.max(0, 100 - violations.length * 20),
+          : Math.max(0, 100 - violations.length * POINTS_PER_VIOLATION),
       fixable: violations.length > 0,
       config: context.config,
     };

@@ -7,6 +7,9 @@ import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { describeCommitScope } from './commit-scope';
 import { GitLawBase } from './git-law-base';
 
+/** Characters of a commit message quoted in a finding. */
+const MESSAGE_QUOTE_LENGTH = 50;
+
 export class CommitMessageStandardsLaw extends GitLawBase {
   private static readonly LAW_NAME = 'Commit Message Standards';
 
@@ -104,7 +107,7 @@ export class CommitMessageStandardsLaw extends GitLawBase {
           violations.push(
             `Commit ${index + 1}: "${commit.substring(
               0,
-              50
+              MESSAGE_QUOTE_LENGTH
             )}..." is too long (${commit.length} chars, max ${maxLength})`
           );
         }

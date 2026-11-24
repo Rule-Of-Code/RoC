@@ -180,11 +180,11 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
       angular:
         'Give each *.component.ts a spec that configures TestBed, renders via ComponentFixture, and asserts on inputs/outputs or user interaction.',
       react:
-        'Give each client component X.tsx a co-located X.test.tsx (or __tests__/X.test.tsx) with at least two tests that query by role (screen.getByRole) and assert on what the user sees.',
+        'Give each client component X.tsx a co-located X.test.tsx (or __tests__/X.test.tsx) with at least two tests that query by role (screen.getByRole) and assert on what the user sees. The module that mounts the app with createRoot / hydrateRoot (Vite src/main.tsx) is not asked for one.',
     },
     detectionLimits: [
       'Angular: components are *.component.ts or files with @Component (Angular 20 hero.ts) under src/, apps/, libs/; each is paired with <name>.spec.ts beside it — a spec elsewhere or under another name is not paired.',
-      'React: every non-test .tsx/.jsx is a component (stories and Next route files under app/ excluded), so a .tsx helper with no JSX is asked for a test too; a test elsewhere than the sibling or __tests__/ is not found. React test quality is regex over the test text: two it()/test() calls, an expect(, a *ByRole query — a role query in a comment counts.',
+      'React: every non-test .tsx/.jsx is a component (stories, Next route files under app/, and a module whose code calls createRoot( or hydrateRoot( excluded), so a .tsx helper with no JSX is asked for a test too; a test elsewhere than the sibling or __tests__/ is not found. React test quality is regex over the test text: two it()/test() calls, an expect(, a *ByRole query — a role query in a comment counts.',
       'All regex over spec text (a TestBed in a comment counts). A project with no component file at all fails as judged-nothing. No Python, no Vue.',
     ],
     stack: 'frontend',

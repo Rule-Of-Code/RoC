@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — React testing guidance proved; the Vite entry module is not asked for a component test (#12)
+
+Professional Component Testing Policy counted every non-test `.tsx` as a
+component, so the module that mounts a React + Vite app (`src/main.tsx`,
+`createRoot(…).render(<App />)`) was reported as a component without a test
+on every such app. A module whose code calls `createRoot(` or
+`hydrateRoot(` is now the app's entry, not a component.
+
+The React guidance of Requires Spec, Professional Component Testing Policy
+and Performance Test Requirements is proved by a regression test on a React
++ Vite project, RED first and then GREEN by doing what `satisfiedBy.react`
+says. Requires Spec's card said "large or money-adjacent client components";
+it now says what the law asks: a `.tsx`/`.jsx` file in the feature or
+data-access layer over 200 lines (`thresholds.angular.specRequiredMinLoc`,
+which applies to React too) or one that writes an `X-Control-Pass` header,
+with a sibling test of the same base name — a test under `__tests__/` is
+not credited.
+
 ### ✨ Changed — Test Coverage Constitutional Standard judges by real line coverage (#599)
 
 With a coverage report — `coverage/coverage-summary.json` (Jest

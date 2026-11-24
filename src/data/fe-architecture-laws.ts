@@ -150,7 +150,7 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
       angular:
         'Add a co-located *.spec.ts for money-adjacent (*actions*) services and any feature/data-access file over the LOC threshold.',
       react:
-        'Large or money-adjacent client components (.tsx/.jsx in the feature or data-access layer) have a colocated test: Basket.tsx next to Basket.test.tsx or Basket.spec.tsx.',
+        'A .tsx/.jsx file in the feature or data-access layer over 200 lines (thresholds.angular.specRequiredMinLoc — the key sits under angular and applies to React too), or one that writes an X-Control-Pass header, has a co-located test with the same base name: Basket.tsx next to Basket.test.tsx or Basket.spec.tsx. A test under __tests__/ is not credited.',
     },
     detectionLimits: [
       'Checks that a test FILE exists next to the source (same base name, .spec/.test infix, any TS/JS extension), not its content — an empty one satisfies it; a test under __tests__/ or elsewhere is not credited.',

@@ -140,6 +140,24 @@ export class ConfigurationFileLoaderConfiguration {
   }
 
   /**
+   * Variables with the prefix that RuleOfCode's own code reads directly and
+   * that are not settings: they are neither put in the config nor warned about
+   * (#619). Both are read by the test suite: the CLI build to test, and the
+   * switch that records the golden files.
+   */
+  static readonly NON_CONFIG_ENV_VARS: readonly string[] = [
+    'ROC_CLI',
+    'ROC_RECORD_GOLDEN',
+  ];
+
+  /** Is this variable a setting by its name: the prefix, and not one of RoC's own? */
+  static isConfigEnvVar(key: string): boolean {
+    return (
+      this.isRuleOfCodeEnvVar(key) && !this.NON_CONFIG_ENV_VARS.includes(key)
+    );
+  }
+
+  /**
    * Check if environment variable key matches Rule of Code patterns (RULE 2: Caching)
    */
   static isRuleOfCodeEnvVar(key: string): boolean {

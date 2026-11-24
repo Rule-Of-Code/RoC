@@ -161,10 +161,7 @@ export class ConfigurationFileLoaderValidation {
     let hasConfig = false;
 
     for (const [key, value] of Object.entries(process.env)) {
-      if (
-        ConfigurationFileLoaderConfiguration.isRuleOfCodeEnvVar(key) &&
-        value
-      ) {
+      if (ConfigurationFileLoaderConfiguration.isConfigEnvVar(key) && value) {
         this.setEnvConfigValue(envConfig, key, value);
         hasConfig = true;
       }

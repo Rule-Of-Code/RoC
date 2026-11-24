@@ -12,6 +12,7 @@ import fs from 'fs';
 import path from 'path';
 import * as ts from 'typescript';
 import { CONFIG_KEY_PATHS } from '../../src/config/config-key-paths';
+import { ConfigurationFileLoaderConfiguration } from '../../src/utils/config/configuration-file-loader/configuration-file-loader-configuration';
 import { ConfigurationFileLoader } from '../../src/utils/config/configuration-file-loader/configuration-file-loader';
 
 const set: string[] = [];
@@ -161,5 +162,52 @@ describe('#619: CONFIG_KEY_PATHS is the config schema', () => {
   it('holds no two settings that differ only in case', () => {
     const lower = CONFIG_KEY_PATHS.map(p => p.toLowerCase());
     expect(new Set(lower).size).toBe(lower.length);
+  });
+});
+
+describe("#619: RuleOfCode's own variables are not config", () => {
+  const own = ConfigurationFileLoaderConfiguration.NON_CONFIG_ENV_VARS;
+
+  it.each([...own])('%s is neither set nor warned about', name => {
+    const before = process.env[name];
+    try {
+      process.env[name] = '1';
+      const config = ConfigurationFileLoader.loadFromEnvironment();
+      expect(warningsAbout(name)).toEqual([]);
+      const key = name.replace(/^ROC_/, '').toLowerCase().split('_')[0] ?? '';
+      expect(config ?? {}).not.toHaveProperty(key);
+    } finally {
+      if (before === undefined) delete process.env[name];
+      else process.env[name] = before;
+    }
+  });
+
+  it('control: a name that only starts like one of them is warned about', () => {
+    env('ROC_CLIENT', '1');
+    ConfigurationFileLoader.loadFromEnvironment();
+    expect(warningsAbout('ROC_CLIENT')).toHaveLength(1);
+  });
+
+  it('lists every prefixed variable the repository reads by name', () => {
+    const root = path.join(__dirname, '../..');
+    const read = new Set<string>();
+    const scan = (dir: string): void => {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) scan(full);
+        else if (/\.(?:ts|js|mjs|cjs)$/.test(entry.name)) {
+          const reads = fs
+            .readFileSync(full, 'utf8')
+            .matchAll(
+              /process\.env(?:\.|\[['"])((?:ROC|RULEOFCODE)_[A-Z0-9_]+)/g
+            );
+          for (const match of reads) read.add(match[1] ?? '');
+        }
+      }
+    };
+    for (const dir of ['src', 'scripts', 'templates', 'tests']) {
+      scan(path.join(root, dir));
+    }
+    expect([...read].sort()).toEqual([...own].sort());
   });
 });

@@ -19,8 +19,10 @@ spelling (`laws.paretoMode`, `performance.maxConcurrent`,
 (`ROC_LAWS_SEVERITY_<LAW>`) is set as before. A `ROC_` / `RULEOFCODE_`
 variable that matches no setting is still set as before, and now prints
 `Environment variable <NAME> matches no config key (set as <path>)` on
-stderr. The settings are listed in `src/config/config-key-paths.ts`; a
-regression test fails when that list no longer equals `RuleOfCodeConfig`.
+stderr; the variables RuleOfCode's own test suite reads (`ROC_CLI`,
+`ROC_RECORD_GOLDEN`) are not settings and are left alone. The settings are
+listed in `src/config/config-key-paths.ts`; a regression test fails when that
+list no longer equals `RuleOfCodeConfig`.
 
 ### ✨ Changed — Test Coverage Constitutional Standard judges by real line coverage (#599)
 

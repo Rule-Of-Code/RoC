@@ -20,9 +20,11 @@
  */
 
 import * as fs from 'fs';
+import type * as TS from 'typescript';
 
 import type { RuleOfCodeConfig } from '../../config/types';
 import { PathOperations } from '../../utils/path-operations';
+import { loadTypeScript } from '../../utils/react/tsx-source';
 import {
   type CoverageReport,
   CoverageReportReader,
@@ -108,11 +110,15 @@ export class CoverageByReport {
   private static byReport(
     scope: Scope,
     report: CoverageReport,
-    sources: string[],
+    allSources: string[],
     floor: number
   ): CoverageVerdict {
     const violations: string[] = [];
     const suggestions: string[] = [];
+    // A file with no runtime code (only types and type imports) has nothing
+    // a test can run: istanbul still gives it one line at 0%, so it is not
+    // judged by the report.
+    const sources = this.withRuntimeCode(scope.projectRoot, allSources);
     const below = sources
       .map(file => ({ file, pct: this.percent(this.entry(report, file)) }))
       .filter(
@@ -156,6 +162,42 @@ export class CoverageByReport {
       }
     }
     return { violations, suggestions, notRead: [], report: report.path };
+  }
+
+  /**
+   * The files that hold runtime code. A file whose every statement is an
+   * interface, a type alias, a type-only import or export, or a `declare`
+   * has none. Without a loadable `typescript` every file is kept.
+   */
+  private static withRuntimeCode(
+    projectRoot: string,
+    files: string[]
+  ): string[] {
+    const ts = loadTypeScript(projectRoot);
+    if (!ts) return files;
+    return files.filter(file => !this.typeOnly(ts, file));
+  }
+
+  private static typeOnly(ts: typeof TS, file: string): boolean {
+    let text: string;
+    try {
+      text = fs.readFileSync(file, 'utf8');
+    } catch {
+      return false;
+    }
+    const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest);
+    return source.statements.every(
+      statement =>
+        ts.isInterfaceDeclaration(statement) ||
+        ts.isTypeAliasDeclaration(statement) ||
+        (ts.isImportDeclaration(statement) &&
+          statement.importClause?.isTypeOnly === true) ||
+        (ts.isExportDeclaration(statement) && statement.isTypeOnly) ||
+        (ts.canHaveModifiers(statement) &&
+          (ts.getModifiers(statement) ?? []).some(
+            m => m.kind === ts.SyntaxKind.DeclareKeyword
+          ))
+    );
   }
 
   private static byPresence(scope: Scope, notRead: string[]): CoverageVerdict {

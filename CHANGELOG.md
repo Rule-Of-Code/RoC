@@ -16,6 +16,9 @@ by its line coverage: below `thresholds.testing.minFileLineCoveragePercent`
 (0–100, default 80) is a finding with the percentage, and the passing
 message names the report. A source file the report does not name is judged
 by the presence of a test, as before; the test-file ratio is not judged.
+A file with no runtime code — only interfaces, type aliases, type-only
+imports and exports, `declare` — is not judged by the report: coverage tools
+still list it with one line at 0%, and there is nothing a test can run.
 
 A report that cannot be used is never read in silence: older than the code
 (a judged source file was modified after it — neither format records a

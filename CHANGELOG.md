@@ -524,6 +524,80 @@ programmatic option `suggestExceptions` is gone from `AuditOptions` and
 `RuleOfCodeAuditor.create`; the constructor keeps its positional slot, unused,
 so positional callers keep their mode and options (#527).
 
+### 🐛 Fixed — NX Commands Only Policy is selected only for an Nx workspace
+
+The law was selected for an Nx workspace or any Angular project, and then
+required `nx.json`: an Angular CLI workspace that never chose Nx failed it at
+error severity. Adopting a monorepo tool is a choice, not a defect, so the law
+is now selected only for an Nx workspace (`nx.json`, or the `nx` /
+`@nx/workspace` / `@nrwl/workspace` package; `REQUIRES_NX_WORKSPACE`). An
+Angular project in an Nx workspace is still judged. The canary angular, ngrx
+and ionic profiles no longer select it (#475).
+
+### 🐛 Fixed — one `any` is one finding: Absolute Zero Tolerance Doctrine owns it
+
+An `x as any` (or a `: any` / `any[]` declaration) was a finding of two laws:
+Absolute Zero Tolerance Doctrine (error) and No Explicit Any / Non-Null
+Assertion (warning). One defect read as two. Absolute Zero Tolerance
+Doctrine, the error-severity gate that already judges these from the code
+(#459), owns them; No Explicit Any no longer counts them again and keeps what
+the other law does not judge: `<any>` assertions and type arguments, the weak
+`Function` / `Object` types and non-null `!`. Both law cards say so. No
+finding is unblocked: the owner of the overlap is the law that blocks (#482).
+
+### 🐛 Fixed — Code Documentation Standards reads JavaScript exports
+
+The law judged exported classes and functions in `.ts` / `.tsx` only: the
+exports of a `.js`, `.jsx`, `.mjs` or `.cjs` file were never looked at, with
+no note, so a JavaScript project got a clean result from a law that did not
+read its code. JavaScript is now read through the same parser with the same
+rule; CommonJS `module.exports` is not an ES export and stays out, as the card
+says (#493).
+
+### 🐛 Fixed — MD Footer Template's "nothing was judged" names the fix
+
+When the configured includes select no Markdown file, the opt-in law reported
+the cause and not the fix. The message now ends with
+`Give this law the Markdown files with includes.byRule: { "md-footer-template-mandatory": ["**/*.md"] }`,
+the key derived from the law's title the way the registry derives every
+config key, so it stays right if the title changes (#501).
+
+### 🐛 Fixed — Zero Tolerance Doctrine: strict turns noImplicitAny on
+
+A tsconfig that sets `"strict": true` and does not repeat `noImplicitAny` got
+`TypeScript noImplicitAny not enabled`. TypeScript's `strict` turns
+`noImplicitAny` on, so the finding was false. The flag now counts as enabled
+when it is `true`, or when it is unset and `strict` is `true` (in the file or
+a base it extends); only an explicit `"noImplicitAny": false` is reported.
+That holds only when every file of the `extends` chain was read: a base that
+could not be read may set `"noImplicitAny": false`, which `strict: true` in
+the file does not undo. There the law says `… which could not be read —
+noImplicitAny was NOT read` in `notRead` (#453): not a finding, not passed,
+and no claim that the flag is on or off (#506).
+
+### 🐛 Fixed — Professional Excellence Mandate reads every ESLint config ESLint reads
+
+The ESLint concern accepted a fixed list of files, so a project with its
+config in package.json `eslintConfig`, an extensionless `.eslintrc`, or
+`eslint.config.mts` / `.cts` got `Missing eslint.config.mjs`. It now reads the
+same list as Zero Tolerance Doctrine (`ESLINT_CONFIG_FILES`, one list for both
+laws) and accepts `eslintConfig` (an object) in the root package.json (#507).
+
+### 🐛 Fixed — an ESLint config the code-quality laws do not read is said to be NOT read
+
+Dead Code Elimination, Code Complexity Control and Magic Number Prevention
+read an ESLint config by running `eslint.config.js` / `.mjs` or reading
+`.eslintrc.json`, `.eslintrc` and package.json `eslintConfig`. For an
+`eslint.config.cjs` / `.ts` / `.mts` / `.cts`, `.eslintrc.js` or
+`.eslintrc.cjs` the shared reader answered "no config": Dead Code Elimination
+then reported `ESLint dead code detection rules not configured` about a config
+it never read, and the other two said nothing. The reader now returns the file
+with a note in the shared wording (`.eslintrc.js is a config these laws do not
+run — its rules were NOT read`), and all three laws report it the same way:
+in `notRead` (#453), not among the findings. A law with no finding read its
+input in part (`◐ Partly read` at warning or info severity), not a law with
+one finding (#508).
+
 ### Internal — unused npm audit simulator removed
 
 `NpmAuditSimulator` (`src/utils/security/npm-audit-simulator.ts`) and the
@@ -617,8 +691,10 @@ Strict Mode (an `extends` link it cannot read), Independent Awaits Run
 Concurrently, Async Cache Single-Flight and Database Read Cache Safety (files
 the request-path reader could not parse), HTML Lang Declared (sources and a
 `next.config` it could not read), Accessibility Linting Enforcement (an ESLint
-config script) and Capacitor Plugin Stub Has Contract Test (test configs and
-mappers it could not read) fill it. A law that read none of its files is still
+config script), Capacitor Plugin Stub Has Contract Test (test configs and
+mappers it could not read) and Dead Code Elimination, Code Complexity Control
+and Magic Number Prevention (an ESLint config they do not run or could not
+read, #508) fill it. A law that read none of its files is still
 judged nothing, whether its note is a violation or in `notRead` (#453).
 
 ### 🐛 Fixed — a native Android, iOS or Flutter app is a production subject (#577)

@@ -21,11 +21,11 @@ import { CodeQualityLawBase } from './code-quality-law-base';
 import { readSource } from './source-view';
 
 export class NoExplicitAnyNonNullLaw extends CodeQualityLawBase {
+  // `: any`, `as any` and `any[]` written in a declaration or a cast are
+  // counted by Absolute Zero Tolerance Doctrine, the error-severity gate that
+  // owns them (#482); counting them here too made one `any` two findings.
   private static readonly ANY_PATTERNS: RegExp[] = [
-    /:\s*any\b/g, // : any annotation
-    /\bas\s+any\b/g, // as any
     /<any>/g, // <any> assertion / type arg (incl. Array<any>)
-    /\bany\[\]/g, // any[]
     // The weak types as a TYPE — not a value written after a colon, such as
     // `{ keys: Object.keys(x) }` or `{ make: Function(body) }`.
     /:\s*Function\b(?!\s*[.(])/g, // weak Function type

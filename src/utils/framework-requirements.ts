@@ -33,15 +33,14 @@ export const REQUIRES_REACT: LawRequirement = { anyDependency: ['react'] };
 export const REQUIRES_NEXT: LawRequirement = { anyDependency: ['next'] };
 
 /**
- * An Nx workspace (nx.json, or the nx package), or an Angular project — the
- * Angular CLI workspace is the one Nx replaces, so the law keeps asking an
- * Angular project to drive it through Nx. A plain TypeScript, React or Node
- * project without Nx has no `ng`/`nx` commands to choose between.
+ * An Nx workspace: nx.json, or the nx packages. The Nx law is about a
+ * workspace that IS Nx (`ng build` and `nx build` are not the same command
+ * there); an Angular CLI workspace without Nx has only `ng` and chose no
+ * monorepo tool, so it is not asked to adopt one at error severity (#475).
  */
-export const REQUIRES_NX_OR_ANGULAR: LawRequirement = {
+export const REQUIRES_NX_WORKSPACE: LawRequirement = {
   anyOf: [
     { anyFile: ['nx.json'] },
     { anyDependency: ['nx', '@nx/workspace', '@nrwl/workspace'] },
-    REQUIRES_ANGULAR,
   ],
 };

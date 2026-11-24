@@ -43,32 +43,12 @@ export class TestAutomationStandardsLaw {
           projectRoot
         );
 
-      if (!automationAnalysis.hasTestScripts) {
-        violations.push('Missing test scripts in package.json');
-        suggestions.push('Add test script commands to package.json');
-        score -= PENALTY.testScripts;
-      }
-
-      if (!automationAnalysis.hasTestRunner) {
-        violations.push('No test runner configured');
-        suggestions.push(
-          'Install and configure Jest, Mocha, Vitest, or similar'
-        );
-        score -= PENALTY.testRunner;
-      }
-
-      if (!automationAnalysis.hasTestEnvironment) {
-        violations.push('Test environment setup missing');
-        suggestions.push(
-          'Create test setup files and environment configuration'
-        );
-        score -= PENALTY.testEnvironment;
-      }
-
-      if (!automationAnalysis.hasParallelization) {
-        suggestions.push('Configure test parallelization for faster execution');
-        score -= PENALTY.parallelization;
-      }
+      score = this.automationFindings(
+        automationAnalysis,
+        violations,
+        suggestions,
+        score
+      );
 
       // 2. Analyze CI/CD integration
       const cicdAnalysis =
@@ -76,19 +56,7 @@ export class TestAutomationStandardsLaw {
           projectRoot
         );
 
-      if (!cicdAnalysis.hasCICDConfig) {
-        violations.push('No CI/CD configuration found');
-        suggestions.push(
-          'Set up GitHub Actions, GitLab CI, Bitbucket Pipelines, or similar'
-        );
-        score -= PENALTY.cicdConfig;
-      }
-
-      if (cicdAnalysis.hasCICDConfig && !cicdAnalysis.hasAutomatedTests) {
-        violations.push('CI/CD configured but tests not automated');
-        suggestions.push('Add test execution to CI/CD pipeline');
-        score -= PENALTY.cicdTests;
-      }
+      score = this.cicdFindings(cicdAnalysis, violations, suggestions, score);
 
       // 3. Analyze test runner configuration
       const runnerAnalysis =
@@ -141,6 +109,65 @@ export class TestAutomationStandardsLaw {
         config: context.config,
       };
     }
+  }
+
+  /** The missing pieces of test automation; returns the score left. */
+  private static automationFindings(
+    automationAnalysis: ReturnType<
+      typeof UnitTestAutomationStandardsAnalyzerService.analyzeTestAutomation
+    >,
+    violations: string[],
+    suggestions: string[],
+    score: number
+  ): number {
+    let remaining = score;
+    if (!automationAnalysis.hasTestScripts) {
+      violations.push('Missing test scripts in package.json');
+      suggestions.push('Add test script commands to package.json');
+      remaining -= PENALTY.testScripts;
+    }
+
+    if (!automationAnalysis.hasTestRunner) {
+      violations.push('No test runner configured');
+      suggestions.push('Install and configure Jest, Mocha, Vitest, or similar');
+      remaining -= PENALTY.testRunner;
+    }
+
+    if (!automationAnalysis.hasTestEnvironment) {
+      violations.push('Test environment setup missing');
+      suggestions.push('Create test setup files and environment configuration');
+      remaining -= PENALTY.testEnvironment;
+    }
+
+    if (!automationAnalysis.hasParallelization) {
+      suggestions.push('Configure test parallelization for faster execution');
+      remaining -= PENALTY.parallelization;
+    }
+    return remaining;
+  }
+
+  /** A CI/CD pipeline, and tests run in it; returns the score left. */
+  private static cicdFindings(
+    cicdAnalysis: { hasCICDConfig: boolean; hasAutomatedTests: boolean },
+    violations: string[],
+    suggestions: string[],
+    score: number
+  ): number {
+    let remaining = score;
+    if (!cicdAnalysis.hasCICDConfig) {
+      violations.push('No CI/CD configuration found');
+      suggestions.push(
+        'Set up GitHub Actions, GitLab CI, Bitbucket Pipelines, or similar'
+      );
+      remaining -= PENALTY.cicdConfig;
+    }
+
+    if (cicdAnalysis.hasCICDConfig && !cicdAnalysis.hasAutomatedTests) {
+      violations.push('CI/CD configured but tests not automated');
+      suggestions.push('Add test execution to CI/CD pipeline');
+      remaining -= PENALTY.cicdTests;
+    }
+    return remaining;
   }
 
   private static generateMessage(

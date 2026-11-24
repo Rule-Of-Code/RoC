@@ -5,7 +5,11 @@
 
 import { execFileSync, execSync } from '../../utils/child-process';
 import type { RuleOfCodeConfig } from '../../config/types';
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import { FileUtils } from '../../utils';
 import { CheckerUtils } from '../../utils/checker-utils';
 import {
@@ -50,16 +54,18 @@ export class MergeConflictPreventionLaw extends GitLawBase {
     violations.push(...conflictAnalysis.violations);
     suggestions.push(...conflictAnalysis.suggestions);
 
-    return withNotRead(
-      GitLawBase.createResult(
-        violations,
-        'Merge Conflict Prevention',
-        'Version Control',
-        suggestions,
-        context
-      ),
-      toolsAnalysis.notRead
+    const result = GitLawBase.createResult(
+      violations,
+      'Merge Conflict Prevention',
+      'Version Control',
+      suggestions,
+      context
     );
+    // The files behind "in N files" (#43), as git named them.
+    const details = [...toolsAnalysis.details, ...conflictAnalysis.details];
+    if (details.length > 0) result.violationDetails = details;
+    // A git grep that did not answer is not "no markers" (#637).
+    return withNotRead(result, toolsAnalysis.notRead);
   }
 
   private static checkConflictPreventionStrategies(
@@ -151,10 +157,12 @@ export class MergeConflictPreventionLaw extends GitLawBase {
   private static checkMergeToolsConfig(projectRoot: string): {
     violations: string[];
     suggestions: string[];
+    details: ViolationDetail[];
     notRead: string[];
   } {
     const violations: string[] = [];
     const suggestions: string[] = [];
+    const details: ViolationDetail[] = [];
 
     // Check git configuration
     this.checkGitConfigForMergeTools(projectRoot, suggestions);
@@ -170,9 +178,16 @@ export class MergeConflictPreventionLaw extends GitLawBase {
         `Found unresolved conflict markers in ${conflictMarkers.length} files`
       );
       suggestions.push('Resolve all merge conflicts before committing');
+      details.push(
+        ...conflictMarkers.map(file => ({
+          file,
+          message:
+            'unresolved conflict marker (a line starting with <<<<<<< or >>>>>>>)',
+        }))
+      );
     }
 
-    return { violations, suggestions, notRead };
+    return { violations, suggestions, details, notRead };
   }
 
   private static checkGitConfigForMergeTools(
@@ -308,9 +323,11 @@ export class MergeConflictPreventionLaw extends GitLawBase {
   private static checkCurrentConflicts(projectRoot: string): {
     violations: string[];
     suggestions: string[];
+    details: ViolationDetail[];
   } {
     const violations: string[] = [];
     const suggestions: string[] = [];
+    const details: ViolationDetail[] = [];
 
     try {
       // Check git status for merge conflicts
@@ -319,15 +336,15 @@ export class MergeConflictPreventionLaw extends GitLawBase {
         encoding: 'utf8',
       });
 
-      const conflictFiles = gitStatus
+      const conflictLines = gitStatus
         .split('\n')
         .filter(
           line =>
             line.startsWith('UU ') ||
             line.startsWith('AA ') ||
             line.startsWith('DD ')
-        )
-        .map(line => line.substring(3));
+        );
+      const conflictFiles = conflictLines.map(line => line.substring(3));
 
       if (conflictFiles.length > 0) {
         violations.push(
@@ -335,6 +352,12 @@ export class MergeConflictPreventionLaw extends GitLawBase {
         );
         suggestions.push(
           'Resolve merge conflicts: git mergetool or manual resolution'
+        );
+        details.push(
+          ...conflictLines.map(line => ({
+            file: line.substring(3),
+            message: `unmerged in the index (git status ${line.substring(0, 2)})`,
+          }))
         );
       }
 
@@ -377,6 +400,6 @@ export class MergeConflictPreventionLaw extends GitLawBase {
       // Git command failed, continue without conflict check
     }
 
-    return { violations, suggestions };
+    return { violations, suggestions, details };
   }
 }

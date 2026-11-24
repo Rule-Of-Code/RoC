@@ -47,6 +47,10 @@ describe('#637 a git grep that does not answer is not "no conflict markers"', ()
     );
     expect(markerFinding(result.violations)).toBe(true);
     expect(result.notRead).toBeUndefined();
+    // The file behind the count stays named (#43).
+    expect(result.violationDetails).toEqual(
+      expect.arrayContaining([expect.objectContaining({ file: 'src/a.txt' })])
+    );
   });
 
   it('a broken index: the markers were not read, and the law does not pass', () => {

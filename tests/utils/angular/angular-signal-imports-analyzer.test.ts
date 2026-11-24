@@ -1,15 +1,16 @@
 /**
  * @fileoverview Tests for angular-signal-imports-analyzer.ts
- * @description Tests for Angular Signal Imports Analyzer utility
+ * @description Tests for Angular Signal Imports Analyzer utility, on real
+ * project fixtures: the analyzer finds *.component.ts, *.service.ts and
+ * *.directive.ts files under src/ (and Angular 20's unsuffixed files by their
+ * decorator), reads them and reads package.json for the Angular version, so
+ * the tests write those files.
  */
 
 import type { RuleOfCodeConfig } from '../../../src/config/types';
 import { AngularSignalImportsAnalyzer } from '../../../src/utils/angular/angular-signal-imports/angular-signal-imports-analyzer';
 import { AngularSignalImportsConfiguration } from '../../../src/utils/angular/angular-signal-imports/angular-signal-imports-configuration';
-import { CheckerUtils } from '../../../src/utils/checker-utils';
-import { ProjectTypeDetector } from '../../../src/utils/config';
 import { FileUtils } from '../../../src/utils/file-utils';
-import { PathOperations } from '../../../src/utils/path-operations';
 import { manifest, project } from '../../checkers/toolkit-fixture';
 
 const config: RuleOfCodeConfig = FileUtils.getMinimalDefaultConfig();
@@ -29,13 +30,6 @@ const about = (template: string, file = FILE) =>
   C.buildFileNameMessage(template, file);
 
 describe('utils/angular/angular-signal-imports/angular-signal-imports-analyzer', () => {
-  const mockConfig = {
-    projectRoot: '/test/project',
-    verbose: false,
-    excludePatterns: ['node_modules', 'dist'],
-    includePatterns: ['**/*.ts'],
-  } as unknown as RuleOfCodeConfig;
-
   describe('AngularSignalImportsAnalyzer', () => {
     describe('checkSignalImports', () => {
       it('should return empty results when src directory does not exist', () => {
@@ -160,279 +154,137 @@ describe('utils/angular/angular-signal-imports/angular-signal-imports-analyzer',
       });
 
       it('should suggest combining multiple @angular/core imports', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        const depsSpy = jest.spyOn(
-          ProjectTypeDetector,
-          'getPackageDependencies'
-        );
+        const result = check({
+          [COMPONENT]: `
+            import { signal } from '@angular/core';
+            import { computed } from '@angular/core';
+            const count = signal(0);
+            const doubled = computed(() => count() * 2);
+          `,
+        });
 
-        existsSpy.mockReturnValue(true);
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
-        );
-        findFilesSpy.mockReturnValue(['/test/project/src/app.component.ts']);
-        readFileSpy.mockReturnValue(`
-          import { Component } from '@angular/core';
-          import { signal } from '@angular/core';
-          import { computed } from '@angular/core';
-        `);
-        basenameSpy.mockReturnValue('app.component.ts');
-        depsSpy.mockReturnValue(null);
-
-        const result = AngularSignalImportsAnalyzer.checkSignalImports(
-          '/test/project',
-          mockConfig
-        );
-
-        expect(result.suggestions.some(s => s.includes('Combine'))).toBe(true);
-
-        existsSpy.mockRestore();
-        findFilesSpy.mockRestore();
-        readFileSpy.mockRestore();
-        joinSpy.mockRestore();
-        basenameSpy.mockRestore();
-        depsSpy.mockRestore();
+        expect(result.violations).toEqual([]);
+        expect(result.suggestions).toEqual([about(M.COMBINE_IMPORTS)]);
       });
 
       it('should detect experimental signals usage', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        const depsSpy = jest.spyOn(
-          ProjectTypeDetector,
-          'getPackageDependencies'
-        );
+        const result = check({
+          [COMPONENT]: `import { model } from '@angular/core/experimental';\n`,
+        });
 
-        existsSpy.mockReturnValue(true);
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
-        );
-        findFilesSpy.mockReturnValue(['/test/project/src/app.component.ts']);
-        readFileSpy.mockReturnValue(`
-          import { signal } from '@angular/core/experimental';
-        `);
-        basenameSpy.mockReturnValue('app.component.ts');
-        depsSpy.mockReturnValue(null);
-
-        const result = AngularSignalImportsAnalyzer.checkSignalImports(
-          '/test/project',
-          mockConfig
-        );
-
-        expect(result.violations.some(v => v.includes('experimental'))).toBe(
-          true
-        );
-        expect(
-          result.suggestions.some(
-            s => s.includes('stable') || s.includes('Upgrade')
-          )
-        ).toBe(true);
-
-        existsSpy.mockRestore();
-        findFilesSpy.mockRestore();
-        readFileSpy.mockRestore();
-        joinSpy.mockRestore();
-        basenameSpy.mockRestore();
-        depsSpy.mockRestore();
+        expect(result.violations).toEqual([
+          about(M.EXPERIMENTAL_SIGNALS_WARNING),
+        ]);
+        expect(result.suggestions).toEqual([about(M.UPGRADE_TO_STABLE)]);
       });
 
       it('should suggest DestroyRef for effect cleanup', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        const depsSpy = jest.spyOn(
-          ProjectTypeDetector,
-          'getPackageDependencies'
-        );
+        const result = check({
+          [COMPONENT]: `
+            import { effect } from '@angular/core';
+            effect(onCleanup => onDestroy(() => onCleanup()));
+          `,
+        });
 
-        existsSpy.mockReturnValue(true);
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
-        );
-        findFilesSpy.mockReturnValue(['/test/project/src/app.component.ts']);
-        readFileSpy.mockReturnValue(`
-          import { effect } from '@angular/core';
-          effect(() => {
-            onDestroy(() => cleanup());
-          });
-        `);
-        basenameSpy.mockReturnValue('app.component.ts');
-        depsSpy.mockReturnValue(null);
+        expect(result.violations).toEqual([]);
+        expect(result.suggestions).toEqual([about(M.DESTROY_REF_SUGGESTION)]);
+      });
 
-        const result = AngularSignalImportsAnalyzer.checkSignalImports(
-          '/test/project',
-          mockConfig
-        );
+      it('should not suggest DestroyRef when it is imported', () => {
+        const result = check({
+          [COMPONENT]: `
+            import { DestroyRef, effect } from '@angular/core';
+            effect(onCleanup => onDestroy(() => onCleanup()));
+          `,
+        });
 
-        expect(result.suggestions.some(s => s.includes('DestroyRef'))).toBe(
-          true
-        );
-
-        existsSpy.mockRestore();
-        findFilesSpy.mockRestore();
-        readFileSpy.mockRestore();
-        joinSpy.mockRestore();
-        basenameSpy.mockRestore();
-        depsSpy.mockRestore();
+        expect(result).toEqual({ violations: [], suggestions: [] });
       });
 
       it('should validate Angular version compatibility with signals', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        const depsSpy = jest.spyOn(
-          ProjectTypeDetector,
-          'getPackageDependencies'
-        );
+        const result = check({
+          'package.json': manifest({ '@angular/core': '^15.2.0' }),
+          [COMPONENT]: `
+            import { signal } from '@angular/core';
+            const count = signal(0);
+          `,
+        });
 
-        existsSpy.mockReturnValue(true);
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
-        );
-        findFilesSpy.mockReturnValue(['/test/project/src/app.component.ts']);
-        readFileSpy.mockReturnValue(`
-          import { signal } from '@angular/core';
-          const count = signal(0);
-        `);
-        basenameSpy.mockReturnValue('app.component.ts');
-        depsSpy.mockReturnValue({ '@angular/core': '^15.0.0' });
-
-        const result = AngularSignalImportsAnalyzer.checkSignalImports(
-          '/test/project',
-          mockConfig
-        );
-
-        expect(result.suggestions.some(s => s.includes('15'))).toBe(true);
-
-        existsSpy.mockRestore();
-        findFilesSpy.mockRestore();
-        readFileSpy.mockRestore();
-        joinSpy.mockRestore();
-        basenameSpy.mockRestore();
-        depsSpy.mockRestore();
+        expect(result.violations).toEqual([]);
+        expect(result.suggestions).toEqual([
+          C.buildVersionMessage(
+            M.SIGNALS_VERSION_INCOMPATIBLE,
+            '^15.2.0',
+            FILE
+          ),
+        ]);
       });
 
       it('should not flag version incompatibility for Angular 17', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        const depsSpy = jest.spyOn(
-          ProjectTypeDetector,
-          'getPackageDependencies'
-        );
+        const result = check({
+          'package.json': manifest({ '@angular/core': '^17.0.0' }),
+          [COMPONENT]: `
+            import { signal } from '@angular/core';
+            const count = signal(0);
+          `,
+        });
 
-        existsSpy.mockReturnValue(true);
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
-        );
-        findFilesSpy.mockReturnValue(['/test/project/src/app.component.ts']);
-        readFileSpy.mockReturnValue(`
-          import { signal } from '@angular/core';
-          const count = signal(0);
-        `);
-        basenameSpy.mockReturnValue('app.component.ts');
-        depsSpy.mockReturnValue({ '@angular/core': '^17.0.0' });
-
-        const result = AngularSignalImportsAnalyzer.checkSignalImports(
-          '/test/project',
-          mockConfig
-        );
-
-        expect(
-          result.suggestions.filter(s => s.includes('require'))
-        ).toHaveLength(0);
-
-        existsSpy.mockRestore();
-        findFilesSpy.mockRestore();
-        readFileSpy.mockRestore();
-        joinSpy.mockRestore();
-        basenameSpy.mockRestore();
-        depsSpy.mockRestore();
+        expect(result).toEqual({ violations: [], suggestions: [] });
       });
 
-      it('should handle empty file content gracefully', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
-        const depsSpy = jest.spyOn(
-          ProjectTypeDetector,
-          'getPackageDependencies'
-        );
+      it('should not judge the version of a file that uses no signals', () => {
+        const result = check({
+          'package.json': manifest({ '@angular/core': '^15.2.0' }),
+          [COMPONENT]: `export class AppComponent {}\n`,
+        });
 
-        existsSpy.mockReturnValue(true);
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
-        );
-        findFilesSpy.mockReturnValue(['/test/project/src/app.component.ts']);
-        readFileSpy.mockReturnValue('');
-        depsSpy.mockReturnValue(null);
-
-        const result = AngularSignalImportsAnalyzer.checkSignalImports(
-          '/test/project',
-          mockConfig
-        );
-
-        expect(result.violations).toHaveLength(0);
-        expect(result.suggestions).toHaveLength(0);
-
-        existsSpy.mockRestore();
-        findFilesSpy.mockRestore();
-        readFileSpy.mockRestore();
-        joinSpy.mockRestore();
-        depsSpy.mockRestore();
+        expect(result).toEqual({ violations: [], suggestions: [] });
       });
 
       it('should handle project without @angular/core dependency', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const joinSpy = jest.spyOn(PathOperations, 'join');
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        const depsSpy = jest.spyOn(
-          ProjectTypeDetector,
-          'getPackageDependencies'
+        const result = check({
+          'package.json': manifest({ rxjs: '^7.8.0' }),
+          [COMPONENT]: `
+            import { signal } from '@angular/core';
+            const count = signal(0);
+          `,
+        });
+
+        expect(result).toEqual({ violations: [], suggestions: [] });
+      });
+
+      it('should handle empty file content gracefully', () => {
+        const result = check({ [COMPONENT]: '' });
+
+        expect(result).toEqual({ violations: [], suggestions: [] });
+      });
+
+      it('should read an unsuffixed Angular 20 component by its decorator', () => {
+        const result = check({
+          'src/app/hero.ts': `
+            @Component({ selector: 'app-hero', template: '' })
+            export class Hero {
+              count = signal(0);
+            }
+          `,
+        });
+
+        expect(result.violations).toEqual([notImported('signal()', 'hero')]);
+      });
+
+      it('should report each file under its own name', () => {
+        const result = check({
+          [COMPONENT]: 'const count = signal(0);\n',
+          'src/app/data.service.ts': 'const count = signal(0);\n',
+        });
+
+        expect(result.violations).toEqual(
+          expect.arrayContaining([
+            notImported('signal()'),
+            notImported('signal()', 'data.service'),
+          ])
         );
-
-        existsSpy.mockReturnValue(true);
-        joinSpy.mockImplementation((...parts) =>
-          parts.filter(Boolean).join('/')
-        );
-        findFilesSpy.mockReturnValue(['/test/project/src/app.component.ts']);
-        readFileSpy.mockReturnValue(`
-          import { signal } from '@angular/core';
-          const count = signal(0);
-        `);
-        basenameSpy.mockReturnValue('app.component.ts');
-        // Has dependencies but no @angular/core
-        depsSpy.mockReturnValue({ 'some-other-package': '1.0.0' });
-
-        const result = AngularSignalImportsAnalyzer.checkSignalImports(
-          '/test/project',
-          mockConfig
-        );
-
-        // Should not fail, just skip version check
-        expect(result).toBeDefined();
-
-        existsSpy.mockRestore();
-        findFilesSpy.mockRestore();
-        readFileSpy.mockRestore();
-        joinSpy.mockRestore();
-        basenameSpy.mockRestore();
-        depsSpy.mockRestore();
+        expect(result.violations).toHaveLength(2);
       });
     });
   });

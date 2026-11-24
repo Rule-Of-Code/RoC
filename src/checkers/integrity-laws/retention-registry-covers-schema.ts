@@ -169,17 +169,30 @@ export class RetentionRegistryCoversSchemaLaw extends LawBase {
       return `"${name}" must be an object of table → reason`;
     const entries = new Map<string, string>();
     for (const [table, reason] of Object.entries(value)) {
-      const text = typeof reason === 'string' ? reason.trim() : '';
-      const object =
-        allowObjects &&
-        reason !== null &&
-        typeof reason === 'object' &&
-        Object.keys(reason).length > 0;
-      if (!text && !object)
+      const text = this.reasonText(reason, allowObjects);
+      if (text === null)
         return `"${name}"."${table}" has no reason — an empty entry is a checkbox, not a decision`;
-      entries.set(table, text || JSON.stringify(reason));
+      entries.set(table, text);
     }
     return entries;
+  }
+
+  /**
+   * An entry's reason as text: a non-empty string, or — where objects are
+   * allowed — a non-empty object as JSON. null when there is none.
+   */
+  private static reasonText(
+    reason: unknown,
+    allowObjects: boolean
+  ): string | null {
+    const text = typeof reason === 'string' ? reason.trim() : '';
+    if (text) return text;
+    const object =
+      allowObjects &&
+      reason !== null &&
+      typeof reason === 'object' &&
+      Object.keys(reason).length > 0;
+    return object ? JSON.stringify(reason) : null;
   }
 
   private static schemaTables(context: LawCheckContext): SchemaTables {
@@ -230,16 +243,11 @@ export class RetentionRegistryCoversSchemaLaw extends LawBase {
         creatorVars.add(node.name.text);
     });
     source.walk(node => {
-      if (!ts.isCallExpression(node)) return;
-      const isTable =
-        (ts.isIdentifier(node.expression) &&
-          (builders.direct.has(node.expression.text) ||
-            creatorVars.has(node.expression.text))) ||
-        (ts.isPropertyAccessExpression(node.expression) &&
-          node.expression.name.text === 'table' &&
-          ts.isIdentifier(node.expression.expression) &&
-          schemaVars.has(node.expression.expression.text));
-      if (!isTable) return;
+      if (
+        !ts.isCallExpression(node) ||
+        !this.isTableCall(ts, node, builders.direct, creatorVars, schemaVars)
+      )
+        return;
       const where = `${ReactProject.relative(context, source.fileName)}:${source.lineOf(node)}`;
       const name = node.arguments[0];
       if (
@@ -253,6 +261,28 @@ export class RetentionRegistryCoversSchemaLaw extends LawBase {
         );
       }
     });
+  }
+
+  /**
+   * A call that builds a table: a direct builder, a variable a creator
+   * returned, or `<schema>.table(…)` on a variable a schema builder returned.
+   */
+  private static isTableCall(
+    ts: TsxSource['ts'],
+    node: TS.CallExpression,
+    direct: Set<string>,
+    creatorVars: Set<string>,
+    schemaVars: Set<string>
+  ): boolean {
+    const callee = node.expression;
+    if (ts.isIdentifier(callee))
+      return direct.has(callee.text) || creatorVars.has(callee.text);
+    return (
+      ts.isPropertyAccessExpression(callee) &&
+      callee.name.text === 'table' &&
+      ts.isIdentifier(callee.expression) &&
+      schemaVars.has(callee.expression.text)
+    );
   }
 
   /** Local names bound to drizzle's table builders by this file's imports. */

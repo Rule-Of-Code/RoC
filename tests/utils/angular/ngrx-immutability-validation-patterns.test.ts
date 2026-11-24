@@ -1,340 +1,257 @@
 /**
  * @fileoverview Tests for ngrx-immutability-validation-patterns.ts
- * @description Tests for NgRx Immutability Validation Patterns utility
+ * @description Tests for NgRx Immutability Validation Patterns utility, on
+ * real project fixtures: the validation finds *.reducer.ts files under src/
+ * and reads them, so the tests write those files.
  */
+
+import path from 'path';
 
 import type { RuleOfCodeConfig } from '../../../src/config/types';
 import { NgRxImmutabilityConfiguration } from '../../../src/utils/angular/ngrx-immutability/ngrx-immutability-configuration';
 import { NgRxImmutabilityValidationPatterns } from '../../../src/utils/angular/ngrx-immutability/ngrx-immutability-validation-patterns';
-import { CheckerUtils } from '../../../src/utils/checker-utils';
 import { FileUtils } from '../../../src/utils/file-utils';
-import { PathOperations } from '../../../src/utils/path-operations';
+import { project } from '../../checkers/toolkit-fixture';
+
+const config: RuleOfCodeConfig = FileUtils.getMinimalDefaultConfig();
+const validate = (files: Record<string, string>) =>
+  NgRxImmutabilityValidationPatterns.validateAllImmutabilityPatterns(
+    project(files),
+    config
+  );
+
+const C = NgRxImmutabilityConfiguration;
+const M = C.VALIDATION_MESSAGES;
+const REDUCER = 'src/app/state/user.reducer.ts';
+// Messages name a file by its base name without the extension.
+const msg = (template: string, file = 'user.reducer') =>
+  C.buildMessage(template, file);
+
+/** A reducer that returns a new object with `return {` and spreads. */
+const COMPLIANT = `
+  export const reducer = createReducer(
+    initialState,
+    on(loadSuccess, (state, { items }) => {
+      return { ...state, items: [...items], loading: false };
+    })
+  );
+`;
+const reducerWith = (body: string) => `
+  export const reducer = createReducer(
+    initialState,
+    on(update, (state, { value }) => {
+      ${body}
+      return { ...state };
+    })
+  );
+`;
 
 describe('utils/angular/ngrx-immutability/ngrx-immutability-validation-patterns', () => {
-  const mockConfig = {
-    projectRoot: '/test/project',
-    verbose: false,
-    excludePatterns: ['node_modules', 'dist'],
-    includePatterns: ['**/*.ts'],
-  } as unknown as RuleOfCodeConfig;
-
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
   describe('NgRxImmutabilityValidationPatterns', () => {
     describe('validateAllImmutabilityPatterns', () => {
       it('should return empty violations when src directory does not exist', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        existsSpy.mockReturnValue(false);
+        const result = validate({
+          'lib/state/user.reducer.ts': reducerWith('state.name = value;'),
+        });
 
-        const result =
-          NgRxImmutabilityValidationPatterns.validateAllImmutabilityPatterns(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(result.violations).toHaveLength(0);
-        expect(result.suggestions).toHaveLength(0);
+        expect(result).toEqual({ violations: [], suggestions: [] });
       });
 
       it('should return empty violations when no reducer files found', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        existsSpy.mockReturnValue(true);
+        const result = validate({
+          'src/app/state/user.effects.ts': reducerWith('state.name = value;'),
+        });
 
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        findFilesSpy.mockReturnValue([]);
-
-        const result =
-          NgRxImmutabilityValidationPatterns.validateAllImmutabilityPatterns(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(result.violations).toHaveLength(0);
-        expect(result.suggestions).toHaveLength(0);
+        expect(result).toEqual({ violations: [], suggestions: [] });
       });
 
       it('should detect direct state mutation violations', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        existsSpy.mockReturnValue(true);
+        const result = validate({
+          [REDUCER]: reducerWith('state.name = value;'),
+        });
 
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        findFilesSpy.mockReturnValue(['/test/project/src/test.reducer.ts']);
+        expect(result.violations).toEqual([msg(M.DIRECT_STATE_MUTATION)]);
+        expect(result.suggestions).toEqual([msg(M.USE_IMMUTABLE_UPDATE)]);
+      });
 
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockReturnValue('state.name = "test"');
+      it('should detect a property removed with delete', () => {
+        const result = validate({
+          [REDUCER]: reducerWith('delete state.selected;'),
+        });
 
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        basenameSpy.mockReturnValue('test.reducer.ts');
-
-        const result =
-          NgRxImmutabilityValidationPatterns.validateAllImmutabilityPatterns(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(
-          result.violations.some(v => v.includes('Direct state mutation'))
-        ).toBe(true);
-        expect(
-          result.suggestions.some(s => s.includes('immutable update'))
-        ).toBe(true);
+        expect(result.violations).toEqual([msg(M.DIRECT_STATE_MUTATION)]);
       });
 
       it('should detect nested object mutation violations', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        existsSpy.mockReturnValue(true);
+        const result = validate({
+          [REDUCER]: reducerWith('state.user.name = value;'),
+        });
 
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        findFilesSpy.mockReturnValue(['/test/project/src/user.reducer.ts']);
-
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockReturnValue('state.user.name = "test"');
-
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        basenameSpy.mockReturnValue('user.reducer.ts');
-
-        const result =
-          NgRxImmutabilityValidationPatterns.validateAllImmutabilityPatterns(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(
-          result.violations.some(v => v.includes('Nested object mutation'))
-        ).toBe(true);
-        expect(result.suggestions.some(s => s.includes('nested spread'))).toBe(
-          true
-        );
+        expect(result.violations).toEqual([msg(M.NESTED_OBJECT_MUTATION)]);
+        expect(result.suggestions).toEqual([msg(M.USE_NESTED_SPREAD)]);
       });
 
       it('should detect array mutation violations', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        existsSpy.mockReturnValue(true);
+        const result = validate({
+          [REDUCER]: `
+            export const reducer = createReducer(
+              initialState,
+              on(add, (state, { item }) => {
+                state.items.push(item);
+                return state;
+              })
+            );
+          `,
+        });
 
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        findFilesSpy.mockReturnValue(['/test/project/src/items.reducer.ts']);
+        expect(result.violations).toEqual([
+          msg(M.DIRECT_STATE_MUTATION),
+          msg(M.ARRAY_MUTATION),
+        ]);
+        expect(result.suggestions).toEqual([
+          msg(M.USE_IMMUTABLE_UPDATE),
+          msg(M.USE_SPREAD_OPERATOR),
+          msg(M.USE_IMMUTABLE_ARRAYS),
+          msg(M.USE_OBJECT_LITERALS),
+        ]);
+      });
 
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockReturnValue('state.items.push(item)');
+      it('should not report array methods when the file copies arrays', () => {
+        const result = validate({
+          [REDUCER]: `
+            export const reducer = createReducer(
+              initialState,
+              on(add, (state, { item }) => {
+                const items = state.items.slice();
+                items.push(item);
+                return { ...state, items };
+              })
+            );
+          `,
+        });
 
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        basenameSpy.mockReturnValue('items.reducer.ts');
-
-        const result =
-          NgRxImmutabilityValidationPatterns.validateAllImmutabilityPatterns(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(result.violations.some(v => v.includes('Array mutation'))).toBe(
-          true
-        );
-        expect(
-          result.suggestions.some(s => s.includes('immutable array methods'))
-        ).toBe(true);
+        expect(result).toEqual({ violations: [], suggestions: [] });
       });
 
       it('should detect Object.assign mutation violations', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        existsSpy.mockReturnValue(true);
+        const result = validate({
+          [REDUCER]: reducerWith('Object.assign(state, { name: value });'),
+        });
 
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        findFilesSpy.mockReturnValue(['/test/project/src/state.reducer.ts']);
-
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockReturnValue('Object.assign(state, { name: "test" })');
-
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        basenameSpy.mockReturnValue('state.reducer.ts');
-
-        const result =
-          NgRxImmutabilityValidationPatterns.validateAllImmutabilityPatterns(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(result.violations.some(v => v.includes('Object.assign'))).toBe(
-          true
-        );
+        expect(result.violations).toEqual([msg(M.OBJECT_ASSIGN_MUTATION)]);
+        expect(result.suggestions).toEqual([msg(M.USE_PROPER_PATTERNS)]);
       });
 
       it('should suggest spread operator usage', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        existsSpy.mockReturnValue(true);
+        const result = validate({
+          [REDUCER]: `
+            export const reducer = createReducer(
+              initialState,
+              on(reset, state => {
+                return state;
+              })
+            );
+          `,
+        });
 
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        findFilesSpy.mockReturnValue(['/test/project/src/test.reducer.ts']);
-
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockReturnValue('on(action, (state) => { return state });');
-
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        basenameSpy.mockReturnValue('test.reducer.ts');
-
-        const result =
-          NgRxImmutabilityValidationPatterns.validateAllImmutabilityPatterns(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(
-          result.suggestions.some(s => s.includes('spread operator'))
-        ).toBe(true);
+        expect(result.violations).toEqual([]);
+        expect(result.suggestions).toEqual([
+          msg(M.USE_SPREAD_OPERATOR),
+          msg(M.USE_OBJECT_LITERALS),
+        ]);
       });
 
       it('should suggest immer import when produce is used', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        existsSpy.mockReturnValue(true);
+        const result = validate({
+          [REDUCER]: COMPLIANT.replace(
+            'return { ...state',
+            'produce(state, draft => draft); return { ...state'
+          ),
+        });
 
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        findFilesSpy.mockReturnValue(['/test/project/src/test.reducer.ts']);
+        expect(result.violations).toEqual([]);
+        expect(result.suggestions).toEqual([msg(M.ENSURE_IMMER_IMPORT)]);
+      });
 
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockReturnValue(
-          'produce(state, draft => { draft.name = "test"; })'
-        );
+      it('should not suggest the immer import when immer is imported', () => {
+        const result = validate({
+          [REDUCER]:
+            "import { produce } from 'immer';\n" +
+            COMPLIANT.replace(
+              'return { ...state',
+              'produce(state, draft => draft); return { ...state'
+            ),
+        });
 
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        basenameSpy.mockReturnValue('test.reducer.ts');
-
-        const result =
-          NgRxImmutabilityValidationPatterns.validateAllImmutabilityPatterns(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(result.suggestions.some(s => s.includes('immer'))).toBe(true);
+        expect(result).toEqual({ violations: [], suggestions: [] });
       });
 
       it('should skip files with empty content', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        existsSpy.mockReturnValue(true);
+        const result = validate({ [REDUCER]: '' });
 
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        findFilesSpy.mockReturnValue(['/test/project/src/empty.reducer.ts']);
-
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockReturnValue('');
-
-        const result =
-          NgRxImmutabilityValidationPatterns.validateAllImmutabilityPatterns(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(result.violations).toHaveLength(0);
-        expect(result.suggestions).toHaveLength(0);
+        expect(result).toEqual({ violations: [], suggestions: [] });
       });
 
       it('should analyze multiple reducer files', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        existsSpy.mockReturnValue(true);
+        const result = validate({
+          [REDUCER]: reducerWith('state.name = value;'),
+          'src/app/state/order.reducer.ts': reducerWith(
+            'Object.assign(state, { total: value });'
+          ),
+          'src/app/state/cart.reducer.ts': COMPLIANT,
+        });
 
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        findFilesSpy.mockReturnValue([
-          '/test/project/src/user.reducer.ts',
-          '/test/project/src/items.reducer.ts',
-        ]);
-
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy
-          .mockReturnValueOnce('state.name = "test"')
-          .mockReturnValueOnce('state.items.push(item)');
-
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        basenameSpy
-          .mockReturnValueOnce('user.reducer.ts')
-          .mockReturnValueOnce('items.reducer.ts');
-
-        const result =
-          NgRxImmutabilityValidationPatterns.validateAllImmutabilityPatterns(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(result.violations.length).toBeGreaterThanOrEqual(2);
+        expect(result.violations).toEqual(
+          expect.arrayContaining([
+            msg(M.DIRECT_STATE_MUTATION),
+            msg(M.OBJECT_ASSIGN_MUTATION, 'order.reducer'),
+          ])
+        );
+        expect(result.violations).toHaveLength(2);
       });
 
       it('should return no violations for compliant reducers', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        existsSpy.mockReturnValue(true);
+        const result = validate({ [REDUCER]: COMPLIANT });
 
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        findFilesSpy.mockReturnValue(['/test/project/src/good.reducer.ts']);
-
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockReturnValue(`
-          on(loadSuccess, (state, { items }) => ({
-            ...state,
-            items: [...items],
-            loading: false
-          }))
-        `);
-
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        basenameSpy.mockReturnValue('good.reducer.ts');
-
-        const result =
-          NgRxImmutabilityValidationPatterns.validateAllImmutabilityPatterns(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(result.violations).toHaveLength(0);
+        expect(result).toEqual({ violations: [], suggestions: [] });
       });
     });
 
     describe('analyzeReducerFileComprehensive', () => {
       it('should return violations and suggestions for a reducer file', () => {
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockReturnValue('state.name = "test"');
-
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        basenameSpy.mockReturnValue('test.reducer.ts');
+        const root = project({ [REDUCER]: 'state.name = "test";\n' });
 
         const result =
           NgRxImmutabilityValidationPatterns.analyzeReducerFileComprehensive(
-            '/test/project/src/test.reducer.ts'
+            path.join(root, REDUCER)
           );
 
-        expect(result.violations.length).toBeGreaterThan(0);
-        expect(result.suggestions.length).toBeGreaterThan(0);
+        expect(result).toEqual({
+          violations: [msg(M.DIRECT_STATE_MUTATION)],
+          suggestions: [msg(M.USE_IMMUTABLE_UPDATE)],
+        });
       });
 
       it('should return empty arrays for compliant reducer file', () => {
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockReturnValue(`
-          on(loadSuccess, (state, { items }) => ({
-            ...state,
-            items: [...items],
-            loading: false
-          }))
-        `);
-
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        basenameSpy.mockReturnValue('compliant.reducer.ts');
+        const root = project({ [REDUCER]: COMPLIANT });
 
         const result =
           NgRxImmutabilityValidationPatterns.analyzeReducerFileComprehensive(
-            '/test/project/src/compliant.reducer.ts'
+            path.join(root, REDUCER)
           );
 
-        expect(result.violations).toHaveLength(0);
+        expect(result).toEqual({ violations: [], suggestions: [] });
       });
 
       it('should handle empty file content', () => {
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockReturnValue('');
+        const root = project({ [REDUCER]: '' });
 
         const result =
           NgRxImmutabilityValidationPatterns.analyzeReducerFileComprehensive(
-            '/test/project/src/empty.reducer.ts'
+            path.join(root, REDUCER)
           );
 
-        expect(result.violations).toHaveLength(0);
-        expect(result.suggestions).toHaveLength(0);
+        expect(result).toEqual({ violations: [], suggestions: [] });
       });
     });
 

@@ -9,6 +9,8 @@ import { REQUIRES_ANGULAR } from '../utils/framework-requirements';
 
 export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
   {
+    // The id hashes the original description; it stays, so ignores.byRule and
+    // laws.severity keyed by it still resolve after the description changed (#599).
     id: generateLawId(
       'Test Coverage Constitutional Standard',
       'Every feature MUST have tests before merge, ≥80% coverage for new code',
@@ -22,19 +24,20 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
       'Code without tests is code nobody can change without fear — every edit is a guess about what it might break. Coverage is not the goal, but its absence guarantees the goal was never pursued.',
     satisfiedBy: {
       typescript:
-        'Configure Jest (a config + a test script + coverage) and keep tests alongside your source.',
+        'Configure Jest (a config + a test script + coverage) and run it with coverage before the audit, so coverage/coverage-summary.json (json-summary reporter) or coverage/lcov.info is fresh: then every source file needs ≥80% line coverage (thresholds.testing.minFileLineCoveragePercent; another report path: thresholds.testing.coverageReportPath). Without a fresh report, keep a test named after each source file or importing it.',
       python:
         'Configure pytest coverage (--cov with a fail_under, or [tool.coverage]) — recognised natively.',
     },
     detectionLimits: [
-      'Presence, not a number: it checks that a test runner and coverage CONFIG exist plus a source-to-test FILE ratio — never the actual line/branch coverage percentage.',
-      'A .ts/.tsx/.js/.jsx source file counts as tested when a test is named after it (foo.ts ↔ foo.spec.ts / foo.test.ts) or imports it directly: import/export from, require(), import(), or a jest.mock / vi.mock path, resolved from the test file — relative paths and the paths/baseUrl of the nearest tsconfig/jsconfig. A file a test reaches only through another module does not count; an alias declared only in a Jest moduleNameMapper or a bundler config is not followed; a type-only import counts. Without the typescript package the imports are not read and only the name counts — the finding says so. The ratio stays test files per source file.',
+      'Two modes, and the result says which. With a coverage report — coverage/coverage-summary.json (Jest json-summary), else coverage/lcov.info, or the file thresholds.testing.coverageReportPath names — each source file is judged by its LINE coverage in the report: below thresholds.testing.minFileLineCoveragePercent (0–100, default 80) is a finding with the percentage, the passing message names the report, and a file with no executable line is not judged. A source file the report does not name is judged by presence (below); the test-file ratio is not judged. Without a report the law judges by presence alone and reads as before. Branch, function and statement coverage are not judged.',
+      'A report that cannot be used is said as not read (a note, so the law does not pass) and the files are judged by presence: a report older than the code, one that names none of the source files (e.g. written on another machine — absolute paths are not mapped), one that is not valid json-summary/lcov, or a configured path that cannot be read. Neither format records the commit it was made from, so "older" means a judged source file was modified after the report was written: a checkout rewrites the files it changes, so after a branch switch the report reads as old even when the code matches, and a report copied in later than the code is taken as fresh. A threshold outside 0–100 is a finding, and the files are judged by presence.',
+      'In both modes it checks that a test runner and coverage CONFIG exist. Presence: a .ts/.tsx/.js/.jsx source file counts as tested when a test is named after it (foo.ts ↔ foo.spec.ts / foo.test.ts) or imports it directly: import/export from, require(), import(), or a jest.mock / vi.mock path, resolved from the test file — relative paths and the paths/baseUrl of the nearest tsconfig/jsconfig. A file a test reaches only through another module does not count; an alias declared only in a Jest moduleNameMapper or a bundler config is not followed; a type-only import counts. Without the typescript package the imports are not read and only the name counts — the finding says so. The ratio stays test files per source file.',
       'Jest-biased for JS/TS — a project on Karma/Jasmine with no jest config trips "No Jest configuration found".',
       'Only the Python stack gets a non-Jest exemption; React/Vue/Node do not.',
     ],
     emoji: '🧪',
     description:
-      'Every feature MUST have tests before merge, ≥80% coverage for new code',
+      'Every source file MUST be tested: ≥80% line coverage in a fresh coverage report when there is one, otherwise a test named after it or importing it',
     priority: 'HIGH',
     category: 'TESTING',
     automation: 'AUTOMATED',

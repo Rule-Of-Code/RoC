@@ -65,3 +65,21 @@ export function readPackageJsonESLintConfig(
     ? { config: config as Record<string, unknown> }
     : null;
 }
+
+/**
+ * Every ESLint config file, flat and legacy, that configures a project. One
+ * list for every law that asks "does this project have an ESLint config?"
+ * (#507): a law with its own shorter list told a project with `.eslintrc` or
+ * `eslint.config.mts` that it had none.
+ */
+export const ESLINT_CONFIG_FILES = [
+  'eslint.config.js',
+  'eslint.config.mjs',
+  'eslint.config.cjs',
+  'eslint.config.ts',
+  'eslint.config.mts',
+  'eslint.config.cts',
+  '.eslintrc.js',
+  '.eslintrc.cjs',
+  ...ESLINTRC_DATA_FILES,
+] as const;

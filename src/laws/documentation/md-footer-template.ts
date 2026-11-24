@@ -2,6 +2,7 @@ import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileFilterUtils } from '../../utils/file-filter-utils';
 import { FileUtils } from '../../utils/file-utils';
 import { markJudgedNothing } from '../../utils/judged-nothing';
+import { configKeySlug } from '../../utils/law-identity';
 import { PathOperations } from '../../utils/path-operations';
 import { MD_FOOTER_PENALTY as PENALTY } from './documentation-penalties';
 /**
@@ -20,6 +21,12 @@ import { MD_FOOTER_PENALTY as PENALTY } from './documentation-penalties';
  * Status: MANDATORY - All MD files must have compliant footers
  */
 export class MdFooterTemplateLaw {
+  /**
+   * The registry title; its config key (`includes.byRule`) is derived from it
+   * the way the registry derives every law's key (#501).
+   */
+  static readonly TITLE = 'MD Footer Template (MANDATORY)';
+
   static async check(context: LawCheckContext): Promise<LawResult> {
     const violations: string[] = [];
     const suggestions: string[] = [];
@@ -136,11 +143,11 @@ export class MdFooterTemplateLaw {
     const violation =
       foundCount === 0
         ? 'No Markdown file in the project — nothing was judged'
-        : `${foundCount} Markdown file(s) exist, but the configured includes / ignores select none of them — nothing was judged`;
+        : `${foundCount} Markdown file(s) exist, but the configured includes / ignores select none of them — nothing was judged. Give this law the Markdown files with includes.byRule: { "${configKeySlug(this.TITLE)}": ["**/*.md"] }`;
     const suggestion =
       foundCount === 0
         ? 'Leave this opt-in law off, or enable it once the project has Markdown documentation'
-        : 'Add the Markdown files to includes.global (for example "**/*.md"), or leave this opt-in law off';
+        : `Give this law the Markdown files with includes.byRule: { "${configKeySlug(this.TITLE)}": ["**/*.md"] } (or add them to includes.global), or leave this opt-in law off`;
     return markJudgedNothing({
       passed: false,
       score: 0,

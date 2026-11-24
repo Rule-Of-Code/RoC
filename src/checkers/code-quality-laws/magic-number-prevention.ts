@@ -6,7 +6,7 @@
 import type { RuleOfCodeConfig } from '../../config/types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils';
-import { markJudgedNothing } from '../../utils/judged-nothing';
+import { markJudgedNothing, withNotRead } from '../../utils/judged-nothing';
 import { PathOperations } from '../../utils/path-operations';
 import {
   loadTypeScript,
@@ -40,33 +40,40 @@ export class MagicNumberPreventionLaw extends CodeQualityLawBase {
     violations.push(...magicNumberAnalysis.violations);
     suggestions.push(...magicNumberAnalysis.suggestions);
 
-    return {
-      passed: violations.length === 0,
-      message:
-        violations.length === 0
-          ? 'No magic numbers detected'
-          : `${violations.length} magic number violations found`,
-      violations,
-      suggestions: violations.length > 0 ? suggestions : [],
-      score:
-        violations.length === 0
-          ? 100
-          : Math.max(0, 100 - violations.length * 8),
-      fixable: violations.length > 0,
-      config: context.config,
-    };
+    // An ESLint config found and not read goes to notRead (#453, #508): it is
+    // not a finding about the code, and it keeps the law from passing.
+    return withNotRead(
+      {
+        passed: violations.length === 0,
+        message:
+          violations.length === 0
+            ? 'No magic numbers detected'
+            : `${violations.length} magic number violations found`,
+        violations,
+        suggestions: violations.length > 0 ? suggestions : [],
+        score:
+          violations.length === 0
+            ? 100
+            : Math.max(0, 100 - violations.length * 8),
+        fixable: violations.length > 0,
+        config: context.config,
+      },
+      configAnalysis.notRead
+    );
   }
 
   private static checkMagicNumberConfig(projectRoot: string): {
     violations: string[];
     suggestions: string[];
+    notRead: string[];
   } {
     const violations: string[] = [];
     const suggestions: string[] = [];
+    const notRead: string[] = [];
 
     const eslint = this.readESLintConfig(projectRoot);
     if (eslint?.notRead !== undefined) {
-      violations.push(eslint.notRead);
+      notRead.push(eslint.notRead);
     } else if (eslint) {
       const rules = eslint.config.rules ?? {};
       if (
@@ -82,7 +89,7 @@ export class MagicNumberPreventionLaw extends CodeQualityLawBase {
       suggestions.push('Configure ESLint with magic number detection');
     }
 
-    return { violations, suggestions };
+    return { violations, suggestions, notRead };
   }
 
   private static analyzeMagicNumbers(

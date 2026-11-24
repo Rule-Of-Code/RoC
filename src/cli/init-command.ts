@@ -31,6 +31,50 @@ const defaultPrompt = inquirer.prompt.bind(inquirer);
 type PromptFn = typeof inquirer.prompt;
 
 /**
+ * A config is already there and must be kept: refused without a terminal to
+ * ask (re-run with --force), or the user declined to overwrite it. False when
+ * there is none, --force is given, or the user agreed.
+ */
+async function keepsExistingConfig(
+  options: InitOptions,
+  configPaths: string[],
+  canPrompt: boolean,
+  promptFn: PromptFn
+): Promise<boolean> {
+  if (options.force || !configPaths.some(p => FileUtils.exists(p))) {
+    return false;
+  }
+  if (!canPrompt) {
+    // Refuse rather than guess: overwriting someone's tuned config because
+    // there was no one to ask is the destructive answer to the question.
+    console.log(
+      chalk.yellow(
+        'RuleOfCode config already exists and this is not an interactive terminal.'
+      )
+    );
+    console.log(
+      chalk.yellow('Re-run with --force to overwrite it. Nothing changed.')
+    );
+    return true;
+  }
+
+  const { overwrite } = await promptFn([
+    {
+      type: 'confirm',
+      name: 'overwrite',
+      message: 'RuleOfCode config already exists. Overwrite?',
+      default: false,
+    },
+  ]);
+
+  if (!overwrite) {
+    console.log(chalk.yellow('Initialization cancelled'));
+    return true;
+  }
+  return false;
+}
+
+/**
  * Execute the init command logic (for testing with custom projectRoot)
  */
 export async function executeInitAction(
@@ -76,38 +120,15 @@ export async function executeInitAction(
     // injected its own prompt function has already supplied a way to answer.
     const canPrompt = promptFn !== defaultPrompt || isInteractiveTerminal();
 
-    // Check if already initialized
     if (
-      !options.force &&
-      (FileUtils.exists(configPath) || FileUtils.exists(jsonConfigPath))
+      await keepsExistingConfig(
+        options,
+        [configPath, jsonConfigPath],
+        canPrompt,
+        promptFn
+      )
     ) {
-      if (!canPrompt) {
-        // Refuse rather than guess: overwriting someone's tuned config because
-        // there was no one to ask is the destructive answer to the question.
-        console.log(
-          chalk.yellow(
-            'RuleOfCode config already exists and this is not an interactive terminal.'
-          )
-        );
-        console.log(
-          chalk.yellow('Re-run with --force to overwrite it. Nothing changed.')
-        );
-        return { success: true };
-      }
-
-      const { overwrite } = await promptFn([
-        {
-          type: 'confirm',
-          name: 'overwrite',
-          message: 'RuleOfCode config already exists. Overwrite?',
-          default: false,
-        },
-      ]);
-
-      if (!overwrite) {
-        console.log(chalk.yellow('Initialization cancelled'));
-        return { success: true };
-      }
+      return { success: true };
     }
 
     // Quick setup option for experienced users

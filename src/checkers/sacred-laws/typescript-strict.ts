@@ -147,19 +147,7 @@ export class TypeScriptStrictLaw {
       violations.push('TypeScript strict mode must be enabled');
     }
 
-    // Additional strict checks. `strict: true` turns on noImplicitAny and
-    // noImplicitThis (and the strict* family): demanding them again failed a
-    // 3-line project that had `"strict": true` (B4). Only an explicit `false`
-    // switches one back off.
-    for (const [check, required] of Object.entries(this.STRICT_CHECKS)) {
-      const impliedByStrict =
-        this.IMPLIED_BY_STRICT.has(check) &&
-        flags.strict === true &&
-        flags[check] !== false;
-      if (flags[check] !== required && !impliedByStrict && !unknown(check)) {
-        violations.push(`TypeScript ${check} must be ${required}`);
-      }
-    }
+    violations.push(...this.strictFlagFindings(flags, unknown));
 
     // target / moduleResolution as the chain sets them (strings, unlike the
     // compiler's resolved enums) — inherited ones included.
@@ -167,6 +155,28 @@ export class TypeScriptStrictLaw {
       this.validateTargetVersion(compilerOptions, violations);
     if (!unknown('moduleResolution'))
       this.validateModuleResolution(compilerOptions, violations);
+  }
+
+  /**
+   * The additional strict checks. `strict: true` turns on noImplicitAny and
+   * noImplicitThis (and the strict* family): demanding them again failed a
+   * 3-line project that had `"strict": true` (B4). Only an explicit `false`
+   * switches one back off. A flag `unknown` says an unread base may set is
+   * not judged.
+   */
+  private static strictFlagFindings(
+    flags: Record<string, unknown>,
+    unknown: (flag: string) => boolean
+  ): string[] {
+    return Object.entries(this.STRICT_CHECKS)
+      .filter(([check, required]) => {
+        const impliedByStrict =
+          this.IMPLIED_BY_STRICT.has(check) &&
+          flags.strict === true &&
+          flags[check] !== false;
+        return flags[check] !== required && !impliedByStrict && !unknown(check);
+      })
+      .map(([check, required]) => `TypeScript ${check} must be ${required}`);
   }
 
   private static validateTargetVersion(

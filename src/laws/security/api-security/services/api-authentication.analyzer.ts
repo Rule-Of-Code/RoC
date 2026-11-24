@@ -12,7 +12,7 @@ import { readApiCodeView } from './api-code-view';
 
 /** Words a file must hold before it is parsed for authentication shapes. */
 const AUTH_HINT =
-  /auth|authorization|bearer|sign-?in|log-?in|verify|session|token|guard/i;
+  /auth|authorization|bearer|sign-?in|log-?in|verify|session|token|guard|cookie|jwt|jose/i;
 
 /** The shape signals that mean the code authenticates (#549). */
 function authenticates(shape: AuthShape): boolean {
@@ -56,26 +56,32 @@ export class APIAuthenticationAnalyzer {
     this.checkFirebaseAuthConfiguration(projectRoot, violations);
     if (!ts) return violations;
 
-    const files = this.authFiles(projectRoot, config, ts);
-    if (files.length === 0) {
+    const { found, all } = this.authFiles(projectRoot, config, ts);
+    if (found.length === 0) {
       violations.push('No authentication service implementation found');
       return violations;
     }
     this.validateAuthContent(
-      files.map(file => file.content).join('\n'),
-      mergeAuthShapes(files.map(file => file.shape)),
+      found.map(file => file.content).join('\n'),
+      mergeAuthShapes(found.map(file => file.shape)),
+      all,
       violations
     );
     return violations;
   }
 
-  /** The files whose code authenticates, whatever they are called. */
+  /**
+   * The files whose code authenticates, whatever they are called, and the
+   * shape of every file read (a cookie set in middleware that verifies
+   * nothing still re-issues the session, #590).
+   */
   private static authFiles(
     projectRoot: string,
     config: RuleOfCodeConfig,
     ts: typeof TS
-  ): AuthFile[] {
+  ): { found: AuthFile[]; all: AuthShape } {
     const found: AuthFile[] = [];
+    const shapes: AuthShape[] = [];
     const files = CheckerUtils.findFilesByExtension(
       projectRoot,
       ['.ts', '.tsx'],
@@ -92,21 +98,30 @@ export class APIAuthenticationAnalyzer {
       const view = readApiCodeView(ts, file, content);
       if (!view) continue;
       const shape = readAuthShape(ts, view);
+      shapes.push(shape);
       if (authenticates(shape)) found.push({ content, shape });
     }
-    return found;
+    return { found, all: mergeAuthShapes(shapes) };
   }
 
   /**
    * Validate the combined content of the files that authenticate. A managed
    * SDK refreshes its own tokens (#549), so refresh is not asked of it.
+   * A cookie session (#590) carries no Authorization header, and re-issuing
+   * the session cookie with a new lifetime is its refresh.
    */
   private static validateAuthContent(
     content: string,
     shape: AuthShape,
+    all: AuthShape,
     violations: string[]
   ): void {
-    if (!APIAuthenticationConstants.hasAuthorizationHandling(content)) {
+    const cookieSession =
+      all.serverSession || all.readsCookie || all.reissuesCookie;
+    if (
+      !cookieSession &&
+      !APIAuthenticationConstants.hasAuthorizationHandling(content)
+    ) {
       violations.push(
         'Authentication: Missing proper Authorization header handling'
       );
@@ -114,6 +129,7 @@ export class APIAuthenticationAnalyzer {
 
     if (
       !shape.managedSdk &&
+      !all.reissuesCookie &&
       !APIAuthenticationConstants.hasTokenRefreshMechanism(content)
     ) {
       violations.push('Authentication: Missing token refresh mechanism');

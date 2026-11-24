@@ -39,6 +39,11 @@ import {
   readProjectFiles,
   type TextFile,
 } from './project-text-files';
+import {
+  type ClientInstrumentation,
+  NODE_DB_INSTRUMENTATION,
+  PYTHON_DB_INSTRUMENTATION,
+} from './tracing-instrumentation';
 
 export const PYTHON_OTEL_SDKS: readonly string[] = [
   'opentelemetry-sdk',
@@ -58,124 +63,6 @@ export const REQUIRES_OTEL_SDK: LawRequirement = {
     { anyDependency: NODE_OTEL_SDKS },
   ],
 };
-
-export interface ClientInstrumentation {
-  /** The database client distribution / package. */
-  client: string;
-  /** Packages any one of which instruments it. */
-  instrumentations: readonly string[];
-}
-
-const SQLALCHEMY = 'opentelemetry-instrumentation-sqlalchemy';
-const GRPC_PY = 'opentelemetry-instrumentation-grpc';
-
-/**
- * Python database clients → OpenTelemetry instrumentation (PyPI names). The
- * Google Cloud Firestore and Datastore clients talk gRPC, so the gRPC client
- * instrumentation is what gives their calls spans. A DB-API driver used under
- * SQLAlchemy is also covered by the SQLAlchemy instrumentation.
- */
-export const PYTHON_DB_INSTRUMENTATION: readonly ClientInstrumentation[] = [
-  { client: 'google-cloud-firestore', instrumentations: [GRPC_PY] },
-  { client: 'google-cloud-datastore', instrumentations: [GRPC_PY] },
-  { client: 'sqlalchemy', instrumentations: [SQLALCHEMY] },
-  {
-    client: 'psycopg2',
-    instrumentations: ['opentelemetry-instrumentation-psycopg2', SQLALCHEMY],
-  },
-  {
-    client: 'psycopg2-binary',
-    instrumentations: ['opentelemetry-instrumentation-psycopg2', SQLALCHEMY],
-  },
-  {
-    client: 'psycopg',
-    instrumentations: ['opentelemetry-instrumentation-psycopg', SQLALCHEMY],
-  },
-  {
-    client: 'asyncpg',
-    instrumentations: ['opentelemetry-instrumentation-asyncpg', SQLALCHEMY],
-  },
-  {
-    client: 'aiopg',
-    instrumentations: ['opentelemetry-instrumentation-aiopg'],
-  },
-  {
-    client: 'pymysql',
-    instrumentations: ['opentelemetry-instrumentation-pymysql', SQLALCHEMY],
-  },
-  {
-    client: 'mysqlclient',
-    instrumentations: ['opentelemetry-instrumentation-mysqlclient', SQLALCHEMY],
-  },
-  {
-    client: 'mysql-connector-python',
-    instrumentations: ['opentelemetry-instrumentation-mysql', SQLALCHEMY],
-  },
-  {
-    client: 'pymongo',
-    instrumentations: ['opentelemetry-instrumentation-pymongo'],
-  },
-  {
-    client: 'redis',
-    instrumentations: ['opentelemetry-instrumentation-redis'],
-  },
-];
-
-const AUTO_NODE = '@opentelemetry/auto-instrumentations-node';
-const GRPC_NODE = '@opentelemetry/instrumentation-grpc';
-
-/**
- * Node database clients → OpenTelemetry instrumentation (npm names).
- * `@opentelemetry/auto-instrumentations-node` depends on every instrumentation
- * here except Prisma's, which Prisma publishes itself.
- */
-export const NODE_DB_INSTRUMENTATION: readonly ClientInstrumentation[] = [
-  {
-    client: 'mongodb',
-    instrumentations: ['@opentelemetry/instrumentation-mongodb', AUTO_NODE],
-  },
-  {
-    client: 'mongoose',
-    instrumentations: ['@opentelemetry/instrumentation-mongoose', AUTO_NODE],
-  },
-  {
-    client: 'pg',
-    instrumentations: ['@opentelemetry/instrumentation-pg', AUTO_NODE],
-  },
-  {
-    client: 'mysql',
-    instrumentations: ['@opentelemetry/instrumentation-mysql', AUTO_NODE],
-  },
-  {
-    client: 'mysql2',
-    instrumentations: ['@opentelemetry/instrumentation-mysql2', AUTO_NODE],
-  },
-  {
-    client: 'ioredis',
-    instrumentations: ['@opentelemetry/instrumentation-ioredis', AUTO_NODE],
-  },
-  {
-    client: 'redis',
-    instrumentations: ['@opentelemetry/instrumentation-redis', AUTO_NODE],
-  },
-  {
-    client: 'tedious',
-    instrumentations: ['@opentelemetry/instrumentation-tedious', AUTO_NODE],
-  },
-  {
-    client: 'knex',
-    instrumentations: ['@opentelemetry/instrumentation-knex', AUTO_NODE],
-  },
-  {
-    client: '@google-cloud/firestore',
-    instrumentations: [GRPC_NODE, AUTO_NODE],
-  },
-  {
-    client: '@google-cloud/datastore',
-    instrumentations: [GRPC_NODE, AUTO_NODE],
-  },
-  { client: '@prisma/client', instrumentations: ['@prisma/instrumentation'] },
-];
 
 /** `opentelemetry-bootstrap -a install` installs the instrumentation of every library it finds installed. */
 const PYTHON_BOOTSTRAP = /\bopentelemetry-bootstrap\b/;
@@ -279,15 +166,13 @@ export class TracingExplainsLatencyLaw extends LawBase {
       ...jsUnsampled.map(file => this.at(file, JS_PROVIDER)),
       ...zeroCode,
     ];
-    const noSetup = !sampledInCode && zeroCode.length === 0;
-    const undeclaredSetup = [
-      ...(noSetup && pythonActive && pyCode.length === 0
-        ? this.pythonDeclaration(projectRoot, PYTHON_OTEL_SDKS)
-        : []),
-      ...(noSetup && nodeActive && jsCode.length === 0
-        ? this.nodeDeclaration(projectRoot, NODE_OTEL_SDKS)
-        : []),
-    ];
+    const undeclaredSetup =
+      !sampledInCode && zeroCode.length === 0
+        ? this.undeclaredSetup(projectRoot, {
+            python: pythonActive && pyCode.length === 0,
+            node: nodeActive && jsCode.length === 0,
+          })
+        : [];
     return [
       ...sites.map(
         site =>
@@ -297,6 +182,24 @@ export class TracingExplainsLatencyLaw extends LawBase {
         place =>
           `${place.rel}:${place.line}: declares an OpenTelemetry SDK, but no setup file chooses a sampler and OTEL_TRACES_SAMPLER is set nowhere in the repository — the default parentbased_always_on follows the caller's sampled flag, so most requests can end up without a trace`
       ),
+    ];
+  }
+
+  /**
+   * Where an SDK is declared with no setup file and no zero-code start: the
+   * manifest lines of each ecosystem that declares its SDK and has no setup.
+   */
+  private static undeclaredSetup(
+    projectRoot: string,
+    without: { python: boolean; node: boolean }
+  ): Place[] {
+    return [
+      ...(without.python
+        ? this.pythonDeclaration(projectRoot, PYTHON_OTEL_SDKS)
+        : []),
+      ...(without.node
+        ? this.nodeDeclaration(projectRoot, NODE_OTEL_SDKS)
+        : []),
     ];
   }
 

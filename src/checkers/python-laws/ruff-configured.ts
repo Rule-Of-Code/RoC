@@ -22,24 +22,7 @@ export class RuffConfiguredLaw extends PythonLawBase {
     );
     if (early) return early;
 
-    const pyproject = this.readProjectFile(projectRoot, 'pyproject.toml') ?? '';
-    const setupCfg = this.readProjectFile(projectRoot, 'setup.cfg') ?? '';
-    const toxIni = this.readProjectFile(projectRoot, 'tox.ini') ?? '';
-    // A linter wired ONLY as a pre-commit hook is still configured — this law
-    // used to false-fail it because it read config files but not the gate.
-    const preCommit =
-      (this.readProjectFile(projectRoot, '.pre-commit-config.yaml') ?? '') +
-      (this.readProjectFile(projectRoot, '.pre-commit-config.yml') ?? '');
-    const configured =
-      this.projectFileExists(projectRoot, 'ruff.toml') ||
-      this.projectFileExists(projectRoot, '.ruff.toml') ||
-      this.projectFileExists(projectRoot, '.flake8') ||
-      this.projectFileExists(projectRoot, '.pylintrc') ||
-      /\[tool\.ruff/.test(pyproject) ||
-      /\[tool\.pylint/.test(pyproject) ||
-      /\[flake8\]/.test(setupCfg) ||
-      /\[flake8\]/.test(toxIni) ||
-      /\b(ruff|flake8|pylint)\b/.test(preCommit);
+    const configured = this.isLinterConfigured(projectRoot);
 
     const violations = configured
       ? []
@@ -56,6 +39,42 @@ export class RuffConfiguredLaw extends PythonLawBase {
         'Run ruff in pre-commit and CI so every change is linted',
       ],
       context
+    );
+  }
+
+  /** Config files whose presence alone configures a linter. */
+  private static readonly LINTER_FILES = [
+    'ruff.toml',
+    '.ruff.toml',
+    '.flake8',
+    '.pylintrc',
+  ] as const;
+
+  /**
+   * A file and the section in it that configures a linter. A linter wired
+   * ONLY as a pre-commit hook is still configured — this law used to
+   * false-fail it because it read config files but not the gate.
+   */
+  private static readonly LINTER_SECTIONS: ReadonlyArray<
+    readonly [file: string, section: RegExp]
+  > = [
+    ['pyproject.toml', /\[tool\.ruff/],
+    ['pyproject.toml', /\[tool\.pylint/],
+    ['setup.cfg', /\[flake8\]/],
+    ['tox.ini', /\[flake8\]/],
+    ['.pre-commit-config.yaml', /\b(ruff|flake8|pylint)\b/],
+    ['.pre-commit-config.yml', /\b(ruff|flake8|pylint)\b/],
+  ];
+
+  /** Whether ruff, flake8 or pylint is configured by a file or a section. */
+  private static isLinterConfigured(projectRoot: string): boolean {
+    return (
+      this.LINTER_FILES.some(file =>
+        this.projectFileExists(projectRoot, file)
+      ) ||
+      this.LINTER_SECTIONS.some(([file, section]) =>
+        section.test(this.readProjectFile(projectRoot, file) ?? '')
+      )
     );
   }
 }

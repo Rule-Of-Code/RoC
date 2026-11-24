@@ -62,8 +62,9 @@ describe('the type-safety laws read code (#424)', () => {
 
     it.each([
       [
-        'an any annotation',
-        'export const risky: any = JSON.parse("{}");\n',
+        // `: any` is owned by Absolute Zero Tolerance (#482)
+        'an any type argument',
+        'export const risky = JSON.parse("{}") as Array<any>;\n',
         'Explicit `any`',
       ],
       [

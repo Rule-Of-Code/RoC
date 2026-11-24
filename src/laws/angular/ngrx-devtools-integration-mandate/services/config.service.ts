@@ -28,9 +28,11 @@ export class NgRxDevToolsConfigService {
         };
       }
 
-      let configured = false;
-      let hasEnvironmentCheck = false;
-      let hasConfigOptions = false;
+      const found: DevToolsConfigResult = {
+        configured: false,
+        hasEnvironmentCheck: false,
+        hasConfigOptions: false,
+      };
 
       for (const filePath of configFiles) {
         const content = FileUtils.readFile(filePath);
@@ -42,28 +44,21 @@ export class NgRxDevToolsConfigService {
         }
 
         // Checking NgRx DevTools configuration
+        this.markFound(content, found);
 
-        if (Patterns.hasDevToolsIntegration(content)) {
-          configured = true;
-        }
-
-        if (Patterns.hasEnvironmentCondition(content)) {
-          hasEnvironmentCheck = true;
-        }
-
-        if (Patterns.hasConfigOptions(content)) {
-          hasConfigOptions = true;
-        }
-
-        if (configured && hasEnvironmentCheck && hasConfigOptions) {
+        if (
+          found.configured &&
+          found.hasEnvironmentCheck &&
+          found.hasConfigOptions
+        ) {
           break;
         }
       }
 
       return {
-        configured,
-        hasEnvironmentCheck,
-        hasConfigOptions,
+        configured: found.configured,
+        hasEnvironmentCheck: found.hasEnvironmentCheck,
+        hasConfigOptions: found.hasConfigOptions,
       };
     } catch {
       return {
@@ -71,6 +66,21 @@ export class NgRxDevToolsConfigService {
         hasEnvironmentCheck: false,
         hasConfigOptions: false,
       };
+    }
+  }
+
+  /** What one config file shows: the integration, an environment check, options. */
+  private static markFound(content: string, found: DevToolsConfigResult): void {
+    if (Patterns.hasDevToolsIntegration(content)) {
+      found.configured = true;
+    }
+
+    if (Patterns.hasEnvironmentCondition(content)) {
+      found.hasEnvironmentCheck = true;
+    }
+
+    if (Patterns.hasConfigOptions(content)) {
+      found.hasConfigOptions = true;
     }
   }
 }

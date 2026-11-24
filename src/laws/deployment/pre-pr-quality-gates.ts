@@ -177,38 +177,11 @@ export class PrePrQualityGatesLaw {
     hasBranchProtection: boolean;
     branchRules: string[];
   } {
-    // Check for GitHub branch protection configuration
-    const githubDir = PathOperations.join(projectRoot, '.github');
-    let hasBranchProtection = false;
-
-    if (FileUtils.exists(githubDir)) {
-      // Look for branch protection configuration files
-      const branchProtectionFiles = [
-        'branch_protection.yml',
-        'branch-protection.yml',
-        'settings.yml',
-      ];
-
-      for (const file of branchProtectionFiles) {
-        const filePath = PathOperations.join(githubDir, file);
-        if (FileUtils.exists(filePath)) {
-          hasBranchProtection = true;
-          break;
-        }
-      }
-    }
+    let hasBranchProtection = this.hasGithubProtectionFile(projectRoot);
 
     // Check for GitLab branch protection (in .gitlab-ci.yml)
-    const gitlabCiPath = PathOperations.join(projectRoot, '.gitlab-ci.yml');
-    if (!hasBranchProtection && FileUtils.exists(gitlabCiPath)) {
-      try {
-        const content = FileUtils.readFile(gitlabCiPath, { encoding: 'utf8' });
-        if (/only.*master|only.*main|protected/i.test(content)) {
-          hasBranchProtection = true;
-        }
-      } catch (_error) {
-        // Skip if can't read file
-      }
+    if (!hasBranchProtection && this.hasGitlabProtection(projectRoot)) {
+      hasBranchProtection = true;
     }
 
     // On Bitbucket, Azure, GitHub and GitLab, branch protection is configured
@@ -226,6 +199,35 @@ export class PrePrQualityGatesLaw {
       hasBranchProtection,
       branchRules: hasBranchProtection ? ['main', 'master'] : [],
     };
+  }
+
+  /** A branch protection settings file under .github/. */
+  private static hasGithubProtectionFile(projectRoot: string): boolean {
+    // Check for GitHub branch protection configuration
+    const githubDir = PathOperations.join(projectRoot, '.github');
+    if (!FileUtils.exists(githubDir)) return false;
+    // Look for branch protection configuration files
+    const branchProtectionFiles = [
+      'branch_protection.yml',
+      'branch-protection.yml',
+      'settings.yml',
+    ];
+    return branchProtectionFiles.some(file =>
+      FileUtils.exists(PathOperations.join(githubDir, file))
+    );
+  }
+
+  /** A .gitlab-ci.yml that limits jobs to the protected branches. */
+  private static hasGitlabProtection(projectRoot: string): boolean {
+    const gitlabCiPath = PathOperations.join(projectRoot, '.gitlab-ci.yml');
+    if (!FileUtils.exists(gitlabCiPath)) return false;
+    try {
+      const content = FileUtils.readFile(gitlabCiPath, { encoding: 'utf8' });
+      return /only.*master|only.*main|protected/i.test(content);
+    } catch (_error) {
+      // Skip if can't read file
+      return false;
+    }
   }
 
   /**

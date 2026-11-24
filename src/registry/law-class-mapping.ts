@@ -213,6 +213,9 @@ import {
 } from '../checkers/react-laws';
 import {
   IonicE2eLocatorsTargetTheShownPageLaw,
+  IonicEdgeChromePaysSafeAreaLaw,
+  IonicFixedContentInFixedSlotLaw,
+  IonicGestureTouchActionLaw,
   IonicIconsRegisteredLaw,
   IonicLeaveCancelsWhatEnterStartedLaw,
   IonicNavigationSpecsMountTheOutletLaw,
@@ -251,8 +254,70 @@ import {
   ReactRenderNoBrowserGlobalLaw,
   ReactStoreSubscriptionUsesSyncExternalStoreLaw,
 } from '../checkers/react-laws';
+import {
+  ContentSecurityPolicyLaw,
+  EnvironmentVariablesLaw,
+  XSSPreventionLaw,
+} from '../checkers/security-laws';
+import { AuthenticationSecurityLaw } from '../checkers/security-laws/authentication-security';
+import { DataEncryptionStandardsLaw } from '../checkers/security-laws/data-encryption-standards';
+import { EnvironmentSecurityEnforcementLaw } from '../checkers/security-laws/environment-security-enforcement';
+import { SecurityVulnerabilityResponseLaw } from '../checkers/security-laws/security-vulnerability-response';
+import { ApiSecurityStandardsLaw } from '../laws/security/api-security-standards';
+import { DependencySecurityScanningLaw } from '../laws/security/dependency-security-scanning';
+import { SecurityTestingRequirementsLaw } from '../laws/security/security-testing-requirements';
+import {
+  BundleSizeOptimizationLaw,
+  MemoryManagementLaw,
+} from '../checkers/performance-laws';
+import { BundleOptimizationStrategyLaw } from '../laws/performance/bundle-optimization-strategy';
+import { CdnCachingStrategyLaw } from '../laws/performance/cdn-caching-strategy';
+import { CoreWebVitalsComplianceLaw } from '../laws/performance/core-web-vitals-compliance';
+import { DatabaseQueryOptimizationLaw } from '../laws/performance/database-query-optimization';
+import {
+  CountWithAggregationLaw,
+  DocumentReadOncePerRequestLaw,
+  IndependentAwaitsRunConcurrentlyLaw,
+} from '../checkers/request-path-laws';
+import { PerformanceBudgetComplianceLaw } from '../laws/performance/performance-budget-compliance';
+import { PerformanceMonitoringPolicyLaw } from '../laws/performance/performance-monitoring-policy';
+import { PerformanceMonitoringStandardsLaw } from '../laws/performance/performance-monitoring-standards';
+import { PerformanceStandardsLaw } from '../laws/performance/performance-standards';
 import { NgRxDevToolsIntegrationMandateLaw } from '../laws/angular/ngrx-devtools-integration-mandate';
 import { NgRxStateNormalizationMandateLaw } from '../laws/angular/ngrx-state-normalization-mandate';
+import {
+  JestUnitTest100CoverageMandateLaw,
+  NoFocusedTestsLaw,
+  NoTestOnlyLeakageLaw,
+  PlaywrightLocatorsUserFacingLaw,
+  PlaywrightNoFixedWaitLaw,
+  RtlQueryByRoleLaw,
+  TestCoverageRequirementsLaw,
+  UnitTestQualityLaw,
+} from '../checkers/testing-laws';
+import { TestCoverageConstitutionalStandardLaw } from '../checkers/testing-laws/test-coverage-constitutional-standard';
+import { APITestingStandardsLaw } from '../laws/testing/api-testing-standards';
+import { E2ETestingStandardsLaw } from '../checkers/testing-laws/e2e-testing-standards';
+import { PerformanceTestRequirementsLaw } from '../laws/testing/performance-test-requirements';
+import { ProfessionalComponentTestingPolicyLaw } from '../laws/testing/professional-component-testing-policy';
+import { TestDataManagementLaw } from '../laws/testing/test-data-management';
+import { TestDocumentationRequirementsLaw } from '../laws/testing/test-documentation-requirements';
+import { TestIsolationEnforcementLaw } from '../laws/testing/test-isolation-enforcement';
+import { EnvironmentParityStandardsLaw } from '../checkers/deployment-laws';
+import { AutomatedCodeQualityGatesLaw } from '../laws/deployment/automated-code-quality-gates';
+import { CicdConstitutionalTribunalLaw } from '../laws/deployment/cicd-constitutional-tribunal';
+import { HealthCheckMonitoringLaw } from '../laws/deployment/health-check-monitoring';
+import { LaunchReadinessChecklistLaw } from '../laws/deployment/launch-readiness-checklist';
+import { PreDeploymentChecklistLaw } from '../laws/deployment/pre-deployment-checklist';
+import { PrePrQualityGatesLaw } from '../laws/deployment/pre-pr-quality-gates';
+import { ErrorHandlingStandardsLaw } from '../laws/documentation/error-handling-standards';
+import { IncidentResponseProtocolLaw } from '../laws/documentation/incident-response-protocol';
+import { InternationalizationCompliancePolicyLaw } from '../laws/documentation/internationalization-compliance-policy';
+import { MdFooterFooterConsistencyLaw } from '../laws/documentation/md-footer-footer-consistency';
+import { MdFooterTemplateLaw } from '../laws/documentation/md-footer-template';
+import { StrategicDocumentUpdatesLaw } from '../laws/documentation/strategic-document-updates';
+import { TodoManagementLaw } from '../laws/documentation/todo-management';
+import { TodoManagementStandardsLaw } from '../laws/documentation/todo-management-standards';
 import { ComponentSelectorPrefixLaw } from '../checkers/angular-laws/component-selector-prefix';
 
 export const LAW_CLASS_MAPPING = {
@@ -546,4 +611,86 @@ export const LAW_CLASS_MAPPING = {
   'IonicIconsRegisteredLaw.check': IonicIconsRegisteredLaw,
   'IonicScrollThroughIonContentLaw.check': IonicScrollThroughIonContentLaw,
   'IonicViewportFitCoverLaw.check': IonicViewportFitCoverLaw,
+  'IonicEdgeChromePaysSafeAreaLaw.check': IonicEdgeChromePaysSafeAreaLaw,
+  'IonicGestureTouchActionLaw.check': IonicGestureTouchActionLaw,
+  'IonicFixedContentInFixedSlotLaw.check': IonicFixedContentInFixedSlotLaw,
+
+  // Security Laws
+  checkEnvironmentVariables: EnvironmentVariablesLaw,
+  checkXSSPrevention: XSSPreventionLaw,
+  checkAPISecurityStandards: ApiSecurityStandardsLaw,
+  checkDependencySecurityScanning: DependencySecurityScanningLaw,
+  'EnvironmentSecurityEnforcementLaw.check': EnvironmentSecurityEnforcementLaw,
+  'SecurityVulnerabilityResponseLaw.check': SecurityVulnerabilityResponseLaw,
+  'DataEncryptionStandardsLaw.check': DataEncryptionStandardsLaw,
+  'AuthenticationSecurityLaw.check': AuthenticationSecurityLaw,
+  'APISecurityStandardsLaw.check': ApiSecurityStandardsLaw,
+  'DependencySecurityScanningLaw.check': DependencySecurityScanningLaw,
+  checkSecurityTestingRequirements: SecurityTestingRequirementsLaw,
+  // legacyId 44 judges the CSP; the sinks are legacyId 43's (one defect, one result)
+  checkSecurityStandards: ContentSecurityPolicyLaw,
+  'ContentSecurityPolicyLaw.check': ContentSecurityPolicyLaw,
+  'XSSPreventionLaw.check': XSSPreventionLaw,
+
+  // Performance Laws
+  checkBundleSizeOptimization: BundleSizeOptimizationLaw,
+  'BundleSizeOptimizationLaw.check': BundleSizeOptimizationLaw,
+  checkMemoryLeakPrevention: MemoryManagementLaw,
+  checkCoreWebVitalsCompliance: CoreWebVitalsComplianceLaw,
+  checkPerformanceMonitoringStandards: PerformanceMonitoringStandardsLaw,
+  checkBundleOptimizationStrategy: BundleOptimizationStrategyLaw,
+  checkPerformanceStandards: PerformanceStandardsLaw,
+  checkDatabaseQueryOptimization: DatabaseQueryOptimizationLaw,
+  'IndependentAwaitsRunConcurrentlyLaw.check':
+    IndependentAwaitsRunConcurrentlyLaw,
+  'DocumentReadOncePerRequestLaw.check': DocumentReadOncePerRequestLaw,
+  'CountWithAggregationLaw.check': CountWithAggregationLaw,
+  checkCDNAndCachingStrategy: CdnCachingStrategyLaw,
+  checkCDNCachingStrategy: CdnCachingStrategyLaw,
+  checkPerformanceBudgetCompliance: PerformanceBudgetComplianceLaw,
+
+  // Performance Laws - Real Implementations
+  checkCoreWebVitals: CoreWebVitalsComplianceLaw,
+  checkBundleOptimization: BundleOptimizationStrategyLaw,
+  checkPerformanceMonitoring: PerformanceMonitoringPolicyLaw,
+
+  // Testing Laws
+  checkTestCoverage: TestCoverageRequirementsLaw,
+  checkE2ETestingStandards: E2ETestingStandardsLaw,
+  checkAPITestingStandards: APITestingStandardsLaw,
+  checkTestDataManagement: TestDataManagementLaw,
+  checkTestIsolationEnforcement: TestIsolationEnforcementLaw,
+  checkPerformanceTestRequirements: PerformanceTestRequirementsLaw,
+  checkComponentTesting: ProfessionalComponentTestingPolicyLaw,
+  checkTestDocumentationRequirements: TestDocumentationRequirementsLaw,
+  'TestCoverageConstitutionalStandardLaw.check':
+    TestCoverageConstitutionalStandardLaw,
+  checkUnitTestQuality: UnitTestQualityLaw,
+  checkJestUnitTest100Coverage: JestUnitTest100CoverageMandateLaw,
+
+  // Test Integrity Laws (gated on the runner or library they read)
+  'NoFocusedTestsLaw.check': NoFocusedTestsLaw,
+  'PlaywrightNoFixedWaitLaw.check': PlaywrightNoFixedWaitLaw,
+  'PlaywrightLocatorsUserFacingLaw.check': PlaywrightLocatorsUserFacingLaw,
+  'RtlQueryByRoleLaw.check': RtlQueryByRoleLaw,
+  'NoTestOnlyLeakageLaw.check': NoTestOnlyLeakageLaw,
+
+  // Deployment Laws
+  checkEnvironmentParityStandards: EnvironmentParityStandardsLaw,
+  checkAutomatedQualityGates: AutomatedCodeQualityGatesLaw,
+  checkCICDTribunal: CicdConstitutionalTribunalLaw,
+  checkPreDeploymentChecklist: PreDeploymentChecklistLaw,
+  checkPrePRQualityGates: PrePrQualityGatesLaw,
+  checkHealthCheckMonitoring: HealthCheckMonitoringLaw,
+  checkLaunchReadinessChecklist: LaunchReadinessChecklistLaw,
+
+  // Documentation Laws
+  checkMDFooterTemplate: MdFooterTemplateLaw,
+  checkTODOManagement: TodoManagementLaw,
+  checkErrorHandlingStandards: ErrorHandlingStandardsLaw,
+  checkIncidentResponseProtocol: IncidentResponseProtocolLaw,
+  checkInternationalization: InternationalizationCompliancePolicyLaw,
+  checkStrategicDocumentUpdates: StrategicDocumentUpdatesLaw,
+  checkMDFooterConsistency: MdFooterFooterConsistencyLaw,
+  checkTODOManagementStandards: TodoManagementStandardsLaw,
 };

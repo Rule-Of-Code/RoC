@@ -13,7 +13,7 @@
  * that such a call later receives in the same function.
  */
 
-import type { UpstreamCall } from './proxy-target';
+import { QUOTE_LENGTH, type UpstreamCall } from './proxy-target';
 
 const URLJOIN = /\burljoin\s*\(/g;
 const STRING_LITERAL = /^[rbuRBU]*(["'])[^"'{}]*\1$/;
@@ -192,7 +192,7 @@ export function pythonUpstreamCalls(text: string): UpstreamCall[] {
           : 'not-request';
     calls.push({
       line: index + 1,
-      input: url.replace(/\s+/g, ' ').slice(0, 80),
+      input: url.replace(/\s+/g, ' ').slice(0, QUOTE_LENGTH),
       verdict,
     });
   }

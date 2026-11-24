@@ -23,6 +23,9 @@ const LAW_NAME = 'Authentication Security Law';
 export const NO_CODE_READ =
   'No code file was found in src/ (or apps/ and libs/): the code was NOT read, so authentication, authorization and sessions were not judged';
 
+/** Points of the score of 100 each authentication violation costs. */
+const POINTS_PER_VIOLATION = 15;
+
 export class AuthenticationSecurityLaw {
   static check(context: LawCheckContext): LawResult {
     const violations: string[] = [];
@@ -117,7 +120,7 @@ export class AuthenticationSecurityLaw {
     context?: { config: RuleOfCodeConfig }
   ): LawResult {
     const passed = violations.length === 0;
-    const score = Math.max(0, 100 - violations.length * 15);
+    const score = Math.max(0, 100 - violations.length * POINTS_PER_VIOLATION);
 
     return {
       passed,

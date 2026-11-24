@@ -34,6 +34,7 @@ import {
   parseFilesMentioning,
   unwrap,
 } from './react-security-support';
+import { codeExcerpt } from '../../utils/code-excerpt';
 
 const BODY_READERS = new Set(['json', 'formData', 'text']);
 const REQUEST_TYPES = new Set(['Request', 'NextRequest']);
@@ -301,7 +302,6 @@ export class NextOpenRedirectGuardedLaw extends LawBase {
   }
 
   private static text(source: TsxSource, node: TS.Node): string {
-    const text = node.getText(source.sourceFile).replace(/\s+/g, ' ');
-    return text.length > 60 ? `${text.slice(0, 57)}...` : text;
+    return codeExcerpt(node.getText(source.sourceFile));
   }
 }

@@ -2,6 +2,17 @@ import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { PerformanceMonitoringPolicyAnalyzerService } from './performance-monitoring-policy/services';
 import { unreadViolation } from '../../utils/react/react-performance-source';
 
+/** Points of the score of 100 each missing piece of performance monitoring costs. */
+const PENALTY = {
+  realUserMonitoring: 25,
+  budget: 20,
+  errorTracking: 20,
+  alerting: 15,
+  coreWebVitals: 10,
+  unread: 10,
+  dashboards: 10,
+} as const;
+
 /**
  * Performance Monitoring Policy Law
  * Ensures proper performance monitoring and alerting systems are in place
@@ -25,14 +36,14 @@ export class PerformanceMonitoringPolicyLaw {
       suggestions.push(
         'Implement RUM with tools like Google Analytics, New Relic, or DataDog'
       );
-      score -= 25;
+      score -= PENALTY.realUserMonitoring;
     }
 
     // Check for performance budget configuration
     if (!analysis.performanceBudget.configured) {
       violations.push('Performance budget not configured');
       suggestions.push('Set performance budgets in CI/CD and monitoring tools');
-      score -= 20;
+      score -= PENALTY.budget;
     }
 
     // Check for error tracking and performance monitoring
@@ -41,7 +52,7 @@ export class PerformanceMonitoringPolicyLaw {
       suggestions.push(
         'Implement error tracking with Sentry (@sentry/nextjs, @sentry/react, @sentry/angular), LogRocket, or similar tools'
       );
-      score -= 20;
+      score -= PENALTY.errorTracking;
     }
 
     // Check for performance alerts and notifications
@@ -50,7 +61,7 @@ export class PerformanceMonitoringPolicyLaw {
       suggestions.push(
         'Set up alerts for Core Web Vitals and performance regressions'
       );
-      score -= 15;
+      score -= PENALTY.alerting;
     }
 
     // Check for Core Web Vitals monitoring
@@ -59,13 +70,13 @@ export class PerformanceMonitoringPolicyLaw {
       suggestions.push(
         'Monitor LCP, INP, CLS in production (web-vitals, or useReportWebVitals in Next.js)'
       );
-      score -= 10;
+      score -= PENALTY.coreWebVitals;
     }
 
     // React source the analysis needed and could not read was not inspected.
     if (analysis.unread.length > 0) {
       violations.push(unreadViolation(analysis.unread));
-      score -= 10;
+      score -= PENALTY.unread;
     }
 
     // Check for performance dashboards
@@ -74,7 +85,7 @@ export class PerformanceMonitoringPolicyLaw {
       suggestions.push(
         'Create dashboards for monitoring key performance metrics'
       );
-      score -= 10;
+      score -= PENALTY.dashboards;
     }
 
     return {

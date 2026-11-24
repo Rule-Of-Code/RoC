@@ -39,6 +39,9 @@ import type { TsxSource } from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';
 import { listed } from './next-server-support';
 
+/** Characters of an unreadable expression quoted in a finding. */
+const QUOTE_LENGTH = 60;
+
 const KEY = 'thresholds.next.guardExemptions';
 
 interface Pattern {
@@ -140,7 +143,7 @@ export class GuardExemptionMatchesARouteLaw extends LawBase {
     const ts = source.ts;
     const value = unwrap(ts, initializer);
     if (!ts.isArrayLiteralExpression(value)) {
-      return `is not a literal array (${value.getText(source.sourceFile).slice(0, 60)}) — patterns built at runtime cannot be checked, so they are not passed`;
+      return `is not a literal array (${value.getText(source.sourceFile).slice(0, QUOTE_LENGTH)}) — patterns built at runtime cannot be checked, so they are not passed`;
     }
     const patterns: Pattern[] = [];
     for (const element of value.elements) {
@@ -159,7 +162,7 @@ export class GuardExemptionMatchesARouteLaw extends LawBase {
           line,
         });
       } else {
-        return `holds a non-literal element (${item.getText(source.sourceFile).slice(0, 60)}) at line ${line} — it cannot be checked, so the list is not passed`;
+        return `holds a non-literal element (${item.getText(source.sourceFile).slice(0, QUOTE_LENGTH)}) at line ${line} — it cannot be checked, so the list is not passed`;
       }
     }
     return patterns;

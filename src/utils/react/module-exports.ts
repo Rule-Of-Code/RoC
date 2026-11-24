@@ -13,6 +13,9 @@
 import type * as TS from 'typescript';
 import type { TsxSource, TypeScriptModule } from './tsx-source';
 
+/** Links of a callee chain followed before giving up — a guard, not a limit any real chain reaches. */
+const MAX_CHAIN_DEPTH = 50;
+
 export type FunctionLike =
   TS.ArrowFunction | TS.FunctionDeclaration | TS.FunctionExpression;
 
@@ -207,7 +210,7 @@ export function calleeChain(
 ): string[] {
   const names: string[] = [];
   let current: TS.Expression = call.expression;
-  for (let depth = 0; depth < 50; depth++) {
+  for (let depth = 0; depth < MAX_CHAIN_DEPTH; depth++) {
     current = unwrap(ts, current);
     if (ts.isPropertyAccessExpression(current)) {
       names.push(current.name.text, current.getText(source.sourceFile));

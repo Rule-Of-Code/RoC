@@ -2,6 +2,10 @@ import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils';
 import { ProjectTypeDetectorValidation } from '../../utils/config/project-type-detector/project-type-detector-validation';
 import { PathOperations } from '../../utils/path-operations';
+
+/** Points of the score of 100 a missing lock file costs. */
+const MISSING_LOCK_FILE_PENALTY = 25;
+
 /**
  * Dependency Pinning Checker
  * Validates that dependencies are properly pinned to specific versions
@@ -75,7 +79,7 @@ export class DependencyPinningChecker {
         'No lock file found - package-lock.json, yarn.lock, or pnpm-lock.yaml required'
       );
       suggestions.push('Add a lock file to ensure reproducible builds');
-      score -= 25;
+      score -= MISSING_LOCK_FILE_PENALTY;
     }
 
     return { violations, suggestions, score: Math.max(0, score) };

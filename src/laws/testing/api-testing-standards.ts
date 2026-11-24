@@ -4,6 +4,15 @@ import { HttpTestHarness } from '../../utils/testing/http-test-harness';
 import { TestingLawUtilities } from './shared-testing-utilities';
 import { UnitTestAPITestingAnalyzerService } from './unit-test-api-testing/services/api-testing-analyzer.service';
 
+/** Points of the score of 100 each missing piece of API testing costs. */
+const PENALTY = {
+  noTests: 30,
+  noFramework: 25,
+  noMocking: 10,
+  httpMethods: 15,
+  errorScenarios: 15,
+} as const;
+
 /**
  * API Testing Standards Law
  *
@@ -46,7 +55,7 @@ export class APITestingStandardsLaw {
         suggestions.push(
           'Create API test files using Jest, Cypress, or Supertest'
         );
-        score -= 30;
+        score -= PENALTY.noTests;
       }
 
       // 2. Analyze testing framework setup
@@ -58,7 +67,7 @@ export class APITestingStandardsLaw {
         suggestions.push(
           'Install API testing framework (supertest, jest, cypress)'
         );
-        score -= 25;
+        score -= PENALTY.noFramework;
       }
 
       // 3 + 4 + 6. Analyze the discovered API test files
@@ -83,7 +92,7 @@ export class APITestingStandardsLaw {
         suggestions.push(
           'Consider implementing API mocking with tools like MSW or nock'
         );
-        score -= 10;
+        score -= PENALTY.noMocking;
       }
 
       return TestingLawUtilities.createTestResult({
@@ -140,7 +149,7 @@ export class APITestingStandardsLaw {
       suggestions.push(
         'Add tests for all HTTP methods (GET, POST, PUT, DELETE)'
       );
-      penalty += 15;
+      penalty += PENALTY.httpMethods;
     }
 
     const errorAnalysis =
@@ -149,7 +158,7 @@ export class APITestingStandardsLaw {
     if (!errorAnalysis.hasErrorTests) {
       violations.push('Error scenario testing not implemented');
       suggestions.push('Add tests for 4xx and 5xx error responses');
-      penalty += 15;
+      penalty += PENALTY.errorScenarios;
     }
 
     UnitTestAPITestingAnalyzerService.analyzeRequestResponseValidation(

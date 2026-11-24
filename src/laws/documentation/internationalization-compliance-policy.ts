@@ -9,6 +9,7 @@ import { PathOperations } from '../../utils/path-operations';
 import { PathResolver } from '../../utils/path-resolver';
 import { declaredDependencies } from '../../utils/law-requirements';
 import { analyzeJsxText } from './i18n-jsx';
+import { I18N_POLICY_PENALTY as PENALTY } from './documentation-penalties';
 
 /** React i18n libraries this law recognises as a configured i18n setup. */
 const REACT_I18N_LIBRARIES = ['next-intl', 'react-i18next'];
@@ -86,7 +87,7 @@ export class InternationalizationCompliancePolicyLaw {
           'Configure Angular i18n in angular.json and add @angular/localize'
         );
       }
-      score -= 30;
+      score -= PENALTY.angularI18nConfig;
     }
 
     // 2. Check for translation files
@@ -96,7 +97,7 @@ export class InternationalizationCompliancePolicyLaw {
       suggestions.push(
         'Create translation files for supported locales (messages.xlf, locale/*.json)'
       );
-      score -= 25;
+      score -= PENALTY.translationFiles;
     }
 
     // 3. Check for hardcoded text in templates
@@ -104,7 +105,7 @@ export class InternationalizationCompliancePolicyLaw {
     if (hardcodedText.hasHardcodedText) {
       violations.push('Hardcoded text found in templates');
       suggestions.push('Extract hardcoded text to i18n translation keys');
-      score -= 20;
+      score -= PENALTY.hardcodedTemplateText;
     }
 
     // 3b. Hardcoded text in JSX, read on the syntax tree
@@ -118,7 +119,7 @@ export class InternationalizationCompliancePolicyLaw {
       suggestions.push(
         'Move user-facing JSX text into message files and render it through t(...)'
       );
-      score -= 20;
+      score -= PENALTY.hardcodedJsxText;
     }
 
     // 4. Check for i18n directive usage

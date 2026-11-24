@@ -22,6 +22,9 @@
 import type * as TS from 'typescript';
 import type { TsxSource } from '../react/tsx-source';
 
+/** Characters of a call or a command quoted in a finding. */
+export const QUOTE_LENGTH = 80;
+
 /** One two-argument `new URL` / `urljoin` call and what was concluded. */
 export interface UpstreamCall {
   line: number;
@@ -109,7 +112,7 @@ export class UpstreamUrlScan {
     return node
       .getText(this.source.sourceFile)
       .replace(/\s+/g, ' ')
-      .slice(0, 80);
+      .slice(0, QUOTE_LENGTH);
   }
 
   // ── declarations ──────────────────────────────────────────────────────

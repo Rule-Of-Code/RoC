@@ -1,6 +1,9 @@
 import type { LawCheckContext, LawResult } from '../types/law.types';
 import { LawBase } from './law-base';
 
+/** The score a checker must reach to pass, unless it says otherwise. */
+const DEFAULT_PASS_THRESHOLD = 80;
+
 /**
  * Base checker for security/compliance validators
  * Provides common pattern for running analysis and generating results
@@ -44,7 +47,7 @@ export abstract class ComplianceCheckerBase {
    * Override to provide checker-specific pass threshold
    */
   protected getPassThreshold(): number {
-    return 80;
+    return DEFAULT_PASS_THRESHOLD;
   }
 
   /**

@@ -2,6 +2,9 @@ import { FileUtils } from '../../../../utils/file-utils';
 import { PathOperations } from '../../../../utils/path-operations';
 import { UnitTestCoverageQualityConstants } from '../constants/quality';
 
+/** Points deducted per low-quality test, and at most in all. */
+const LOW_QUALITY_DEDUCTION = { perTest: 5, max: 20 } as const;
+
 /**
  * Unit Test Coverage - Quality Analysis Service
  * Analyzes test quality metrics (structure, isolation, assertions)
@@ -114,7 +117,9 @@ export class UnitTestCoverageQualityAnalysisService {
       return 0; // No deduction
     }
 
-    // Deduct 20 points for having low-quality tests
-    return Math.min(20, lowQualityCount * 5);
+    return Math.min(
+      LOW_QUALITY_DEDUCTION.max,
+      lowQualityCount * LOW_QUALITY_DEDUCTION.perTest
+    );
   }
 }

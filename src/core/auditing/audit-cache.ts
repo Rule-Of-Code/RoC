@@ -181,46 +181,9 @@ export class AuditCache {
         return null;
       }
 
-      // Validate cache
-      const now = Date.now();
-      const age = now - cacheData.timestamp;
-
-      if (age > this.MAX_CACHE_AGE_MS) {
-        // Cache too old
-        return null;
-      }
-
-      if (cacheData.filesHash !== filesHash) {
-        // Files changed
-        return null;
-      }
-
-      if (cacheData.configHash !== configHash) {
-        // Config changed
-        return null;
-      }
-
-      if (cacheData.mode !== mode) {
-        // A verdict computed under another mode audits a different law set.
-        return null;
-      }
-
-      if (cacheData.toolVersion !== this.toolVersion()) {
-        // A verdict computed by another version of this tool. Upgrading is
-        // precisely when the answer is expected to change.
-        return null;
-      }
-
-      if (cacheData.gitState !== this.getGitState(projectRoot)) {
-        // Branch switched or new commit — git-derived violations may be stale.
-        // (Caches written before this field existed have `gitState === undefined`,
-        // which never equals a real state string, so they invalidate safely.)
-        return null;
-      }
-
-      if (cacheData.codeFingerprint !== this.codeFingerprint()) {
-        // Same version, different build: its detectors may answer differently.
-        // Checked last, so the hash is computed only for an otherwise valid entry.
+      if (
+        !this.isFresh(cacheData, { projectRoot, filesHash, configHash, mode })
+      ) {
         return null;
       }
 
@@ -234,6 +197,65 @@ export class AuditCache {
       // Cache read error, ignore
       return null;
     }
+  }
+
+  /**
+   * Is a cached entry still the answer for this run: young enough, and
+   * computed for the same files, config, mode, tool version, git state and
+   * build? Each check says why it would not be.
+   */
+  private static isFresh(
+    cacheData: CacheEntry,
+    run: {
+      projectRoot: string;
+      filesHash: string;
+      configHash: string;
+      mode: string;
+    }
+  ): boolean {
+    const { projectRoot, filesHash, configHash, mode } = run;
+    const now = Date.now();
+    const age = now - cacheData.timestamp;
+
+    if (age > this.MAX_CACHE_AGE_MS) {
+      // Cache too old
+      return false;
+    }
+
+    if (cacheData.filesHash !== filesHash) {
+      // Files changed
+      return false;
+    }
+
+    if (cacheData.configHash !== configHash) {
+      // Config changed
+      return false;
+    }
+
+    if (cacheData.mode !== mode) {
+      // A verdict computed under another mode audits a different law set.
+      return false;
+    }
+
+    if (cacheData.toolVersion !== this.toolVersion()) {
+      // A verdict computed by another version of this tool. Upgrading is
+      // precisely when the answer is expected to change.
+      return false;
+    }
+
+    if (cacheData.gitState !== this.getGitState(projectRoot)) {
+      // Branch switched or new commit — git-derived violations may be stale.
+      // (Caches written before this field existed have `gitState === undefined`,
+      // which never equals a real state string, so they invalidate safely.)
+      return false;
+    }
+
+    if (cacheData.codeFingerprint !== this.codeFingerprint()) {
+      // Same version, different build: its detectors may answer differently.
+      // Checked last, so the hash is computed only for an otherwise valid entry.
+      return false;
+    }
+    return true;
   }
 
   /**

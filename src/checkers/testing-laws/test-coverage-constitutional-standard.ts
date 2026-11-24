@@ -11,7 +11,7 @@ import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
 import { CoverageConfigurationInspector } from '../../utils/testing/coverage-configuration-inspector';
 import { TestConfigurationInspector } from '../../utils/testing/test-configuration-inspector';
-import { TestFilesExistenceChecker } from '../../utils/testing/test-files-existence-checker';
+import { CoverageByReport, type CoverageVerdict } from './coverage-by-report';
 
 /** Points of the score of 100 each coverage violation costs. */
 const POINTS_PER_VIOLATION = 15;
@@ -24,7 +24,7 @@ export class TestCoverageConstitutionalStandardLaw {
     // so their findings there report the absence of a toolchain the project
     // does not use. That is not a violation — the concern is satisfied.
     if (this.isCoverageSatisfiedByPython(context.projectRoot)) {
-      return this.createResult([], [], context);
+      return this.createResult([], [], context, null);
     }
 
     const violations: string[] = [];
@@ -44,18 +44,15 @@ export class TestCoverageConstitutionalStandardLaw {
     violations.push(...coverageAnalysis.violations);
     suggestions.push(...coverageAnalysis.suggestions);
 
-    // Check for test files existence - delegated to test files checker
-    // Pass the law id so `ignores.byRule` / `includes.byRule` keyed by the hashed
-    // id resolve as well as the readable slug the registry publishes.
-    const testFilesAnalysis = TestFilesExistenceChecker.checkTestFilesExistence(
-      context.projectRoot,
-      context.config,
-      context.lawId
-    );
-    violations.push(...testFilesAnalysis.violations);
-    suggestions.push(...testFilesAnalysis.suggestions);
+    // Which files are tested: by the line coverage of a coverage report when
+    // there is one that can be used, otherwise by the presence of a test
+    // (#599). Pass the law id so `ignores.byRule` / `includes.byRule` keyed by
+    // the hashed id resolve as well as the readable slug the registry publishes.
+    const verdict = CoverageByReport.judge(context);
+    violations.push(...verdict.violations);
+    suggestions.push(...verdict.suggestions);
 
-    return this.createResult(violations, suggestions, context);
+    return this.createResult(violations, suggestions, context, verdict);
   }
 
   /**
@@ -75,22 +72,30 @@ export class TestCoverageConstitutionalStandardLaw {
   private static createResult(
     violations: string[],
     suggestions: string[],
-    context: LawCheckContext
+    context: LawCheckContext,
+    verdict: CoverageVerdict | null
   ): LawResult {
     const score = Math.max(0, 100 - violations.length * POINTS_PER_VIOLATION);
+    const notRead = verdict?.notRead ?? [];
+    // Which way the files were judged is said only when a report was read:
+    // without one the result reads exactly as it did before #599.
+    const byReport = verdict?.report
+      ? ` — files judged by their line coverage in ${verdict.report}`
+      : '';
 
     return {
-      passed: violations.length === 0,
+      passed: violations.length === 0 && notRead.length === 0,
       score,
       message:
         violations.length === 0
-          ? 'Test Coverage Constitutional Standard properly implemented'
+          ? `Test Coverage Constitutional Standard properly implemented${byReport}`
           : `Test coverage issues found: ${violations.slice(0, 2).join(', ')}${violations.length > 2 ? '...' : ''}`,
       details: [...violations, ...suggestions],
       violations,
       suggestions,
       config: context.config,
       fixable: true,
+      ...(notRead.length > 0 ? { notRead } : {}),
     };
   }
 }

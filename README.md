@@ -83,13 +83,13 @@ IDE panel, a dashboard. It is versioned by `schemaVersion` (currently `2`).
 
 ```jsonc
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "tool": "ruleofcode",          // the package name this build was published under
   "version": "8.0.1",
   "registryTotal": 264,
   "satisfiedByStacks": {          // the mapping described below — read it, don't hardcode it
     "keys": ["typescript", "angular", "react", "python", "ionic", "capacitor"],
-    "stackToKey": { "frontend": "angular", "typescript": "typescript", "python": "python" },
+    "stackToKey": { "frontend": ["angular", "react"], "typescript": ["typescript"], "python": ["python"] },
     "projectTypeToKey": { "angular": "angular", "react": "react", "ionic": "ionic",
                           "python": "python", "typescript": "typescript", "node": "typescript" }
   },
@@ -114,7 +114,7 @@ onto a stack. Measured against the shipped registry:
 |---|---|---|
 | `typescript` | 96 | 2 `frontend` + 20 `typescript` + 74 universal |
 | `angular` | 67 | 58 `frontend` + 3 `typescript` + 6 universal |
-| `react` | 58 | 57 `frontend` + 1 `typescript` |
+| `react` | 59 | 58 `frontend` + 1 `typescript` |
 | `python` | 83 | 37 `python` + 46 universal |
 | `ionic` | 24 | 24 `frontend` |
 | `capacitor` | 24 | 21 `frontend` + 3 universal |
@@ -124,10 +124,12 @@ it names the technology the advice is written in, not the projects the law appli
 
 **Render by the key, not by the stack.** `satisfiedByStacks.projectTypeToKey` gives the
 key for a known project type — `stack: "frontend"` covers Angular and React alike, so a
-React project reads `react` and an Angular one `angular`. `stackToKey` gives the default
-key when only the stack is known; universal laws carry whichever keys have been authored.
-Read that object rather than hardcoding a table — if a key is ever added, your renderer
-picks it up.
+React project reads `react` and an Angular one `angular`. `stackToKey` gives, when only
+the stack is known, the **set** of keys that stack's guidance is written under —
+`frontend` is `["angular", "react"]`, so render every key of the set the law carries
+(schemaVersion 3; in schemaVersion 2 it was one key, `"frontend": "angular"`). Universal
+laws carry whichever keys have been authored. Read that object rather than hardcoding a
+table — if a key is ever added, your renderer picks it up.
 
 ### `requires`: a law about a toolkit runs only where the toolkit is
 

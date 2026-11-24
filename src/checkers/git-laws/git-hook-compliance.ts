@@ -9,7 +9,6 @@ import type {
   RuleOfCodeConfig,
 } from '../../types/law.types';
 import { FileUtils } from '../../utils';
-import { ProjectTypeDetector } from '../../utils/config/project-type-detector';
 import { FileSystemOperations } from '../../utils/file-system-operations';
 import type { GitHookStatus } from '../../utils/git-hook-status';
 import {
@@ -24,6 +23,7 @@ import {
 } from '../../utils/git-hook-status';
 import { PathOperations } from '../../utils/path-operations';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
+import { hookAutomationFindings } from './git-hook-automation';
 import { GitLawBase } from './git-law-base';
 
 export class GitHookComplianceLaw extends GitLawBase {
@@ -62,10 +62,7 @@ export class GitHookComplianceLaw extends GitLawBase {
       statuses = hooksAnalysis.statuses;
 
       // Check for automated hook management
-      const automationAnalysis = this.checkHookAutomation(
-        context.projectRoot,
-        context.config
-      );
+      const automationAnalysis = hookAutomationFindings(context.projectRoot);
       violations.push(...automationAnalysis.violations);
       suggestions.push(...automationAnalysis.suggestions);
     }
@@ -168,72 +165,6 @@ export class GitHookComplianceLaw extends GitLawBase {
         'Configure sample hooks or create custom implementations'
       );
     }
-  }
-
-  private static checkHookAutomation(
-    projectRoot: string,
-    _config: RuleOfCodeConfig
-  ): { violations: string[]; suggestions: string[] } {
-    const violations: string[] = [];
-    const suggestions: string[] = [];
-
-    const packageJson = ProjectTypeDetector.getPackageJson(projectRoot);
-    if (packageJson) {
-      const devDeps = ((packageJson as Record<string, unknown>)
-        .devDependencies ?? {}) as Record<string, unknown>;
-      const scripts = (packageJson as Record<string, unknown>).scripts ?? {};
-
-      // Check for hook management tools
-      const hookTools = ['husky', 'pre-commit', 'ghooks', 'yorkie'];
-
-      const hasHookTools = hookTools.some(tool => devDeps[tool]);
-      if (!hasHookTools) {
-        violations.push('No git hook automation tool configured');
-        suggestions.push('Install husky for automated git hook management');
-      }
-
-      // Check for lint-staged (commonly used with hooks)
-      if (!devDeps['lint-staged']) {
-        suggestions.push(
-          'Consider lint-staged for running linters on staged files'
-        );
-      }
-
-      // Check for hook-related scripts
-      const hookScripts = Object.keys(scripts).filter(
-        script =>
-          script.includes('hook') ||
-          script.includes('husky') ||
-          script.includes('prepare')
-      );
-
-      if (hookScripts.length === 0 && hasHookTools) {
-        suggestions.push('Add hook setup scripts to package.json');
-      }
-    }
-
-    // Check for hook configuration files
-    const configFiles = [
-      '.huskyrc',
-      '.huskyrc.json',
-      '.huskyrc.js',
-      'husky.config.js',
-      '.lintstagedrc',
-      '.lintstagedrc.json',
-      'lint-staged.config.js',
-    ];
-
-    const hasHookConfig = configFiles.some(file =>
-      FileUtils.exists(PathOperations.join(projectRoot, file))
-    );
-
-    if (!hasHookConfig) {
-      suggestions.push(
-        'Create hook configuration files for better maintainability'
-      );
-    }
-
-    return { violations, suggestions };
   }
 
   /**

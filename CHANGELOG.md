@@ -33,6 +33,26 @@ already held the files and TODOs it counted. It now puts them in
 File paths are relative to the audited project. The violation lines,
 verdicts and scores are unchanged, and nothing new is searched for.
 
+### ✨ Changed — Test Coverage Constitutional Standard judges by real line coverage (#599)
+
+With a coverage report — `coverage/coverage-summary.json` (Jest
+`json-summary`), else `coverage/lcov.info`, or the file
+`thresholds.testing.coverageReportPath` names — each source file is judged
+by its line coverage: below `thresholds.testing.minFileLineCoveragePercent`
+(0–100, default 80) is a finding with the percentage, and the passing
+message names the report. A source file the report does not name is judged
+by the presence of a test, as before; the test-file ratio is not judged.
+A file with no runtime code — only interfaces, type aliases, type-only
+imports and exports, `declare` — is not judged by the report: coverage tools
+still list it with one line at 0%, and there is nothing a test can run.
+
+A report that cannot be used is never read in silence: older than the code
+(a judged source file was modified after it — neither format records a
+commit, so this is the modification time), naming none of the source files,
+not valid json-summary/lcov, or a configured path that cannot be read. The
+reason goes to `notRead`, the files are judged by presence, and the law does
+not pass. Without a report the result is unchanged.
+
 ### 🐛 Fixed — TODO Management measures the excess TODOs against the configured limit (#601)
 
 The excess-TODO deduction was measured against a fixed allowance of 30,
@@ -930,6 +950,47 @@ documentation laws keep their tables in `deployment-penalties.ts` and
 the code excerpt five readers quoted the same way is one helper, `codeExcerpt`.
 No score, threshold or message changes. The finding that remains is the
 ESLint `no-magic-numbers` rule not being configured for this repository.
+
+### ✨ Added — React guidance for Observable Cleanup; P1 guidance proved on a React app (#12)
+
+Observable Cleanup Requirements runs on any project that declares rxjs, a
+React one included, and had only Angular guidance. Its card now says what
+passes in React: return `() => sub.unsubscribe()` from the effect that
+subscribes (or use take(1)), in the same .ts/.tsx file; its detection limits
+say that .jsx and plain .js files are not read and that a React module
+without an rxjs import is skipped.
+
+The React guidance of the five security, documentation and code-quality
+frontend laws (Observable Cleanup, Web Storage Encapsulation, Angular Security
+XSS Prevention Policy, Security Standards (XSS Prevention) Policy,
+Internationalization (i18n) Compliance Policy) is proved by a regression
+test on a React + Vite project: each law reports the project, and doing what
+`satisfiedBy.react` says clears it.
+
+### ⚠️ BREAKING — `laws --json`: `stackToKey` maps a stack to a set of keys (schemaVersion 3, #12)
+
+`satisfiedByStacks.stackToKey` mapped each stack to one `satisfiedBy` key:
+`"frontend": "angular"`. The `frontend` laws carry their guidance under two
+keys by now (`angular` on 58, `react` on 57), so the single key sent a
+consumer that only knew the stack to the Angular text alone. Each value is
+now the set of keys that stack's guidance is written under:
+`"frontend": ["angular", "react"]`, `"typescript": ["typescript"]`,
+`"python": ["python"]`.
+
+**JSON change:** `schemaVersion` is 3; a `stackToKey` value is an array of
+keys, where it was a string. Nothing else in the document changes: each
+law's `satisfiedBy` (keyed by `angular`, `react`, `typescript`, …),
+`satisfiedByStacks.keys` and `projectTypeToKey` are as they were. A
+consumer that accepts only schemaVersion 1–2, or reads a `stackToKey`
+value as a string, has to be updated. A test checks that every key listed
+for a stack is a known key that a law of that stack carries.
+
+```jsonc
+// before (schemaVersion 2)
+"satisfiedByStacks": { "stackToKey": { "frontend": "angular", "typescript": "typescript", "python": "python" } }
+// after (schemaVersion 3)
+"satisfiedByStacks": { "stackToKey": { "frontend": ["angular", "react"], "typescript": ["typescript"], "python": ["python"] } }
+```
 
 ## [8.0.1] - 2026-11-22
 

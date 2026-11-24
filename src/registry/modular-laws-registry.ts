@@ -6,90 +6,6 @@
 import { FileFilterUtils } from '../utils/file-filter-utils';
 import * as LawIdentity from '../utils/law-identity';
 import { honouredWaiverReason } from '../utils/law-waivers';
-import { AliasRepeatedTemplateExpressionsLaw } from '../checkers/angular-laws/alias-repeated-template-expressions';
-
-// Accessibility Laws Modular Imports
-import {
-  AccessibilityLintingEnforcementLaw,
-  DisclosureControlAriaStateLaw,
-  ExplicitButtonTypeLaw,
-  FormControlLabelingLaw,
-  ModalDialogAccessibilityLaw,
-} from '../checkers/accessibility-laws';
-
-// Python Laws Modular Imports — FastAPI + Clean Architecture/CQRS domain
-import {
-  AsyncTestsAreMarkedLaw,
-  CleanArchitectureDependencyDirectionLaw,
-  CommandsQueriesAreMessagesLaw,
-  DependencyInjectionViaDependsLaw,
-  DomainLayerFrameworkIndependenceLaw,
-  FastApiTypedRequestBodiesLaw,
-  FastApiTypedResponsesLaw,
-  InsecureDeserializationLaw,
-  LockedDependenciesLaw,
-  MypyConfiguredLaw,
-  NoBareExceptLaw,
-  NoBlockingInAsyncLaw,
-  NoEvalExecLaw,
-  NoHardcodedSecretsPythonLaw,
-  NoLiveNetworkInTestsLaw,
-  NoMutableDefaultArgumentsLaw,
-  NoShellInjectionLaw,
-  NoSleepInTestsLaw,
-  NoWebFrameworkOutsideInterfaceLaw,
-  BanditConfiguredLaw,
-  DeclaredConcurrencyBoundariesLaw,
-  FloatToleranceInTestsLaw,
-  NoAssertGuardsLaw,
-  NoSilentExceptionSwallowingLaw,
-  NoWallClockInDomainLaw,
-  NoWallClockInTestsLaw,
-  PipAuditConfiguredLaw,
-  PublicDocstringsLaw,
-  PyprojectMetadataLaw,
-  PythonModuleSizeLaw,
-  QueriesAreReadOnlyLaw,
-  RequestsHaveTimeoutLaw,
-  RuffConfiguredLaw,
-  SeededRandomnessLaw,
-  SettingsViaBaseSettingsLaw,
-  StrictExpectedFailuresLaw,
-  TimezoneAwareDatetimesLaw,
-} from '../checkers/python-laws';
-
-// Meta-gate laws — integrity of the gate itself (universal; arch proposal 2026-07)
-import {
-  AuditLivenessLaw,
-  ConfigIntegrityGuardLaw,
-  GoldenFixtureImmutabilityLaw,
-} from '../checkers/meta-gate-laws';
-
-// FE Architecture Laws Modular Imports — frontend audit (stack: frontend)
-import {
-  DefensiveArrayCoercionLaw,
-  NoHostnameGatingLaw,
-  NoLayoutTransitionLaw,
-  NoPassthroughCastLaw,
-  PollViaSanctionedSourceLaw,
-  RequiresSpecLaw,
-  RootServiceNoTimerLaw,
-  StoresInDataAccessLaw,
-  TimerCleanupLaw,
-} from '../checkers/fe-architecture-laws';
-
-// Next.js Laws Modular Imports — gated by `requires` on next (Client IP: Node HTTP servers)
-import {
-  ClientIpSingleBoundaryLaw,
-  GuardExemptionMatchesARouteLaw,
-  NextClientEnvPublicOnlyLaw,
-  NextErrorBoundariesDeclaredLaw,
-  NextProxyPlacementAndMatcherLaw,
-  NextPublicEnvIsBuildTimeLaw,
-  NextRouteHandlerGuardedLaw,
-  NextServerActionAuthorizesLaw,
-  NextServerOnlyBoundaryLaw,
-} from '../checkers/next-laws';
 
 // Capacitor Laws Modular Imports — gated by `requires` on @capacitor/core + a config
 import {
@@ -102,16 +18,10 @@ import {
   CapacitorDurableStateOffWebviewStorageLaw,
   CapacitorListenerHandlesReleasedLaw,
   CapacitorLocalPluginContractLaw,
-  CapacitorLoggingNeverProductionLaw,
   CapacitorSigningSecretsOutsideRepoLaw,
-  CapacitorNoDevOnlyServerKeysLaw,
-  CapacitorPluginConfigDeclaredLaw,
-  CapacitorPluginPlatformDeclarationsLaw,
   CapacitorPluginStubHasContractTestLaw,
   CapacitorServiceWorkerNativeDecisionLaw,
-  CapacitorSinglePlatformBoundaryLaw,
   CapacitorSyncArtefactsMatchDependenciesLaw,
-  CapacitorWebviewOriginDeclaredLaw,
 } from '../checkers/capacitor-laws';
 
 // Client start-up and deploy-settings laws
@@ -402,95 +312,6 @@ export class ModularLawsRegistry {
    */
   static readonly LAW_CLASS_MAPPING = {
     ...LAW_CLASS_MAPPING,
-    'AliasRepeatedTemplateExpressionsLaw.check':
-      AliasRepeatedTemplateExpressionsLaw,
-
-    // Accessibility Laws (v7.2.0)
-    'AccessibilityLintingEnforcementLaw.check':
-      AccessibilityLintingEnforcementLaw,
-    'ModalDialogAccessibilityLaw.check': ModalDialogAccessibilityLaw,
-    'FormControlLabelingLaw.check': FormControlLabelingLaw,
-    'ExplicitButtonTypeLaw.check': ExplicitButtonTypeLaw,
-    'DisclosureControlAriaStateLaw.check': DisclosureControlAriaStateLaw,
-
-    // Python Laws (v7.3.0) — FastAPI + Clean Architecture/CQRS
-    'DomainLayerFrameworkIndependenceLaw.check':
-      DomainLayerFrameworkIndependenceLaw,
-    'FastApiTypedResponsesLaw.check': FastApiTypedResponsesLaw,
-    'NoBlockingInAsyncLaw.check': NoBlockingInAsyncLaw,
-    'DependencyInjectionViaDependsLaw.check': DependencyInjectionViaDependsLaw,
-    'FastApiTypedRequestBodiesLaw.check': FastApiTypedRequestBodiesLaw,
-    'CleanArchitectureDependencyDirectionLaw.check':
-      CleanArchitectureDependencyDirectionLaw,
-    'NoWebFrameworkOutsideInterfaceLaw.check':
-      NoWebFrameworkOutsideInterfaceLaw,
-    'QueriesAreReadOnlyLaw.check': QueriesAreReadOnlyLaw,
-    'CommandsQueriesAreMessagesLaw.check': CommandsQueriesAreMessagesLaw,
-    'SettingsViaBaseSettingsLaw.check': SettingsViaBaseSettingsLaw,
-    'NoMutableDefaultArgumentsLaw.check': NoMutableDefaultArgumentsLaw,
-    'NoBareExceptLaw.check': NoBareExceptLaw,
-    'AsyncTestsAreMarkedLaw.check': AsyncTestsAreMarkedLaw,
-    'NoLiveNetworkInTestsLaw.check': NoLiveNetworkInTestsLaw,
-    'NoSleepInTestsLaw.check': NoSleepInTestsLaw,
-    'NoEvalExecLaw.check': NoEvalExecLaw,
-    'InsecureDeserializationLaw.check': InsecureDeserializationLaw,
-    'NoShellInjectionLaw.check': NoShellInjectionLaw,
-    'RequestsHaveTimeoutLaw.check': RequestsHaveTimeoutLaw,
-    'NoHardcodedSecretsPythonLaw.check': NoHardcodedSecretsPythonLaw,
-    'RuffConfiguredLaw.check': RuffConfiguredLaw,
-    'MypyConfiguredLaw.check': MypyConfiguredLaw,
-    'PyprojectMetadataLaw.check': PyprojectMetadataLaw,
-    'LockedDependenciesLaw.check': LockedDependenciesLaw,
-    'PublicDocstringsLaw.check': PublicDocstringsLaw,
-    'PythonModuleSizeLaw.check': PythonModuleSizeLaw,
-    'TimezoneAwareDatetimesLaw.check': TimezoneAwareDatetimesLaw,
-    'NoAssertGuardsLaw.check': NoAssertGuardsLaw,
-    'StrictExpectedFailuresLaw.check': StrictExpectedFailuresLaw,
-    'AuditLivenessLaw.check': AuditLivenessLaw,
-    'ConfigIntegrityGuardLaw.check': ConfigIntegrityGuardLaw,
-    'GoldenFixtureImmutabilityLaw.check': GoldenFixtureImmutabilityLaw,
-    'NoWallClockInDomainLaw.check': NoWallClockInDomainLaw,
-    'NoSilentExceptionSwallowingLaw.check': NoSilentExceptionSwallowingLaw,
-    'BanditConfiguredLaw.check': BanditConfiguredLaw,
-    'PipAuditConfiguredLaw.check': PipAuditConfiguredLaw,
-    'DeclaredConcurrencyBoundariesLaw.check': DeclaredConcurrencyBoundariesLaw,
-    'SeededRandomnessLaw.check': SeededRandomnessLaw,
-    'NoWallClockInTestsLaw.check': NoWallClockInTestsLaw,
-    'FloatToleranceInTestsLaw.check': FloatToleranceInTestsLaw,
-
-    // FE Architecture Laws (frontend audit)
-    'PollViaSanctionedSourceLaw.check': PollViaSanctionedSourceLaw,
-    'RootServiceNoTimerLaw.check': RootServiceNoTimerLaw,
-    'StoresInDataAccessLaw.check': StoresInDataAccessLaw,
-    'RequiresSpecLaw.check': RequiresSpecLaw,
-    'NoLayoutTransitionLaw.check': NoLayoutTransitionLaw,
-    'NoHostnameGatingLaw.check': NoHostnameGatingLaw,
-    'DefensiveArrayCoercionLaw.check': DefensiveArrayCoercionLaw,
-    'NoPassthroughCastLaw.check': NoPassthroughCastLaw,
-    'TimerCleanupLaw.check': TimerCleanupLaw,
-
-    // Next.js Laws (gated on next; Client IP Single Boundary on any Node HTTP server)
-    'NextServerActionAuthorizesLaw.check': NextServerActionAuthorizesLaw,
-    'NextRouteHandlerGuardedLaw.check': NextRouteHandlerGuardedLaw,
-    'NextServerOnlyBoundaryLaw.check': NextServerOnlyBoundaryLaw,
-    'NextClientEnvPublicOnlyLaw.check': NextClientEnvPublicOnlyLaw,
-    'NextProxyPlacementAndMatcherLaw.check': NextProxyPlacementAndMatcherLaw,
-    'NextErrorBoundariesDeclaredLaw.check': NextErrorBoundariesDeclaredLaw,
-    'NextPublicEnvIsBuildTimeLaw.check': NextPublicEnvIsBuildTimeLaw,
-    'GuardExemptionMatchesARouteLaw.check': GuardExemptionMatchesARouteLaw,
-    'ClientIpSingleBoundaryLaw.check': ClientIpSingleBoundaryLaw,
-
-    // Capacitor Laws (gated on @capacitor/core + a Capacitor config)
-    'CapacitorLoggingNeverProductionLaw.check':
-      CapacitorLoggingNeverProductionLaw,
-    'CapacitorWebviewOriginDeclaredLaw.check':
-      CapacitorWebviewOriginDeclaredLaw,
-    'CapacitorNoDevOnlyServerKeysLaw.check': CapacitorNoDevOnlyServerKeysLaw,
-    'CapacitorPluginConfigDeclaredLaw.check': CapacitorPluginConfigDeclaredLaw,
-    'CapacitorSinglePlatformBoundaryLaw.check':
-      CapacitorSinglePlatformBoundaryLaw,
-    'CapacitorPluginPlatformDeclarationsLaw.check':
-      CapacitorPluginPlatformDeclarationsLaw,
     'CapacitorDeepLinkContractLaw.check': CapacitorDeepLinkContractLaw,
     'CapacitorSyncArtefactsMatchDependenciesLaw.check':
       CapacitorSyncArtefactsMatchDependenciesLaw,

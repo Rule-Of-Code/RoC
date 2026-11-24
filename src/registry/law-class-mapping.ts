@@ -76,11 +76,93 @@ import {
 } from '../checkers/code-quality-laws';
 import { FunctionalIoQueryApiLaw } from '../checkers/angular-laws/functional-io-query-api';
 import { InjectOverConstructorDiLaw } from '../checkers/angular-laws/inject-over-constructor-di';
+import { AliasRepeatedTemplateExpressionsLaw } from '../checkers/angular-laws/alias-repeated-template-expressions';
 import { DeclarativeReadSubscriptionsLaw } from '../checkers/angular-laws/declarative-read-subscriptions';
 import { DeferHeavyBlocksLaw } from '../checkers/angular-laws/defer-heavy-blocks';
 import { NoMethodCallsInTemplatesLaw } from '../checkers/angular-laws/no-method-calls-in-templates';
 import { NoSubscribeInEffectLaw } from '../checkers/angular-laws/no-subscribe-in-effect';
 import { SideEffectsInNgrxEffectsLaw } from '../checkers/angular-laws/side-effects-in-ngrx-effects';
+import {
+  AccessibilityLintingEnforcementLaw,
+  DisclosureControlAriaStateLaw,
+  ExplicitButtonTypeLaw,
+  FormControlLabelingLaw,
+  ModalDialogAccessibilityLaw,
+} from '../checkers/accessibility-laws';
+import {
+  AsyncTestsAreMarkedLaw,
+  CleanArchitectureDependencyDirectionLaw,
+  CommandsQueriesAreMessagesLaw,
+  DependencyInjectionViaDependsLaw,
+  DomainLayerFrameworkIndependenceLaw,
+  FastApiTypedRequestBodiesLaw,
+  FastApiTypedResponsesLaw,
+  InsecureDeserializationLaw,
+  LockedDependenciesLaw,
+  MypyConfiguredLaw,
+  NoBareExceptLaw,
+  NoBlockingInAsyncLaw,
+  NoEvalExecLaw,
+  NoHardcodedSecretsPythonLaw,
+  NoLiveNetworkInTestsLaw,
+  NoMutableDefaultArgumentsLaw,
+  NoShellInjectionLaw,
+  NoSleepInTestsLaw,
+  NoWebFrameworkOutsideInterfaceLaw,
+  BanditConfiguredLaw,
+  DeclaredConcurrencyBoundariesLaw,
+  FloatToleranceInTestsLaw,
+  NoAssertGuardsLaw,
+  NoSilentExceptionSwallowingLaw,
+  NoWallClockInDomainLaw,
+  NoWallClockInTestsLaw,
+  PipAuditConfiguredLaw,
+  PublicDocstringsLaw,
+  PyprojectMetadataLaw,
+  PythonModuleSizeLaw,
+  QueriesAreReadOnlyLaw,
+  RequestsHaveTimeoutLaw,
+  RuffConfiguredLaw,
+  SeededRandomnessLaw,
+  SettingsViaBaseSettingsLaw,
+  StrictExpectedFailuresLaw,
+  TimezoneAwareDatetimesLaw,
+} from '../checkers/python-laws';
+import {
+  AuditLivenessLaw,
+  ConfigIntegrityGuardLaw,
+  GoldenFixtureImmutabilityLaw,
+} from '../checkers/meta-gate-laws';
+import {
+  DefensiveArrayCoercionLaw,
+  NoHostnameGatingLaw,
+  NoLayoutTransitionLaw,
+  NoPassthroughCastLaw,
+  PollViaSanctionedSourceLaw,
+  RequiresSpecLaw,
+  RootServiceNoTimerLaw,
+  StoresInDataAccessLaw,
+  TimerCleanupLaw,
+} from '../checkers/fe-architecture-laws';
+import {
+  ClientIpSingleBoundaryLaw,
+  GuardExemptionMatchesARouteLaw,
+  NextClientEnvPublicOnlyLaw,
+  NextErrorBoundariesDeclaredLaw,
+  NextProxyPlacementAndMatcherLaw,
+  NextPublicEnvIsBuildTimeLaw,
+  NextRouteHandlerGuardedLaw,
+  NextServerActionAuthorizesLaw,
+  NextServerOnlyBoundaryLaw,
+} from '../checkers/next-laws';
+import {
+  CapacitorLoggingNeverProductionLaw,
+  CapacitorNoDevOnlyServerKeysLaw,
+  CapacitorPluginConfigDeclaredLaw,
+  CapacitorPluginPlatformDeclarationsLaw,
+  CapacitorSinglePlatformBoundaryLaw,
+  CapacitorWebviewOriginDeclaredLaw,
+} from '../checkers/capacitor-laws';
 import { NgRxDevToolsIntegrationMandateLaw } from '../laws/angular/ngrx-devtools-integration-mandate';
 import { NgRxStateNormalizationMandateLaw } from '../laws/angular/ngrx-state-normalization-mandate';
 import { ComponentSelectorPrefixLaw } from '../checkers/angular-laws/component-selector-prefix';
@@ -179,4 +261,91 @@ export const LAW_CLASS_MAPPING = {
   'NoSubscribeInEffectLaw.check': NoSubscribeInEffectLaw,
   'DeclarativeReadSubscriptionsLaw.check': DeclarativeReadSubscriptionsLaw,
   'DeferHeavyBlocksLaw.check': DeferHeavyBlocksLaw,
+  'AliasRepeatedTemplateExpressionsLaw.check':
+    AliasRepeatedTemplateExpressionsLaw,
+
+  // Accessibility Laws (v7.2.0)
+  'AccessibilityLintingEnforcementLaw.check':
+    AccessibilityLintingEnforcementLaw,
+  'ModalDialogAccessibilityLaw.check': ModalDialogAccessibilityLaw,
+  'FormControlLabelingLaw.check': FormControlLabelingLaw,
+  'ExplicitButtonTypeLaw.check': ExplicitButtonTypeLaw,
+  'DisclosureControlAriaStateLaw.check': DisclosureControlAriaStateLaw,
+
+  // Python Laws (v7.3.0) — FastAPI + Clean Architecture/CQRS
+  'DomainLayerFrameworkIndependenceLaw.check':
+    DomainLayerFrameworkIndependenceLaw,
+  'FastApiTypedResponsesLaw.check': FastApiTypedResponsesLaw,
+  'NoBlockingInAsyncLaw.check': NoBlockingInAsyncLaw,
+  'DependencyInjectionViaDependsLaw.check': DependencyInjectionViaDependsLaw,
+  'FastApiTypedRequestBodiesLaw.check': FastApiTypedRequestBodiesLaw,
+  'CleanArchitectureDependencyDirectionLaw.check':
+    CleanArchitectureDependencyDirectionLaw,
+  'NoWebFrameworkOutsideInterfaceLaw.check': NoWebFrameworkOutsideInterfaceLaw,
+  'QueriesAreReadOnlyLaw.check': QueriesAreReadOnlyLaw,
+  'CommandsQueriesAreMessagesLaw.check': CommandsQueriesAreMessagesLaw,
+  'SettingsViaBaseSettingsLaw.check': SettingsViaBaseSettingsLaw,
+  'NoMutableDefaultArgumentsLaw.check': NoMutableDefaultArgumentsLaw,
+  'NoBareExceptLaw.check': NoBareExceptLaw,
+  'AsyncTestsAreMarkedLaw.check': AsyncTestsAreMarkedLaw,
+  'NoLiveNetworkInTestsLaw.check': NoLiveNetworkInTestsLaw,
+  'NoSleepInTestsLaw.check': NoSleepInTestsLaw,
+  'NoEvalExecLaw.check': NoEvalExecLaw,
+  'InsecureDeserializationLaw.check': InsecureDeserializationLaw,
+  'NoShellInjectionLaw.check': NoShellInjectionLaw,
+  'RequestsHaveTimeoutLaw.check': RequestsHaveTimeoutLaw,
+  'NoHardcodedSecretsPythonLaw.check': NoHardcodedSecretsPythonLaw,
+  'RuffConfiguredLaw.check': RuffConfiguredLaw,
+  'MypyConfiguredLaw.check': MypyConfiguredLaw,
+  'PyprojectMetadataLaw.check': PyprojectMetadataLaw,
+  'LockedDependenciesLaw.check': LockedDependenciesLaw,
+  'PublicDocstringsLaw.check': PublicDocstringsLaw,
+  'PythonModuleSizeLaw.check': PythonModuleSizeLaw,
+  'TimezoneAwareDatetimesLaw.check': TimezoneAwareDatetimesLaw,
+  'NoAssertGuardsLaw.check': NoAssertGuardsLaw,
+  'StrictExpectedFailuresLaw.check': StrictExpectedFailuresLaw,
+  'AuditLivenessLaw.check': AuditLivenessLaw,
+  'ConfigIntegrityGuardLaw.check': ConfigIntegrityGuardLaw,
+  'GoldenFixtureImmutabilityLaw.check': GoldenFixtureImmutabilityLaw,
+  'NoWallClockInDomainLaw.check': NoWallClockInDomainLaw,
+  'NoSilentExceptionSwallowingLaw.check': NoSilentExceptionSwallowingLaw,
+  'BanditConfiguredLaw.check': BanditConfiguredLaw,
+  'PipAuditConfiguredLaw.check': PipAuditConfiguredLaw,
+  'DeclaredConcurrencyBoundariesLaw.check': DeclaredConcurrencyBoundariesLaw,
+  'SeededRandomnessLaw.check': SeededRandomnessLaw,
+  'NoWallClockInTestsLaw.check': NoWallClockInTestsLaw,
+  'FloatToleranceInTestsLaw.check': FloatToleranceInTestsLaw,
+
+  // FE Architecture Laws (frontend audit)
+  'PollViaSanctionedSourceLaw.check': PollViaSanctionedSourceLaw,
+  'RootServiceNoTimerLaw.check': RootServiceNoTimerLaw,
+  'StoresInDataAccessLaw.check': StoresInDataAccessLaw,
+  'RequiresSpecLaw.check': RequiresSpecLaw,
+  'NoLayoutTransitionLaw.check': NoLayoutTransitionLaw,
+  'NoHostnameGatingLaw.check': NoHostnameGatingLaw,
+  'DefensiveArrayCoercionLaw.check': DefensiveArrayCoercionLaw,
+  'NoPassthroughCastLaw.check': NoPassthroughCastLaw,
+  'TimerCleanupLaw.check': TimerCleanupLaw,
+
+  // Next.js Laws (gated on next; Client IP Single Boundary on any Node HTTP server)
+  'NextServerActionAuthorizesLaw.check': NextServerActionAuthorizesLaw,
+  'NextRouteHandlerGuardedLaw.check': NextRouteHandlerGuardedLaw,
+  'NextServerOnlyBoundaryLaw.check': NextServerOnlyBoundaryLaw,
+  'NextClientEnvPublicOnlyLaw.check': NextClientEnvPublicOnlyLaw,
+  'NextProxyPlacementAndMatcherLaw.check': NextProxyPlacementAndMatcherLaw,
+  'NextErrorBoundariesDeclaredLaw.check': NextErrorBoundariesDeclaredLaw,
+  'NextPublicEnvIsBuildTimeLaw.check': NextPublicEnvIsBuildTimeLaw,
+  'GuardExemptionMatchesARouteLaw.check': GuardExemptionMatchesARouteLaw,
+  'ClientIpSingleBoundaryLaw.check': ClientIpSingleBoundaryLaw,
+
+  // Capacitor Laws (gated on @capacitor/core + a Capacitor config)
+  'CapacitorLoggingNeverProductionLaw.check':
+    CapacitorLoggingNeverProductionLaw,
+  'CapacitorWebviewOriginDeclaredLaw.check': CapacitorWebviewOriginDeclaredLaw,
+  'CapacitorNoDevOnlyServerKeysLaw.check': CapacitorNoDevOnlyServerKeysLaw,
+  'CapacitorPluginConfigDeclaredLaw.check': CapacitorPluginConfigDeclaredLaw,
+  'CapacitorSinglePlatformBoundaryLaw.check':
+    CapacitorSinglePlatformBoundaryLaw,
+  'CapacitorPluginPlatformDeclarationsLaw.check':
+    CapacitorPluginPlatformDeclarationsLaw,
 };

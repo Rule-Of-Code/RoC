@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Automation First recognises vitest, Playwright, Karma, @jest/core and ava (#643)
+
+The law knew five test framework names (jest, mocha, jasmine, cypress,
+playwright), so a project testing with vitest, `@playwright/test`, Karma
+with `jasmine-core`, `@jest/core` or ava got "No test framework detected".
+They are accepted now, from a list the law keeps for itself (no other law
+is selected by it). Fewer violations only; the card names the list.
+
 ### ✨ Added — Version-control laws name what they counted (#43, version control)
 
 Three version-control laws said how many and never which: "1 of the last 3

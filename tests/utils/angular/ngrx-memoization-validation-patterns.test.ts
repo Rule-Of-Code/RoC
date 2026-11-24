@@ -9,6 +9,28 @@ import { NgRxMemoizationValidationPatterns } from '../../../src/utils/angular/ng
 import { CheckerUtils } from '../../../src/utils/checker-utils';
 import { FileUtils } from '../../../src/utils/file-utils';
 import { PathOperations } from '../../../src/utils/path-operations';
+import path from 'path';
+import { project } from '../../checkers/toolkit-fixture';
+
+const config: RuleOfCodeConfig = FileUtils.getMinimalDefaultConfig();
+const validate = (files: Record<string, string>) =>
+  NgRxMemoizationValidationPatterns.validateAllMemoizationPatterns(
+    project(files),
+    config
+  );
+
+const C = NgRxMemoizationConfiguration;
+const M = C.VALIDATION_MESSAGES;
+const SELECTORS = 'src/app/state/user.selectors.ts';
+const COMPONENT = 'src/app/user/user.component.ts';
+// Messages name a file by its base name without the extension.
+const msg = (template: string, file: string) => C.buildMessage(template, file);
+
+const COMPLIANT_SELECTORS = `
+  import { createFeatureSelector, createSelector } from '@ngrx/store';
+  export const selectUserState = createFeatureSelector<UserState>('user');
+  export const selectUsers = createSelector(selectUserState, s => s.users);
+`;
 
 describe('utils/angular/ngrx-memoization/ngrx-memoization-validation-patterns', () => {
   const mockConfig = {
@@ -25,184 +47,117 @@ describe('utils/angular/ngrx-memoization/ngrx-memoization-validation-patterns', 
   describe('NgRxMemoizationValidationPatterns', () => {
     describe('validateAllMemoizationPatterns', () => {
       it('should return empty violations when src directory does not exist', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        existsSpy.mockReturnValue(false);
+        const result = validate({
+          'lib/state/user.selectors.ts': 'export const a = (s) => s.users;\n',
+        });
 
-        const result =
-          NgRxMemoizationValidationPatterns.validateAllMemoizationPatterns(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(result.violations).toHaveLength(0);
-        expect(result.suggestions).toHaveLength(0);
+        expect(result).toEqual({ violations: [], suggestions: [] });
       });
 
       it('should return empty violations when no selector or component files found', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        existsSpy.mockReturnValue(true);
+        const result = validate({
+          'src/app/state/user.reducer.ts': 'export const a = (s) => s.users;\n',
+        });
 
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        findFilesSpy.mockReturnValue([]);
-
-        const result =
-          NgRxMemoizationValidationPatterns.validateAllMemoizationPatterns(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(result.violations).toHaveLength(0);
-        expect(result.suggestions).toHaveLength(0);
+        expect(result).toEqual({ violations: [], suggestions: [] });
       });
 
       it('should detect direct state access violations in selectors', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        existsSpy.mockReturnValue(true);
+        const result = validate({
+          [SELECTORS]: 'export const selectUsers = (state) => state.users;\n',
+        });
 
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        // First call: initializeAnalysis finds .ts files
-        // Second call: findSelectorFilesWithChecker finds selector files
-        // Third call: findComponentFilesWithChecker finds component files
-        findFilesSpy
-          .mockReturnValueOnce([]) // initializeAnalysis
-          .mockReturnValueOnce(['/test/project/src/user.selectors.ts']) // selector files
-          .mockReturnValueOnce([]); // component files
+        expect(result.violations).toEqual([
+          msg(M.DIRECT_STATE_ACCESS, 'user.selectors'),
+        ]);
+        expect(result.suggestions).toEqual([
+          msg(M.WRAP_WITH_SELECTOR, 'user.selectors'),
+        ]);
+      });
 
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockReturnValue(
-          'export const selectUser = state => state.user'
-        );
+      it('should not read a createSelector projector as a raw selector', () => {
+        const result = validate({ [SELECTORS]: COMPLIANT_SELECTORS });
 
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        basenameSpy.mockReturnValue('user.selectors.ts');
-
-        const result =
-          NgRxMemoizationValidationPatterns.validateAllMemoizationPatterns(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(
-          result.violations.some(v => v.includes('Direct state access'))
-        ).toBe(true);
-        expect(result.suggestions.some(s => s.includes('createSelector'))).toBe(
-          true
-        );
+        expect(result).toEqual({ violations: [], suggestions: [] });
       });
 
       it('should detect missing store import violations', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        existsSpy.mockReturnValue(true);
+        const result = validate({
+          'src/app/state/user.selector.ts': COMPLIANT_SELECTORS.replace(
+            /import[^\n]*\n/,
+            ''
+          ),
+        });
 
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        findFilesSpy
-          .mockReturnValueOnce([]) // initializeAnalysis
-          .mockReturnValueOnce(['/test/project/src/user.selectors.ts']) // selector files
-          .mockReturnValueOnce([]); // component files
-
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockReturnValue(
-          'export const selectUser = createSelector(s => s.user)'
-        );
-
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        basenameSpy.mockReturnValue('user.selectors.ts');
-
-        const result =
-          NgRxMemoizationValidationPatterns.validateAllMemoizationPatterns(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(
-          result.violations.some(v => v.includes('@ngrx/store not imported'))
-        ).toBe(true);
+        expect(result.violations).toEqual([
+          msg(M.MISSING_STORE_IMPORT, 'user.selector'),
+        ]);
+        expect(result.suggestions).toEqual([
+          msg(M.IMPORT_FROM_STORE, 'user.selector'),
+        ]);
       });
 
       it('should suggest feature selector usage', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        existsSpy.mockReturnValue(true);
+        const result = validate({
+          [SELECTORS]: `
+            import { createSelector } from '@ngrx/store';
+            export const selectUsers = createSelector(state => state.users);
+          `,
+        });
 
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        findFilesSpy
-          .mockReturnValueOnce([]) // initializeAnalysis
-          .mockReturnValueOnce(['/test/project/src/user.selectors.ts']) // selector files
-          .mockReturnValueOnce([]); // component files
+        expect(result.violations).toEqual([]);
+        expect(result.suggestions).toEqual([
+          msg(M.USE_FEATURE_SELECTOR, 'user.selectors'),
+        ]);
+      });
 
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockReturnValue(`
-          import { createSelector } from '@ngrx/store';
-          export const selectUser = createSelector(state => state.user);
-        `);
+      it('should suggest optimizing a selector that loops', () => {
+        const result = validate({
+          [SELECTORS]: `
+            import { createSelector } from '@ngrx/store';
+            export const selectTotal = createSelector(selectItems, items => { let t = 0; for (const i of items) t += i; return t; });
+          `,
+        });
 
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        basenameSpy.mockReturnValue('user.selectors.ts');
-
-        const result =
-          NgRxMemoizationValidationPatterns.validateAllMemoizationPatterns(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(
-          result.suggestions.some(s => s.includes('createFeatureSelector'))
-        ).toBe(true);
+        expect(result.suggestions).toEqual([
+          msg(M.OPTIMIZE_COMPLEX_SELECTOR, 'user.selectors'),
+        ]);
       });
 
       it('should suggest selector composition when needed', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        existsSpy.mockReturnValue(true);
+        const result = validate({
+          [SELECTORS]: `
+            import { createSelector } from '@ngrx/store';
+            export const a = createSelector(selectState, s => s.a);
+            export const b = createSelector(selectState, s => s.b);
+            export const c = createSelector(selectState, s => s.c);
+            export const d = createSelector(selectState, s => s.d);
+          `,
+        });
 
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        findFilesSpy
-          .mockReturnValueOnce([]) // initializeAnalysis
-          .mockReturnValueOnce(['/test/project/src/user.selectors.ts']) // selector files
-          .mockReturnValueOnce([]); // component files
+        expect(result.suggestions).toEqual([
+          msg(M.COMPOSE_SELECTORS, 'user.selectors'),
+        ]);
+      });
 
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockReturnValue(`
-          import { createSelector } from '@ngrx/store';
-          export const selectA = createSelector(s => s.a);
-          export const selectB = createSelector(s => s.b);
-          export const selectC = createSelector(s => s.c);
-          export const selectD = createSelector(s => s.d);
-        `);
+      it('should not suggest composition when selectors are composed', () => {
+        const result = validate({
+          [SELECTORS]: `
+            import { createSelector } from '@ngrx/store';
+            export const a = createSelector(selectState, s => s.a);
+            export const b = createSelector(selectState, s => s.b);
+            export const c = createSelector(selectState, s => s.c);
+            export const d = createSelector(selectA, selectB, (a, b) => a + b);
+          `,
+        });
 
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        basenameSpy.mockReturnValue('user.selectors.ts');
-
-        const result =
-          NgRxMemoizationValidationPatterns.validateAllMemoizationPatterns(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(
-          result.suggestions.some(s => s.includes('composing selectors'))
-        ).toBe(true);
+        expect(result.suggestions).toEqual([]);
       });
 
       it('should skip selector files with empty content', () => {
-        const existsSpy = jest.spyOn(FileUtils, 'exists');
-        existsSpy.mockReturnValue(true);
+        const result = validate({ [SELECTORS]: '' });
 
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        findFilesSpy
-          .mockReturnValueOnce([]) // initializeAnalysis
-          .mockReturnValueOnce(['/test/project/src/empty.selectors.ts']) // selector files
-          .mockReturnValueOnce([]); // component files
-
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockReturnValue('');
-
-        const result =
-          NgRxMemoizationValidationPatterns.validateAllMemoizationPatterns(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(result.violations).toHaveLength(0);
-        expect(result.suggestions).toHaveLength(0);
+        expect(result).toEqual({ violations: [], suggestions: [] });
       });
 
       it('should not detect violations when store.select contains valid select word', () => {

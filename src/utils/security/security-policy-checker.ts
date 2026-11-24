@@ -1,8 +1,7 @@
-import { ConfigFileUtils } from '../config-file-utils';
 import { notReadNote, readJsonManifest } from '../json-manifest';
 import { ProjectTypeDetector } from '../config/project-type-detector';
 import { ProjectTypeDetectorValidation } from '../config/project-type-detector/project-type-detector-validation';
-import { DirectoryScanner } from '../directory-scanner';
+import { checkGitHubSecurityFeatures } from './github-security-features';
 import { FileUtils } from '../file-utils';
 import { PathOperations } from '../path-operations';
 const PACKAGE_JSON = 'package.json';
@@ -178,7 +177,7 @@ export class SecurityPolicyChecker {
       violations,
       suggestions
     );
-    score += this.checkGitHubSecurityFeatures(projectRoot, suggestions);
+    score += checkGitHubSecurityFeatures(projectRoot, suggestions);
     score += this.checkPackageJsonSecurity(projectRoot, suggestions);
 
     return { violations, suggestions, score };
@@ -217,107 +216,6 @@ export class SecurityPolicyChecker {
       return -15;
     }
     return 0;
-  }
-
-  private static checkGitHubSecurityFeatures(
-    projectRoot: string,
-    suggestions: string[]
-  ): number {
-    const githubDir = PathOperations.join(projectRoot, '.github');
-    if (!FileUtils.exists(githubDir)) {
-      suggestions.push('Consider setting up GitHub security features');
-      suggestions.push('Enable Dependabot and security advisories');
-      return -10;
-    }
-
-    let score = 0;
-    score += this.checkDependabotConfig(githubDir, suggestions);
-    score += this.checkSecurityWorkflows(githubDir, suggestions);
-    return score;
-  }
-
-  private static checkDependabotConfig(
-    githubDir: string,
-    suggestions: string[]
-  ): number {
-    const dependabotConfig = PathOperations.join(githubDir, 'dependabot.yml');
-    const dependabotConfigV1 = PathOperations.join(
-      githubDir,
-      'dependabot.yaml'
-    );
-
-    const hasDependabot =
-      FileUtils.exists(dependabotConfig) ||
-      FileUtils.exists(dependabotConfigV1);
-
-    if (!hasDependabot) {
-      suggestions.push(
-        'Enable GitHub Dependabot for automated security updates'
-      );
-      suggestions.push('Create .github/dependabot.yml configuration');
-      return -10;
-    }
-    return 0;
-  }
-
-  private static checkSecurityWorkflows(
-    githubDir: string,
-    suggestions: string[]
-  ): number {
-    const workflowsDir = PathOperations.join(githubDir, 'workflows');
-    if (!FileUtils.exists(workflowsDir)) {
-      return 0;
-    }
-
-    try {
-      const workflows = DirectoryScanner.scanDirectory(
-        workflowsDir,
-        ConfigFileUtils.getMinimalDefaultConfig(),
-        { filesOnly: true }
-      );
-      let hasSecurityWorkflow = false;
-
-      for (const workflow of workflows.files) {
-        if (this.isSecurityWorkflow(workflow, workflowsDir)) {
-          hasSecurityWorkflow = true;
-          break;
-        }
-      }
-
-      if (!hasSecurityWorkflow) {
-        suggestions.push('Add GitHub Actions workflow for security scanning');
-        suggestions.push('Include npm audit in CI/CD pipeline');
-        return -5;
-      }
-    } catch (_error) {
-      // Skip if can't read workflows directory
-    }
-    return 0;
-  }
-
-  private static isSecurityWorkflow(
-    workflow: string,
-    workflowsDir: string
-  ): boolean {
-    if (workflow.includes('security') || workflow.includes('audit')) {
-      return true;
-    }
-
-    // Check workflow content for security-related actions
-    if (workflow.endsWith('.yml') || workflow.endsWith('.yaml')) {
-      try {
-        const workflowPath = PathOperations.join(workflowsDir, workflow);
-        const workflowContent = FileUtils.readFile(workflowPath);
-        return (
-          workflowContent.includes('npm audit') ||
-          workflowContent.includes('security') ||
-          workflowContent.includes('snyk')
-        );
-      } catch (_error) {
-        // Skip unreadable workflow files
-      }
-    }
-    return false;
   }
 
   private static checkPackageJsonSecurity(

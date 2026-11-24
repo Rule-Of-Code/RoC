@@ -217,34 +217,31 @@ export class CodeNamingValidation {
       allowedExceptions?: string[];
     }
   ): boolean {
-    if (CodeNamingValidation.isCommonPattern(name)) {
-      return false;
-    }
-
-    if (checks.allowedExceptions?.includes(name)) {
-      return false;
-    }
-
-    if (checks.requireCamelCase && !CodeNamingValidation.isCamelCase(name)) {
-      return true;
-    }
-
-    if (checks.requirePascalCase && !CodeNamingValidation.isPascalCase(name)) {
-      return true;
-    }
-
-    if (checks.checkTooShort && CodeNamingValidation.isTooShort(name)) {
-      return true;
-    }
-
     if (
-      checks.checkInvalidChars &&
-      CodeNamingValidation.hasInvalidChars(name)
+      CodeNamingValidation.isCommonPattern(name) ||
+      checks.allowedExceptions?.includes(name)
     ) {
-      return true;
+      return false;
     }
+    return CodeNamingValidation.failsACheck(name, checks);
+  }
 
-    return false;
+  /** Does the name fail one of the checks that are switched on? */
+  private static failsACheck(
+    name: string,
+    checks: {
+      requireCamelCase?: boolean;
+      requirePascalCase?: boolean;
+      checkTooShort?: boolean;
+      checkInvalidChars?: boolean;
+    }
+  ): boolean {
+    return [
+      checks.requireCamelCase && !CodeNamingValidation.isCamelCase(name),
+      checks.requirePascalCase && !CodeNamingValidation.isPascalCase(name),
+      checks.checkTooShort && CodeNamingValidation.isTooShort(name),
+      checks.checkInvalidChars && CodeNamingValidation.hasInvalidChars(name),
+    ].some(Boolean);
   }
 
   /**

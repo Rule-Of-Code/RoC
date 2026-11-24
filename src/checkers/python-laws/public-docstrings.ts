@@ -11,6 +11,9 @@ import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 import { PythonLawBase } from './python-law-base';
 
+/** Lines a class or def signature may span before the search for its `:` stops. */
+const MAX_SIGNATURE_LINES = 40;
+
 export class PublicDocstringsLaw extends PythonLawBase {
   private static readonly LAW_NAME = 'Public Docstrings';
   private static readonly HEADER = /^(?:async\s+)?(class|def)\s+(\w+)/; // indent 0 only
@@ -114,7 +117,11 @@ export class PublicDocstringsLaw extends PythonLawBase {
    */
   private static findSignatureEnd(lines: string[], start: number): number {
     let depth = 0;
-    for (let j = start; j < start + 40 && j < lines.length; j++) {
+    for (
+      let j = start;
+      j < start + MAX_SIGNATURE_LINES && j < lines.length;
+      j++
+    ) {
       const code = (lines[j] ?? '').replace(/#.*$/, '');
       for (const ch of code) {
         if (ch === '(' || ch === '[' || ch === '{') depth++;

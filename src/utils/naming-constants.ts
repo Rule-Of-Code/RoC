@@ -293,52 +293,6 @@ export const NAMING_RULES = {
   },
 } as const;
 
-// Common naming transformations
-export const NAMING_TRANSFORMATIONS = {
-  // Case conversions
-  TO_CAMEL_CASE: (str: string): string =>
-    str.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase()),
-
-  TO_PASCAL_CASE: (str: string): string =>
-    str.replace(/(?:^|-)([a-z])/g, (_, letter) => letter.toUpperCase()),
-
-  TO_KEBAB_CASE: (str: string): string =>
-    str
-      .replace(/([A-Z])/g, '-$1')
-      .toLowerCase()
-      .replace(/^-/, ''),
-
-  TO_SNAKE_CASE: (str: string): string =>
-    str
-      .replace(/([A-Z])/g, '_$1')
-      .toLowerCase()
-      .replace(/^_/, ''),
-
-  TO_SCREAMING_SNAKE_CASE: (str: string): string =>
-    str
-      .replace(/([A-Z])/g, '_$1')
-      .toUpperCase()
-      .replace(/^_/, ''),
-
-  // File name transformations
-  ADD_COMPONENT_SUFFIX: (baseName: string): string =>
-    `${baseName}.component.ts`,
-  ADD_SERVICE_SUFFIX: (baseName: string): string => `${baseName}.service.ts`,
-  ADD_DIRECTIVE_SUFFIX: (baseName: string): string =>
-    `${baseName}.directive.ts`,
-  ADD_PIPE_SUFFIX: (baseName: string): string => `${baseName}.pipe.ts`,
-  ADD_MODULE_SUFFIX: (baseName: string): string => `${baseName}.module.ts`,
-
-  // Class name transformations
-  ADD_COMPONENT_CLASS_SUFFIX: (baseName: string): string =>
-    `${baseName}Component`,
-  ADD_SERVICE_CLASS_SUFFIX: (baseName: string): string => `${baseName}Service`,
-  ADD_DIRECTIVE_CLASS_SUFFIX: (baseName: string): string =>
-    `${baseName}Directive`,
-  ADD_PIPE_CLASS_SUFFIX: (baseName: string): string => `${baseName}Pipe`,
-  ADD_MODULE_CLASS_SUFFIX: (baseName: string): string => `${baseName}Module`,
-} as const;
-
 // Legacy alias for backward compatibility
 export const REGEX_PATTERNS = {
   PASCAL_CASE: /^[A-Z][a-zA-Z0-9]*$/,

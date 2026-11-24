@@ -13,6 +13,9 @@ import { CoverageConfigurationInspector } from '../../utils/testing/coverage-con
 import { TestConfigurationInspector } from '../../utils/testing/test-configuration-inspector';
 import { TestFilesExistenceChecker } from '../../utils/testing/test-files-existence-checker';
 
+/** Points of the score of 100 each coverage violation costs. */
+const POINTS_PER_VIOLATION = 15;
+
 export class TestCoverageConstitutionalStandardLaw {
   static check(context: LawCheckContext): LawResult {
     // The inspectors below only know how to see Jest: a jest config, a
@@ -74,7 +77,7 @@ export class TestCoverageConstitutionalStandardLaw {
     suggestions: string[],
     context: LawCheckContext
   ): LawResult {
-    const score = Math.max(0, 100 - violations.length * 15);
+    const score = Math.max(0, 100 - violations.length * POINTS_PER_VIOLATION);
 
     return {
       passed: violations.length === 0,

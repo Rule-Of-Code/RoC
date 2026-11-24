@@ -108,15 +108,7 @@ class Reader {
   /** Reads the line at `index`; returns the last line it consumed. */
   private readLine(index: number): number {
     const raw = (this.lines[index] ?? '').replace(/\r$/, '');
-    const indent = raw.length - raw.trimStart().length;
-    if (
-      this.blockOwner &&
-      (raw.trim() === '' || indent > this.blockOwner.indent)
-    ) {
-      if (raw.trim() !== '')
-        this.blockOwner.block.push({ text: raw.trim(), line: index + 1 });
-      return index;
-    }
+    if (this.continuesBlock(raw, index)) return index;
     this.blockOwner = null;
     if (raw.trim() === '' || raw.trimStart().startsWith('#')) return index;
     const [, lead = '', dashes = '', rest = ''] = LINE.exec(raw) ?? [];
@@ -134,6 +126,20 @@ class Reader {
     if (dashes) this.openItems.push({ id: this.nextItem++, indent: keyIndent });
     else this.closeItems(keyIndent);
     return this.addEntry(index, keyIndent, key);
+  }
+
+  /**
+   * A blank line, or one indented deeper than the key that opened a block
+   * scalar (`run: |`), belongs to that block; it is kept and consumed.
+   */
+  private continuesBlock(raw: string, index: number): boolean {
+    const owner = this.blockOwner;
+    if (!owner) return false;
+    const text = raw.trim();
+    const indent = raw.length - raw.trimStart().length;
+    if (text !== '' && indent <= owner.indent) return false;
+    if (text !== '') owner.block.push({ text, line: index + 1 });
+    return true;
   }
 
   private addEntry(

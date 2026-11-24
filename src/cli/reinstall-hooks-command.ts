@@ -9,6 +9,9 @@ import { ConfigLoader } from '../config/loader';
 import { GitHooksInstaller } from '../hooks/installer';
 import { getVersion } from './utils';
 
+/** Width of the rule under the command's title. */
+const RULE_WIDTH = 60;
+
 export interface ReinstallHooksOptions {
   force?: boolean;
   /**
@@ -31,7 +34,7 @@ export async function executeReinstallHooksAction(
         `\n🔄 RuleOfCode v${getVersion()} - Git Hooks Reinstallation`
       )
     );
-    console.log(chalk.gray('═'.repeat(60)));
+    console.log(chalk.gray('═'.repeat(RULE_WIDTH)));
 
     // Load configuration
     const config = ConfigLoader.load(projectRoot);

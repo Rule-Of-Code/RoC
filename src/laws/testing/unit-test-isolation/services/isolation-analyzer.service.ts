@@ -4,6 +4,9 @@ import { PathOperations } from '../../../../utils/path-operations';
 import { TestFileDiscovery } from '../../test-file-discovery';
 import { UnitTestIsolationConstants } from '../constants/isolation';
 
+/** Share of the test files read that must keep no shared mutable state without setup/teardown. */
+const ISOLATED_SHARE = 0.7;
+
 /**
  * Unit Test Isolation - Analyzer Service
  * Responsible for analyzing test isolation in the project
@@ -73,7 +76,8 @@ export class UnitTestIsolationAnalyzerService {
         !UnitTestIsolationConstants.hasProperSetupTeardown(content)
     );
     return {
-      hasProperIsolation: read === 0 || (read - files.length) / read >= 0.7,
+      hasProperIsolation:
+        read === 0 || (read - files.length) / read >= ISOLATED_SHARE,
       files,
     };
   }

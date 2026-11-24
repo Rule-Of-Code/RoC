@@ -5,6 +5,9 @@ import {
   UnitTestCoverageQualityAnalysisService,
 } from './unit-test-coverage/index';
 
+/** Points of the score of 100 that shared state between tests costs. */
+const ISOLATION_PENALTY = 15;
+
 /**
  * Unit Test Coverage Standards Law
  * Enforces comprehensive unit testing practices and coverage requirements
@@ -72,7 +75,7 @@ export class UnitTestCoverageStandardsLaw {
 
       // Isolation issues
       if (qualityAnalysis.hasIsolationIssues) {
-        score -= 15;
+        score -= ISOLATION_PENALTY;
         issues.push('shared test state');
         details.push('Tests should be isolated and independent');
       }

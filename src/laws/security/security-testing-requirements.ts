@@ -1,6 +1,16 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { SecurityTestingRequirementsAnalyzerService } from './security-testing-requirements/services/security-testing-analyzer.service';
 
+/** Points of the score of 100 each missing kind of security testing costs. */
+const PENALTY = {
+  sast: 25,
+  dependencyScanning: 20,
+  securityTests: 20,
+  authTests: 15,
+  inputValidationTests: 10,
+  securityHeadersTests: 10,
+} as const;
+
 /**
  * SecurityTestingRequirementsLaw
  *
@@ -32,7 +42,7 @@ export class SecurityTestingRequirementsLaw {
       suggestions.push(
         'Configure SAST tools like ESLint security rules, Semgrep, or CodeQL'
       );
-      score -= 25;
+      score -= PENALTY.sast;
     }
 
     // Check for Dependency Vulnerability Scanning
@@ -45,7 +55,7 @@ export class SecurityTestingRequirementsLaw {
       suggestions.push(
         'Configure npm audit, Snyk, or Dependabot for dependency scanning'
       );
-      score -= 20;
+      score -= PENALTY.dependencyScanning;
     }
 
     // Check for Security Test Cases
@@ -57,7 +67,7 @@ export class SecurityTestingRequirementsLaw {
     if (!securityTestsResult.hasTests) {
       violations.push('No dedicated security test cases found');
       suggestions.push('Implement security-focused unit and integration tests');
-      score -= 20;
+      score -= PENALTY.securityTests;
     }
 
     // Check for Authentication/Authorization Tests
@@ -69,7 +79,7 @@ export class SecurityTestingRequirementsLaw {
     if (!authResult.hasTests) {
       violations.push('Authentication and authorization tests not implemented');
       suggestions.push('Implement comprehensive auth testing');
-      score -= 15;
+      score -= PENALTY.authTests;
     }
 
     // Check for Input Validation Tests
@@ -83,7 +93,7 @@ export class SecurityTestingRequirementsLaw {
       suggestions.push(
         'Implement tests for XSS, injection attacks, and input sanitization'
       );
-      score -= 10;
+      score -= PENALTY.inputValidationTests;
     }
 
     // Check for Security Headers Tests
@@ -97,7 +107,7 @@ export class SecurityTestingRequirementsLaw {
       suggestions.push(
         'Test CSP, HSTS, X-Frame-Options and other security headers'
       );
-      score -= 10;
+      score -= PENALTY.securityHeadersTests;
     }
 
     return {

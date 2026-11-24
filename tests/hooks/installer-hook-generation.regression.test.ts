@@ -8,11 +8,10 @@ import os from 'os';
 import path from 'path';
 import { GitHooksInstaller } from '../../src/hooks/installer';
 import type { RuleOfCodeConfig } from '../../src/types';
+import { makeTempDir } from '../helpers/temp-dirs';
 
-const dirs: string[] = [];
 function installInto(): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-hookgen-'));
-  dirs.push(dir);
+  const dir = makeTempDir('roc-hookgen-');
   const config = {
     hooks: { preCommit: true, prePush: true, commitMsg: true },
     commitMsg: {
@@ -44,16 +43,6 @@ const shAvailable = ((): boolean => {
     return false;
   }
 })();
-
-afterAll(() => {
-  for (const dir of dirs) {
-    try {
-      fs.rmSync(path.dirname(dir), { recursive: true, force: true });
-    } catch {
-      /* best effort */
-    }
-  }
-});
 
 describe('Hook generation — husky v9+ native (no deprecated v8 boilerplate)', () => {
   it('emits no shebang and no `_/husky.sh` sourcing line', () => {
@@ -122,8 +111,7 @@ describe('Hook generation — commit-msg POSIX validity (FE Git-Bash crash)', ()
 
   describe('Python project hooks (P8 — FastAPI + Clean Architecture toolchain)', () => {
     function installTyped(type: string): string {
-      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'roc-hookgen-'));
-      dirs.push(dir);
+      const dir = makeTempDir('roc-hookgen-');
       const config = {
         project: { type },
         hooks: { preCommit: true, prePush: true, commitMsg: false },

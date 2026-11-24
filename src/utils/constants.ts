@@ -10,6 +10,7 @@
  * - file-constants.ts: File system, directories, and path constants
  * - angular-constants.ts: Angular framework-specific constants
  * - ngrx-constants.ts: NgRx state management constants
+ * - ngrx-messages.ts: NgRx messages and message templates
  * - naming-constants.ts: Naming convention patterns and validation
  * - automation-constants.ts: Testing, CI/CD, and automation constants
  */
@@ -22,6 +23,7 @@ export * from './git-constants';
 export * from './license-constants';
 export * from './naming-constants';
 export * from './ngrx-constants';
+export * from './ngrx-messages';
 
 // Export utility classes
 export { ConfigFileUtils } from './config-utils';

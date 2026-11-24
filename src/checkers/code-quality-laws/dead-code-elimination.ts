@@ -1,6 +1,9 @@
 /**
  * Dead Code Elimination Law
- * Detects and eliminates unused code, imports, and variables
+ * Reads the code for a `debugger`, a statement after a `return` and
+ * commented-out declarations. Unused imports, exports and variables are not
+ * detected here: the law asks for a tool that detects them — ESLint's
+ * no-unused-vars / no-unreachable, or a dead-code tool the project runs (#439).
  */
 
 import type * as TS from 'typescript';
@@ -9,6 +12,7 @@ import type {
   LawResult,
   RuleOfCodeConfig,
 } from '../../types/law.types';
+import { commandInvocations } from '../../utils/audit-invocation';
 import { ConfigFileUtils } from '../../utils/config-file-utils';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
@@ -20,13 +24,19 @@ import { LawBase } from '../law-base';
 import { CodeQualityLawBase } from './code-quality-law-base';
 import { readSource, type SourceView } from './source-view';
 
+/** Points of the score of 100 each dead-code finding costs. */
+const POINTS_PER_VIOLATION = 12;
+
 export class DeadCodeEliminationLaw extends CodeQualityLawBase {
   static check(context: LawCheckContext): LawResult {
     const violations: string[] = [];
     const suggestions: string[] = [];
 
     // Check for dead code detection tools
-    const toolsAnalysis = this.checkDeadCodeTools(context.projectRoot);
+    const toolsAnalysis = this.checkDeadCodeTools(
+      context.projectRoot,
+      context.config
+    );
     violations.push(...toolsAnalysis.violations);
     suggestions.push(...toolsAnalysis.suggestions);
 
@@ -50,12 +60,34 @@ export class DeadCodeEliminationLaw extends CodeQualityLawBase {
       score:
         violations.length === 0
           ? 100
-          : Math.max(0, 100 - violations.length * 12),
+          : Math.max(0, 100 - violations.length * POINTS_PER_VIOLATION),
       context,
     });
   }
 
-  private static checkDeadCodeTools(projectRoot: string): {
+  /**
+   * Dead-code tools whose run proves the "unused" part (#439): each reports
+   * unused exports, files or dependencies across the project.
+   */
+  private static readonly DEAD_CODE_TOOLS = [
+    'knip',
+    'ts-prune',
+    'ts-unused-exports',
+    'unimported',
+  ];
+
+  /** One command that runs a dead-code tool (`npx knip`, `ts-prune -e`). */
+  private static readonly RUNS_DEAD_CODE_TOOL =
+    /(?:^|[\s;&|(/])(?:knip|ts-prune|ts-unused-exports|unimported)(?=[\s;&|)]|$)/;
+
+  /** Installing a tool is not running it (`npm i -D knip`, `pnpm add knip`). */
+  private static readonly INSTALLS =
+    /\b(?:npm|pnpm|yarn|bun)\s+(?:i|install|add)\b/;
+
+  private static checkDeadCodeTools(
+    projectRoot: string,
+    config: RuleOfCodeConfig
+  ): {
     violations: string[];
     suggestions: string[];
   } {
@@ -66,6 +98,24 @@ export class DeadCodeEliminationLaw extends CodeQualityLawBase {
       devDependencies?: Record<string, string>;
     }>(projectRoot);
     const devDeps = packageJson.devDependencies ?? {};
+
+    // A dead-code tool the project runs (script, git hook or CI step) finds
+    // unused code itself, so the ESLint rules are not needed as proof (#439).
+    // Declared as a devDependency and run nowhere, it proves nothing.
+    const runs = commandInvocations(
+      projectRoot,
+      command =>
+        !this.INSTALLS.test(command) && this.RUNS_DEAD_CODE_TOOL.test(command),
+      config
+    );
+    if (runs.length > 0) return { violations, suggestions };
+
+    const installed = this.DEAD_CODE_TOOLS.filter(tool => devDeps[tool]);
+    suggestions.push(
+      installed.length > 0
+        ? `${installed.join(', ')} is a devDependency, but no script, git hook or CI step runs it`
+        : 'Run a dead-code tool (knip, ts-prune, ts-unused-exports or unimported) from a script, a git hook or CI'
+    );
 
     // Check for ESLint rules that catch dead code
     if (devDeps.eslint) {
@@ -78,15 +128,6 @@ export class DeadCodeEliminationLaw extends CodeQualityLawBase {
           'Configure no-unused-vars and no-unreachable-code rules'
         );
       }
-    }
-
-    // Check for dead code elimination tools
-    const deadCodeTools = ['ts-unused-exports', 'unimported', 'depcheck'];
-    const hasDeadCodeTool = deadCodeTools.some(tool => devDeps[tool]);
-    if (!hasDeadCodeTool) {
-      suggestions.push(
-        'Consider adding dead code detection tools (ts-unused-exports, depcheck)'
-      );
     }
 
     return { violations, suggestions };

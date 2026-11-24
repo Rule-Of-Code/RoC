@@ -62,6 +62,8 @@ const VOID_ELEMENTS = new Set([
 const RAW_TEXT_ELEMENTS = new Set(['script', 'style']);
 const TAG_NAME = /^[A-Za-z][\w:.-]*/;
 const ATTRIBUTE_NAME_END = /[\s=>]/;
+/** How far past a `<` the reader looks for the tag name or the closing tag. */
+const TAG_LOOKAHEAD = 200;
 
 /** Replace comments with blanks of the same shape, so lines stay where they were. */
 function blankComments(html: string): string {
@@ -134,7 +136,10 @@ class Tokenizer {
   }
 
   private readAngle(): void {
-    const rest = this.text.slice(this.position + 1, this.position + 200);
+    const rest = this.text.slice(
+      this.position + 1,
+      this.position + TAG_LOOKAHEAD
+    );
     if (rest.startsWith('/')) {
       const close = /^\/([A-Za-z][\w:.-]*)\s*>/.exec(rest);
       if (close) {

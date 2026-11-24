@@ -48,24 +48,42 @@ export function backslashesToSlashes(pattern: string): string {
       out += char;
       continue;
     }
-    const next = pattern[i + 1] ?? '';
-    const closer = CLOSER_OF[next];
-    const escapes =
-      next === ']' ||
-      next === '}' ||
-      next === ')' ||
-      next === '!' ||
-      next === '+' ||
-      next === '@' ||
-      (closer !== undefined && pattern.includes(`\\${closer}`, i + 2));
-    if (escapes) {
-      out += `\\${next}`;
+    if (escapesNext(pattern, i)) {
+      out += `\\${pattern[i + 1] ?? ''}`;
       i++;
     } else {
       out += '/';
     }
   }
   return out;
+}
+
+/** Characters a `\` always escapes: a closer, or `!`, `+`, `@`. */
+const ALWAYS_ESCAPED = new Set([']', '}', ')', '!', '+', '@']);
+
+/** Does the `\` at `at` escape the character after it (see above)? */
+function escapesNext(pattern: string, at: number): boolean {
+  const next = pattern[at + 1] ?? '';
+  if (ALWAYS_ESCAPED.has(next)) return true;
+  const closer = CLOSER_OF[next];
+  return closer !== undefined && pattern.includes(`\\${closer}`, at + 2);
+}
+
+/**
+ * An absolute pattern made relative to the project root (`**` for the root
+ * itself), or undefined when it points outside the project.
+ */
+function insideProject(body: string, projectRoot: string): string | undefined {
+  const root = rootOf(projectRoot);
+  const caseInsensitive = process.platform === 'win32';
+  const same = (a: string, b: string): boolean =>
+    caseInsensitive ? a.toLowerCase() === b.toLowerCase() : a === b;
+  const head = body.slice(0, root.length);
+  const rest = body.slice(root.length);
+  if (!root || !same(head, root) || (rest !== '' && !rest.startsWith('/'))) {
+    return undefined;
+  }
+  return rest.replace(/^\/+/, '') || '**';
 }
 
 /** `pattern` in the one form; an absolute path outside the project as written. */
@@ -77,16 +95,9 @@ export function normalizePathPattern(
   const negated = pattern.startsWith('!');
   let body = backslashesToSlashes(negated ? pattern.slice(1) : pattern);
   if (isAbsolutePattern(body)) {
-    const root = rootOf(projectRoot);
-    const caseInsensitive = process.platform === 'win32';
-    const same = (a: string, b: string): boolean =>
-      caseInsensitive ? a.toLowerCase() === b.toLowerCase() : a === b;
-    const head = body.slice(0, root.length);
-    const rest = body.slice(root.length);
-    if (!root || !same(head, root) || (rest !== '' && !rest.startsWith('/'))) {
-      return pattern; // outside the project: reported by the audit
-    }
-    body = rest.replace(/^\/+/, '') || '**';
+    const inside = insideProject(body, projectRoot);
+    if (inside === undefined) return pattern; // outside the project: reported by the audit
+    body = inside;
   }
   body = body.replace(/^(?:\.\/)+/, '');
   if (body.endsWith('/')) body = `${body.replace(/\/+$/, '')}/**`;

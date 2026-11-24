@@ -15,6 +15,10 @@ import { GlobUtils } from '../../utils/glob-utils';
 import { PathOperations } from '../../utils/path-operations';
 import { SecretManagementAnalyzer } from '../../utils/security/secret-management';
 import { SecurityLawBase } from './security-law-base';
+
+/** Characters of a suspected secret quoted in a finding. */
+const SECRET_QUOTE_LENGTH = 30;
+
 interface ScanParams {
   violations: string[];
   suggestions: string[];
@@ -142,7 +146,7 @@ export class NoSecretsInCodeLaw {
           file
         );
         params.violations.push(
-          `Potential secret in ${relativePath}: ${matches[0].substring(0, 30)}...`
+          `Potential secret in ${relativePath}: ${matches[0].substring(0, SECRET_QUOTE_LENGTH)}...`
         );
         params.suggestions.push(
           ...SecretManagementAnalyzer.getSecretManagementRecommendations()

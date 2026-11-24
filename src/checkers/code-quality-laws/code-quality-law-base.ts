@@ -17,6 +17,9 @@ import { ObservableCleanup } from '../../utils/observable-cleanup';
 import { PathOperations } from '../../utils/path-operations';
 import { readTsconfigChain, strictModeOf } from '../../utils/tsconfig-chain';
 
+/** Share of exported classes and functions that must carry a JSDoc block. */
+const DOCUMENTED_SHARE = 0.5;
+
 export abstract class CodeQualityLawBase {
   protected static findTypeScriptFiles(
     projectRoot: string,
@@ -105,7 +108,10 @@ export abstract class CodeQualityLawBase {
     const classes = content.match(classPattern) ?? [];
     const functions = content.match(functionPattern) ?? [];
 
-    return jsdocMatches.length >= (classes.length + functions.length) * 0.5;
+    return (
+      jsdocMatches.length >=
+      (classes.length + functions.length) * DOCUMENTED_SHARE
+    );
   }
 
   /**

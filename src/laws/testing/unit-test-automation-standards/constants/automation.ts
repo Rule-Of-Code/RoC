@@ -1,6 +1,9 @@
 import { ProjectTypeDetectorValidation } from '../../../../utils/config/project-type-detector/project-type-detector-validation';
 import { PatternMatchingUtils } from '../../../../utils/pattern-matching-utils';
 
+/** Points each automation piece adds to the level score; all four make 100. */
+const POINTS_PER_PIECE = 25;
+
 /**
  * Unit Test Automation Standards Constants
  *
@@ -182,10 +185,10 @@ export class UnitTestAutomationStandardsConstants {
     hasEnv: boolean
   ): string {
     let score = 0;
-    if (hasScripts) score += 25;
-    if (hasRunner) score += 25;
-    if (hasCICD) score += 25;
-    if (hasEnv) score += 25;
+    if (hasScripts) score += POINTS_PER_PIECE;
+    if (hasRunner) score += POINTS_PER_PIECE;
+    if (hasCICD) score += POINTS_PER_PIECE;
+    if (hasEnv) score += POINTS_PER_PIECE;
 
     return score >= 100 ? 'EXCELLENT' : 'CRITICAL';
   }

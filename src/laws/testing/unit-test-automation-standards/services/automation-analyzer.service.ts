@@ -6,6 +6,16 @@ import { PatternMatchingUtils } from '../../../../utils/pattern-matching-utils';
 import { ciConfigContent } from '../../../../utils/project-discovery';
 import { UnitTestAutomationStandardsConstants } from '../constants/automation';
 
+/** Points of the score of 100 each missing piece of test automation costs. */
+const PENALTY = {
+  testScripts: 25,
+  testRunner: 20,
+  cicdConfig: 20,
+  cicdTests: 15,
+  testEnvironment: 10,
+  parallelization: 10,
+} as const;
+
 /**
  * Unit Test Automation Standards Analyzer Service
  *
@@ -177,12 +187,12 @@ export class UnitTestAutomationStandardsAnalyzerService {
       );
 
     let score = 100;
-    if (!automation.hasTestScripts) score -= 25;
-    if (!automation.hasTestRunner) score -= 20;
-    if (!cicd.hasCICDConfig) score -= 20;
-    if (!cicd.hasAutomatedTests) score -= 15;
-    if (!automation.hasTestEnvironment) score -= 10;
-    if (!automation.hasParallelization) score -= 10;
+    if (!automation.hasTestScripts) score -= PENALTY.testScripts;
+    if (!automation.hasTestRunner) score -= PENALTY.testRunner;
+    if (!cicd.hasCICDConfig) score -= PENALTY.cicdConfig;
+    if (!cicd.hasAutomatedTests) score -= PENALTY.cicdTests;
+    if (!automation.hasTestEnvironment) score -= PENALTY.testEnvironment;
+    if (!automation.hasParallelization) score -= PENALTY.parallelization;
 
     return {
       automationLevel,

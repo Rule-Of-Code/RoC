@@ -30,6 +30,9 @@ import { ReactProject, type NextApp } from '../../utils/react/react-project';
 import type { TsxSource } from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';
 
+/** The Next.js major that renamed the middleware file convention to proxy. */
+const PROXY_CONVENTION_MAJOR = 16;
+
 const MATCHER_KEY = 'thresholds.next.proxyWithoutMatcher';
 
 export class NextProxyPlacementAndMatcherLaw extends LawBase {
@@ -69,7 +72,8 @@ export class NextProxyPlacementAndMatcherLaw extends LawBase {
     if (!conventionDir) return [];
     const rel = (file: string): string => ReactProject.relative(context, file);
     const major = this.nextMajor(app);
-    const expected = major !== null && major < 16 ? 'middleware' : 'proxy';
+    const expected =
+      major !== null && major < PROXY_CONVENTION_MAJOR ? 'middleware' : 'proxy';
     const { found, violations } = this.locate(app, conventionDir, rel);
     const proxy = found.get('proxy');
     const middleware = found.get('middleware');

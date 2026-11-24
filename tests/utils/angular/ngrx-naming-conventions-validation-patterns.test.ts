@@ -9,6 +9,27 @@ import { NgRxNamingConventionsValidationPatterns } from '../../../src/utils/angu
 import { CheckerUtils } from '../../../src/utils/checker-utils';
 import { FileUtils } from '../../../src/utils/file-utils';
 import { PathOperations } from '../../../src/utils/path-operations';
+import { project } from '../../checkers/toolkit-fixture';
+
+const config: RuleOfCodeConfig = FileUtils.getMinimalDefaultConfig();
+const validate = (files: Record<string, string>) =>
+  NgRxNamingConventionsValidationPatterns.validateAllNamingConventions(
+    project(files),
+    config
+  );
+
+const C = NgRxNamingConventionsConfiguration;
+const M = C.VALIDATION_MESSAGES;
+const msg = (template: string, ...values: string[]) =>
+  C.buildMessage(template, ...values);
+
+const FEATURE = 'user';
+const STATE = `src/app/${FEATURE}/+state`;
+const ACTIONS = `${STATE}/user.actions.ts`;
+const REDUCER = `${STATE}/user.reducer.ts`;
+const SELECTORS = `${STATE}/user.selectors.ts`;
+const EFFECTS = `${STATE}/user.effects.ts`;
+// Messages name a file by its base name without the extension.
 
 describe('utils/angular/ngrx-naming-conventions/ngrx-naming-conventions-validation-patterns', () => {
   const mockConfig = {
@@ -25,279 +46,77 @@ describe('utils/angular/ngrx-naming-conventions/ngrx-naming-conventions-validati
   describe('NgRxNamingConventionsValidationPatterns', () => {
     describe('validateAllNamingConventions', () => {
       it('should return empty results when no NgRx files found', () => {
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        findFilesSpy.mockReturnValue([]);
+        const result = validate({
+          'src/app/user/user.service.ts':
+            "export const LoadUsers = createAction('load');\n",
+        });
 
-        const result =
-          NgRxNamingConventionsValidationPatterns.validateAllNamingConventions(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(result.violations).toHaveLength(0);
-        expect(result.suggestions).toHaveLength(0);
+        expect(result).toEqual({ violations: [], suggestions: [] });
       });
 
-      it('should validate NgRx files when found', () => {
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        findFilesSpy.mockReturnValue([
-          '/test/project/src/app/users/+state/users.actions.ts',
-        ]);
+      it('should return empty results when there is no src directory', () => {
+        const result = validate({
+          'lib/user/+state/user.actions.ts':
+            "export const LoadUsers = createAction('load');\n",
+        });
 
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockReturnValue(`
-          export const loadUsers = createAction('[User] Load Users');
-        `);
-
-        const getBasenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        getBasenameSpy.mockReturnValue('users.actions.ts');
-
-        const getDirectorySpy = jest.spyOn(PathOperations, 'getDirectory');
-        getDirectorySpy.mockReturnValue('/test/project/src/app/users/+state');
-
-        const extractFeatureNameSpy = jest.spyOn(
-          NgRxNamingConventionsConfiguration,
-          'extractFeatureName'
-        );
-        extractFeatureNameSpy.mockReturnValue('users');
-
-        const result =
-          NgRxNamingConventionsValidationPatterns.validateAllNamingConventions(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(result).toHaveProperty('violations');
-        expect(result).toHaveProperty('suggestions');
+        expect(result).toEqual({ violations: [], suggestions: [] });
       });
 
       it('should deduplicate violations and suggestions', () => {
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        findFilesSpy.mockReturnValue([
-          '/test/project/src/app/users/+state/users.actions.ts',
-          '/test/project/src/app/orders/+state/orders.actions.ts',
-        ]);
-
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockReturnValue('');
-
-        const getBasenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        getBasenameSpy.mockReturnValue('test.actions.ts');
-
-        const getDirectorySpy = jest.spyOn(PathOperations, 'getDirectory');
-        getDirectorySpy.mockReturnValue('/test/+state');
-
-        const extractFeatureNameSpy = jest.spyOn(
-          NgRxNamingConventionsConfiguration,
-          'extractFeatureName'
-        );
-        extractFeatureNameSpy.mockReturnValue('test');
-
-        const result =
-          NgRxNamingConventionsValidationPatterns.validateAllNamingConventions(
-            '/test/project',
-            mockConfig
-          );
-
-        const uniqueViolations = [...new Set(result.violations)];
-        const uniqueSuggestions = [...new Set(result.suggestions)];
-        expect(result.violations.length).toBe(uniqueViolations.length);
-        expect(result.suggestions.length).toBe(uniqueSuggestions.length);
-      });
-
-      it('should skip files that cannot be read', () => {
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        findFilesSpy.mockReturnValue([
-          '/test/project/src/app/users/+state/users.actions.ts',
-        ]);
-
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockImplementation(() => {
-          throw new Error('Cannot read file');
+        const result = validate({
+          [ACTIONS]: `
+            export const loadA = createAction('[Order] Load');
+            export const loadB = createAction('[Order] Load');
+          `,
         });
 
-        const result =
-          NgRxNamingConventionsValidationPatterns.validateAllNamingConventions(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(result.violations).toHaveLength(0);
-        expect(result.suggestions).toHaveLength(0);
+        expect(result.violations).toEqual([
+          msg(
+            M.ACTION_PREFIX_VIOLATION,
+            '[Order] Load',
+            FEATURE,
+            'user.actions'
+          ),
+        ]);
       });
 
       it('should skip files with empty content', () => {
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        findFilesSpy.mockReturnValue([
-          '/test/project/src/app/users/+state/users.actions.ts',
-        ]);
+        const result = validate({ [ACTIONS]: '' });
 
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockReturnValue('');
-
-        const getBasenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        getBasenameSpy.mockReturnValue('users.actions.ts');
-
-        const getDirectorySpy = jest.spyOn(PathOperations, 'getDirectory');
-        getDirectorySpy.mockReturnValue('/test/+state');
-
-        const result =
-          NgRxNamingConventionsValidationPatterns.validateAllNamingConventions(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(result).toHaveProperty('violations');
-        expect(result).toHaveProperty('suggestions');
+        expect(result).toEqual({ violations: [], suggestions: [] });
       });
 
-      it('should validate actions file type', () => {
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        findFilesSpy.mockReturnValue(['/test/users.actions.ts']);
-
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockReturnValue(`
-          export const loadUsers = createAction('LoadUsers');
-        `);
-
-        const getBasenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        getBasenameSpy.mockReturnValue('users.actions.ts');
-
-        const getDirectorySpy = jest.spyOn(PathOperations, 'getDirectory');
-        getDirectorySpy.mockReturnValue('/test/users/+state');
-
-        const isFileTypeSpy = jest.spyOn(
-          NgRxNamingConventionsConfiguration,
-          'isFileType'
-        );
-        isFileTypeSpy.mockImplementation((fileName, type) => {
-          return fileName.includes(type);
+      it('should find facade and models files but judge no names in them', () => {
+        const result = validate({
+          [`${STATE}/user.facade.ts`]:
+            "export const LoadUsers = createAction('load');\n",
+          [`${STATE}/user.models.ts`]: 'export interface user_State {}\n',
         });
 
-        const result =
-          NgRxNamingConventionsValidationPatterns.validateAllNamingConventions(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(isFileTypeSpy).toHaveBeenCalled();
+        expect(result).toEqual({ violations: [], suggestions: [] });
       });
 
-      it('should validate reducer file type', () => {
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        findFilesSpy.mockReturnValue(['/test/users.reducer.ts']);
-
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockReturnValue(`
-          export interface UserState {}
-          export const userReducer = createReducer(initialState);
-        `);
-
-        const getBasenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        getBasenameSpy.mockReturnValue('users.reducer.ts');
-
-        const getDirectorySpy = jest.spyOn(PathOperations, 'getDirectory');
-        getDirectorySpy.mockReturnValue('/test/users/+state');
-
-        const result =
-          NgRxNamingConventionsValidationPatterns.validateAllNamingConventions(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(result).toHaveProperty('violations');
-        expect(result).toHaveProperty('suggestions');
-      });
-
-      it('should validate selectors file type', () => {
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        findFilesSpy.mockReturnValue(['/test/users.selectors.ts']);
-
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockReturnValue(`
-          export const selectUserFeature = createFeatureSelector('user');
-          export const getUsers = createSelector(selectUserFeature, s => s);
-        `);
-
-        const getBasenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        getBasenameSpy.mockReturnValue('users.selectors.ts');
-
-        const getDirectorySpy = jest.spyOn(PathOperations, 'getDirectory');
-        getDirectorySpy.mockReturnValue('/test/users/+state');
-
-        const result =
-          NgRxNamingConventionsValidationPatterns.validateAllNamingConventions(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(result).toHaveProperty('violations');
-        expect(result).toHaveProperty('suggestions');
-      });
-
-      it('should validate effects file type', () => {
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        findFilesSpy.mockReturnValue(['/test/users.effects.ts']);
-
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockReturnValue(`
-          export class UserEffects {
-            loadUsers = createEffect(() => this.actions$);
-          }
-        `);
-
-        const getBasenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        getBasenameSpy.mockReturnValue('users.effects.ts');
-
-        const getDirectorySpy = jest.spyOn(PathOperations, 'getDirectory');
-        getDirectorySpy.mockReturnValue('/test/users/+state');
-
-        const result =
-          NgRxNamingConventionsValidationPatterns.validateAllNamingConventions(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(result).toHaveProperty('violations');
-        expect(result).toHaveProperty('suggestions');
-      });
-    });
-
-    describe('FILE_TYPE_VALIDATORS', () => {
-      it('should have validators for actions, reducer, selectors, and effects', () => {
-        // Access the private static property through validateAllNamingConventions behavior
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        findFilesSpy.mockReturnValue([
-          '/test/users.actions.ts',
-          '/test/users.reducer.ts',
-          '/test/users.selectors.ts',
-          '/test/users.effects.ts',
-        ]);
-
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        readFileSpy.mockReturnValue('test content');
-
-        const getBasenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        getBasenameSpy.mockImplementation(path => {
-          const parts = path.split('/');
-          return parts[parts.length - 1] ?? '';
+      it('should handle multiple file types in a project', () => {
+        const result = validate({
+          [ACTIONS]: "export const LoadUsers = createAction('[Order] Load');\n",
+          [EFFECTS]: 'export class OrderEffects {}\n',
         });
 
-        const getDirectorySpy = jest.spyOn(PathOperations, 'getDirectory');
-        getDirectorySpy.mockReturnValue('/test/+state');
-
-        const isFileTypeSpy = jest.spyOn(
-          NgRxNamingConventionsConfiguration,
-          'isFileType'
+        expect(result.violations).toEqual([
+          msg(
+            M.ACTION_PREFIX_VIOLATION,
+            '[Order] Load',
+            FEATURE,
+            'user.actions'
+          ),
+        ]);
+        expect(result.suggestions).toEqual(
+          expect.arrayContaining([
+            msg(M.ACTION_CREATOR_CASE_SUGGESTION, 'LoadUsers', 'user.actions'),
+            msg(M.EFFECTS_CLASS_SUGGESTION, 'userEffects', 'user.effects'),
+          ])
         );
-
-        NgRxNamingConventionsValidationPatterns.validateAllNamingConventions(
-          '/test/project',
-          mockConfig
-        );
-
-        // Each file should be checked for each file type
-        expect(isFileTypeSpy).toHaveBeenCalled();
       });
     });
 

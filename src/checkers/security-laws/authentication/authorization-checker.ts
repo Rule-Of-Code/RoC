@@ -1,4 +1,5 @@
 import type { RuleOfCodeConfig } from '../../../config/types';
+import { PathOperations } from '../../../utils/path-operations';
 import { SecurityCheckerBase } from './security-checker-base';
 
 /** Said when the code has no role or permission concept (#561). */
@@ -30,11 +31,41 @@ export class AuthorizationChecker extends SecurityCheckerBase {
     // Only code that was read is judged (#561): with no file, or no parser,
     // runSecurityCheck answers before any claim about roles or guards.
     return this.runSecurityCheck(projectRoot, config, codeFiles =>
-      this.judgeAuthorization(codeFiles)
+      this.judgeAuthorization(projectRoot, codeFiles)
     );
   }
 
-  private static judgeAuthorization(codeFiles: string[]): {
+  /**
+   * A Next.js middleware (`middleware.ts` / `.js` at the root or in `src/`)
+   * that redirects or refuses a request on the strength of a session or a
+   * token is the app's route guard (#590).
+   */
+  private static hasNextMiddlewareGuard(
+    projectRoot: string,
+    codeFiles: string[]
+  ): boolean {
+    return codeFiles
+      .filter(file =>
+        /^(?:src\/)?middleware\.[cm]?[jt]s$/.test(
+          PathOperations.getRelative(projectRoot, file)
+        )
+      )
+      .some(file => {
+        const s = this.authShapeOf([file]);
+        const acts = s.redirects || s.refusesRequests;
+        const onCredential =
+          s.readsCookie ||
+          s.signsInOrVerifies ||
+          s.readsSdkToken ||
+          s.managedSdk;
+        return acts && onCredential;
+      });
+  }
+
+  private static judgeAuthorization(
+    projectRoot: string,
+    codeFiles: string[]
+  ): {
     violations: string[];
     suggestions: string[];
   } {
@@ -43,7 +74,10 @@ export class AuthorizationChecker extends SecurityCheckerBase {
     const shape = this.authShapeOf(codeFiles);
 
     const hasGuards =
-      shape.routeGuard || shape.refusesRequests || shape.attachesCredentials;
+      shape.routeGuard ||
+      shape.refusesRequests ||
+      shape.attachesCredentials ||
+      this.hasNextMiddlewareGuard(projectRoot, codeFiles);
     if (!hasGuards) {
       violations.push('No authorization guards or middleware found');
       suggestions.push('Implement route guards and authorization middleware');

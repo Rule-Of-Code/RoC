@@ -8,10 +8,7 @@ import * as LawIdentity from '../utils/law-identity';
 import { honouredWaiverReason } from '../utils/law-waivers';
 import { ALL_ENHANCED_CONSTITUTIONAL_LAWS } from '../data/enhanced-laws';
 import { paretoCoreIds } from '../data/pareto-core';
-import type {
-  EnhancedConstitutionalLaw,
-  LawRequirement,
-} from '../types/enhanced-law.types';
+import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import type {
   ConstitutionalLaw,
   LawCheckContext,
@@ -20,6 +17,15 @@ import type {
 } from '../types/law.types';
 
 import { LAW_CLASS_MAPPING } from './law-class-mapping';
+import {
+  categoryVocabulary,
+  inCategories,
+  matchesCategories,
+  unknownCategories,
+} from './law-categories';
+import { applicableFrameworks } from './law-frameworks';
+
+export { frameworkOfPackage } from './law-frameworks';
 
 /**
  * The registry of every law RoC runs. It maps each law card's
@@ -47,42 +53,25 @@ export class ModularLawsRegistry {
     );
   }
 
-  /** A law of one of `categories` (by its category, or a category word in its id). */
+  /** A law of one of `categories` (see law-categories). */
   static matchesCategories(
     law: { id: string; category: string },
     categories: readonly string[]
   ): boolean {
-    return categories.some(
-      category => law.category === category || law.id.includes(category)
-    );
+    return matchesCategories(law, categories);
   }
 
-  /** What `categories` can match: each law's tier, and the word before `_` in each law id. */
+  /** What `categories` can match, over the registry's laws (see law-categories). */
   static categoryVocabulary(): { tiers: string[]; idWords: string[] } {
-    const laws = this.getAll();
-    const sorted = (values: string[]): string[] =>
-      [...new Set(values)].sort((a, b) => a.localeCompare(b));
-    return {
-      tiers: sorted(laws.map(law => law.category)),
-      idWords: sorted(
-        laws.map(law => law.id.split('_')[0] ?? '').filter(Boolean)
-      ),
-    };
+    return categoryVocabulary(this.getAll());
   }
 
-  /** The `categories` values that match no law at all. */
+  /** The `categories` values that match no registry law (see law-categories). */
   static unknownCategories(categories: readonly string[]): string[] {
-    const laws = this.getAll();
-    return categories.filter(
-      category => !laws.some(law => this.matchesCategories(law, [category]))
-    );
+    return unknownCategories(this.getAll(), categories);
   }
 
-  /**
-   * Narrow a selection to `categories` (none: unchanged). The always-on
-   * meta-gates stay whatever their category: a narrowing must not remove
-   * the gates that judge it (#370).
-   */
+  /** A selection narrowed to `categories`, meta-gates kept (see law-categories). */
   static inCategories<
     T extends {
       id: string;
@@ -90,11 +79,7 @@ export class ModularLawsRegistry {
       alwaysEnabled?: boolean | undefined;
     },
   >(laws: T[], categories: readonly string[]): T[] {
-    if (categories.length === 0) return laws;
-    return laws.filter(
-      law =>
-        law.alwaysEnabled === true || this.matchesCategories(law, categories)
-    );
+    return inCategories(laws, categories);
   }
 
   /**
@@ -476,49 +461,6 @@ export class ModularLawsRegistry {
    * without `requires` keeps the tag it had.
    */
   static getApplicableFrameworks(law: EnhancedConstitutionalLaw): string[] {
-    const frameworks = new Set<string>();
-    if (law.description.includes('Angular')) frameworks.add('angular');
-    if (law.description.includes('React')) frameworks.add('react');
-    if (law.description.includes('Vue')) frameworks.add('vue');
-    if (law.description.includes('Node')) frameworks.add('node');
-    if (law.description.includes('TypeScript')) frameworks.add('typescript');
-    if (law.description.includes('Ionic')) frameworks.add('ionic');
-    if (law.description.includes('Capacitor')) frameworks.add('capacitor');
-    for (const framework of this.requiredFrameworks(law.requires))
-      frameworks.add(framework);
-    return frameworks.size > 0 ? [...frameworks] : ['*'];
+    return applicableFrameworks(law);
   }
-
-  /**
-   * Frameworks `requires` implies. Every package of `allDependencies` is
-   * required, so each one's framework counts. `anyDependency` is satisfied
-   * by any one of its packages, so it names a framework only when EVERY
-   * package in it maps to one: `["next", "express"]` is not a React law.
-   */
-  static requiredFrameworks(requires: LawRequirement | undefined): string[] {
-    if (!requires) return [];
-    const found = new Set<string>();
-    for (const name of requires.allDependencies ?? []) {
-      const framework = frameworkOfPackage(name);
-      if (framework) found.add(framework);
-    }
-    const any = (requires.anyDependency ?? []).map(frameworkOfPackage);
-    if (any.length > 0 && any.every(Boolean))
-      any.forEach(framework => found.add(framework as string));
-    return [...found];
-  }
-}
-
-/** The framework a package belongs to, in the `applicableFrameworks` vocabulary; null for none. */
-export function frameworkOfPackage(name: string): string | null {
-  if (name.startsWith('@ionic/')) return 'ionic';
-  if (name.startsWith('@capacitor/') || name.startsWith('@capacitor-firebase/'))
-    return 'capacitor';
-  if (name.startsWith('@angular/') || name.startsWith('@ngrx/'))
-    return 'angular';
-  if (['react', 'react-dom', 'next', '@testing-library/react'].includes(name))
-    return 'react';
-  if (['vue', 'nuxt'].includes(name)) return 'vue';
-  if (name === 'typescript') return 'typescript';
-  return null;
 }

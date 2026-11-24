@@ -11,6 +11,7 @@ import { AngularSignalImportsAnalyzer } from '../../src/utils/angular/angular-si
 import { NgRxEffectPatternsValidation } from '../../src/utils/angular/ngrx-effect-patterns/ngrx-effect-patterns-validation';
 import { NgRxErrorHandlingValidationPatterns } from '../../src/utils/angular/ngrx-error-handling/ngrx-error-handling-validation-patterns';
 import { NgRxFileOrganizationValidationPatterns } from '../../src/utils/angular/ngrx-file-organization/ngrx-file-organization-validation-patterns';
+import { NgRxImmutabilityValidationPatterns } from '../../src/utils/angular/ngrx-immutability/ngrx-immutability-validation-patterns';
 import { NgRxNamingConventionsValidationPatterns } from '../../src/utils/angular/ngrx-naming-conventions/ngrx-naming-conventions-validation-patterns';
 import { FileUtils } from '../../src/utils/file-utils';
 import { manifest, project } from '../checkers/toolkit-fixture';
@@ -227,6 +228,61 @@ describe('#612 point 7: a directory that does not exist is skipped', () => {
       );
     expect(result.violations).toEqual([
       'Missing index.ts barrel export in user/+state/',
+    ]);
+  });
+});
+
+const immutability = (content: string) =>
+  NgRxImmutabilityValidationPatterns.validateAllImmutabilityPatterns(
+    project({ 'src/app/state/user.reducer.ts': content }),
+    config
+  );
+
+describe('#612 point 8: a comparison is not a mutation', () => {
+  it('state.loading === true is not reported', () => {
+    const result = immutability(`
+      on(toggle, (state) => {
+        if (state.loading === true) { return { ...state, loading: false }; }
+        if (state.count == 0) { return { ...state, count: 1 }; }
+        return { ...state };
+      })
+    `);
+    expect(result.violations).toEqual([]);
+  });
+
+  it('control: state.loading = true is still a direct mutation', () => {
+    const result = immutability(`
+      on(toggle, (state) => {
+        state.loading = true;
+        return { ...state };
+      })
+    `);
+    expect(result.violations).toEqual([
+      'Direct state mutation detected in user.reducer',
+    ]);
+  });
+});
+
+describe('#612 point 9: the arrow reducer returning ({ ...state }) is an object literal return', () => {
+  it('(state) => ({ ...state, items }) gets no suggestion', () => {
+    const result = immutability(`
+      export const reducer = createReducer(
+        initialState,
+        on(loadSuccess, (state, { items }) => ({ ...state, items }))
+      );
+    `);
+    expect(result.suggestions).toEqual([]);
+  });
+
+  it('control: a reducer that returns the same state object is still told', () => {
+    const result = immutability(`
+      export const reducer = createReducer(
+        initialState,
+        on(loadSuccess, (state) => { const next = Object.freeze(state); return next; })
+      );
+    `);
+    expect(result.suggestions).toEqual([
+      'Use object literal returns for state updates in user.reducer',
     ]);
   });
 });

@@ -9,6 +9,37 @@ import { NgRxErrorHandlingValidationPatterns } from '../../../src/utils/angular/
 import { CheckerUtils } from '../../../src/utils/checker-utils';
 import { FileUtils } from '../../../src/utils/file-utils';
 import { PathOperations } from '../../../src/utils/path-operations';
+import path from 'path';
+import { project } from '../../checkers/toolkit-fixture';
+
+const config: RuleOfCodeConfig = FileUtils.getMinimalDefaultConfig();
+const validate = (files: Record<string, string>) =>
+  NgRxErrorHandlingValidationPatterns.validateAllErrorHandlingPatterns(
+    project(files),
+    config
+  );
+
+const M = NgRxErrorHandlingConfiguration.getValidationMessages();
+const EFFECTS = 'src/state/user.effects.ts';
+// Messages name a file by its base name without the extension.
+const NAME = 'user.effects';
+
+const HANDLED = `
+  load$ = createEffect(() =>
+    this.actions$.pipe(
+      switchMap(() => this.service.load()),
+      catchError(error => of(loadFailure({ error })))
+    )
+  );
+`;
+const HTTP_EFFECT = `
+  load$ = createEffect(() =>
+    this.actions$.pipe(
+      switchMap(() => this.http.get('/api/users')),
+      catchError(error => of(loadFailure({ error })))
+    )
+  );
+`;
 
 describe('utils/angular/ngrx-error-handling/ngrx-error-handling-validation-patterns', () => {
   const mockConfig = {
@@ -25,212 +56,58 @@ describe('utils/angular/ngrx-error-handling/ngrx-error-handling-validation-patte
   describe('NgRxErrorHandlingValidationPatterns', () => {
     describe('validateAllErrorHandlingPatterns', () => {
       it('should return empty results when no effect files found', () => {
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        findFilesSpy.mockReturnValue([]);
+        const result = validate({
+          'src/state/user.reducer.ts': 'switchMap(() => load());\n',
+        });
 
-        const result =
-          NgRxErrorHandlingValidationPatterns.validateAllErrorHandlingPatterns(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(result.violations).toHaveLength(0);
-        expect(result.suggestions).toHaveLength(0);
+        expect(result).toEqual({ violations: [], suggestions: [] });
       });
 
       it('should validate catchError presence', () => {
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        const isEffectsFileSpy = jest.spyOn(
-          NgRxErrorHandlingConfiguration,
-          'isEffectsFile'
-        );
-
-        findFilesSpy.mockReturnValue([
-          '/test/project/src/state/user.effects.ts',
-        ]);
-        basenameSpy.mockReturnValue('user.effects.ts');
-        isEffectsFileSpy.mockReturnValue(true);
-        readFileSpy.mockReturnValue(`
-          @Injectable()
-          export class UserEffects {
-            loadUsers$ = createEffect(() =>
-              this.actions$.pipe(
-                ofType(loadUsers),
-                switchMap(() => this.userService.getUsers())
-              )
+        const result = validate({
+          [EFFECTS]: `
+            load$ = createEffect(() =>
+              this.actions$.pipe(switchMap(() => this.service.load()))
             );
-          }
-        `);
+          `,
+        });
 
-        const result =
-          NgRxErrorHandlingValidationPatterns.validateAllErrorHandlingPatterns(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(result.violations.some(v => v.includes('catchError'))).toBe(
-          true
-        );
-        expect(result.suggestions.some(s => s.includes('catchError'))).toBe(
-          true
-        );
+        expect(result.violations).toEqual([
+          M.MISSING_CATCH_ERROR_VIOLATION(NAME),
+        ]);
+        expect(result.suggestions).toEqual([M.MISSING_CATCH_ERROR_SUGGESTION]);
       });
 
       it('should validate observable return in catchError', () => {
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        const isEffectsFileSpy = jest.spyOn(
-          NgRxErrorHandlingConfiguration,
-          'isEffectsFile'
-        );
+        const result = validate({
+          [EFFECTS]: HANDLED.replace(
+            'of(loadFailure({ error }))',
+            'console.error(error)'
+          ),
+        });
 
-        findFilesSpy.mockReturnValue([
-          '/test/project/src/state/user.effects.ts',
+        expect(result.violations).toEqual([
+          M.MISSING_OBSERVABLE_RETURN_VIOLATION(NAME),
         ]);
-        basenameSpy.mockReturnValue('user.effects.ts');
-        isEffectsFileSpy.mockReturnValue(true);
-        readFileSpy.mockReturnValue(`
-          @Injectable()
-          export class UserEffects {
-            loadUsers$ = createEffect(() =>
-              this.actions$.pipe(
-                ofType(loadUsers),
-                switchMap(() => this.userService.getUsers().pipe(
-                  catchError(error => console.error(error))
-                ))
-              )
-            );
-          }
-        `);
-
-        const result =
-          NgRxErrorHandlingValidationPatterns.validateAllErrorHandlingPatterns(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(result.violations.some(v => v.includes('observable'))).toBe(
-          true
-        );
+        expect(result.suggestions).toEqual([
+          M.MISSING_OBSERVABLE_RETURN_SUGGESTION,
+        ]);
       });
 
       it('should pass validation for proper catchError with of()', () => {
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        const isEffectsFileSpy = jest.spyOn(
-          NgRxErrorHandlingConfiguration,
-          'isEffectsFile'
-        );
+        const result = validate({ [EFFECTS]: HANDLED });
 
-        findFilesSpy.mockReturnValue([
-          '/test/project/src/state/user.effects.ts',
-        ]);
-        basenameSpy.mockReturnValue('user.effects.ts');
-        isEffectsFileSpy.mockReturnValue(true);
-        readFileSpy.mockReturnValue(`
-          @Injectable()
-          export class UserEffects {
-            loadUsers$ = createEffect(() =>
-              this.actions$.pipe(
-                ofType(loadUsers),
-                switchMap(() => this.userService.getUsers().pipe(
-                  map(users => loadUsersSuccess({ users })),
-                  catchError(error => of(loadUsersFailure({ error })))
-                ))
-              )
-            );
-          }
-        `);
-
-        const result =
-          NgRxErrorHandlingValidationPatterns.validateAllErrorHandlingPatterns(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(
-          result.violations.filter(
-            v => v.includes('catchError') || v.includes('observable')
-          )
-        ).toHaveLength(0);
+        expect(result).toEqual({ violations: [], suggestions: [] });
       });
 
-      it('should suggest retry logic for HTTP operations', () => {
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        const isEffectsFileSpy = jest.spyOn(
-          NgRxErrorHandlingConfiguration,
-          'isEffectsFile'
-        );
+      it('should suggest retry logic and timeout for HTTP operations', () => {
+        const result = validate({ [EFFECTS]: HTTP_EFFECT });
 
-        findFilesSpy.mockReturnValue([
-          '/test/project/src/state/api.effects.ts',
+        expect(result.violations).toEqual([]);
+        expect(result.suggestions).toEqual([
+          M.RETRY_LOGIC_SUGGESTION,
+          M.TIMEOUT_SUGGESTION,
         ]);
-        basenameSpy.mockReturnValue('api.effects.ts');
-        isEffectsFileSpy.mockReturnValue(true);
-        readFileSpy.mockReturnValue(`
-          @Injectable()
-          export class ApiEffects {
-            loadData$ = createEffect(() =>
-              this.actions$.pipe(
-                ofType(loadData),
-                switchMap(() => this.http.get('/api/data').pipe(
-                  catchError(error => of(loadDataFailure({ error })))
-                ))
-              )
-            );
-          }
-        `);
-
-        const result =
-          NgRxErrorHandlingValidationPatterns.validateAllErrorHandlingPatterns(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(result.suggestions.some(s => s.includes('retry'))).toBe(true);
-      });
-
-      it('should suggest timeout for HTTP operations', () => {
-        const findFilesSpy = jest.spyOn(CheckerUtils, 'findFilesByExtension');
-        const readFileSpy = jest.spyOn(FileUtils, 'readFile');
-        const basenameSpy = jest.spyOn(PathOperations, 'getBasename');
-        const isEffectsFileSpy = jest.spyOn(
-          NgRxErrorHandlingConfiguration,
-          'isEffectsFile'
-        );
-
-        findFilesSpy.mockReturnValue([
-          '/test/project/src/state/api.effects.ts',
-        ]);
-        basenameSpy.mockReturnValue('api.effects.ts');
-        isEffectsFileSpy.mockReturnValue(true);
-        readFileSpy.mockReturnValue(`
-          @Injectable()
-          export class ApiEffects {
-            loadData$ = createEffect(() =>
-              this.actions$.pipe(
-                ofType(loadData),
-                switchMap(() => this.http.get('/api/data').pipe(
-                  catchError(error => of(loadDataFailure({ error })))
-                ))
-              )
-            );
-          }
-        `);
-
-        const result =
-          NgRxErrorHandlingValidationPatterns.validateAllErrorHandlingPatterns(
-            '/test/project',
-            mockConfig
-          );
-
-        expect(result.suggestions.some(s => s.includes('timeout'))).toBe(true);
       });
 
       it('should not suggest retry when retry is present', () => {

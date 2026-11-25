@@ -29,6 +29,8 @@ export interface FileComplexity {
   conditionals: number;
   /** Cyclomatic complexity of the worst single function (0 when none). */
   worstFunction: number;
+  /** Each function's complexity and the line it starts on (#43). */
+  functionScores: Array<{ line: number; score: number }>;
 }
 
 /**
@@ -78,14 +80,18 @@ function hasOwnBody(ts: typeof TS, node: TS.Node): boolean {
 function measureFunctions(
   ts: typeof TS,
   source: TS.SourceFile
-): { scores: number[]; conditionals: number } {
+): { scores: number[]; lines: number[]; conditionals: number } {
   const scores: number[] = [];
+  const lines: number[] = [];
   let conditionals = 0;
   // Index into `scores` of the function being read; -1 is module level.
   const visit = (node: TS.Node, owner: number): void => {
     let current = owner;
     if (hasOwnBody(ts, node)) {
       scores.push(1);
+      lines.push(
+        source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1
+      );
       current = scores.length - 1;
     } else if (isDecisionPoint(ts, node)) {
       conditionals++;
@@ -94,7 +100,7 @@ function measureFunctions(
     ts.forEachChild(node, child => visit(child, current));
   };
   visit(source, -1);
-  return { scores, conditionals };
+  return { scores, lines, conditionals };
 }
 
 /**
@@ -125,11 +131,12 @@ export function measureFileComplexity(
   fileName: string
 ): FileComplexity {
   const view = readSource(ts, content, fileName);
-  const { scores, conditionals } = measureFunctions(ts, view.source);
+  const { scores, lines, conditionals } = measureFunctions(ts, view.source);
   return {
     codeLines: countCodeLines(view),
     functions: scores.length,
     conditionals,
     worstFunction: scores.length > 0 ? Math.max(...scores) : 0,
+    functionScores: scores.map((score, i) => ({ line: lines[i] ?? 0, score })),
   };
 }

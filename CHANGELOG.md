@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — NgRx / Signals analyzers: false findings and checks that never fire (#612)
+
+Twelve places in the Signals and NgRx analyzers reported something that is
+not there, or held a check that could never report:
+
+- Angular Signal Adoption: `WritableSignal<T>` is no longer "Signal type used
+  but not imported"; `import { type Signal }` is an import of `Signal`; any
+  Angular from 16 on supports signals (^19, ^20, ~21 were told they were too
+  old by a fixed list of 16, 17, 18).
+- NgRx RxJS Operators Selection Mandate: `@Injectable({ providedIn: 'root' })`
+  is an `@Injectable`; an empty or unreadable effects file is not "Missing
+  error handling".
+- NgRx Feature Store Structure Mandate: `*.spec.ts` / `*.test.ts` in a
+  `+state` folder are neither badly named nor a second reducer; a `+state`
+  directory that cannot be read is skipped; names follow the feature folder
+  in PascalCase (`[User]`, `UserEffects`, `selectUserFeature`,
+  `initialUserState` for a folder `user`; `UserProfile…` for `user-profile`).
+  "Selector should start with select" now fires: a selector is what
+  `createSelector` / `createFeatureSelector` makes, whatever its name.
+- NgRx Reducers Immutability Mandate: `state.loading === true` is a comparison,
+  not a mutation; `(state) => ({ ...state, … })` is an object literal return.
+- NgRx Selectors Memoization Mandate: "Direct store.select usage" now fires on
+  a `store.select` with a string key or an inline projector, once per file. The
+  call is read from the syntax tree: the receiver is the `Store` of
+  `@ngrx/store` as the file types or injects it, or a `store` the file does not
+  declare as another class (a ComponentStore is not judged); a selector
+  argument is not a finding. This is a new finding, and the law passes only
+  without one. Without the `typescript` package, or when a component does not
+  parse, its calls are reported as not read and the law does not pass.
+
+Each false finding has a control in `tests/regression/ngrx-signals-analyzers-612.test.ts`:
+the real defect is still reported.
+
 ### 🐛 Fixed — CI workflow checks read the workflow they found (#642)
 
 The scanners return full paths. Seven checks joined the workflow directory

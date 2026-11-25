@@ -11,7 +11,7 @@ export class NgRxMemoizationComplianceAnalyzer {
   static checkMemoizationCompliance(
     projectRoot: string,
     config: RuleOfCodeConfig
-  ): { violations: string[]; suggestions: string[] } {
+  ): { violations: string[]; suggestions: string[]; notRead?: string[] } {
     return NgRxMemoizationValidationPatterns.validateAllMemoizationPatterns(
       projectRoot,
       config

@@ -25,6 +25,8 @@ const msg = (template: string, ...values: string[]) =>
   C.buildMessage(template, ...values);
 
 const FEATURE = 'user';
+// Names and action sources are PascalCase whatever the folder's case (#612).
+const FEATURE_PREFIX = 'User';
 const STATE = `src/app/${FEATURE}/+state`;
 const ACTIONS = `${STATE}/user.actions.ts`;
 const REDUCER = `${STATE}/user.reducer.ts`;
@@ -65,7 +67,7 @@ describe('utils/angular/ngrx-naming-conventions/ngrx-naming-conventions-validati
           msg(
             M.ACTION_PREFIX_VIOLATION,
             '[Order] Load',
-            FEATURE,
+            FEATURE_PREFIX,
             'user.actions'
           ),
         ]);
@@ -97,14 +99,14 @@ describe('utils/angular/ngrx-naming-conventions/ngrx-naming-conventions-validati
           msg(
             M.ACTION_PREFIX_VIOLATION,
             '[Order] Load',
-            FEATURE,
+            FEATURE_PREFIX,
             'user.actions'
           ),
         ]);
         expect(result.suggestions).toEqual(
           expect.arrayContaining([
             msg(M.ACTION_CREATOR_CASE_SUGGESTION, 'LoadUsers', 'user.actions'),
-            msg(M.EFFECTS_CLASS_SUGGESTION, 'userEffects', 'user.effects'),
+            msg(M.EFFECTS_CLASS_SUGGESTION, 'UserEffects', 'user.effects'),
           ])
         );
       });
@@ -120,12 +122,12 @@ describe('utils/angular/ngrx-naming-conventions/ngrx-naming-conventions-validati
           msg(
             M.ACTION_PREFIX_VIOLATION,
             '[Order] Load',
-            FEATURE,
+            FEATURE_PREFIX,
             'user.actions'
           ),
         ]);
         expect(result.suggestions).toEqual([
-          msg(M.ACTION_PREFIX_SUGGESTION, FEATURE, '[Order] Load'),
+          msg(M.ACTION_PREFIX_SUGGESTION, FEATURE_PREFIX, '[Order] Load'),
         ]);
       });
 
@@ -178,7 +180,7 @@ describe('utils/angular/ngrx-naming-conventions/ngrx-naming-conventions-validati
         const result = validate({
           [REDUCER]: `
             export const initialState = {};
-            export const initialuserState = initialState;
+            export const initialUserState = initialState;
             export const ordersReducer = createReducer(initialState);
           `,
         });
@@ -192,7 +194,7 @@ describe('utils/angular/ngrx-naming-conventions/ngrx-naming-conventions-validati
         const result = validate({
           [REDUCER]: `
             export const initialState = {};
-            export const initialuserState = initialState;
+            export const initialUserState = initialState;
             export const reducer = createReducer(initialState);
           `,
         });
@@ -206,7 +208,7 @@ describe('utils/angular/ngrx-naming-conventions/ngrx-naming-conventions-validati
         });
 
         expect(result.suggestions).toEqual([
-          msg(M.INITIAL_STATE_SUGGESTION, FEATURE, 'user.reducer'),
+          msg(M.INITIAL_STATE_SUGGESTION, FEATURE_PREFIX, 'user.reducer'),
         ]);
       });
 
@@ -216,13 +218,13 @@ describe('utils/angular/ngrx-naming-conventions/ngrx-naming-conventions-validati
             export interface user_State { loading: boolean }
             export interface UserState { loading: boolean }
             export const initialState = {};
-            export const initialuserState = initialState;
+            export const initialUserState = initialState;
           `,
         });
 
         // user_State is neither the expected name nor PascalCase; UserState is PascalCase.
         expect(result.suggestions).toEqual([
-          msg(M.STATE_INTERFACE_SUGGESTION, 'userState', 'user.reducer'),
+          msg(M.STATE_INTERFACE_SUGGESTION, 'UserState', 'user.reducer'),
         ]);
       });
     });
@@ -237,7 +239,7 @@ describe('utils/angular/ngrx-naming-conventions/ngrx-naming-conventions-validati
         expect(result.suggestions).toEqual([
           msg(
             M.FEATURE_SELECTOR_SUGGESTION,
-            'selectuserFeature',
+            'selectUserFeature',
             'user.selectors'
           ),
         ]);
@@ -262,7 +264,7 @@ describe('utils/angular/ngrx-naming-conventions/ngrx-naming-conventions-validati
         });
 
         expect(result.suggestions).toEqual([
-          msg(M.EFFECTS_CLASS_SUGGESTION, 'userEffects', 'user.effects'),
+          msg(M.EFFECTS_CLASS_SUGGESTION, 'UserEffects', 'user.effects'),
         ]);
       });
 

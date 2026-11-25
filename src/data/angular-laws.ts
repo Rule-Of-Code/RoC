@@ -490,7 +490,8 @@ export const ANGULAR_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Scans *.selector(s).ts and *.component.ts by name; the direct-state-access regex is line-shaped and misses multiline selectors; comment/string-blind.',
-      'A direct store.select is read from the syntax tree of *.component.ts: the receiver must be typed or injected as the `Store` of @ngrx/store in that file, or be named `store` and not declared there as another class; `store.pipe(select(…))` and a receiver reached through another object are not judged. Without the typescript package the files are reported as not read.',
+      'A direct store.select is read from the syntax tree of *.component.ts: the receiver must be typed or injected as the `Store` of @ngrx/store in that file, or be named `store` in a file that imports from @ngrx/store and not declared there as another class; `store.pipe(select(…))` and a receiver reached through another object are not judged. Without the typescript package the files are reported as not read.',
+      'The name `store` is judged by the import alone: in a file that imports from @ngrx/store, a `store` typed `any` or held from an untyped call (`(store: any) => store.select(…)`) is taken for the Store; without that import, a `store` inherited from a base class is not judged. `this.store!.select(…)`, `(this.store).select(…)` and a template-literal key are not seen.',
       "Other real issues are DOUBLE-counted (two analyzers push identical violations); 'proper import' is a bare `@ngrx/store` substring.",
       'Not gated — runs on any project.',
     ],

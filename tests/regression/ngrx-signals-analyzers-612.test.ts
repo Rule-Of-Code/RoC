@@ -302,23 +302,28 @@ describe('#612 point 10: "Direct store.select usage" fires on a select that bypa
   const NGRX = "import { Store } from '@ngrx/store';";
 
   it.each([
-    "this.users$ = this.store.select('users');",
-    'this.users$ = this.store.select("users");',
-    'this.users$ = this.store.select(state => state.users);',
-    'this.users$ = this.store.select((state: AppState) => state.users);',
-    'this.users$ = this.store.select<User[]>(s => s.users);',
-    'this.users$ = this.store.select(function (s) { return s.users; });',
-    'this.users$ = this.store.select((s => s.users) as Projector);',
+    `${NGRX} this.users$ = this.store.select('users');`,
+    `${NGRX} this.users$ = this.store.select("users");`,
+    `${NGRX} this.users$ = this.store.select(state => state.users);`,
+    `${NGRX} this.users$ = this.store.select((state: AppState) => state.users);`,
+    `${NGRX} this.users$ = this.store.select<User[]>(s => s.users);`,
+    `${NGRX} this.users$ = this.store.select(function (s) { return s.users; });`,
+    `${NGRX} this.users$ = this.store.select((s => s.users) as Projector);`,
     `${NGRX} class C { private readonly state$ = inject(Store); u = this.state$.select('users'); }`,
     `${NGRX} class C { constructor(private ngrx: Store<AppState>) { this.ngrx.select('users'); } }`,
     `${NGRX} class C { #store = inject(Store); u = this.#store.select('users'); }`,
+    "import { Store as NgRxStore } from '@ngrx/store'; class C { state = inject(NgRxStore); u = this.state.select('users'); }",
+    "import * as fromStore from '@ngrx/store'; class C { constructor(private store: fromStore.Store<AppState>) { this.store.select('users'); } }",
+    "import type { Store } from '@ngrx/store'; class C { constructor(private store: Store) { this.store.select('users'); } }",
+    `${NGRX} class C extends Base { u = this.store.select('users'); }`,
   ])('%s is reported', line => {
     expect(component(`${line}\n`).violations).toEqual([DIRECT]);
   });
 
   it('two calls in one file are one finding', () => {
     expect(
-      component("this.store.select('a');\nthis.store.select('b');\n").violations
+      component(`${NGRX}\nthis.store.select('a');\nthis.store.select('b');\n`)
+        .violations
     ).toEqual([DIRECT]);
   });
 
@@ -338,6 +343,11 @@ describe('#612 point 10: "Direct store.select usage" fires on a select that bypa
     'class C { private store = inject(UsersStore); u = this.store.select(s => s.users); }',
     'class C { constructor(private store: UsersStore) { this.store.select(s => s.users); } }',
     "import { Store } from '@ngxs/store'; class C { store = inject(Store); u = this.store.select('users'); }",
+    // Without an import from @ngrx/store the name `store` says nothing (QA, PR #622).
+    "const store = d3.select('#x'); store.select('g');",
+    "const store = createStore(reducer); store.select('g');",
+    "const pick = (store: any) => store.select('g');",
+    "class C extends Base { u = this.store.select('users'); }",
   ])('control: %s is not reported', line => {
     expect(component(`${line}\n`).violations).toEqual([]);
   });
@@ -345,7 +355,7 @@ describe('#612 point 10: "Direct store.select usage" fires on a select that bypa
   it('the law reports it once, not once per analyzer', () => {
     const root = project({
       'package.json': manifest({ '@ngrx/store': '^20.0.0' }),
-      'src/app/user/user.component.ts': "this.store.select('users');\n",
+      'src/app/user/user.component.ts': `${NGRX}\nthis.store.select('users');\n`,
     });
     const result = NgRxSelectorsMemoizationMandateLaw.check({
       projectRoot: root,

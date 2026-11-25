@@ -31,10 +31,13 @@ type DirectSelectReading = 'direct' | 'none' | 'not-parsed';
  * selector all looked direct, and `store.select<User[]>(…)` did not.
  *
  * The receiver is a Store when the file types or injects it as the `Store` of
- * `@ngrx/store`, or when it is named `store` and the file does not declare it
- * as something else (it may come from a base class). A ComponentStore or a
- * signal store held in `store` is declared as its own class, and an inline
- * projector is how a ComponentStore is read, so it is not judged.
+ * `@ngrx/store`, or when it is named `store`, the file imports from
+ * `@ngrx/store` and does not declare it as something else (it may come from a
+ * base class). Without that import the name says nothing: `d3.select(…)` or a
+ * Redux `createStore()` held in `store` has a `.select` of its own. A
+ * ComponentStore or a signal store held in `store` is declared as its own
+ * class, and an inline projector is how a ComponentStore is read, so it is not
+ * judged.
  */
 export class NgRxDirectStoreSelect {
   /**
@@ -137,10 +140,13 @@ export class NgRxDirectStoreSelect {
     ts: TypeScriptModule,
     source: TsxSource
   ): (name: string | undefined) => boolean {
+    const fromStorePackage = source
+      .imports()
+      .filter(declaration => declaration.module === STORE_PACKAGE);
+    // The name `store` counts only in a file that imports from @ngrx/store.
+    const byName = fromStorePackage.length > 0;
     const storeClasses = new Set(
-      source
-        .imports()
-        .filter(declaration => declaration.module === STORE_PACKAGE)
+      fromStorePackage
         .flatMap(declaration => declaration.named)
         .filter(({ imported }) => imported === 'Store')
         .map(({ local }) => local)
@@ -154,7 +160,8 @@ export class NgRxDirectStoreSelect {
     });
     return name =>
       name !== undefined &&
-      (stores.has(name) || (name === STORE_NAME && !others.has(name)));
+      (stores.has(name) ||
+        (byName && name === STORE_NAME && !others.has(name)));
   }
 
   /** The class a parameter, property or variable is typed as or injected with. */

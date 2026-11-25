@@ -84,7 +84,7 @@ export class TypeScriptStrictLaw {
       [
         'Enable strict mode in tsconfig.json',
         'Configure all strict compiler options',
-        'Set target to ES2020 or higher',
+        'Set a target newer than ES5',
       ]
     );
     return withNotRead(result, notRead);
@@ -219,7 +219,7 @@ export class TypeScriptStrictLaw {
     const target =
       typeof targetValue === 'string' ? targetValue.toLowerCase() : undefined;
     if (!target || target === 'es5' || target === 'es3') {
-      violations.push('TypeScript target must be ES2020 or higher');
+      violations.push('TypeScript target must be set, and newer than ES5');
     }
   }
 

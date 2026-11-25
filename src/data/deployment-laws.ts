@@ -66,8 +66,7 @@ export const DEPLOYMENT_LAWS: EnhancedConstitutionalLaw[] = [
         'Same in CI — the RoC audit, ruff/mypy, pytest coverage, and pip-audit/bandit.',
     },
     detectionLimits: [
-      'Reads the FIRST matching CI file only and regex-matches keywords — a second workflow (test.yml, security.yml, codeql.yml) is never read, and the bare word "lint"/"sonar" anywhere (even a comment) passes.',
-      'Recognises a fixed filename list; a repo whose only workflow is deploy.yml / release.yml is reported as having no pipeline.',
+      'Reads every CI configuration it finds (every file in .github/workflows, and pathMappings.cicdConfig) and regex-matches keywords — the bare word "lint"/"sonar" anywhere (even a comment) passes.',
       'Quality-gate keywords are Node-leaning (eslint, typescript.check); a Python `pytest --cov` in CI is not matched. Config, not behaviour.',
     ],
     emoji: '⚖️',

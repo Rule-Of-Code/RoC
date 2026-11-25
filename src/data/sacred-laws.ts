@@ -92,12 +92,12 @@ export const SACRED_LAWS: EnhancedConstitutionalLaw[] = [
       'TypeScript without strict is JavaScript with extra syntax. The guarantees people assume they are getting — no implicit any, checked indexes, no unused code — exist only when strict and its family are on. Half-strict is a promise the compiler does not keep.',
     satisfiedBy: {
       typescript:
-        'In tsconfig.json set strict:true plus noImplicitReturns, noUnusedLocals, noUnusedParameters, exactOptionalPropertyTypes, noImplicitOverride and noUncheckedIndexedAccess, a target of ES2020 or later, and a modern moduleResolution (node, node16, nodenext or bundler). noPropertyAccessFromIndexSignature and source maps are not required.',
+        'In tsconfig.json set strict:true plus noImplicitReturns, noUnusedLocals, noUnusedParameters, exactOptionalPropertyTypes, noImplicitOverride and noUncheckedIndexedAccess, a target set and newer than ES5, and a modern moduleResolution (node, node16, nodenext or bundler). noPropertyAccessFromIndexSignature and source maps are not required.',
     },
     detectionLimits: [
       'Reads compiler flags from the root tsconfig.json and its "extends" chain. Every project tsconfig.json lists in "references" is judged too, as `tsc -b` builds it: followed recursively through their own "references" (a directory reference through its tsconfig.json), each file judged once, so a cycle ends at the file seen before (#640). A solution-style root (files: [] with references, no compiler options of its own or inherited) is followed, not judged. A finding about a referenced project starts with its file; a config for tests (named tsconfig.spec/test/tests/e2e.json, or whose own include lists only test globs) is judged with the same flags and marked "(test config)". A reference that is missing or does not parse is in notRead. Not followed: an include inherited through extends (only the own include marks a test config), and a tsconfig no reference reaches (a package tsconfig.json the root does not reference is not read).',
       'It reads the config, not the code: per-file // @ts-nocheck or @ts-ignore suppressions are invisible, and it never compiles.',
-      "moduleResolution is required to be exactly 'node' — the valid 'bundler', 'node16' and 'nodenext' are flagged.",
+      "moduleResolution must be one of 'bundler', 'node16', 'nodenext' or 'node'; the target is rejected only when it is missing, ES3 or ES5.",
       'TypeScript only — a project without a tsconfig.json is out of scope for this law.',
     ],
     stack: 'typescript',
@@ -170,7 +170,7 @@ export const SACRED_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Dependency-key and filename presence only — no content is inspected and nothing is run.',
-      'It demands the exact legacy filenames .eslintrc.js and .prettierrc; flat config (eslint.config.js), .eslintrc.json, .prettierrc.json and the package.json "prettier" key are read as missing.',
+      'Any ESLint config file (flat or legacy) or package.json eslintConfig counts, and any of ten Prettier config file names; the package.json "prettier" key is not read.',
       'TS/JS only — a Python project trips the missing-package.json and missing-tooling checks.',
     ],
     stack: 'typescript',

@@ -235,6 +235,7 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
       'Literal-token, single-line match on .ts/.tsx/.js/.jsx/.mjs — aliasing defeats it: `const h = location.hostname; if (h === "demo")` is not flagged.',
       'Matches four comparison operators and six string methods; switch(location.hostname), location.host, location.href.includes(...) and gating inside templates are invisible.',
       'No comment stripping, so a comparison in a comment is flagged. Framework-neutral; a project with no such comparison passes.',
+      'A Vue single-file component (.vue) is read by its <script> and <script setup> blocks, at its own lines; its <template> and <style> are not read by this law (#607).',
     ],
     emoji: '🚧',
     description:

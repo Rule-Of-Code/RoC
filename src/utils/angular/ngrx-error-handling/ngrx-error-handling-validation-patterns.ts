@@ -55,6 +55,10 @@ export class NgRxErrorHandlingValidationPatterns {
       const content = FileUtils.readFile(file, {
         encoding: ANGULAR_CONSTANTS.ENCODING_UTF8,
       });
+      // readFile falls back to '' for a file it cannot read, so the catch
+      // below never saw one: an unreadable or empty file was judged as an
+      // effect without catchError (#612). Neither holds an effect to judge.
+      if (!content.trim()) return;
       const fileName = PathOperations.getBasename(file);
       const patterns: typeof this.errorAnalysis =
         this.config.analyzeErrorHandlingPatterns(content);

@@ -1,6 +1,10 @@
 import { glob } from 'glob';
 import type { RuleOfCodeConfig } from '../../config/types';
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import { CheckerUtils } from '../../utils/checker-utils';
 import { NxWorkspace } from '../../utils/nx-workspace';
 import { ProjectTypeDetectorValidation } from '../../utils/config/project-type-detector/project-type-detector-validation';
@@ -68,6 +72,8 @@ export class InternationalizationCompliancePolicyLaw {
   static async check(context: LawCheckContext): Promise<LawResult> {
     const violations: string[] = [];
     const suggestions: string[] = [];
+    // The places behind the hardcoded-text lines (#43).
+    const violationDetails: ViolationDetail[] = [];
     let score = 100;
     const { projectRoot } = context;
 
@@ -104,6 +110,16 @@ export class InternationalizationCompliancePolicyLaw {
     const hardcodedText = this.analyzeHardcodedText(projectRoot, context);
     if (hardcodedText.hasHardcodedText) {
       violations.push('Hardcoded text found in templates');
+      if (hardcodedText.firstFile) {
+        violationDetails.push({
+          file: PathOperations.getRelative(
+            projectRoot,
+            hardcodedText.firstFile
+          ),
+          message:
+            'hardcoded text in this template (the first one found: the check stops at the first)',
+        });
+      }
       suggestions.push('Extract hardcoded text to i18n translation keys');
       score -= PENALTY.hardcodedTemplateText;
     }
@@ -115,6 +131,13 @@ export class InternationalizationCompliancePolicyLaw {
       const shown = jsx.hardcoded.slice(0, 3).join('; ');
       violations.push(
         `Hardcoded text found in JSX: ${jsx.hardcoded.length} text(s), e.g. ${shown}${jsx.hardcoded.length > 3 ? '; …' : ''}`
+      );
+      violationDetails.push(
+        ...jsx.sites.map(site => ({
+          file: site.file,
+          line: site.line,
+          message: `hardcoded JSX text "${site.text}"`,
+        }))
       );
       suggestions.push(
         'Move user-facing JSX text into message files and render it through t(...)'
@@ -147,6 +170,7 @@ export class InternationalizationCompliancePolicyLaw {
       details: [...violations, ...suggestions],
       violations,
       suggestions,
+      ...(violationDetails.length > 0 ? { violationDetails } : {}),
       score: Math.max(0, score),
       fixable: true,
       config: context.config,
@@ -318,14 +342,15 @@ export class InternationalizationCompliancePolicyLaw {
   ): {
     hasHardcodedText: boolean;
     hardcodedTextCount: number;
+    firstFile: string | null;
   } {
     // Check for hardcoded text in Angular templates
-    let hasHardcodedText = false;
+    let firstFile: string | null = null;
 
     // Search for HTML template files
     const srcDir = PathOperations.join(projectRoot, 'src');
     if (FileUtils.exists(srcDir)) {
-      hasHardcodedText = this.scanDirectoryForHardcodedText(
+      firstFile = this.scanDirectoryForHardcodedText(
         srcDir,
         context ?? {
           projectRoot,
@@ -334,7 +359,12 @@ export class InternationalizationCompliancePolicyLaw {
       );
     }
 
-    return { hasHardcodedText, hardcodedTextCount: hasHardcodedText ? 1 : 0 };
+    const hasHardcodedText = firstFile !== null;
+    return {
+      hasHardcodedText,
+      hardcodedTextCount: hasHardcodedText ? 1 : 0,
+      firstFile,
+    };
   }
 
   private static analyzeI18nDirectiveUsage(
@@ -459,10 +489,11 @@ export class InternationalizationCompliancePolicyLaw {
     );
   }
 
+  /** The first template with hardcoded text, or null; the scan stops there. */
   private static scanDirectoryForHardcodedText(
     dirPath: string,
     context: LawCheckContext
-  ): boolean {
+  ): string | null {
     try {
       const htmlFiles = CheckerUtils.findFilesByExtension(
         dirPath,
@@ -474,7 +505,7 @@ export class InternationalizationCompliancePolicyLaw {
         try {
           const content = FileUtils.readFile(filePath, { encoding: 'utf8' });
           if (this.hasHardcodedTextInTemplate(content)) {
-            return true;
+            return filePath;
           }
         } catch (_error) {
           // Skip files that can't be read
@@ -484,7 +515,7 @@ export class InternationalizationCompliancePolicyLaw {
       // Skip directories that can't be read
     }
 
-    return false;
+    return null;
   }
 
   private static scanDirectoryForI18nDirectives(

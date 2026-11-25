@@ -103,7 +103,7 @@ describe('MdFooterFooterConsistencyLaw', () => {
   });
 
   describe('footer consistency analysis', () => {
-    it('should detect inconsistent footer formats', () => {
+    it('two different footers pass: the bar is more than five distinct patterns (a documented limit)', () => {
       FileUtils.writeFile(
         PathOperations.join(tempDir, 'README.md'),
         `# README
@@ -127,8 +127,32 @@ Apache License
 `
       );
       const result = MdFooterFooterConsistencyLaw.check(mockContext);
-      // Should detect inconsistency
-      expect(result).toBeDefined();
+      // The law counts distinct footer patterns and allows up to five; its
+      // card says so. Two different footers are not a finding.
+      expect(result.violations).toEqual([]);
+      expect(result.passed).toBe(true);
+    });
+
+    it('six different footers fail with the inconsistency finding', () => {
+      const footers = [
+        ['MIT', '2020', 'Alpha'],
+        ['Apache-2.0', '2021', 'Beta'],
+        ['GPL-3.0', '2022', 'Gamma'],
+        ['BSD-3-Clause', '2023', 'Delta'],
+        ['ISC', '2024', 'Epsilon'],
+        ['MPL-2.0', '2025', 'Zeta'],
+      ];
+      footers.forEach(([license, year, owner], i) => {
+        FileUtils.writeFile(
+          PathOperations.join(tempDir, `doc${i}.md`),
+          `# Doc ${i}\n\nContent here.\n\n---\n© ${year} ${owner} Corp\nLicense: ${license}\nContact: docs@example.invalid\n`
+        );
+      });
+      const result = MdFooterFooterConsistencyLaw.check(mockContext);
+      expect(result.violations).toEqual([
+        'Inconsistent footer formats across Markdown files',
+      ]);
+      expect(result.passed).toBe(false);
     });
 
     it('should pass with consistent footer formats', () => {

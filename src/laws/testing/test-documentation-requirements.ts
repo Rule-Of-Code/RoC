@@ -35,7 +35,25 @@ export class TestDocumentationRequirementsLaw {
         context.projectRoot,
         context.config
       );
-      if (testFiles.length > 0 && !loadTypeScript(context.projectRoot)) {
+      // No test file: there is no test documentation to judge. A README that
+      // mentions tests used to clear the one check left and read as
+      // "Excellent" (#646).
+      if (testFiles.length === 0) {
+        const nothing = TestFileDiscovery.nothingToJudge(
+          'Test Documentation Requirements'
+        );
+        return markJudgedNothing({
+          ...this.buildFinalResult(context, {
+            violations: [nothing],
+            suggestions: [],
+            score: 0,
+            testDocsAnalysis: { hasTestDocumentation: false },
+            testFileDocsAnalysis: { poorlyDocumentedFiles: [] },
+          }),
+          message: nothing,
+        });
+      }
+      if (!loadTypeScript(context.projectRoot)) {
         return markJudgedNothing(
           this.buildFinalResult(context, {
             violations: [

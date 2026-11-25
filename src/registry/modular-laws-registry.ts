@@ -244,8 +244,8 @@ export class ModularLawsRegistry {
       // reason) — e.g. a no-Firestore app skipping DB-query optimization, or an
       // SVG-only UI skipping raster image optimization. Such laws are excluded
       // from the audit instead of counted as failing.
-      // An AMBIGUOUS key is never honoured. `legacyId` is not unique — 25 values
-      // are shared by 51 laws — so `notApplicable: { "20": "…" }` used to silence
+      // An AMBIGUOUS key is never honoured here. `legacyId` is not unique — 21 values
+      // are shared by 43 laws — so `notApplicable: { "20": "…" }` used to silence
       // TWO laws while the team believed it had silenced one. A hidden waiver,
       // produced by us, in the tool whose whole purpose is to make waivers
       // visible (a downstream consumer). Config Integrity Guard reports such a key as a

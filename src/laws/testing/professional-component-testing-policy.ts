@@ -3,6 +3,11 @@ import { PathOperations } from '../../utils/path-operations';
 import { UnitTestProfessionalComponentTestingAnalyzerService } from './unit-test-professional-component-testing/services/component-testing-analyzer.service';
 import { ReactComponentTestingAnalyzer } from './unit-test-professional-component-testing/services/react-component-testing';
 
+/** The deductions Professional Component Testing Policy judges with. */
+type ComponentThresholds = ReturnType<
+  (typeof ProfessionalComponentTestingPolicyLaw)['thresholdsOf']
+>;
+
 /**
  * Professional Component Testing Policy Law
  *
@@ -25,29 +30,7 @@ export class ProfessionalComponentTestingPolicyLaw {
       const { projectRoot, config } = context;
 
       // Get thresholds from config with defaults
-      const thresholds = {
-        missingSpecFileDeduction:
-          config.thresholds?.testing?.componentTesting
-            ?.missingSpecFileDeduction ?? 5,
-        maxMissingSpecDeduction:
-          config.thresholds?.testing?.componentTesting
-            ?.maxMissingSpecDeduction ?? 50,
-        lowQualityTestDeduction:
-          config.thresholds?.testing?.componentTesting
-            ?.lowQualityTestDeduction ?? 3,
-        maxLowQualityDeduction:
-          config.thresholds?.testing?.componentTesting
-            ?.maxLowQualityDeduction ?? 30,
-        missingPatternsDeduction:
-          config.thresholds?.testing?.componentTesting
-            ?.missingPatternsDeduction ?? 25,
-        missingMockingDeduction:
-          config.thresholds?.testing?.componentTesting
-            ?.missingMockingDeduction ?? 20,
-        missingTestBedDeduction:
-          config.thresholds?.testing?.componentTesting
-            ?.missingTestBedDeduction ?? 10,
-      };
+      const thresholds = this.thresholdsOf(config);
 
       // 1. Analyze component test coverage
       const componentAnalysis =
@@ -72,30 +55,14 @@ export class ProfessionalComponentTestingPolicyLaw {
       // Angular-only checks below (patterns, mocking, TestBed) judge the
       // Angular specs only; a React test is judged by its role queries.
       const react = ReactComponentTestingAnalyzer.analyze(context);
-      if (react.missingTestFiles.length > 0) {
-        violations.push(
-          `${react.missingTestFiles.length} React components missing a co-located .test.tsx / .spec.tsx (e.g. ${this.firstFew(context, react.missingTestFiles)})`
-        );
-        suggestions.push(
-          'Add X.test.tsx next to X.tsx (or __tests__/X.test.tsx)'
-        );
-        score -= Math.min(
-          thresholds.maxMissingSpecDeduction,
-          react.missingTestFiles.length * thresholds.missingSpecFileDeduction
-        );
-      }
-      if (react.lowQualityTests.length > 0) {
-        violations.push(
-          `${react.lowQualityTests.length} React component tests do not query by role and assert, in at least two tests (e.g. ${this.firstFew(context, react.lowQualityTests)})`
-        );
-        suggestions.push(
-          "Query the rendered component by role (screen.getByRole('button', { name: … })) and assert on what the user sees"
-        );
-        score -= Math.min(
-          thresholds.maxLowQualityDeduction,
-          react.lowQualityTests.length * thresholds.lowQualityTestDeduction
-        );
-      }
+      score = this.reactFindings(
+        context,
+        react,
+        thresholds,
+        violations,
+        suggestions,
+        score
+      );
       const judgedNothing =
         componentAnalysis.totalComponents === 0 &&
         react.components.length === 0;
@@ -125,46 +92,14 @@ export class ProfessionalComponentTestingPolicyLaw {
         );
       }
 
-      // 3. Analyze component testing patterns
-      const testPatterns =
-        UnitTestProfessionalComponentTestingAnalyzerService.analyzeComponentTestPatterns(
-          componentAnalysis.testFiles
-        );
-
-      if (!testPatterns.hasProperPatterns) {
-        violations.push('Component tests missing essential testing patterns');
-        suggestions.push(
-          'Add input/output testing, lifecycle testing, and user interaction testing'
-        );
-        score -= thresholds.missingPatternsDeduction;
-      }
-
-      // 4. Analyze mocking and isolation
-      const mockingAnalysis =
-        UnitTestProfessionalComponentTestingAnalyzerService.analyzeMockingPatterns(
-          componentAnalysis.testFiles
-        );
-
-      if (!mockingAnalysis.hasProperMocking) {
-        violations.push('Component tests missing proper mocking and isolation');
-        suggestions.push(
-          'Use TestBed, spies, and mocks for proper component isolation'
-        );
-        score -= thresholds.missingMockingDeduction;
-      }
-
-      // 5. Analyze TestBed usage
-      const testBedAnalysis =
-        UnitTestProfessionalComponentTestingAnalyzerService.analyzeTestBedUsage(
-          componentAnalysis.testFiles
-        );
-
-      if (!testBedAnalysis.hasProperTestBedUsage) {
-        suggestions.push(
-          'Improve TestBed configuration for more robust component testing'
-        );
-        score -= thresholds.missingTestBedDeduction;
-      }
+      // 3-5. Testing patterns, mocking and isolation, TestBed usage
+      score = this.practiceFindings(
+        componentAnalysis.testFiles,
+        thresholds,
+        violations,
+        suggestions,
+        score
+      );
 
       // Fail on violations, not on score: the missing-TestBed deduction lowered
       // score without a violation, so a spec passing every listed check but with
@@ -204,6 +139,124 @@ export class ProfessionalComponentTestingPolicyLaw {
         config: context.config,
       };
     }
+  }
+
+  /** The deductions and their caps, with their defaults. */
+  private static thresholdsOf(config: LawCheckContext['config']) {
+    return {
+      missingSpecFileDeduction:
+        config.thresholds?.testing?.componentTesting
+          ?.missingSpecFileDeduction ?? 5,
+      maxMissingSpecDeduction:
+        config.thresholds?.testing?.componentTesting?.maxMissingSpecDeduction ??
+        50,
+      lowQualityTestDeduction:
+        config.thresholds?.testing?.componentTesting?.lowQualityTestDeduction ??
+        3,
+      maxLowQualityDeduction:
+        config.thresholds?.testing?.componentTesting?.maxLowQualityDeduction ??
+        30,
+      missingPatternsDeduction:
+        config.thresholds?.testing?.componentTesting
+          ?.missingPatternsDeduction ?? 25,
+      missingMockingDeduction:
+        config.thresholds?.testing?.componentTesting?.missingMockingDeduction ??
+        20,
+      missingTestBedDeduction:
+        config.thresholds?.testing?.componentTesting?.missingTestBedDeduction ??
+        10,
+    };
+  }
+
+  /** React components without a co-located test, and tests that do not query by role. */
+  private static reactFindings(
+    context: LawCheckContext,
+    react: ReturnType<typeof ReactComponentTestingAnalyzer.analyze>,
+    thresholds: ComponentThresholds,
+    violations: string[],
+    suggestions: string[],
+    score: number
+  ): number {
+    let remaining = score;
+    if (react.missingTestFiles.length > 0) {
+      violations.push(
+        `${react.missingTestFiles.length} React components missing a co-located .test.tsx / .spec.tsx (e.g. ${this.firstFew(context, react.missingTestFiles)})`
+      );
+      suggestions.push(
+        'Add X.test.tsx next to X.tsx (or __tests__/X.test.tsx)'
+      );
+      remaining -= Math.min(
+        thresholds.maxMissingSpecDeduction,
+        react.missingTestFiles.length * thresholds.missingSpecFileDeduction
+      );
+    }
+    if (react.lowQualityTests.length > 0) {
+      violations.push(
+        `${react.lowQualityTests.length} React component tests do not query by role and assert, in at least two tests (e.g. ${this.firstFew(context, react.lowQualityTests)})`
+      );
+      suggestions.push(
+        "Query the rendered component by role (screen.getByRole('button', { name: … })) and assert on what the user sees"
+      );
+      remaining -= Math.min(
+        thresholds.maxLowQualityDeduction,
+        react.lowQualityTests.length * thresholds.lowQualityTestDeduction
+      );
+    }
+    return remaining;
+  }
+
+  /** The Angular specs' patterns, mocking and TestBed; returns the score left. */
+  private static practiceFindings(
+    testFiles: ReturnType<
+      typeof UnitTestProfessionalComponentTestingAnalyzerService.analyzeComponentTestCoverage
+    >['testFiles'],
+    thresholds: ComponentThresholds,
+    violations: string[],
+    suggestions: string[],
+    score: number
+  ): number {
+    let remaining = score;
+    // 3. Analyze component testing patterns
+    const testPatterns =
+      UnitTestProfessionalComponentTestingAnalyzerService.analyzeComponentTestPatterns(
+        testFiles
+      );
+
+    if (!testPatterns.hasProperPatterns) {
+      violations.push('Component tests missing essential testing patterns');
+      suggestions.push(
+        'Add input/output testing, lifecycle testing, and user interaction testing'
+      );
+      remaining -= thresholds.missingPatternsDeduction;
+    }
+
+    // 4. Analyze mocking and isolation
+    const mockingAnalysis =
+      UnitTestProfessionalComponentTestingAnalyzerService.analyzeMockingPatterns(
+        testFiles
+      );
+
+    if (!mockingAnalysis.hasProperMocking) {
+      violations.push('Component tests missing proper mocking and isolation');
+      suggestions.push(
+        'Use TestBed, spies, and mocks for proper component isolation'
+      );
+      remaining -= thresholds.missingMockingDeduction;
+    }
+
+    // 5. Analyze TestBed usage
+    const testBedAnalysis =
+      UnitTestProfessionalComponentTestingAnalyzerService.analyzeTestBedUsage(
+        testFiles
+      );
+
+    if (!testBedAnalysis.hasProperTestBedUsage) {
+      suggestions.push(
+        'Improve TestBed configuration for more robust component testing'
+      );
+      remaining -= thresholds.missingTestBedDeduction;
+    }
+    return remaining;
   }
 
   /** Up to three files, relative, for a message. */

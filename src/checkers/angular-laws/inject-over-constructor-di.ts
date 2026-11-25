@@ -7,7 +7,11 @@
  */
 
 import type * as TS from 'typescript';
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import { FileUtils } from '../../utils/file-utils';
 import {
   internalArray,
@@ -23,6 +27,7 @@ export class InjectOverConstructorDiLaw extends AngularLawBase {
   static check(context: LawCheckContext): LawResult {
     const { projectRoot } = context;
     const violations: string[] = [];
+    const details: ViolationDetail[] = [];
 
     const files = FileUtils.getAllTypeScriptFiles(
       projectRoot,
@@ -50,21 +55,31 @@ export class InjectOverConstructorDiLaw extends AngularLawBase {
     for (const file of files) {
       const content = FileUtils.readFileContentSync(file);
       if (!content) continue;
-      const count = this.injectedConstructors(projectRoot, file, content);
-      if (count === null) {
+      const lines = this.injectedConstructors(projectRoot, file, content);
+      if (lines === null) {
         violations.push(
           `${PathOperations.getRelative(projectRoot, file)}: could not be parsed — its constructors were NOT read`
         );
         continue;
       }
+      const count = lines.length;
       if (count > 0) {
+        const rel = PathOperations.getRelative(projectRoot, file);
         violations.push(
-          `${PathOperations.getRelative(projectRoot, file)}: ${count} constructor(s) using parameter-property DI — inject() in a field initializer instead.`
+          `${rel}: ${count} constructor(s) using parameter-property DI — inject() in a field initializer instead.`
+        );
+        // Each constructor behind the count, at its line (#43).
+        details.push(
+          ...lines.map(line => ({
+            file: rel,
+            line,
+            message: 'constructor with parameter-property DI',
+          }))
         );
       }
     }
 
-    return this.createResult(
+    const result = this.createResult(
       violations,
       'Inject Over Constructor DI',
       'ANGULAR_LAW',
@@ -74,6 +89,8 @@ export class InjectOverConstructorDiLaw extends AngularLawBase {
       ],
       context
     );
+    if (details.length > 0) result.violationDetails = details;
+    return result;
   }
 
   /** Classes Angular's injector constructs — the only constructors that are DI. */
@@ -91,12 +108,13 @@ export class InjectOverConstructorDiLaw extends AngularLawBase {
    * not constructed by the injector, and its `constructor(readonly seed = {})`
    * is not DI. Counted per file, that was a false finding the moment Angular
    * 20 files without a suffix were read (#330). Null when no parser loads.
+   * Each one is returned as the line it starts on; their number is the count.
    */
   private static injectedConstructors(
     projectRoot: string,
     file: string,
     content: string
-  ): number | null {
+  ): number[] | null {
     const ts = loadTypeScript(projectRoot);
     if (!ts) return null;
     const source = TsxSource.parse(ts, file, content);
@@ -116,7 +134,7 @@ export class InjectOverConstructorDiLaw extends AngularLawBase {
       ts.SyntaxKind.ProtectedKeyword,
       ts.SyntaxKind.ReadonlyKeyword,
     ]);
-    let count = 0;
+    const lines: number[] = [];
     source.walk(node => {
       if (!ts.isClassDeclaration(node)) return;
       if (
@@ -132,10 +150,10 @@ export class InjectOverConstructorDiLaw extends AngularLawBase {
             (p.modifiers ?? []).some(m => PARAMETER_PROPERTY.has(m.kind))
           )
         ) {
-          count++;
+          lines.push(source.lineOf(member));
         }
       }
     });
-    return count;
+    return lines;
   }
 }

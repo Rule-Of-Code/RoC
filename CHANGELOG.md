@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Launch Readiness Checklist finds its checklist by the whole name (#635)
+
+The checklist was matched by the end of a file name anywhere, so
+`OLD_LAUNCH_CHECKLIST.md` or `NOT_A_DEPLOYMENT_CHECKLIST.md` satisfied the
+law. A file now counts when its path from the project root is one of the
+names, or ends in `/` and the name (`packages/app/LAUNCH_CHECKLIST.md`
+still counts). The quality shown in the message is read from the file
+that matched, not from the same name at the root. `LAUNCH_READINESS.md`
+and `docs/LAUNCH_READINESS.md`, which the card names, are accepted.
+Stricter: a project that passed only on a similar name fails.
+
 ### ✨ Added — Version-control laws name what they counted (#43, version control)
 
 Three version-control laws said how many and never which: "1 of the last 3

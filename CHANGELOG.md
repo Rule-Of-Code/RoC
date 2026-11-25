@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Internal — a Vue single-file component reader (#607, P1)
+
+`src/utils/vue/vue-sfc.ts` splits a `.vue` file into a script view (the
+contents of `<script>` and `<script setup>`) and a template view (the
+top-level `<template>`). Each view keeps the file's length and line breaks
+and blanks the rest, so an offset or a line found in a view is the same in
+the `.vue` file; `scriptFileName` tells a parser how to read the script
+(`lang="ts"`, `tsx`, `jsx` or none). Only top-level blocks count: a nested
+`<template #slot>` is markup, and a block inside an HTML comment is not a
+block. No law reads it yet; the laws start to in the next packages.
+
 ### 🐛 Fixed — a law that does not read .vue files says so (#607, P0)
 
 The laws read `.ts` / `.tsx` / `.js` / `.jsx` through the shared scanners; a

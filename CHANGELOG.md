@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — An environment variable can set a camelCase config key; an unknown one is a warning (#619)
+
+An environment variable became a config path by removing the prefix,
+lower-casing the rest and splitting it on `_`, so a camelCase key could never
+be set: `ROC_LAWS_PARETOMODE=false` became `laws.paretomode`, a key nothing
+reads, and nothing said so. The path is now matched against the config's
+settings without regard to case, segment by segment, and takes the schema's
+spelling (`laws.paretoMode`, `performance.maxConcurrent`,
+`thresholds.git.maxCommitsPerBranch`); an entry of a free-form map
+(`ROC_LAWS_SEVERITY_<LAW>`) is set as before. A `ROC_` / `RULEOFCODE_`
+variable that matches no setting is still set as before, and now prints
+`Environment variable <NAME> matches no config key (set as <path>)` on
+stderr; the variables RuleOfCode's own test suite reads (`ROC_CLI`,
+`ROC_RECORD_GOLDEN`) are not settings and are left alone. The settings are
+listed in `src/config/config-key-paths.ts`; a regression test fails when that
+list no longer equals `RuleOfCodeConfig`.
+
 ### 🐛 Fixed — NX Commands Only Policy reads the Markdown under docs/ (#614)
 
 The law looks for direct `ng` commands in the documentation, but it listed

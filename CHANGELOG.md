@@ -18,6 +18,65 @@ starts to read `.vue` by asking the shared scanner for `.vue` and reading
 through these; the `notRead` note of #607 P0 then leaves it out. No law asks
 for `.vue` yet, so no result changes.
 
+### Internal — a Vue single-file component reader (#607, P1)
+
+`src/utils/vue/vue-sfc.ts` splits a `.vue` file into a script view (the
+contents of `<script>` and `<script setup>`) and a template view (the
+top-level `<template>`). Each view keeps the file's length and line breaks
+and blanks the rest, so an offset or a line found in a view is the same in
+the `.vue` file; `scriptFileName` tells a parser how to read the script
+(`lang="ts"`, `tsx`, `jsx` or none). Only top-level blocks count: a nested
+`<template #slot>` is markup, and a block inside an HTML comment is not a
+block. No law reads it yet; the laws start to in the next packages.
+
+### 🐛 Fixed — a law that does not read .vue files says so (#607, P0)
+
+The laws read `.ts` / `.tsx` / `.js` / `.jsx` through the shared scanners; a
+`.vue` single-file component — where most of a Vue project's code is — was
+not read, and a law that found nothing wrong in the rest passed in silence.
+Now every law that scans for script files and leaves `.vue` out, in a project
+that has `.vue` files, reports them in `notRead`:
+`.vue single-file components were not read: N file(s) (…) — this law reads
+.ts/.js only so far (#607)`. When the `.vue` files are all the script there
+is, the law judged nothing.
+
+The note comes from the scans themselves: the audit runs each law in its own
+scope (Node's AsyncLocalStorage, so laws run in parallel are told apart), and
+the shared directory scanner records a scan with script extensions and no
+`.vue`. A law that asks for `.vue` as well is taken to read it. Scans that do
+not go through the shared scanner (a law's own glob) are not seen.
+
+**Stricter: Vue projects may lose `passed` until a law reads `.vue`.** The
+laws learn to read `.vue` in the next packages of #607.
+
+### ✨ Added — Code-quality laws name what they counted (#43, code quality)
+
+Eight code-quality laws said how many and not where: "2 occurrence(s)",
+"Magic numbers in src/x.ts: 42, 3.14 (+4 more)", "worst function 14". Each
+law already held what it counted. It now puts it in `violationDetails`, which
+the console prints under the violation and `--export json` carries in full:
+
+- **No Double Cast**: each `as unknown as`, at its line.
+- **No Explicit Any / Non-Null Assertion**: each weak type (`<any>`,
+  `: Function`, `: Object`) and each non-null `!`, at its line.
+- **Absolute Zero Tolerance Doctrine**: each console statement, TODO/FIXME
+  tag, hand-written `any`, `eslint-disable` comment and empty catch block, at
+  its line; for strict mode off, the tsconfig.json it read.
+- **Error Handling Completeness**: each dropped promise and each unguarded
+  event handler, at its line; a file with HTTP calls and no try/catch.
+- **Centralized Logging**: each direct `console.*` call and each `print()`,
+  at its line.
+- **Web Storage Encapsulation**: each localStorage/sessionStorage call, at
+  its line.
+- **Magic Number Prevention**: every literal, at its line (the violation line
+  shows five).
+- **Code Complexity Control**: each function over the complexity limit, at
+  its line, with its complexity; the measure behind a file-length, function-
+  count or file-complexity finding.
+
+The violation lines, verdicts and scores are unchanged. Nothing new is
+searched for.
+
 ### 🐛 Fixed — Config values written into a git hook are quoted (#624)
 
 A commit pattern, a commit type or an emoji from the config is written into the
@@ -371,6 +430,36 @@ with `jasmine-core`, `@jest/core` or ava got "No test framework detected".
 They are accepted now, from a list the law keeps for itself (no other law
 is selected by it). Fewer violations only; the card names the list.
 
+### 🐛 Fixed — TypeScript Strict Mode and Zero Tolerance Doctrine judge the projects tsconfig.json references (#640)
+
+Both laws judged the root `tsconfig.json` alone; `references` was read
+nowhere.
+
+- **A solution-style root** — `files: []` with no `include` or with
+  `include: []`, whatever it extends (the shape Vite templates and Nx
+  workspaces use) — compiles nothing, so every strict flag was reported
+  "must be true" / "not enabled" while the strict referenced projects were
+  never read. It is followed now, not judged. This removes findings.
+- **Every referenced project is judged**, also under a root with options of
+  its own, as `tsc -b` builds it: through nested `references` (a directory
+  reference through its `tsconfig.json`), each file once, so a cycle ends at
+  the file seen before. A strict root no longer passes when a project it
+  references is not strict. **Stricter: new failed results are possible**
+  on projects whose referenced configs loosen strict flags.
+- **A flag is reported once, on the file that set it.** In a build with
+  references, a finding names the file of the `extends` chain where the
+  flag has its value — or, when no file sets it, the file the chain ends
+  at: one missing flag in an Nx `tsconfig.base.json` is one finding, not one
+  per project that extends it (90 → 3 on a generated Nx workspace). A
+  tsconfig.json judged alone reads as before.
+- **A config for tests** — named `tsconfig.spec.json` / `.test.json` /
+  `.tests.json` / `.e2e.json`, whose own `include` lists only test globs, or
+  in an end-to-end project directory (`e2e`, `cypress`, `playwright`,
+  `<app>-e2e`) — is judged with the same flags. Its own weaker value is its
+  own finding, marked `(test config)`; a weak value it inherits is the
+  base's one finding.
+- A reference that is missing or does not parse is in `notRead`.
+
 ### 📝 Changed — law texts the code had moved past (#625)
 
 Texts only; no verdict, score or severity changes.
@@ -384,7 +473,7 @@ Texts only; no verdict, score or severity changes.
 - Commit Size Control: the window is the default; `maxCommits` and
   `baseline` change it.
 - Zero Tolerance Doctrine and TypeScript Strict Mode: `extends` is followed
-  (`references` are not, #640); TypeScript Strict accepts `bundler`,
+  (`references` too, see #640 above); TypeScript Strict accepts `bundler`,
   `node16`, `nodenext` and `node`, and rejects a target only when it is
   missing, ES3 or ES5. Its violation and suggestion said "ES2020 or
   higher"; they now say what is rejected.

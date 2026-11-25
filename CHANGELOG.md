@@ -7,6 +7,170 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — An environment variable can set a camelCase config key; an unknown one is a warning (#619)
+
+An environment variable became a config path by removing the prefix,
+lower-casing the rest and splitting it on `_`, so a camelCase key could never
+be set: `ROC_LAWS_PARETOMODE=false` became `laws.paretomode`, a key nothing
+reads, and nothing said so. The path is now matched against the config's
+settings without regard to case, segment by segment, and takes the schema's
+spelling (`laws.paretoMode`, `performance.maxConcurrent`,
+`thresholds.git.maxCommitsPerBranch`); an entry of a free-form map
+(`ROC_LAWS_SEVERITY_<LAW>`) is set as before. A `ROC_` / `RULEOFCODE_`
+variable that matches no setting is still set as before, and now prints
+`Environment variable <NAME> matches no config key (set as <path>)` on
+stderr; the variables RuleOfCode's own test suite reads (`ROC_CLI`,
+`ROC_RECORD_GOLDEN`) are not settings and are left alone. The settings are
+listed in `src/config/config-key-paths.ts`; a regression test fails when that
+list no longer equals `RuleOfCodeConfig`.
+
+### 🐛 Fixed — NX Commands Only Policy reads the Markdown under docs/ (#614)
+
+The law looks for direct `ng` commands in the documentation, but it listed
+`docs/` by the `ts` / `js` / `json` extensions and then kept only the paths
+ending in `.md`, so nothing under `docs/` was ever read: only the root
+`README.md` was. `docs/` is now listed by `.md` and `.mdx`, so
+`Run ng serve` in `docs/setup.md` is reported. The project root is no longer
+walked as a third "documentation" location (it found nothing before; fixed,
+it would have read every Markdown file in the repository and `README.md`
+twice). The card's detection limit now says what is read.
+
+### 🐛 Fixed — Jest 100% Coverage Mandate reads only a coverage report it can use (#605)
+
+The law read `coverage/coverage-summary.json` whenever the file existed. A
+report left from an earlier run decided the verdict after the code had
+changed, and a file that did not parse passed in silence, as if no report
+were there. It now reads the report through the reader Test Coverage
+Constitutional Standard uses (#599), with the same rules:
+
+- A report older than the code (a judged source file changed after it was
+  written), one that names none of the source files, or one that is not a
+  coverage report is not read. Why is said in `notRead`, and the law does
+  not pass on it.
+- `thresholds.testing.coverageReportPath` is honoured, and `coverage/lcov.info`
+  is read when there is no `coverage-summary.json`. An lcov report is
+  measured on lines, the metric the reader takes from it.
+- A usable coverage-summary.json is measured as before, on the `total` of
+  every metric, as Jest's `coverageThreshold.global` judges it. No report at
+  all is unchanged too: the configured thresholds alone decide.
+- The card's detection limits say these rules. They no longer say that a
+  threshold below 100 satisfies the law (every threshold is checked) or name
+  a "source files lack unit tests" check, which the law does not have.
+
+### 🐛 Fixed — NgRx / Signals analyzers: false findings and checks that never fire (#612)
+
+Twelve places in the Signals and NgRx analyzers reported something that is
+not there, or held a check that could never report:
+
+- Angular Signal Adoption: `WritableSignal<T>` is no longer "Signal type used
+  but not imported"; `import { type Signal }` is an import of `Signal`; any
+  Angular from 16 on supports signals (^19, ^20, ~21 were told they were too
+  old by a fixed list of 16, 17, 18).
+- NgRx RxJS Operators Selection Mandate: `@Injectable({ providedIn: 'root' })`
+  is an `@Injectable`; an empty or unreadable effects file is not "Missing
+  error handling".
+- NgRx Feature Store Structure Mandate: `*.spec.ts` / `*.test.ts` in a
+  `+state` folder are neither badly named nor a second reducer; a `+state`
+  directory that cannot be read is skipped; names follow the feature folder
+  in PascalCase (`[User]`, `UserEffects`, `selectUserFeature`,
+  `initialUserState` for a folder `user`; `UserProfile…` for `user-profile`).
+  "Selector should start with select" now fires: a selector is what
+  `createSelector` / `createFeatureSelector` makes, whatever its name.
+- NgRx Reducers Immutability Mandate: `state.loading === true` is a comparison,
+  not a mutation; `(state) => ({ ...state, … })` is an object literal return.
+- NgRx Selectors Memoization Mandate: "Direct store.select usage" now fires on
+  a `store.select` with a string key or an inline projector, once per file. The
+  call is read from the syntax tree: the receiver is the `Store` of
+  `@ngrx/store` as the file types or injects it, or a `store` the file does not
+  declare as another class (a ComponentStore is not judged); a selector
+  argument is not a finding. This is a new finding, and the law passes only
+  without one. Without the `typescript` package, or when a component does not
+  parse, its calls are reported as not read and the law does not pass.
+
+Each false finding has a control in `tests/regression/ngrx-signals-analyzers-612.test.ts`:
+the real defect is still reported.
+
+### 🐛 Fixed — CI workflow checks read the workflow they found (#642)
+
+The scanners return full paths. Seven checks joined the workflow directory
+in front of such a path again, so the read failed in silence and a project
+with the workflow got the suggestion meant for a project without one:
+Commit Size Control ("Add PR size validation…"), Merge Conflict Prevention
+("Add merge conflict detection…"), Release Tag Standards ("Create GitHub
+Actions workflow for automated releases"), Continuous Compliance Doctrine
+("Add scheduled compliance checks…"), the GitHub security features check
+("Add GitHub Actions workflow for security scanning", "Include npm audit…"),
+secret scanning ("Implement secret scanning…") and the CI scan of
+Dependency Security Scanning. Each now reads the path the scanner gave.
+
+The security-workflow check also tested the name on the full path, so a
+project whose folder path held `security` or `audit` counted every workflow
+as a security workflow. It tests the file's name now; such a project gets
+the suggestion it was missing.
+
+Only suggestions change; no verdict or score does. The internal score the
+security features check takes off does not reach a law.
+
+### 🐛 Fixed — Test Documentation Requirements judges nothing without a test file (#646)
+
+A project with no JS/TS test file under `src`, `apps`, `libs`, `test`,
+`tests` or `e2e` was reported as "Excellent test documentation practices"
+when a README mentioned tests: there was nothing left to judge but that
+README. The law now says it judged nothing (`judgedNothing`, the note the
+other test laws give) and does not pass. A project with test files is
+judged as before. Stricter: such a project changes from passed to judged
+nothing; the law's default severity is `info`.
+
+### 🐛 Fixed — E2E Testing Standards judges a Nuxt project (#644)
+
+The law runs for applications, and it knew `vue` but not `nuxt`. A Nuxt
+project that declares `nuxt` alone (no `src/main.ts`, no other listed
+dependency) passed with "E2E Testing Standards satisfied" without being
+judged. `nuxt` now marks an application. Stricter: a Nuxt project without
+an E2E runner, config or spec gains the violation.
+
+### 🐛 Fixed — Automation First recognises vitest, Playwright, Karma, @jest/core and ava (#643)
+
+The law knew five test framework names (jest, mocha, jasmine, cypress,
+playwright), so a project testing with vitest, `@playwright/test`, Karma
+with `jasmine-core`, `@jest/core` or ava got "No test framework detected".
+They are accepted now, from a list the law keeps for itself (no other law
+is selected by it). Fewer violations only; the card names the list.
+
+### 📝 Changed — law texts the code had moved past (#625)
+
+Texts only; no verdict, score or severity changes.
+
+- `legacyId` as a config key: Config Integrity Guard's remediation and the
+  README said every public spelling resolves, while its suggestion said
+  never to use one. They now say the same: canonical name, printed slug or
+  law id; a `legacyId` only where a single law carries it, and it never
+  turns on an opt-in law. The stale counts ("25 legacyIds shared by 51
+  laws"; 21 and 43 today) are replaced by words that do not go stale.
+- Commit Size Control: the window is the default; `maxCommits` and
+  `baseline` change it.
+- Zero Tolerance Doctrine and TypeScript Strict Mode: `extends` is followed
+  (`references` are not, #640); TypeScript Strict accepts `bundler`,
+  `node16`, `nodenext` and `node`, and rejects a target only when it is
+  missing, ES3 or ES5. Its violation and suggestion said "ES2020 or
+  higher"; they now say what is rejected.
+- Professional Excellence Mandate: any ESLint config and ten Prettier file
+  names count; only the package.json `prettier` key is not read.
+- CI/CD Constitutional Tribunal: every CI file is read, not the first one.
+- Dependency Security Scanning: the licence check needs `node_modules` and
+  stops after the first 20 dependencies it can read.
+
+### 🐛 Fixed — Launch Readiness Checklist finds its checklist by the whole name (#635)
+
+The checklist was matched by the end of a file name anywhere, so
+`OLD_LAUNCH_CHECKLIST.md` or `NOT_A_DEPLOYMENT_CHECKLIST.md` satisfied the
+law. A file now counts when its path from the project root is one of the
+names, or ends in `/` and the name (`packages/app/LAUNCH_CHECKLIST.md`
+still counts). The quality shown in the message is read from the file
+that matched, not from the same name at the root. `LAUNCH_READINESS.md`
+and `docs/LAUNCH_READINESS.md`, which the card names, are accepted.
+Stricter: a project that passed only on a similar name fails.
+
 ### ✨ Added — Version-control laws name what they counted (#43, version control)
 
 Three version-control laws said how many and never which: "1 of the last 3
@@ -52,6 +216,16 @@ already held the files and TODOs it counted. It now puts them in
 
 File paths are relative to the audited project. The violation lines,
 verdicts and scores are unchanged, and nothing new is searched for.
+
+### 🐛 Fixed — Merge Conflict Prevention does not read a failed git grep as "no markers" (#637)
+
+The law looks for conflict markers with `git grep`, and every failure of it
+read as "no conflict markers": a broken index, a `.git` that is not a
+repository, git missing from the PATH. Exit 1 is still "no markers". Any
+other failure now goes to `notRead` ("conflict markers were NOT read: git
+grep did not answer (…)", with git's first line) and the law does not pass.
+Stricter: a project whose `git grep` fails changes from passed to not
+passed.
 
 ### ✨ Changed — Test Coverage Constitutional Standard judges by real line coverage (#599)
 
@@ -1913,6 +2087,7 @@ other code. This repository declares its demo captures and recorded goldens
 as generated, and CONTRIBUTING states the atomic-commit policy.
 
 Self-audit of this repository: Commit Size Control — before 2 findings (4 of the last 10 commits oversized; no atomic-commit policy), after 1 (2 of the last 10: two hand-written commits of 534 and 597 lines, tests included; they leave the window as new commits land).
+
 ### ⚠️ BREAKING — laws about a running product run only where there is one; MD Footer Template is opt-in
 
 Five laws had no `requires` and judged every TypeScript project; a CLI tool or
@@ -1983,6 +2158,7 @@ When no Markdown file is left to read — none in the project, or
 repository's config no longer enables it.
 
 Self-audit of this repository: MD Footer Template — before 1 finding ("No markdown files found in project"), after not selected (opt-in, not enabled).
+
 ### Fixed — a checklist clause defers to an owning law the audit would not select (#428)
 
 Pre-Deployment Checklist consults the law that owns each runtime concern.
@@ -1992,6 +2168,7 @@ and the clause was reported. An owning law the audit would not select now
 answers "satisfied", like a written `notApplicable`.
 
 Self-audit of this repository: no change — the four owning laws are selected here, so they still run (measured).
+
 ### Fixed — Async Cache Single-Flight reads a check as a one-key get / has (#437)
 
 The selection pattern matched `constants.set(` as `s.set(` (no left boundary
@@ -2000,6 +2177,7 @@ as its only argument (the Map signature), so a file-backed API such as
 `Cache.get(root, key, mode)` is not judged as an in-memory map.
 
 Self-audit of this repository: Async Cache Single-Flight — before 1 finding (`src/core/auditing/audit-engine.ts`, a file-backed `AuditCache.get(…)` / `.set(…)`), after pass: 3 files read, 0 async check-then-store sites.
+
 ### Fixed — the audit run from git hooks and CI counts as running it (#434)
 
 Constitutional Supremacy, Continuous Compliance and Pull Request Workflow
@@ -2014,6 +2192,7 @@ titles do not count.
 | Constitutional Supremacy Doctrine | 1 finding (no enforcement script) | pass (.husky/pre-commit, .husky/pre-push run the audit) |
 | Continuous Compliance Doctrine | 1 finding (no enforcement tool) | pass |
 | Pull Request Workflow Standards | 1 finding (missing precommit, prepush) | pass |
+
 ### Fixed — Pre-PR Quality Gates: GitHub and GitLab keep branch protection server-side (#435)
 
 A github.com or gitlab.com remote is now a server-side protection host, as
@@ -2022,6 +2201,7 @@ verified). The message is built from the violations; it printed "Missing "
 with an empty list when branch protection was the only one.
 
 Self-audit of this repository: Pre-PR Quality Gates — before 1 finding ("Missing branch protection configuration", message "Missing "), after pass (github.com remote).
+
 ### Changed — Strategic Document Updates: a CHANGELOG and an issue tracker are a status record
 
 The status clause is met by a PROJECT_STATUS / STATUS / ROADMAP file, or by
@@ -2030,6 +2210,7 @@ URL in pyproject.toml, GitHub or GitLab issue templates). A project with
 neither is asked, as before.
 
 Self-audit of this repository: Strategic Document Updates — before 1 finding ("Missing PROJECT_STATUS.md file"), after pass (CHANGELOG.md + `bugs` in package.json + .github/ISSUE_TEMPLATE).
+
 ### Changed — Constitutional Compliance Headers: a repository-level license is enough
 
 A LICENSE file at the root together with the `license` field in package.json
@@ -2037,6 +2218,7 @@ states the terms for every file; the law passes and says so. Without both,
 the per-file headers, template and automation are judged as before.
 
 Self-audit of this repository: Constitutional Compliance Headers — before 4 findings, after pass (LICENSE + package.json license MIT).
+
 ### Fixed — Pre-Deployment Checklist reads the dependency scan from the command
 
 The security-scan clause read only script names (`audit`, `security`,
@@ -2044,6 +2226,7 @@ The security-scan clause read only script names (`audit`, `security`,
 yarn / pnpm audit, pip-audit, safety check, snyk test).
 
 Self-audit of this repository: Pre-Deployment Checklist — before 4 findings, after 3 ("Security vulnerability scanning not configured" is gone: `security-audit` runs `npm audit`, and so does the CI step).
+
 ### 🐛 Fixed — an Angular CLI project was told to add webpack limits it cannot write (#449)
 
 Once the budget suggestion read angular.json correctly (#449), the two

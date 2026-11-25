@@ -344,7 +344,7 @@ export const VERSION_CONTROL_LAWS: EnhancedConstitutionalLaw[] = [
         'Document an atomic-commit policy in CONTRIBUTING/WORKFLOW; keep individual commits small and single-purpose.',
     },
     detectionLimits: [
-      'It reads at most the last 10 commits from the past week, so an oversized commit older than that is invisible.',
+      'By default it reads at most the last 10 commits from the past week (thresholds.git.commitSize.maxCommits sets the count); with thresholds.git.commitSize.baseline it reads every commit of baseline..HEAD, without the one-week limit. An oversized commit outside that window is invisible.',
       "Size is measured from git's own --numstat (files changed, insertions + deletions); a commit is oversized if it breaks either limit. Generated files do not count, neither their lines nor the files: the lockfiles (package-lock.json, yarn.lock, poetry.lock, go.sum …), asciinema .cast recordings, and what thresholds.git.commitSize.generatedFiles adds. Test files count like any other code; a vendored file that is not declared counts too.",
       'The limits are configurable (thresholds.git.maxFilesPerCommit, default 10; maxLinesPerCommit, default 500), and the law also requires an atomic-commit policy doc.',
     ],

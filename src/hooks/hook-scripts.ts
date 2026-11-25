@@ -5,6 +5,7 @@
  */
 import type { RuleOfCodeConfig } from '../config/types';
 import { GitHookPatterns } from '../utils/git-hook-patterns';
+import { shellComment, shellPrint, shellQuote } from './shell-quote';
 
 /**
  * The lint-staged call of the pre-commit hook. lint-staged saves a backup
@@ -135,16 +136,22 @@ echo "✅ Full constitutional compliance verified - proceeding with push"
 `;
 }
 
-/** A custom hook: its commands, announced. */
+/**
+ * A custom hook: its commands, announced. The commands are shell code and are
+ * written as they are; the hook's name is a value and is quoted (#624).
+ */
 export function customHookScript(hookName: string, commands: string[]): string {
-  return `# RuleOfCode Custom Hook: ${hookName} (husky v9+ native)
-echo "🔧 Running custom hook: ${hookName}"
+  return `# RuleOfCode Custom Hook: ${shellComment(hookName)} (husky v9+ native)
+${shellPrint(`🔧 Running custom hook: ${hookName}`)}
 
 ${commands.join('\n')}
 
-echo "✅ Custom hook ${hookName} completed"
+${shellPrint(`✅ Custom hook ${hookName} completed`)}
 `;
 }
+
+/** The subject limit when the config sets none. */
+const DEFAULT_SUBJECT_LENGTH = 72;
 
 /** The commit message settings a commit-msg hook is generated from. */
 interface CommitMsgSettings {
@@ -196,7 +203,7 @@ function commitMsgPatterns(commitConfig: CommitMsgSettings): string[] {
     commitConfig.emojiTypes.length > 0
   ) {
     const emojis = commitConfig.emojiTypes
-      .map((e: string) => e.replace(/[.*+?^${}()|[\]\\]/g, '\\\\$&'))
+      .map((e: string) => e.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
       .join('|');
     patterns.push(`^(${emojis})\\s+.+$`);
   }
@@ -221,6 +228,39 @@ function commitMsgPatterns(commitConfig: CommitMsgSettings): string[] {
   return patterns;
 }
 
+/** The subject limit the config sets; a value that is not a number is the default. */
+function subjectLimitOf(config: RuleOfCodeConfig): number {
+  const configured =
+    config.thresholds?.git?.maxCommitMessageLength ?? DEFAULT_SUBJECT_LENGTH;
+  const written = String(configured).trim();
+  const limit = written === '' ? NaN : Number(written);
+  return Number.isFinite(limit) ? Math.trunc(limit) : DEFAULT_SUBJECT_LENGTH;
+}
+
+/** The check of one pattern. `-e` only where grep would read it as an option. */
+function patternCheck(pattern: string, index: number): string {
+  const option = pattern.startsWith('-') ? '-e ' : '';
+  const shown = pattern.substring(0, GitHookPatterns.PATTERN_COMMENT_LENGTH);
+  return `
+# Pattern ${index + 1}: ${shellComment(shown)}...
+if printf '%s\\n' "$COMMIT_MSG" | grep -qE ${option}${shellQuote(pattern)}; then
+    VALID=true
+fi`;
+}
+
+/** The lines that name the commit types and emojis of the config. */
+function allowedValuesLines(commitConfig: CommitMsgSettings): string {
+  const types =
+    commitConfig.conventionalTypes?.join(', ') ||
+    'feat, fix, docs, style, refactor, test, chore, perf, ci, build, revert';
+  const typesLine = shellPrint(`Types: ${types}`);
+  if (!commitConfig.allowEmoji || !commitConfig.emojiTypes) return typesLine;
+  const emojis = `Emojis: ${commitConfig.emojiTypes.slice(0, 10).join(' ')}...`;
+  // The blank line before it is its own echo: `echo "\n…"` printed a line
+  // break under dash and a literal \n under bash (CI on #660).
+  return `${typesLine}\n    echo ""\n    ${shellPrint(emojis)}`;
+}
+
 /** The commit-msg hook: subject patterns, subject length and body wrapping. */
 export function commitMsgScript(
   version: string,
@@ -233,15 +273,7 @@ export function commitMsgScript(
   // The SAME limit Commit Message Standards audits history against, read from
   // the same config key — so the hook and the law agree by construction
   // rather than by both happening to be configured correctly.
-  const maxSubjectLength = config.thresholds?.git?.maxCommitMessageLength ?? 72;
-
-  const typesDisplay =
-    commitConfig.conventionalTypes?.join(', ') ||
-    'feat, fix, docs, style, refactor, test, chore, perf, ci, build, revert';
-  const emojiDisplay =
-    commitConfig.allowEmoji && commitConfig.emojiTypes
-      ? `\\nEmojis: ${commitConfig.emojiTypes.slice(0, 10).join(' ')}...`
-      : '';
+  const maxSubjectLength = subjectLimitOf(config);
 
   return `# RuleOfCode v${version} Commit Message Validation
 # Config-driven validation with ${patterns.length} pattern(s)
@@ -264,15 +296,7 @@ case "$FIRST_LINE" in
 esac
 
 # Check against all configured patterns
-${patterns
-  .map(
-    (pattern, idx) => `
-# Pattern ${idx + 1}: ${pattern.substring(0, GitHookPatterns.PATTERN_COMMENT_LENGTH)}...
-if echo "$COMMIT_MSG" | grep -qE '${pattern.replace(/'/g, "'\\\\''")}'; then
-    VALID=true
-fi`
-  )
-  .join('')}
+${patterns.map(patternCheck).join('')}
 
 if [ "$VALID" = false ]; then
     echo "❌ Invalid commit message format!"
@@ -280,12 +304,7 @@ if [ "$VALID" = false ]; then
     echo "🏛️ RuleOfCode v${version} Constitutional Commit Message Format:"
     echo "   Your message must match one of the configured patterns"
     echo ""
-    echo "Types: ${typesDisplay}"${
-      emojiDisplay
-        ? `
-    echo "${emojiDisplay}"`
-        : ''
-    }
+    ${allowedValuesLines(commitConfig)}
     echo ""
     echo "Examples:"
     echo "   feat(auth): add user authentication"
@@ -293,7 +312,7 @@ if [ "$VALID" = false ]; then
     echo "   docs: update README with installation steps"
     echo ""
     echo "Your commit message:"
-    echo "$COMMIT_MSG"
+    printf '%s\\n' "$COMMIT_MSG"
     echo ""
     exit 1
 fi
@@ -318,7 +337,7 @@ if [ "$EXEMPT" = false ]; then
     if [ "$SUBJECT_LEN" -gt ${maxSubjectLength} ]; then
         echo "❌ Subject is $SUBJECT_LEN characters (max ${maxSubjectLength})."
         echo ""
-        echo "$FIRST_LINE"
+        printf '%s\\n' "$FIRST_LINE"
         echo ""
         echo "Shorten the subject; move the detail into the body."
         exit 1
@@ -334,7 +353,7 @@ if [ "$EXEMPT" = false ]; then
         echo "   Add an empty line between the subject and the description."
         echo ""
         echo "Your commit message:"
-        echo "$COMMIT_MSG"
+        printf '%s\\n' "$COMMIT_MSG"
         exit 1
     fi
     # Wrap body lines at 72 chars; exempt URLs, git trailers ("Word: …") and
@@ -346,7 +365,7 @@ if [ "$EXEMPT" = false ]; then
     LONG_LINES=$(printf '%s\\n' "$COMMIT_MSG" | LC_ALL=C awk 'NR>=3 { s=$0; gsub(/[\\200-\\277]/, "", s); n=length(s); if (n > 72 && $0 ~ /[[:space:]]/ && index($0, "://") == 0 && $0 !~ /^[A-Za-z][A-Za-z0-9_-]*:[[:space:]]/) print "  line " NR " (" n " chars)" }')
     if [ -n "$LONG_LINES" ]; then
         echo "❌ Commit body lines should wrap at 72 characters:"
-        echo "$LONG_LINES"
+        printf '%s\\n' "$LONG_LINES"
         echo ""
         echo "Wrap the description text. URLs and footers are exempt."
         exit 1

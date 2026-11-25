@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Capacitor Sync Artefacts Match Dependencies judges what git publishes (#638)
+
+The header and the card said an untracked artefact is reported as not read,
+not as green. The law wrote it only into the message, and `tracked()`
+answered "not tracked" for every git failure too, so an untracked artefact,
+an ignored one, a project outside git and a broken index all passed with
+"compliance verified" (false PASS). Now:
+
+- a tracked artefact (also one later listed in `.gitignore`) and an
+  untracked one that is not ignored (`git add -A` would publish it) are
+  judged;
+- a git-ignored artefact is not judged and is named in `details`; when every
+  artefact is git-ignored the law judged nothing, which is not a pass;
+- when git does not answer (no git, not a work tree, a broken index) the
+  artefacts are judged from the disk, `details` say "git did not answer,
+  judged from the disk", and the message never says "verified".
+
+**Stricter**: an untracked-not-ignored artefact, a project outside git and a
+broken index can now fail; an all-ignored project no longer passes.
+
 ### 🐛 Fixed — test discovery leaves out node_modules and dist (#639)
 
 The test discovery of API Security Testing Requirements and Comprehensive

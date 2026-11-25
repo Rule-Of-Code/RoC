@@ -305,7 +305,8 @@ export const CAPACITOR_LAWS: EnhancedConstitutionalLaw[] = [
         'After every change to a @capacitor/* dependency run `npx cap sync` and commit the regenerated gradle (and Podfile/Package.swift if you track it) in the same commit.',
     },
     detectionLimits: [
-      'Reads tracked artefacts only (git ls-files); an untracked one cannot drift from a clean checkout and is reported as not read, not as green.',
+      'Judges what git publishes (#638): a tracked artefact (also one later listed in .gitignore) and an untracked one that is not ignored (git add -A would publish it). A git-ignored artefact is not judged and is named in details; when every artefact is git-ignored the law judged nothing (not a pass).',
+      'When git does not answer (no git, not a work tree, a broken index) the artefacts are judged from the disk and the details say "git did not answer, judged from the disk"; the result never says verified then. With a failing git and an artefact that git would ignore, the law can report a finding for a file a clean checkout does not carry.',
       'Needs node_modules to know which dependencies ship an android/ or ios/ directory; without it the law reports that it could not look.',
       'Does not verify that the web assets copy (assets/public) is current; that copy is untracked by convention and belongs to the build.',
     ],

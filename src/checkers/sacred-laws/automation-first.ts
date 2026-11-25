@@ -13,6 +13,27 @@ import { PythonSatisfaction } from '../../utils/python-satisfaction';
 import { PackageJsonUtilities } from './package-json-utilities';
 import { SacredLawUtilities } from './shared-sacred-utilities';
 
+/**
+ * The test runners this law accepts as "a test framework". Its own list, used
+ * by no `requires`: widening a list that selects other laws would select them
+ * in new projects. vitest, @playwright/test, karma, jasmine-core, @jest/core
+ * and ava were missing, so a project testing with them got "No test framework
+ * detected" (#643).
+ */
+export const AUTOMATION_FIRST_TEST_RUNNERS = [
+  'jest',
+  '@jest/core',
+  'mocha',
+  'jasmine',
+  'jasmine-core',
+  'karma',
+  'cypress',
+  'playwright',
+  '@playwright/test',
+  'vitest',
+  'ava',
+] as const;
+
 export class AutomationFirstLaw {
   static check(context: LawCheckContext): LawResult {
     const violations: string[] = [];
@@ -100,14 +121,7 @@ export class AutomationFirstLaw {
         // Check for test frameworks
         const deps =
           ProjectTypeDetectorValidation.getProjectDependencies(projectRoot);
-        const testFrameworks = [
-          'jest',
-          'mocha',
-          'jasmine',
-          'cypress',
-          'playwright',
-        ];
-        const hasTestFramework = testFrameworks.some(
+        const hasTestFramework = AUTOMATION_FIRST_TEST_RUNNERS.some(
           framework => deps[framework]
         );
 

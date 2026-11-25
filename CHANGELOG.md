@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ Added — React guidance of the accessibility laws proved on a React app (#12)
+
+The React guidance of the five accessibility frontend laws (Accessibility
+Linting Enforcement, Modal Dialog Accessibility, Form Control Labeling,
+Explicit Button Type, Disclosure Control ARIA State) is proved by a
+regression test on a React + Vite project: each law reports the project,
+and doing what `satisfiedBy.react` says clears it — `jsxA11y.flatConfigs.recommended`
+over the .tsx sources; a native `<dialog>` opened with `showModal()`, or a
+shared `Modal` with role, aria-modal and a focus trap named in the
+thresholds; `<label htmlFor>`, a wrapping `<label>` or `aria-label`;
+`type` on every `<button>`; `aria-expanded={open}` on a toggle. The cards
+were right as written; no text changes.
+
 ### ✨ Added — Angular laws name what they counted (#43, angular)
 
 Three Angular laws said how many and never which: "OnPush usage: 33.3% (1/3

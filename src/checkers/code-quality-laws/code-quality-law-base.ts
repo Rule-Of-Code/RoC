@@ -12,6 +12,7 @@ import {
   readESLintDataConfig,
   readPackageJsonESLintConfig,
 } from '../../utils/eslint-config-json';
+import { loadESLintJsConfig } from '../../utils/eslint-js-config';
 import { notReadNote } from '../../utils/json-manifest';
 import { ObservableCleanup } from '../../utils/observable-cleanup';
 import { PathOperations } from '../../utils/path-operations';
@@ -209,7 +210,8 @@ export abstract class CodeQualityLawBase {
     const at = (name: string): string => PathOperations.join(projectRoot, name);
     for (const name of this.ESLINT_JS_CONFIGS) {
       if (!FileUtils.exists(at(name))) continue;
-      const config = this.loadESLintJsConfig(at(name));
+      // Loaded as ESLint loads it; one that cannot be loaded is NOT read (#613).
+      const config = loadESLintJsConfig(at(name));
       return config
         ? { file: name, config }
         : {
@@ -245,65 +247,6 @@ export abstract class CodeQualityLawBase {
       'its ESLint config (eslintConfig) was'
     );
     return read ? { file: manifest, ...read } : null;
-  }
-
-  /**
-   * Load an ESLint config from a .js/.mjs file
-   * For .mjs and .js files, try to require them
-   * Note: .mjs files with ESM syntax won't work with require(),
-   * but we'll try to extract rules from file content as fallback
-   */
-  private static loadESLintJsConfig(
-    configPath: string
-  ): Record<string, unknown> | null {
-    try {
-      const config = require(configPath);
-      // Handle flat config (array) vs legacy config (object)
-      if (Array.isArray(config) || Array.isArray(config.default)) {
-        // Flat config format - merge all rules from array
-        const configArray = Array.isArray(config) ? config : config.default;
-        const mergedRules: Record<string, unknown> = {};
-        for (const item of configArray) {
-          if (item && typeof item === 'object' && 'rules' in item) {
-            Object.assign(mergedRules, item.rules);
-          }
-        }
-        return { rules: mergedRules };
-      }
-      return config;
-    } catch {
-      // Fallback: read file content and try to extract rules
-      const content = FileUtils.readFile(configPath);
-      return this.extractRulesFromESLintFile(content);
-    }
-  }
-
-  /**
-   * Extract ESLint rules from file content (fallback for .mjs files)
-   * Looks for common rule patterns in the file text
-   */
-  private static extractRulesFromESLintFile(
-    content: string
-  ): Record<string, unknown> | null {
-    const rules: Record<string, unknown> = {};
-
-    // Match patterns like: 'rule-name': 'error', or 'rule-name': ['error', options]
-    const rulePattern =
-      /['"](@[\w-]+\/)?[\w-]+['"]\s*:\s*['"\[](?:error|warn|off)/g;
-    const matches = content.match(rulePattern);
-
-    if (matches) {
-      for (const match of matches) {
-        // Extract rule name
-        const nameMatch = match.match(/['"](@[\w-]+\/)?[\w-]+['"]/);
-        if (nameMatch) {
-          const ruleName = nameMatch[0].replace(/['"]/g, '');
-          rules[ruleName] = 'detected'; // Mark as present
-        }
-      }
-    }
-
-    return Object.keys(rules).length > 0 ? { rules } : null;
   }
 
   /**

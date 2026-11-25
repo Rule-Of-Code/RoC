@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — the code-quality laws read an eslint.config.mjs as ESLint loads it (#613)
+
+An ESM `eslint.config.mjs` that `require` refused had its rules taken from
+the file's text with a regular expression, which missed a rule with options
+(`'complexity': ['error', 10]`) and an unquoted key (`complexity: 'error'`):
+a rule the project sets read as not set (Dead Code Elimination; the
+information line of Magic Number Prevention and Code Complexity Control).
+The config is now imported by a child Node process, as ESLint would import
+it (a promised default is awaited; nested config arrays are flattened, later
+objects over earlier ones), and its rules carry their real values. A config
+that cannot be loaded — a plugin that is not installed, a syntax error — is
+said not to be read (`notRead`), never guessed from its text.
+
 ### 📝 Changed — law texts the code had moved past (#625)
 
 Texts only; no verdict, score or severity changes.

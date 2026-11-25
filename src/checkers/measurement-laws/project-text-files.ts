@@ -10,6 +10,7 @@
 
 import * as fs from 'fs';
 import { glob } from 'glob';
+import { noteScriptGlob } from '../../utils/vue/vue-read-tracker';
 
 export interface TextFile {
   /** Path relative to the project root, forward slashes. */
@@ -55,6 +56,8 @@ export function readProjectFiles(
       rels.add(rel.replace(/\\/g, '/'));
     }
   }
+  // A glob for script files that leaves .vue out is said, as a shared scan is (#607).
+  noteScriptGlob(patterns, [...rels]);
   return [...rels].sort().flatMap(rel => {
     const content = readSmallText(`${projectRoot}/${rel}`);
     return content === null ? [] : [{ rel, content }];

@@ -13,6 +13,8 @@
  */
 import type * as TS from 'typescript';
 
+import { parseInput } from '../../utils/vue/vue-sfc';
+
 /** One comment: where it is and what it says (with its `//` or `/*`). */
 export interface SourceComment {
   start: number;
@@ -47,9 +49,11 @@ function blank(chars: string[], start: number, end: number): void {
 /** Read a file through the parser. `fileName` decides TS/TSX/JS parsing. */
 export function readSource(
   ts: typeof TS,
-  content: string,
-  fileName: string
+  fileContent: string,
+  file: string
 ): SourceView {
+  // A .vue file is read as its script view, by its lang (#607).
+  const { fileName, text: content } = parseInput(file, fileContent);
   const source = ts.createSourceFile(
     fileName,
     content,

@@ -9,7 +9,11 @@
  * and false positives are unacceptable. ESLint's no-explicit-any covers it.
  */
 
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import { FileUtils } from '../../utils/file-utils';
 import { markJudgedNothing } from '../../utils/judged-nothing';
 import { PathOperations } from '../../utils/path-operations';
@@ -39,6 +43,8 @@ export class NoExplicitAnyNonNullLaw extends CodeQualityLawBase {
   static check(context: LawCheckContext): LawResult {
     const { projectRoot } = context;
     const violations: string[] = [];
+    // Each occurrence behind a file's counts, at its line (#43).
+    const details: ViolationDetail[] = [];
 
     const files = this.findTypeScriptFiles(projectRoot, context);
     // Read from the parse (#424): a word in a string or a comment is not a
@@ -72,6 +78,16 @@ export class NoExplicitAnyNonNullLaw extends CodeQualityLawBase {
         violations.push(
           `Explicit \`any\`/weak type in ${relativePath}: ${anyCount} occurrence(s) — model the real type or validate at the boundary.`
         );
+        for (const pattern of this.ANY_PATTERNS) {
+          details.push(
+            ...this.matchDetails(
+              code,
+              pattern,
+              relativePath,
+              found => `explicit any / weak type \`${found.trim()}\``
+            )
+          );
+        }
       }
 
       const nonNullCount = code.match(this.NON_NULL)?.length ?? 0;
@@ -79,10 +95,18 @@ export class NoExplicitAnyNonNullLaw extends CodeQualityLawBase {
         violations.push(
           `Non-null assertion \`!\` in ${relativePath}: ${nonNullCount} occurrence(s) — narrow the value with a guard instead of asserting.`
         );
+        details.push(
+          ...this.matchDetails(
+            code,
+            this.NON_NULL,
+            relativePath,
+            () => 'non-null assertion `!`'
+          )
+        );
       }
     }
 
-    return this.createResult(
+    const result = this.createResult(
       violations,
       'No Explicit Any / Non-Null Assertion',
       'CODE_QUALITY_LAW',
@@ -93,5 +117,6 @@ export class NoExplicitAnyNonNullLaw extends CodeQualityLawBase {
       ],
       context
     );
+    return this.withDetails(result, details);
   }
 }

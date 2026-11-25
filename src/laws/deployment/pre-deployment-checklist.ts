@@ -2,7 +2,6 @@ import type { RuleOfCodeConfig } from '../../config/types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { ConfigHelper } from '../../utils/config-helper';
 import { lawRequirementsMet } from '../../utils/law-requirements';
-import { owningLawSatisfied } from '../../utils/owning-law';
 import { REQUIRES_PRODUCTION_SUBJECT } from '../../utils/production-subject-requirements';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
 import { BuildValidationChecker } from './pre-deployment/build-validator';
@@ -10,6 +9,12 @@ import { ChecklistDocumentValidator } from './pre-deployment/checklist-validator
 import { PerformanceValidationChecker } from './pre-deployment/performance-validator';
 import { SecurityValidationChecker } from './pre-deployment/security-validator';
 import { DeploymentValidationUtilities } from './shared-deployment-utilities';
+import {
+  monitoringClauses,
+  securityScanClause,
+  serviceClauses,
+  testingClause,
+} from './pre-deployment/checklist-clauses';
 import { PRE_DEPLOYMENT_PENALTY as PENALTY } from './deployment-penalties';
 
 /**
@@ -60,47 +65,24 @@ export class PreDeploymentChecklistLaw {
     const buildValidator = new BuildValidationChecker();
 
     // 3. Check testing setup - be more tolerant with test file detection
-    const testingSetup = buildValidator.checkTestingSetup(projectRoot, context);
-    // Only fail if BOTH test scripts are missing AND no test files found
-    // Having test files OR test scripts is acceptable
-    const hasTestScripts =
-      (testingSetup.configured && testingSetup.testScripts.length > 0) ||
-      PythonSatisfaction.hasTestFramework(projectRoot);
-    const hasTestFiles = testingSetup.testFiles > 0;
-
-    if (!hasTestScripts && !hasTestFiles) {
-      violations.push('Testing setup incomplete or no test files found');
-      suggestions.push('Configure test scripts and create comprehensive tests');
-      score -= PENALTY.testingSetup;
-    } else if (!hasTestScripts) {
-      // Has test files but no scripts - minor violation
-      suggestions.push(
-        'Consider adding test scripts to package.json for better automation'
-      );
-      score -= PENALTY.testScriptsOrFilesOnly;
-    } else if (!hasTestFiles) {
-      // Has scripts but no files - minor violation
-      suggestions.push('Consider adding more test files to improve coverage');
-      score -= PENALTY.testScriptsOrFilesOnly;
-    }
+    score = testingClause(
+      context,
+      buildValidator,
+      violations,
+      suggestions,
+      score
+    );
 
     // 4. Check security scanning. `npm audit` is not the only scanner there is:
     // bandit and pip-audit in the gate are exactly the same evidence.
     const securityValidator = new SecurityValidationChecker();
-    const securityScanning =
-      securityValidator.checkSecurityScanning(projectRoot);
-    const securityScanningConfigured =
-      securityScanning.npmAuditConfigured ||
-      securityScanning.securityScripts.length > 0 ||
-      PythonSatisfaction.hasPythonSast(projectRoot) ||
-      PythonSatisfaction.hasPythonDependencyScanner(projectRoot);
-    if (!securityScanningConfigured) {
-      violations.push('Security vulnerability scanning not configured');
-      suggestions.push(
-        'Configure a dependency and code scanner in the gate (npm audit, or pip-audit + bandit)'
-      );
-      score -= PENALTY.securityScanning;
-    }
+    score = securityScanClause(
+      projectRoot,
+      securityValidator,
+      violations,
+      suggestions,
+      score
+    );
 
     // Authentication, benchmarking, health checks and production logging are
     // properties of something that runs for users: a service, a web surface,
@@ -125,74 +107,25 @@ export class PreDeploymentChecklistLaw {
     // subject, and satisfying them is what it is for.
     // 5. Check authentication setup — @login_required / abort(401) is an auth
     // guard, not merely an Express middleware.
-    const authSetup = securityValidator.checkAuthenticationSetup(
-      projectRoot,
-      context.config
-    );
-    if (
-      runsForUsers &&
-      !authSetup.authConfigured &&
-      !PythonSatisfaction.hasAuthGuards(projectRoot) &&
-      !(await owningLawSatisfied(context, 'Authentication Security'))
-    ) {
-      violations.push('Authentication/authorization setup not detected');
-      suggestions.push('Implement proper authentication and security measures');
-      score -= PENALTY.authentication;
-    }
-
-    // 6. Check performance benchmarking. A service benchmarks with Prometheus /
-    // OpenTelemetry, not with an npm `perf` script.
     const performanceValidator = new PerformanceValidationChecker();
-    const performanceBenchmarking =
-      performanceValidator.checkPerformanceBenchmarking(projectRoot);
-    if (
-      runsForUsers &&
-      !performanceBenchmarking.benchmarkingConfigured &&
-      !PythonSatisfaction.hasBackendPerformanceMonitoring(projectRoot) &&
-      !(await owningLawSatisfied(context, 'Performance Monitoring Standards'))
-    ) {
-      violations.push('Performance benchmarking not configured');
-      suggestions.push(
-        'Configure performance monitoring and benchmarking tools'
-      );
-      score -= PENALTY.performanceBenchmarking;
-    }
+    score = await serviceClauses(
+      context,
+      runsForUsers,
+      { securityValidator, performanceValidator },
+      violations,
+      suggestions,
+      score
+    );
 
     // 7. Check monitoring setup.
-    //
-    // This law never asked PythonSatisfaction — though `hasHealthEndpoint()` and
-    // `hasAuthGuards()` live in the same package — so it told a Flask service
-    // "Health checks not configured" while prod answered GET /api/health with a
-    // 200 (a backend consumer, F3). A route the service actually serves IS a health check.
-    const monitoringSetup = performanceValidator.checkMonitoringSetup(
-      projectRoot,
-      context.config
+    score = await monitoringClauses(
+      context,
+      runsForUsers,
+      performanceValidator,
+      violations,
+      suggestions,
+      score
     );
-    const healthChecksConfigured =
-      monitoringSetup.healthChecksConfigured ||
-      PythonSatisfaction.hasHealthEndpoint(projectRoot);
-    if (
-      runsForUsers &&
-      !healthChecksConfigured &&
-      !(await owningLawSatisfied(context, 'Health Check Monitoring'))
-    ) {
-      violations.push('Health checks not configured');
-      suggestions.push('Implement health check endpoints for monitoring');
-      score -= PENALTY.healthChecks;
-    }
-
-    const loggingConfigured =
-      monitoringSetup.loggingConfigured ||
-      PythonSatisfaction.hasStructuredLogging(projectRoot);
-    if (
-      runsForUsers &&
-      !loggingConfigured &&
-      !(await owningLawSatisfied(context, 'Centralized Logging'))
-    ) {
-      violations.push('Logging not properly configured');
-      suggestions.push('Configure structured logging for production');
-      score -= PENALTY.logging;
-    }
 
     // Calculate final score
     score = Math.max(0, score);

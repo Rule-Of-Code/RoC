@@ -63,7 +63,7 @@ function checkSecurityWorkflows(
     let hasSecurityWorkflow = false;
 
     for (const workflow of workflows.files) {
-      if (isSecurityWorkflow(workflow, workflowsDir)) {
+      if (isSecurityWorkflow(workflow)) {
         hasSecurityWorkflow = true;
         break;
       }
@@ -80,15 +80,20 @@ function checkSecurityWorkflows(
   return 0;
 }
 
-function isSecurityWorkflow(workflow: string, workflowsDir: string): boolean {
-  if (workflow.includes('security') || workflow.includes('audit')) {
+/**
+ * `workflowPath` is the full path the scanner returns: it is read as given,
+ * and only its base name is tested, so a project folder named `security` or
+ * `audit` does not make every workflow a security workflow (#642).
+ */
+function isSecurityWorkflow(workflowPath: string): boolean {
+  const name = PathOperations.getFilename(workflowPath);
+  if (name.includes('security') || name.includes('audit')) {
     return true;
   }
 
   // Check workflow content for security-related actions
-  if (workflow.endsWith('.yml') || workflow.endsWith('.yaml')) {
+  if (name.endsWith('.yml') || name.endsWith('.yaml')) {
     try {
-      const workflowPath = PathOperations.join(workflowsDir, workflow);
       const workflowContent = FileUtils.readFile(workflowPath);
       return (
         workflowContent.includes('npm audit') ||

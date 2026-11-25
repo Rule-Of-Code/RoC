@@ -83,6 +83,16 @@ export class DependencySecurityScanningLaw {
     };
   }
 
+  /** One checker's violations and suggestions, added in that order. */
+  private static collect(
+    result: { violations?: string[]; suggestions?: string[] },
+    violations: string[],
+    suggestions: string[]
+  ): void {
+    if (result.violations) violations.push(...result.violations);
+    if (result.suggestions) suggestions.push(...result.suggestions);
+  }
+
   static async check(context: LawCheckContext): Promise<LawResult> {
     const violations: string[] = [];
     const suggestions: string[] = [];
@@ -97,23 +107,21 @@ export class DependencySecurityScanningLaw {
 
     try {
       // Check for npm audit integration
-      const auditResult = NpmAuditChecker.check(context);
-      if (auditResult.violations) violations.push(...auditResult.violations);
-      if (auditResult.suggestions) suggestions.push(...auditResult.suggestions);
+      this.collect(NpmAuditChecker.check(context), violations, suggestions);
 
       // Check for vulnerable dependencies
-      const vulnerabilityResult = VulnerabilityChecker.check(context);
-      if (vulnerabilityResult.violations)
-        violations.push(...vulnerabilityResult.violations);
-      if (vulnerabilityResult.suggestions)
-        suggestions.push(...vulnerabilityResult.suggestions);
+      this.collect(
+        VulnerabilityChecker.check(context),
+        violations,
+        suggestions
+      );
 
       // Check dependency pinning
-      const pinningResult = DependencyPinningChecker.check(context);
-      if (pinningResult.violations)
-        violations.push(...pinningResult.violations);
-      if (pinningResult.suggestions)
-        suggestions.push(...pinningResult.suggestions);
+      this.collect(
+        DependencyPinningChecker.check(context),
+        violations,
+        suggestions
+      );
 
       // Check license compatibility
       const dependencyLicenseResult =

@@ -190,6 +190,7 @@ export class NgRxNamingConventionsValidationPatterns {
       REGEX_PATTERNS.QUOTED_STRING
     );
 
+    const featurePrefix = this.config.toPascalCase(featureName);
     for (const actionName of actionNames) {
       // Check action prefix
       if (!this.config.hasProperActionPrefix(actionName, featureName)) {
@@ -197,14 +198,14 @@ export class NgRxNamingConventionsValidationPatterns {
           this.config.buildMessage(
             this.config.VALIDATION_MESSAGES.ACTION_PREFIX_VIOLATION,
             actionName,
-            featureName,
+            featurePrefix,
             fileName
           )
         );
         suggestions.push(
           this.config.buildMessage(
             this.config.VALIDATION_MESSAGES.ACTION_PREFIX_SUGGESTION,
-            featureName,
+            featurePrefix,
             actionName
           )
         );
@@ -284,7 +285,7 @@ export class NgRxNamingConventionsValidationPatterns {
       suggestions.push(
         this.config.buildMessage(
           this.config.VALIDATION_MESSAGES.INITIAL_STATE_SUGGESTION,
-          featureName,
+          this.config.toPascalCase(featureName),
           fileName
         )
       );

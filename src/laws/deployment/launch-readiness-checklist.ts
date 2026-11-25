@@ -96,6 +96,9 @@ export class LaunchReadinessChecklistLaw {
       'docs/DEPLOYMENT_CHECKLIST.md',
       'READINESS_CHECKLIST.md',
       'docs/READINESS_CHECKLIST.md',
+      // The card has always promised a LAUNCH_READINESS checklist (#635).
+      'LAUNCH_READINESS.md',
+      'docs/LAUNCH_READINESS.md',
     ];
 
     let hasLaunchChecklist = false;
@@ -108,15 +111,22 @@ export class LaunchReadinessChecklistLaw {
       config
     );
 
+    // A file counts when its path from the project root is the name, or ends
+    // in "/" + the name: `OLD_LAUNCH_CHECKLIST.md` only ends like one, and it
+    // passed the law (#635).
+    const relativePaths = markdownFiles.map(file => ({
+      file,
+      rel: PathOperations.getRelative(projectRoot, file).replace(/\\/g, '/'),
+    }));
     for (const checklistFile of launchChecklistFiles) {
-      const checklistExists = markdownFiles.some(file =>
-        file.endsWith(checklistFile)
+      const match = relativePaths.find(
+        ({ rel }) => rel === checklistFile || rel.endsWith(`/${checklistFile}`)
       );
-      if (checklistExists) {
+      if (match) {
         hasLaunchChecklist = true;
         try {
-          const filePath = PathOperations.join(projectRoot, checklistFile);
-          const content = FileUtils.readFile(filePath, { encoding: 'utf8' });
+          // The file that matched, not the same name at the root (#635).
+          const content = FileUtils.readFile(match.file, { encoding: 'utf8' });
           checklistQuality = this.assessChecklistQuality(content);
         } catch (_error) {
           checklistQuality = 'basic';

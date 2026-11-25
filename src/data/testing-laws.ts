@@ -69,7 +69,7 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Pure presence — it never opens a spec; an empty Cypress config with zero real tests passes.',
-      'Runs only for detected applications (Angular/React/Vue/Nest/Next); libraries are exempt, and a pure-Python app is skipped rather than failed.',
+      'Runs only for detected applications (Angular/React/Vue/Nuxt/Nest/Next); libraries are exempt, and a pure-Python app is skipped rather than failed.',
       'Reads package.json deps and JS/TS globs only — a Playwright-Python / pytest-bdd suite is invisible.',
     ],
     emoji: '🎭',
@@ -224,6 +224,7 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
       'Mocking is judged only where a test reaches a network or a shared service (the boundary unit-test-quality-standards reads; the filesystem and a child process are not on it), and one test double anywhere in the suite satisfies it.',
       'Hardcoded-data detection is a crude 20-char-string-literal heuristic; factory detection keys off filenames (factory/builder/fixture/mock/test-data).',
       'JS/TS .spec/.test files only — no Python. realDataMode suppresses the hardcoded-data finding.',
+      'A module-level `let` / `var` (top level, with an initialiser; every declarator of the statement) is shared state unless a `beforeEach` / `afterEach` of the same file assigns it; a reset in `beforeAll` does not count. Bindings and hooks are read from the syntax tree: an assignment counts only where it is code, and a same-named binding declared inside the hook shadows the module binding instead of resetting it.',
       'Test files are the .spec/.test (.ts, .tsx, .js, .jsx) and .e2e-spec files under src/, apps/, libs/, test/, tests/ and e2e/, found with the project’s ignores and includes matched from the project root — the same discovery as test-isolation-enforcement. A test file outside those six roots (a packages/ workspace, a Jest __tests__ file without the suffix) is not read.',
     ],
     emoji: '📊',
@@ -259,6 +260,7 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Shared mutable state is a module-scope let, or a module-scope const that is later written to (push, property or index assignment); the analysis is regex over code with comments stripped, not a data-flow trace.',
+      'A module-level `let` / `var` (top level, with an initialiser; every declarator of the statement) is shared state unless a `beforeEach` / `afterEach` of the same file assigns it; a reset in `beforeAll` does not count. Bindings and hooks are read from the syntax tree: an assignment counts only where it is code, and a same-named binding declared inside the hook shadows the module binding instead of resetting it.',
       'External resources are read from code, not comments, and each offending file is named. Browser storage in a Playwright spec whose tests destructure a fixture is not counted — every test gets its own BrowserContext — unless a beforeAll could share a page; databases, sockets and network calls still count.',
       'Test files are the .spec/.test (.ts, .tsx, .js, .jsx) and .e2e-spec files under src/, apps/, libs/, test/, tests/ and e2e/, found with the project’s ignores and includes matched from the project root — the same discovery as test-data-management, which carries the same resource check. A test file outside those six roots (a packages/ workspace, a Jest __tests__ file without the suffix) is not read.',
       'it.only/fit are flagged as an order dependency (really a focus/CI concern), and a lone describe() satisfies "framework isolation".',
@@ -405,8 +407,8 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
         'Configure Jest with coverageThreshold at 100 for lines/functions/branches/statements and keep the suite green against it.',
     },
     detectionLimits: [
-      'It verifies that SOME coverage config exists, not that the thresholds are 100 — a project with coverageThreshold 50 satisfies the "100%" mandate unless a coverage-summary.json artifact is committed.',
-      'The "source files lack unit tests" check does not currently fire.',
+      'It reads the coverage a test run wrote and runs no tests: coverage/coverage-summary.json (Jest json-summary), else coverage/lcov.info, or the file thresholds.testing.coverageReportPath names. Without a report the configured thresholds alone decide. A fresh coverage-summary.json is judged by its total for lines, functions, branches and statements (not file by file); an lcov.info by its lines only.',
+      'A report that cannot be used is said as not read (a note, so the law does not pass) and no percentage of it is judged: a report older than the code (a source file was modified after it was written — a checkout rewrites the files it changes), one that names none of the source files, one that is not valid json-summary/lcov, or a configured path that cannot be read.',
       'Jest/Node only — a pytest project fails with "Jest not configured".',
     ],
     stack: 'typescript',

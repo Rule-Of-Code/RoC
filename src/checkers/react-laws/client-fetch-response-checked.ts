@@ -75,15 +75,7 @@ export class ClientFetchResponseCheckedLaw extends LawBase {
     call: TS.CallExpression
   ): Verdict {
     if (this.caught(ts, call)) return 'checked';
-    let expression: TS.Node = call;
-    while (
-      ts.isAwaitExpression(expression.parent) ||
-      ts.isParenthesizedExpression(expression.parent) ||
-      ts.isAsExpression(expression.parent) ||
-      ts.isNonNullExpression(expression.parent)
-    ) {
-      expression = expression.parent;
-    }
+    const expression = this.outermostWrap(ts, call);
     const parent = expression.parent;
     // `return fetch(…)` hands the response to a caller this law cannot follow.
     if (
@@ -97,14 +89,37 @@ export class ClientFetchResponseCheckedLaw extends LawBase {
         ? 'checked'
         : 'unchecked';
     }
-    const callback = this.thenCallback(ts, expression);
-    if (callback) {
-      const param = callback.parameters[0];
-      return param && this.bindingChecked(ts, param.name, callback)
-        ? 'checked'
-        : 'unchecked';
+    return this.thenVerdict(ts, expression);
+  }
+
+  /** The call with the `await`, parentheses, `as` and `!` around it. */
+  private static outermostWrap(
+    ts: TypeScriptModule,
+    call: TS.CallExpression
+  ): TS.Node {
+    let expression: TS.Node = call;
+    while (
+      ts.isAwaitExpression(expression.parent) ||
+      ts.isParenthesizedExpression(expression.parent) ||
+      ts.isAsExpression(expression.parent) ||
+      ts.isNonNullExpression(expression.parent)
+    ) {
+      expression = expression.parent;
     }
-    return 'unchecked';
+    return expression;
+  }
+
+  /** Checked when an inline `.then` callback reads the status of its response. */
+  private static thenVerdict(
+    ts: TypeScriptModule,
+    expression: TS.Node
+  ): Verdict {
+    const callback = this.thenCallback(ts, expression);
+    if (!callback) return 'unchecked';
+    const param = callback.parameters[0];
+    return param && this.bindingChecked(ts, param.name, callback)
+      ? 'checked'
+      : 'unchecked';
   }
 
   /** The `onFulfilled` of `fetch(…).then(onFulfilled)`, when inline. */
@@ -164,6 +179,14 @@ export class ClientFetchResponseCheckedLaw extends LawBase {
     ts: TypeScriptModule,
     call: TS.CallExpression
   ): boolean {
+    return this.insideTry(ts, call) || this.chainedToCatch(ts, call);
+  }
+
+  /** Inside the try block of a try/catch in the same function. */
+  private static insideTry(
+    ts: TypeScriptModule,
+    call: TS.CallExpression
+  ): boolean {
     let child: TS.Node = call;
     for (
       let parent = call.parent;
@@ -178,6 +201,14 @@ export class ClientFetchResponseCheckedLaw extends LawBase {
         return true;
       child = parent;
     }
+    return false;
+  }
+
+  /** Chained to `.catch(…)`, or to `.then(ok, onRejected)`. */
+  private static chainedToCatch(
+    ts: TypeScriptModule,
+    call: TS.CallExpression
+  ): boolean {
     let link: TS.Node = call;
     while (
       ts.isPropertyAccessExpression(link.parent) &&

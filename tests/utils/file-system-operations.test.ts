@@ -388,4 +388,85 @@ describe('FileSystemOperations', () => {
       expect(FileUtils.exists(dirPath)).toBe(false);
     });
   });
+
+  // ============================================
+  // JSONC and failures the callers rely on
+  // ============================================
+  describe('readJsoncFile()', () => {
+    it('reads JSON with comments, trailing commas and a BOM', () => {
+      const filePath = PathOperations.join(tempDir, 'tsconfig.json');
+      FileUtils.writeFile(
+        filePath,
+        '﻿{\n  // compiler\n  "compilerOptions": { "strict": true, /* on */ },\n}\n'
+      );
+
+      expect(FileSystemOperations.readJsoncFile(filePath)).toEqual({
+        compilerOptions: { strict: true },
+      });
+    });
+
+    it('returns the fallback for text that does not parse, and throws without one', () => {
+      const filePath = PathOperations.join(tempDir, 'tsconfig.json');
+      FileUtils.writeFile(filePath, '{ "compilerOptions": ');
+
+      expect(
+        FileSystemOperations.readJsoncFile(filePath, { none: true })
+      ).toEqual({ none: true });
+      expect(() => FileSystemOperations.readJsoncFile(filePath)).toThrow();
+    });
+
+    it('throws for a file that does not exist when there is no fallback', () => {
+      expect(() =>
+        FileSystemOperations.readJsoncFile(
+          PathOperations.join(tempDir, 'missing.json')
+        )
+      ).toThrow();
+    });
+  });
+
+  describe('failures', () => {
+    it('writeFile throws when the parent is a file', () => {
+      const blocker = PathOperations.join(tempDir, 'blocker');
+      FileUtils.writeFile(blocker, 'a file, not a folder');
+
+      expect(() =>
+        FileSystemOperations.writeFile(
+          PathOperations.join(blocker, 'out.txt'),
+          'x'
+        )
+      ).toThrow();
+    });
+
+    it('writeFile without createDirs throws for a missing folder', () => {
+      expect(() =>
+        FileSystemOperations.writeFile(
+          PathOperations.join(tempDir, 'missing', 'out.txt'),
+          'x',
+          { createDirs: false }
+        )
+      ).toThrow();
+      expect(FileUtils.exists(PathOperations.join(tempDir, 'missing'))).toBe(
+        false
+      );
+    });
+
+    it('createDirectory throws when a file is in the way', () => {
+      const blocker = PathOperations.join(tempDir, 'blocker');
+      FileUtils.writeFile(blocker, 'a file, not a folder');
+
+      expect(() =>
+        FileSystemOperations.createDirectory(
+          PathOperations.join(blocker, 'sub')
+        )
+      ).toThrow();
+    });
+
+    it('deleteFile throws for a folder and leaves it in place', () => {
+      const folder = PathOperations.join(tempDir, 'folder');
+      FileSystemOperations.createDirectory(folder);
+
+      expect(() => FileSystemOperations.deleteFile(folder)).toThrow();
+      expect(FileSystemOperations.isDirectory(folder)).toBe(true);
+    });
+  });
 });

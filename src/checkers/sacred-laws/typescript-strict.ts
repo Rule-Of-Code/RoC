@@ -9,7 +9,12 @@ import { ProjectTypeDetector } from '../../utils/config/project-type-detector';
 import { SacredLawBase } from './sacred-law-base';
 import { PathOperations } from '../../utils/path-operations';
 import { loadTypeScript } from '../../utils/react/tsx-source';
-import { readTsconfigChain } from '../../utils/tsconfig-chain';
+import {
+  readTsconfigProjects,
+  type TsconfigChain,
+  tsconfigFindingPrefix,
+  type TsconfigProjects,
+} from '../../utils/tsconfig-chain';
 
 const TSCONFIG = 'tsconfig.json';
 
@@ -48,26 +53,20 @@ export class TypeScriptStrictLaw {
     }
 
     const tsConfig = ProjectTypeDetector.getTypeScriptConfig(projectRoot);
-    if (tsConfig) {
-      // The extends chain read as JSONC, merged base → child — with or without
-      // the compiler. Without typescript the law used to read tsconfig.json
-      // alone and report every flag set in the base as "must be enabled":
-      // false findings, and no note (#427, QA p478-tsstrict-extends).
-      const chain = readTsconfigChain(
-        PathOperations.join(projectRoot, TSCONFIG)
-      );
-      if (chain.notRead !== undefined) {
-        violations.push(
-          'tsconfig.json exists but could not be parsed — strict settings cannot be verified'
-        );
-      } else {
-        this.validateCompilerOptions(chain, violations, projectRoot);
-      }
-      if (chain.notRead === undefined && chain.unread.length > 0) {
-        notRead.push(
-          `tsconfig.json extends ${chain.unread.map(e => JSON.stringify(e)).join(', ')}, which could not be read — the inherited compiler options were NOT read, and a flag not set in the files that were read is not judged; ${PARTLY_READ_TEXT}`
-        );
-      }
+    // The extends chain read as JSONC, merged base → child — with or without
+    // the compiler. Without typescript the law used to read tsconfig.json
+    // alone and report every flag set in the base as "must be enabled":
+    // false findings, and no note (#427, QA p478-tsstrict-extends). The
+    // projects tsconfig.json lists in `references` are judged too, as
+    // `tsc -b` builds them (#640).
+    const projects = tsConfig
+      ? readTsconfigProjects(
+          projectRoot,
+          PathOperations.join(projectRoot, TSCONFIG)
+        )
+      : null;
+    if (projects) {
+      this.judgeProjects(projects, violations, notRead, projectRoot);
     } else {
       // The file EXISTS (checked above) but did not parse. Fail closed: a strict
       // gate that cannot read the config it governs must not report compliance —
@@ -91,6 +90,38 @@ export class TypeScriptStrictLaw {
     return withNotRead(result, notRead);
   }
 
+  /**
+   * Every tsconfig of the build: a finding about a referenced project starts
+   * with its file, marked when it is a test config; the root's read as before.
+   */
+  private static judgeProjects(
+    { projects, notRead: unreadReferences }: TsconfigProjects,
+    violations: string[],
+    notRead: string[],
+    projectRoot: string
+  ): void {
+    for (const project of projects) {
+      const found: string[] = [];
+      this.validateCompilerOptions(
+        project.chain,
+        found,
+        projectRoot,
+        project.file
+      );
+      const prefix = tsconfigFindingPrefix(project);
+      violations.push(...found.map(finding => `${prefix}${finding}`));
+      if (project.chain.unread.length > 0) {
+        notRead.push(this.extendsNote(project.rel, project.chain));
+      }
+    }
+    notRead.push(...unreadReferences);
+  }
+
+  /** The note for a tsconfig whose `extends` chain was not read to the end. */
+  private static extendsNote(rel: string, chain: TsconfigChain): string {
+    return `${rel} extends ${chain.unread.map(e => JSON.stringify(e)).join(', ')}, which could not be read — the inherited compiler options were NOT read, and a flag not set in the files that were read is not judged; ${PARTLY_READ_TEXT}`;
+  }
+
   /** The options `strict: true` switches on (TypeScript's own list). */
   private static readonly IMPLIED_BY_STRICT = new Set([
     'noImplicitAny',
@@ -104,23 +135,23 @@ export class TypeScriptStrictLaw {
   ]);
 
   /**
-   * tsconfig.json's compiler options as TypeScript resolves them (`extends`
+   * A tsconfig's compiler options as TypeScript resolves them (`extends`
    * chain merged); null when typescript cannot be loaded or the file does not
    * parse — the caller then reads the options as written.
    */
   private static resolvedFlags(
-    projectRoot: string
+    projectRoot: string,
+    file: string
   ): Record<string, unknown> | null {
     const ts = loadTypeScript(projectRoot);
     if (!ts) return null;
-    const file = PathOperations.join(projectRoot, TSCONFIG);
     const read = ts.readConfigFile(file, ts.sys.readFile);
     if (read.error) return null;
     const host = { ...ts.sys, readDirectory: (): string[] => [] };
     const parsed = ts.parseJsonConfigFileContent(
       read.config,
       host,
-      projectRoot,
+      PathOperations.getDirectory(file),
       undefined,
       file
     );
@@ -130,13 +161,14 @@ export class TypeScriptStrictLaw {
   private static validateCompilerOptions(
     chain: { options: Record<string, unknown>; unread: string[] },
     violations: string[],
-    projectRoot: string
+    projectRoot: string,
+    file = PathOperations.join(projectRoot, TSCONFIG)
   ): void {
     const compilerOptions = chain.options;
     // The flags as the compiler resolves them — `extends` followed (an Nx
     // tsconfig.base.json, @tsconfig/strictest) — or, without a loadable
     // typescript, as the JSONC chain sets them.
-    const flags = this.resolvedFlags(projectRoot) ?? compilerOptions;
+    const flags = this.resolvedFlags(projectRoot, file) ?? compilerOptions;
     // A link of the chain that was not read may set any flag the read files
     // leave unset: such a flag is not judged (the note says so).
     const unknown = (flag: string): boolean =>

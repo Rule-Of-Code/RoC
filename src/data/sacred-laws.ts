@@ -25,7 +25,7 @@ export const SACRED_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Checks two tsconfig keys (strict, noImplicitAny) and that an ESLint config FILE exists — it does not run tsc or eslint, and reads no source file.',
-      'Reads the root tsconfig.json only; settings inherited via "extends" from a base config are not resolved.',
+      'Reads the root tsconfig.json and its "extends" chain. Every project tsconfig.json lists in "references" is judged too, as `tsc -b` builds it: followed recursively through their own "references" (a directory reference through its tsconfig.json), each file judged once, so a cycle ends at the file seen before (#640). A solution-style root (files: [] with references, no compiler options of its own or inherited) is followed, not judged. A finding about a referenced project starts with its file; a config for tests (named tsconfig.spec/test/tests/e2e.json, or whose own include lists only test globs) is judged with the same flags and marked "(test config)". A reference that is missing or does not parse is in notRead. Not followed: an include inherited through extends (only the own include marks a test config), and a tsconfig no reference reaches (a package tsconfig.json the root does not reference is not read).',
       'TS/JS only — a Python project has no tsconfig and trips every check.',
     ],
     stack: 'typescript',
@@ -95,7 +95,7 @@ export const SACRED_LAWS: EnhancedConstitutionalLaw[] = [
         'In tsconfig.json set strict:true plus noImplicitReturns, noUnusedLocals, noUnusedParameters, exactOptionalPropertyTypes, noImplicitOverride and noUncheckedIndexedAccess, a target of ES2020 or later, and a modern moduleResolution (node, node16, nodenext or bundler). noPropertyAccessFromIndexSignature and source maps are not required.',
     },
     detectionLimits: [
-      'Reads compiler flags from the root tsconfig.json only — settings inherited via "extends" are not resolved and read as missing.',
+      'Reads compiler flags from the root tsconfig.json and its "extends" chain. Every project tsconfig.json lists in "references" is judged too, as `tsc -b` builds it: followed recursively through their own "references" (a directory reference through its tsconfig.json), each file judged once, so a cycle ends at the file seen before (#640). A solution-style root (files: [] with references, no compiler options of its own or inherited) is followed, not judged. A finding about a referenced project starts with its file; a config for tests (named tsconfig.spec/test/tests/e2e.json, or whose own include lists only test globs) is judged with the same flags and marked "(test config)". A reference that is missing or does not parse is in notRead. Not followed: an include inherited through extends (only the own include marks a test config), and a tsconfig no reference reaches (a package tsconfig.json the root does not reference is not read).',
       'It reads the config, not the code: per-file // @ts-nocheck or @ts-ignore suppressions are invisible, and it never compiles.',
       "moduleResolution is required to be exactly 'node' — the valid 'bundler', 'node16' and 'nodenext' are flagged.",
       'TypeScript only — a project without a tsconfig.json is out of scope for this law.',

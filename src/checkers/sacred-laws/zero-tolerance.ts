@@ -12,8 +12,15 @@ import { FileUtils } from '../../utils/file-utils';
 import { withNotRead } from '../../utils/judged-nothing';
 import { notReadNote } from '../../utils/json-manifest';
 import { PathOperations } from '../../utils/path-operations';
-import { readTsconfigChain } from '../../utils/tsconfig-chain';
+import {
+  readTsconfigChain,
+  readTsconfigProjects,
+  type TsconfigChain,
+  tsconfigFindingPrefix,
+} from '../../utils/tsconfig-chain';
 import { SacredLawBase } from './sacred-law-base';
+
+const TSCONFIG = 'tsconfig.json';
 
 /** The two tsconfig findings; the advice for them looks for the same text. */
 const STRICT_OFF = 'TypeScript strict mode not enabled';
@@ -57,7 +64,9 @@ export class ZeroToleranceLaw {
    * mode" next to "tsconfig.json … NOT read" (#506, QA on #503).
    */
   private static suggestionsFor(violations: string[]): string[] {
-    const has = (text: string): boolean => violations.includes(text);
+    // A referenced project's finding is prefixed with its file (#640).
+    const has = (text: string): boolean =>
+      violations.some(v => v === text || v.endsWith(`: ${text}`));
     const advice: Array<[boolean, string]> = [
       [
         has(STRICT_OFF) || has(NO_IMPLICIT_ANY_OFF),
@@ -83,7 +92,8 @@ export class ZeroToleranceLaw {
   }
 
   /**
-   * strict and noImplicitAny from tsconfig.json, its `extends` chain merged
+   * strict and noImplicitAny from tsconfig.json and the projects it
+   * references, each with its `extends` chain merged
    * (JSONC). An unparseable tsconfig read as "strict mode not enabled" (#486);
    * it is said to be NOT read, and so is a flag a base that could not be read
    * may set — that note goes to notRead.
@@ -93,23 +103,42 @@ export class ZeroToleranceLaw {
     violations: string[],
     notRead: string[]
   ): void {
-    const tsConfigPath = PathOperations.join(projectRoot, 'tsconfig.json');
+    const tsConfigPath = PathOperations.join(projectRoot, TSCONFIG);
     if (!FileUtils.fileExistsSync(tsConfigPath)) {
       violations.push(STRICT_OFF);
       violations.push(NO_IMPLICIT_ANY_OFF);
       return;
     }
-    const chain = readTsconfigChain(tsConfigPath);
-    if (chain.notRead !== undefined) {
+    // tsconfig.json and the projects it lists in `references`, as `tsc -b`
+    // builds them (#640); a referenced project's finding names its file.
+    const projects = readTsconfigProjects(projectRoot, tsConfigPath);
+    if (projects === null) {
+      const chain = readTsconfigChain(tsConfigPath);
       violations.push(
         notReadNote(
-          'tsconfig.json',
-          chain.notRead,
+          TSCONFIG,
+          chain.notRead ?? 'could not be read',
           'strict and noImplicitAny were'
         )
       );
       return;
     }
+    for (const project of projects.projects) {
+      const found: string[] = [];
+      this.judgeChain(project.rel, project.chain, found, notRead);
+      const prefix = tsconfigFindingPrefix(project);
+      violations.push(...found.map(finding => `${prefix}${finding}`));
+    }
+    notRead.push(...projects.notRead);
+  }
+
+  /** strict and noImplicitAny of one merged chain; `rel` names it in a note. */
+  private static judgeChain(
+    rel: string,
+    chain: TsconfigChain,
+    violations: string[],
+    notRead: string[]
+  ): void {
     const unknown: string[] = [];
     // `strict` turns noImplicitAny on: unset under strict is enabled, and only
     // an explicit `false` turns it off (#506). Only when every file of the
@@ -136,7 +165,7 @@ export class ZeroToleranceLaw {
     }
     if (unknown.length > 0) {
       notRead.push(
-        `tsconfig.json extends ${chain.unread.map(e => JSON.stringify(e)).join(', ')}, which could not be read — ${unknown.join(' and ')} ${unknown.length > 1 ? 'were' : 'was'} NOT read`
+        `${rel} extends ${chain.unread.map(e => JSON.stringify(e)).join(', ')}, which could not be read — ${unknown.join(' and ')} ${unknown.length > 1 ? 'were' : 'was'} NOT read`
       );
     }
   }

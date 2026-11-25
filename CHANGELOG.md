@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — TypeScript Strict Mode and Zero Tolerance Doctrine judge the projects tsconfig.json references (#640)
+
+Both laws judged the root `tsconfig.json` alone; `references` was read
+nowhere.
+
+- **A solution-style root** — `files: []` and `references`, no compiler
+  options of its own or inherited (the shape Vite templates use) — compiles
+  nothing, so every strict flag was reported "must be true" / "not enabled"
+  while the strict referenced projects were never read. It is followed now,
+  not judged. This removes findings.
+- **Every referenced project is judged**, also under a root with options of
+  its own, as `tsc -b` builds it: through nested `references` (a directory
+  reference through its `tsconfig.json`), each file once, so a cycle ends at
+  the file seen before. A strict root no longer passes when a project it
+  references is not strict. **Stricter: new failed results are possible**
+  on projects whose referenced configs loosen strict flags.
+- A finding about a referenced project starts with its file
+  (`tsconfig.app.json: TypeScript strict mode not enabled`); the root's
+  findings read as before. **A config for tests** — named
+  `tsconfig.spec.json` / `.test.json` / `.tests.json` / `.e2e.json`, or whose
+  own `include` lists only test globs — is judged with the same flags and its
+  findings are marked: `tsconfig.spec.json (test config): …`.
+- A reference that is missing or does not parse is in `notRead`.
+
 ### ✨ Added — Version-control laws name what they counted (#43, version control)
 
 Three version-control laws said how many and never which: "1 of the last 3

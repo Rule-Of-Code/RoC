@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — NX Commands Only Policy reads the Markdown under docs/ (#614)
+
+The law looks for direct `ng` commands in the documentation, but it listed
+`docs/` by the `ts` / `js` / `json` extensions and then kept only the paths
+ending in `.md`, so nothing under `docs/` was ever read: only the root
+`README.md` was. `docs/` is now listed by `.md` and `.mdx`, so
+`Run ng serve` in `docs/setup.md` is reported. The project root is no longer
+walked as a third "documentation" location (it found nothing before; fixed,
+it would have read every Markdown file in the repository and `README.md`
+twice). The card's detection limit now says what is read.
+
 ### 🐛 Fixed — Jest 100% Coverage Mandate reads only a coverage report it can use (#605)
 
 The law read `coverage/coverage-summary.json` whenever the file existed. A

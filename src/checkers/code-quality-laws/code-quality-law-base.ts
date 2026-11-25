@@ -3,7 +3,11 @@
  * Common functionality for Code Quality laws
  */
 
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import { CheckerUtils } from '../../utils/checker-utils';
 import { FileUtils } from '../../utils/file-utils';
 import {
@@ -157,6 +161,46 @@ export abstract class CodeQualityLawBase {
       fixCommand: recommendations.join('; '),
       config: context.config,
     };
+  }
+
+  /** 1-based line of an offset in a text whose line breaks are the file's. */
+  protected static lineAt(text: string, offset: number): number {
+    let line = 1;
+    for (let i = 0; i < offset && i < text.length; i++) {
+      if (text.charCodeAt(i) === 10) line++;
+    }
+    return line;
+  }
+
+  /**
+   * One detail per match of `pattern` in `code`, at its line (#43). `code`
+   * must keep the file's line breaks (the source view does); the matches are
+   * the ones the law counted, nothing is searched for anew.
+   */
+  protected static matchDetails(
+    code: string,
+    pattern: RegExp,
+    file: string,
+    message: (match: string) => string
+  ): ViolationDetail[] {
+    const global = pattern.global
+      ? pattern
+      : new RegExp(pattern.source, `${pattern.flags}g`);
+    return [...code.matchAll(global)].map(match => ({
+      file,
+      line: this.lineAt(code, match.index ?? 0),
+      message: message(match[0]),
+    }));
+  }
+
+  /** The result with its details, when there are any (#43). */
+  protected static withDetails(
+    result: LawResult,
+    details: ViolationDetail[]
+  ): LawResult {
+    return details.length > 0
+      ? { ...result, violationDetails: details }
+      : result;
   }
 
   // findAngularFiles was removed here: none of the 14 subclasses ever called it,

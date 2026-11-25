@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ Added — Code-quality laws name what they counted (#43, code quality)
+
+Eight code-quality laws said how many and not where: "2 occurrence(s)",
+"Magic numbers in src/x.ts: 42, 3.14 (+4 more)", "worst function 14". Each
+law already held what it counted. It now puts it in `violationDetails`, which
+the console prints under the violation and `--export json` carries in full:
+
+- **No Double Cast**: each `as unknown as`, at its line.
+- **No Explicit Any / Non-Null Assertion**: each weak type (`<any>`,
+  `: Function`, `: Object`) and each non-null `!`, at its line.
+- **Absolute Zero Tolerance Doctrine**: each console statement, TODO/FIXME
+  tag, hand-written `any`, `eslint-disable` comment and empty catch block, at
+  its line; for strict mode off, the tsconfig.json it read.
+- **Error Handling Completeness**: each dropped promise and each unguarded
+  event handler, at its line; a file with HTTP calls and no try/catch.
+- **Centralized Logging**: each direct `console.*` call and each `print()`,
+  at its line.
+- **Web Storage Encapsulation**: each localStorage/sessionStorage call, at
+  its line.
+- **Magic Number Prevention**: every literal, at its line (the violation line
+  shows five).
+- **Code Complexity Control**: each function over the complexity limit, at
+  its line, with its complexity; the measure behind a file-length, function-
+  count or file-complexity finding.
+
+The violation lines, verdicts and scores are unchanged. Nothing new is
+searched for.
+
 ### 🐛 Fixed — Config values written into a git hook are quoted (#624)
 
 A commit pattern, a commit type or an emoji from the config is written into the

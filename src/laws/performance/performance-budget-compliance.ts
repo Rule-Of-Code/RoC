@@ -100,6 +100,51 @@ export class PerformanceBudgetComplianceLaw {
       );
     }
 
+    // 2-4. Bundle size monitoring, the gate that runs it, production monitoring.
+    score = this.monitoringFindings(
+      context,
+      { angularBudgets, webpackPerformance, sizeLimit, budgetsNotRead },
+      violations,
+      suggestions,
+      score
+    );
+
+    return Promise.resolve({
+      passed: violations.length === 0,
+      score: Math.max(0, score),
+      message:
+        violations.length === 0
+          ? 'Performance budget compliance fully implemented'
+          : `Performance budget violations found: ${violations.join(', ')}`,
+      details: violations,
+      violations,
+      suggestions,
+      fixable: true,
+      config: context.config,
+    });
+  }
+
+  /**
+   * Bundle size monitoring, the gate that runs the budget tool, and
+   * production monitoring; returns the score left.
+   */
+  private static monitoringFindings(
+    context: LawCheckContext,
+    budgets: {
+      angularBudgets: { configured: boolean };
+      webpackPerformance: { configured: boolean };
+      sizeLimit: unknown;
+      budgetsNotRead: readonly string[];
+    },
+    violations: string[],
+    suggestions: string[],
+    score: number
+  ): number {
+    const { projectRoot, config } = context;
+    const analyzer = PerformanceBudgetComplianceAnalyzerService;
+    const { angularBudgets, webpackPerformance, sizeLimit, budgetsNotRead } =
+      budgets;
+    let remaining = score;
     // 2. Bundle size monitoring. Angular budgets, webpack hints and size-limit
     // fail the build or the check when the bundle grows past the limit.
     const bundleMonitoring = analyzer.analyzeBundleSize(projectRoot);
@@ -112,7 +157,7 @@ export class PerformanceBudgetComplianceLaw {
     ) {
       violations.push('Bundle size monitoring not implemented');
       suggestions.push('Implement bundle size tracking in CI/CD pipeline');
-      score -= deduct('BUNDLE');
+      remaining -= deduct('BUNDLE');
     }
 
     // 3. The gate that runs it.
@@ -126,7 +171,7 @@ export class PerformanceBudgetComplianceLaw {
       suggestions.push(
         'Run the budget tool (lhci, size-limit, or the Angular build with maximumError budgets) from a CI step, or from a git hook where there is no hosted CI'
       );
-      score -= deduct('CI_CD');
+      remaining -= deduct('CI_CD');
     }
 
     // 4. Production performance monitoring.
@@ -143,27 +188,14 @@ export class PerformanceBudgetComplianceLaw {
       suggestions.push(
         'Configure alerts for performance budget violations in production'
       );
-      score -= deduct('MONITORING');
+      remaining -= deduct('MONITORING');
     }
 
     // React source the scan could not read was not inspected.
     if (react.unread.length > 0) {
       violations.push(unreadViolation(react.unread));
-      score -= deduct('MONITORING');
+      remaining -= deduct('MONITORING');
     }
-
-    return Promise.resolve({
-      passed: violations.length === 0,
-      score: Math.max(0, score),
-      message:
-        violations.length === 0
-          ? 'Performance budget compliance fully implemented'
-          : `Performance budget violations found: ${violations.join(', ')}`,
-      details: violations,
-      violations,
-      suggestions,
-      fixable: true,
-      config: context.config,
-    });
+    return remaining;
   }
 }

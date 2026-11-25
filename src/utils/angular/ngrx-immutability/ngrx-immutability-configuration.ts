@@ -12,10 +12,12 @@ import { NgRxConfigurationBase } from '../ngrx-configuration-base';
 export class NgRxImmutabilityConfiguration extends NgRxConfigurationBase {
   /**
    * Direct state mutation patterns to detect - RULE 1: Inlined from getter method
+   * An assignment is `=` not followed by `=`: `state.loading === true` is a
+   * comparison, not a mutation (#612).
    */
   static readonly STATE_MUTATION_PATTERNS = [
-    /state\.\w+\s*=/,
-    /state\[\w+\]\s*=/,
+    /state\.\w+\s*=(?!=)/,
+    /state\[\w+\]\s*=(?!=)/,
     /state\.\w+\.push\(/,
     /state\.\w+\.pop\(/,
     /state\.\w+\.shift\(/,
@@ -30,8 +32,8 @@ export class NgRxImmutabilityConfiguration extends NgRxConfigurationBase {
    * Nested object mutation patterns to detect - RULE 1: Inlined from getter method
    */
   static readonly NESTED_UPDATE_PATTERNS = [
-    /state\.\w+\.\w+\s*=/,
-    /state\[\w+\]\[\w+\]\s*=/,
+    /state\.\w+\.\w+\s*=(?!=)/,
+    /state\[\w+\]\[\w+\]\s*=(?!=)/,
   ] as const;
 
   /**
@@ -135,9 +137,11 @@ export class NgRxImmutabilityConfiguration extends NgRxConfigurationBase {
 
   /**
    * Check for improper return statements
+   * An object literal is returned by `return { … }` or by the idiomatic
+   * arrow `(state) => ({ ...state, … })`, which has no `return` (#612).
    */
   static hasImproperReturns(content: string): boolean {
-    const returnPattern = /return\s+{/;
+    const returnPattern = /return\s+{|=>\s*\(\s*{/;
     return (
       content.includes(NGRX_KEYWORDS.ON_FUNCTION) &&
       !returnPattern.test(content)

@@ -10,11 +10,19 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils';
 import { PathOperations } from '../../utils/path-operations';
+import {
+  type CoverageReport,
+  CoverageReportReader,
+} from '../../utils/testing/coverage-report-reader';
 import { CoverageThresholdReader } from '../../utils/testing/coverage-threshold-reader';
 import { TestConfigurationInspector } from '../../utils/testing/test-configuration-inspector';
+import { TestFilesExistenceChecker } from '../../utils/testing/test-files-existence-checker';
+import { CoverageByReport } from './coverage-by-report';
 
 /** Points of the score of 100 each coverage violation costs. */
 const POINTS_PER_VIOLATION = 20;
+/** A ratio times this, floored and divided by 100, is a percentage with two decimals. */
+const PERCENT_DECIMALS = 10000;
 
 export class JestUnitTest100CoverageMandateLaw {
   static check(context: LawCheckContext): LawResult {
@@ -37,8 +45,8 @@ export class JestUnitTest100CoverageMandateLaw {
       suggestions.push('Set Jest coverage thresholds to 100% for all metrics');
     }
 
-    // Check actual coverage - simplified check
-    const actualCoverage = this.checkActualCoverageSimple(context.projectRoot);
+    // Check actual coverage, from a report that can be used (#605)
+    const actualCoverage = this.checkActualCoverageSimple(context);
     if (!actualCoverage.hasReports) {
       suggestions.push('Run tests with coverage to generate coverage reports');
     } else {
@@ -58,7 +66,12 @@ export class JestUnitTest100CoverageMandateLaw {
     // imply coverage it never provided; Test Coverage Constitutional Standard
     // already checks the source-to-test ratio.)
 
-    return this.createResult(violations, suggestions, context);
+    return this.createResult(
+      violations,
+      suggestions,
+      context,
+      actualCoverage.notRead
+    );
   }
 
   /**
@@ -101,35 +114,83 @@ export class JestUnitTest100CoverageMandateLaw {
   }
 
   /**
-   * Simple actual coverage check
+   * The coverage the last test run measured, read through the reader Test
+   * Coverage Constitutional Standard uses (#605), with the same rules: a
+   * report older than the code, naming none of the source files, or not a
+   * coverage report is not read — said in `notRead`, so the law cannot pass
+   * on it. It used to read `coverage/coverage-summary.json` whenever it
+   * existed: numbers from an older tree decided the verdict, and a file
+   * that did not parse passed in silence.
+   *
+   * The measure is the run's total, as Jest's `coverageThreshold.global`
+   * judges it: every metric of a coverage-summary.json `total`; for an
+   * lcov.info, which this reader reads for lines only, the lines.
    */
-  private static checkActualCoverageSimple(projectRoot: string): {
+  private static checkActualCoverageSimple(context: LawCheckContext): {
     hasReports: boolean;
     lowCoverageAreas: string[];
+    notRead: string[];
   } {
-    // Check for coverage reports
-    const coverageDir = PathOperations.join(projectRoot, 'coverage');
-    const hasReports = FileUtils.exists(coverageDir);
-
-    const lowCoverageAreas: string[] = [];
-
-    // Simple check for coverage summary
-    const coverageSummaryPath = PathOperations.join(
-      coverageDir,
-      'coverage-summary.json'
+    const { projectRoot, config } = context;
+    const hasReports = FileUtils.exists(
+      PathOperations.join(projectRoot, 'coverage')
     );
-    if (FileUtils.exists(coverageSummaryPath)) {
-      try {
-        const summaryContent = FileUtils.readFile(coverageSummaryPath);
-        const summary = JSON.parse(summaryContent);
-
-        this.checkCoverageMetrics(summary, lowCoverageAreas);
-      } catch (_error) {
-        // Ignore parsing errors
-      }
+    const lookup = CoverageReportReader.find(
+      projectRoot,
+      config.thresholds?.testing?.coverageReportPath
+    );
+    if (lookup.kind === 'none') {
+      return { hasReports, lowCoverageAreas: [], notRead: [] };
     }
+    if (lookup.kind === 'unread') {
+      return { hasReports: true, lowCoverageAreas: [], notRead: [lookup.note] };
+    }
+    const report = lookup.report;
+    const sources = TestFilesExistenceChecker.findTestableSources(
+      projectRoot,
+      config,
+      context.lawId
+    );
+    const why = CoverageByReport.whyNotUsable(projectRoot, report, sources);
+    if (why) {
+      return {
+        hasReports: true,
+        lowCoverageAreas: [],
+        notRead: [`${why} — the coverage it gives was not judged`],
+      };
+    }
+    return {
+      hasReports: true,
+      lowCoverageAreas: this.lowCoverageAreas(projectRoot, report),
+      notRead: [],
+    };
+  }
 
-    return { hasReports, lowCoverageAreas };
+  /** The metrics of the report's total that are below 100%. */
+  private static lowCoverageAreas(
+    projectRoot: string,
+    report: CoverageReport
+  ): string[] {
+    const lowCoverageAreas: string[] = [];
+    if (report.path.toLowerCase().endsWith('.json')) {
+      const summaryContent = FileUtils.readFile(
+        PathOperations.resolve(projectRoot, report.path)
+      );
+      this.checkCoverageMetrics(JSON.parse(summaryContent), lowCoverageAreas);
+      return lowCoverageAreas;
+    }
+    let covered = 0;
+    let total = 0;
+    for (const lines of report.lines.values()) {
+      covered += lines.covered;
+      total += lines.total;
+    }
+    if (covered < total) {
+      // Floored, so a total short of every line never reads as 100%.
+      const pct = Math.floor((covered / total) * PERCENT_DECIMALS) / 100;
+      lowCoverageAreas.push(`lines (${pct}%)`);
+    }
+    return lowCoverageAreas;
   }
 
   private static checkCoverageMetrics(
@@ -158,12 +219,15 @@ export class JestUnitTest100CoverageMandateLaw {
   private static createResult(
     violations: string[],
     suggestions: string[],
-    context: LawCheckContext
+    context: LawCheckContext,
+    notRead: string[]
   ): LawResult {
     const score = Math.max(0, 100 - violations.length * POINTS_PER_VIOLATION);
 
     return {
-      passed: violations.length === 0,
+      // A report that was not read is not a pass (#453): the coverage it
+      // would have shown was not judged.
+      passed: violations.length === 0 && notRead.length === 0,
       score,
       message:
         violations.length === 0
@@ -174,6 +238,7 @@ export class JestUnitTest100CoverageMandateLaw {
       suggestions,
       fixable: true,
       config: context.config,
+      ...(notRead.length > 0 ? { notRead } : {}),
     };
   }
 }

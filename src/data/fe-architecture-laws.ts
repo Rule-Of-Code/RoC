@@ -268,7 +268,7 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
       angular:
         'In data-access, coerce raw fields before iterating: (Array.isArray(x) ? x : []).map(...); do not .map/.filter/.reduce a Raw* field directly.',
       react:
-        'Coerce untrusted arrays at the boundary — (Array.isArray(x) ? x : []) — or parse with a schema. The law judges parameters typed Raw* in the data-access layer.',
+        'Coerce untrusted arrays at the boundary — (Array.isArray(x) ? x : []) — or parse with a schema. The law judges parameters typed Raw* in the data-access layer: a /data-access/ directory, or where thresholds.frontend.dataAccessLayers says it lives.',
     },
     detectionLimits: [
       'Only parameters annotated with a Raw* type token, and only a single property hop — p.data.items.map(), an aliased receiver, or an envelope typed without the Raw marker are false negatives (it stays silent on a project that does not use that naming).',
@@ -307,7 +307,7 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
       angular:
         'Type the HTTP call to a validated domain type, not the Raw envelope; map/parse Raw* into the domain model at the boundary.',
       react:
-        'Parse response bodies; do not cast res.json() to a domain type. Read it as unknown and parse it (a schema, or a mapper over a Raw* type).',
+        'Parse response bodies; do not cast res.json() to a domain type. Read it as unknown and parse it (a schema, or a mapper over a Raw* type). With axios, type the call as the wire shape — axios.get<RawUser>() or axios.get<unknown>() — and map .data to the domain type; axios.get<User>() is reported like a cast. The law judges the data-access layer: a /data-access/ directory, or where thresholds.frontend.dataAccessLayers says it lives.',
     },
     detectionLimits: [
       'HttpClient shape: the receiver is not verified to be HttpClient — any .get<T>() / .post<T>() matches (a builder, a typed Map), a wrapped generic .get<ApiResponse<Foo>>() is missed, and it reads RAW source, so a generic in a comment/string is flagged.',

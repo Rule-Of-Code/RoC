@@ -142,6 +142,23 @@ export class ReactDangerousHtmlGuardedLaw extends LawBase {
     if (!object || !ts.isObjectLiteralExpression(object)) {
       return `${SINK} is given ${value ? `\`${this.text(source, value)}\`` : 'no value'}, not an object literal — the __html it sets cannot be read here; write ${SINK}={{ __html: … }} at the sink`;
     }
+    const html = this.htmlValue(source, object);
+    if (html === null) {
+      return `${SINK} has no readable __html property (a spread or a computed key) — write __html: … at the sink`;
+    }
+    if (this.accepted(source, html, policy)) return null;
+    if (this.isBareJsonStringify(source, html)) {
+      return `__html is JSON.stringify(...), which does not escape '<' — a '</script>' in the data ends the tag. Append .replace(/</g, '\\\\u003c'), or use a serializer named in thresholds.react.jsonSerializers`;
+    }
+    return `__html is \`${this.text(source, html)}\` — not a literal, a sanitizer call (DOMPurify.sanitize or thresholds.security.htmlSanitizers), a function allow-listed with a reason (thresholds.react.trustedHtmlFunctions) or JSON with '<' escaped`;
+  }
+
+  /** The value of the `__html` property; null when it is missing, spread or computed. */
+  private static htmlValue(
+    source: TsxSource,
+    object: TS.ObjectLiteralExpression
+  ): TS.Expression | null {
+    const ts = source.ts;
     const property = object.properties.find(
       p => p.name?.getText(source.sourceFile).replace(/['"]/g, '') === '__html'
     );
@@ -150,16 +167,11 @@ export class ReactDangerousHtmlGuardedLaw extends LawBase {
       (!ts.isPropertyAssignment(property) &&
         !ts.isShorthandPropertyAssignment(property))
     ) {
-      return `${SINK} has no readable __html property (a spread or a computed key) — write __html: … at the sink`;
+      return null;
     }
-    const html = ts.isPropertyAssignment(property)
+    return ts.isPropertyAssignment(property)
       ? property.initializer
       : property.name;
-    if (this.accepted(source, html, policy)) return null;
-    if (this.isBareJsonStringify(source, html)) {
-      return `__html is JSON.stringify(...), which does not escape '<' — a '</script>' in the data ends the tag. Append .replace(/</g, '\\\\u003c'), or use a serializer named in thresholds.react.jsonSerializers`;
-    }
-    return `__html is \`${this.text(source, html)}\` — not a literal, a sanitizer call (DOMPurify.sanitize or thresholds.security.htmlSanitizers), a function allow-listed with a reason (thresholds.react.trustedHtmlFunctions) or JSON with '<' escaped`;
   }
 
   private static accepted(
@@ -186,6 +198,15 @@ export class ReactDangerousHtmlGuardedLaw extends LawBase {
       );
     }
     if (!ts.isCallExpression(e)) return false;
+    return this.acceptedCall(source, e, policy);
+  }
+
+  /** A sanitizer, an allow-listed function, a serializer or escaped JSON. */
+  private static acceptedCall(
+    source: TsxSource,
+    e: TS.CallExpression,
+    policy: Policy
+  ): boolean {
     const callee = calleeText(e, source.sourceFile);
     return (
       policy.sanitizers.has(callee) ||

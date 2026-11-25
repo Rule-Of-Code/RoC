@@ -38,6 +38,16 @@ already held the list it counted. It now puts that list in
 The violation lines, verdicts and scores are unchanged. Nothing new is
 searched for. This is the first of the per-category changes for #43.
 
+### 🐛 Fixed — Merge Conflict Prevention does not read a failed git grep as "no markers" (#637)
+
+The law looks for conflict markers with `git grep`, and every failure of it
+read as "no conflict markers": a broken index, a `.git` that is not a
+repository, git missing from the PATH. Exit 1 is still "no markers". Any
+other failure now goes to `notRead` ("conflict markers were NOT read: git
+grep did not answer (…)", with git's first line) and the law does not pass.
+Stricter: a project whose `git grep` fails changes from passed to not
+passed.
+
 ### ✨ Changed — Test Coverage Constitutional Standard judges by real line coverage (#599)
 
 With a coverage report — `coverage/coverage-summary.json` (Jest

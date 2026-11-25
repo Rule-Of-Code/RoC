@@ -117,6 +117,17 @@ function keyWarning(where: string, key: string, unknown: string): string {
   return `⚠️  ${retiredLawNotice(where, key) ?? unknown}`;
 }
 
+/** A law's result: an object with `passed` (and maybe `notRead`). */
+function isLawResultShape<T>(
+  value: T
+): value is T & { passed: boolean; notRead?: string[] } {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as { passed?: unknown }).passed === 'boolean'
+  );
+}
+
 export class RuleOfCodeAuditor {
   private static readonly UNKNOWN_LAW = 'Unknown Law';
   /** Suggestions shown per failing law before --verbose is needed. */
@@ -1149,13 +1160,9 @@ export class RuleOfCodeAuditor {
    */
   private withVueNote<T>(result: T, scope: LawScanScope): T {
     const vue = vueNotReadNote(scope, this.vueFiles());
-    if (!vue || !result || typeof result !== 'object') return result;
-    const current = result as unknown as {
-      passed: boolean;
-      notRead?: string[];
-    };
-    const noted = withNotRead(current, [...(current.notRead ?? []), vue.note]);
-    return (vue.judgedNothing ? markJudgedNothing(noted) : noted) as T;
+    if (!vue || !isLawResultShape(result)) return result;
+    const noted = withNotRead(result, [...(result.notRead ?? []), vue.note]);
+    return vue.judgedNothing ? markJudgedNothing(noted) : noted;
   }
 
   private processResults(results: unknown[]): Partial<AuditResult> {

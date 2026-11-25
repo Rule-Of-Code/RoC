@@ -38,7 +38,15 @@ const VUE_APP = {
 };
 
 const config = () => FileUtils.getMinimalDefaultConfig();
-const tick = () => new Promise(resolve => setTimeout(resolve, 5));
+/** Yield to the other law: both scopes are open at once. */
+const tick = async (): Promise<void> => {
+  await Promise.resolve();
+  await Promise.resolve();
+};
+
+/** The engine, with the step under test reachable. */
+const auditorFor = (root: string): Auditor =>
+  Reflect.construct(RuleOfCodeAuditor, [{}, root]) as Auditor;
 
 type Auditor = {
   executeSingleLaw: (law: unknown) => Promise<{
@@ -92,7 +100,7 @@ describe('#607 P0: a scan for script files that leaves .vue out is said', () => 
 
     it('a Vue project with .ts files too: notRead, not passed', async () => {
       const root = project(VUE_APP);
-      const auditor = new RuleOfCodeAuditor({}, root) as unknown as Auditor;
+      const auditor = auditorFor(root);
       const result = await auditor.executeSingleLaw({
         id: 'v1',
         name: 'Scans TS',
@@ -112,7 +120,7 @@ describe('#607 P0: a scan for script files that leaves .vue out is said', () => 
         'package.json': VUE_APP['package.json'],
         'src/App.vue': VUE_APP['src/App.vue'],
       });
-      const auditor = new RuleOfCodeAuditor({}, root) as unknown as Auditor;
+      const auditor = auditorFor(root);
       const result = await auditor.executeSingleLaw({
         id: 'v2',
         name: 'Scans TS',
@@ -129,7 +137,7 @@ describe('#607 P0: a scan for script files that leaves .vue out is said', () => 
         'package.json': '{}',
         'src/main.ts': 'export const a = 1;\n',
       });
-      const auditor = new RuleOfCodeAuditor({}, root) as unknown as Auditor;
+      const auditor = auditorFor(root);
       const result = await auditor.executeSingleLaw({
         id: 'v3',
         name: 'Scans TS',
@@ -141,7 +149,7 @@ describe('#607 P0: a scan for script files that leaves .vue out is said', () => 
 
     it('control: a law that scans no script files — unchanged', async () => {
       const root = project(VUE_APP);
-      const auditor = new RuleOfCodeAuditor({}, root) as unknown as Auditor;
+      const auditor = auditorFor(root);
       const result = await auditor.executeSingleLaw({
         id: 'v4',
         name: 'Reads config',
@@ -156,7 +164,7 @@ describe('#607 P0: a scan for script files that leaves .vue out is said', () => 
 
     it('a law keeps its own notRead notes; the .vue note is added after them', async () => {
       const root = project(VUE_APP);
-      const auditor = new RuleOfCodeAuditor({}, root) as unknown as Auditor;
+      const auditor = auditorFor(root);
       const result = await auditor.executeSingleLaw({
         id: 'v5',
         name: 'Scans TS',

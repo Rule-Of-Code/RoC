@@ -69,7 +69,7 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Pure presence — it never opens a spec; an empty Cypress config with zero real tests passes.',
-      'Runs only for detected applications (Angular/React/Vue/Nest/Next); libraries are exempt, and a pure-Python app is skipped rather than failed.',
+      'Runs only for detected applications (Angular/React/Vue/Nuxt/Nest/Next); libraries are exempt, and a pure-Python app is skipped rather than failed.',
       'Reads package.json deps and JS/TS globs only — a Playwright-Python / pytest-bdd suite is invisible.',
     ],
     emoji: '🎭',

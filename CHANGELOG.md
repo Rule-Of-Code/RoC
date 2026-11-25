@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — E2E Testing Standards judges a Nuxt project (#644)
+
+The law runs for applications, and it knew `vue` but not `nuxt`. A Nuxt
+project that declares `nuxt` alone (no `src/main.ts`, no other listed
+dependency) passed with "E2E Testing Standards satisfied" without being
+judged. `nuxt` now marks an application. Stricter: a Nuxt project without
+an E2E runner, config or spec gains the violation.
+
 ### 🐛 Fixed — Automation First recognises vitest, Playwright, Karma, @jest/core and ava (#643)
 
 The law knew five test framework names (jest, mocha, jasmine, cypress,

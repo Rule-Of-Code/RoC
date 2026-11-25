@@ -12,8 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Professional Component Testing Policy counted every non-test `.tsx` as a
 component, so the module that mounts a React + Vite app (`src/main.tsx`,
 `createRoot(…).render(<App />)`) was reported as a component without a test
-on every such app. A module whose code calls `createRoot(` or
-`hydrateRoot(` is now the app's entry, not a component.
+on every such app. The app's mount-only entry is now left out, read from
+the syntax tree: a module that calls `createRoot` / `hydrateRoot` imported
+from `react-dom/client` or `react-dom` (by that name, or as
+`ReactDOM.createRoot` through its namespace or default import) and exports
+no component (no default export, no exported capitalised name, no
+`export *`). A `.createRoot(` method of another object, a call in a string
+or a comment, a component that mounts a portal with `createRoot` in an
+effect, and a `main.tsx` that also exports a component still need their
+test. Without the typescript package no module is taken for the entry.
 
 The React guidance of Requires Spec, Professional Component Testing Policy
 and Performance Test Requirements is proved by a regression test on a React

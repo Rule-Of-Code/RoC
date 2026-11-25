@@ -194,6 +194,160 @@ describe('#12 P5 Professional Component Testing Policy — React', () => {
   });
 });
 
+describe('#12 P5 the mount-only entry of the app (QA on #631)', () => {
+  const list = lines(
+    'export function List() {',
+    '  return <ul><li>a</li></ul>;',
+    '}'
+  );
+  /** A project with one tested component and `file` holding `text`. */
+  const check = (file: string, text: string): LawResult => {
+    reactVite();
+    write('src/List.tsx', list);
+    write('src/List.test.tsx', roleTest('List', './List'));
+    write(file, text);
+    return ProfessionalComponentTestingPolicyLaw.check(project.context());
+  };
+  const ONE_MISSING = /1 React components missing a co-located \.test\.tsx/;
+
+  it('m1: main.tsx that only mounts with createRoot from react-dom/client is not asked for a test', () => {
+    expectGreen(
+      check(
+        'src/main.tsx',
+        lines(
+          "import { createRoot } from 'react-dom/client';",
+          "import { List } from './List';",
+          "createRoot(document.getElementById('root')!).render(<List />);"
+        )
+      )
+    );
+  });
+
+  it('m6: hydrateRoot, and ReactDOM.createRoot through the default import, mount too', () => {
+    expectGreen(
+      check(
+        'src/main.tsx',
+        lines(
+          "import { hydrateRoot } from 'react-dom/client';",
+          "import { List } from './List';",
+          "hydrateRoot(document.getElementById('root')!, <List />);"
+        )
+      )
+    );
+    expectGreen(
+      check(
+        'src/index.tsx',
+        lines(
+          "import ReactDOM from 'react-dom/client';",
+          "import { List } from './List';",
+          "ReactDOM.createRoot(document.getElementById('root')!).render(<List />);"
+        )
+      )
+    );
+  });
+
+  it('m5: createRoot only in a comment or a string is no mount: the module needs its test', () => {
+    expectRed(
+      check(
+        'src/Banner.tsx',
+        lines(
+          "// createRoot(document.getElementById('root')!)",
+          "const hint = 'createRoot(el)';",
+          'export const Banner = () => <p>{hint}</p>;'
+        )
+      ),
+      ONE_MISSING
+    );
+  });
+
+  it('m7: a helper module with no mount needs its test', () => {
+    expectRed(
+      check(
+        'src/format.tsx',
+        lines('export const format = (n: number) => <b>{n}</b>;')
+      ),
+      ONE_MISSING
+    );
+  });
+
+  it('m4: .createRoot( of another object is no mount, with or without an export', () => {
+    expectRed(
+      check(
+        'src/Tree.tsx',
+        lines(
+          "import { makeFactory } from './factory';",
+          'const treeFactory = makeFactory();',
+          'export function Tree() {',
+          "  treeFactory.createRoot('x');",
+          '  return <div />;',
+          '}'
+        )
+      ),
+      ONE_MISSING
+    );
+    expectRed(
+      check(
+        'src/tree-setup.tsx',
+        lines(
+          "import { makeFactory } from './factory';",
+          "makeFactory().createRoot('x');",
+          'const createRoot = (id: string) => id;',
+          "createRoot('y');"
+        )
+      ),
+      // Tree.tsx from above and tree-setup.tsx: both are components.
+      /2 React components missing a co-located \.test\.tsx/
+    );
+  });
+
+  it('m3: a component that mounts a portal with createRoot in an effect needs its test', () => {
+    expectRed(
+      check(
+        'src/Modal.tsx',
+        lines(
+          "import { useEffect } from 'react';",
+          "import { createRoot } from 'react-dom/client';",
+          'export function Modal() {',
+          '  useEffect(() => {',
+          "    const el = document.createElement('div');",
+          '    createRoot(el).render(<p>portal</p>);',
+          '  }, []);',
+          '  return null;',
+          '}'
+        )
+      ),
+      ONE_MISSING
+    );
+  });
+
+  it('m2: main.tsx that mounts and also exports a component needs its test', () => {
+    expectRed(
+      check(
+        'src/main.tsx',
+        lines(
+          "import { createRoot } from 'react-dom/client';",
+          'export function Counter() {',
+          '  return <button>0</button>;',
+          '}',
+          "createRoot(document.getElementById('root')!).render(<Counter />);"
+        )
+      ),
+      ONE_MISSING
+    );
+    expectRed(
+      check(
+        'src/main.tsx',
+        lines(
+          "import { createRoot } from 'react-dom/client';",
+          "export { Checkout } from './Checkout';",
+          "createRoot(document.getElementById('root')!).render(<p />);"
+        )
+      ),
+      ONE_MISSING
+    );
+  });
+});
+
 describe('#12 P5 Performance Test Requirements — React', () => {
   const perfSpec = lines(
     "import { expect, it } from 'vitest';",

@@ -6,9 +6,9 @@
  * `error`, `global-error`, `not-found`, `default`, `route` under an `app/`
  * directory — are not counted: they are framework entry points, usually async
  * Server Components, covered by end-to-end tests rather than a unit test. Nor
- * is the module that mounts the app (`createRoot(…)` / `hydrateRoot(…)` in its
- * code — Vite's `src/main.tsx`, CRA's `src/index.tsx`): it renders the root
- * into the page and defines no component of its own (#12).
+ * is the module that mounts the app — Vite's `src/main.tsx`, CRA's
+ * `src/index.tsx`: it calls react-dom's `createRoot` / `hydrateRoot` and
+ * exports no component (`isMountOnlyEntry`, read from the syntax tree; #12).
  *
  * Its test is the sibling `X.test.tsx` / `X.spec.tsx` (any TS/JS spelling), or
  * `__tests__/X.test.tsx` next to it. A React test counts as a quality test
@@ -19,15 +19,13 @@
 
 import type { LawCheckContext } from '../../../../types/law.types';
 import { FileUtils } from '../../../../utils/file-utils';
-import { CodeText } from '../../../../utils/code-text';
 import { PathOperations } from '../../../../utils/path-operations';
 import { ReactProject } from '../../../../utils/react/react-project';
+import { isMountOnlyEntry } from './react-app-entry';
 
 const NEXT_ROUTE_FILE =
   /(?:^|\/)app\/(?:.*\/)?(?:page|layout|template|loading|error|global-error|not-found|default|route)\.[jt]sx$/;
 const STORY = /\.stories\.[jt]sx$/;
-/** react-dom's mount calls: the module that makes them is the app's entry. */
-const MOUNTS_ROOT = /\b(?:createRoot|hydrateRoot)\s*\(/;
 const TEST_EXTENSIONS = ['spec', 'test'].flatMap(infix =>
   ['.tsx', '.ts', '.jsx', '.js'].map(ext => `.${infix}${ext}`)
 );
@@ -50,7 +48,13 @@ export class ReactComponentTestingAnalyzer {
     ]).filter(file => {
       const rel = PathOperations.getRelative(context.projectRoot, file);
       return (
-        !NEXT_ROUTE_FILE.test(rel) && !STORY.test(rel) && !this.mountsRoot(file)
+        !NEXT_ROUTE_FILE.test(rel) &&
+        !STORY.test(rel) &&
+        !isMountOnlyEntry(
+          context.projectRoot,
+          file,
+          FileUtils.readFile(file) ?? ''
+        )
       );
     });
     const testFiles: string[] = [];
@@ -64,12 +68,6 @@ export class ReactComponentTestingAnalyzer {
       file => !this.isQualityTest(FileUtils.readFile(file) ?? '')
     );
     return { components, testFiles, missingTestFiles, lowQualityTests };
-  }
-
-  /** The app's entry: its code calls createRoot( or hydrateRoot(. */
-  private static mountsRoot(file: string): boolean {
-    const content = FileUtils.readFile(file) ?? '';
-    return MOUNTS_ROOT.test(CodeText.stripCommentsAndStrings(content));
   }
 
   /** The co-located test of a component, or null. */

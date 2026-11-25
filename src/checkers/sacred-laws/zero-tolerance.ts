@@ -17,6 +17,8 @@ import {
   readTsconfigProjects,
   type TsconfigChain,
   tsconfigFindingWhere,
+  type TsconfigProject,
+  type TsconfigProjects,
 } from '../../utils/tsconfig-chain';
 import { SacredLawBase } from './sacred-law-base';
 
@@ -124,19 +126,28 @@ export class ZeroToleranceLaw {
       return;
     }
     for (const project of projects.projects) {
-      const found: string[] = [];
-      const notes: string[] = [];
-      this.judgeChain(project.rel, project.chain, found, notes);
-      // Each finding once, on the file that set the flag (#640).
-      for (const finding of found) {
-        const flags =
-          finding === STRICT_OFF ? ['strict'] : ['noImplicitAny', 'strict'];
-        const line = `${tsconfigFindingWhere(projects, project, flags)}${finding}`;
-        if (!violations.includes(line)) violations.push(line);
-      }
-      for (const note of notes) if (!notRead.includes(note)) notRead.push(note);
+      this.judgeProject(projects, project, violations, notRead);
     }
     notRead.push(...projects.notRead);
+  }
+
+  /** One project of the build: each finding once, on the file that set the flag (#640). */
+  private static judgeProject(
+    projects: TsconfigProjects,
+    project: TsconfigProject,
+    violations: string[],
+    notRead: string[]
+  ): void {
+    const found: string[] = [];
+    const notes: string[] = [];
+    this.judgeChain(project.rel, project.chain, found, notes);
+    for (const finding of found) {
+      const flags =
+        finding === STRICT_OFF ? ['strict'] : ['noImplicitAny', 'strict'];
+      const line = `${tsconfigFindingWhere(projects, project, flags)}${finding}`;
+      if (!violations.includes(line)) violations.push(line);
+    }
+    for (const note of notes) if (!notRead.includes(note)) notRead.push(note);
   }
 
   /** strict and noImplicitAny of one merged chain; `rel` names it in a note. */

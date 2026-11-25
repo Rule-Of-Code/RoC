@@ -94,7 +94,8 @@ export class AngularSignalImportsAnalyzer extends AngularSignalAnalyzerBase {
    * that imports it correctly on the very line above — and the only way to
    * silence it was to split the import badly.
    *
-   * Handles grouped and multiline specifier lists, `import type`, and aliases
+   * Handles grouped and multiline specifier lists, `import type`, inline
+   * `type` specifiers (`import { type Signal }`, #612) and aliases
    * (`signal as sig` is an import of `signal`).
    */
   private static importsSymbol(content: string, symbol: string): boolean {
@@ -103,6 +104,7 @@ export class AngularSignalImportsAnalyzer extends AngularSignalAnalyzerBase {
       const specifiers = (block[1] ?? '').split(',').map(entry =>
         entry
           .trim()
+          .replace(/^type\s+/, '')
           .split(/\s+as\s+/)[0]
           ?.trim()
       );
@@ -121,7 +123,7 @@ export class AngularSignalImportsAnalyzer extends AngularSignalAnalyzerBase {
   ): void {
     for (const check of this.config.SIGNAL_CHECKS) {
       if (
-        content.includes(check.usage) &&
+        this.config.usesSymbol(content, check.usage) &&
         !this.importsSymbol(content, check.import)
       ) {
         violations.push(
@@ -225,11 +227,13 @@ export class AngularSignalImportsAnalyzer extends AngularSignalAnalyzerBase {
     const hasSignals = this.config.SIGNAL_USAGE_INDICATORS.some(indicator =>
       content.includes(indicator)
     );
-    const isCompatibleVersion = this.config.COMPATIBLE_VERSIONS.some(version =>
-      angularVersion.includes(version)
-    );
+    const major = this.config.lowestMajorVersion(angularVersion);
+    // A range we cannot read (a tag, a workspace or git reference) is not
+    // judged: nothing says it is older than 16.
+    const isIncompatibleVersion =
+      major !== undefined && major < this.config.MIN_SIGNALS_MAJOR_VERSION;
 
-    if (hasSignals && !isCompatibleVersion) {
+    if (hasSignals && isIncompatibleVersion) {
       suggestions.push(
         this.config.buildVersionMessage(
           this.config.VALIDATION_MESSAGES.SIGNALS_VERSION_INCOMPATIBLE,

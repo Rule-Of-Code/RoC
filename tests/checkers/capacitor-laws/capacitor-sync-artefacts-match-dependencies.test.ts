@@ -74,14 +74,17 @@ describe('CapacitorSyncArtefactsMatchDependenciesLaw (#160)', () => {
     ).toEqual([]);
   });
 
-  it('an untracked artefact is reported as not read, not as green', () => {
+  it('outside git the artefact is judged from the disk, and the details say so (#638)', () => {
     const result = run(
       setup(['@capacitor/app', '@capacitor/share'], ['@capacitor/app'], false)
     );
-    expect(result.passed).toBe(true);
-    expect(result.message).toContain(
-      'not read: android/capacitor.settings.gradle is not tracked'
-    );
+    expect(result.passed).toBe(false);
+    expect(result.violations).toEqual([
+      expect.stringContaining('@capacitor/share is a dependency'),
+    ]);
+    expect(result.details).toEqual([
+      'git did not answer, judged from the disk: android/capacitor.settings.gradle',
+    ]);
   });
 
   it('a tracked Podfile is compared too', () => {

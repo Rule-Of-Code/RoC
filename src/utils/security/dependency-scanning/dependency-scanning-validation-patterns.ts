@@ -165,8 +165,9 @@ export class DependencyScanningValidationPatterns {
       completeConfig
     );
 
+    // The scanner returns full paths; they are read as given (#642).
     for (const file of workflowResult.files) {
-      const content = FileUtils.readFile(FileUtils.join(ciPath, file));
+      const content = FileUtils.readFile(file);
       if (Config.hasCISecurityScanning(content)) {
         return true;
       }

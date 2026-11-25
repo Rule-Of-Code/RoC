@@ -32,11 +32,13 @@ export class NgRxSelectorPatternsValidation {
       };
     }
 
-    // Delegate to comprehensive memoization validation
+    // Delegate to comprehensive memoization validation. The law runs it a
+    // second time for the direct store.select calls (#612).
     const results =
       NgRxMemoizationValidationPatterns.validateAllMemoizationPatterns(
         projectRoot,
-        config
+        config,
+        { directSelects: false }
       );
 
     // Deduplicate results using centralized utility

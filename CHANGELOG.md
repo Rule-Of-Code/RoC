@@ -361,6 +361,36 @@ with `jasmine-core`, `@jest/core` or ava got "No test framework detected".
 They are accepted now, from a list the law keeps for itself (no other law
 is selected by it). Fewer violations only; the card names the list.
 
+### 🐛 Fixed — TypeScript Strict Mode and Zero Tolerance Doctrine judge the projects tsconfig.json references (#640)
+
+Both laws judged the root `tsconfig.json` alone; `references` was read
+nowhere.
+
+- **A solution-style root** — `files: []` with no `include` or with
+  `include: []`, whatever it extends (the shape Vite templates and Nx
+  workspaces use) — compiles nothing, so every strict flag was reported
+  "must be true" / "not enabled" while the strict referenced projects were
+  never read. It is followed now, not judged. This removes findings.
+- **Every referenced project is judged**, also under a root with options of
+  its own, as `tsc -b` builds it: through nested `references` (a directory
+  reference through its `tsconfig.json`), each file once, so a cycle ends at
+  the file seen before. A strict root no longer passes when a project it
+  references is not strict. **Stricter: new failed results are possible**
+  on projects whose referenced configs loosen strict flags.
+- **A flag is reported once, on the file that set it.** In a build with
+  references, a finding names the file of the `extends` chain where the
+  flag has its value — or, when no file sets it, the file the chain ends
+  at: one missing flag in an Nx `tsconfig.base.json` is one finding, not one
+  per project that extends it (90 → 3 on a generated Nx workspace). A
+  tsconfig.json judged alone reads as before.
+- **A config for tests** — named `tsconfig.spec.json` / `.test.json` /
+  `.tests.json` / `.e2e.json`, whose own `include` lists only test globs, or
+  in an end-to-end project directory (`e2e`, `cypress`, `playwright`,
+  `<app>-e2e`) — is judged with the same flags. Its own weaker value is its
+  own finding, marked `(test config)`; a weak value it inherits is the
+  base's one finding.
+- A reference that is missing or does not parse is in `notRead`.
+
 ### 📝 Changed — law texts the code had moved past (#625)
 
 Texts only; no verdict, score or severity changes.
@@ -374,7 +404,7 @@ Texts only; no verdict, score or severity changes.
 - Commit Size Control: the window is the default; `maxCommits` and
   `baseline` change it.
 - Zero Tolerance Doctrine and TypeScript Strict Mode: `extends` is followed
-  (`references` are not, #640); TypeScript Strict accepts `bundler`,
+  (`references` too, see #640 above); TypeScript Strict accepts `bundler`,
   `node16`, `nodenext` and `node`, and rejects a target only when it is
   missing, ES3 or ES5. Its violation and suggestion said "ES2020 or
   higher"; they now say what is rejected.

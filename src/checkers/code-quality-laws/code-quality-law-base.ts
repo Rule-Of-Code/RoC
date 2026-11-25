@@ -210,13 +210,18 @@ export abstract class CodeQualityLawBase {
     const at = (name: string): string => PathOperations.join(projectRoot, name);
     for (const name of this.ESLINT_JS_CONFIGS) {
       if (!FileUtils.exists(at(name))) continue;
-      // Loaded as ESLint loads it; one that cannot be loaded is NOT read (#613).
-      const config = loadESLintJsConfig(at(name));
-      return config
-        ? { file: name, config }
+      // Imported as ESLint imports it, in a child process with a time limit;
+      // one that cannot be loaded is NOT read, with the reason (#613).
+      const loaded = loadESLintJsConfig(at(name));
+      return loaded.config
+        ? { file: name, config: loaded.config }
         : {
             file: name,
-            notRead: notReadNote(name, 'could not be loaded', 'its rules were'),
+            notRead: notReadNote(
+              name,
+              `could not be loaded (${loaded.reason})`,
+              'its rules were'
+            ),
           };
     }
     // A config found and not read is said to be NOT read, never "no config":

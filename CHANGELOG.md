@@ -15,10 +15,17 @@ the file's text with a regular expression, which missed a rule with options
 a rule the project sets read as not set (Dead Code Elimination; the
 information line of Magic Number Prevention and Code Complexity Control).
 The config is now imported by a child Node process, as ESLint would import
-it (a promised default is awaited; nested config arrays are flattened, later
-objects over earlier ones), and its rules carry their real values. A config
-that cannot be loaded — a plugin that is not installed, a syntax error — is
-said not to be read (`notRead`), never guessed from its text.
+it (a promised default and top-level await are awaited; nested config arrays
+are flattened, later objects over earlier ones), and its rules carry their
+real values. It is never loaded in the audit's own process any more: on
+Node 22+ `require` ran a synchronous ESM config there, so a config that
+looped hung the audit, one that called `process.exit(0)` ended it with a
+passing exit code, and one that printed wrote into `--json` output. The
+child has a time limit (20 s), writes its answer to a file of its own, and
+prints nothing into the audit. A config that cannot be loaded — a plugin
+that is not installed, a throw, an exit, the time limit — is said not to be
+read (`notRead`, with the reason), never guessed from its text and never a
+pass. Each config file is loaded once per run, not once per law.
 
 ### 📝 Changed — law texts the code had moved past (#625)
 

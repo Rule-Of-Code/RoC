@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — TODO Management Standards reads the comments of .vue components (#607, P7)
+
+TODO Management Standards read comments in `.ts` / `.js`, `.html`, CSS and
+other files, but not in `.vue` components. A Vue project's markers were never
+counted. It now reads a component's comments in its template (`<!-- -->`),
+its script (TS/JS) and its style (CSS, or SCSS when the block has a
+`lang`), at the component's own lines; text that only looks like a marker
+outside a comment is not one. The card says so.
+
+**Stricter** for Vue projects.
+
 ### 🐛 Fixed — the code-quality laws read .vue single-file components (#607, P3a)
 
 Fourteen code-quality laws now read the `<script>` and `<script setup>` of a

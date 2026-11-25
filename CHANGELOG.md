@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — test discovery leaves out node_modules and dist (#639)
+
+The test discovery of API Security Testing Requirements and Comprehensive
+Security Testing Requirements scans `src`, `packages`, `apps`, `libs`,
+`functions` and the test directories without the config allowlist
+(`useConfigFiltering: false`), and that switched off the list of ignored
+directories too. A test of a dependency (`…/node_modules/…`) or a built
+copy of a test (`…/dist/…`) counted as the project's own security test, and
+the law passed on it (false PASS). The discovery keeps the allowlist off and
+leaves out dependency and build directories (`node_modules`, `dist`, `.git`,
+`.nx`, `.angular`). The same holds for the test discovery that API Testing
+Standards and Performance Test Requirements share.
+
+**Stricter**: a project that passed only on such a file loses the pass.
+
 ### 🐛 Fixed — Launch Readiness Checklist finds its checklist by the whole name (#635)
 
 The checklist was matched by the end of a file name anywhere, so

@@ -66,6 +66,8 @@ export class SecurityTestContentSearchService {
         filesOnly: true,
         useConfigFiltering: false, // CRITICAL: Don't use config filtering for test discovery
         includeTests: true,
+        // …but a dependency's test or a built copy is not the project's (#639).
+        skipDependencyAndBuildDirs: true,
       });
 
       const testFiles = scanResult.files.filter(file => {

@@ -24,7 +24,22 @@ export interface ScanOptions {
   filesOnly?: boolean;
   /** Include test files (.spec.ts, .test.ts) - by default they are excluded */
   includeTests?: boolean;
+  /**
+   * Leave out dependency and build directories (`node_modules`, `dist`, …)
+   * also when `useConfigFiltering` is off: a test of a dependency, or a built
+   * copy of a test, is not the project's own (#639).
+   */
+  skipDependencyAndBuildDirs?: boolean;
 }
+
+/** Directories that hold dependencies or build output, never the project's own sources. */
+const DEPENDENCY_AND_BUILD_DIRS = [
+  'node_modules',
+  '.git',
+  'dist',
+  '.nx',
+  '.angular',
+];
 
 export interface ScanResult {
   files: string[];
@@ -245,6 +260,12 @@ export class DirectoryScanner {
     if (options.maxDepth !== undefined && currentDepth >= options.maxDepth) {
       return;
     }
+    if (
+      options.skipDependencyAndBuildDirs &&
+      DEPENDENCY_AND_BUILD_DIRS.includes(PathOperations.getFilename(fullPath))
+    ) {
+      return;
+    }
 
     const relativePath = PathOperations.getRelative(rootPath, fullPath);
 
@@ -320,7 +341,7 @@ export class DirectoryScanner {
   ): boolean {
     // Quick check for common ignored directories
     const dirName = PathOperations.getBasename(dirPath);
-    if (['node_modules', '.git', 'dist', '.nx', '.angular'].includes(dirName)) {
+    if (DEPENDENCY_AND_BUILD_DIRS.includes(dirName)) {
       return true;
     }
 

@@ -2,6 +2,7 @@
  * Directory Scanner Utility
  */
 
+import { noteScriptScan } from './vue/vue-read-tracker';
 import type { RuleOfCodeConfig } from '../config/types';
 import { PathOperations } from '../utils/path-operations';
 import { FileFilterUtils } from './file-filter-utils';
@@ -74,6 +75,11 @@ export class DirectoryScanner {
       result,
       currentDepth: 0,
     });
+    // Which law scanned for script files without .vue (#607).
+    noteScriptScan(
+      options.extensions,
+      result.files.filter(file => !/\.vue$/i.test(file))
+    );
     return result;
   }
 

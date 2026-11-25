@@ -25,11 +25,18 @@ import {
   livenessFloorOf,
   narrowingOf,
 } from '../../utils/liveness-floor';
+import { DirectoryScanner } from '../../utils/directory-scanner';
+import { markJudgedNothing, withNotRead } from '../../utils/judged-nothing';
 import { honouredWaiverReason } from '../../utils/law-waivers';
 import { NxWorkspace } from '../../utils/nx-workspace';
 import { warnUser } from '../../utils/logging-utils';
 import { PathOperations } from '../../utils/path-operations';
 import { selectionProjectType } from '../../utils/selection-project-type';
+import {
+  type LawScanScope,
+  runLawScope,
+  vueNotReadNote,
+} from '../../utils/vue/vue-read-tracker';
 import { AuditCache } from './audit-cache';
 import type {
   AuditOptions,
@@ -1068,9 +1075,15 @@ export class RuleOfCodeAuditor {
     const severity = this.resolveLawSeverity(law);
 
     // Execute the actual law check function
-    if (typeof law.check === 'function') {
+    const check = law.check;
+    if (typeof check === 'function') {
       try {
-        const result = await law.check(this.projectRoot, this.config);
+        // Each law in its own scan scope: the shared scanners note a scan
+        // for script files that left .vue out (#607).
+        const scoped = await runLawScope(() =>
+          check.call(law, this.projectRoot, this.config)
+        );
+        const result = this.withVueNote(scoped.value, scoped.scope);
         // Ensure lawName is set + expose canonical registry identifiers so a
         // --json consumer can key `laws.notApplicable` (by lawId or legacyId)
         // without dumping the registry separately. A law that judged nothing
@@ -1114,6 +1127,35 @@ export class RuleOfCodeAuditor {
       violations: [],
       suggestions: [],
     };
+  }
+
+  /** The project's .vue files (project-relative), read once per audit. */
+  private vueFilesCache: string[] | undefined;
+  private vueFiles(): string[] {
+    this.vueFilesCache ??= DirectoryScanner.scanForFiles(
+      this.projectRoot,
+      this.config,
+      ['.vue']
+    ).map(file =>
+      PathOperations.getRelative(this.projectRoot, file).replace(/\\/g, '/')
+    );
+    return this.vueFilesCache;
+  }
+
+  /**
+   * A law that scanned for script files without .vue, in a project that has
+   * .vue files, did not read them: said in notRead, never a silent pass; when
+   * they are all the script there is, it judged nothing (#607).
+   */
+  private withVueNote<T>(result: T, scope: LawScanScope): T {
+    const vue = vueNotReadNote(scope, this.vueFiles());
+    if (!vue || !result || typeof result !== 'object') return result;
+    const current = result as unknown as {
+      passed: boolean;
+      notRead?: string[];
+    };
+    const noted = withNotRead(current, [...(current.notRead ?? []), vue.note]);
+    return (vue.judgedNothing ? markJudgedNothing(noted) : noted) as T;
   }
 
   private processResults(results: unknown[]): Partial<AuditResult> {

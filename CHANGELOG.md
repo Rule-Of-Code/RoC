@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — a law that does not read .vue files says so (#607, P0)
+
+The laws read `.ts` / `.tsx` / `.js` / `.jsx` through the shared scanners; a
+`.vue` single-file component — where most of a Vue project's code is — was
+not read, and a law that found nothing wrong in the rest passed in silence.
+Now every law that scans for script files and leaves `.vue` out, in a project
+that has `.vue` files, reports them in `notRead`:
+`.vue single-file components were not read: N file(s) (…) — this law reads
+.ts/.js only so far (#607)`. When the `.vue` files are all the script there
+is, the law judged nothing.
+
+The note comes from the scans themselves: the audit runs each law in its own
+scope (Node's AsyncLocalStorage, so laws run in parallel are told apart), and
+the shared directory scanner records a scan with script extensions and no
+`.vue`. A law that asks for `.vue` as well is taken to read it. Scans that do
+not go through the shared scanner (a law's own glob) are not seen.
+
+**Stricter: Vue projects may lose `passed` until a law reads `.vue`.** The
+laws learn to read `.vue` in the next packages of #607.
+
 ### ✨ Added — React guidance of the frontend architecture laws proved on a React app (#12)
 
 The React guidance of Stores In Data Access, Defensive Array Coercion, No

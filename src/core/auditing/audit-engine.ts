@@ -791,7 +791,7 @@ export class RuleOfCodeAuditor {
   /**
    * A law's identity keys, minus the ones that resolve to MORE THAN ONE law.
    *
-   * `legacyId` is not unique — 25 values are shared by 51 laws (20 = "No Explicit
+   * `legacyId` is not unique — 21 values are shared by 43 laws (20 = "No Explicit
    * Any" AND "Branch Governance Standards"). Applying such a key would silence
    * several laws while the team believes it silenced one: a hidden waiver
    * produced by us. We refuse to apply it, and Config Integrity Guard reports it

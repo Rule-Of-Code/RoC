@@ -1,4 +1,8 @@
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import { CheckerUtils } from '../../utils/checker-utils';
 import { ConfigFileUtils } from '../../utils/config-file-utils';
 import { FileUtils } from '../../utils/file-utils';
@@ -11,6 +15,8 @@ interface TodoFormattingAnalysis {
   improperlFormattedCount: number;
   outdatedCount: number;
   totalCount: number;
+  /** The TODOs counted in improperlFormattedCount, in scan order. */
+  improperlyFormatted: TODOComment[];
   violations: string[];
   suggestions: string[];
 }
@@ -163,10 +169,44 @@ export class TodoManagementStandardsLaw {
       details: [...violations, ...suggestions],
       violations,
       suggestions,
+      ...this.violationDetails(
+        todoAnalysis.todos,
+        projectRoot,
+        new Set(formattingAnalysis.improperlyFormatted),
+        new Set(referenceAnalysis.withoutReferences)
+      ),
       score: Math.max(0, score),
       fixable: true,
       config: context.config,
     });
+  }
+
+  /**
+   * The TODOs behind the two violation lines (#43): one detail per TODO
+   * either line counted, at its file and line, with the reasons it was
+   * counted for. The advisory counts (outdated, uncategorized, migration)
+   * are suggestions, not violations, and get none.
+   */
+  private static violationDetails(
+    todos: TODOComment[],
+    projectRoot: string,
+    improperlyFormatted: Set<TODOComment>,
+    withoutReferences: Set<TODOComment>
+  ): { violationDetails?: ViolationDetail[] } {
+    const details: ViolationDetail[] = [];
+    for (const todo of todos) {
+      const reasons = [
+        improperlyFormatted.has(todo) ? 'improper formatting' : null,
+        withoutReferences.has(todo) ? 'no JIRA/GitHub reference' : null,
+      ].filter((reason): reason is string => reason !== null);
+      if (reasons.length === 0) continue;
+      details.push({
+        file: PathOperations.getRelative(projectRoot, todo.file),
+        line: todo.line,
+        message: `${reasons.join('; ')}: ${todo.fullLine}`,
+      });
+    }
+    return details.length > 0 ? { violationDetails: details } : {};
   }
 
   private static analyzeTODOComments(projectRoot: string): {
@@ -344,6 +384,7 @@ export class TodoManagementStandardsLaw {
     let properlyFormattedCount = 0;
     let improperlFormattedCount = 0;
     let outdatedCount = 0;
+    const improperlyFormatted: TODOComment[] = [];
 
     const validFormats = [
       /\(JIRA-\d+\):/i, // (JIRA-123):
@@ -361,6 +402,7 @@ export class TodoManagementStandardsLaw {
         properlyFormattedCount++;
       } else {
         improperlFormattedCount++;
+        improperlyFormatted.push(todo);
       }
 
       // Check if TODO seems outdated (simple heuristic)
@@ -377,6 +419,7 @@ export class TodoManagementStandardsLaw {
       improperlFormattedCount,
       outdatedCount,
       totalCount: todos.length,
+      improperlyFormatted,
       violations:
         improperlFormattedCount > 0 ? ['Improper TODO formatting'] : [],
       suggestions:
@@ -390,9 +433,11 @@ export class TodoManagementStandardsLaw {
     withReferencesCount: number;
     withoutReferencesCount: number;
     percentageWithReferences: number;
+    withoutReferences: TODOComment[];
   } {
     let withReferencesCount = 0;
     let withoutReferencesCount = 0;
+    const withoutReferences: TODOComment[] = [];
 
     const referencePatterns = [
       /JIRA-\d+/i,
@@ -411,6 +456,7 @@ export class TodoManagementStandardsLaw {
         withReferencesCount++;
       } else {
         withoutReferencesCount++;
+        withoutReferences.push(todo);
       }
     }
 
@@ -422,6 +468,7 @@ export class TodoManagementStandardsLaw {
       withReferencesCount,
       withoutReferencesCount,
       percentageWithReferences,
+      withoutReferences,
     };
   }
 

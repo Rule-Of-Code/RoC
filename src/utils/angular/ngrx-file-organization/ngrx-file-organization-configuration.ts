@@ -202,14 +202,24 @@ export class NgRxFileOrganizationConfiguration {
   }
 
   /**
-   * Filter files by NgRx type
+   * Is this a test file (`*.spec.ts`, `*.test.ts`)? The tests the law asks
+   * for are neither NgRx source files to name nor a second reducer (#612).
    */
-  static filterFilesByType(files: FileEntry[], ngRxType: string): FileEntry[] {
-    return files.filter(file => file.name.includes(ngRxType));
+  static isTestFile(fileName: string): boolean {
+    return this.config.TEST_FILE_EXTENSIONS.some(ext => fileName.endsWith(ext));
   }
 
   /**
-   * Get TypeScript files excluding index.ts (RULE 2: Caching)
+   * Filter source files (not tests) by NgRx type
+   */
+  static filterFilesByType(files: FileEntry[], ngRxType: string): FileEntry[] {
+    return files.filter(
+      file => file.name.includes(ngRxType) && !this.isTestFile(file.name)
+    );
+  }
+
+  /**
+   * Get TypeScript source files excluding index.ts and tests (RULE 2: Caching)
    */
   static getTypeScriptFiles(files: FileEntry[]): FileEntry[] {
     const typeScriptExt = FILE_EXTENSIONS.TYPESCRIPT;
@@ -218,7 +228,8 @@ export class NgRxFileOrganizationConfiguration {
       file =>
         file.isFile() &&
         file.name.endsWith(typeScriptExt) &&
-        file.name !== indexFile
+        file.name !== indexFile &&
+        !this.isTestFile(file.name)
     );
   }
 

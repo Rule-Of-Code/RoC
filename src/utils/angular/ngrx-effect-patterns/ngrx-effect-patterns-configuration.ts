@@ -16,6 +16,13 @@ export class NgRxEffectPatternsConfiguration extends SignalConfigurationBase {
     ANGULAR_CONSTANTS,
   } as const;
 
+  /**
+   * The decorator with or without options: `@Injectable()` and
+   * `@Injectable({ providedIn: 'root' })`. The keyword `@Injectable()`
+   * matched only the first, so the second was "Missing @Injectable" (#612).
+   */
+  static readonly INJECTABLE_DECORATOR = /@Injectable\s*\(/;
+
   static readonly VALIDATION_MESSAGES = {
     MISSING_INJECTABLE_VIOLATION: 'Missing @Injectable decorator in {fileName}',
     USE_CREATE_EFFECT_SUGGESTION: 'Consider using createEffect for type safety',
@@ -45,7 +52,7 @@ export class NgRxEffectPatternsConfiguration extends SignalConfigurationBase {
     const constants = ANGULAR_CONSTANTS;
 
     return {
-      hasInjectable: content.includes(keywords.INJECTABLE),
+      hasInjectable: this.INJECTABLE_DECORATOR.test(content),
       hasCreateEffect: content.includes(keywords.CREATE_EFFECT),
       hasDispatchFalse: content.includes(keywords.DISPATCH_FALSE),
       hasTap: content.includes(constants.TAP),

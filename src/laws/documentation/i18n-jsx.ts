@@ -30,6 +30,8 @@ const TRANSLATION_CALLS = new Set([
 export interface JsxTextAnalysis {
   /** `path:line "text"` for each hardcoded text, in scan order. */
   hardcoded: string[];
+  /** The same texts as places: file (project-relative), line and quote. */
+  sites: Array<{ file: string; line: number; text: string }>;
   /** Whether any component calls a translation hook. */
   usesTranslations: boolean;
   /** Files that were not read (see ReactProject.parse). */
@@ -40,14 +42,19 @@ export function analyzeJsxText(context: LawCheckContext): JsxTextAnalysis {
   const files = ReactProject.sourceFiles(context, ['.tsx', '.jsx']);
   const { sources, unread } = ReactProject.parse(context, files);
   const hardcoded: string[] = [];
+  const sites: JsxTextAnalysis['sites'] = [];
   let usesTranslations = false;
   for (const source of sources) {
     const ts = source.ts;
     const rel = ReactProject.relative(context, source.fileName);
     const report = (node: TS.Node, text: string): void => {
-      hardcoded.push(
-        `${rel}:${source.lineOf(node)} "${text.trim().replace(/\s+/g, ' ').slice(0, TEXT_QUOTE_LENGTH)}"`
-      );
+      const line = source.lineOf(node);
+      const quote = text
+        .trim()
+        .replace(/\s+/g, ' ')
+        .slice(0, TEXT_QUOTE_LENGTH);
+      hardcoded.push(`${rel}:${line} "${quote}"`);
+      sites.push({ file: rel, line, text: quote });
     };
     source.walk(node => {
       if (
@@ -73,7 +80,7 @@ export function analyzeJsxText(context: LawCheckContext): JsxTextAnalysis {
       }
     });
   }
-  return { hardcoded, usesTranslations, unread };
+  return { hardcoded, sites, usesTranslations, unread };
 }
 
 function insideTranslated(

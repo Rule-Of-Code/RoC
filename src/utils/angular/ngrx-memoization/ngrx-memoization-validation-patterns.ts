@@ -4,6 +4,7 @@ import { DIRECTORY_NAMES } from '../../constants';
 import { FileUtils } from '../../file-utils';
 import { PathOperations } from '../../path-operations';
 import { AngularConfigurationBase } from '../angular-configuration-base';
+import { NgRxDirectStoreSelect } from './ngrx-direct-store-select';
 import { NgRxMemoizationConfiguration } from './ngrx-memoization-configuration';
 
 /**
@@ -33,12 +34,18 @@ export class NgRxMemoizationValidationPatterns extends AngularConfigurationBase 
   >;
 
   /**
-   * Validate all NgRx memoization compliance patterns
+   * Validate all NgRx memoization compliance patterns.
+   *
+   * The law runs this twice, the second time through the selector patterns
+   * analyzer, which passes `directSelects: false`: a direct store.select is
+   * one finding, not two (#612). `notRead` holds the component files whose
+   * store.select calls could not be read, and is absent when there are none.
    */
   static validateAllMemoizationPatterns(
     projectRoot: string,
-    config: RuleOfCodeConfig
-  ): { violations: string[]; suggestions: string[] } {
+    config: RuleOfCodeConfig,
+    { directSelects = true }: { directSelects?: boolean } = {}
+  ): { violations: string[]; suggestions: string[]; notRead?: string[] } {
     const { violations, suggestions } =
       NgRxMemoizationValidationPatterns.initializeAnalysis(
         projectRoot,
@@ -57,9 +64,18 @@ export class NgRxMemoizationValidationPatterns extends AngularConfigurationBase 
 
     // Find and analyze component files
     const componentFiles = this.findComponentFilesWithChecker(srcPath, config);
-    this.validateAllComponentFiles(componentFiles, violations, suggestions);
+    this.validateAllComponentFiles(componentFiles, suggestions);
+    if (!directSelects) return { violations, suggestions };
 
-    return { violations, suggestions };
+    const notRead = this.validateDirectStoreSelects(
+      projectRoot,
+      componentFiles,
+      violations,
+      suggestions
+    );
+    return notRead.length > 0
+      ? { violations, suggestions, notRead }
+      : { violations, suggestions };
   }
 
   /**
@@ -242,11 +258,10 @@ export class NgRxMemoizationValidationPatterns extends AngularConfigurationBase 
    */
   private static validateAllComponentFiles(
     componentFiles: string[],
-    violations: string[],
     suggestions: string[]
   ): void {
     for (const componentFile of componentFiles) {
-      this.validateSingleComponentFile(componentFile, violations, suggestions);
+      this.validateSingleComponentFile(componentFile, suggestions);
     }
   }
 
@@ -255,7 +270,6 @@ export class NgRxMemoizationValidationPatterns extends AngularConfigurationBase 
    */
   private static validateSingleComponentFile(
     componentFile: string,
-    violations: string[],
     suggestions: string[]
   ): void {
     try {
@@ -268,13 +282,6 @@ export class NgRxMemoizationValidationPatterns extends AngularConfigurationBase 
       const analysis = this.config.analyzeComponentSelectorPatterns(content);
 
       // Apply all component validation checks
-      this.validateDirectStoreSelect(
-        analysis,
-        content,
-        fileName,
-        violations,
-        suggestions
-      );
       this.validateMultipleSubscriptions(analysis, fileName, suggestions);
       this.validateUnsubscribedSelectors(analysis, fileName, suggestions);
     } catch (_error) {
@@ -283,38 +290,30 @@ export class NgRxMemoizationValidationPatterns extends AngularConfigurationBase 
   }
 
   /**
-   * Validate direct store.select usage
+   * Report the component files that call store.select without a selector,
+   * once per file. Returns the notes for the files that were not read.
    */
-  private static validateDirectStoreSelect(
-    analysis: typeof this.componentAnalysis,
-    content: string,
-    fileName: string,
+  private static validateDirectStoreSelects(
+    projectRoot: string,
+    componentFiles: readonly string[],
     violations: string[],
     suggestions: string[]
-  ): void {
-    if (analysis.hasValidDirectSelects) return;
-
-    const directSelects = this.config.findDirectSelects(content);
-    if (!directSelects) return;
-
-    // Check each direct select for validity
-    for (const select of directSelects) {
-      if (this.config.isInvalidDirectSelect(select)) {
-        violations.push(
-          this.config.buildMessage(
-            this.config.VALIDATION_MESSAGES.DIRECT_STORE_SELECT,
-            fileName
-          )
-        );
-        suggestions.push(
-          this.config.buildMessage(
-            this.config.VALIDATION_MESSAGES.USE_MEMOIZED_SELECTORS,
-            fileName
-          )
-        );
-        break;
-      }
+  ): string[] {
+    const { direct, notRead } = NgRxDirectStoreSelect.readFiles(
+      projectRoot,
+      componentFiles
+    );
+    const messages = this.config.VALIDATION_MESSAGES;
+    for (const file of direct) {
+      const name = PathOperations.getBasename(file);
+      violations.push(
+        this.config.buildMessage(messages.DIRECT_STORE_SELECT, name)
+      );
+      suggestions.push(
+        this.config.buildMessage(messages.USE_MEMOIZED_SELECTORS, name)
+      );
     }
+    return notRead;
   }
 
   /**
@@ -374,12 +373,21 @@ export class NgRxMemoizationValidationPatterns extends AngularConfigurationBase 
   static analyzeComponentFileComprehensive(componentFile: string): {
     violations: string[];
     suggestions: string[];
+    notRead?: string[];
   } {
     const violations: string[] = [];
     const suggestions: string[] = [];
 
-    this.validateSingleComponentFile(componentFile, violations, suggestions);
+    this.validateSingleComponentFile(componentFile, suggestions);
+    const notRead = this.validateDirectStoreSelects(
+      PathOperations.getDirectory(componentFile),
+      [componentFile],
+      violations,
+      suggestions
+    );
 
-    return { violations, suggestions };
+    return notRead.length > 0
+      ? { violations, suggestions, notRead }
+      : { violations, suggestions };
   }
 }

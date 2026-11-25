@@ -1,7 +1,13 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
-import { QualityAssessmentUtils } from '../../utils/quality-assessment-utils';
+import {
+  assessIncidentDocsQuality,
+  hasCommunicationContent,
+  hasEscalationContent,
+  hasRolesContent,
+  hasRTOContent,
+} from './incident-content';
 /**
  * Incident Response Protocol Law
  *
@@ -134,7 +140,7 @@ export class IncidentResponseProtocolLaw {
         hasIncidentDocs = true;
         try {
           const content = FileUtils.readFile(filePath, { encoding: 'utf8' });
-          docsQuality = this.assessIncidentDocsQuality(content);
+          docsQuality = assessIncidentDocsQuality(content);
         } catch (_error) {
           docsQuality = 'basic';
         }
@@ -168,7 +174,7 @@ export class IncidentResponseProtocolLaw {
       if (FileUtils.exists(filePath)) {
         try {
           const content = FileUtils.readFile(filePath, { encoding: 'utf8' });
-          if (this.hasEscalationContent(content)) {
+          if (hasEscalationContent(content)) {
             hasEscalationProcedures = true;
             break;
           }
@@ -280,80 +286,6 @@ export class IncidentResponseProtocolLaw {
     return { hasResponseTimeObjectives, objectives: [] };
   }
 
-  private static assessIncidentDocsQuality(content: string): string {
-    const qualityIndicators = [
-      /escalation/i,
-      /communication/i,
-      /roles.*responsibilities/i,
-      /response.*time/i,
-      /severity.*level/i,
-      /post.*incident/i,
-      /contact.*information/i,
-      /classification/i,
-    ];
-
-    return QualityAssessmentUtils.assessQualityByPatterns(
-      content,
-      qualityIndicators
-    );
-  }
-
-  private static hasEscalationContent(content: string): boolean {
-    const escalationPatterns = [
-      /escalation/i,
-      /escalate/i,
-      /severity.*level/i,
-      /critical.*incident/i,
-      /management.*notification/i,
-      /escalation.*path/i,
-      /decision.*criteria/i,
-    ];
-
-    return escalationPatterns.some(pattern => pattern.test(content));
-  }
-
-  private static hasCommunicationContent(content: string): boolean {
-    const communicationPatterns = [
-      /communication.*plan/i,
-      /notification/i,
-      /status.*update/i,
-      /stakeholder/i,
-      /customer.*communication/i,
-      /communication.*template/i,
-      /announcement/i,
-    ];
-
-    return communicationPatterns.some(pattern => pattern.test(content));
-  }
-
-  private static hasRolesContent(content: string): boolean {
-    const rolesPatterns = [
-      /roles.*responsibilities/i,
-      /incident.*commander/i,
-      /incident.*manager/i,
-      /on.*call/i,
-      /responsibility/i,
-      /RACI/i,
-      /accountable/i,
-    ];
-
-    return rolesPatterns.some(pattern => pattern.test(content));
-  }
-
-  private static hasRTOContent(content: string): boolean {
-    const rtoPatterns = [
-      /response.*time/i,
-      /RTO/i,
-      /time.*objective/i,
-      /SLA/i,
-      /service.*level/i,
-      /\d+.*hour/i,
-      /\d+.*minute/i,
-    ];
-
-    return rtoPatterns.some(pattern => pattern.test(content));
-  }
-
   private static generateMessage(
     violationCount: number,
     incidentDocs: { hasIncidentDocs: boolean; docsQuality: string }
@@ -397,19 +329,19 @@ export class IncidentResponseProtocolLaw {
     projectRoot: string
   ): boolean {
     return this.checkIncidentFilesForContent(projectRoot, content =>
-      this.hasCommunicationContent(content)
+      hasCommunicationContent(content)
     );
   }
 
   private static checkIncidentFilesForRoles(projectRoot: string): boolean {
     return this.checkIncidentFilesForContent(projectRoot, content =>
-      this.hasRolesContent(content)
+      hasRolesContent(content)
     );
   }
 
   private static checkIncidentFilesForRTO(projectRoot: string): boolean {
     return this.checkIncidentFilesForContent(projectRoot, content =>
-      this.hasRTOContent(content)
+      hasRTOContent(content)
     );
   }
 }

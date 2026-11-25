@@ -1,4 +1,8 @@
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import { FileFilterUtils } from '../../utils/file-filter-utils';
 import { FileUtils } from '../../utils/file-utils';
 import { markJudgedNothing } from '../../utils/judged-nothing';
@@ -43,7 +47,10 @@ export class MdFooterTemplateLaw {
     }
 
     // 2. Check footer compliance for each markdown file
-    const footerAnalysis = this.analyzeFooterCompliance(markdownFiles);
+    const footerAnalysis = this.analyzeFooterCompliance(
+      markdownFiles,
+      projectRoot
+    );
 
     if (footerAnalysis.missingFooters.length > 0) {
       const missingCount = footerAnalysis.missingFooters.length;
@@ -124,9 +131,42 @@ export class MdFooterTemplateLaw {
       details: [...violations, ...suggestions],
       violations,
       suggestions,
+      ...this.violationDetails(footerAnalysis),
       fixable: true,
       config: context.config,
     });
+  }
+
+  /**
+   * The files behind each count (#43), relative to the project root: one
+   * detail per file and per reason, in the order the lines report them. The
+   * missing-elements line names elements, not files, and has none.
+   */
+  private static violationDetails(analysis: {
+    missingFooters: string[];
+    invalidFormatFooters: string[];
+    invalidRatings: string[];
+    invalidDates: string[];
+  }): { violationDetails?: ViolationDetail[] } {
+    const details: ViolationDetail[] = [
+      ...analysis.missingFooters.map(file => ({
+        file,
+        message: 'no constitutional footer',
+      })),
+      ...analysis.invalidFormatFooters.map(file => ({
+        file,
+        message: 'footer not in the standard format',
+      })),
+      ...analysis.invalidRatings.map(file => ({
+        file,
+        message: 'footer rating not in a readable format',
+      })),
+      ...analysis.invalidDates.map(file => ({
+        file,
+        message: 'footer date not in the standard format',
+      })),
+    ];
+    return details.length > 0 ? { violationDetails: details } : {};
   }
 
   /**
@@ -189,7 +229,10 @@ export class MdFooterTemplateLaw {
     return { found, selected };
   }
 
-  private static analyzeFooterCompliance(markdownFiles: string[]): {
+  private static analyzeFooterCompliance(
+    markdownFiles: string[],
+    projectRoot: string
+  ): {
     compliantFiles: number;
     missingFooters: string[];
     invalidFormatFooters: string[];
@@ -210,9 +253,9 @@ export class MdFooterTemplateLaw {
         const footerAnalysis = this.analyzeFileFooter(content, file);
 
         if (!footerAnalysis.hasFooter) {
-          missingFooters.push(PathOperations.getRelative(process.cwd(), file));
+          missingFooters.push(PathOperations.getRelative(projectRoot, file));
         } else if (
-          this.collectFooterIssues(footerAnalysis, file, {
+          this.collectFooterIssues(footerAnalysis, file, projectRoot, {
             invalidFormatFooters,
             validFooters,
             invalidRatings,
@@ -222,7 +265,7 @@ export class MdFooterTemplateLaw {
           compliantFiles++;
         }
       } catch (_error) {
-        missingFooters.push(PathOperations.getRelative(process.cwd(), file));
+        missingFooters.push(PathOperations.getRelative(projectRoot, file));
       }
     }
 
@@ -244,6 +287,7 @@ export class MdFooterTemplateLaw {
       footerContent: string;
     },
     file: string,
+    projectRoot: string,
     issues: {
       invalidFormatFooters: string[];
       validFooters: Array<{ file: string; content: string }>;
@@ -253,18 +297,16 @@ export class MdFooterTemplateLaw {
   ): boolean {
     if (!footerAnalysis.validFormat) {
       issues.invalidFormatFooters.push(
-        PathOperations.getRelative(process.cwd(), file)
+        PathOperations.getRelative(projectRoot, file)
       );
     }
 
     if (!footerAnalysis.validRating) {
-      issues.invalidRatings.push(
-        PathOperations.getRelative(process.cwd(), file)
-      );
+      issues.invalidRatings.push(PathOperations.getRelative(projectRoot, file));
     }
 
     if (!footerAnalysis.validDate) {
-      issues.invalidDates.push(PathOperations.getRelative(process.cwd(), file));
+      issues.invalidDates.push(PathOperations.getRelative(projectRoot, file));
     }
 
     issues.validFooters.push({ file, content: footerAnalysis.footerContent });

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — No Layout Transition reads the `<style>` of .vue components (#607)
+
+No Layout Transition read `.scss` / `.css` files only. In a Vue project most
+styles live in the `<style>` blocks of `.vue` components, and a transition on
+`width` there was never judged, with nothing said. The law now reads those
+blocks (any `lang`), reports at the component's own line, and does not read
+the template or script as CSS. The card says so.
+
+**Stricter** for Vue projects.
+
 ### 🐛 Fixed — a strict-flag finding never points into node_modules (#640)
 
 A tsconfig that extends a base from a package (`@vue/tsconfig`,

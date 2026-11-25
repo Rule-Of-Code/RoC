@@ -21,6 +21,90 @@ Also: a missing flag that `strict` does not switch on (`noImplicitReturns`,
 `noUnusedLocals`, …) was attributed to the file that set `strict`; it goes
 to the file where the chain ends without it.
 
+### 🐛 Fixed — a law's own glob for script files is held to the .vue note too (#607, P2b)
+
+The `.vue` note of #607 P0 came from the shared directory scanner only.
+Two shared readers that laws call with their own globs now report the same
+way: `readProjectFiles` (Latency Budget Harness Realism, Test Server
+Loopback Address Match, Tracing Explains Latency) and `readFilesContaining`
+(the laws that judge the files their `requires.anyFileContaining` gate
+selected). A glob for script files that leaves `.vue` out, in a project
+with `.vue` files, gives the law the `notRead` note; a glob that names
+`.vue` does not. The selection gate itself runs outside a law and is not
+affected.
+
+**Stricter** in Vue projects, like P0.
+
+### Internal — the shared readers read a .vue file as its script (#607, P2a)
+
+The TypeScript parse the laws share (`TsxSource`), the code-quality source
+view (`readSource`) and `CodeText.codeOnly` read a `.vue` file as its script
+view — the contents of `<script>` and `<script setup>`, at the file's own
+offsets and lines — parsed by its `lang`. `scriptText` and `markupText` give
+a law that reads text the script or the template of a `.vue` file. A law
+starts to read `.vue` by asking the shared scanner for `.vue` and reading
+through these; the `notRead` note of #607 P0 then leaves it out. No law asks
+for `.vue` yet, so no result changes.
+
+### Internal — a Vue single-file component reader (#607, P1)
+
+`src/utils/vue/vue-sfc.ts` splits a `.vue` file into a script view (the
+contents of `<script>` and `<script setup>`) and a template view (the
+top-level `<template>`). Each view keeps the file's length and line breaks
+and blanks the rest, so an offset or a line found in a view is the same in
+the `.vue` file; `scriptFileName` tells a parser how to read the script
+(`lang="ts"`, `tsx`, `jsx` or none). Only top-level blocks count: a nested
+`<template #slot>` is markup, and a block inside an HTML comment is not a
+block. No law reads it yet; the laws start to in the next packages.
+
+### 🐛 Fixed — a law that does not read .vue files says so (#607, P0)
+
+The laws read `.ts` / `.tsx` / `.js` / `.jsx` through the shared scanners; a
+`.vue` single-file component — where most of a Vue project's code is — was
+not read, and a law that found nothing wrong in the rest passed in silence.
+Now every law that scans for script files and leaves `.vue` out, in a project
+that has `.vue` files, reports them in `notRead`:
+`.vue single-file components were not read: N file(s) (…) — this law reads
+.ts/.js only so far (#607)`. When the `.vue` files are all the script there
+is, the law judged nothing.
+
+The note comes from the scans themselves: the audit runs each law in its own
+scope (Node's AsyncLocalStorage, so laws run in parallel are told apart), and
+the shared directory scanner records a scan with script extensions and no
+`.vue`. A law that asks for `.vue` as well is taken to read it. Scans that do
+not go through the shared scanner (a law's own glob) are not seen.
+
+**Stricter: Vue projects may lose `passed` until a law reads `.vue`.** The
+laws learn to read `.vue` in the next packages of #607.
+
+### ✨ Added — Code-quality laws name what they counted (#43, code quality)
+
+Eight code-quality laws said how many and not where: "2 occurrence(s)",
+"Magic numbers in src/x.ts: 42, 3.14 (+4 more)", "worst function 14". Each
+law already held what it counted. It now puts it in `violationDetails`, which
+the console prints under the violation and `--export json` carries in full:
+
+- **No Double Cast**: each `as unknown as`, at its line.
+- **No Explicit Any / Non-Null Assertion**: each weak type (`<any>`,
+  `: Function`, `: Object`) and each non-null `!`, at its line.
+- **Absolute Zero Tolerance Doctrine**: each console statement, TODO/FIXME
+  tag, hand-written `any`, `eslint-disable` comment and empty catch block, at
+  its line; for strict mode off, the tsconfig.json it read.
+- **Error Handling Completeness**: each dropped promise and each unguarded
+  event handler, at its line; a file with HTTP calls and no try/catch.
+- **Centralized Logging**: each direct `console.*` call and each `print()`,
+  at its line.
+- **Web Storage Encapsulation**: each localStorage/sessionStorage call, at
+  its line.
+- **Magic Number Prevention**: every literal, at its line (the violation line
+  shows five).
+- **Code Complexity Control**: each function over the complexity limit, at
+  its line, with its complexity; the measure behind a file-length, function-
+  count or file-complexity finding.
+
+The violation lines, verdicts and scores are unchanged. Nothing new is
+searched for.
+
 ### 🐛 Fixed — Config values written into a git hook are quoted (#624)
 
 A commit pattern, a commit type or an emoji from the config is written into the
@@ -46,6 +130,37 @@ values are unchanged.
 
 The fix reaches a project when its hooks are generated again:
 `npx ruleofcode reinstall-hooks`.
+
+### Internal — a Vue single-file component reader (#607, P1)
+
+`src/utils/vue/vue-sfc.ts` splits a `.vue` file into a script view (the
+contents of `<script>` and `<script setup>`) and a template view (the
+top-level `<template>`). Each view keeps the file's length and line breaks
+and blanks the rest, so an offset or a line found in a view is the same in
+the `.vue` file; `scriptFileName` tells a parser how to read the script
+(`lang="ts"`, `tsx`, `jsx` or none). Only top-level blocks count: a nested
+`<template #slot>` is markup, and a block inside an HTML comment is not a
+block. No law reads it yet; the laws start to in the next packages.
+
+### 🐛 Fixed — a law that does not read .vue files says so (#607, P0)
+
+The laws read `.ts` / `.tsx` / `.js` / `.jsx` through the shared scanners; a
+`.vue` single-file component — where most of a Vue project's code is — was
+not read, and a law that found nothing wrong in the rest passed in silence.
+Now every law that scans for script files and leaves `.vue` out, in a project
+that has `.vue` files, reports them in `notRead`:
+`.vue single-file components were not read: N file(s) (…) — this law reads
+.ts/.js only so far (#607)`. When the `.vue` files are all the script there
+is, the law judged nothing.
+
+The note comes from the scans themselves: the audit runs each law in its own
+scope (Node's AsyncLocalStorage, so laws run in parallel are told apart), and
+the shared directory scanner records a scan with script extensions and no
+`.vue`. A law that asks for `.vue` as well is taken to read it. Scans that do
+not go through the shared scanner (a law's own glob) are not seen.
+
+**Stricter: Vue projects may lose `passed` until a law reads `.vue`.** The
+laws learn to read `.vue` in the next packages of #607.
 
 ### 🐛 Fixed — the code-quality laws read an eslint.config.mjs as ESLint loads it (#613)
 

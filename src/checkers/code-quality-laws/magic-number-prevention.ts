@@ -4,7 +4,11 @@
  */
 
 import type { RuleOfCodeConfig } from '../../config/types';
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import { FileUtils } from '../../utils';
 import { markJudgedNothing } from '../../utils/judged-nothing';
 import { PathOperations } from '../../utils/path-operations';
@@ -56,6 +60,9 @@ export class MagicNumberPreventionLaw extends CodeQualityLawBase {
       fixable: violations.length > 0,
       config: context.config,
       ...(details.length > 0 ? { details } : {}),
+      ...(magicNumberAnalysis.details.length > 0
+        ? { violationDetails: magicNumberAnalysis.details }
+        : {}),
     };
   }
 
@@ -86,9 +93,15 @@ export class MagicNumberPreventionLaw extends CodeQualityLawBase {
     projectRoot: string,
     config: RuleOfCodeConfig,
     lawId?: string
-  ): { violations: string[]; suggestions: string[] } {
+  ): {
+    violations: string[];
+    suggestions: string[];
+    details: ViolationDetail[];
+  } {
     const violations: string[] = [];
     const suggestions: string[] = [];
+    // Every literal behind a file's line (which shows five), at its line (#43).
+    const details: ViolationDetail[] = [];
 
     const codeFiles = MagicNumberPreventionLaw.findCodeFilesForAnalysis(
       projectRoot,
@@ -99,7 +112,8 @@ export class MagicNumberPreventionLaw extends CodeQualityLawBase {
     for (const file of codeFiles) {
       try {
         const content = FileUtils.readFile(file);
-        const magicNumbers = this.findMagicNumbers(content, file, projectRoot);
+        const sites = this.magicNumberSites(content, file, projectRoot);
+        const magicNumbers = Array.from(new Set(sites.map(site => site.text)));
 
         if (magicNumbers.length > 0) {
           magicNumberFiles++;
@@ -115,6 +129,13 @@ export class MagicNumberPreventionLaw extends CodeQualityLawBase {
               extra > 0 ? ` (+${extra} more)` : ''
             }`
           );
+          details.push(
+            ...sites.map(site => ({
+              file: relativePath,
+              line: site.line,
+              message: `magic number ${site.text}`,
+            }))
+          );
         }
       } catch (_error) {
         // Continue if file can't be read
@@ -127,7 +148,7 @@ export class MagicNumberPreventionLaw extends CodeQualityLawBase {
       suggestions.push('Use enums for related magic numbers');
     }
 
-    return { violations, suggestions };
+    return { violations, suggestions, details };
   }
 
   /**
@@ -160,20 +181,31 @@ export class MagicNumberPreventionLaw extends CodeQualityLawBase {
    * text, a regex or a comment is never one, and one inside a template
    * substitution (`${x.slice(0, 57)}`) is. A literal the code already names
    * is not reported — see magic-number-names.ts.
+   *
+   * Not private: the regression tests read it.
    */
-  private static findMagicNumbers(
+  static findMagicNumbers(
     content: string,
     fileName = 'file.ts',
     projectRoot = process.cwd()
   ): string[] {
+    const sites = this.magicNumberSites(content, fileName, projectRoot);
+    return Array.from(new Set(sites.map(site => site.text)));
+  }
+
+  /** Every magic-number literal of a file, with its line. */
+  private static magicNumberSites(
+    content: string,
+    fileName: string,
+    projectRoot: string
+  ): Array<{ text: string; line: number }> {
     const ts = loadTypeScript(projectRoot);
     if (!ts) throw new Error(parserUnavailable(projectRoot, fileName));
     const { source, code } = readSource(ts, content, fileName);
-    const magicNumbers = numericLiterals(ts, source)
+    return numericLiterals(ts, source)
       .filter(site => !site.named && this.isCandidate(site.text))
       .filter(site => !this.namedByText(code, site.start, site.text))
-      .map(site => site.text);
-    return Array.from(new Set(magicNumbers));
+      .map(site => ({ text: site.text, line: this.lineAt(code, site.start) }));
   }
 
   /**

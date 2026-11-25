@@ -7,6 +7,7 @@ import type {
   LawCheckContext,
   LawResult,
   RuleOfCodeConfig,
+  ViolationDetail,
 } from '../../types/law.types';
 import { FileUtils } from '../../utils';
 import { CheckerUtils } from '../../utils/checker-utils';
@@ -49,20 +50,27 @@ export class ErrorHandlingCompletenessLaw extends CodeQualityLawBase {
     const errorMonitoring = this.checkErrorMonitoring(context.projectRoot);
     suggestions.push(...errorMonitoring.suggestions);
 
-    return ErrorHandlingCompletenessLaw.createResult(
+    const result = ErrorHandlingCompletenessLaw.createResult(
       violations,
       'Error Handling Completeness',
       'Code Quality',
       suggestions,
       context
     );
+    return this.withDetails(result, errorHandlingAnalysis.details);
   }
 
   private static analyzeErrorHandling(
     projectRoot: string,
     config: RuleOfCodeConfig
-  ): { violations: string[]; suggestions: string[] } {
+  ): {
+    violations: string[];
+    suggestions: string[];
+    details: ViolationDetail[];
+  } {
     const { violations, suggestions } = this.initializeAnalysis();
+    // Each gap behind a file's line, at its line when the law has it (#43).
+    const details: ViolationDetail[] = [];
 
     const codeFiles = CheckerUtils.findFilesByExtension(
       projectRoot,
@@ -85,7 +93,7 @@ export class ErrorHandlingCompletenessLaw extends CodeQualityLawBase {
           `the ${codeFiles.length} .ts/.js file(s)`
         )
       );
-      return { violations, suggestions };
+      return { violations, suggestions, details };
     }
 
     for (const file of codeFiles) {
@@ -105,6 +113,12 @@ export class ErrorHandlingCompletenessLaw extends CodeQualityLawBase {
             `Error handling gaps in ${relativePath}: ${errorHandlingIssues.violations.join(
               ', '
             )}`
+          );
+          details.push(
+            ...errorHandlingIssues.sites.map(site => ({
+              file: relativePath,
+              ...site,
+            }))
           );
         }
       } catch (_error) {
@@ -128,7 +142,7 @@ export class ErrorHandlingCompletenessLaw extends CodeQualityLawBase {
       );
     }
 
-    return { violations, suggestions };
+    return { violations, suggestions, details };
   }
 
   /**
@@ -144,11 +158,18 @@ export class ErrorHandlingCompletenessLaw extends CodeQualityLawBase {
   ): {
     violations: string[];
     suggestions: string[];
+    sites: Array<{ line?: number; message: string }>;
   } {
     const violations: string[] = [];
     const { source, code } = readSource(ts, content, file);
 
     const floating = findFloatingPromises(ts, source);
+    const sites: Array<{ line?: number; message: string }> = floating.map(
+      f => ({
+        line: f.line,
+        message: 'promise neither awaited, returned nor caught',
+      })
+    );
     if (floating.length > 0) {
       violations.push(
         `${floating.length} promise(s) neither awaited, returned nor caught (line ${floating
@@ -157,9 +178,29 @@ export class ErrorHandlingCompletenessLaw extends CodeQualityLawBase {
       );
     }
 
-    violations.push(...this.guardingGaps(ts, source, code));
+    const gaps = this.guardingGaps(ts, source, code);
+    violations.push(...gaps);
+    if (gaps.includes('HTTP requests without error handling')) {
+      sites.push({
+        message: 'HTTP requests in a file with no try {} and no .catch()',
+      });
+    }
+    if (!this.isAngularConfig(code)) {
+      for (const line of findUnguardedListeners(ts, source)) {
+        sites.push({ line, message: 'event handler without error handling' });
+      }
+    }
 
-    return { violations, suggestions: [] };
+    return { violations, suggestions: [], sites };
+  }
+
+  /** Angular config files only provide the HTTP client and the global listeners. */
+  private static isAngularConfig(code: string): boolean {
+    return (
+      code.includes('ApplicationConfig') ||
+      code.includes('provideRouter') ||
+      code.includes('CapacitorConfig')
+    );
   }
 
   /**
@@ -174,11 +215,7 @@ export class ErrorHandlingCompletenessLaw extends CodeQualityLawBase {
     source: Parameters<typeof findUnguardedListeners>[1],
     code: string
   ): string[] {
-    const isAngularConfig =
-      code.includes('ApplicationConfig') ||
-      code.includes('provideRouter') ||
-      code.includes('CapacitorConfig');
-    if (isAngularConfig) return [];
+    if (this.isAngularConfig(code)) return [];
     return [
       ...this.unguardedHttp(code),
       ...this.unguardedListeners(ts, source),

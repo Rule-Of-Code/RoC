@@ -18,6 +18,7 @@
  */
 
 import type * as TS from 'typescript';
+import { parseInput } from '../vue/vue-sfc';
 
 export type TypeScriptModule = typeof TS;
 
@@ -108,19 +109,24 @@ export interface ImportInfo {
 export class TsxSource {
   readonly sourceFile: TS.SourceFile;
 
+  readonly text: string;
+
   private constructor(
     readonly ts: TypeScriptModule,
     readonly fileName: string,
-    readonly text: string
+    fileText: string
   ) {
-    const kind = /\.(?:tsx|jsx)$/.test(fileName)
+    // A .vue file is parsed as its script view, by its lang (#607).
+    const input = parseInput(fileName, fileText);
+    this.text = input.text;
+    const kind = /\.(?:tsx|jsx)$/.test(input.fileName)
       ? ts.ScriptKind.TSX
-      : /\.(?:js|mjs|cjs)$/.test(fileName)
+      : /\.(?:js|mjs|cjs)$/.test(input.fileName)
         ? ts.ScriptKind.JS
         : ts.ScriptKind.TS;
     this.sourceFile = ts.createSourceFile(
-      fileName,
-      text,
+      input.fileName,
+      input.text,
       ts.ScriptTarget.Latest,
       true,
       kind

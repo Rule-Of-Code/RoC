@@ -9,7 +9,11 @@
  * console checks in generic-angular / dead-code-elimination defer to it.
  */
 
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import { PathOperations } from '../../utils/path-operations';
 import { FileUtils } from '../../utils/file-utils';
 import {
@@ -56,7 +60,8 @@ export class CentralizedLoggingLaw extends CodeQualityLawBase {
    */
   private static collectConsoleViolations(
     context: LawCheckContext,
-    violations: string[]
+    violations: string[],
+    details: ViolationDetail[]
   ): void {
     const { projectRoot } = context;
     const files = this.findTypeScriptFiles(projectRoot, context);
@@ -83,12 +88,23 @@ export class CentralizedLoggingLaw extends CodeQualityLawBase {
         `\\bconsole\\s*\\.\\s*(${methods.join('|')})\\s*\\(`,
         'g'
       );
-      const matches = readSource(ts, content, file).code.match(pattern);
+      const { code } = readSource(ts, content, file);
+      const matches = code.match(pattern);
       if (matches && matches.length > 0) {
+        const rel = PathOperations.getRelative(projectRoot, file);
         violations.push(
-          `${PathOperations.getRelative(projectRoot, file)}: ${
+          `${rel}: ${
             matches.length
           } direct console.* call(s) — route logging through the logger service.`
+        );
+        // Each call behind the count, at its line (#43).
+        details.push(
+          ...this.matchDetails(
+            code,
+            pattern,
+            rel,
+            call => `direct ${call.replace(/\s+/g, '')}…) call`
+          )
         );
       }
     }
@@ -97,7 +113,8 @@ export class CentralizedLoggingLaw extends CodeQualityLawBase {
   /** The Python branch — print() outside tests/CLI tooling. */
   private static collectPrintViolations(
     context: LawCheckContext,
-    violations: string[]
+    violations: string[],
+    details: ViolationDetail[]
   ): void {
     const { projectRoot, config } = context;
     for (const file of PythonLawBase.getPythonFiles(projectRoot, config)) {
@@ -106,12 +123,15 @@ export class CentralizedLoggingLaw extends CodeQualityLawBase {
         continue;
       const content = FileUtils.readFileContentSync(file);
       if (!content) continue;
-      const matches = PythonLawBase.stripPython(content).match(this.PY_PRINT);
+      const code = PythonLawBase.stripPython(content);
+      const matches = code.match(this.PY_PRINT);
       if (matches && matches.length > 0) {
+        const rel = PathOperations.getRelative(projectRoot, file);
         violations.push(
-          `${PathOperations.getRelative(projectRoot, file)}: ${
-            matches.length
-          } print() call(s) — use the logging module.`
+          `${rel}: ${matches.length} print() call(s) — use the logging module.`
+        );
+        details.push(
+          ...this.matchDetails(code, this.PY_PRINT, rel, () => 'print() call')
         );
       }
     }
@@ -119,10 +139,11 @@ export class CentralizedLoggingLaw extends CodeQualityLawBase {
 
   static check(context: LawCheckContext): LawResult {
     const violations: string[] = [];
-    this.collectConsoleViolations(context, violations);
-    this.collectPrintViolations(context, violations);
+    const details: ViolationDetail[] = [];
+    this.collectConsoleViolations(context, violations, details);
+    this.collectPrintViolations(context, violations, details);
 
-    return this.createResult(
+    const result = this.createResult(
       violations,
       'Centralized Logging',
       'CODE_QUALITY_LAW',
@@ -132,5 +153,6 @@ export class CentralizedLoggingLaw extends CodeQualityLawBase {
       ],
       context
     );
+    return this.withDetails(result, details);
   }
 }

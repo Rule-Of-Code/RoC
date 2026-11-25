@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — CI workflow checks read the workflow they found (#642)
+
+The scanners return full paths. Seven checks joined the workflow directory
+in front of such a path again, so the read failed in silence and a project
+with the workflow got the suggestion meant for a project without one:
+Commit Size Control ("Add PR size validation…"), Merge Conflict Prevention
+("Add merge conflict detection…"), Release Tag Standards ("Create GitHub
+Actions workflow for automated releases"), Continuous Compliance Doctrine
+("Add scheduled compliance checks…"), the GitHub security features check
+("Add GitHub Actions workflow for security scanning", "Include npm audit…"),
+secret scanning ("Implement secret scanning…") and the CI scan of
+Dependency Security Scanning. Each now reads the path the scanner gave.
+
+The security-workflow check also tested the name on the full path, so a
+project whose folder path held `security` or `audit` counted every workflow
+as a security workflow. It tests the file's name now; such a project gets
+the suggestion it was missing.
+
+Only suggestions change; no verdict or score does. The internal score the
+security features check takes off does not reach a law.
+
 ### ✨ Added — Version-control laws name what they counted (#43, version control)
 
 Three version-control laws said how many and never which: "1 of the last 3

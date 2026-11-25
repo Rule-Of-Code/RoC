@@ -125,12 +125,12 @@ export class MergeConflictPreventionLaw extends GitLawBase {
           ['yml', 'yaml'],
           config
         );
+        // The scanner returns full paths; they are read as given (#642).
         const hasConflictCheck = workflows.some((workflow: string) => {
           try {
-            const workflowContent = FileUtils.readFile(
-              PathOperations.join(workflowsDir, workflow),
-              { encoding: 'utf8' }
-            );
+            const workflowContent = FileUtils.readFile(workflow, {
+              encoding: 'utf8',
+            });
             return (
               workflowContent.includes('conflict') ||
               workflowContent.includes('merge') ||

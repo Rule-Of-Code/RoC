@@ -18,6 +18,7 @@ import {
   resolveGitHooksDir,
 } from '../../utils/git/git-layout';
 import { PathOperations } from '../../utils/path-operations';
+import { withNotRead } from '../../utils/judged-nothing';
 import { GitLawBase } from './git-law-base';
 
 export class MergeConflictPreventionLaw extends GitLawBase {
@@ -63,7 +64,8 @@ export class MergeConflictPreventionLaw extends GitLawBase {
     // The files behind "in N files" (#43), as git named them.
     const details = [...toolsAnalysis.details, ...conflictAnalysis.details];
     if (details.length > 0) result.violationDetails = details;
-    return result;
+    // A git grep that did not answer is not "no markers" (#637).
+    return withNotRead(result, toolsAnalysis.notRead);
   }
 
   private static checkConflictPreventionStrategies(
@@ -156,6 +158,7 @@ export class MergeConflictPreventionLaw extends GitLawBase {
     violations: string[];
     suggestions: string[];
     details: ViolationDetail[];
+    notRead: string[];
   } {
     const violations: string[] = [];
     const suggestions: string[] = [];
@@ -168,7 +171,8 @@ export class MergeConflictPreventionLaw extends GitLawBase {
     this.checkGitAttributesConfig(projectRoot, suggestions);
 
     // Check for merge conflict markers in files
-    const conflictMarkers = this.findConflictMarkers(projectRoot);
+    const { files: conflictMarkers, notRead } =
+      this.findConflictMarkers(projectRoot);
     if (conflictMarkers.length > 0) {
       violations.push(
         `Found unresolved conflict markers in ${conflictMarkers.length} files`
@@ -183,7 +187,7 @@ export class MergeConflictPreventionLaw extends GitLawBase {
       );
     }
 
-    return { violations, suggestions, details };
+    return { violations, suggestions, details, notRead };
   }
 
   private static checkGitConfigForMergeTools(
@@ -250,7 +254,10 @@ export class MergeConflictPreventionLaw extends GitLawBase {
     }
   }
 
-  private static findConflictMarkers(projectRoot: string): string[] {
+  private static findConflictMarkers(projectRoot: string): {
+    files: string[];
+    notRead: string[];
+  } {
     const conflictFiles: string[] = [];
 
     try {
@@ -284,12 +291,33 @@ export class MergeConflictPreventionLaw extends GitLawBase {
         .map(line => line.trim())
         .filter((file): file is string => Boolean(file));
       conflictFiles.push(...fileNames);
-    } catch (_error) {
-      // `git grep` exits non-zero when there are NO matches (the common case) or if
-      // git is unavailable — either way there are no conflict markers to report.
+    } catch (error: unknown) {
+      // Exit 1 is `git grep`'s "no match": no conflict markers. Any other
+      // failure — git missing, not a work tree, a broken index — is not an
+      // answer, and it read as "no markers" (#637).
+      if ((error as { status?: unknown }).status !== 1) {
+        return {
+          files: [],
+          notRead: [
+            `conflict markers were NOT read: git grep did not answer (${MergeConflictPreventionLaw.gitFailure(error)})`,
+          ],
+        };
+      }
     }
 
-    return conflictFiles;
+    return { files: conflictFiles, notRead: [] };
+  }
+
+  /** The first line git printed, or why it could not run. */
+  private static gitFailure(error: unknown): string {
+    const failed = error as { stderr?: unknown; message?: unknown };
+    const firstLine = (text: unknown): string =>
+      String(text ?? '')
+        .trim()
+        .split(/\r?\n/)[0] ?? '';
+    return (
+      firstLine(failed.stderr) || firstLine(failed.message) || 'unknown error'
+    );
   }
 
   private static checkCurrentConflicts(projectRoot: string): {

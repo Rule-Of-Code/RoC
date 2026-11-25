@@ -6,7 +6,11 @@
  * unmockable.
  */
 
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import { PathOperations } from '../../utils/path-operations';
 import { FileUtils } from '../../utils/file-utils';
 import { CodeQualityLawBase } from './code-quality-law-base';
@@ -18,6 +22,8 @@ export class WebStorageEncapsulationLaw extends CodeQualityLawBase {
   static check(context: LawCheckContext): LawResult {
     const { projectRoot } = context;
     const violations: string[] = [];
+    // Each call behind a file's count, at its line (#43).
+    const details: ViolationDetail[] = [];
 
     for (const file of this.findTypeScriptFiles(projectRoot, context)) {
       // Storage access is allowed inside services (the encapsulation boundary).
@@ -33,10 +39,20 @@ export class WebStorageEncapsulationLaw extends CodeQualityLawBase {
             matches.length
           } direct localStorage/sessionStorage call(s) — wrap web storage in a *.service.ts.`
         );
+        // The same calls, on a copy whose block comments keep their line
+        // breaks, so each detail points at the call's own line.
+        details.push(
+          ...this.matchDetails(
+            this.blankComments(content),
+            this.WEB_STORAGE,
+            PathOperations.getRelative(projectRoot, file),
+            call => `direct web storage call ${call.replace(/\s+/g, '')}…)`
+          )
+        );
       }
     }
 
-    return this.createResult(
+    const result = this.createResult(
       violations,
       'Web Storage Encapsulation',
       'CODE_QUALITY_LAW',
@@ -46,5 +62,17 @@ export class WebStorageEncapsulationLaw extends CodeQualityLawBase {
       ],
       context
     );
+    return this.withDetails(result, details);
+  }
+
+  /** stripComments, with every comment blanked instead of removed: lines kept. */
+  private static blankComments(content: string): string {
+    const blank = (text: string): string => text.replace(/[^\n]/g, ' ');
+    return content
+      .replace(/\/\*[\s\S]*?\*\//g, blank)
+      .replace(
+        /(^|[^:])(\/\/[^\n]*)/g,
+        (_, before: string, comment: string) => before + blank(comment)
+      );
   }
 }

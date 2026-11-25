@@ -761,6 +761,13 @@ describe('ZeroToleranceLaw', () => {
         PathOperations.join(tempDir, 'tsconfig.json'),
         JSON.stringify(tsconfig, null, 2)
       );
+      // The referenced projects are judged too (#640): they exist, and strict.
+      for (const lib of ['shared', 'utils']) {
+        FileUtils.writeFile(
+          PathOperations.join(tempDir, 'libs', lib, 'tsconfig.json'),
+          JSON.stringify({ compilerOptions: { strict: true, composite: true } })
+        );
+      }
 
       // Also need ESLint config for ZeroToleranceLaw to pass
       FileUtils.writeFile(

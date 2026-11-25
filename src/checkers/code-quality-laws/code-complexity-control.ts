@@ -7,6 +7,7 @@ import type {
   LawCheckContext,
   LawResult,
   RuleOfCodeConfig,
+  ViolationDetail,
 } from '../../types/law.types';
 import { FileUtils } from '../../utils';
 import { CheckerUtils } from '../../utils/checker-utils';
@@ -80,6 +81,9 @@ export class CodeComplexityControlLaw extends CodeQualityLawBase {
       fixable: violations.length > 0,
       config: context.config,
       ...(details.length > 0 ? { details } : {}),
+      ...(codeAnalysis.details.length > 0
+        ? { violationDetails: codeAnalysis.details }
+        : {}),
     };
   }
 
@@ -128,9 +132,15 @@ export class CodeComplexityControlLaw extends CodeQualityLawBase {
   private static analyzeCodeComplexity(
     projectRoot: string,
     config: RuleOfCodeConfig
-  ): { violations: string[]; suggestions: string[] } {
+  ): {
+    violations: string[];
+    suggestions: string[];
+    details: ViolationDetail[];
+  } {
     const violations: string[] = [];
     const suggestions: string[] = [];
+    // The file behind each finding; each function over the limit at its line (#43).
+    const details: ViolationDetail[] = [];
 
     // Find TypeScript/JavaScript files
     const codeFiles = CheckerUtils.findFilesByExtension(
@@ -141,7 +151,7 @@ export class CodeComplexityControlLaw extends CodeQualityLawBase {
     let complexFilesFound = 0;
 
     const ts = loadTypeScript(projectRoot);
-    if (!ts) return { violations, suggestions };
+    if (!ts) return { violations, suggestions, details };
     const limits = this.limitsOf(config);
 
     for (const file of codeFiles) {
@@ -155,6 +165,7 @@ export class CodeComplexityControlLaw extends CodeQualityLawBase {
         const found = this.fileFindings(where, complexity, limits);
         if (found.some(v => v.startsWith('File too long'))) complexFilesFound++;
         violations.push(...found);
+        details.push(...this.fileDetails(where, complexity, limits, found));
       } catch (_error) {
         // Continue if file can't be read
       }
@@ -165,7 +176,44 @@ export class CodeComplexityControlLaw extends CodeQualityLawBase {
       suggestions.push('Extract reusable functions and components');
     }
 
-    return { violations, suggestions };
+    return { violations, suggestions, details };
+  }
+
+  /**
+   * What each finding of a file measured: the file for its length, function
+   * count and total, and each function over the limit at its line.
+   */
+  private static fileDetails(
+    where: string,
+    file: FileComplexity,
+    limits: ComplexityLimits,
+    found: string[]
+  ): ViolationDetail[] {
+    const details: ViolationDetail[] = [];
+    if (found.some(v => v.startsWith('File too long'))) {
+      details.push({ file: where, message: `${file.codeLines} code lines` });
+    }
+    if (found.some(v => v.startsWith('Too many functions'))) {
+      details.push({ file: where, message: `${file.functions} functions` });
+    }
+    if (found.some(v => v.startsWith('Function complexity too high'))) {
+      details.push(
+        ...file.functionScores
+          .filter(fn => fn.score > limits.maxFunctionComplexity)
+          .map(fn => ({
+            file: where,
+            line: fn.line,
+            message: `function of complexity ${fn.score} (max ${limits.maxFunctionComplexity})`,
+          }))
+      );
+    }
+    if (found.some(v => v.startsWith('File complexity too high'))) {
+      details.push({
+        file: where,
+        message: `estimated file complexity ${file.conditionals + file.functions}`,
+      });
+    }
+    return details;
   }
 
   private static checkArchitecturalComplexity(

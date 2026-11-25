@@ -3,7 +3,11 @@
  * Common functionality for Code Quality laws
  */
 
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import { CheckerUtils } from '../../utils/checker-utils';
 import { FileUtils } from '../../utils/file-utils';
 import {
@@ -12,6 +16,7 @@ import {
   readESLintDataConfig,
   readPackageJsonESLintConfig,
 } from '../../utils/eslint-config-json';
+import { loadESLintJsConfig } from '../../utils/eslint-js-config';
 import { notReadNote } from '../../utils/json-manifest';
 import { ObservableCleanup } from '../../utils/observable-cleanup';
 import { PathOperations } from '../../utils/path-operations';
@@ -158,6 +163,46 @@ export abstract class CodeQualityLawBase {
     };
   }
 
+  /** 1-based line of an offset in a text whose line breaks are the file's. */
+  protected static lineAt(text: string, offset: number): number {
+    let line = 1;
+    for (let i = 0; i < offset && i < text.length; i++) {
+      if (text.charCodeAt(i) === 10) line++;
+    }
+    return line;
+  }
+
+  /**
+   * One detail per match of `pattern` in `code`, at its line (#43). `code`
+   * must keep the file's line breaks (the source view does); the matches are
+   * the ones the law counted, nothing is searched for anew.
+   */
+  protected static matchDetails(
+    code: string,
+    pattern: RegExp,
+    file: string,
+    message: (match: string) => string
+  ): ViolationDetail[] {
+    const global = pattern.global
+      ? pattern
+      : new RegExp(pattern.source, `${pattern.flags}g`);
+    return [...code.matchAll(global)].map(match => ({
+      file,
+      line: this.lineAt(code, match.index ?? 0),
+      message: message(match[0]),
+    }));
+  }
+
+  /** The result with its details, when there are any (#43). */
+  protected static withDetails(
+    result: LawResult,
+    details: ViolationDetail[]
+  ): LawResult {
+    return details.length > 0
+      ? { ...result, violationDetails: details }
+      : result;
+  }
+
   // findAngularFiles was removed here: none of the 14 subclasses ever called it,
   // and it filtered Angular artifacts by the *.component/service/directive/pipe.ts
   // suffix — blind to Angular 20's suffix-less names. Rather than teach dead code a
@@ -209,12 +254,18 @@ export abstract class CodeQualityLawBase {
     const at = (name: string): string => PathOperations.join(projectRoot, name);
     for (const name of this.ESLINT_JS_CONFIGS) {
       if (!FileUtils.exists(at(name))) continue;
-      const config = this.loadESLintJsConfig(at(name));
-      return config
-        ? { file: name, config }
+      // Imported as ESLint imports it, in a child process with a time limit;
+      // one that cannot be loaded is NOT read, with the reason (#613).
+      const loaded = loadESLintJsConfig(at(name));
+      return loaded.config
+        ? { file: name, config: loaded.config }
         : {
             file: name,
-            notRead: notReadNote(name, 'could not be loaded', 'its rules were'),
+            notRead: notReadNote(
+              name,
+              `could not be loaded (${loaded.reason})`,
+              'its rules were'
+            ),
           };
     }
     // A config found and not read is said to be NOT read, never "no config":
@@ -245,65 +296,6 @@ export abstract class CodeQualityLawBase {
       'its ESLint config (eslintConfig) was'
     );
     return read ? { file: manifest, ...read } : null;
-  }
-
-  /**
-   * Load an ESLint config from a .js/.mjs file
-   * For .mjs and .js files, try to require them
-   * Note: .mjs files with ESM syntax won't work with require(),
-   * but we'll try to extract rules from file content as fallback
-   */
-  private static loadESLintJsConfig(
-    configPath: string
-  ): Record<string, unknown> | null {
-    try {
-      const config = require(configPath);
-      // Handle flat config (array) vs legacy config (object)
-      if (Array.isArray(config) || Array.isArray(config.default)) {
-        // Flat config format - merge all rules from array
-        const configArray = Array.isArray(config) ? config : config.default;
-        const mergedRules: Record<string, unknown> = {};
-        for (const item of configArray) {
-          if (item && typeof item === 'object' && 'rules' in item) {
-            Object.assign(mergedRules, item.rules);
-          }
-        }
-        return { rules: mergedRules };
-      }
-      return config;
-    } catch {
-      // Fallback: read file content and try to extract rules
-      const content = FileUtils.readFile(configPath);
-      return this.extractRulesFromESLintFile(content);
-    }
-  }
-
-  /**
-   * Extract ESLint rules from file content (fallback for .mjs files)
-   * Looks for common rule patterns in the file text
-   */
-  private static extractRulesFromESLintFile(
-    content: string
-  ): Record<string, unknown> | null {
-    const rules: Record<string, unknown> = {};
-
-    // Match patterns like: 'rule-name': 'error', or 'rule-name': ['error', options]
-    const rulePattern =
-      /['"](@[\w-]+\/)?[\w-]+['"]\s*:\s*['"\[](?:error|warn|off)/g;
-    const matches = content.match(rulePattern);
-
-    if (matches) {
-      for (const match of matches) {
-        // Extract rule name
-        const nameMatch = match.match(/['"](@[\w-]+\/)?[\w-]+['"]/);
-        if (nameMatch) {
-          const ruleName = nameMatch[0].replace(/['"]/g, '');
-          rules[ruleName] = 'detected'; // Mark as present
-        }
-      }
-    }
-
-    return Object.keys(rules).length > 0 ? { rules } : null;
   }
 
   /**

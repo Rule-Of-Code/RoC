@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Config values written into a git hook are quoted (#624)
+
+A commit pattern, a commit type or an emoji from the config is written into the
+generated `commit-msg` hook. A value with an apostrophe, a quote, a dollar sign,
+a backtick, a backslash or a line break was not quoted for `sh`, so the hook
+could stop with a syntax error on every commit or print something other than the
+value; and an emoji with a regex character, such as `:+1:`, refused a valid
+message. Every such value is now quoted in one place, and the emoji is escaped
+once. A pattern that starts with `-` is read as a pattern, and a
+`maxCommitMessageLength` that is not a number is the default 72.
+The commands of `hooks.custom` are shell code and are written as they are;
+the name of a custom hook is quoted like the other values.
+
+Also fixed, in the generator since before this release: the hook passed the
+commit message to `grep` and printed it with `echo`. Where `/bin/sh` is dash
+(Debian, Ubuntu, most Linux CI), `echo` reads backslash escapes, so a message
+with `\b` or `\n` in it was changed before it was matched and could be
+refused. The message now goes through `printf '%s\n'`, and the blank line
+before the emoji list is its own `echo ""` (`echo "\n…"` printed a line break
+under dash and a literal `\n` under bash). These lines change in every
+generated `commit-msg` hook; the other lines of a hook generated from plain
+values are unchanged.
+
+The fix reaches a project when its hooks are generated again:
+`npx ruleofcode reinstall-hooks`.
+
 ### Internal — a Vue single-file component reader (#607, P1)
 
 `src/utils/vue/vue-sfc.ts` splits a `.vue` file into a script view (the

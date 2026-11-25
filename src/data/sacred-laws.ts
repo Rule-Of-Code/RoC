@@ -207,7 +207,7 @@ export const SACRED_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'CI is checked by directory/file existence only — an empty .github/workflows passes, and the workflow content (whether it runs tests or lint) is never read.',
-      'Script-key presence is not proof the script works; the JS test-framework list omits vitest, ava and node:test.',
+      'Script-key presence is not proof the script works. A test framework is a dependency named jest, @jest/core, mocha, jasmine, jasmine-core, karma, cypress, playwright, @playwright/test, vitest or ava in the root package.json; node:test and other runners are not recognised.',
       'The Python carve-out covers test automation and (when there is no package.json) quality; the JS quality path expects lint and build npm scripts.',
     ],
     emoji: '⚙️',

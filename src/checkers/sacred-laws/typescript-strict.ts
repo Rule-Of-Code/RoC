@@ -25,9 +25,23 @@ function flagsOf(finding: string): string[] {
   if (finding.startsWith('TypeScript moduleResolution'))
     return ['moduleResolution'];
   const flag = /^TypeScript (\w+) must be/.exec(finding)?.[1];
-  // A flag strict implies is set by whoever set strict, when it is unset.
-  return flag ? [flag, 'strict'] : [];
+  if (!flag) return [];
+  // A flag strict implies is set by whoever set strict, when it is unset;
+  // any other flag only by itself (noImplicitReturns is not one strict sets).
+  return STRICT_FAMILY.has(flag) ? [flag, 'strict'] : [flag];
 }
+
+/** The options `strict: true` switches on (TypeScript's own list). */
+const STRICT_FAMILY = new Set([
+  'noImplicitAny',
+  'noImplicitThis',
+  'alwaysStrict',
+  'strictNullChecks',
+  'strictFunctionTypes',
+  'strictBindCallApply',
+  'strictPropertyInitialization',
+  'useUnknownInCatchVariables',
+]);
 
 export class TypeScriptStrictLaw {
   // The flags this law requires. noPropertyAccessFromIndexSignature and
@@ -141,16 +155,7 @@ export class TypeScriptStrictLaw {
   }
 
   /** The options `strict: true` switches on (TypeScript's own list). */
-  private static readonly IMPLIED_BY_STRICT = new Set([
-    'noImplicitAny',
-    'noImplicitThis',
-    'alwaysStrict',
-    'strictNullChecks',
-    'strictFunctionTypes',
-    'strictBindCallApply',
-    'strictPropertyInitialization',
-    'useUnknownInCatchVariables',
-  ]);
+  private static readonly IMPLIED_BY_STRICT = STRICT_FAMILY;
 
   /**
    * A tsconfig's compiler options as TypeScript resolves them (`extends`

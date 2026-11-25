@@ -157,6 +157,7 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
       '"Money-adjacent" is a filename substring or the literal X-Control-Pass string (a comment mentioning it triggers it); LOC is a raw line count including blanks and comments.',
       'Candidates are *.component.ts, *.service.ts, .tsx and .jsx files in the feature or data-access layer only — a money service elsewhere is not checked. ' +
         LAYER_IS_CONFIGURABLE,
+      'A Vue single-file component (.vue) in the feature or data-access layer is a component: its size is the whole file, X-Control-Pass is looked for in its script, and Basket.spec.ts / Basket.test.ts next to Basket.vue covers it (#607).',
     ],
     emoji: '🧪',
     description:

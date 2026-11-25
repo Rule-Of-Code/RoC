@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Requires Spec reads .vue components (#607, P6)
+
+Requires Spec asked for a co-located test of large or money-adjacent
+Angular and React components only. A Vue single-file component in the
+feature or data-access layer is a component too now: its size is the whole
+file, `X-Control-Pass` is looked for in its script, and `Basket.spec.ts` /
+`Basket.test.ts` next to `Basket.vue` covers it. The card says so.
+
+**Stricter** for Vue projects.
+
 ### 🐛 Fixed — the code-quality laws read .vue single-file components (#607, P3a)
 
 Fourteen code-quality laws now read the `<script>` and `<script setup>` of a

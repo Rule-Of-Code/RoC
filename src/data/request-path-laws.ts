@@ -120,6 +120,7 @@ export const REQUEST_PATH_LAWS: EnhancedConstitutionalLaw[] = [
       'Scope: a function, its own reads, and the functions it calls one step deep — same module, self./this. methods of its class, or one relative / project import. A read two calls deep, or through an object whose class is not known statically, is not seen.',
       'Not a duplicate: a re-read after a write between the two reads (a write call, or a helper whose body writes), since it sees the new state. Branches are not distinguished: two reads on mutually exclusive paths of one handler can be reported.',
       'Selected where a database client from the registry is declared in package.json or a Python manifest. A project whose reads it cannot key (dynamic collection names, an unresolved wrapper) passes with a counter of files read and keyed reads compared (0 = nothing to compare) and the list of what it does not compare, in the message, details and metrics; it reports judged nothing only when no source file could be read (no Python or TS/JS source outside tests, or the TypeScript parser did not load).',
+      'A Vue single-file component (.vue) is read by its <script> and <script setup> blocks, at its own lines; its <template> and <style> are not read by this law (#607).',
     ],
     emoji: '📄',
     description:
@@ -161,6 +162,7 @@ export const REQUEST_PATH_LAWS: EnhancedConstitutionalLaw[] = [
       'A fetch is a call the client registry lists as returning a whole result set: Firestore stream / getDocs and get on a query, Mongo find / to_list / toArray, SQLAlchemy .all(), Django .all() / .filter(), Prisma findMany, TypeORM find / findBy / getMany, Sequelize findAll. Generic names (get, find, all, filter) count only when awaited or, in Python, chained from a query builder (collection, where, order_by, objects, execute …), so len(data.get(…)) is not one; a get on …document(id) / …doc(id) reads one document and is not one either.',
       'Not seen: a count through a repository method whose name the registry does not list (len(await repo.list_ids(x))), a count over a filtered comprehension (the filter may not be expressible on the server), and documents counted in a helper the fetch was passed to.',
       'Selected where a database client from the registry is declared in package.json or a Python manifest. With no violation it passes with a counter of files read and whole-result fetches checked (0 = nothing to check) and what it does not check, in the message, details and metrics; it reports judged nothing only when no source file could be read (no Python or TS/JS source outside tests, or the TypeScript parser did not load).',
+      'A Vue single-file component (.vue) is read by its <script> and <script setup> blocks, at its own lines; its <template> and <style> are not read by this law (#607).',
     ],
     emoji: '🔢',
     description:

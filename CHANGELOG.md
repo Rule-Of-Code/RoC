@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — three database laws read .vue components (#607, P7)
+
+Database Query Optimization, Count With An Aggregation and Document Read Once
+Per Request read the project's TS/JS sources only. A Firebase or Supabase
+app that queries from a component's `<script setup>` was told it uses no
+database, and its N+1 reads, full-collection counts and repeated document
+reads in that component were not judged. The request-path sources include
+`.vue` files now, read by their script at the component's own lines (the
+model's lines too: template text is not code). Each card says so.
+
+**Stricter** for Vue projects.
+
 ### 🐛 Fixed — the code-quality laws read .vue single-file components (#607, P3a)
 
 Fourteen code-quality laws now read the `<script>` and `<script setup>` of a

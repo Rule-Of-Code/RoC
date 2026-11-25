@@ -41,6 +41,7 @@ import {
   splitFamilies,
   styleBlocks,
   type Text,
+  withoutComments,
 } from './font-preload-readers';
 
 const DOCUMENT_EXTENSIONS = [
@@ -74,7 +75,10 @@ export class PrimaryLocaleFontPreloadedLaw extends LawBase {
         context.lawId,
         false
       ).filter(file => !TEST_FILE.test(file));
-    const documents = read(context, scan(DOCUMENT_EXTENSIONS));
+    // Preloads and <html lang> are read without comments (#636).
+    const documents = read(context, scan(DOCUMENT_EXTENSIONS)).map(
+      withoutComments
+    );
     // The faces come from exactly the files that selected the law (its
     // requires.anyFileContaining set, read through the gate's reader).
     const faceFiles = (

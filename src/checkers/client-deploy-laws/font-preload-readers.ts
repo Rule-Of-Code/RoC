@@ -69,12 +69,24 @@ export function read(context: LawCheckContext, files: string[]): Text[] {
   });
 }
 
-/** The @font-face blocks of one stylesheet text. */
-export function facesIn(rel: string, text: string, firstLine = 1): FontFace[] {
-  const source = CssRules.stripComments(
-    text,
-    /\.(?:scss|sass|less)$/i.test(rel)
-  );
+/** Style languages with `//` line comments. */
+const LINE_COMMENT_STYLE = /^(?:scss|sass|less|styl|stylus)$/i;
+
+/**
+ * The @font-face blocks of one stylesheet text. `lang` is the language of a
+ * `<style lang="…">` block; without it the file's extension decides which
+ * comments are stripped.
+ */
+export function facesIn(
+  rel: string,
+  text: string,
+  firstLine = 1,
+  lang?: string
+): FontFace[] {
+  const lineComments = lang
+    ? LINE_COMMENT_STYLE.test(lang)
+    : /\.(?:scss|sass|less)$/i.test(rel);
+  const source = CssRules.stripComments(text, lineComments);
   return [...source.matchAll(/@font-face\s*\{([^}]*)\}/gi)].map(match => {
     const body = match[1] ?? '';
     const family =
@@ -97,17 +109,40 @@ export function facesIn(rel: string, text: string, firstLine = 1): FontFace[] {
   });
 }
 
-/** The @font-face blocks of a document's <style> elements, with their lines in the document. */
+/**
+ * The @font-face blocks of a document's <style> elements, with their lines in
+ * the document. A `<style lang="scss">` block of a .vue, .svelte or .astro file
+ * is read with the comment rules of its language, not of the file's (#636).
+ */
 export function styleBlocks(document: Text): FontFace[] {
   return [
-    ...document.text.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi),
+    ...document.text.matchAll(/<style\b([^>]*)>([\s\S]*?)<\/style>/gi),
   ].flatMap(match =>
     facesIn(
       document.rel,
-      match[1] ?? '',
-      lineAt(document.text, (match.index ?? 0) + match[0].indexOf('>') + 1)
+      match[2] ?? '',
+      lineAt(document.text, (match.index ?? 0) + match[0].indexOf('>') + 1),
+      attribute(`<style${match[1] ?? ''}>`, 'lang') ?? undefined
     )
   );
+}
+
+const blank = (comment: string): string => comment.replace(/[^\n]/g, ' ');
+
+/**
+ * A document with its comments blanked, lines and offsets kept: HTML comments
+ * in markup files, JSX comments (`{/* … *\/}`) in .tsx, .jsx and .astro. A
+ * preload or an `<html lang>` inside a comment is not in the page (#636).
+ */
+export function withoutComments(document: Text): Text {
+  let text = document.text;
+  if (/\.(?:html?|vue|svelte|astro)$/i.test(document.rel)) {
+    text = text.replace(/<!--[\s\S]*?-->/g, blank);
+  }
+  if (/\.(?:[jt]sx|astro)$/i.test(document.rel)) {
+    text = text.replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, blank);
+  }
+  return text === document.text ? document : { ...document, text };
 }
 
 /** Families with two or more faces whose unicode-ranges differ: the split ones. */

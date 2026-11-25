@@ -95,14 +95,31 @@ export class CoverageByReport {
     report: CoverageReport,
     sources: string[]
   ): string | null {
+    const why = this.whyNotUsable(projectRoot, report, sources);
+    return why
+      ? `${why} — the files were judged by the presence of a test`
+      : null;
+  }
+
+  /**
+   * Why a report cannot be used for these source files, or null when it can:
+   * older than the code, or naming none of them. Shared with Jest Unit Test
+   * 100% Coverage Mandate (#605), so both coverage laws refuse the same
+   * reports; each says what it did instead.
+   */
+  static whyNotUsable(
+    projectRoot: string,
+    report: CoverageReport,
+    sources: string[]
+  ): string | null {
     const newer = sources.find(
       file => this.modifiedMs(file) > report.modifiedMs
     );
     if (newer) {
-      return `coverage report ${report.path} is older than the code (${PathOperations.getRelative(projectRoot, newer)} changed after it was written), not read — the files were judged by the presence of a test`;
+      return `coverage report ${report.path} is older than the code (${PathOperations.getRelative(projectRoot, newer)} changed after it was written), not read`;
     }
     if (sources.length > 0 && !sources.some(file => this.entry(report, file))) {
-      return `coverage report ${report.path} names none of the ${sources.length} source files (written on another machine or for another project?), not read — the files were judged by the presence of a test`;
+      return `coverage report ${report.path} names none of the ${sources.length} source files (written on another machine or for another project?), not read`;
     }
     return null;
   }

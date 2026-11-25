@@ -11,6 +11,7 @@
 import fs from 'fs';
 import path from 'path';
 
+import { DependencyPinningChecker } from '../../src/checkers/dependency-scanning/dependency-pinning-checker';
 import { NoDoubleCastLaw } from '../../src/checkers/code-quality-laws/no-double-cast';
 import { TypeScriptStrictLaw } from '../../src/checkers/sacred-laws/typescript-strict';
 import { ZeroToleranceLaw } from '../../src/checkers/sacred-laws/zero-tolerance';
@@ -173,5 +174,31 @@ describe('#667 an absent strict is judged by the TypeScript major of the project
     expect(ZeroToleranceLaw.check(context(root)).violations).toContain(
       'TypeScript strict mode not enabled'
     );
+  });
+});
+
+describe('#667 an npm alias is a version, judged by its range', () => {
+  const verdict = (
+    version: string
+  ): { isViolation: boolean; issue?: string } => {
+    const checker: unknown = DependencyPinningChecker;
+    return (
+      checker as {
+        analyzeVersionRange: (v: string) => {
+          isViolation: boolean;
+          issue?: string;
+        };
+      }
+    ).analyzeVersionRange(version);
+  };
+
+  it('npm:typescript@^6.0.3 (the dependency this issue adds) is a caret range: fine', () => {
+    expect(verdict('npm:typescript@^6.0.3').isViolation).toBe(false);
+    expect(verdict('npm:@scope/pkg@1.2.3').isViolation).toBe(false);
+  });
+
+  it('control: an alias with no range or a wildcard is reported like one', () => {
+    expect(verdict('npm:typescript').issue).toMatch(/wildcard or "latest"/);
+    expect(verdict('npm:typescript@*').issue).toMatch(/wildcard/);
   });
 });

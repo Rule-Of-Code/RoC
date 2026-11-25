@@ -36,6 +36,8 @@ default `npm create vite` react-ts project. Now:
   6.0 and 7.0 release notes). A Vite project on TypeScript 6 or 7 without
   `"strict"` no longer gets "strict not enabled"; `"strict": false` is still
   off.
+- Dependency Security Scanning read an npm alias (`"x": "npm:typescript@^6.0.3"`)
+  as "Unknown version format"; it judges the alias by its range now.
 
 ### 🐛 Fixed — Config values written into a git hook are quoted (#624)
 

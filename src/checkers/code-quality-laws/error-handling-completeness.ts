@@ -77,6 +77,7 @@ export class ErrorHandlingCompletenessLaw extends CodeQualityLawBase {
       [
         ...CheckerUtils.getCommonExtensions().TYPESCRIPT,
         ...CheckerUtils.getCommonExtensions().JAVASCRIPT,
+        'vue', // its script, through readSource (#607)
       ],
       config
     );

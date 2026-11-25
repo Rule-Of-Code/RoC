@@ -97,7 +97,11 @@ export class CodeDocumentationLaw extends CodeQualityLawBase {
     // in a .js file was never looked at, with no note (#493).
     return CheckerUtils.findFilesByExtension(
       projectRoot,
-      [...CheckerUtils.getCommonExtensions().TYPESCRIPT, ...this.JS_EXTENSIONS],
+      [
+        ...CheckerUtils.getCommonExtensions().TYPESCRIPT,
+        ...this.JS_EXTENSIONS,
+        'vue', // its script, through TsxSource (#607)
+      ],
       context.config,
       context.lawId
     );

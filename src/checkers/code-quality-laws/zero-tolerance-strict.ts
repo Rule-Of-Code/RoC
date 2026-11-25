@@ -11,7 +11,11 @@
  */
 
 import type * as TS from 'typescript';
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import { FileUtils } from '../../utils/file-utils';
 import { markJudgedNothing } from '../../utils/judged-nothing';
 import { PathOperations } from '../../utils/path-operations';
@@ -23,10 +27,15 @@ import { CliPackages } from './cli-packages';
 import { CodeQualityLawBase } from './code-quality-law-base';
 import { readSource, type SourceView } from './source-view';
 
+/** One per-file check: its finding, what one occurrence is, and where each is. */
+type Site = [finding: string, what: string, offsets: number[]];
+
 export class ZeroToleranceStrictLaw extends CodeQualityLawBase {
   static check(context: LawCheckContext): LawResult {
     const { projectRoot } = context;
     const violations: string[] = [];
+    // What each finding counted, at its line, or the file it read (#43).
+    const details: ViolationDetail[] = [];
 
     const ts = loadTypeScript(projectRoot);
     // .vue too, read as its script (#607).
@@ -46,19 +55,20 @@ export class ZeroToleranceStrictLaw extends CodeQualityLawBase {
     }
 
     try {
-      this.checkTypeScriptConfig(projectRoot, violations);
-      if (ts) this.checkFiles(ts, projectRoot, tsFiles, violations);
+      this.checkTypeScriptConfig(projectRoot, violations, details);
+      if (ts) this.checkFiles(ts, projectRoot, tsFiles, violations, details);
     } catch (_error) {
       violations.push('Error performing zero tolerance checks');
     }
 
-    return this.createResult(
+    const result = this.createResult(
       violations,
       'Zero Tolerance Strict Standards',
       'CODE_QUALITY_LAW',
       this.suggestionsFor(violations),
       context
     );
+    return this.withDetails(result, details);
   }
 
   /**
@@ -84,7 +94,8 @@ export class ZeroToleranceStrictLaw extends CodeQualityLawBase {
 
   private static checkTypeScriptConfig(
     projectRoot: string,
-    violations: string[]
+    violations: string[],
+    details: ViolationDetail[]
   ): void {
     const tsconfigPath = PathOperations.join(projectRoot, 'tsconfig.json');
     if (!FileUtils.fileExistsSync(tsconfigPath)) {
@@ -98,6 +109,11 @@ export class ZeroToleranceStrictLaw extends CodeQualityLawBase {
         violations.push(verdict.notRead);
       } else if (!verdict.strict) {
         violations.push('TypeScript strict mode not enabled');
+        details.push({
+          file: 'tsconfig.json',
+          message:
+            'compilerOptions.strict is not on (its "extends" chain merged)',
+        });
       }
     }
   }
@@ -107,7 +123,8 @@ export class ZeroToleranceStrictLaw extends CodeQualityLawBase {
     ts: typeof TS,
     projectRoot: string,
     tsFiles: string[],
-    violations: string[]
+    violations: string[],
+    details: ViolationDetail[]
   ): void {
     const cli = new CliPackages(projectRoot);
     const code: string[] = [];
@@ -117,34 +134,58 @@ export class ZeroToleranceStrictLaw extends CodeQualityLawBase {
       if (!content) continue;
       const view = readSource(ts, content, file);
       const relativePath = PathOperations.getRelative(projectRoot, file);
+      const sites: Site[] = [
+        [
+          'Console statements found in',
+          'console statement',
+          this.consoleCalls(view, file, cli),
+        ],
+        [
+          'TODO/FIXME comments found in',
+          'TODO/FIXME comment',
+          this.todoTags(view),
+        ],
+        [
+          'Strict type violations in',
+          'explicit any',
+          this.anyAnnotations(ts, view.source),
+        ],
+        [
+          'ESLint rules disabled in',
+          'eslint-disable comment',
+          this.lintDisables(view),
+        ],
+        [
+          'Empty catch blocks in',
+          'empty catch block',
+          this.emptyCatches(ts, view.source),
+        ],
+      ];
       // Two groups, in the order the findings have always been listed:
       // statements and types per file first, lint and catch blocks after.
-      code.push(
-        ...this.counted(relativePath, [
-          ['Console statements found in', this.consoleCalls(view, file, cli)],
-          ['TODO/FIXME comments found in', this.todoTags(view)],
-          ['Strict type violations in', this.anyAnnotations(ts, view.source)],
-        ])
-      );
-      lint.push(
-        ...this.counted(relativePath, [
-          ['ESLint rules disabled in', this.lintDisables(view)],
-          ['Empty catch blocks in', this.emptyCatches(ts, view.source)],
-        ])
-      );
+      code.push(...this.counted(relativePath, sites.slice(0, 3)));
+      lint.push(...this.counted(relativePath, sites.slice(3)));
+      // Each counted occurrence, at its line (#43).
+      for (const [, what, offsets] of sites) {
+        details.push(
+          ...offsets.map(offset => ({
+            file: relativePath,
+            line: this.lineAt(view.code, offset),
+            message: what,
+          }))
+        );
+      }
     }
     violations.push(...code, ...lint);
   }
 
   /** One finding per check that counted anything in the file. */
-  private static counted(
-    relativePath: string,
-    counts: Array<[string, number]>
-  ): string[] {
-    return counts
-      .filter(([, count]) => count > 0)
+  private static counted(relativePath: string, sites: Site[]): string[] {
+    return sites
+      .filter(([, , offsets]) => offsets.length > 0)
       .map(
-        ([finding, count]) => `${finding} ${relativePath}: ${count} occurrences`
+        ([finding, , offsets]) =>
+          `${finding} ${relativePath}: ${offsets.length} occurrences`
       );
   }
 
@@ -160,8 +201,8 @@ export class ZeroToleranceStrictLaw extends CodeQualityLawBase {
     view: SourceView,
     file: string,
     cli: CliPackages
-  ): number {
-    if (CliPackages.isLoggingModule(file)) return 0;
+  ): number[] {
+    if (CliPackages.isLoggingModule(file)) return [];
     const methods = cli.countedConsoleMethods(file, [
       'log',
       'debug',
@@ -169,26 +210,30 @@ export class ZeroToleranceStrictLaw extends CodeQualityLawBase {
       'info',
       'trace',
     ]);
-    if (methods.length === 0) return 0;
+    if (methods.length === 0) return [];
     const pattern = new RegExp(`console\\.(${methods.join('|')})`, 'g');
-    return (view.code.match(pattern) ?? []).length;
+    return [...view.code.matchAll(pattern)].map(match => match.index ?? 0);
   }
 
   /**
    * Line comments that START with a TODO/FIXME/XXX/HACK tag, in capitals and
    * followed by a space, `:`, `(` or `-` — a tag, not the word in a sentence.
    */
-  private static todoTags(view: SourceView): number {
-    return view.comments.filter(comment =>
-      /^\/\/\s*(?:TODO|FIXME|XXX|HACK)(?=[\s:(-]|$)/.test(comment.text)
-    ).length;
+  private static todoTags(view: SourceView): number[] {
+    return view.comments
+      .filter(comment =>
+        /^\/\/\s*(?:TODO|FIXME|XXX|HACK)(?=[\s:(-]|$)/.test(comment.text)
+      )
+      .map(comment => comment.start);
   }
 
   /** `eslint-disable` directives — they live in comments, nowhere else. */
-  private static lintDisables(view: SourceView): number {
-    return view.comments.filter(comment =>
-      /^(?:\/\/ eslint-disable|\/\* eslint-disable)/.test(comment.text)
-    ).length;
+  private static lintDisables(view: SourceView): number[] {
+    return view.comments
+      .filter(comment =>
+        /^(?:\/\/ eslint-disable|\/\* eslint-disable)/.test(comment.text)
+      )
+      .map(comment => comment.start);
   }
 
   /**
@@ -198,19 +243,22 @@ export class ZeroToleranceStrictLaw extends CodeQualityLawBase {
    * exempt: TypeScript requires exactly that for a mixin (TS2545), so it is
    * not a choice anyone could make otherwise.
    */
-  private static anyAnnotations(ts: typeof TS, source: TS.SourceFile): number {
-    let count = 0;
+  private static anyAnnotations(
+    ts: typeof TS,
+    source: TS.SourceFile
+  ): number[] {
+    const found: number[] = [];
     const visit = (node: TS.Node): void => {
       if (
         node.kind === ts.SyntaxKind.AnyKeyword &&
         this.isAnnotation(ts, node)
       ) {
-        count++;
+        found.push(node.getStart(source));
       }
       ts.forEachChild(node, visit);
     };
     visit(source);
-    return count;
+    return found;
   }
 
   /**
@@ -248,8 +296,8 @@ export class ZeroToleranceStrictLaw extends CodeQualityLawBase {
   }
 
   /** `catch (e) {}` — a binding, and nothing at all between the braces. */
-  private static emptyCatches(ts: typeof TS, source: TS.SourceFile): number {
-    let count = 0;
+  private static emptyCatches(ts: typeof TS, source: TS.SourceFile): number[] {
+    const found: number[] = [];
     const visit = (node: TS.Node): void => {
       if (
         ts.isCatchClause(node) &&
@@ -258,11 +306,11 @@ export class ZeroToleranceStrictLaw extends CodeQualityLawBase {
         node.block.statements.length === 0 &&
         /^\{\s*\}$/.test(node.block.getText(source))
       ) {
-        count++;
+        found.push(node.getStart(source));
       }
       ts.forEachChild(node, visit);
     };
     visit(source);
-    return count;
+    return found;
   }
 }

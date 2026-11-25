@@ -13,7 +13,7 @@ import { lawIdentityKeys } from './law-identity';
  * finding was unanswerable — the concern was accepted as absent by the audit
  * and demanded by it in the same run.
  *
- * Resolution is by NAME identity only. `legacyId` is shared by 51 laws, and an
+ * Resolution is by NAME identity only. `legacyId` is shared by 43 laws, and an
  * ambiguous key must never widen a waiver silently — the registry refuses to
  * act on one for the same reason.
  */

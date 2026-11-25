@@ -17,6 +17,86 @@ other test laws give) and does not pass. A project with test files is
 judged as before. Stricter: such a project changes from passed to judged
 nothing; the law's default severity is `info`.
 
+### 🐛 Fixed — E2E Testing Standards judges a Nuxt project (#644)
+
+The law runs for applications, and it knew `vue` but not `nuxt`. A Nuxt
+project that declares `nuxt` alone (no `src/main.ts`, no other listed
+dependency) passed with "E2E Testing Standards satisfied" without being
+judged. `nuxt` now marks an application. Stricter: a Nuxt project without
+an E2E runner, config or spec gains the violation.
+
+### 🐛 Fixed — Automation First recognises vitest, Playwright, Karma, @jest/core and ava (#643)
+
+The law knew five test framework names (jest, mocha, jasmine, cypress,
+playwright), so a project testing with vitest, `@playwright/test`, Karma
+with `jasmine-core`, `@jest/core` or ava got "No test framework detected".
+They are accepted now, from a list the law keeps for itself (no other law
+is selected by it). Fewer violations only; the card names the list.
+
+### 📝 Changed — law texts the code had moved past (#625)
+
+Texts only; no verdict, score or severity changes.
+
+- `legacyId` as a config key: Config Integrity Guard's remediation and the
+  README said every public spelling resolves, while its suggestion said
+  never to use one. They now say the same: canonical name, printed slug or
+  law id; a `legacyId` only where a single law carries it, and it never
+  turns on an opt-in law. The stale counts ("25 legacyIds shared by 51
+  laws"; 21 and 43 today) are replaced by words that do not go stale.
+- Commit Size Control: the window is the default; `maxCommits` and
+  `baseline` change it.
+- Zero Tolerance Doctrine and TypeScript Strict Mode: `extends` is followed
+  (`references` are not, #640); TypeScript Strict accepts `bundler`,
+  `node16`, `nodenext` and `node`, and rejects a target only when it is
+  missing, ES3 or ES5. Its violation and suggestion said "ES2020 or
+  higher"; they now say what is rejected.
+- Professional Excellence Mandate: any ESLint config and ten Prettier file
+  names count; only the package.json `prettier` key is not read.
+- CI/CD Constitutional Tribunal: every CI file is read, not the first one.
+- Dependency Security Scanning: the licence check needs `node_modules` and
+  stops after the first 20 dependencies it can read.
+
+### 🐛 Fixed — Launch Readiness Checklist finds its checklist by the whole name (#635)
+
+The checklist was matched by the end of a file name anywhere, so
+`OLD_LAUNCH_CHECKLIST.md` or `NOT_A_DEPLOYMENT_CHECKLIST.md` satisfied the
+law. A file now counts when its path from the project root is one of the
+names, or ends in `/` and the name (`packages/app/LAUNCH_CHECKLIST.md`
+still counts). The quality shown in the message is read from the file
+that matched, not from the same name at the root. `LAUNCH_READINESS.md`
+and `docs/LAUNCH_READINESS.md`, which the card names, are accepted.
+Stricter: a project that passed only on a similar name fails.
+
+### ✨ Added — Version-control laws name what they counted (#43, version control)
+
+Three version-control laws said how many and never which: "1 of the last 3
+authored commits exceed the size limit", "Found unresolved conflict markers
+in 2 files", "Invalid tag formats found: <the first three>". Each law
+already held the list it counted. It now puts that list in
+`violationDetails`, which the console prints under the violation and
+`--export json` carries in full.
+
+- **Commit Size Control**: each oversized commit, by its hash, with the
+  files and lines it measured (generated files not counted, as before).
+- **Merge Conflict Prevention**: each file with a conflict marker, and each
+  file git holds unmerged, with its status (`UU`, `AA`, `DD`).
+- **Release Tag Standards**: every invalid tag, where the line quotes three,
+  and, for mixed prefixing, the tags of the smaller style, named against the
+  size of the other (both styles when they are equal).
+
+The violation lines, verdicts and scores are unchanged. Nothing new is
+searched for. This is the first of the per-category changes for #43.
+
+### 🐛 Fixed — Merge Conflict Prevention does not read a failed git grep as "no markers" (#637)
+
+The law looks for conflict markers with `git grep`, and every failure of it
+read as "no conflict markers": a broken index, a `.git` that is not a
+repository, git missing from the PATH. Exit 1 is still "no markers". Any
+other failure now goes to `notRead` ("conflict markers were NOT read: git
+grep did not answer (…)", with git's first line) and the law does not pass.
+Stricter: a project whose `git grep` fails changes from passed to not
+passed.
+
 ### ✨ Changed — Test Coverage Constitutional Standard judges by real line coverage (#599)
 
 With a coverage report — `coverage/coverage-summary.json` (Jest
@@ -1877,6 +1957,7 @@ other code. This repository declares its demo captures and recorded goldens
 as generated, and CONTRIBUTING states the atomic-commit policy.
 
 Self-audit of this repository: Commit Size Control — before 2 findings (4 of the last 10 commits oversized; no atomic-commit policy), after 1 (2 of the last 10: two hand-written commits of 534 and 597 lines, tests included; they leave the window as new commits land).
+
 ### ⚠️ BREAKING — laws about a running product run only where there is one; MD Footer Template is opt-in
 
 Five laws had no `requires` and judged every TypeScript project; a CLI tool or
@@ -1947,6 +2028,7 @@ When no Markdown file is left to read — none in the project, or
 repository's config no longer enables it.
 
 Self-audit of this repository: MD Footer Template — before 1 finding ("No markdown files found in project"), after not selected (opt-in, not enabled).
+
 ### Fixed — a checklist clause defers to an owning law the audit would not select (#428)
 
 Pre-Deployment Checklist consults the law that owns each runtime concern.
@@ -1956,6 +2038,7 @@ and the clause was reported. An owning law the audit would not select now
 answers "satisfied", like a written `notApplicable`.
 
 Self-audit of this repository: no change — the four owning laws are selected here, so they still run (measured).
+
 ### Fixed — Async Cache Single-Flight reads a check as a one-key get / has (#437)
 
 The selection pattern matched `constants.set(` as `s.set(` (no left boundary
@@ -1964,6 +2047,7 @@ as its only argument (the Map signature), so a file-backed API such as
 `Cache.get(root, key, mode)` is not judged as an in-memory map.
 
 Self-audit of this repository: Async Cache Single-Flight — before 1 finding (`src/core/auditing/audit-engine.ts`, a file-backed `AuditCache.get(…)` / `.set(…)`), after pass: 3 files read, 0 async check-then-store sites.
+
 ### Fixed — the audit run from git hooks and CI counts as running it (#434)
 
 Constitutional Supremacy, Continuous Compliance and Pull Request Workflow
@@ -1978,6 +2062,7 @@ titles do not count.
 | Constitutional Supremacy Doctrine | 1 finding (no enforcement script) | pass (.husky/pre-commit, .husky/pre-push run the audit) |
 | Continuous Compliance Doctrine | 1 finding (no enforcement tool) | pass |
 | Pull Request Workflow Standards | 1 finding (missing precommit, prepush) | pass |
+
 ### Fixed — Pre-PR Quality Gates: GitHub and GitLab keep branch protection server-side (#435)
 
 A github.com or gitlab.com remote is now a server-side protection host, as
@@ -1986,6 +2071,7 @@ verified). The message is built from the violations; it printed "Missing "
 with an empty list when branch protection was the only one.
 
 Self-audit of this repository: Pre-PR Quality Gates — before 1 finding ("Missing branch protection configuration", message "Missing "), after pass (github.com remote).
+
 ### Changed — Strategic Document Updates: a CHANGELOG and an issue tracker are a status record
 
 The status clause is met by a PROJECT_STATUS / STATUS / ROADMAP file, or by
@@ -1994,6 +2080,7 @@ URL in pyproject.toml, GitHub or GitLab issue templates). A project with
 neither is asked, as before.
 
 Self-audit of this repository: Strategic Document Updates — before 1 finding ("Missing PROJECT_STATUS.md file"), after pass (CHANGELOG.md + `bugs` in package.json + .github/ISSUE_TEMPLATE).
+
 ### Changed — Constitutional Compliance Headers: a repository-level license is enough
 
 A LICENSE file at the root together with the `license` field in package.json
@@ -2001,6 +2088,7 @@ states the terms for every file; the law passes and says so. Without both,
 the per-file headers, template and automation are judged as before.
 
 Self-audit of this repository: Constitutional Compliance Headers — before 4 findings, after pass (LICENSE + package.json license MIT).
+
 ### Fixed — Pre-Deployment Checklist reads the dependency scan from the command
 
 The security-scan clause read only script names (`audit`, `security`,
@@ -2008,6 +2096,7 @@ The security-scan clause read only script names (`audit`, `security`,
 yarn / pnpm audit, pip-audit, safety check, snyk test).
 
 Self-audit of this repository: Pre-Deployment Checklist — before 4 findings, after 3 ("Security vulnerability scanning not configured" is gone: `security-audit` runs `npm audit`, and so does the CI step).
+
 ### 🐛 Fixed — an Angular CLI project was told to add webpack limits it cannot write (#449)
 
 Once the budget suggestion read angular.json correctly (#449), the two

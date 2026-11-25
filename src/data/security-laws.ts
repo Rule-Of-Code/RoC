@@ -366,6 +366,7 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Checks that the graph is LOCKED and a scanner is wired INTO THE GATE — Node reads package-lock.json/yarn.lock/pnpm-lock.yaml and looks for npm/yarn/pnpm audit, snyk, osv-scanner, trivy or grype in package.json, pyproject.toml, .pre-commit-config.yaml, Makefile, tox.ini, noxfile.py, any CI configuration the tool discovers (GitHub Actions, GitLab, Bitbucket, Azure Pipelines, CircleCI, Jenkins, Travis, Buildkite, Drone, Cloud Build, or pathMappings.cicdConfig), or a Dependabot/Renovate config — a legacy .npmrc/.auditrc/audit.json/security-audit.json file also counts; Python reads uv.lock/poetry.lock/Pipfile.lock/pdm.lock + pip-audit/safety.',
       'It does NOT run the scanner and cannot see a vulnerability the scanner would find — a scanner outside the gate is not a scanner, and one that is present but never run is invisible to this law.',
+      'The licence check reads node_modules: without it no licence is judged, and it stops after the first 20 dependencies it can read.',
     ],
     emoji: '🔍',
     // The text the id is generated from (above) stays as it was: the id is

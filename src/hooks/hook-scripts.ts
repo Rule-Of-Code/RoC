@@ -243,7 +243,7 @@ function patternCheck(pattern: string, index: number): string {
   const shown = pattern.substring(0, GitHookPatterns.PATTERN_COMMENT_LENGTH);
   return `
 # Pattern ${index + 1}: ${shellComment(shown)}...
-if echo "$COMMIT_MSG" | grep -qE ${option}${shellQuote(pattern)}; then
+if printf '%s\\n' "$COMMIT_MSG" | grep -qE ${option}${shellQuote(pattern)}; then
     VALID=true
 fi`;
 }
@@ -256,12 +256,9 @@ function allowedValuesLines(commitConfig: CommitMsgSettings): string {
   const typesLine = shellPrint(`Types: ${types}`);
   if (!commitConfig.allowEmoji || !commitConfig.emojiTypes) return typesLine;
   const emojis = `Emojis: ${commitConfig.emojiTypes.slice(0, 10).join(' ')}...`;
-  const printed = shellPrint(emojis);
-  // The plain form keeps the line break it has always been written with.
-  const emojiLine = printed.startsWith('echo ')
-    ? `echo "\\n${emojis}"`
-    : printed;
-  return `${typesLine}\n    ${emojiLine}`;
+  // The blank line before it is its own echo: `echo "\n…"` printed a line
+  // break under dash and a literal \n under bash (CI on #660).
+  return `${typesLine}\n    echo ""\n    ${shellPrint(emojis)}`;
 }
 
 /** The commit-msg hook: subject patterns, subject length and body wrapping. */
@@ -315,7 +312,7 @@ if [ "$VALID" = false ]; then
     echo "   docs: update README with installation steps"
     echo ""
     echo "Your commit message:"
-    echo "$COMMIT_MSG"
+    printf '%s\\n' "$COMMIT_MSG"
     echo ""
     exit 1
 fi
@@ -340,7 +337,7 @@ if [ "$EXEMPT" = false ]; then
     if [ "$SUBJECT_LEN" -gt ${maxSubjectLength} ]; then
         echo "❌ Subject is $SUBJECT_LEN characters (max ${maxSubjectLength})."
         echo ""
-        echo "$FIRST_LINE"
+        printf '%s\\n' "$FIRST_LINE"
         echo ""
         echo "Shorten the subject; move the detail into the body."
         exit 1
@@ -356,7 +353,7 @@ if [ "$EXEMPT" = false ]; then
         echo "   Add an empty line between the subject and the description."
         echo ""
         echo "Your commit message:"
-        echo "$COMMIT_MSG"
+        printf '%s\\n' "$COMMIT_MSG"
         exit 1
     fi
     # Wrap body lines at 72 chars; exempt URLs, git trailers ("Word: …") and
@@ -368,7 +365,7 @@ if [ "$EXEMPT" = false ]; then
     LONG_LINES=$(printf '%s\\n' "$COMMIT_MSG" | LC_ALL=C awk 'NR>=3 { s=$0; gsub(/[\\200-\\277]/, "", s); n=length(s); if (n > 72 && $0 ~ /[[:space:]]/ && index($0, "://") == 0 && $0 !~ /^[A-Za-z][A-Za-z0-9_-]*:[[:space:]]/) print "  line " NR " (" n " chars)" }')
     if [ -n "$LONG_LINES" ]; then
         echo "❌ Commit body lines should wrap at 72 characters:"
-        echo "$LONG_LINES"
+        printf '%s\\n' "$LONG_LINES"
         echo ""
         echo "Wrap the description text. URLs and footers are exempt."
         exit 1

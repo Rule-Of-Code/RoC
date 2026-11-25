@@ -16,10 +16,19 @@ could stop with a syntax error on every commit or print something other than the
 value; and an emoji with a regex character, such as `:+1:`, refused a valid
 message. Every such value is now quoted in one place, and the emoji is escaped
 once. A pattern that starts with `-` is read as a pattern, and a
-`maxCommitMessageLength` that is not a number is the default 72. A hook
-generated from values without such characters is unchanged, byte for byte.
+`maxCommitMessageLength` that is not a number is the default 72.
 The commands of `hooks.custom` are shell code and are written as they are;
 the name of a custom hook is quoted like the other values.
+
+Also fixed, in the generator since before this release: the hook passed the
+commit message to `grep` and printed it with `echo`. Where `/bin/sh` is dash
+(Debian, Ubuntu, most Linux CI), `echo` reads backslash escapes, so a message
+with `\b` or `\n` in it was changed before it was matched and could be
+refused. The message now goes through `printf '%s\n'`, and the blank line
+before the emoji list is its own `echo ""` (`echo "\n…"` printed a line break
+under dash and a literal `\n` under bash). These lines change in every
+generated `commit-msg` hook; the other lines of a hook generated from plain
+values are unchanged.
 
 The fix reaches a project when its hooks are generated again:
 `npx ruleofcode reinstall-hooks`.

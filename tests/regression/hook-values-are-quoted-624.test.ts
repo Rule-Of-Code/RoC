@@ -3,8 +3,8 @@
  * hook. Every test generates the hook with the installer and runs it with
  * `sh -e`, the way husky runs it, on a valid and an invalid message.
  */
-import { spawnSync } from 'child_process';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import type { RuleOfCodeConfig } from '../../src/config/types';
 import { customHookScript } from '../../src/hooks/hook-scripts';
@@ -14,20 +14,44 @@ import {
   shellPrint,
   shellQuote,
 } from '../../src/hooks/shell-quote';
+import { spawnSync } from '../../src/utils/child-process';
 import { FileUtils } from '../../src/utils/file-utils';
 import { makeTempDir } from '../helpers/temp-dirs';
 
+/**
+ * The shells a hook runs under: `sh`, and `dash` where it is installed. On
+ * Linux `/bin/sh` is dash, whose `echo` reads backslash escapes; Git's `sh`
+ * on Windows is bash, whose `echo` does not. A hook must behave the same in
+ * both (CI on #660).
+ */
+const SHELLS = ['sh', 'dash'].filter(
+  shell =>
+    spawnSync(shell, ['-c', 'true'], { cwd: os.tmpdir(), encoding: 'utf8' })
+      .status === 0
+);
+
+/** Run `args` in every shell; the first shell's result, or the disagreement. */
+function inShells(args: string[], cwd: string) {
+  const results = SHELLS.map(shell => ({
+    shell,
+    ...spawnSync(shell, args, { cwd, encoding: 'utf8' }),
+  }));
+  const [first] = results;
+  const disagree = results.some(
+    r => r.status !== first?.status || r.stdout !== first?.stdout
+  );
+  return {
+    status: disagree
+      ? results.map(r => `${r.shell}=${r.status}`).join(' ')
+      : (first?.status ?? null),
+    stdout: first?.stdout ?? '',
+    stderr: results.map(r => r.stderr).join(''),
+  };
+}
+
 const run = (dir: string, message: string) => {
   fs.writeFileSync(path.join(dir, 'message.txt'), `${message}\n`);
-  const result = spawnSync('sh', ['-e', '.husky/commit-msg', 'message.txt'], {
-    cwd: dir,
-    encoding: 'utf8',
-  });
-  return {
-    status: result.status,
-    stdout: result.stdout,
-    stderr: result.stderr,
-  };
+  return inShells(['-e', '.husky/commit-msg', 'message.txt'], dir);
 };
 
 /** A project with the hook these settings generate. */
@@ -64,6 +88,8 @@ const CHARACTERS: Array<[string, string]> = [
   ['a backtick', 'a`b'],
   ['a dollar sign', 'a$HOME'],
   ['a backslash', 'a\\b'],
+  // dash's echo read `\n` as a line break (CI and QA on #660).
+  ['a backslash and n', 'x\\ny'],
 ];
 
 describe('#624 a commit type is written as a value', () => {
@@ -182,24 +208,28 @@ describe('#624 a hook from plain values keeps its lines', () => {
       })
     );
     expect(script).toContain('    echo "Types: feat, fix"\n');
-    expect(script).toContain('    echo "\\nEmojis: ✨ 🐛..."\n    echo ""\n');
+    // The blank line is its own echo: `echo "\n…"` differs between dash and bash.
+    expect(script).toContain(
+      '    echo "Types: feat, fix"\n    echo ""\n    echo "Emojis: ✨ 🐛..."\n    echo ""\n'
+    );
     expect(script).toContain('# Pattern 2: ^(✨|🐛)\\s+.+$...\n');
     expect(script).toContain(
-      '# Pattern 3: ^JIRA-[0-9]+ .+$...\nif echo "$COMMIT_MSG" | grep -qE \'^JIRA-[0-9]+ .+$\'; then\n'
+      "# Pattern 3: ^JIRA-[0-9]+ .+$...\nif printf '%s\\n' \"$COMMIT_MSG\" | grep -qE '^JIRA-[0-9]+ .+$'; then\n"
     );
   });
+});
+
+it('the hooks run under dash where it is installed (it is on Linux CI)', () => {
+  expect(SHELLS[0]).toBe('sh');
 });
 
 describe('#624 the quoting functions', () => {
   it.each(["it's", "''", '$HOME', '`x`', '"', '\\', 'a\nb', '-n', ''])(
     '%j comes out of sh as written',
     value => {
-      const printed = spawnSync(
-        'sh',
+      const printed = inShells(
         ['-c', `printf '%s' ${shellQuote(value)}`],
-        {
-          encoding: 'utf8',
-        }
+        os.tmpdir()
       );
       expect({ status: printed.status, out: printed.stdout }).toEqual({
         status: 0,
@@ -219,7 +249,7 @@ describe('#624 a custom hook name is written as a value', () => {
   const runScript = (script: string) => {
     const dir = makeTempDir('roc-hook-624-');
     fs.writeFileSync(path.join(dir, 'hook'), script);
-    return spawnSync('sh', ['-e', 'hook'], { cwd: dir, encoding: 'utf8' });
+    return inShells(['-e', 'hook'], dir);
   };
 
   it.each(CHARACTERS)(

@@ -1,6 +1,7 @@
 import { capturesErrors } from '../../../../checkers/code-quality-laws/global-error-handlers';
 import type { RuleOfCodeConfig } from '../../../../config/types';
 import { CheckerUtils } from '../../../../utils/checker-utils';
+import { scriptText, VUE_EXTENSION } from '../../../../utils/vue/vue-sfc';
 import { FileUtils } from '../../../../utils/file-utils';
 import {
   loadTypeScript,
@@ -41,14 +42,22 @@ export function ownErrorCapture(
   lawId?: string
 ): OwnErrorCapture {
   const candidates: Array<{ file: string; text: string }> = [];
+  // A component's <script> too: the parse reads a .vue file by its script,
+  // and so does the prefilter (#607).
   for (const file of CheckerUtils.findFilesByExtension(
     projectRoot,
-    [...CheckerUtils.getCommonExtensions().ALL_CODE, '.mjs', '.cjs'],
+    [
+      ...CheckerUtils.getCommonExtensions().ALL_CODE,
+      '.mjs',
+      '.cjs',
+      VUE_EXTENSION,
+    ],
     config ?? FileUtils.getMinimalDefaultConfig(),
     lawId
   )) {
     const text = FileUtils.readFileContentSync(file);
-    if (text && MAY_CAPTURE.test(text)) candidates.push({ file, text });
+    if (text && MAY_CAPTURE.test(scriptText(file, text)))
+      candidates.push({ file, text });
   }
   if (candidates.length === 0) return { files: [], unread: [] };
 

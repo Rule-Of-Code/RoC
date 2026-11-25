@@ -1,5 +1,6 @@
 import type { RuleOfCodeConfig } from '../../../config/types';
 import { CheckerUtils } from '../../checker-utils';
+import { scriptText, VUE_EXTENSION } from '../../vue/vue-sfc';
 import { FileUtils } from '../../file-utils';
 import { PathOperations } from '../../path-operations';
 import { initializeNamingValidation } from '../naming-validation-base';
@@ -29,9 +30,11 @@ export class CodeNamingValidation {
         return { violations, suggestions };
       }
 
+      // A component's <script> too, read by its script (#607): a template
+      // call such as $t( is not a method declaration.
       const tsFiles = CheckerUtils.findFilesByExtension(
         srcPath,
-        CheckerUtils.getCommonExtensions().TYPESCRIPT,
+        [...CheckerUtils.getCommonExtensions().TYPESCRIPT, VUE_EXTENSION],
         config
       );
 
@@ -41,7 +44,10 @@ export class CodeNamingValidation {
 
       for (const file of tsFiles) {
         try {
-          const content = FileUtils.readFile(file, { encoding: 'utf8' });
+          const content = scriptText(
+            file,
+            FileUtils.readFile(file, { encoding: 'utf8' })
+          );
           const fileViolations =
             CodeNamingValidation.analyzeFileContent(content);
           totalViolations += fileViolations.length;

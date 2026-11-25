@@ -233,6 +233,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Code and file naming are scanned under src/ ONLY — a project with no src/ (Nx apps/libs, Python) skips those checks, and a Python project fails on the missing ESLint config.',
       'The method-name regex matches any `identifier(` call — including factory/constructor calls — a false-positive source; per-file code-naming is a single aggregate capped at 10.',
       'Regex, no AST; TS/Angular.',
+      VUE_SCRIPT_ONLY,
     ],
     stack: 'typescript',
     emoji: '🏷️',

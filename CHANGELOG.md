@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — six performance and naming laws read .vue components (#607, P7)
+
+In a Vue project whose `App.vue` measures web vitals, registers an error
+handler, lazy-loads an image and splits code by hand, six laws did not see
+it:
+- Performance Monitoring Policy said "Core Web Vitals monitoring not
+  implemented" and "Performance error tracking not configured";
+- Performance Monitoring Standards said "Real User Monitoring not
+  configured";
+- Performance Standards said "web-vitals is declared but no metric is
+  measured";
+- Core Web Vitals Compliance said "Image optimization not configured";
+- Bundle Optimization Strategy Policy said "Code splitting not configured".
+
+They now read the component's `<script>` (and, for lazy loading, its
+`<template>`). Naming Convention Enforcement reads the identifiers of the
+script; a call written only in the template (`$t(`, `formatDate(`) is not a
+declaration. Each card says so.
+
+**Fewer false findings** for Vue projects, and naming findings where there
+were none.
+
 ### 🐛 Fixed — TODO Management Standards reads the comments of .vue components (#607, P7)
 
 TODO Management Standards read comments in `.ts` / `.js`, `.html`, CSS and

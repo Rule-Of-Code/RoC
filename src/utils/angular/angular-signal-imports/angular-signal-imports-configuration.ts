@@ -135,9 +135,30 @@ export class AngularSignalImportsConfiguration {
   }
 
   /**
-   * Angular versions supporting signals
+   * Signals are stable from Angular 16 on: every later major supports them
+   * (a fixed list of 16, 17 and 18 told Angular 19+ it was too old, #612).
    */
-  static readonly COMPATIBLE_VERSIONS = ['16', '17', '18'] as const;
+  static readonly MIN_SIGNALS_MAJOR_VERSION = 16;
+
+  /**
+   * The major version a dependency range starts at: `^19.2.0` → 19,
+   * `~21.0.1` → 21, `>=16.1.0` → 16, `17.x` → 17. Undefined when the range
+   * does not start at a version (`latest`, `workspace:*`, a git URL, `<17`).
+   */
+  static lowestMajorVersion(range: string): number | undefined {
+    const match = /^\s*(?:[\^~=]|>=?)?\s*v?(\d+)/.exec(range);
+    return match?.[1] === undefined ? undefined : Number(match[1]);
+  }
+
+  /**
+   * Is `usage` (e.g. `Signal<`, `signal(`) written as its own identifier?
+   * A plain substring test read `WritableSignal<number>` as a use of the
+   * `Signal` type (#612).
+   */
+  static usesSymbol(content: string, usage: string): boolean {
+    const escaped = usage.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`(?<![\\w$])${escaped}`).test(content);
+  }
 
   /**
    * Effect cleanup related

@@ -32,8 +32,9 @@ export interface ConstitutionalLaw {
   /** How to satisfy the law per stack — see EnhancedConstitutionalLaw.satisfiedBy. */
   satisfiedBy?: SatisfiedByGuidance;
   /**
-   * Legacy numeric id, for migration only. NOT a config key: 25 legacyIds are
-   * shared by 51 laws (v7.10.0 refuses ambiguous keys). Key by name or slug.
+   * Legacy numeric id, for migration only. NOT a config key: 21 legacyIds are
+   * shared by 43 laws (`laws.severity` and `laws.notApplicable` refuse ambiguous
+   * keys; `laws.enabled` turns on every law that carries one). Key by name or slug.
    */
   legacyId?: number | undefined;
   stack?: 'frontend' | 'python' | 'typescript' | undefined; // Stack scope (omitted = universal)

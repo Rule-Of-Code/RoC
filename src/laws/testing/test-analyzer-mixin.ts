@@ -31,6 +31,8 @@ export class TestAnalyzerMixin {
           extensions: ['.ts'],
           filesOnly: true,
           useConfigFiltering: false, // Don't use config whitelist for test discovery
+          // …but a dependency's test or a built copy is not the project's (#639).
+          skipDependencyAndBuildDirs: true,
         });
 
         // Filter by the specific test file predicate

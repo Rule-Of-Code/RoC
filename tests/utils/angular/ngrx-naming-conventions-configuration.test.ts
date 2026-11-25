@@ -284,6 +284,15 @@ describe('utils/angular/ngrx-naming-conventions/ngrx-naming-conventions-configur
         ).toBe(false);
       });
 
+      it('should accept the PascalCase source of a lower-case folder (#612)', () => {
+        expect(
+          NgRxNamingConventionsConfiguration.hasProperActionPrefix(
+            '[User Profile] Load',
+            'user-profile'
+          )
+        ).toBe(true);
+      });
+
       it('should return false for action with wrong prefix', () => {
         expect(
           NgRxNamingConventionsConfiguration.hasProperActionPrefix(
@@ -398,25 +407,39 @@ describe('utils/angular/ngrx-naming-conventions/ngrx-naming-conventions-configur
       it('should generate expected initial state name', () => {
         const names =
           NgRxNamingConventionsConfiguration.generateExpectedNames('user');
-        expect(names.initialState).toBe('initialuserState');
+        expect(names.initialState).toBe('initialUserState');
       });
 
       it('should generate expected state interface name', () => {
         const names =
           NgRxNamingConventionsConfiguration.generateExpectedNames('user');
-        expect(names.stateInterface).toBe('userState');
+        expect(names.stateInterface).toBe('UserState');
       });
 
       it('should generate expected feature selector name', () => {
         const names =
           NgRxNamingConventionsConfiguration.generateExpectedNames('user');
-        expect(names.featureSelector).toBe('selectuserFeature');
+        expect(names.featureSelector).toBe('selectUserFeature');
       });
 
       it('should generate expected effects class name', () => {
         const names =
           NgRxNamingConventionsConfiguration.generateExpectedNames('user');
-        expect(names.effectsClass).toBe('userEffects');
+        expect(names.effectsClass).toBe('UserEffects');
+      });
+
+      it('should map a kebab-case folder to PascalCase / camelCase names (#612)', () => {
+        const names =
+          NgRxNamingConventionsConfiguration.generateExpectedNames(
+            'user-profile'
+          );
+        expect(names).toEqual({
+          reducer: 'userProfileReducer',
+          initialState: 'initialUserProfileState',
+          stateInterface: 'UserProfileState',
+          featureSelector: 'selectUserProfileFeature',
+          effectsClass: 'UserProfileEffects',
+        });
       });
     });
 

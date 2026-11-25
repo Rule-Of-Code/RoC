@@ -287,12 +287,10 @@ export class ReleaseTagStandardsLaw extends GitLawBase {
           ['yml', 'yaml'],
           config
         );
+        // The scanner returns full paths; they are read as given (#642).
         const hasReleaseWorkflow = workflows.some((workflow: string) => {
           try {
-            const workflowContent = FileUtils.readFileSync(
-              PathOperations.join(workflowsDir, workflow),
-              'utf8'
-            );
+            const workflowContent = FileUtils.readFileSync(workflow, 'utf8');
             return (
               workflowContent.includes('release') ||
               workflowContent.includes('tag') ||

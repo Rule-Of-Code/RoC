@@ -57,11 +57,6 @@ export class NgRxMemoizationConfiguration extends SignalConfigurationBase {
   );
 
   /**
-   * Direct store.select pattern for validation - RULE 1: Inlined from getter method
-   */
-  static readonly DIRECT_SELECT_PATTERN = /store\.select\([^)]+\)/g;
-
-  /**
    * Selector subscription pattern for validation - RULE 1: Inlined from getter method
    */
   static readonly SELECTOR_SUBSCRIPTION_PATTERN =
@@ -257,32 +252,6 @@ export class NgRxMemoizationConfiguration extends SignalConfigurationBase {
   }
 
   /**
-   * Find direct store.select patterns
-   */
-  static findDirectSelects(content: string): RegExpMatchArray | null {
-    return content.match(this.DIRECT_SELECT_PATTERN);
-  }
-
-  /**
-   * Check if content has valid direct select usage
-   */
-  static hasValidDirectSelectUsage(content: string): boolean {
-    return (
-      !content.includes('store.select') ||
-      content.includes(NGRX_KEYWORDS.SELECT_PREFIX)
-    );
-  }
-
-  /**
-   * Check if direct select is invalid
-   */
-  static isInvalidDirectSelect(select: string): boolean {
-    return (
-      !select.includes('select') || select.includes("'") || select.includes('"')
-    );
-  }
-
-  /**
    * Find selector subscriptions
    */
   static findSelectorSubscriptions(content: string): RegExpMatchArray | null {
@@ -340,12 +309,10 @@ export class NgRxMemoizationConfiguration extends SignalConfigurationBase {
    * Analyze component selector usage patterns
    */
   static analyzeComponentSelectorPatterns(content: string): {
-    hasValidDirectSelects: boolean;
     hasTooManySubscriptions: boolean;
     needsCleanup: boolean;
   } {
     return {
-      hasValidDirectSelects: this.hasValidDirectSelectUsage(content),
       hasTooManySubscriptions: this.hasTooManySubscriptions(content),
       needsCleanup: this.needsSubscriptionCleanup(content),
     };

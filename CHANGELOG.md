@@ -17,8 +17,9 @@ value; and an emoji with a regex character, such as `:+1:`, refused a valid
 message. Every such value is now quoted in one place, and the emoji is escaped
 once. A pattern that starts with `-` is read as a pattern, and a
 `maxCommitMessageLength` that is not a number is the default 72. A hook
-generated from values without such characters is unchanged, byte for byte;
-`hooks.custom` holds commands and is written as it is.
+generated from values without such characters is unchanged, byte for byte.
+The commands of `hooks.custom` are shell code and are written as they are;
+the name of a custom hook is quoted like the other values.
 
 The fix reaches a project when its hooks are generated again:
 `npx ruleofcode reinstall-hooks`.

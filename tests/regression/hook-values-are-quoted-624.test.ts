@@ -7,6 +7,7 @@ import { spawnSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import type { RuleOfCodeConfig } from '../../src/config/types';
+import { customHookScript } from '../../src/hooks/hook-scripts';
 import { GitHooksInstaller } from '../../src/hooks/installer';
 import {
   shellComment,
@@ -211,5 +212,33 @@ describe('#624 the quoting functions', () => {
     expect(shellComment('a\r\nb\nc')).toBe('a b c');
     expect(shellPrint('Types: feat')).toBe('echo "Types: feat"');
     expect(shellPrint('a$b')).toBe("printf '%s\\n' 'a$b'");
+  });
+});
+
+describe('#624 a custom hook name is written as a value', () => {
+  const runScript = (script: string) => {
+    const dir = makeTempDir('roc-hook-624-');
+    fs.writeFileSync(path.join(dir, 'hook'), script);
+    return spawnSync('sh', ['-e', 'hook'], { cwd: dir, encoding: 'utf8' });
+  };
+
+  it.each(CHARACTERS)(
+    'a name with %s runs, and is printed as written',
+    (_, value) => {
+      const result = runScript(customHookScript(value, ['true']));
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain(`Running custom hook: ${value}`);
+      expect(result.stdout).toContain(`Custom hook ${value} completed`);
+    }
+  );
+
+  it('control: a plain name keeps the echo lines, and the commands are written as they are', () => {
+    const script = customHookScript('post-merge', ['npm ci', 'echo "$HOME"']);
+    expect(script).toContain(
+      '# RuleOfCode Custom Hook: post-merge (husky v9+ native)'
+    );
+    expect(script).toContain('echo "🔧 Running custom hook: post-merge"');
+    expect(script).toContain('npm ci\necho "$HOME"');
+    expect(script).toContain('echo "✅ Custom hook post-merge completed"');
   });
 });

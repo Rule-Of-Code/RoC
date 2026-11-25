@@ -136,14 +136,17 @@ echo "✅ Full constitutional compliance verified - proceeding with push"
 `;
 }
 
-/** A custom hook: its commands, announced. */
+/**
+ * A custom hook: its commands, announced. The commands are shell code and are
+ * written as they are; the hook's name is a value and is quoted (#624).
+ */
 export function customHookScript(hookName: string, commands: string[]): string {
-  return `# RuleOfCode Custom Hook: ${hookName} (husky v9+ native)
-echo "🔧 Running custom hook: ${hookName}"
+  return `# RuleOfCode Custom Hook: ${shellComment(hookName)} (husky v9+ native)
+${shellPrint(`🔧 Running custom hook: ${hookName}`)}
 
 ${commands.join('\n')}
 
-echo "✅ Custom hook ${hookName} completed"
+${shellPrint(`✅ Custom hook ${hookName} completed`)}
 `;
 }
 

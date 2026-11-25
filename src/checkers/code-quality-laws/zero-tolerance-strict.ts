@@ -12,7 +12,6 @@
 
 import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { CheckerUtils } from '../../utils/checker-utils';
 import { FileUtils } from '../../utils/file-utils';
 import { markJudgedNothing } from '../../utils/judged-nothing';
 import { PathOperations } from '../../utils/path-operations';
@@ -30,10 +29,8 @@ export class ZeroToleranceStrictLaw extends CodeQualityLawBase {
     const violations: string[] = [];
 
     const ts = loadTypeScript(projectRoot);
-    const tsFiles = CheckerUtils.findTypeScriptFiles(
-      projectRoot,
-      context.config
-    );
+    // .vue too, read as its script (#607).
+    const tsFiles = this.findTypeScriptFiles(projectRoot, context);
     if (!ts && tsFiles.length > 0) {
       return markJudgedNothing({
         ...this.createResult(

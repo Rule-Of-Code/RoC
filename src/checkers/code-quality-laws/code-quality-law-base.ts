@@ -17,6 +17,8 @@ import { notReadNote } from '../../utils/json-manifest';
 import { ObservableCleanup } from '../../utils/observable-cleanup';
 import { PathOperations } from '../../utils/path-operations';
 import { readTsconfigChain, strictModeOf } from '../../utils/tsconfig-chain';
+import { DirectoryScanner } from '../../utils/directory-scanner';
+import { VUE_EXTENSION } from '../../utils/vue/vue-sfc';
 
 /** Share of exported classes and functions that must carry a JSDoc block. */
 const DOCUMENTED_SHARE = 0.5;
@@ -26,9 +28,12 @@ export abstract class CodeQualityLawBase {
     projectRoot: string,
     context: LawCheckContext
   ): string[] {
-    return FileUtils.getAllTypeScriptFiles(
+    // .vue single-file components too: read as their script by the shared
+    // readers (readSource, TsxSource, scriptText) (#607, P3).
+    return DirectoryScanner.scanForFiles(
       projectRoot,
       context.config,
+      ['.ts', '.tsx', VUE_EXTENSION],
       undefined,
       false
     );
@@ -46,7 +51,7 @@ export abstract class CodeQualityLawBase {
     // slug form worked, and the id form silently filtered nothing.
     return CheckerUtils.findFilesByExtension(
       projectRoot,
-      ['ts', 'js', 'tsx', 'jsx'],
+      ['ts', 'js', 'tsx', 'jsx', 'vue'],
       context.config,
       context.lawId
     );

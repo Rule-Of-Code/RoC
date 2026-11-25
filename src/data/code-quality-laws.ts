@@ -10,6 +10,10 @@ import {
   REQUIRES_RXJS,
 } from '../utils/framework-requirements';
 
+/** The detection limit of a code-quality law that reads .vue by its script (#607). */
+const VUE_SCRIPT_ONLY =
+  'A Vue single-file component (.vue) is read by its <script> and <script setup> blocks, at its own lines; its <template> and <style> are not read by this law (#607).';
+
 export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
   {
     id: generateLawId(
@@ -33,6 +37,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'In a package whose nearest package.json declares `bin`, console.log/info are not counted anywhere in it — a stray log in such a package is not told apart from output; console.warn is not counted in the entry modules derived from `bin` (the source of each bin target, the directory named after it and a commands/ directory beside it), and is counted in the rest. A logging module (logger.*, logging*, log.*) is not counted.',
       'TS/Angular only; a Python project has no tsconfig and cannot pass.',
       'Owns the hand-written `any` of a declaration or a cast (`: any`, `as any`, `any[]`): No Explicit Any / Non-Null Assertion does not count them again (#482).',
+      VUE_SCRIPT_ONLY,
     ],
     stack: 'typescript',
     emoji: '❌',
@@ -110,6 +115,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Whole-file, lenient exemption: ANY occurrence of the substring `async` (an async function anywhere) marks the whole file as cleaned up — a large false negative.',
       'A single uncleaned subscription in a component can trigger three near-duplicate violations (three overlapping checks).',
       'Regex, no AST; matches in comments/strings; no Python.',
+      VUE_SCRIPT_ONLY,
     ],
     stack: 'frontend',
     requires: REQUIRES_RXJS,
@@ -151,6 +157,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'A re-export (export { a } from …) is judged in the module that declares it, not where it is re-exported; .d.ts files are not judged.',
       "Reads .ts/.tsx and .js/.jsx/.mjs/.cjs (#493) with the project's own typescript; without it the files are reported as not read, and a file that does not parse is named as not read. CommonJS exports (module.exports = …) are not ES exports and are not judged.",
       'TypeScript and JavaScript — no Python (Public Docstrings judges Python).',
+      VUE_SCRIPT_ONLY,
     ],
     emoji: '📝',
     description:
@@ -191,6 +198,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'File length counts lines of code (no comment or blank lines) and is not applied to a data file with at most two functions; "too many functions" is reported only for a file that also has a function over the complexity limit.',
       'thresholds.codeQuality.maxFileComplexity is opt-in: with no value set a file is judged only by its worst single function, never by its total, so a large file of simple functions is not reported.',
       'The law is the check; ESLint complexity rules (`complexity`, `max-lines`, `max-depth`) are not required. When the project sets them, the result says so in its details, as information: not a finding, and it changes nothing about the verdict.',
+      VUE_SCRIPT_ONLY,
     ],
     emoji: '🌪️',
     description: 'Functions must maintain reasonable cyclomatic complexity',
@@ -261,6 +269,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Unused imports, exports and variables are NOT detected by this law. It asks for a tool that detects them: a dead-code tool (knip, ts-prune, ts-unused-exports or unimported) run from a package script, a committed git hook or a CI step — a tool that is only a devDependency, run nowhere, does not count — or, when ESLint is a devDependency, an ESLint no-unused-vars / no-unreachable rule (its presence in the config; the lint run itself is not checked).',
       'Read from the TypeScript parse (without a loadable `typescript` the files are NOT read and the law judges nothing): a `debugger;` statement, a statement after a `return` in the same block (a hoisted function or a type after it is not), and more than three `//` comments that hold a const/let declaration or a function header. Words in strings and prose comments are not code.',
       'TS/JS only; no Python.',
+      VUE_SCRIPT_ONLY,
     ],
     emoji: '🧟',
     description:
@@ -299,6 +308,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'It does not verify a named constant is used correctly — a well-named but wrong constant passes.',
       'Literals are read from the TypeScript parse: a digit in a string, template text, regex or comment is not one; without a loadable `typescript` the files are NOT read and the law judges nothing. Named: an initializer of a variable, property, class field, enum member, parameter or destructuring default (also through a constant expression or an array), the elements of a new Set/Map that initialises a const or a class field, the fallback of `??`, and a parseInt radix.',
       'The law is the check; an ESLint rule is not required. `no-magic-numbers` / `@typescript-eslint/no-magic-numbers` has no option for a `??` fallback or a constant expression in an initializer, so it reports numbers this law counts as named. When the project sets one, the result says so in its details, as information: not a finding, and it changes nothing about the verdict.',
+      VUE_SCRIPT_ONLY,
     ],
     emoji: '🔮',
     description:
@@ -335,6 +345,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Tool-presence dominates: a project without jscpd fails regardless of actual duplication.',
       'Compares the block bodies of functions, methods and arrows from the TypeScript parse (without a loadable `typescript` the files are NOT read and the law judges nothing); a body counts only at 5+ lines and 50+ tokens (thresholds.codeQuality.minDuplicationLines / minDuplicationTokens). It matches only EXACT token sequences — numbers are normalised, strings are not — so a single differing identifier escapes; a copy inside a larger copy is reported once, and the same file can be listed twice.',
       'TS/JS only; no Python.',
+      VUE_SCRIPT_ONLY,
     ],
     emoji: '📋',
     description: 'Prevent code duplication through proper abstraction',
@@ -372,6 +383,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'HTTP guarding is still a per-file text check, over code only (strings and comments removed). An event listener is judged by its handler, from the syntax tree: async, an await, a throw, JSON.parse or a fetch / XMLHttpRequest / axios / http call with no try and no .catch in the handler is a finding; a handler passed by a name not declared in the same file is not judged. JS/TS only, Python files are not analysed per-file.',
       'Global-handler detection reads a fixed list of bootstrap files plus the source of package.json bin/main (dist|lib|build|out → src); a bootstrap file elsewhere gets a false "no global error handling". The handler is recognised in the parse (a listener call, a window.onerror assignment, a framework identifier, or a try around parse()/parseAsync() in the bin entry), not by what the handler body does.',
       'Python satisfies only the global-handler clause, not the per-call gaps.',
+      VUE_SCRIPT_ONLY,
     ],
     emoji: '🚨',
     description:
@@ -410,6 +422,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'The empty-object `{}` type is deliberately not detected; the per-file collapse hides the true count.',
       '`: any`, `as any` and `any[]` in a declaration or a cast are counted by Absolute Zero Tolerance Doctrine (error severity), which owns them, and not here (#482); this law counts `<any>` assertions and type arguments, the weak `Function` / `Object` types and non-null `!`.',
       'TypeScript; not Angular-gated; no Python.',
+      VUE_SCRIPT_ONLY,
     ],
     stack: 'typescript',
     emoji: '🚫',
@@ -447,6 +460,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Matches only the literal `as unknown as` form — an angle-bracket cast, `as any as`, or laundering through a variable is missed.',
       'Reads the code of the TypeScript parse — the words in a string or a comment are not a cast; without a loadable `typescript` the files are NOT read and the law judges nothing.',
       'TypeScript; no gate, no Python.',
+      VUE_SCRIPT_ONLY,
     ],
     stack: 'typescript',
     emoji: '🧺',
@@ -484,6 +498,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'The receiver identifier must literally contain "http" — this.api.get() and client.post() are false negatives, while a Map named httpMap.get() is a false positive.',
       'Detection works by the ABSENCE of a `<T>` between the verb and `(`; fetch() is not covered.',
       'Regex, no AST; TypeScript, not Angular-gated.',
+      VUE_SCRIPT_ONLY,
     ],
     stack: 'typescript',
     emoji: '🌐',
@@ -519,6 +534,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Flags only enum / const enum DECLARATIONS at line start; it does not judge enum usage, and an enum declared mid-expression is missed.',
       'Honours a `// roc-allow-enum` opt-out (config-gated) — the one law here that handles both block and line comments correctly.',
       'TypeScript; no Python.',
+      VUE_SCRIPT_ONLY,
     ],
     stack: 'typescript',
     emoji: '🔤',
@@ -559,6 +575,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'In a package whose nearest package.json declares `bin`, console.log/info are not counted anywhere in it — library code in such a package that bypasses its logger with them is not told apart from output; console.warn/error are not counted in the entry modules derived from `bin` (the source of each bin target, the directory named after it and a commands/ directory beside it), and are counted in the rest; console.debug/trace still count.',
       'Python side is comment- and string-clean and exempts scripts/tools/__main__/cli.py/manage.py.',
       'Dual-stack (TypeScript and Python); not Angular-gated.',
+      VUE_SCRIPT_ONLY,
     ],
     emoji: '🪵',
     description:
@@ -600,6 +617,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
       'The boundary allow is *.service.ts only, so a *.store.ts / *.facade.ts wrapper is still flagged; strings not stripped.',
       'TS/Angular; not Angular-gated; no Python.',
       "Judges where storage is called, not what backs it: in a Capacitor app WebView storage must be considered transient (Capacitor's storage guide) and is keyed by the WebView origin, so a service over localStorage passes in full. Which store backs a durable key is #269's question.",
+      VUE_SCRIPT_ONLY,
     ],
     stack: 'frontend',
     emoji: '🗄️',

@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ Added — React guidance of the frontend architecture laws proved on a React app (#12)
+
+The React guidance of Stores In Data Access, Defensive Array Coercion, No
+Passthrough Cast and No Hostname Gating is proved by a regression test on a
+React + Vite project: each law reports the project, and doing what
+`satisfiedBy.react` says clears it — a zustand store moved from the feature
+directory to the data-access layer (or the layers declared in
+`thresholds.frontend`); `(Array.isArray(raw.items) ? raw.items : [])`; a
+`res.json()` body read as `unknown` and parsed; an env value read at build
+time instead of `location.hostname`.
+
+Two cards said less than the law does. No Passthrough Cast also reports an
+axios call typed as the domain model (`axios.get<User>()`); its card now
+says to type the call as the wire shape (`axios.get<RawUser>()` or
+`unknown`) and map `.data`. Both data-access laws judge only the
+data-access layer; their cards now say where that is by default (a
+`/data-access/` directory) and how to declare it
+(`thresholds.frontend.dataAccessLayers`).
+
 ### ✨ Added — React guidance of the accessibility laws proved on a React app (#12)
 
 The React guidance of the five accessibility frontend laws (Accessibility

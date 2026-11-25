@@ -34,6 +34,36 @@ export class DependencyPinningConstants {
     VERSION_RANGES: 10,
   };
 
+  /** The version kinds that are not pinned, in the order they are tested. */
+  private static readonly UNPINNED_KINDS: ReadonlyArray<{
+    type: string;
+    test: (version: string) => boolean;
+  }> = [
+    // Wildcard versions
+    {
+      type: 'wildcard',
+      test: version =>
+        version === '*' || version === 'latest' || version.includes('x'),
+    },
+    // Unpinned versions (using ^ or ~)
+    {
+      type: 'unpinned',
+      test: version => version.startsWith('^') || version.startsWith('~'),
+    },
+    // Version ranges
+    {
+      type: 'range',
+      test: version =>
+        [' - ', '||', '<', '>'].some(operator => version.includes(operator)),
+    },
+    // Git URLs or other non-standard versions
+    {
+      type: 'unpinned',
+      test: version =>
+        ['git+', 'http', 'file:'].some(prefix => version.includes(prefix)),
+    },
+  ];
+
   /**
    * Analyze a dependency version string
    */
@@ -43,36 +73,8 @@ export class DependencyPinningConstants {
       return null; // Properly pinned
     }
 
-    // Check for wildcard versions
-    if (version === '*' || version === 'latest' || version.includes('x')) {
-      return { type: 'wildcard' };
-    }
-
-    // Check for unpinned versions (using ^ or ~)
-    if (version.startsWith('^') || version.startsWith('~')) {
-      return { type: 'unpinned' };
-    }
-
-    // Check for version ranges
-    if (
-      version.includes(' - ') ||
-      version.includes('||') ||
-      version.includes('<') ||
-      version.includes('>')
-    ) {
-      return { type: 'range' };
-    }
-
-    // Check for git URLs or other non-standard versions
-    if (
-      version.includes('git+') ||
-      version.includes('http') ||
-      version.includes('file:')
-    ) {
-      return { type: 'unpinned' };
-    }
-
-    return null; // Considered properly pinned
+    const kind = this.UNPINNED_KINDS.find(candidate => candidate.test(version));
+    return kind ? { type: kind.type } : null; // null: considered properly pinned
   }
 
   /**

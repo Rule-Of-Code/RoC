@@ -234,36 +234,46 @@ describe('Code quality laws reading the ESLint config', () => {
     expect(result.passed).toBe(false);
   });
 
-  // Fail-open places: the config was never read, so a missing rule was never
-  // seen. Read now, the missing rule is a finding.
-  it('Code Complexity Control finds an .eslintrc.json without complexity rules', () => {
+  // The .eslintrc.json is read, and the rule it sets is information only:
+  // neither law requires an ESLint rule (#594).
+  it('Code Complexity Control does not require complexity rules in an .eslintrc.json', () => {
     write('package.json', pkg);
     write('.eslintrc.json', json({ rules: { 'no-console': 'error' } }));
-    expect(CodeComplexityControlLaw.check(context()).violations).toContain(
+    const result = CodeComplexityControlLaw.check(context());
+    expect(result.violations).not.toContain(
       'ESLint complexity rules not configured'
     );
+    expect(result.details).toBeUndefined();
   });
 
-  it('Code Complexity Control passes an .eslintrc.json with them', () => {
+  it('Code Complexity Control names the complexity rule an .eslintrc.json sets', () => {
     write('package.json', pkg);
     write('.eslintrc.json', json({ rules: { complexity: ['error', 10] } }));
-    expect(CodeComplexityControlLaw.check(context()).violations).not.toContain(
-      'ESLint complexity rules not configured'
-    );
+    const result = CodeComplexityControlLaw.check(context());
+    expect(result.details).toEqual([
+      expect.stringMatching(
+        /^.eslintrc.json sets complexity — information only/
+      ),
+    ]);
   });
 
-  it('Magic Number Prevention finds an .eslintrc.json without the rule', () => {
+  it('Magic Number Prevention does not require the rule in an .eslintrc.json', () => {
     write('.eslintrc.json', json({ rules: { 'no-console': 'error' } }));
-    expect(MagicNumberPreventionLaw.check(context()).violations).toContain(
+    const result = MagicNumberPreventionLaw.check(context());
+    expect(result.violations).not.toContain(
       'ESLint magic numbers rule not configured'
     );
+    expect(result.details).toBeUndefined();
   });
 
-  it('Magic Number Prevention passes an .eslintrc.json with the rule', () => {
+  it('Magic Number Prevention names the rule an .eslintrc.json sets', () => {
     write('.eslintrc.json', json({ rules: { 'no-magic-numbers': 'error' } }));
-    expect(MagicNumberPreventionLaw.check(context()).violations).not.toContain(
-      'ESLint magic numbers rule not configured'
-    );
+    const result = MagicNumberPreventionLaw.check(context());
+    expect(result.details).toEqual([
+      expect.stringMatching(
+        /^.eslintrc.json sets no-magic-numbers — information only/
+      ),
+    ]);
   });
 });
 

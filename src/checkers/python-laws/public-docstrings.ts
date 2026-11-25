@@ -123,13 +123,20 @@ export class PublicDocstringsLaw extends PythonLawBase {
       j++
     ) {
       const code = (lines[j] ?? '').replace(/#.*$/, '');
-      for (const ch of code) {
-        if (ch === '(' || ch === '[' || ch === '{') depth++;
-        else if (ch === ')' || ch === ']' || ch === '}') depth--;
-      }
+      depth += this.bracketBalance(code);
       if (depth <= 0 && code.trimEnd().endsWith(':')) return j;
     }
     return -1;
+  }
+
+  /** The brackets one line of code opens (positive) or closes (negative). */
+  private static bracketBalance(code: string): number {
+    let balance = 0;
+    for (const ch of code) {
+      if (ch === '(' || ch === '[' || ch === '{') balance++;
+      else if (ch === ')' || ch === ']' || ch === '}') balance--;
+    }
+    return balance;
   }
 
   /** Text after the final top-level colon on a signature line (a one-liner body). */

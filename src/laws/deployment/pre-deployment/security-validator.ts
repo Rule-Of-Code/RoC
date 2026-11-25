@@ -66,12 +66,7 @@ export class SecurityValidationChecker {
 
     // Check for Snyk configuration
     const snykConfigFiles = ['.snyk', 'snyk.json'];
-    for (const snykFile of snykConfigFiles) {
-      if (FileUtils.exists(PathOperations.join(projectRoot, snykFile))) {
-        snykConfigured = true;
-        break;
-      }
-    }
+    if (this.anyExists(projectRoot, snykConfigFiles)) snykConfigured = true;
 
     // Check for secret scanning setup
     const secretScanningFiles = [
@@ -80,12 +75,8 @@ export class SecurityValidationChecker {
       '.github/workflows/secrets-scan.yml',
       '.github/workflows/security.yml',
     ];
-    for (const secretFile of secretScanningFiles) {
-      if (FileUtils.exists(PathOperations.join(projectRoot, secretFile))) {
-        secretScanningConfigured = true;
-        break;
-      }
-    }
+    if (this.anyExists(projectRoot, secretScanningFiles))
+      secretScanningConfigured = true;
 
     // Check for Dependabot configuration
     const dependabotPaths = [
@@ -93,12 +84,8 @@ export class SecurityValidationChecker {
       '.github/dependabot.yaml',
     ];
 
-    for (const dependabotPath of dependabotPaths) {
-      if (FileUtils.exists(PathOperations.join(projectRoot, dependabotPath))) {
-        dependabotConfigured = true;
-        break;
-      }
-    }
+    if (this.anyExists(projectRoot, dependabotPaths))
+      dependabotConfigured = true;
 
     // Check for vulnerability scan results
     const scanResultPaths = [
@@ -108,12 +95,8 @@ export class SecurityValidationChecker {
       'reports/security.json',
     ];
 
-    for (const scanPath of scanResultPaths) {
-      if (FileUtils.exists(PathOperations.join(projectRoot, scanPath))) {
-        vulnerabilityScanResults = true;
-        break;
-      }
-    }
+    if (this.anyExists(projectRoot, scanResultPaths))
+      vulnerabilityScanResults = true;
 
     return {
       npmAuditConfigured,
@@ -123,6 +106,13 @@ export class SecurityValidationChecker {
       securityScripts,
       vulnerabilityScanResults,
     };
+  }
+
+  /** Does any of the paths exist under the project root? Tested in order. */
+  private anyExists(projectRoot: string, paths: string[]): boolean {
+    return paths.some(path =>
+      FileUtils.exists(PathOperations.join(projectRoot, path))
+    );
   }
 
   checkAuthenticationSetup(

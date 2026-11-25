@@ -127,19 +127,18 @@ export class ReactRenderNoBrowserGlobalLaw extends LawBase {
       return fn ? [fn] : [];
     }
     if (!ts.isVariableStatement(statement)) return [];
-    const found: ComponentFunction[] = [];
-    for (const declaration of statement.declarationList.declarations) {
+    // `const Name = …` declarations whose value renders.
+    return statement.declarationList.declarations.flatMap(declaration => {
       if (
         !ts.isIdentifier(declaration.name) ||
         !RENDERS.test(declaration.name.text)
       )
-        continue;
+        return [];
       const fn =
         declaration.initializer &&
         this.renderFunction(ts, declaration.initializer);
-      if (fn) found.push(fn);
-    }
-    return found;
+      return fn ? [fn] : [];
+    });
   }
 
   /** `() => …`, `function () {}`, or the function wrapped by `memo(…)` / `forwardRef(…)`. */
@@ -258,16 +257,24 @@ export class ReactRenderNoBrowserGlobalLaw extends LawBase {
       return this.hasTypeofGuard(ts, parent.condition);
     }
     if (ts.isBinaryExpression(parent) && child === parent.right) {
-      const operator = parent.operatorToken.kind;
-      const logical =
-        operator === ts.SyntaxKind.AmpersandAmpersandToken ||
-        operator === ts.SyntaxKind.BarBarToken ||
-        operator === ts.SyntaxKind.QuestionQuestionToken;
-      return logical && this.hasTypeofGuard(ts, parent.left);
+      return this.logicalGuard(ts, parent);
     }
     if (ts.isBlock(parent))
       return this.afterEarlyReturnGuard(ts, parent, child);
     return false;
+  }
+
+  /** `typeof window !== 'undefined' && …` (or `||`, `??`) guarding its right side. */
+  private static logicalGuard(
+    ts: TypeScriptModule,
+    parent: TS.BinaryExpression
+  ): boolean {
+    const operator = parent.operatorToken.kind;
+    const logical =
+      operator === ts.SyntaxKind.AmpersandAmpersandToken ||
+      operator === ts.SyntaxKind.BarBarToken ||
+      operator === ts.SyntaxKind.QuestionQuestionToken;
+    return logical && this.hasTypeofGuard(ts, parent.left);
   }
 
   private static afterEarlyReturnGuard(

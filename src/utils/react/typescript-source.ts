@@ -1,8 +1,8 @@
 /**
  * Which TypeScript the laws parse with, for one project (#667): the
  * project's own `typescript` when it offers the compiler API, else the one
- * RoC depends on (`@ruleofcode/ts-api`); and whether a law asked for it
- * during its run. Re-exported by tsx-source, where the laws import it from.
+ * RoC depends on (`typescript` ^5.9.3, a runtime dependency); and whether a
+ * law asked for it during its run. Re-exported by tsx-source, where the laws import it from.
  */
 
 import { AsyncLocalStorage } from 'async_hooks';
@@ -60,12 +60,14 @@ function versionFrom(paths: string[], id: string): string | null {
 }
 
 /**
- * The package names RoC resolves its own parser from, in order: its runtime
- * dependency `@ruleofcode/ts-api` (an alias of typescript 6, whose API parses
- * TypeScript 7 code too), then a `typescript` RoC resolves from its own
- * install (its build dependency, when present).
+ * RoC's own parser: its runtime dependency `typescript`, resolved from RoC's
+ * install. Under the package's own name, npm never lets it shadow the
+ * project's `typescript`: where the project has one of another version,
+ * RoC's copy is installed nested under RoC, without a `tsc` in the project's
+ * `.bin`. An npm alias under another name was hoisted and took the
+ * project's `tsc` (#667).
  */
-const OWN_TYPESCRIPT = ['@ruleofcode/ts-api', 'typescript'];
+const OWN_TYPESCRIPT = ['typescript'];
 
 /**
  * The parser for a project: its own `typescript` when that package has the

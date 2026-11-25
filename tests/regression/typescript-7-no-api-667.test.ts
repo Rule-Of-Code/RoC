@@ -192,7 +192,7 @@ describe('#667 an npm alias is a version, judged by its range', () => {
     ).analyzeVersionRange(version);
   };
 
-  it('npm:typescript@^6.0.3 (the dependency this issue adds) is a caret range: fine', () => {
+  it('an npm alias with a caret range (npm:typescript@^6.0.3) is fine', () => {
     expect(verdict('npm:typescript@^6.0.3').isViolation).toBe(false);
     expect(verdict('npm:@scope/pkg@1.2.3').isViolation).toBe(false);
   });

@@ -7,12 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### 📦 Adds a runtime dependency (~24 MB): `@ruleofcode/ts-api` (#667)
+### 📦 Adds a runtime dependency: `typescript` ^5.9.3 (~24 MB); a project's own `typescript` is never shadowed (#667)
 
-`@ruleofcode/ts-api` is an npm alias of `typescript@^6.0.3` (24.3 MB
-unpacked), in `dependencies`. RoC parses with it when the project's own
-`typescript` has no compiler API. The build of RoC itself stays on
-`typescript` 5.9 (a dev dependency).
+`typescript` moves from `devDependencies` to `dependencies` (^5.9.3, 23.6 MB
+unpacked). RoC parses with it when the project's own `typescript` has
+no compiler API. Under its own name, npm never lets it shadow the project's:
+a project with its own `typescript` (5.x, 6 or 7) keeps it, and its
+`npx tsc` stays its own version; RoC's copy is installed nested under RoC.
+A project without `typescript` gets RoC's 5.9.3 hoisted, with a `tsc` in
+`.bin` — added, not shadowing anything.
 
 ### 🐛 Fixed — TypeScript 7 projects: the laws parse instead of crashing (#667)
 
@@ -24,10 +27,10 @@ default `npm create vite` react-ts project. Now:
 
 - the project's `typescript` is used when it has the compiler API (checked
   by what the package offers, never by its version); otherwise RoC parses
-  with its own (`@ruleofcode/ts-api`). Parsing needs no type-checking, so
+  with its own (`typescript` ^5.9.3). Parsing needs no type-checking, so
   the versions need not match. The details of each law that parsed say so:
   `project typescript 7.0.2 offers no JS API; parsed with RoC's typescript
-  6.0.x`, and the audit says it once at the start;
+  5.9.x`, and the audit says it once at the start;
 - if no TypeScript with the API can be found, the laws report their files
   as NOT read and name the project's version, instead of crashing;
 - TypeScript Strict Mode and Zero Tolerance Doctrine judge an option a

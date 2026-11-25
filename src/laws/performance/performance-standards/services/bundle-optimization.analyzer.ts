@@ -17,6 +17,25 @@ export class BundleOptimizationAnalyzer {
   static analyze(projectRoot: string, bundler?: BundlerReport): string[] {
     const violations: string[] = [];
 
+    if (this.declaresAngularOptimization(projectRoot)) return violations;
+    if (this.declaresWebpackOptimization(projectRoot)) return violations;
+
+    // A modern Angular project may declare neither `"optimization": true` nor a
+    // webpack config, and be correct: the esbuild `application` builder
+    // optimises production builds by default, and bundle SIZE is controlled by
+    // the budgets array. Requiring the literal key made this law contradict
+    // `bundle-optimization-strategy-policy` — same repository, same commit,
+    // same audit run, opposite verdicts — and there was no configuration that
+    // satisfied both while staying correct for the toolchain.
+    if (AngularBundleConfig.hasModernBundleSetup(projectRoot)) {
+      return violations;
+    }
+
+    return this.frameworkBuildViolations(projectRoot, bundler);
+  }
+
+  /** `optimization` declared in angular.json, or in an Nx project.json. */
+  private static declaresAngularOptimization(projectRoot: string): boolean {
     // Check Angular configuration
     const angularJsonPath = PathOperations.join(projectRoot, 'angular.json');
     if (FileUtils.exists(angularJsonPath)) {
@@ -25,7 +44,7 @@ export class BundleOptimizationAnalyzer {
           encoding: 'utf8',
         });
         if (BundleOptimizationConstants.hasAngularOptimization(content)) {
-          return violations;
+          return true;
         }
       } catch (_error) {
         // Continue
@@ -42,13 +61,17 @@ export class BundleOptimizationAnalyzer {
       try {
         const content = FileUtils.readFile(projectFile, { encoding: 'utf8' });
         if (BundleOptimizationConstants.hasAngularOptimization(content)) {
-          return violations;
+          return true;
         }
       } catch (_error) {
         // Continue
       }
     }
+    return false;
+  }
 
+  /** Optimization declared in webpack.config.js or webpack.prod.js. */
+  private static declaresWebpackOptimization(projectRoot: string): boolean {
     // Check Webpack configuration
     const webpackConfigs = ['webpack.config.js', 'webpack.prod.js'];
 
@@ -59,22 +82,10 @@ export class BundleOptimizationAnalyzer {
         content &&
         BundleOptimizationConstants.hasWebpackOptimization(content)
       ) {
-        return violations;
+        return true;
       }
     }
-
-    // A modern Angular project may declare neither `"optimization": true` nor a
-    // webpack config, and be correct: the esbuild `application` builder
-    // optimises production builds by default, and bundle SIZE is controlled by
-    // the budgets array. Requiring the literal key made this law contradict
-    // `bundle-optimization-strategy-policy` — same repository, same commit,
-    // same audit run, opposite verdicts — and there was no configuration that
-    // satisfied both while staying correct for the toolchain.
-    if (AngularBundleConfig.hasModernBundleSetup(projectRoot)) {
-      return violations;
-    }
-
-    return this.frameworkBuildViolations(projectRoot, bundler);
+    return false;
   }
 
   /**

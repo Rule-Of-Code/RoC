@@ -92,12 +92,10 @@ export class ContinuousComplianceLaw {
         ['yml', 'yaml'],
         config
       );
+      // The scanner returns full paths; they are read as given (#642).
       const hasScheduledChecks = workflowFiles.some((file: string) => {
         try {
-          const content = FileUtils.readFile(
-            PathOperations.join(githubWorkflows, file),
-            { encoding: 'utf8' }
-          );
+          const content = FileUtils.readFile(file, { encoding: 'utf8' });
           return content.includes('schedule:') || content.includes('cron:');
         } catch {
           return false;

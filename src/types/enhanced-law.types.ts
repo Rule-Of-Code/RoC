@@ -177,9 +177,10 @@ export interface EnhancedConstitutionalLaw {
    */
   satisfiedBy?: SatisfiedByGuidance;
   /**
-   * Legacy numeric id, for migration only. NOT a config key: 25 legacyIds are
-   * shared by 51 laws, so keying a config by one silently affects several. Key by
-   * canonical name or slug; the engine refuses ambiguous keys (v7.10.0).
+   * Legacy numeric id, for migration only. NOT a config key: 21 legacyIds are
+   * shared by 43 laws, so keying a config by one silently affects several. Key by
+   * canonical name or slug; `laws.severity` and `laws.notApplicable` refuse
+   * ambiguous keys (v7.10.0), `laws.enabled` turns on every law that carries one.
    */
   legacyId?: number;
   /**

@@ -6,7 +6,7 @@
 import type { RuleOfCodeConfig } from '../../config/types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils';
-import { markJudgedNothing, withNotRead } from '../../utils/judged-nothing';
+import { markJudgedNothing } from '../../utils/judged-nothing';
 import { PathOperations } from '../../utils/path-operations';
 import {
   loadTypeScript,
@@ -26,11 +26,6 @@ export class MagicNumberPreventionLaw extends CodeQualityLawBase {
     const unread = this.unreadWithoutParser(context);
     if (unread) return unread;
 
-    // Check for magic number detection configuration
-    const configAnalysis = this.checkMagicNumberConfig(context.projectRoot);
-    violations.push(...configAnalysis.violations);
-    suggestions.push(...configAnalysis.suggestions);
-
     // Analyze code for magic numbers
     const magicNumberAnalysis = this.analyzeMagicNumbers(
       context.projectRoot,
@@ -40,56 +35,51 @@ export class MagicNumberPreventionLaw extends CodeQualityLawBase {
     violations.push(...magicNumberAnalysis.violations);
     suggestions.push(...magicNumberAnalysis.suggestions);
 
-    // An ESLint config found and not read goes to notRead (#453, #508): it is
-    // not a finding about the code, and it keeps the law from passing.
-    return withNotRead(
-      {
-        passed: violations.length === 0,
-        message:
-          violations.length === 0
-            ? 'No magic numbers detected'
-            : `${violations.length} magic number violations found`,
-        violations,
-        suggestions: violations.length > 0 ? suggestions : [],
-        score:
-          violations.length === 0
-            ? 100
-            : Math.max(0, 100 - violations.length * 8),
-        fixable: violations.length > 0,
-        config: context.config,
-      },
-      configAnalysis.notRead
-    );
+    // The law is the check: it reads the literals itself, by its own
+    // definition of a named number. ESLint's no-magic-numbers is not a
+    // condition to pass — it has no option for a `??` fallback or a constant
+    // expression in an initializer, so it reports numbers this law counts as
+    // named (#594). A project that sets the rule is told so, as information.
+    const details = this.eslintRuleNote(context.projectRoot);
+    return {
+      passed: violations.length === 0,
+      message:
+        violations.length === 0
+          ? 'No magic numbers detected'
+          : `${violations.length} magic number violations found`,
+      violations,
+      suggestions: violations.length > 0 ? suggestions : [],
+      score:
+        violations.length === 0
+          ? 100
+          : Math.max(0, 100 - violations.length * 8),
+      fixable: violations.length > 0,
+      config: context.config,
+      ...(details.length > 0 ? { details } : {}),
+    };
   }
 
-  private static checkMagicNumberConfig(projectRoot: string): {
-    violations: string[];
-    suggestions: string[];
-    notRead: string[];
-  } {
-    const violations: string[] = [];
-    const suggestions: string[] = [];
-    const notRead: string[] = [];
+  /** The ESLint rules that name magic numbers. */
+  private static readonly ESLINT_RULES = [
+    'no-magic-numbers',
+    '@typescript-eslint/no-magic-numbers',
+  ] as const;
 
+  /**
+   * Information, never a finding: the ESLint magic-number rule the project
+   * sets, if any. A config that is missing or could not be read says nothing
+   * here, because the verdict does not depend on it (#594).
+   */
+  private static eslintRuleNote(projectRoot: string): string[] {
     const eslint = this.readESLintConfig(projectRoot);
-    if (eslint?.notRead !== undefined) {
-      notRead.push(eslint.notRead);
-    } else if (eslint) {
-      const rules = eslint.config.rules ?? {};
-      if (
-        !(rules as Record<string, unknown>)['no-magic-numbers'] &&
-        !(rules as Record<string, unknown>)[
-          '@typescript-eslint/no-magic-numbers'
+    if (!eslint || eslint.notRead !== undefined) return [];
+    const rules = (eslint.config.rules ?? {}) as Record<string, unknown>;
+    const set = this.ESLINT_RULES.filter(rule => rules[rule]);
+    return set.length > 0
+      ? [
+          `${eslint.file} sets ${set.join(' and ')} — information only: this law reads the literals itself and does not require the rule`,
         ]
-      ) {
-        violations.push('ESLint magic numbers rule not configured');
-        suggestions.push('Configure @typescript-eslint/no-magic-numbers rule');
-      }
-    } else {
-      suggestions.push('Configure ESLint with magic number detection');
-    }
-
-    return { violations, suggestions, notRead };
+      : [];
   }
 
   private static analyzeMagicNumbers(

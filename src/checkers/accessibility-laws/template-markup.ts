@@ -171,31 +171,12 @@ class Tokenizer {
     const line = this.line;
     const tag = name.toLowerCase();
     this.advanceTo(this.position + 1 + name.length);
-    const attributes: MarkupAttribute[] = [];
-    let selfClosing = false;
-    for (;;) {
-      this.skipWhitespace();
-      if (this.position >= this.text.length) {
-        this.error = `line ${line}: <${name}> is never closed with ">"`;
-        return;
-      }
-      if (this.text[this.position] === '>') {
-        this.advanceTo(this.position + 1);
-        break;
-      }
-      if (this.text.startsWith('/>', this.position)) {
-        this.advanceTo(this.position + 2);
-        selfClosing = true;
-        break;
-      }
-      const attribute = this.readAttribute(name, line);
-      if (attribute === null) return;
-      if (attribute.name !== '') attributes.push(attribute);
-    }
+    const read = this.readAttributes(name, line);
+    if (read === null) return;
     const parent = this.current;
     const element: MarkupElement = {
       tag,
-      attributes,
+      attributes: read.attributes,
       parent,
       children: [],
       text: '',
@@ -203,13 +184,42 @@ class Tokenizer {
     };
     parent.children.push(element);
     this.elements.push(element);
-    if (selfClosing || VOID_ELEMENTS.has(tag)) return;
+    if (read.selfClosing || VOID_ELEMENTS.has(tag)) return;
     if (RAW_TEXT_ELEMENTS.has(tag)) {
       const close = this.text.toLowerCase().indexOf(`</${tag}`, this.position);
       this.advanceTo(close === -1 ? this.text.length : close);
       return;
     }
     this.stack.push(element);
+  }
+
+  /**
+   * The attributes up to the end of an opening tag, and whether it closed
+   * itself; null (with `error` set) when the tag never ends.
+   */
+  private readAttributes(
+    name: string,
+    line: number
+  ): { attributes: MarkupAttribute[]; selfClosing: boolean } | null {
+    const attributes: MarkupAttribute[] = [];
+    for (;;) {
+      this.skipWhitespace();
+      if (this.position >= this.text.length) {
+        this.error = `line ${line}: <${name}> is never closed with ">"`;
+        return null;
+      }
+      if (this.text[this.position] === '>') {
+        this.advanceTo(this.position + 1);
+        return { attributes, selfClosing: false };
+      }
+      if (this.text.startsWith('/>', this.position)) {
+        this.advanceTo(this.position + 2);
+        return { attributes, selfClosing: true };
+      }
+      const attribute = this.readAttribute(name, line);
+      if (attribute === null) return null;
+      if (attribute.name !== '') attributes.push(attribute);
+    }
   }
 
   private skipWhitespace(): void {
@@ -220,20 +230,12 @@ class Tokenizer {
 
   /** One attribute; null (with `error` set) when its quoted value never ends. */
   private readAttribute(tagName: string, line: number): MarkupAttribute | null {
-    let end = this.position;
     // A lone '/' that does not close the tag is part of nothing: skip it.
-    if (this.text[end] === '/') {
-      this.advanceTo(end + 1);
+    if (this.text[this.position] === '/') {
+      this.advanceTo(this.position + 1);
       return { name: '', value: null };
     }
-    while (
-      end < this.text.length &&
-      !ATTRIBUTE_NAME_END.test(this.text.charAt(end))
-    ) {
-      if (this.text.startsWith('/>', end)) break;
-      end++;
-    }
-    const name = this.advanceTo(end);
+    const name = this.readAttributeName();
     this.skipWhitespace();
     if (this.text[this.position] !== '=') return { name, value: null };
     this.advanceTo(this.position + 1);
@@ -248,6 +250,24 @@ class Tokenizer {
       const value = this.advanceTo(close + 1).slice(1, -1);
       return { name, value };
     }
+    return { name, value: this.readUnquotedValue() };
+  }
+
+  /** An attribute name, up to whitespace, `=`, `>` or a closing `/>`. */
+  private readAttributeName(): string {
+    let end = this.position;
+    while (
+      end < this.text.length &&
+      !ATTRIBUTE_NAME_END.test(this.text.charAt(end))
+    ) {
+      if (this.text.startsWith('/>', end)) break;
+      end++;
+    }
+    return this.advanceTo(end);
+  }
+
+  /** An unquoted attribute value, up to whitespace or `>`. */
+  private readUnquotedValue(): string {
     let valueEnd = this.position;
     while (
       valueEnd < this.text.length &&
@@ -255,7 +275,7 @@ class Tokenizer {
     ) {
       valueEnd++;
     }
-    return { name, value: this.advanceTo(valueEnd) };
+    return this.advanceTo(valueEnd);
   }
 }
 

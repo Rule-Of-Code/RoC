@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — a strict-flag finding never points into node_modules (#640)
+
+A tsconfig that extends a base from a package (`@vue/tsconfig`,
+`@tsconfig/strictest`) got its findings on the package's file, which the
+project cannot edit: "node_modules/@vue/tsconfig/tsconfig.json: …". A
+finding now goes to the last file of the `extends` chain outside
+node_modules, where the fix belongs; when the package set the value, it is
+named: `tsconfig.app.json (inherited from @vue/tsconfig: false): TypeScript
+strict mode not enabled`.
+
+Also: a missing flag that `strict` does not switch on (`noImplicitReturns`,
+`noUnusedLocals`, …) was attributed to the file that set `strict`; it goes
+to the file where the chain ends without it.
+
 ### 🐛 Fixed — a law's own glob for script files is held to the .vue note too (#607, P2b)
 
 The `.vue` note of #607 P0 came from the shared directory scanner only.

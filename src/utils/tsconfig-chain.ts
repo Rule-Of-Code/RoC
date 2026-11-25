@@ -31,7 +31,13 @@ export interface TsconfigChain {
   origins?: Record<string, string>;
   /** The file the chain ends at: the base with no `extends` of its own (#640). */
   end?: string;
+  /** The last file of the chain outside node_modules: where a project can change it. */
+  ownEnd?: string;
 }
+
+/** A file inside an installed package. */
+const inPackage = (file: string): boolean =>
+  /[\\/]node_modules[\\/]/.test(file);
 
 /** An `extends` entry as a file: a relative path, or a package in node_modules. */
 function resolveExtends(dir: string, link: string): string | null {
@@ -58,6 +64,7 @@ function chainOf(
   let options: Record<string, unknown> = {};
   let origins: Record<string, string> = {};
   let end = file;
+  let ownEnd: string | undefined = inPackage(file) ? undefined : file;
   const unread: string[] = [];
   const links = ([] as unknown[]).concat(config.extends ?? []);
   for (const link of links) {
@@ -76,13 +83,20 @@ function chainOf(
     options = { ...options, ...inherited.options };
     origins = { ...origins, ...inherited.origins };
     end = inherited.end ?? base;
+    ownEnd = inherited.ownEnd ?? ownEnd;
     unread.push(...inherited.unread);
   }
   const own = config.compilerOptions;
   const ownOptions =
     own && typeof own === 'object' ? (own as Record<string, unknown>) : {};
   for (const key of Object.keys(ownOptions)) origins[key] = file;
-  return { options: { ...options, ...ownOptions }, unread, origins, end };
+  return {
+    options: { ...options, ...ownOptions },
+    unread,
+    origins,
+    end,
+    ...(ownEnd ? { ownEnd } : {}),
+  };
 }
 
 /**
@@ -280,10 +294,30 @@ export function tsconfigFindingWhere(
     all.notRead.length === 0;
   if (judgedAlone) return '';
   const origins = project.chain.origins ?? {};
-  const setBy = flags.map(flag => origins[flag]).find(Boolean);
-  const where = setBy ?? project.chain.end ?? project.file;
+  const flag = flags.find(f => origins[f]);
+  const setBy = flag ? origins[flag] : undefined;
+  let where = setBy ?? project.chain.end ?? project.file;
+  // A base in node_modules cannot be edited: the finding goes to the last
+  // file of the chain outside it, where the fix belongs, and names the
+  // package's value when the package set it (#640).
+  let inherited = '';
+  if (inPackage(where)) {
+    if (setBy && flag) {
+      inherited = ` (inherited from ${packageOf(setBy)}: ${JSON.stringify(project.chain.options[flag])})`;
+    }
+    where = project.chain.ownEnd ?? project.file;
+  }
   const rel = path.relative(all.projectRoot, where).replace(/\\/g, '/');
   const marker =
     where === project.file && project.role === 'test' ? ' (test config)' : '';
-  return `${rel}${marker}: `;
+  return `${rel}${marker}${inherited}: `;
+}
+
+/** The package a file in node_modules belongs to: `@vue/tsconfig`, `@tsconfig/strictest`. */
+function packageOf(file: string): string {
+  const after = file.replace(/\\/g, '/').split('/node_modules/').pop() ?? '';
+  const parts = after.split('/');
+  return (parts[0] ?? '').startsWith('@')
+    ? `${parts[0]}/${parts[1] ?? ''}`
+    : (parts[0] ?? '');
 }

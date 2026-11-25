@@ -18,7 +18,10 @@
 import { minimatch } from 'minimatch';
 import * as fs from 'fs';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { relative } from '../../utils/capacitor/capacitor-law-support';
+import {
+  CAPACITOR_SOURCE_EXTENSIONS,
+  relative,
+} from '../../utils/capacitor/capacitor-law-support';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 import { TsClasses } from '../../utils/ts-classes';
@@ -69,7 +72,7 @@ export class CapacitorSinglePlatformBoundaryLaw extends LawBase {
     const files = FileUtils.scanForFiles(
       context.projectRoot,
       context.config,
-      ['.ts', '.tsx', '.js', '.jsx', '.vue'],
+      [...CAPACITOR_SOURCE_EXTENSIONS],
       context.lawId,
       false
     );

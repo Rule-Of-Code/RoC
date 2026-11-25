@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — three Capacitor laws read .mts, .mjs, .cts and .cjs modules (#645)
+
+Capacitor Single Platform Boundary, Capacitor Deep Link Contract and
+Capacitor Plugin Platform Declarations listed their source files as `.ts`,
+`.tsx`, `.js`, `.jsx` and `.vue`. A module in `.mts`, `.mjs`, `.cts` or
+`.cjs` was not read, and nothing said so: platform code in such a file
+outside the boundary passed (false PASS), and an `appUrlOpen` listener or a
+`createChannel` call in one was missing for the law. The three laws now read
+one list with every TypeScript and JavaScript module extension.
+
+**Stricter** for Capacitor Single Platform Boundary: a project whose platform
+code outside the boundary is only in such files gains findings. The other
+two lose findings for a listener or a channel kept in such a file.
+
 ### ✨ Added — Version-control laws name what they counted (#43, version control)
 
 Three version-control laws said how many and never which: "1 of the last 3

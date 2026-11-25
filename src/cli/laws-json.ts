@@ -188,8 +188,8 @@ export function serializeLaw(law: ConstitutionalLaw): SerializedLaw {
     urlSlug: ModularLawsRegistry.urlSlugForLawName(law.name),
     identityKeys: ModularLawsRegistry.lawIdentityKeys(law),
     /**
-     * The keys a config may actually use. `legacyId` is NOT unique (25 values are
-     * shared by 51 laws), so keying a config by it silently affects several laws.
+     * The keys a config may actually use. `legacyId` is NOT unique (21 values are
+     * shared by 43 laws), so keying a config by it silently affects several laws.
      * A consumer generating config from this JSON must use these.
      */
     configKeys: ModularLawsRegistry.unambiguousIdentityKeys(law),

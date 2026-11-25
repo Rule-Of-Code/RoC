@@ -213,13 +213,19 @@ same honesty `detectionLimits` applies to detection, applied to remediation.
 
 ### A law's identity is a public contract
 
-The keys in `laws.enabled`, `laws.severity` and `laws.notApplicable` resolve equally
-across **all public spellings** of a law:
+The keys in `laws.enabled`, `laws.severity` and `laws.notApplicable` resolve across
+the **public spellings** of a law:
 
 - canonical name: `Module Size`, `Zero Tolerance Doctrine (SACRED LAW)`
 - name without the decorative suffix: `Zero Tolerance Doctrine`
 - the printed slug from the audit output: `module-size`
-- the law id and legacyId
+- the law id
+- a legacyId, which is not unique — it does not resolve the same way in all three:
+  - `laws.severity` and `laws.notApplicable`: only where a single law carries it, and
+    a severity keyed by a legacyId never turns on an opt-in law
+  - `laws.enabled`: any legacyId counts. It turns on **every** law that carries it —
+    a shared one several laws (`"20": true` turns on two), and an opt-in law
+    by its own legacyId (`"80": true` turns on MD Footer Template)
 
 A key that matches no law **warns out loud** at audit start
 (`⚠️ unknown law — this override gates nothing`). A law that exists but is stack-gated

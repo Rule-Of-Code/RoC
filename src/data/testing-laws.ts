@@ -407,8 +407,8 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
         'Configure Jest with coverageThreshold at 100 for lines/functions/branches/statements and keep the suite green against it.',
     },
     detectionLimits: [
-      'It verifies that SOME coverage config exists, not that the thresholds are 100 — a project with coverageThreshold 50 satisfies the "100%" mandate unless a coverage-summary.json artifact is committed.',
-      'The "source files lack unit tests" check does not currently fire.',
+      'It reads the coverage a test run wrote and runs no tests: coverage/coverage-summary.json (Jest json-summary), else coverage/lcov.info, or the file thresholds.testing.coverageReportPath names. Without a report the configured thresholds alone decide. A fresh coverage-summary.json is judged by its total for lines, functions, branches and statements (not file by file); an lcov.info by its lines only.',
+      'A report that cannot be used is said as not read (a note, so the law does not pass) and no percentage of it is judged: a report older than the code (a source file was modified after it was written — a checkout rewrites the files it changes), one that names none of the source files, one that is not valid json-summary/lcov, or a configured path that cannot be read.',
       'Jest/Node only — a pytest project fails with "Jest not configured".',
     ],
     stack: 'typescript',

@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Jest 100% Coverage Mandate reads only a coverage report it can use (#605)
+
+The law read `coverage/coverage-summary.json` whenever the file existed. A
+report left from an earlier run decided the verdict after the code had
+changed, and a file that did not parse passed in silence, as if no report
+were there. It now reads the report through the reader Test Coverage
+Constitutional Standard uses (#599), with the same rules:
+
+- A report older than the code (a judged source file changed after it was
+  written), one that names none of the source files, or one that is not a
+  coverage report is not read. Why is said in `notRead`, and the law does
+  not pass on it.
+- `thresholds.testing.coverageReportPath` is honoured, and `coverage/lcov.info`
+  is read when there is no `coverage-summary.json`. An lcov report is
+  measured on lines, the metric the reader takes from it.
+- A usable coverage-summary.json is measured as before, on the `total` of
+  every metric, as Jest's `coverageThreshold.global` judges it. No report at
+  all is unchanged too: the configured thresholds alone decide.
+- The card's detection limits say these rules. They no longer say that a
+  threshold below 100 satisfies the law (every threshold is checked) or name
+  a "source files lack unit tests" check, which the law does not have.
+
 ### 🐛 Fixed — NgRx / Signals analyzers: false findings and checks that never fire (#612)
 
 Twelve places in the Signals and NgRx analyzers reported something that is

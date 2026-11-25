@@ -45,8 +45,11 @@ const tick = async (): Promise<void> => {
 };
 
 /** The engine, with the step under test reachable. */
-const auditorFor = (root: string): Auditor =>
-  Reflect.construct(RuleOfCodeAuditor, [{}, root]) as Auditor;
+const auditorFor = (root: string): Auditor => {
+  // Reached as an untyped value: executeSingleLaw is private.
+  const auditor: unknown = new RuleOfCodeAuditor({}, root);
+  return auditor as Auditor;
+};
 
 type Auditor = {
   executeSingleLaw: (law: unknown) => Promise<{

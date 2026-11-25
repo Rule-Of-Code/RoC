@@ -1,4 +1,5 @@
 import { loadTypeScript, parserUnavailable } from './react/tsx-source';
+import { parseInput } from './vue/vue-sfc';
 
 /**
  * Strip COMMENTS from source text, so a pattern search sees code, not prose.
@@ -63,12 +64,14 @@ export class CodeText {
    * second opinion.
    */
   static codeOnly(
-    content: string,
-    fileName = 'file.tsx',
+    fileContent: string,
+    file = 'file.tsx',
     projectRoot = process.cwd()
   ): string {
     const ts = loadTypeScript(projectRoot);
     if (!ts) throw new Error(parserUnavailable(projectRoot, 'the files'));
+    // A .vue file is read as its script view, by its lang (#607).
+    const { fileName, text: content } = parseInput(file, fileContent);
     const source = ts.createSourceFile(
       fileName,
       content,

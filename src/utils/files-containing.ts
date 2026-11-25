@@ -15,6 +15,7 @@ import { CodeText } from './code-text';
 import { publishedListing, readFromIndex } from './git/git-layout';
 import { NxWorkspace } from './nx-workspace';
 import { lexPython } from './request-path/python-source';
+import { noteScriptGlob } from './vue/vue-read-tracker';
 
 /** Trees that hold installed, built, generated or virtualenv files, not the project's own. */
 const CONTAINING_IGNORE = [
@@ -200,7 +201,14 @@ export function readFilesContaining(
   ignores: readonly string[] = []
 ): ContainingFile[] {
   const pattern = new RegExp(entry.pattern, 'm');
-  return containingCandidates(projectRoot, entry, ignores)
+  const candidates = containingCandidates(projectRoot, entry, ignores);
+  // A law that judges script files by its gate's globs and leaves .vue out
+  // is said, as a shared scan is (#607). Selection runs outside a law: no-op.
+  noteScriptGlob(
+    entry.files,
+    candidates.map(candidate => candidate.rel)
+  );
+  return candidates
     .sort((a, b) => a.rel.localeCompare(b.rel))
     .flatMap(candidate => {
       const content = candidate.read();

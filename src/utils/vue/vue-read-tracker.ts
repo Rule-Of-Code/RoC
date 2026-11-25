@@ -65,6 +65,37 @@ export function noteScriptScan(
   scope.scriptFilesFound += files.length;
 }
 
+/**
+ * The extensions a glob pattern asks for: `**\/*.ts` → `.ts`,
+ * `src/**\/*.{ts,tsx}` → `.ts`, `.tsx`. A pattern that names no extension
+ * (`**\/*`, `package.json`) asks for none.
+ */
+export function globExtensions(pattern: string): string[] {
+  const match = /\*\.(\{[^}]+\}|[\w]+)$/.exec(pattern);
+  if (!match?.[1]) return [];
+  const part = match[1];
+  return part.startsWith('{')
+    ? part
+        .slice(1, -1)
+        .split(',')
+        .map(ext => `.${ext.trim()}`)
+    : [`.${part}`];
+}
+
+/**
+ * A law's own glob read, reported like a shared scan (#607, P2b): the
+ * extensions of every pattern together, and the files it returned.
+ */
+export function noteScriptGlob(
+  patterns: readonly string[],
+  files: readonly string[]
+): void {
+  noteScriptScan(
+    patterns.flatMap(globExtensions),
+    files.filter(file => !VUE_EXTENSION.test(file.slice(file.lastIndexOf('.'))))
+  );
+}
+
 /** How many example paths a note names. */
 const EXAMPLES = 3;
 

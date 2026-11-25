@@ -4,7 +4,11 @@
  */
 
 import type { RuleOfCodeConfig } from '../../config/types';
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import { AngularComponentFiles } from '../../utils/angular-component-files';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
@@ -36,6 +40,7 @@ export class OnPushChangeDetectionLaw {
     let totalComponents = 0;
     let onPushComponents = 0;
     const componentsNeedingOnPush: string[] = [];
+    const filesNeedingOnPush: string[] = [];
 
     for (const componentFile of componentFiles) {
       try {
@@ -51,6 +56,7 @@ export class OnPushChangeDetectionLaw {
           // Check if component should use OnPush
           if (this.shouldUseOnPush(content)) {
             componentsNeedingOnPush.push(componentName);
+            filesNeedingOnPush.push(componentFile);
           }
         }
       } catch (_error) {
@@ -79,13 +85,20 @@ export class OnPushChangeDetectionLaw {
       );
     }
 
-    return AngularLawBase.createResult(
+    const result = AngularLawBase.createResult(
       violations,
       'OnPush Change Detection',
       'ANGULAR',
       suggestions,
       context
     );
+    // Every component behind the count (#43); the line names five.
+    const details: ViolationDetail[] = filesNeedingOnPush.map(file => ({
+      file: PathOperations.getRelative(context.projectRoot, file),
+      message: 'component without ChangeDetectionStrategy.OnPush',
+    }));
+    if (details.length > 0) result.violationDetails = details;
+    return result;
   }
 
   private static getComponentFiles(

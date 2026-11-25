@@ -69,7 +69,7 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Pure presence — it never opens a spec; an empty Cypress config with zero real tests passes.',
-      'Runs only for detected applications (Angular/React/Vue/Nest/Next); libraries are exempt, and a pure-Python app is skipped rather than failed.',
+      'Runs only for detected applications (Angular/React/Vue/Nuxt/Nest/Next); libraries are exempt, and a pure-Python app is skipped rather than failed.',
       'Reads package.json deps and JS/TS globs only — a Playwright-Python / pytest-bdd suite is invisible.',
     ],
     emoji: '🎭',
@@ -180,11 +180,11 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
       angular:
         'Give each *.component.ts a spec that configures TestBed, renders via ComponentFixture, and asserts on inputs/outputs or user interaction.',
       react:
-        'Give each client component X.tsx a co-located X.test.tsx (or __tests__/X.test.tsx) with at least two tests that query by role (screen.getByRole) and assert on what the user sees.',
+        'Give each client component X.tsx a co-located X.test.tsx (or __tests__/X.test.tsx) with at least two tests that query by role (screen.getByRole) and assert on what the user sees. The module that mounts the app (Vite src/main.tsx) is not asked for one when it calls createRoot / hydrateRoot imported from react-dom/client or react-dom and exports no component; keep components out of it.',
     },
     detectionLimits: [
       'Angular: components are *.component.ts or files with @Component (Angular 20 hero.ts) under src/, apps/, libs/; each is paired with <name>.spec.ts beside it — a spec elsewhere or under another name is not paired.',
-      'React: every non-test .tsx/.jsx is a component (stories and Next route files under app/ excluded), so a .tsx helper with no JSX is asked for a test too; a test elsewhere than the sibling or __tests__/ is not found. React test quality is regex over the test text: two it()/test() calls, an expect(, a *ByRole query — a role query in a comment counts.',
+      'React: every non-test .tsx/.jsx is a component (stories, Next route files under app/, and the mount-only entry of the app excluded: read from the syntax tree, a module that calls createRoot / hydrateRoot imported from react-dom/client or react-dom (by that name, or ReactDOM.createRoot through its namespace or default import) and exports no component (no default export, no exported capitalised name, no export *). A .createRoot( method of another object, a call in a string or comment, and a module that also exports a component (a portal mounting in an effect) are still components; without the typescript package no module is taken for the entry), so a .tsx helper with no JSX is asked for a test too; a test elsewhere than the sibling or __tests__/ is not found. React test quality is regex over the test text: two it()/test() calls, an expect(, a *ByRole query — a role query in a comment counts.',
       'All regex over spec text (a TestBed in a comment counts). A project with no component file at all fails as judged-nothing. No Python, no Vue.',
     ],
     stack: 'frontend',
@@ -407,8 +407,8 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
         'Configure Jest with coverageThreshold at 100 for lines/functions/branches/statements and keep the suite green against it.',
     },
     detectionLimits: [
-      'It verifies that SOME coverage config exists, not that the thresholds are 100 — a project with coverageThreshold 50 satisfies the "100%" mandate unless a coverage-summary.json artifact is committed.',
-      'The "source files lack unit tests" check does not currently fire.',
+      'It reads the coverage a test run wrote and runs no tests: coverage/coverage-summary.json (Jest json-summary), else coverage/lcov.info, or the file thresholds.testing.coverageReportPath names. Without a report the configured thresholds alone decide. A fresh coverage-summary.json is judged by its total for lines, functions, branches and statements (not file by file); an lcov.info by its lines only.',
+      'A report that cannot be used is said as not read (a note, so the law does not pass) and no percentage of it is judged: a report older than the code (a source file was modified after it was written — a checkout rewrites the files it changes), one that names none of the source files, one that is not valid json-summary/lcov, or a configured path that cannot be read.',
       'Jest/Node only — a pytest project fails with "Jest not configured".',
     ],
     stack: 'typescript',

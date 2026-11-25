@@ -12,7 +12,10 @@
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { relative } from '../../utils/capacitor/capacitor-law-support';
+import {
+  CAPACITOR_SOURCE_EXTENSIONS,
+  relative,
+} from '../../utils/capacitor/capacitor-law-support';
 import {
   type CapacitorProject,
   CapacitorProjects,
@@ -163,7 +166,7 @@ export class CapacitorPluginPlatformDeclarationsLaw extends LawBase {
     return FileUtils.scanForFiles(
       context.projectRoot,
       context.config,
-      ['.ts', '.tsx', '.js', '.jsx', '.vue'],
+      [...CAPACITOR_SOURCE_EXTENSIONS],
       context.lawId,
       false
     )

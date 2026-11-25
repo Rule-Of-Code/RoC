@@ -2,6 +2,7 @@ import type {
   LawCheckContext,
   LawResult,
   RuleOfCodeConfig,
+  ViolationDetail,
 } from '../../types/law.types';
 import { CheckerUtils } from '../../utils/checker-utils';
 import { commentLines } from '../../utils/comment-text';
@@ -109,9 +110,56 @@ export class TodoManagementLaw {
       details: [...violations, ...suggestions],
       violations,
       suggestions,
+      ...this.violationDetails(todoAnalysis, projectRoot, {
+        overLimit: todoAnalysis.totalCount > maxTodoCount ? maxTodoCount : null,
+        formatFired:
+          formatCompliance < RULES.minFormatted && todoAnalysis.totalCount > 0,
+      }),
       fixable: true,
       config: context.config,
     });
+  }
+
+  /**
+   * The TODOs behind the counts (#43): one detail per TODO a violation line
+   * counted, at its file and line, with every reason that line counted it
+   * for. Over the limit, every TODO is counted, so every TODO is named.
+   */
+  private static violationDetails(
+    analysis: TodoAnalysisResult,
+    projectRoot: string,
+    fired: { overLimit: number | null; formatFired: boolean }
+  ): { violationDetails?: ViolationDetail[] } {
+    const details: ViolationDetail[] = [];
+    for (const todo of analysis.todoDetails) {
+      const reasons = this.reasonsCounted(todo, fired);
+      if (reasons.length === 0) continue;
+      details.push({
+        file: PathOperations.getRelative(projectRoot, todo.file),
+        line: todo.line,
+        message: `${reasons.join('; ')}: ${todo.content}`,
+      });
+    }
+    return details.length > 0 ? { violationDetails: details } : {};
+  }
+
+  /** Why a violation line counted this TODO; empty when none did. */
+  private static reasonsCounted(
+    todo: TodoAnalysisResult['todoDetails'][number],
+    fired: { overLimit: number | null; formatFired: boolean }
+  ): string[] {
+    const reasons = [
+      fired.formatFired && !todo.isProperlyFormatted
+        ? 'not in the form TODO (Sprint X): description'
+        : null,
+      todo.isVague ? 'vague or incomplete' : null,
+      todo.needsConversion ? 'reads as work for an issue' : null,
+      todo.isStale ? 'old sprint reference' : null,
+    ].filter((reason): reason is string => reason !== null);
+    if (reasons.length === 0 && fired.overLimit !== null) {
+      reasons.push(`one of the TODOs over the limit of ${fired.overLimit}`);
+    }
+    return reasons;
   }
 
   /**
@@ -356,6 +404,7 @@ export class TodoManagementLaw {
       isProperlyFormatted: boolean;
       isVague: boolean;
       isStale: boolean;
+      needsConversion: boolean;
     };
   } {
     // Check if properly formatted: TODO (Sprint X): Description
@@ -371,12 +420,13 @@ export class TodoManagementLaw {
     const isStale = this.isTodoStale(todoContent);
 
     const details = {
-      file: PathOperations.getRelative(process.cwd(), file),
+      file,
       line: lineNumber,
       content: todoContent,
       isProperlyFormatted,
       isVague,
       isStale,
+      needsConversion,
     };
 
     return {

@@ -101,6 +101,10 @@ export class NgRxFileOrganizationValidationPatterns {
         stateDir,
         config
       ) as FileEntry[];
+      // safeReadDirectory returns [] for a directory that is missing,
+      // unreadable or ignored, and an empty listing was judged as a +state
+      // without index.ts (#612). There is nothing in it to organise.
+      if (files.length === 0) return;
 
       const analysis = this.config.analyzeStateDirectoryStructure(
         stateDir,

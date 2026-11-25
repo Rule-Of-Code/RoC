@@ -77,7 +77,8 @@ describe('utils/angular/ngrx-selector-patterns/ngrx-selector-patterns-validation
 
         expect(validateAllMemoizationPatternsSpy).toHaveBeenCalledWith(
           '/test/project',
-          mockConfig
+          mockConfig,
+          { directSelects: false }
         );
       });
 

@@ -7,6 +7,10 @@ import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
 import { REQUIRES_PRODUCTION_SUBJECT } from '../utils/production-subject-requirements';
 
+/** The detection limit of a security law that reads .vue by its script (#607). */
+const VUE_SCRIPT_ONLY =
+  'A Vue single-file component (.vue) is read by its <script> and <script setup> blocks, at its own lines; its <template> and <style> are not read by this law (#607).';
+
 export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
   {
     id: generateLawId(
@@ -66,7 +70,7 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Fallback detection is a crude character-window search: a || or ?? anywhere near a process.env read counts as "handled".',
       'URL / DB-URI / secret detection is substring/regex over raw text, including comments.',
       'The .env sensitive-data and format checks read only env files git could publish (tracked, from the index; or present and not ignored); a local .env that is ignored and untracked is the correct setup and is not judged. Outside a git repository every env file on disk is read.',
-      'A Vue single-file component (.vue) is read by its <script> and <script setup> blocks, at its own lines; its <template> and <style> are not read by this law (#607).',
+      VUE_SCRIPT_ONLY,
     ],
     emoji: '🛡️',
     description:
@@ -217,7 +221,7 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Substring / regex heuristics over .ts/.js — no Python, and no data-flow.',
       'Weak-algorithm and hardcoded-secret matching is name-based; it cannot confirm a matched value is actually used as a key or that the algorithm is on a real code path.',
-      'A Vue single-file component (.vue) is read by its <script> and <script setup> blocks, at its own lines; its <template> and <style> are not read by this law (#607).',
+      VUE_SCRIPT_ONLY,
     ],
     emoji: '🔒',
     description: 'All sensitive data must be properly encrypted',
@@ -255,7 +259,7 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Role-based, permission and resource-level checks apply only where the code has a role or permission concept (an identifier such as roles, UserRole, permissions, claims); with a managed auth SDK and no server session library, session timeout and invalidation are left to the SDK and not asked for. Resource-level authorization is still recognised by words (isOwner, ACL, …).',
       'JS/TS shapes; Python only toggles a native pass via auth-guard decorators — it does not positively analyse Python auth beyond that.',
       'Reads src/ (or Nx apps/ and libs/); when neither holds code, the whole project as the other laws read it (app/, lib/, pages/, server/, the root), less tests, ignored trees and build output (.next/, out/, build/, …). A project with code in src/ is not read beyond it. Inline role checks count (user.role === …, roles.includes(…)); a role written only as an object key (role: …) is not a role concept.',
-      'A Vue single-file component (.vue) is read by its <script> and <script setup> blocks, at its own lines; its <template> and <style> are not read by this law (#607).',
+      VUE_SCRIPT_ONLY,
     ],
     emoji: '🔐',
     description: 'Secure authentication and authorization mechanisms',

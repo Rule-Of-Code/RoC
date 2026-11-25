@@ -73,8 +73,9 @@ function hasSecurityWorkflow(projectRoot: string): boolean {
     Config.DEFAULT_SCAN_CONFIG
   );
 
+  // The scanner returns full paths; they are read as given (#642).
   return scanResult.files.some(file => {
-    const content = Config.safeReadFile(Config.joinPath(workflowsPath, file));
+    const content = Config.safeReadFile(file);
     return Config.hasSecurityWorkflowIndicators(content);
   });
 }

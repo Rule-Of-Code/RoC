@@ -8,6 +8,7 @@ import type {
   LawCheckContext,
   LawResult,
   RuleOfCodeConfig,
+  ViolationDetail,
 } from '../../types/law.types';
 import { FileSystemOperations, FileUtils } from '../../utils';
 import { GitTagVersion } from '../../utils/git-tag-version';
@@ -51,21 +52,28 @@ export class ReleaseTagStandardsLaw extends GitLawBase {
     violations.push(...automationAnalysis.violations);
     suggestions.push(...automationAnalysis.suggestions);
 
-    return GitLawBase.createResult(
+    const result = GitLawBase.createResult(
       violations,
       'Release Tag Standards',
       'Version Control',
       suggestions,
       context
     );
+    // The tags behind the two tag lines (#43): every invalid one, where the
+    // line quotes three, and the ones out of step with the prefix style.
+    const details = [...semverAnalysis.details, ...tagNamingAnalysis.details];
+    if (details.length > 0) result.violationDetails = details;
+    return result;
   }
 
   private static checkSemanticVersioning(projectRoot: string): {
     violations: string[];
     suggestions: string[];
+    details: ViolationDetail[];
   } {
     const violations: string[] = [];
     const suggestions: string[] = [];
+    const details: ViolationDetail[] = [];
 
     // Check package.json version format
     const packageJsonPath = PathOperations.join(projectRoot, 'package.json');
@@ -112,6 +120,11 @@ export class ReleaseTagStandardsLaw extends GitLawBase {
         violations.push(
           `Invalid tag formats found: ${invalidTags.slice(0, 3).join(', ')}`
         );
+        details.push(
+          ...invalidTags.map(tag => ({
+            message: `tag ${tag} is not a semantic version tag`,
+          }))
+        );
         suggestions.push(
           'Use semantic version tags: v1.2.3, 1.2.3, or the same under a ' +
             'namespace your pipeline matches on, e.g. release/v1.2.3'
@@ -126,15 +139,17 @@ export class ReleaseTagStandardsLaw extends GitLawBase {
       suggestions.push('Create semantic version tags for releases');
     }
 
-    return { violations, suggestions };
+    return { violations, suggestions, details };
   }
 
   private static checkTagNamingConventions(projectRoot: string): {
     violations: string[];
     suggestions: string[];
+    details: ViolationDetail[];
   } {
     const violations: string[] = [];
     const suggestions: string[] = [];
+    const details: ViolationDetail[] = [];
 
     // Check for release documentation
     const releaseDocs = [
@@ -179,13 +194,34 @@ export class ReleaseTagStandardsLaw extends GitLawBase {
           suggestions.push(
             'Use consistent tag format: either v1.2.3 or 1.2.3 for all releases'
           );
+          details.push(...this.prefixOutliers(vPrefixed, nonVPrefixed));
         }
       }
     } catch (_error) {
       // Git command failed
     }
 
-    return { violations, suggestions };
+    return { violations, suggestions, details };
+  }
+
+  /**
+   * The tags out of step with the rest: the smaller of the two styles, each
+   * named against the size of the other. With as many of one as of the
+   * other there is no rest to be out of step with, and both are named.
+   */
+  private static prefixOutliers(
+    vPrefixed: string[],
+    nonVPrefixed: string[]
+  ): ViolationDetail[] {
+    const prefixed = (tag: string): ViolationDetail => ({
+      message: `tag ${tag} has a "v" prefix; ${nonVPrefixed.length} tag(s) have none`,
+    });
+    const bare = (tag: string): ViolationDetail => ({
+      message: `tag ${tag} has no "v" prefix; ${vPrefixed.length} tag(s) have one`,
+    });
+    if (vPrefixed.length < nonVPrefixed.length) return vPrefixed.map(prefixed);
+    if (nonVPrefixed.length < vPrefixed.length) return nonVPrefixed.map(bare);
+    return [...vPrefixed.map(prefixed), ...nonVPrefixed.map(bare)];
   }
 
   private static checkReleaseAutomation(
@@ -251,12 +287,10 @@ export class ReleaseTagStandardsLaw extends GitLawBase {
           ['yml', 'yaml'],
           config
         );
+        // The scanner returns full paths; they are read as given (#642).
         const hasReleaseWorkflow = workflows.some((workflow: string) => {
           try {
-            const workflowContent = FileUtils.readFileSync(
-              PathOperations.join(workflowsDir, workflow),
-              'utf8'
-            );
+            const workflowContent = FileUtils.readFileSync(workflow, 'utf8');
             return (
               workflowContent.includes('release') ||
               workflowContent.includes('tag') ||

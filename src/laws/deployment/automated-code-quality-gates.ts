@@ -1,12 +1,21 @@
 import type { RuleOfCodeConfig } from '../../config/types';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { FileSystemOperations } from '../../utils/file-system-operations';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
-import { ciConfigContent } from '../../utils/project-discovery';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
 import { CoverageThresholdReader } from '../../utils/testing/coverage-threshold-reader';
 import { QUALITY_GATES_PENALTY as PENALTY } from './deployment-penalties';
+import {
+  checkAuditScripts,
+  checkBuildInPipeline,
+  checkBuildScripts,
+  checkFormattingInPipeline,
+  checkFormattingScripts,
+  checkLintingInPipeline,
+  checkLintingScripts,
+  checkPackageJsonForCoverage,
+  checkSecurityInPipeline,
+} from './quality-gate-sources';
 // Interfaces for quality gate analysis
 interface QualityGateAnalysis {
   hasLintingGates?: boolean;
@@ -167,11 +176,11 @@ export class AutomatedCodeQualityGatesLaw {
     }
 
     // Check for linting in CI/CD pipelines
-    hasLintingInCICD = this.checkLintingInPipeline(projectRoot, config);
+    hasLintingInCICD = checkLintingInPipeline(projectRoot, config);
 
     // Check package.json scripts for linting
     const hasLintingScripts =
-      this.checkLintingScripts(projectRoot) ||
+      checkLintingScripts(projectRoot) ||
       PythonSatisfaction.hasPythonLinterInGate(projectRoot);
 
     const hasLintingGates =
@@ -211,10 +220,10 @@ export class AutomatedCodeQualityGatesLaw {
     }
 
     // Check for formatting in CI/CD pipelines
-    hasFormattingInCICD = this.checkFormattingInPipeline(projectRoot, config);
+    hasFormattingInCICD = checkFormattingInPipeline(projectRoot, config);
 
     // Check package.json scripts for formatting
-    const hasFormattingScripts = this.checkFormattingScripts(projectRoot);
+    const hasFormattingScripts = checkFormattingScripts(projectRoot);
 
     // Python formats with black / ruff format / isort, declared in pyproject and
     // enforced in pre-commit — not with a .prettierrc and an npm script.
@@ -258,7 +267,7 @@ export class AutomatedCodeQualityGatesLaw {
       const {
         hasCoverageConfig: configFound,
         hasCoverageThresholds: thresholdsFound,
-      } = this.checkPackageJsonForCoverage(projectRoot);
+      } = checkPackageJsonForCoverage(projectRoot);
       hasCoverageConfig = configFound;
       hasCoverageThresholds = thresholdsFound;
     }
@@ -288,10 +297,10 @@ export class AutomatedCodeQualityGatesLaw {
     );
 
     // Check for build scripts in package.json
-    const hasBuildScripts = this.checkBuildScripts(projectRoot);
+    const hasBuildScripts = checkBuildScripts(projectRoot);
 
     // Check for build validation in CI/CD
-    const hasBuildInCICD = this.checkBuildInPipeline(projectRoot, config);
+    const hasBuildInCICD = checkBuildInPipeline(projectRoot, config);
 
     // A PEP 517 [build-system] (or a Dockerfile) is a build gate. Demanding a
     // tsconfig.json from a Python service is demanding a foreign artifact.
@@ -309,40 +318,15 @@ export class AutomatedCodeQualityGatesLaw {
     } as QualityGateAnalysis;
   }
 
-  private static checkPackageJsonForCoverage(projectRoot: string): {
-    hasCoverageConfig: boolean;
-    hasCoverageThresholds: boolean;
-  } {
-    const packageJsonPath = PathOperations.join(projectRoot, 'package.json');
-
-    if (!FileUtils.exists(packageJsonPath)) {
-      return { hasCoverageConfig: false, hasCoverageThresholds: false };
-    }
-
-    try {
-      const packageJson =
-        FileSystemOperations.readJsonFile<Record<string, unknown>>(
-          packageJsonPath
-        );
-      const jest = packageJson.jest as Record<string, unknown> | undefined;
-      const hasCoverageConfig = !!jest?.collectCoverage;
-      const hasCoverageThresholds = !!jest?.coverageThreshold;
-
-      return { hasCoverageConfig, hasCoverageThresholds };
-    } catch (_error) {
-      return { hasCoverageConfig: false, hasCoverageThresholds: false };
-    }
-  }
-
   private static analyzeSecurityGates(
     projectRoot: string,
     config?: RuleOfCodeConfig
   ): QualityGateAnalysis {
     // Check for security scanning in CI/CD
-    const hasSecurityInCICD = this.checkSecurityInPipeline(projectRoot, config);
+    const hasSecurityInCICD = checkSecurityInPipeline(projectRoot, config);
 
     // Check for audit scripts
-    const hasAuditScripts = this.checkAuditScripts(projectRoot);
+    const hasAuditScripts = checkAuditScripts(projectRoot);
 
     // bandit (SAST) and pip-audit (dependencies) in the gate ARE security gates.
     const hasSecurityGates =
@@ -380,116 +364,6 @@ export class AutomatedCodeQualityGatesLaw {
       violations: [],
       suggestions: [],
     } as QualityGateAnalysis;
-  }
-
-  private static checkLintingInPipeline(
-    projectRoot: string,
-    config?: RuleOfCodeConfig
-  ): boolean {
-    return this.checkPatternInPipelineFiles(
-      projectRoot,
-      [/lint/i, /eslint/i],
-      config
-    );
-  }
-
-  private static checkFormattingInPipeline(
-    projectRoot: string,
-    config?: RuleOfCodeConfig
-  ): boolean {
-    return this.checkPatternInPipelineFiles(
-      projectRoot,
-      [/prettier/i, /format/i],
-      config
-    );
-  }
-
-  private static checkBuildInPipeline(
-    projectRoot: string,
-    config?: RuleOfCodeConfig
-  ): boolean {
-    return this.checkPatternInPipelineFiles(
-      projectRoot,
-      [/build/i, /compile/i],
-      config
-    );
-  }
-
-  private static checkSecurityInPipeline(
-    projectRoot: string,
-    config?: RuleOfCodeConfig
-  ): boolean {
-    return this.checkPatternInPipelineFiles(
-      projectRoot,
-      [/audit/i, /security/i, /vulnerability/i],
-      config
-    );
-  }
-
-  private static checkPatternInPipelineFiles(
-    projectRoot: string,
-    patterns: RegExp[],
-    config?: RuleOfCodeConfig
-  ): boolean {
-    // The combined text of every CI config the shared discovery finds. This
-    // kept its own list, naming GitHub workflow files by exact filename — so a
-    // pipeline whose job lives in any other file, on any other provider, or at
-    // a declared path had no build, lint or security step as far as these
-    // checks could see.
-    const pipelineContent = ciConfigContent(projectRoot, config);
-    if (!pipelineContent) {
-      return false;
-    }
-
-    return patterns.some(pattern => pattern.test(pipelineContent));
-  }
-
-  private static checkLintingScripts(projectRoot: string): boolean {
-    return this.checkScriptInPackageJson(projectRoot, [/lint/i]);
-  }
-
-  private static checkFormattingScripts(projectRoot: string): boolean {
-    return this.checkScriptInPackageJson(projectRoot, [/format/i, /prettier/i]);
-  }
-
-  private static checkBuildScripts(projectRoot: string): boolean {
-    return this.checkScriptInPackageJson(projectRoot, [/build/i, /compile/i]);
-  }
-
-  private static checkAuditScripts(projectRoot: string): boolean {
-    return this.checkScriptInPackageJson(projectRoot, [/audit/i, /security/i]);
-  }
-
-  private static checkScriptInPackageJson(
-    projectRoot: string,
-    patterns: RegExp[]
-  ): boolean {
-    const packageJsonPath = PathOperations.join(projectRoot, 'package.json');
-    if (FileUtils.exists(packageJsonPath)) {
-      try {
-        const packageJson =
-          FileSystemOperations.readJsonFile<Record<string, unknown>>(
-            packageJsonPath
-          );
-        const scriptObj = packageJson.scripts as
-          Record<string, string> | undefined;
-        if (scriptObj) {
-          // Script NAMES as well as their commands. Only the commands were
-          // scanned, so the conventional `"build": "tsc"` was invisible — the
-          // name says what the script is for, and the command names the tool.
-          // Every toolchain whose binary is not spelled "build" (tsc, ng, vite,
-          // esbuild, rollup) was judged to have no build script at all.
-          const scripts = [
-            ...Object.keys(scriptObj),
-            ...Object.values(scriptObj),
-          ].join(' ');
-          return patterns.some(pattern => pattern.test(scripts));
-        }
-      } catch (_error) {
-        // Skip if can't read package.json
-      }
-    }
-    return false;
   }
 
   private static hasTypeScriptStrict(content: string): boolean {

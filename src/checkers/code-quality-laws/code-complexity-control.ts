@@ -11,7 +11,7 @@ import type {
 import { FileUtils } from '../../utils';
 import { CheckerUtils } from '../../utils/checker-utils';
 import { ProjectTypeDetectorValidation } from '../../utils/config/project-type-detector/project-type-detector-validation';
-import { markJudgedNothing, withNotRead } from '../../utils/judged-nothing';
+import { markJudgedNothing } from '../../utils/judged-nothing';
 import { PathOperations } from '../../utils/path-operations';
 import {
   loadTypeScript,
@@ -41,10 +41,8 @@ export class CodeComplexityControlLaw extends CodeQualityLawBase {
     const unread = this.unreadWithoutParser(context);
     if (unread) return unread;
 
-    // Check for complexity analysis tools
-    const complexityTools = this.checkComplexityTools(context.projectRoot);
-    violations.push(...complexityTools.violations);
-    suggestions.push(...complexityTools.suggestions);
+    // Complexity analysis tools are advice, never a condition to pass.
+    suggestions.push(...this.complexityToolAdvice(context.projectRoot));
 
     // Analyze source code complexity
     const codeAnalysis = this.analyzeCodeComplexity(
@@ -61,81 +59,70 @@ export class CodeComplexityControlLaw extends CodeQualityLawBase {
     );
     suggestions.push(...architecturalComplexity.suggestions);
 
-    // An ESLint config found and not read goes to notRead (#453, #508): it is
-    // not a finding about the code, and it keeps the law from passing.
-    return withNotRead(
-      {
-        passed: violations.length === 0,
-        message:
-          violations.length === 0
-            ? 'Code complexity under control'
-            : `${violations.length} complexity violations found`,
-        violations,
-        suggestions: violations.length > 0 ? suggestions : [],
-        score:
-          violations.length === 0
-            ? 100
-            : Math.max(0, 100 - violations.length * 10),
-        fixable: violations.length > 0,
-        config: context.config,
-      },
-      complexityTools.notRead
-    );
+    // The law is the check: it measures each function itself. ESLint's
+    // complexity rule is not a condition to pass — it also counts `??`,
+    // optional chaining and default parameters, which this law does not, so
+    // the two disagree (#594). A project that sets it is told so, as
+    // information.
+    const details = this.eslintRuleNote(context.projectRoot);
+    return {
+      passed: violations.length === 0,
+      message:
+        violations.length === 0
+          ? 'Code complexity under control'
+          : `${violations.length} complexity violations found`,
+      violations,
+      suggestions: violations.length > 0 ? suggestions : [],
+      score:
+        violations.length === 0
+          ? 100
+          : Math.max(0, 100 - violations.length * 10),
+      fixable: violations.length > 0,
+      config: context.config,
+      ...(details.length > 0 ? { details } : {}),
+    };
   }
 
-  private static checkComplexityTools(projectRoot: string): {
-    violations: string[];
-    suggestions: string[];
-    notRead: string[];
-  } {
-    const violations: string[] = [];
-    const suggestions: string[] = [];
-    const notRead: string[] = [];
+  /** The ESLint rules that bound complexity. */
+  private static readonly ESLINT_RULES = [
+    'complexity',
+    'max-lines',
+    'max-depth',
+  ] as const;
 
+  /**
+   * Information, never a finding: the ESLint complexity rules the project
+   * sets, if any. A config that is missing or could not be read says nothing
+   * here, because the verdict does not depend on it (#594).
+   */
+  private static eslintRuleNote(projectRoot: string): string[] {
+    const eslint = this.readESLintConfig(projectRoot);
+    if (!eslint || eslint.notRead !== undefined) return [];
+    const rules = (eslint.config.rules ?? {}) as Record<string, unknown>;
+    const set = this.ESLINT_RULES.filter(rule => rules[rule]);
+    return set.length > 0
+      ? [
+          `${eslint.file} sets ${set.join(', ')} — information only: this law measures each function itself and does not require the rules; ESLint also counts ??, optional chaining and default parameters`,
+        ]
+      : [];
+  }
+
+  /** Advice to add a complexity analysis tool when the project has none. */
+  private static complexityToolAdvice(projectRoot: string): string[] {
     try {
       const packageJson =
         ProjectTypeDetectorValidation.getPackageJson(projectRoot);
-      if (!packageJson || typeof packageJson !== 'object') {
-        return { violations, suggestions, notRead };
-      }
-
-      const pkg = packageJson as Record<string, unknown>;
-      const devDependencies = (pkg.devDependencies ?? {}) as Record<
-        string,
-        unknown
-      >;
-
-      // Check for ESLint complexity rules
-      if (devDependencies.eslint) {
-        const eslint = this.readESLintConfig(projectRoot);
-        if (eslint?.notRead !== undefined) {
-          notRead.push(eslint.notRead);
-        } else if (eslint && !this.hasComplexityRules(eslint.config)) {
-          violations.push('ESLint complexity rules not configured');
-          suggestions.push(
-            'Configure ESLint complexity rules (complexity, max-lines, max-depth)'
-          );
-        }
-      } else {
-        suggestions.push('Install ESLint for automated complexity checking');
-      }
-
-      // Check for complexity analysis tools
+      if (!packageJson || typeof packageJson !== 'object') return [];
+      const devDependencies = ((packageJson as Record<string, unknown>)
+        .devDependencies ?? {}) as Record<string, unknown>;
       const complexityTools = ['complexity-report', 'plato', 'jscpd', 'madge'];
-
-      const hasComplexityTool = complexityTools.some(
-        tool => devDependencies[tool]
-      );
-      if (!hasComplexityTool) {
-        suggestions.push(
-          'Consider adding complexity analysis tools (plato, madge, jscpd)'
-        );
-      }
+      return complexityTools.some(tool => devDependencies[tool])
+        ? []
+        : ['Consider adding complexity analysis tools (plato, madge, jscpd)'];
     } catch (_error) {
       // Continue if dependencies can't be read
+      return [];
     }
-
-    return { violations, suggestions, notRead };
   }
 
   private static analyzeCodeComplexity(

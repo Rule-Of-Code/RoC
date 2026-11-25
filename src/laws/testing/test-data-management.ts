@@ -13,6 +13,11 @@ import {
 export const MOCKING_NOT_JUDGED =
   'Mocking not judged: no test file imports a filesystem, network, database or process client, so there is nothing to mock';
 
+/** The deductions and floor Test Data Management judges with. */
+type DataThresholds = ReturnType<
+  (typeof TestDataManagementLaw)['thresholdsOf']
+>;
+
 /**
  * Test Data Management Law
  *
@@ -37,62 +42,14 @@ export class TestDataManagementLaw {
       let score = 100;
       const { projectRoot, config } = context;
       const testFiles = TestFileDiscovery.findTestFiles(projectRoot, config);
-      if (testFiles.length === 0) {
-        const nothing = TestFileDiscovery.nothingToJudge(
-          'Test Data Management'
-        );
-        return markJudgedNothing(
-          LawBase.buildDetailedResult({
-            passed: false,
-            message: nothing,
-            violations: [nothing],
-            suggestions,
-            score: 0,
-            context,
-          })
-        );
-      }
-      // Without the parser the code cannot be told from its strings: say the
-      // files were not read, rather than judge them with a regex (#427).
-      if (!loadTypeScript(projectRoot)) {
-        const notRead = `${parserUnavailable(projectRoot, `the ${testFiles.length} test file(s)`)} — Test Data Management judged nothing`;
-        return markJudgedNothing(
-          LawBase.buildDetailedResult({
-            passed: false,
-            message: notRead,
-            violations: [notRead],
-            suggestions,
-            score: 0,
-            context,
-          })
-        );
-      }
+      const unjudged = this.unjudgedResult(context, testFiles);
+      if (unjudged) return unjudged;
       // Real-data mode: a project may deliberately use real inline data instead of
       // factories/mocks — don't flag that as a violation.
       const realDataMode = config.thresholds?.testing?.realDataMode === true;
 
       // Get thresholds from config with defaults
-      const thresholds = {
-        missingSetupDeduction:
-          config.thresholds?.testing?.testData?.missingSetupDeduction ?? 25,
-        hardcodedDataDeduction:
-          config.thresholds?.testing?.testData?.hardcodedDataDeduction ?? 20,
-        sharedStateDeduction:
-          config.thresholds?.testing?.testData?.sharedStateDeduction ?? 20,
-        noOrganizedDataDeduction:
-          config.thresholds?.testing?.testData?.noOrganizedDataDeduction ?? 10,
-        noFactoriesDeduction:
-          config.thresholds?.testing?.testData?.noFactoriesDeduction ?? 15,
-        noCleanupDeduction:
-          config.thresholds?.testing?.testData?.noCleanupDeduction ?? 20,
-        noMockingDeduction:
-          config.thresholds?.testing?.testData?.noMockingDeduction ?? 10,
-        lowFactoryCoverageDeduction:
-          config.thresholds?.testing?.testData?.lowFactoryCoverageDeduction ??
-          5,
-        minFactoryCoverage:
-          config.thresholds?.testing?.testData?.minFactoryCoverage ?? 50,
-      };
+      const thresholds = this.thresholdsOf(config);
 
       // 0. A file no check could read was not judged — say which.
       const unreadable = TestFileDiscovery.unreadable(projectRoot, testFiles);
@@ -109,50 +66,26 @@ export class TestDataManagementLaw {
           projectRoot,
           config
         );
-      if (!testDataPatterns.hasProperSetup) {
-        violations.push(
-          `Test files share module-scope mutable state with no beforeEach/afterEach to reset it: ${namedFiles(testDataPatterns.missingSetupFiles)}`
-        );
-        suggestions.push('Implement beforeEach/afterEach for test data setup');
-        score -= thresholds.missingSetupDeduction;
-      }
-
-      if (testDataPatterns.hasHardcodedData && !realDataMode) {
-        violations.push(
-          `Found hardcoded test data in test files: ${namedFiles(testDataPatterns.hardcodedDataFiles)}`
-        );
-        suggestions.push(
-          'Use test data factories or builders instead of hardcoded values'
-        );
-        score -= thresholds.hardcodedDataDeduction;
-      }
-
-      if (testDataPatterns.hasSharedState) {
-        violations.push(
-          `Tests have shared mutable state issues: ${namedFiles(testDataPatterns.sharedStateFiles)}`
-        );
-        suggestions.push('Ensure tests are isolated with proper cleanup');
-        score -= thresholds.sharedStateDeduction;
-      }
+      score = this.patternFindings(
+        testDataPatterns,
+        realDataMode,
+        thresholds,
+        violations,
+        suggestions,
+        score
+      );
 
       // 2. Check for test data structure organization
       const dataStructure =
         UnitTestDataManagementAnalyzerService.analyzeTestDataStructure(
           projectRoot
         );
-      if (!dataStructure.hasOrganizedData) {
-        suggestions.push(
-          'Consider creating test fixtures or mock data directories'
-        );
-        score -= thresholds.noOrganizedDataDeduction;
-      }
-
-      if (!dataStructure.hasFactories) {
-        suggestions.push(
-          'Implement test data factories for maintainable test data'
-        );
-        score -= thresholds.noFactoriesDeduction;
-      }
+      score = this.structureFindings(
+        dataStructure,
+        thresholds,
+        suggestions,
+        score
+      );
 
       // 3. Check for proper cleanup patterns
       const cleanupPatterns =
@@ -235,6 +168,134 @@ export class TestDataManagementLaw {
     } catch (error: unknown) {
       return LawBase.createErrorResult('Test Data Management', error, context);
     }
+  }
+
+  /**
+   * The result when there is nothing to judge: no test files, or no parser
+   * to read them with. Null when the law can judge.
+   */
+  private static unjudgedResult(
+    context: LawCheckContext,
+    testFiles: string[]
+  ): LawResult | null {
+    const { projectRoot } = context;
+    if (testFiles.length === 0) {
+      const nothing = TestFileDiscovery.nothingToJudge('Test Data Management');
+      return markJudgedNothing(
+        LawBase.buildDetailedResult({
+          passed: false,
+          message: nothing,
+          violations: [nothing],
+          suggestions: [],
+          score: 0,
+          context,
+        })
+      );
+    }
+    // Without the parser the code cannot be told from its strings: say the
+    // files were not read, rather than judge them with a regex (#427).
+    if (!loadTypeScript(projectRoot)) {
+      const notRead = `${parserUnavailable(projectRoot, `the ${testFiles.length} test file(s)`)} — Test Data Management judged nothing`;
+      return markJudgedNothing(
+        LawBase.buildDetailedResult({
+          passed: false,
+          message: notRead,
+          violations: [notRead],
+          suggestions: [],
+          score: 0,
+          context,
+        })
+      );
+    }
+    return null;
+  }
+
+  /** The deductions and the factory coverage floor, with their defaults. */
+  private static thresholdsOf(config: LawCheckContext['config']) {
+    return {
+      missingSetupDeduction:
+        config.thresholds?.testing?.testData?.missingSetupDeduction ?? 25,
+      hardcodedDataDeduction:
+        config.thresholds?.testing?.testData?.hardcodedDataDeduction ?? 20,
+      sharedStateDeduction:
+        config.thresholds?.testing?.testData?.sharedStateDeduction ?? 20,
+      noOrganizedDataDeduction:
+        config.thresholds?.testing?.testData?.noOrganizedDataDeduction ?? 10,
+      noFactoriesDeduction:
+        config.thresholds?.testing?.testData?.noFactoriesDeduction ?? 15,
+      noCleanupDeduction:
+        config.thresholds?.testing?.testData?.noCleanupDeduction ?? 20,
+      noMockingDeduction:
+        config.thresholds?.testing?.testData?.noMockingDeduction ?? 10,
+      lowFactoryCoverageDeduction:
+        config.thresholds?.testing?.testData?.lowFactoryCoverageDeduction ?? 5,
+      minFactoryCoverage:
+        config.thresholds?.testing?.testData?.minFactoryCoverage ?? 50,
+    };
+  }
+
+  /** Setup, hardcoded data and shared state; returns the score left. */
+  private static patternFindings(
+    testDataPatterns: ReturnType<
+      typeof UnitTestDataManagementAnalyzerService.analyzeTestDataPatterns
+    >,
+    realDataMode: boolean,
+    thresholds: DataThresholds,
+    violations: string[],
+    suggestions: string[],
+    score: number
+  ): number {
+    let remaining = score;
+    if (!testDataPatterns.hasProperSetup) {
+      violations.push(
+        `Test files share module-scope mutable state with no beforeEach/afterEach to reset it: ${namedFiles(testDataPatterns.missingSetupFiles)}`
+      );
+      suggestions.push('Implement beforeEach/afterEach for test data setup');
+      remaining -= thresholds.missingSetupDeduction;
+    }
+
+    if (testDataPatterns.hasHardcodedData && !realDataMode) {
+      violations.push(
+        `Found hardcoded test data in test files: ${namedFiles(testDataPatterns.hardcodedDataFiles)}`
+      );
+      suggestions.push(
+        'Use test data factories or builders instead of hardcoded values'
+      );
+      remaining -= thresholds.hardcodedDataDeduction;
+    }
+
+    if (testDataPatterns.hasSharedState) {
+      violations.push(
+        `Tests have shared mutable state issues: ${namedFiles(testDataPatterns.sharedStateFiles)}`
+      );
+      suggestions.push('Ensure tests are isolated with proper cleanup');
+      remaining -= thresholds.sharedStateDeduction;
+    }
+    return remaining;
+  }
+
+  /** Fixture directories and factories, advisory; returns the score left. */
+  private static structureFindings(
+    dataStructure: { hasOrganizedData: boolean; hasFactories: boolean },
+    thresholds: DataThresholds,
+    suggestions: string[],
+    score: number
+  ): number {
+    let remaining = score;
+    if (!dataStructure.hasOrganizedData) {
+      suggestions.push(
+        'Consider creating test fixtures or mock data directories'
+      );
+      remaining -= thresholds.noOrganizedDataDeduction;
+    }
+
+    if (!dataStructure.hasFactories) {
+      suggestions.push(
+        'Implement test data factories for maintainable test data'
+      );
+      remaining -= thresholds.noFactoriesDeduction;
+    }
+    return remaining;
   }
 
   private static generateMessage(

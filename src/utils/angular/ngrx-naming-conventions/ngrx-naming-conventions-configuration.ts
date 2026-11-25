@@ -101,8 +101,11 @@ export class NgRxNamingConventionsConfiguration {
       `${NGRX_KEYWORDS.EXPORT_CONST}\\s+(${NGRX_KEYWORDS.SELECT_PREFIX}\\w+${NGRX_KEYWORDS.FEATURE_SUFFIX})`,
       'g'
     ),
+    // A selector is what createSelector / createFeatureSelector makes,
+    // whatever its name. Matching only `export const select…` meant the
+    // "should start with select" check could never fire (#612).
     generalSelector: new RegExp(
-      `${NGRX_KEYWORDS.EXPORT_CONST}\\s+(${NGRX_KEYWORDS.SELECT_PREFIX}\\w+)`,
+      `${NGRX_KEYWORDS.EXPORT_CONST}\\s+(\\w+)\\s*(?::[^=]*)?=\\s*create(?:Feature)?Selector\\b`,
       'g'
     ),
     reducer: new RegExp(
@@ -127,13 +130,44 @@ export class NgRxNamingConventionsConfiguration {
   }
 
   /**
-   * Check if action has proper prefix
+   * The feature folder as a PascalCase name: `user` → `User`,
+   * `user-profile` → `UserProfile`. Feature folders are lower-case
+   * (kebab-case); identifiers and action prefixes are not, so the folder
+   * name as written made `[User]` a violation and suggested `userEffects`
+   * (#612).
+   */
+  static toPascalCase(featureName: string): string {
+    return featureName
+      .split(/[^A-Za-z0-9]+/)
+      .filter(part => part.length > 0)
+      .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+      .join('');
+  }
+
+  /** The feature folder as a camelCase name: `user-profile` → `userProfile`. */
+  static toCamelCase(featureName: string): string {
+    const pascal = this.toPascalCase(featureName);
+    return pascal.charAt(0).toLowerCase() + pascal.slice(1);
+  }
+
+  /** Letters and digits only, lower-case: `User Profile` → `userprofile`. */
+  private static comparableName(name: string): string {
+    return name.toLowerCase().replace(/[^a-z0-9]/g, '');
+  }
+
+  /**
+   * Check if action has proper prefix: the `[…]` source names the feature,
+   * in any case and with any separators (`[User]`, `[User Profile]`).
    */
   static hasProperActionPrefix(
     actionName: string,
     featureName: string
   ): boolean {
-    return actionName.startsWith(`[${featureName}`);
+    const source = /^\[([^\]]*)\]/.exec(actionName)?.[1];
+    if (source === undefined) return false;
+    return this.comparableName(source).startsWith(
+      this.comparableName(featureName)
+    );
   }
 
   /**
@@ -187,12 +221,13 @@ export class NgRxNamingConventionsConfiguration {
     featureSelector: string;
     effectsClass: string;
   } {
+    const pascal = this.toPascalCase(featureName);
     return {
-      reducer: `${featureName}${NGRX_KEYWORDS.REDUCER_SUFFIX_WORD}`,
-      initialState: `initial${featureName}${NGRX_KEYWORDS.STATE_SUFFIX}`,
-      stateInterface: `${featureName}${NGRX_KEYWORDS.STATE_SUFFIX}`,
-      featureSelector: `${NGRX_KEYWORDS.SELECT_PREFIX}${featureName}${NGRX_KEYWORDS.FEATURE_SUFFIX}`,
-      effectsClass: `${featureName}${NGRX_KEYWORDS.EFFECTS_SUFFIX_WORD}`,
+      reducer: `${this.toCamelCase(featureName)}${NGRX_KEYWORDS.REDUCER_SUFFIX_WORD}`,
+      initialState: `initial${pascal}${NGRX_KEYWORDS.STATE_SUFFIX}`,
+      stateInterface: `${pascal}${NGRX_KEYWORDS.STATE_SUFFIX}`,
+      featureSelector: `${NGRX_KEYWORDS.SELECT_PREFIX}${pascal}${NGRX_KEYWORDS.FEATURE_SUFFIX}`,
+      effectsClass: `${pascal}${NGRX_KEYWORDS.EFFECTS_SUFFIX_WORD}`,
     };
   }
 
@@ -219,7 +254,9 @@ export class NgRxNamingConventionsConfiguration {
   static hasProperInitialState(content: string, featureName: string): boolean {
     return (
       content.includes(NGRX_KEYWORDS.INITIAL_STATE) &&
-      content.includes(`initial${featureName}${NGRX_KEYWORDS.STATE_SUFFIX}`)
+      content.includes(
+        `initial${this.toPascalCase(featureName)}${NGRX_KEYWORDS.STATE_SUFFIX}`
+      )
     );
   }
 

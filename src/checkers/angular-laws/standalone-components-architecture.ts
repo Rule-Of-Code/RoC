@@ -7,6 +7,7 @@ import type {
   LawCheckContext,
   LawResult,
   RuleOfCodeConfig,
+  ViolationDetail,
 } from '../../types/law.types';
 import { AngularComponentFiles } from '../../utils/angular-component-files';
 import { CheckerUtils } from '../../utils/checker-utils';
@@ -42,13 +43,18 @@ export class StandaloneComponentsArchitectureLaw extends AngularLawBase {
     violations.push(...importsAnalysis.violations);
     suggestions.push(...importsAnalysis.suggestions);
 
-    return LawBase.createResult(
+    const result = LawBase.createResult(
       violations,
       'Standalone Components Architecture',
       '',
       suggestions,
       context
     );
+    // The components behind "N/M components are not standalone" (#43).
+    if (standaloneAnalysis.details.length > 0) {
+      result.violationDetails = standaloneAnalysis.details;
+    }
+    return result;
   }
 
   private static checkAngularProject(projectRoot: string): {
@@ -112,15 +118,20 @@ export class StandaloneComponentsArchitectureLaw extends AngularLawBase {
   private static checkStandaloneComponents(
     projectRoot: string,
     config: RuleOfCodeConfig
-  ): { violations: string[]; suggestions: string[] } {
+  ): {
+    violations: string[];
+    suggestions: string[];
+    details: ViolationDetail[];
+  } {
     const violations: string[] = [];
     const suggestions: string[] = [];
+    const details: ViolationDetail[] = [];
 
     // Find component files
     const srcPath = PathOperations.join(projectRoot, 'src');
     if (!FileUtils.exists(srcPath)) {
       suggestions.push('Create src directory with Angular components');
-      return { violations, suggestions };
+      return { violations, suggestions, details };
     }
 
     const componentFiles = AngularComponentFiles.find(srcPath, config);
@@ -128,7 +139,7 @@ export class StandaloneComponentsArchitectureLaw extends AngularLawBase {
       suggestions.push(
         'Create Angular components using standalone architecture'
       );
-      return { violations, suggestions };
+      return { violations, suggestions, details };
     }
 
     let nonStandaloneComponents = 0;
@@ -147,6 +158,12 @@ export class StandaloneComponentsArchitectureLaw extends AngularLawBase {
         );
         if (!isStandalone) {
           nonStandaloneComponents++;
+          details.push({
+            file: PathOperations.getRelative(projectRoot, componentFile),
+            message: standaloneIsDefault
+              ? 'component declared standalone: false'
+              : 'component without standalone: true',
+          });
         }
 
         if (isStandalone && !content.includes('imports:')) {
@@ -168,7 +185,7 @@ export class StandaloneComponentsArchitectureLaw extends AngularLawBase {
       suggestions.push('Convert components to standalone architecture');
     }
 
-    return { violations, suggestions };
+    return { violations, suggestions, details };
   }
 
   private static checkImportsConfiguration(projectRoot: string): {

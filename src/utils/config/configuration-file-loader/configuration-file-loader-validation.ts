@@ -161,10 +161,7 @@ export class ConfigurationFileLoaderValidation {
     let hasConfig = false;
 
     for (const [key, value] of Object.entries(process.env)) {
-      if (
-        ConfigurationFileLoaderConfiguration.isRuleOfCodeEnvVar(key) &&
-        value
-      ) {
+      if (ConfigurationFileLoaderConfiguration.isConfigEnvVar(key) && value) {
         this.setEnvConfigValue(envConfig, key, value);
         hasConfig = true;
       }
@@ -181,11 +178,18 @@ export class ConfigurationFileLoaderValidation {
     key: string,
     value: string
   ): void {
-    const configKey = ConfigurationFileLoaderConfiguration.normalizeEnvKey(key);
-    const keys = configKey.split('.');
+    const { path, known } =
+      ConfigurationFileLoaderConfiguration.resolveEnvKey(key);
+    if (!known) {
+      // Set as before, but not in silence: a value on a key the
+      // configuration does not read has no effect (#619).
+      warnUser(
+        `Environment variable ${key} matches no config key (set as ${path.join('.')})`
+      );
+    }
     const parsedValue = this.parseEnvValue(value);
 
-    this.setNestedValue(envConfig, keys, parsedValue);
+    this.setNestedValue(envConfig, path, parsedValue);
   }
 
   /**

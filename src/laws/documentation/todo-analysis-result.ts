@@ -15,6 +15,8 @@ export interface TodoAnalysisResult {
     isProperlyFormatted: boolean;
     isVague: boolean;
     isStale: boolean;
+    /** Whether the TODO reads as work for an issue tracker. */
+    needsConversion?: boolean;
   }>;
 }
 

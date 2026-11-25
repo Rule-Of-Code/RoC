@@ -140,3 +140,35 @@ export function scriptFileName(file: string, text: string): string {
   const ext = `${ts ? 'ts' : 'js'}${jsx ? 'x' : ''}`;
   return `${file}.${ext}`;
 }
+
+/** The extension of a Vue single-file component. */
+export const VUE_EXTENSION = '.vue';
+
+/** Whether `file` is a Vue single-file component. */
+export function isVueFile(file: string): boolean {
+  return /\.vue$/i.test(file);
+}
+
+/**
+ * What a parser reads for `file` (#607, P2): for a `.vue` file, its script
+ * view under the name its `lang` implies (`List.vue.ts`); any other file as it
+ * is. Offsets and lines are the file's either way.
+ */
+export function parseInput(
+  fileName: string,
+  text: string
+): { fileName: string; text: string } {
+  return isVueFile(fileName)
+    ? { fileName: scriptFileName(fileName, text), text: scriptView(text) }
+    : { fileName, text };
+}
+
+/** The script text a regex-reading law judges: a `.vue` file's script view, or the file. */
+export function scriptText(file: string, text: string): string {
+  return isVueFile(file) ? scriptView(text) : text;
+}
+
+/** The markup a template-reading law judges: a `.vue` file's template view, or the file. */
+export function markupText(file: string, text: string): string {
+  return isVueFile(file) ? templateView(text) : text;
+}

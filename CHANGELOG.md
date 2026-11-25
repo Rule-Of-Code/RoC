@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Internal — the shared readers read a .vue file as its script (#607, P2a)
+
+The TypeScript parse the laws share (`TsxSource`), the code-quality source
+view (`readSource`) and `CodeText.codeOnly` read a `.vue` file as its script
+view — the contents of `<script>` and `<script setup>`, at the file's own
+offsets and lines — parsed by its `lang`. `scriptText` and `markupText` give
+a law that reads text the script or the template of a `.vue` file. A law
+starts to read `.vue` by asking the shared scanner for `.vue` and reading
+through these; the `notRead` note of #607 P0 then leaves it out. No law asks
+for `.vue` yet, so no result changes.
+
 ### 🐛 Fixed — Config values written into a git hook are quoted (#624)
 
 A commit pattern, a commit type or an emoji from the config is written into the

@@ -27,6 +27,10 @@ export interface TsconfigChain {
   options: Record<string, unknown>;
   /** Every `extends` link that could not be found or parsed: options it may set are unknown. */
   unread: string[];
+  /** For each option, the file of the chain that set the value in `options`. */
+  origins?: Record<string, string>;
+  /** The file the chain ends at: the base with no `extends` of its own (#640). */
+  end?: string;
 }
 
 /** An `extends` entry as a file: a relative path, or a package in node_modules. */
@@ -52,6 +56,8 @@ function chainOf(
 ): TsconfigChain {
   seen.add(file);
   let options: Record<string, unknown> = {};
+  let origins: Record<string, string> = {};
+  let end = file;
   const unread: string[] = [];
   const links = ([] as unknown[]).concat(config.extends ?? []);
   for (const link of links) {
@@ -68,12 +74,15 @@ function chainOf(
     }
     const inherited = chainOf(read.data, base, seen);
     options = { ...options, ...inherited.options };
+    origins = { ...origins, ...inherited.origins };
+    end = inherited.end ?? base;
     unread.push(...inherited.unread);
   }
   const own = config.compilerOptions;
   const ownOptions =
     own && typeof own === 'object' ? (own as Record<string, unknown>) : {};
-  return { options: { ...options, ...ownOptions }, unread };
+  for (const key of Object.keys(ownOptions)) origins[key] = file;
+  return { options: { ...options, ...ownOptions }, unread, origins, end };
 }
 
 /**
@@ -120,6 +129,8 @@ export interface TsconfigProject {
 }
 
 export interface TsconfigProjects {
+  /** The project root the paths are relative to. */
+  projectRoot: string;
   /** The root first (unless it is solution-style), then the references, depth first. */
   projects: TsconfigProject[];
   /** A reference that could not be found or parsed: its options were not read. */
@@ -127,20 +138,18 @@ export interface TsconfigProjects {
 }
 
 /**
- * A solution-style tsconfig compiles nothing itself: `files: []`, no
- * `include`, and no compiler option of its own or inherited (the shape Vite
- * templates use). It is followed, not judged.
+ * A solution-style tsconfig compiles nothing itself: `files: []` and no
+ * `include` (or `include: []`) — the shape Vite templates and Nx workspaces
+ * use. It is followed, not judged, whatever it extends.
  */
-function isSolutionStyle(
-  data: Record<string, unknown>,
-  chain: TsconfigChain
-): boolean {
+function isSolutionStyle(data: Record<string, unknown>): boolean {
+  // `files: []` with no `include` (or `include: []`) compiles nothing,
+  // whatever it extends: it is followed, not judged (#640).
   return (
     Array.isArray(data.files) &&
     data.files.length === 0 &&
-    data.include === undefined &&
-    chain.unread.length === 0 &&
-    Object.keys(chain.options).length === 0
+    (data.include === undefined ||
+      (Array.isArray(data.include) && data.include.length === 0))
   );
 }
 
@@ -150,6 +159,8 @@ const TEST_CONFIG_NAME = /\.(?:spec|test|tests|e2e)\.json$/i;
 const TEST_GLOB =
   /\.(?:spec|test|e2e-spec|cy)\.\*|\.(?:spec|test|e2e-spec|cy)\.[cm]?[jt]sx?$|(?:^|\/)(?:__tests__|tests?|e2e|cypress|spec)(?:\/|$)/i;
 const TYPES_GLOB = /\.d\.ts$/i;
+/** The directory of an end-to-end test project. */
+const E2E_PROJECT_DIR = /^(?:e2e|cypress|playwright)$|-e2e$/i;
 
 /**
  * A config for tests: named so, or whose own `include` lists only test globs
@@ -157,6 +168,9 @@ const TYPES_GLOB = /\.d\.ts$/i;
  */
 function isTestConfig(file: string, data: Record<string, unknown>): boolean {
   if (TEST_CONFIG_NAME.test(path.basename(file))) return true;
+  // An end-to-end project: its directory is `e2e`, `cypress`, `playwright`
+  // or ends in `-e2e` (an Nx `<app>-e2e`).
+  if (E2E_PROJECT_DIR.test(path.basename(path.dirname(file)))) return true;
   const include = Array.isArray(data.include)
     ? data.include.filter((entry): entry is string => typeof entry === 'string')
     : [];
@@ -210,7 +224,7 @@ export function readTsconfigProjects(
   ): void => {
     seen.add(at);
     const chain = chainOf(data, at, new Set());
-    if (!isSolutionStyle(data, chain)) {
+    if (!isSolutionStyle(data)) {
       projects.push({ file: at, rel: relOf(at), role, chain });
     }
     for (const target of referencePaths(data)) {
@@ -243,17 +257,33 @@ export function readTsconfigProjects(
     const chain = chainOf(root.data, file, new Set());
     projects.push({ file, rel: relOf(file), role: 'root', chain });
   }
-  return { projects, notRead };
+  return { projectRoot, projects, notRead };
 }
 
 /**
- * How a finding about one tsconfig starts: nothing for the root (its findings
- * read as they always did), the file for a referenced project, and the file
- * marked as a test config for one that compiles tests only.
+ * How a finding about `flags` of one project starts (#640). A tsconfig.json
+ * judged alone keeps its findings as they always read. In a build with
+ * references, a finding goes to the file of the `extends` chain that set the
+ * flag — or, when no file sets it, the file the chain ends at — so a base
+ * that thirty projects extend gives one finding, not thirty (the caller
+ * drops repeats). Marked "(test config)" only when that file is a test
+ * config itself: a test config's own weaker value.
  */
-export function tsconfigFindingPrefix(project: TsconfigProject): string {
-  if (project.role === 'root') return '';
-  return project.role === 'test'
-    ? `${project.rel} (test config): `
-    : `${project.rel}: `;
+export function tsconfigFindingWhere(
+  all: TsconfigProjects,
+  project: TsconfigProject,
+  flags: readonly string[]
+): string {
+  const judgedAlone =
+    all.projects.length === 1 &&
+    project.role === 'root' &&
+    all.notRead.length === 0;
+  if (judgedAlone) return '';
+  const origins = project.chain.origins ?? {};
+  const setBy = flags.map(flag => origins[flag]).find(Boolean);
+  const where = setBy ?? project.chain.end ?? project.file;
+  const rel = path.relative(all.projectRoot, where).replace(/\\/g, '/');
+  const marker =
+    where === project.file && project.role === 'test' ? ' (test config)' : '';
+  return `${rel}${marker}: `;
 }

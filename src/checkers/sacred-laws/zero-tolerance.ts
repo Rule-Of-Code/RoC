@@ -16,7 +16,7 @@ import {
   readTsconfigChain,
   readTsconfigProjects,
   type TsconfigChain,
-  tsconfigFindingPrefix,
+  tsconfigFindingWhere,
 } from '../../utils/tsconfig-chain';
 import { SacredLawBase } from './sacred-law-base';
 
@@ -125,9 +125,16 @@ export class ZeroToleranceLaw {
     }
     for (const project of projects.projects) {
       const found: string[] = [];
-      this.judgeChain(project.rel, project.chain, found, notRead);
-      const prefix = tsconfigFindingPrefix(project);
-      violations.push(...found.map(finding => `${prefix}${finding}`));
+      const notes: string[] = [];
+      this.judgeChain(project.rel, project.chain, found, notes);
+      // Each finding once, on the file that set the flag (#640).
+      for (const finding of found) {
+        const flags =
+          finding === STRICT_OFF ? ['strict'] : ['noImplicitAny', 'strict'];
+        const line = `${tsconfigFindingWhere(projects, project, flags)}${finding}`;
+        if (!violations.includes(line)) violations.push(line);
+      }
+      for (const note of notes) if (!notRead.includes(note)) notRead.push(note);
     }
     notRead.push(...projects.notRead);
   }

@@ -12,11 +12,22 @@ import { loadTypeScript } from '../../utils/react/tsx-source';
 import {
   readTsconfigProjects,
   type TsconfigChain,
-  tsconfigFindingPrefix,
+  tsconfigFindingWhere,
   type TsconfigProjects,
 } from '../../utils/tsconfig-chain';
 
 const TSCONFIG = 'tsconfig.json';
+
+/** The compiler option a finding of this law is about. */
+function flagsOf(finding: string): string[] {
+  if (finding.startsWith('TypeScript strict mode')) return ['strict'];
+  if (finding.startsWith('TypeScript target')) return ['target'];
+  if (finding.startsWith('TypeScript moduleResolution'))
+    return ['moduleResolution'];
+  const flag = /^TypeScript (\w+) must be/.exec(finding)?.[1];
+  // A flag strict implies is set by whoever set strict, when it is unset.
+  return flag ? [flag, 'strict'] : [];
+}
 
 export class TypeScriptStrictLaw {
   // The flags this law requires. noPropertyAccessFromIndexSignature and
@@ -95,11 +106,12 @@ export class TypeScriptStrictLaw {
    * with its file, marked when it is a test config; the root's read as before.
    */
   private static judgeProjects(
-    { projects, notRead: unreadReferences }: TsconfigProjects,
+    all: TsconfigProjects,
     violations: string[],
     notRead: string[],
     projectRoot: string
   ): void {
+    const { projects, notRead: unreadReferences } = all;
     for (const project of projects) {
       const found: string[] = [];
       this.validateCompilerOptions(
@@ -108,11 +120,17 @@ export class TypeScriptStrictLaw {
         projectRoot,
         project.file
       );
-      const prefix = tsconfigFindingPrefix(project);
-      violations.push(...found.map(finding => `${prefix}${finding}`));
-      if (project.chain.unread.length > 0) {
-        notRead.push(this.extendsNote(project.rel, project.chain));
+      // Each finding once, on the file that set the flag (#640).
+      for (const finding of found) {
+        const where = tsconfigFindingWhere(all, project, flagsOf(finding));
+        const line = `${where}${finding}`;
+        if (!violations.includes(line)) violations.push(line);
       }
+      const note =
+        project.chain.unread.length > 0
+          ? this.extendsNote(project.rel, project.chain)
+          : null;
+      if (note && !notRead.includes(note)) notRead.push(note);
     }
     notRead.push(...unreadReferences);
   }

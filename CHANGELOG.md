@@ -12,23 +12,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Both laws judged the root `tsconfig.json` alone; `references` was read
 nowhere.
 
-- **A solution-style root** — `files: []` and `references`, no compiler
-  options of its own or inherited (the shape Vite templates use) — compiles
-  nothing, so every strict flag was reported "must be true" / "not enabled"
-  while the strict referenced projects were never read. It is followed now,
-  not judged. This removes findings.
+- **A solution-style root** — `files: []` with no `include` or with
+  `include: []`, whatever it extends (the shape Vite templates and Nx
+  workspaces use) — compiles nothing, so every strict flag was reported
+  "must be true" / "not enabled" while the strict referenced projects were
+  never read. It is followed now, not judged. This removes findings.
 - **Every referenced project is judged**, also under a root with options of
   its own, as `tsc -b` builds it: through nested `references` (a directory
   reference through its `tsconfig.json`), each file once, so a cycle ends at
   the file seen before. A strict root no longer passes when a project it
   references is not strict. **Stricter: new failed results are possible**
   on projects whose referenced configs loosen strict flags.
-- A finding about a referenced project starts with its file
-  (`tsconfig.app.json: TypeScript strict mode not enabled`); the root's
-  findings read as before. **A config for tests** — named
-  `tsconfig.spec.json` / `.test.json` / `.tests.json` / `.e2e.json`, or whose
-  own `include` lists only test globs — is judged with the same flags and its
-  findings are marked: `tsconfig.spec.json (test config): …`.
+- **A flag is reported once, on the file that set it.** In a build with
+  references, a finding names the file of the `extends` chain where the
+  flag has its value — or, when no file sets it, the file the chain ends
+  at: one missing flag in an Nx `tsconfig.base.json` is one finding, not one
+  per project that extends it (90 → 3 on a generated Nx workspace). A
+  tsconfig.json judged alone reads as before.
+- **A config for tests** — named `tsconfig.spec.json` / `.test.json` /
+  `.tests.json` / `.e2e.json`, whose own `include` lists only test globs, or
+  in an end-to-end project directory (`e2e`, `cypress`, `playwright`,
+  `<app>-e2e`) — is judged with the same flags. Its own weaker value is its
+  own finding, marked `(test config)`; a weak value it inherits is the
+  base's one finding.
 - A reference that is missing or does not parse is in `notRead`.
 
 ### 📝 Changed — law texts the code had moved past (#625)

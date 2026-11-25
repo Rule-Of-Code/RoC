@@ -174,7 +174,7 @@ describe('#640 (b): projects a root with options references are judged too', () 
     ]);
   });
 
-  it('a loose root and a loose referenced project: the root as before, the project by its name', () => {
+  it('a loose root and a loose referenced project: each finding names the file that set the flag', () => {
     write(
       'tsconfig.json',
       json({
@@ -184,8 +184,8 @@ describe('#640 (b): projects a root with options references are judged too', () 
     );
     write('tsconfig.app.json', json({ compilerOptions: LOOSE }));
     expect(zeroLaw().violations).toEqual([
-      'TypeScript strict mode not enabled',
-      'TypeScript noImplicitAny not enabled',
+      'tsconfig.json: TypeScript strict mode not enabled',
+      'tsconfig.json: TypeScript noImplicitAny not enabled',
       'tsconfig.app.json: TypeScript strict mode not enabled',
       'tsconfig.app.json: TypeScript noImplicitAny not enabled',
     ]);
@@ -270,6 +270,121 @@ describe('#640 (b): projects a root with options references are judged too', () 
     expect(zeroLaw().violations).toEqual([
       'packages/a/tsconfig.json: TypeScript strict mode not enabled',
       'packages/a/tsconfig.json: TypeScript noImplicitAny not enabled',
+    ]);
+  });
+});
+
+describe('#640 a flag inherited from a base is one finding, on the base (QA on #658)', () => {
+  /** An Nx workspace: a base, a root that compiles nothing, three projects. */
+  const nx = (base: Record<string, unknown>): void => {
+    write('tsconfig.base.json', json({ compilerOptions: base }));
+    write(
+      'tsconfig.json',
+      json({
+        extends: './tsconfig.base.json',
+        compileOnSave: false,
+        files: [],
+        include: [],
+        references: [
+          { path: './apps/shop' },
+          { path: './libs/ui' },
+          { path: './apps/shop-e2e' },
+        ],
+      })
+    );
+    for (const dir of ['apps/shop', 'libs/ui']) {
+      write(
+        `${dir}/tsconfig.json`,
+        json({
+          extends: '../../tsconfig.base.json',
+          files: [],
+          include: [],
+          references: [
+            { path: './tsconfig.app.json' },
+            { path: './tsconfig.spec.json' },
+          ],
+        })
+      );
+      write(
+        `${dir}/tsconfig.app.json`,
+        json({ extends: './tsconfig.json', include: ['src/**/*.ts'] })
+      );
+      write(
+        `${dir}/tsconfig.spec.json`,
+        json({
+          extends: './tsconfig.json',
+          include: ['src/**/*.spec.ts'],
+        })
+      );
+    }
+    write(
+      'apps/shop-e2e/tsconfig.json',
+      json({
+        extends: '../../tsconfig.base.json',
+        include: ['**/*.ts', 'src/**/*.spec.ts'],
+      })
+    );
+  };
+
+  it('a flag missing from the base: one finding per flag, on tsconfig.base.json', () => {
+    nx({ ...STRICT, strict: undefined, noImplicitAny: undefined });
+    expect(zeroLaw().violations).toEqual([
+      'tsconfig.base.json: TypeScript strict mode not enabled',
+      'tsconfig.base.json: TypeScript noImplicitAny not enabled',
+    ]);
+    expect(strictLaw().violations).toEqual([
+      'tsconfig.base.json: TypeScript strict mode must be enabled',
+      'tsconfig.base.json: TypeScript noImplicitAny must be true',
+    ]);
+  });
+
+  it('files: [] + include: [] that extends a loose base is followed, not judged', () => {
+    // The root compiles nothing; the project it references is strict and
+    // does not extend the loose base. Judged, the root gave findings.
+    write('tsconfig.base.json', json({ compilerOptions: LOOSE }));
+    write(
+      'tsconfig.json',
+      json({
+        extends: './tsconfig.base.json',
+        files: [],
+        include: [],
+        references: [{ path: './tsconfig.app.json' }],
+      })
+    );
+    write('tsconfig.app.json', json({ compilerOptions: STRICT }));
+    expect(strictLaw().violations).toEqual([]);
+    expect(zeroLaw().violations).toEqual([]);
+  });
+
+  it("a test config's own weaker value is its own finding, marked", () => {
+    nx(STRICT);
+    write(
+      'libs/ui/tsconfig.spec.json',
+      json({
+        extends: './tsconfig.json',
+        include: ['src/**/*.spec.ts'],
+        compilerOptions: { strict: false, noImplicitAny: false },
+      })
+    );
+    expect(zeroLaw().violations).toEqual([
+      'libs/ui/tsconfig.spec.json (test config): TypeScript strict mode not enabled',
+      'libs/ui/tsconfig.spec.json (test config): TypeScript noImplicitAny not enabled',
+    ]);
+  });
+
+  it('an e2e project directory (`<app>-e2e`) is a test config', () => {
+    nx(STRICT);
+    write(
+      'apps/shop-e2e/tsconfig.json',
+      json({
+        extends: '../../tsconfig.base.json',
+        include: ['**/*.ts', 'src/**/*.spec.ts'],
+        compilerOptions: { strict: false, noImplicitAny: false },
+      })
+    );
+    expect(zeroLaw().violations).toEqual([
+      'apps/shop-e2e/tsconfig.json (test config): TypeScript strict mode not enabled',
+      'apps/shop-e2e/tsconfig.json (test config): TypeScript noImplicitAny not enabled',
     ]);
   });
 });

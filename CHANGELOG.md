@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — a law's own glob for script files is held to the .vue note too (#607, P2b)
+
+The `.vue` note of #607 P0 came from the shared directory scanner only.
+Two shared readers that laws call with their own globs now report the same
+way: `readProjectFiles` (Latency Budget Harness Realism, Test Server
+Loopback Address Match, Tracing Explains Latency) and `readFilesContaining`
+(the laws that judge the files their `requires.anyFileContaining` gate
+selected). A glob for script files that leaves `.vue` out, in a project
+with `.vue` files, gives the law the `notRead` note; a glob that names
+`.vue` does not. The selection gate itself runs outside a law and is not
+affected.
+
+**Stricter** in Vue projects, like P0.
+
 ### Internal — the shared readers read a .vue file as its script (#607, P2a)
 
 The TypeScript parse the laws share (`TsxSource`), the code-quality source

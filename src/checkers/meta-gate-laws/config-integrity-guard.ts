@@ -27,7 +27,7 @@ export class ConfigIntegrityGuardLaw extends LawBase {
    * How many laws each public identity spelling resolves to.
    *
    * A key that resolves to MORE THAN ONE law is not a shortcut — it is a hidden
-   * waiver. `legacyId` is not unique: 25 values are shared by 51 laws (20 = "No
+   * waiver. `legacyId` is not unique: several values are shared by more than one law (20 = "No
    * Explicit Any" AND "Branch Governance Standards"). So
    * `notApplicable: { "20": "…" }` silences TWO laws while the team believes it
    * has silenced one — a hidden waiver produced BY US, which is the exact class
@@ -96,7 +96,7 @@ export class ConfigIntegrityGuardLaw extends LawBase {
       'SECURITY',
       [
         'Fix the key: canonical name, printed slug and law id resolve to exactly one law',
-        'Never key a law by legacyId: 25 legacyIds are shared by 51 laws',
+        'Never key a law by legacyId: some legacyIds are shared by more than one law',
         'Remove entries for laws that no longer exist',
       ],
       context

@@ -350,8 +350,9 @@ export class CommitSizeControlLaw extends GitLawBase {
         context.config
       );
 
+      // The scanner returns full paths; they are read as given (#642).
       const hasSizeValidation = workflows.some((workflow: string) =>
-        this.checkWorkflowForSizeValidation(workflowsDir, workflow)
+        this.checkWorkflowForSizeValidation(workflow)
       );
 
       if (!hasSizeValidation) {
@@ -362,14 +363,9 @@ export class CommitSizeControlLaw extends GitLawBase {
     }
   }
 
-  private static checkWorkflowForSizeValidation(
-    workflowsDir: string,
-    workflow: string
-  ): boolean {
+  private static checkWorkflowForSizeValidation(workflowPath: string): boolean {
     try {
-      const workflowContent = FileUtils.readFile(
-        PathOperations.join(workflowsDir, workflow)
-      );
+      const workflowContent = FileUtils.readFile(workflowPath);
       return ['diff', 'size', 'lines changed'].some(keyword =>
         workflowContent.includes(keyword)
       );

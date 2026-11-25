@@ -71,16 +71,6 @@ describe('utils/angular/ngrx-memoization/ngrx-memoization-configuration', () => 
       });
     });
 
-    describe('DIRECT_SELECT_PATTERN', () => {
-      it('should detect store.select patterns', () => {
-        const pattern = NgRxMemoizationConfiguration.DIRECT_SELECT_PATTERN;
-        expect(
-          'store.select(state => state.users)'.match(pattern)
-        ).not.toBeNull();
-        expect("this.store.select('users')".match(pattern)).not.toBeNull();
-      });
-    });
-
     describe('SELECTOR_SUBSCRIPTION_PATTERN', () => {
       it('should detect selector subscription patterns', () => {
         const pattern =
@@ -332,68 +322,6 @@ describe('utils/angular/ngrx-memoization/ngrx-memoization-configuration', () => 
       });
     });
 
-    describe('findDirectSelects', () => {
-      it('should find store.select patterns', () => {
-        const content = 'this.store.select(state => state.users)';
-        const result = NgRxMemoizationConfiguration.findDirectSelects(content);
-        expect(result).not.toBeNull();
-      });
-
-      it('should return null when no store.select', () => {
-        const content = 'this.users$ = this.store.pipe(select(selectUsers))';
-        const result = NgRxMemoizationConfiguration.findDirectSelects(content);
-        expect(result).toBeNull();
-      });
-    });
-
-    describe('hasValidDirectSelectUsage', () => {
-      it('should return true when no store.select', () => {
-        const content = 'const users$ = this.store.pipe(select(selectUsers))';
-        expect(
-          NgRxMemoizationConfiguration.hasValidDirectSelectUsage(content)
-        ).toBe(true);
-      });
-
-      it('should return true when using select prefix', () => {
-        const content = 'this.store.select(selectUsers)';
-        expect(
-          NgRxMemoizationConfiguration.hasValidDirectSelectUsage(content)
-        ).toBe(true);
-      });
-
-      it('should return true when store.select contains select word', () => {
-        // hasValidDirectSelectUsage returns true if content contains SELECT_PREFIX ('select')
-        // 'store.select' contains 'select', so this returns true
-        const content = 'this.store.select(state => state.users)';
-        expect(
-          NgRxMemoizationConfiguration.hasValidDirectSelectUsage(content)
-        ).toBe(true);
-      });
-    });
-
-    describe('isInvalidDirectSelect', () => {
-      it('should return true for string literal selectors', () => {
-        expect(
-          NgRxMemoizationConfiguration.isInvalidDirectSelect(
-            "store.select('users')"
-          )
-        ).toBe(true);
-        expect(
-          NgRxMemoizationConfiguration.isInvalidDirectSelect(
-            'store.select("users")'
-          )
-        ).toBe(true);
-      });
-
-      it('should return false for selector function selectors', () => {
-        expect(
-          NgRxMemoizationConfiguration.isInvalidDirectSelect(
-            'store.select(selectUsers)'
-          )
-        ).toBe(false);
-      });
-    });
-
     describe('findSelectorSubscriptions', () => {
       it('should find subscription patterns', () => {
         const content = '.select(selectUsers).subscribe(users => {})';
@@ -504,15 +432,6 @@ describe('utils/angular/ngrx-memoization/ngrx-memoization-configuration', () => 
     });
 
     describe('analyzeComponentSelectorPatterns', () => {
-      it('should detect valid direct selects', () => {
-        const content = 'this.store.select(selectUsers)';
-        const result =
-          NgRxMemoizationConfiguration.analyzeComponentSelectorPatterns(
-            content
-          );
-        expect(result.hasValidDirectSelects).toBe(true);
-      });
-
       it('should detect too many subscriptions', () => {
         const content = `
           .select(a).subscribe

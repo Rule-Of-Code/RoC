@@ -353,23 +353,32 @@ describe('utils/angular/angular-signal-imports/angular-signal-imports-analyzer',
       });
     });
 
-    describe('COMPATIBLE_VERSIONS', () => {
-      it('should include Angular 16', () => {
-        expect(AngularSignalImportsConfiguration.COMPATIBLE_VERSIONS).toContain(
-          '16'
-        );
+    describe('lowestMajorVersion (#612: every major from 16 on supports signals)', () => {
+      it.each([
+        ['^16.0.0', 16],
+        ['^19.2.0', 19],
+        ['~21.0.1', 21],
+        ['>=16.1.0', 16],
+        ['17.x', 17],
+      ])('reads %s as major %d', (range, major) => {
+        expect(
+          AngularSignalImportsConfiguration.lowestMajorVersion(range)
+        ).toBe(major);
       });
 
-      it('should include Angular 17', () => {
-        expect(AngularSignalImportsConfiguration.COMPATIBLE_VERSIONS).toContain(
-          '17'
-        );
-      });
+      it.each(['latest', 'workspace:*', '<17'])(
+        'reads no major from %s',
+        range => {
+          expect(
+            AngularSignalImportsConfiguration.lowestMajorVersion(range)
+          ).toBeUndefined();
+        }
+      );
 
-      it('should include Angular 18', () => {
-        expect(AngularSignalImportsConfiguration.COMPATIBLE_VERSIONS).toContain(
-          '18'
-        );
+      it('needs 16 or later', () => {
+        expect(
+          AngularSignalImportsConfiguration.MIN_SIGNALS_MAJOR_VERSION
+        ).toBe(16);
       });
     });
 

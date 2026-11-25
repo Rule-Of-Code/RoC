@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 📦 Adds a runtime dependency (~24 MB): `@ruleofcode/ts-api` (#667)
+
+`@ruleofcode/ts-api` is an npm alias of `typescript@^6.0.3` (24.3 MB
+unpacked), in `dependencies`. RoC parses with it when the project's own
+`typescript` has no compiler API. The build of RoC itself stays on
+`typescript` 5.9 (a dev dependency).
+
+### 🐛 Fixed — TypeScript 7 projects: the laws parse instead of crashing (#667)
+
+TypeScript 7.0's `typescript` package exports only its version; its API is
+not there (`createSourceFile`, `ScriptTarget`, `ScriptKind`, `sys`). Taken
+as the parser, it made 29 laws end in "Check failed — Cannot read
+properties of undefined (reading 'Latest' | 'TSX' | 'readFile')" on the
+default `npm create vite` react-ts project. Now:
+
+- the project's `typescript` is used when it has the compiler API (checked
+  by what the package offers, never by its version); otherwise RoC parses
+  with its own (`@ruleofcode/ts-api`). Parsing needs no type-checking, so
+  the versions need not match. The details of each law that parsed say so:
+  `project typescript 7.0.2 offers no JS API; parsed with RoC's typescript
+  6.0.x`, and the audit says it once at the start;
+- if no TypeScript with the API can be found, the laws report their files
+  as NOT read and name the project's version, instead of crashing;
+- TypeScript Strict Mode and Zero Tolerance Doctrine judge an option a
+  tsconfig leaves out by the TypeScript major the project builds with: from
+  6.0 on `strict` is true and `target` is the newest ES version (TypeScript
+  6.0 and 7.0 release notes). A Vite project on TypeScript 6 or 7 without
+  `"strict"` no longer gets "strict not enabled"; `"strict": false` is still
+  off.
+
 ### 🐛 Fixed — Config values written into a git hook are quoted (#624)
 
 A commit pattern, a commit type or an emoji from the config is written into the

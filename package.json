@@ -78,6 +78,7 @@
     "LICENSE"
   ],
   "dependencies": {
+    "@ruleofcode/ts-api": "npm:typescript@^6.0.3",
     "chalk": "^4.1.2",
     "commander": "^11.1.0",
     "fs-extra": "^11.2.0",

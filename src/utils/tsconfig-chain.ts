@@ -11,6 +11,7 @@ import fs from 'fs';
 import path from 'path';
 
 import { readJsonManifest } from './json-manifest';
+import { typeScriptSource } from './react/tsx-source';
 
 const TSCONFIG = 'tsconfig.json';
 
@@ -102,4 +103,30 @@ export function strictModeOf(chain: TsconfigChain): boolean | null {
     return true;
   }
   return chain.unread.length > 0 ? null : false;
+}
+
+/**
+ * The defaults of the TypeScript major the project builds with, for the
+ * options the strict laws read (#667). From TypeScript 6.0 on, an option a
+ * tsconfig leaves out has a new value:
+ *
+ * - "`strict` is now `true` by default … If you were relying on the previous
+ *   default of `false`, you'll need to explicitly set `"strict": false`"
+ * - "The new default `target` is the most recent supported ECMAScript spec
+ *   version" (es2025 in 6.0)
+ *
+ * (https://devblogs.microsoft.com/typescript/announcing-typescript-6-0/;
+ * TypeScript 7.0 "adopts 6.0's new defaults", "`strict` is `true` by
+ * default": https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/).
+ * Before 6.0, or when the project's version is unknown, an absent option has
+ * no value here: the laws judge it as absent, as before.
+ */
+export function absentOptionDefaults(
+  projectRoot: string
+): Record<string, unknown> {
+  const version = typeScriptSource(projectRoot).projectVersion;
+  const major = version ? Number(/^(\d+)/.exec(version)?.[1]) : NaN;
+  return Number.isFinite(major) && major >= 6
+    ? { strict: true, target: 'es2025' }
+    : {};
 }

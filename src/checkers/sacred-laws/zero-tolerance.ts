@@ -12,7 +12,10 @@ import { FileUtils } from '../../utils/file-utils';
 import { withNotRead } from '../../utils/judged-nothing';
 import { notReadNote } from '../../utils/json-manifest';
 import { PathOperations } from '../../utils/path-operations';
-import { readTsconfigChain } from '../../utils/tsconfig-chain';
+import {
+  absentOptionDefaults,
+  readTsconfigChain,
+} from '../../utils/tsconfig-chain';
 import { SacredLawBase } from './sacred-law-base';
 
 /** The two tsconfig findings; the advice for them looks for the same text. */
@@ -116,13 +119,23 @@ export class ZeroToleranceLaw {
     // chain was read: a base that could not be read may set
     // `noImplicitAny: false`, which `strict: true` in this file does not undo,
     // so there it is NOT read, never assumed on (QA on #578).
+    // An option the chain leaves out has the default of the project's
+    // TypeScript major: `strict` is true from 6.0 on (#667).
+    // Only when every file of the chain was read: an unread base may set it.
+    const setOptions = Object.fromEntries(
+      Object.entries(chain.options).filter(([, value]) => value !== undefined)
+    );
+    const options =
+      chain.unread.length === 0
+        ? { ...absentOptionDefaults(projectRoot), ...setOptions }
+        : setOptions;
     const valueOf = (flag: 'strict' | 'noImplicitAny'): unknown =>
       flag === 'noImplicitAny' &&
       chain.unread.length === 0 &&
-      chain.options.noImplicitAny === undefined &&
-      chain.options.strict === true
+      options.noImplicitAny === undefined &&
+      options.strict === true
         ? true
-        : chain.options[flag];
+        : options[flag];
     for (const [flag, finding] of [
       ['strict', STRICT_OFF],
       ['noImplicitAny', NO_IMPLICIT_ANY_OFF],

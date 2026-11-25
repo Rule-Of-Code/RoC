@@ -5,7 +5,11 @@
  * validate at the boundary instead.
  */
 
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import { FileUtils } from '../../utils/file-utils';
 import { markJudgedNothing } from '../../utils/judged-nothing';
 import { PathOperations } from '../../utils/path-operations';
@@ -22,6 +26,8 @@ export class NoDoubleCastLaw extends CodeQualityLawBase {
   static check(context: LawCheckContext): LawResult {
     const { projectRoot } = context;
     const violations: string[] = [];
+    // Each cast behind a file's count, at its line (#43).
+    const details: ViolationDetail[] = [];
 
     const files = this.findTypeScriptFiles(projectRoot, context);
     // Read from the parse (#424): `as unknown as` in a comment or a string
@@ -52,10 +58,18 @@ export class NoDoubleCastLaw extends CodeQualityLawBase {
         violations.push(
           `Double cast (as unknown as) in ${relativePath}: ${matches.length} occurrence(s) — launders the type and defeats checking. Model the real type or validate at the boundary.`
         );
+        details.push(
+          ...this.matchDetails(
+            code,
+            this.DOUBLE_CAST,
+            relativePath,
+            () => 'double cast `as unknown as`'
+          )
+        );
       }
     }
 
-    return this.createResult(
+    const result = this.createResult(
       violations,
       'No Double Cast',
       'CODE_QUALITY_LAW',
@@ -65,5 +79,6 @@ export class NoDoubleCastLaw extends CodeQualityLawBase {
       ],
       context
     );
+    return this.withDetails(result, details);
   }
 }

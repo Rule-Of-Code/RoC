@@ -261,8 +261,10 @@ describe('utils/angular/ngrx-memoization/ngrx-memoization-validation-patterns', 
       it('should return empty arrays for compliant component file', () => {
         const root = project({
           [COMPONENT]: `
-            private subscription = new Subscription();
-            users$ = this.store.select(selectUsers);
+            export class UserComponent {
+              private subscription = new Subscription();
+              users$ = this.store.select(selectUsers);
+            }
           `,
         });
 

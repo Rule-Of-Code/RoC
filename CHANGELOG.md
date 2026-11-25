@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Primary Locale Font Preloaded does not read comments as markup (#636)
+
+The law read `<link>`, `<html lang>` and `<style>` blocks as text with their
+comments:
+
+- A preload inside `<!-- … -->` (HTML) or `{/* … */}` (JSX) counted as a
+  preload, so the law passed on it (false PASS). It is read without comments
+  now: such a project fails. **Stricter.**
+- A commented-out `<html lang="bg">` counted as a declared locale and gave a
+  finding to a project whose real locale is another. It no longer counts.
+- A `<style lang="scss">` block of a `.vue`, `.svelte` or `.astro` file was
+  read with the comment rules of CSS, so its `//` lines were judged as
+  `@font-face` rules. The block's `lang` (scss, sass, less, stylus) sets the
+  comment rules now, as the extension does for a stylesheet file.
+
+Other script comments (`//`, `/* */` outside braces) are not stripped; the
+law card says so.
+
 ### ✨ Added — React guidance of the frontend architecture laws proved on a React app (#12)
 
 The React guidance of Stores In Data Access, Defensive Array Coercion, No

@@ -599,7 +599,7 @@ export function getProduct() {}
       });
     });
 
-    it('reads the rule names from the text of an ESM eslint.config.mjs it cannot require', () => {
+    it('loads an ESM eslint.config.mjs it cannot require: the rules with their values (#613)', () => {
       write(
         'eslint.config.mjs',
         "export default [{ rules: { '@typescript-eslint/no-magic-numbers': 'warn' } }];\n"
@@ -608,7 +608,7 @@ export function getProduct() {}
         file: 'eslint.config.mjs',
         config: {
           rules: {
-            '@typescript-eslint/no-magic-numbers': 'detected',
+            '@typescript-eslint/no-magic-numbers': 'warn',
           },
         },
       });

@@ -35,6 +35,144 @@ the console prints under the violation and `--export json` carries in full:
 The violation lines, verdicts and scores are unchanged. Nothing new is
 searched for.
 
+### 🐛 Fixed — Config values written into a git hook are quoted (#624)
+
+A commit pattern, a commit type or an emoji from the config is written into the
+generated `commit-msg` hook. A value with an apostrophe, a quote, a dollar sign,
+a backtick, a backslash or a line break was not quoted for `sh`, so the hook
+could stop with a syntax error on every commit or print something other than the
+value; and an emoji with a regex character, such as `:+1:`, refused a valid
+message. Every such value is now quoted in one place, and the emoji is escaped
+once. A pattern that starts with `-` is read as a pattern, and a
+`maxCommitMessageLength` that is not a number is the default 72.
+The commands of `hooks.custom` are shell code and are written as they are;
+the name of a custom hook is quoted like the other values.
+
+Also fixed, in the generator since before this release: the hook passed the
+commit message to `grep` and printed it with `echo`. Where `/bin/sh` is dash
+(Debian, Ubuntu, most Linux CI), `echo` reads backslash escapes, so a message
+with `\b` or `\n` in it was changed before it was matched and could be
+refused. The message now goes through `printf '%s\n'`, and the blank line
+before the emoji list is its own `echo ""` (`echo "\n…"` printed a line break
+under dash and a literal `\n` under bash). These lines change in every
+generated `commit-msg` hook; the other lines of a hook generated from plain
+values are unchanged.
+
+The fix reaches a project when its hooks are generated again:
+`npx ruleofcode reinstall-hooks`.
+
+### 🐛 Fixed — the code-quality laws read an eslint.config.mjs as ESLint loads it (#613)
+
+An ESM `eslint.config.mjs` that `require` refused had its rules taken from
+the file's text with a regular expression, which missed a rule with options
+(`'complexity': ['error', 10]`) and an unquoted key (`complexity: 'error'`):
+a rule the project sets read as not set (Dead Code Elimination; the
+information line of Magic Number Prevention and Code Complexity Control).
+The config is now imported by a child Node process, as ESLint would import
+it (a promised default and top-level await are awaited; nested config arrays
+are flattened, later objects over earlier ones), and its rules carry their
+real values. It is never loaded in the audit's own process any more: on
+Node 22+ `require` ran a synchronous ESM config there, so a config that
+looped hung the audit, one that called `process.exit(0)` ended it with a
+passing exit code, and one that printed wrote into `--json` output. The
+child has a time limit (20 s), writes its answer to a file of its own, and
+prints nothing into the audit. A config that cannot be loaded — a plugin
+that is not installed, a throw, an exit, the time limit — is said not to be
+read (`notRead`, with the reason), never guessed from its text and never a
+pass. Each config file is loaded once per run, not once per law.
+
+### 🐛 Fixed — React testing guidance proved; the Vite entry module is not asked for a component test (#12)
+
+Professional Component Testing Policy counted every non-test `.tsx` as a
+component, so the module that mounts a React + Vite app (`src/main.tsx`,
+`createRoot(…).render(<App />)`) was reported as a component without a test
+on every such app. The app's mount-only entry is now left out, read from
+the syntax tree: a module that calls `createRoot` / `hydrateRoot` imported
+from `react-dom/client` or `react-dom` (by that name, or as
+`ReactDOM.createRoot` through its namespace or default import) and exports
+no component (no default export, no exported capitalised name, no
+`export *`). A `.createRoot(` method of another object, a call in a string
+or a comment, a component that mounts a portal with `createRoot` in an
+effect, and a `main.tsx` that also exports a component still need their
+test. Without the typescript package no module is taken for the entry.
+
+The React guidance of Requires Spec, Professional Component Testing Policy
+and Performance Test Requirements is proved by a regression test on a React
++ Vite project, RED first and then GREEN by doing what `satisfiedBy.react`
+says. Requires Spec's card said "large or money-adjacent client components";
+it now says what the law asks: a `.tsx`/`.jsx` file in the feature or
+data-access layer over 200 lines (`thresholds.angular.specRequiredMinLoc`,
+which applies to React too) or one that writes an `X-Control-Pass` header,
+with a sibling test of the same base name — a test under `__tests__/` is
+not credited.
+
+### 🐛 Fixed — three Capacitor laws read .mts, .mjs, .cts and .cjs modules (#645)
+
+Capacitor Single Platform Boundary, Capacitor Deep Link Contract and
+Capacitor Plugin Platform Declarations listed their source files as `.ts`,
+`.tsx`, `.js`, `.jsx` and `.vue`. A module in `.mts`, `.mjs`, `.cts` or
+`.cjs` was not read, and nothing said so: platform code in such a file
+outside the boundary passed (false PASS), and an `appUrlOpen` listener or a
+`createChannel` call in one was missing for the law. The three laws now read
+one list with every TypeScript and JavaScript module extension.
+
+**Stricter** for Capacitor Single Platform Boundary: a project whose platform
+code outside the boundary is only in such files gains findings. The other
+two lose findings for a listener or a channel kept in such a file.
+
+### 🐛 Fixed — Capacitor Sync Artefacts Match Dependencies judges what git publishes (#638)
+
+The header and the card said an untracked artefact is reported as not read,
+not as green. The law wrote it only into the message, and `tracked()`
+answered "not tracked" for every git failure too, so an untracked artefact,
+an ignored one, a project outside git and a broken index all passed with
+"compliance verified" (false PASS). Now:
+
+- a tracked artefact (also one later listed in `.gitignore`) and an
+  untracked one that is not ignored (`git add -A` would publish it) are
+  judged;
+- a git-ignored artefact is not judged and is named in `details`; when every
+  artefact is git-ignored the law judged nothing, which is not a pass;
+- when git does not answer (no git, not a work tree, a broken index) the
+  artefacts are judged from the disk, `details` say "git did not answer,
+  judged from the disk", and the message never says "verified".
+
+**Stricter**: an untracked-not-ignored artefact, a project outside git and a
+broken index can now fail; an all-ignored project no longer passes.
+
+### 🐛 Fixed — test discovery leaves out node_modules and dist (#639)
+
+The test discovery of API Security Testing Requirements and Comprehensive
+Security Testing Requirements scans `src`, `packages`, `apps`, `libs`,
+`functions` and the test directories without the config allowlist
+(`useConfigFiltering: false`), and that switched off the list of ignored
+directories too. A test of a dependency (`…/node_modules/…`) or a built
+copy of a test (`…/dist/…`) counted as the project's own security test, and
+the law passed on it (false PASS). The discovery keeps the allowlist off and
+leaves out dependency and build directories (`node_modules`, `dist`, `.git`,
+`.nx`, `.angular`). The same holds for the test discovery that API Testing
+Standards and Performance Test Requirements share.
+
+**Stricter**: a project that passed only on such a file loses the pass.
+
+### 🐛 Fixed — Primary Locale Font Preloaded does not read comments as markup (#636)
+
+The law read `<link>`, `<html lang>` and `<style>` blocks as text with their
+comments:
+
+- A preload inside `<!-- … -->` (HTML) or `{/* … */}` (JSX) counted as a
+  preload, so the law passed on it (false PASS). It is read without comments
+  now: such a project fails. **Stricter.**
+- A commented-out `<html lang="bg">` counted as a declared locale and gave a
+  finding to a project whose real locale is another. It no longer counts.
+- A `<style lang="scss">` block of a `.vue`, `.svelte` or `.astro` file was
+  read with the comment rules of CSS, so its `//` lines were judged as
+  `@font-face` rules. The block's `lang` (scss, sass, less, stylus) sets the
+  comment rules now, as the extension does for a stylesheet file.
+
+Other script comments (`//`, `/* */` outside braces) are not stripped; the
+law card says so.
+
 ### ✨ Added — React guidance of the frontend architecture laws proved on a React app (#12)
 
 The React guidance of Stores In Data Access, Defensive Array Coercion, No
@@ -219,6 +357,36 @@ with `jasmine-core`, `@jest/core` or ava got "No test framework detected".
 They are accepted now, from a list the law keeps for itself (no other law
 is selected by it). Fewer violations only; the card names the list.
 
+### 🐛 Fixed — TypeScript Strict Mode and Zero Tolerance Doctrine judge the projects tsconfig.json references (#640)
+
+Both laws judged the root `tsconfig.json` alone; `references` was read
+nowhere.
+
+- **A solution-style root** — `files: []` with no `include` or with
+  `include: []`, whatever it extends (the shape Vite templates and Nx
+  workspaces use) — compiles nothing, so every strict flag was reported
+  "must be true" / "not enabled" while the strict referenced projects were
+  never read. It is followed now, not judged. This removes findings.
+- **Every referenced project is judged**, also under a root with options of
+  its own, as `tsc -b` builds it: through nested `references` (a directory
+  reference through its `tsconfig.json`), each file once, so a cycle ends at
+  the file seen before. A strict root no longer passes when a project it
+  references is not strict. **Stricter: new failed results are possible**
+  on projects whose referenced configs loosen strict flags.
+- **A flag is reported once, on the file that set it.** In a build with
+  references, a finding names the file of the `extends` chain where the
+  flag has its value — or, when no file sets it, the file the chain ends
+  at: one missing flag in an Nx `tsconfig.base.json` is one finding, not one
+  per project that extends it (90 → 3 on a generated Nx workspace). A
+  tsconfig.json judged alone reads as before.
+- **A config for tests** — named `tsconfig.spec.json` / `.test.json` /
+  `.tests.json` / `.e2e.json`, whose own `include` lists only test globs, or
+  in an end-to-end project directory (`e2e`, `cypress`, `playwright`,
+  `<app>-e2e`) — is judged with the same flags. Its own weaker value is its
+  own finding, marked `(test config)`; a weak value it inherits is the
+  base's one finding.
+- A reference that is missing or does not parse is in `notRead`.
+
 ### 📝 Changed — law texts the code had moved past (#625)
 
 Texts only; no verdict, score or severity changes.
@@ -232,7 +400,7 @@ Texts only; no verdict, score or severity changes.
 - Commit Size Control: the window is the default; `maxCommits` and
   `baseline` change it.
 - Zero Tolerance Doctrine and TypeScript Strict Mode: `extends` is followed
-  (`references` are not, #640); TypeScript Strict accepts `bundler`,
+  (`references` too, see #640 above); TypeScript Strict accepts `bundler`,
   `node16`, `nodenext` and `node`, and rejects a target only when it is
   missing, ES3 or ES5. Its violation and suggestion said "ES2020 or
   higher"; they now say what is rejected.

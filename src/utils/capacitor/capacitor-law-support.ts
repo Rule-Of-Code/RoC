@@ -21,6 +21,24 @@ import {
 
 const CAPACITOR_CORE = '@capacitor/core';
 
+/**
+ * The source files the Capacitor laws that read platform code scan: every
+ * TypeScript and JavaScript module extension, and Vue single-file components.
+ * A module in .mts, .mjs, .cts or .cjs was not read, and nothing said so
+ * (#645).
+ */
+export const CAPACITOR_SOURCE_EXTENSIONS: readonly string[] = [
+  '.ts',
+  '.tsx',
+  '.mts',
+  '.cts',
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.cjs',
+  '.vue',
+];
+
 /** @capacitor/core declared, and a Capacitor config present. */
 export const REQUIRES_CAPACITOR: LawRequirement = {
   anyDependency: [CAPACITOR_CORE],

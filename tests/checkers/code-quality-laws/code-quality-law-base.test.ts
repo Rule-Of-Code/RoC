@@ -567,6 +567,75 @@ export function getProduct() {}
     it('is null when no config exists', () => {
       expect(TestCodeQualityLaw.testReadESLintConfig(tempDir)).toBeNull();
     });
+
+    it('merges the rules of every entry of a flat eslint.config.js', () => {
+      write(
+        'eslint.config.js',
+        "module.exports = [{ files: ['**/*.ts'] }, { rules: { complexity: 'error' } }, { rules: { 'max-depth': ['warn', 3] } }];\n"
+      );
+      expect(TestCodeQualityLaw.testReadESLintConfig(tempDir)).toEqual({
+        file: 'eslint.config.js',
+        config: { rules: { complexity: 'error', 'max-depth': ['warn', 3] } },
+      });
+    });
+
+    it('reads a flat config compiled to a default export', () => {
+      write(
+        'eslint.config.js',
+        "exports.default = [{ rules: { 'no-magic-numbers': 'error' } }];\n"
+      );
+      expect(TestCodeQualityLaw.testReadESLintConfig(tempDir)?.config).toEqual({
+        rules: { 'no-magic-numbers': 'error' },
+      });
+    });
+
+    it('returns an object config from eslint.config.js as it is', () => {
+      write(
+        'eslint.config.js',
+        "module.exports = { rules: { 'no-unused-vars': 'warn' } };\n"
+      );
+      expect(TestCodeQualityLaw.testReadESLintConfig(tempDir)?.config).toEqual({
+        rules: { 'no-unused-vars': 'warn' },
+      });
+    });
+
+    it('reads the rule names from the text of an ESM eslint.config.mjs it cannot require', () => {
+      write(
+        'eslint.config.mjs',
+        "export default [{ rules: { '@typescript-eslint/no-magic-numbers': 'warn' } }];\n"
+      );
+      expect(TestCodeQualityLaw.testReadESLintConfig(tempDir)).toEqual({
+        file: 'eslint.config.mjs',
+        config: {
+          rules: {
+            '@typescript-eslint/no-magic-numbers': 'detected',
+          },
+        },
+      });
+    });
+
+    it('says NOT read for a flat config it can neither require nor read rules from', () => {
+      write('eslint.config.mjs', 'export default [base];\n');
+      expect(TestCodeQualityLaw.testReadESLintConfig(tempDir)).toEqual({
+        file: 'eslint.config.mjs',
+        notRead: expect.stringMatching(
+          /^eslint\.config\.mjs could not be loaded.*its rules were NOT read$/
+        ),
+      });
+    });
+
+    it('says NOT read for a JavaScript config it does not run', () => {
+      write(
+        '.eslintrc.js',
+        "module.exports = { rules: { complexity: 'error' } };\n"
+      );
+      expect(TestCodeQualityLaw.testReadESLintConfig(tempDir)).toEqual({
+        file: '.eslintrc.js',
+        notRead: expect.stringMatching(
+          /^\.eslintrc\.js is a config these laws do not run.*its rules were NOT read$/
+        ),
+      });
+    });
   });
 
   describe('hasAnyESLintRule()', () => {
@@ -683,6 +752,18 @@ export function getProduct() {}
         'eslint',
       ]);
       expect(missingTools).toEqual([]);
+    });
+
+    it('should count every tool as missing when package.json is not valid JSON', () => {
+      FileUtils.writeFile(
+        PathOperations.join(tempDir, 'package.json'),
+        '{ "devDependencies": { "eslint": '
+      );
+      const missingTools = TestCodeQualityLaw.testCheckRequiredTools(tempDir, [
+        'eslint',
+        'prettier',
+      ]);
+      expect(missingTools).toEqual(['eslint', 'prettier']);
     });
   });
 });

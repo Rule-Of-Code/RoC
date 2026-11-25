@@ -15,6 +15,11 @@ import {
   FileUtils,
   PathOperations,
 } from './shared-imports';
+
+/** The brackets an effect body nests in, opening and closing. */
+const OPENING_BRACKETS = new Set(['(', '{', '[']);
+const CLOSING_BRACKETS = new Set([')', '}', ']']);
+
 export class NgrxEffectsErrorHandlingLaw extends AngularLawBase {
   static check(context: LawCheckContext): LawResult {
     const { projectRoot } = context;
@@ -99,12 +104,12 @@ export class NgrxEffectsErrorHandlingLaw extends AngularLawBase {
     let inEffect = false;
 
     for (let i = start; i < content.length; i++) {
-      const char = content[i];
+      const char = content.charAt(i);
 
-      if (char === '(' || char === '{' || char === '[') {
+      if (OPENING_BRACKETS.has(char)) {
         depth++;
         inEffect = true;
-      } else if (char === ')' || char === '}' || char === ']') {
+      } else if (CLOSING_BRACKETS.has(char)) {
         depth--;
         if (depth === 0 && inEffect) {
           // Look for closing parenthesis of createEffect and include options like { dispatch: false }
@@ -150,38 +155,17 @@ export class NgrxEffectsErrorHandlingLaw extends AngularLawBase {
     // Non-dispatching effects ({ dispatch: false }) should return of(null) or of(void 0) in catchError
     // Dispatching effects should return proper error actions
     // Note: dispatch: false might be outside the effect code in createEffect options
-    const isNonDispatching =
-      effectCode.includes('{ dispatch: false }') ||
-      effectCode.includes('{dispatch:false}') ||
-      effectCode.includes('dispatch: false') ||
-      // Also check in a window around the effect declaration
-      content
-        .substring(effectStart, effectStart + 1000)
-        .includes('dispatch: false');
+    const isNonDispatching = this.isNonDispatchingEffect(
+      content,
+      effectCode,
+      effectStart
+    );
 
-    if (effectCode.includes('catchError')) {
-      const hasOf = effectCode.includes('of(');
-      const hasOfNull =
-        effectCode.includes('of(null)') || effectCode.includes('of(void 0)');
-      const hasCatchErrorWithFunction = /catchError\([^)]*\)/.test(effectCode);
-
-      // For non-dispatching effects, having catchError is enough (can use helper functions)
-      if (isNonDispatching) {
-        // Non-dispatching effects with catchError are OK
-        // They can return of(null) directly or via helper function
-      } else {
-        // Dispatching effects validation
-        if (!hasOf && !hasCatchErrorWithFunction) {
-          violations.push(
-            `Effect ${effectName} in ${fileName} should return error action using of()`
-          );
-        } else if (hasOfNull) {
-          // Dispatching effects should NOT return of(null), they should return error actions
-          violations.push(
-            `Effect ${effectName} in ${fileName} is dispatching effect but returns of(null) instead of error action`
-          );
-        }
-      }
+    // For non-dispatching effects, having catchError is enough (can use helper functions)
+    // Non-dispatching effects with catchError are OK
+    // They can return of(null) directly or via helper function
+    if (effectCode.includes('catchError') && !isNonDispatching) {
+      this.checkErrorAction(effectCode, effectName, fileName, violations);
     }
 
     // Check for switchMap/mergeMap error handling
@@ -191,6 +175,47 @@ export class NgrxEffectsErrorHandlingLaw extends AngularLawBase {
           `Effect ${effectName} in ${fileName} using switchMap/mergeMap without catchError`
         );
       }
+    }
+  }
+
+  /** Whether the effect is declared `{ dispatch: false }`. */
+  private static isNonDispatchingEffect(
+    content: string,
+    effectCode: string,
+    effectStart: number
+  ): boolean {
+    return (
+      effectCode.includes('{ dispatch: false }') ||
+      effectCode.includes('{dispatch:false}') ||
+      effectCode.includes('dispatch: false') ||
+      // Also check in a window around the effect declaration
+      content
+        .substring(effectStart, effectStart + 1000)
+        .includes('dispatch: false')
+    );
+  }
+
+  /** Dispatching effects validation: catchError returns an error action. */
+  private static checkErrorAction(
+    effectCode: string,
+    effectName: string,
+    fileName: string,
+    violations: string[]
+  ): void {
+    const hasOf = effectCode.includes('of(');
+    const hasOfNull =
+      effectCode.includes('of(null)') || effectCode.includes('of(void 0)');
+    const hasCatchErrorWithFunction = /catchError\([^)]*\)/.test(effectCode);
+
+    if (!hasOf && !hasCatchErrorWithFunction) {
+      violations.push(
+        `Effect ${effectName} in ${fileName} should return error action using of()`
+      );
+    } else if (hasOfNull) {
+      // Dispatching effects should NOT return of(null), they should return error actions
+      violations.push(
+        `Effect ${effectName} in ${fileName} is dispatching effect but returns of(null) instead of error action`
+      );
     }
   }
 }

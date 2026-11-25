@@ -25,7 +25,7 @@
 import type * as TS from 'typescript';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { ReactProject } from '../../utils/react/react-project';
-import type { TsxSource } from '../../utils/react/tsx-source';
+import type { TsxSource, TypeScriptModule } from '../../utils/react/tsx-source';
 import { LawBase } from '../law-base';
 import {
   calleeText,
@@ -265,6 +265,15 @@ export class NextOpenRedirectGuardedLaw extends LawBase {
     )
       return true;
     if (!ts.isCallExpression(node)) return false;
+    return this.isSourceCall(ts, node, taint);
+  }
+
+  /** `useSearchParams()`, or a request body read: `req.json()`, `req.formData()`. */
+  private static isSourceCall(
+    ts: TypeScriptModule,
+    node: TS.CallExpression,
+    taint: Taint
+  ): boolean {
     const callee = node.expression;
     if (ts.isIdentifier(callee)) return callee.text === 'useSearchParams';
     if (

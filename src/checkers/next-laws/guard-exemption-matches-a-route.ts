@@ -44,6 +44,9 @@ const QUOTE_LENGTH = 60;
 
 const KEY = 'thresholds.next.guardExemptions';
 
+/** How one route segment meets one pattern segment. */
+type SegmentVerdict = 'mismatch' | 'rest' | 'next';
+
 interface Pattern {
   text: string;
   regex: RegExp | null;
@@ -247,16 +250,15 @@ export class GuardExemptionMatchesARouteLaw extends LawBase {
     trailingSlash: boolean
   ): boolean {
     for (let i = 0; i < pattern.length; i++) {
-      const segment = route[i];
-      const part = pattern[i] as string;
-      if (!segment) return false;
-      if (segment.kind === 'catchAll' || segment.kind === 'optionalCatchAll')
-        return true;
       const last = i === pattern.length - 1;
-      if (segment.kind === 'dynamic') continue;
       const partial = prefix && last && !trailingSlash;
-      if (partial ? !segment.text.startsWith(part) : segment.text !== part)
-        return false;
+      const verdict = this.segmentVerdict(
+        route[i],
+        pattern[i] as string,
+        partial
+      );
+      if (verdict === 'mismatch') return false;
+      if (verdict === 'rest') return true;
     }
     if (prefix) return true;
     const rest = route.slice(pattern.length);
@@ -264,5 +266,25 @@ export class GuardExemptionMatchesARouteLaw extends LawBase {
       rest.length === 0 ||
       (rest.length === 1 && rest[0]?.kind === 'optionalCatchAll')
     );
+  }
+
+  /**
+   * One route segment against one pattern segment: no match, a catch-all
+   * that takes the rest, or a match that goes on to the next segment.
+   * `partial`: the pattern segment may be a prefix of the route's.
+   */
+  private static segmentVerdict(
+    segment: RouteSegment | undefined,
+    part: string,
+    partial: boolean
+  ): SegmentVerdict {
+    if (!segment) return 'mismatch';
+    if (segment.kind === 'catchAll' || segment.kind === 'optionalCatchAll')
+      return 'rest';
+    if (segment.kind === 'dynamic') return 'next';
+    const fits = partial
+      ? segment.text.startsWith(part)
+      : segment.text === part;
+    return fits ? 'next' : 'mismatch';
   }
 }

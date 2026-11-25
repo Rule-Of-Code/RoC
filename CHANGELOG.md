@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — React testing guidance proved; the Vite entry module is not asked for a component test (#12)
+
+Professional Component Testing Policy counted every non-test `.tsx` as a
+component, so the module that mounts a React + Vite app (`src/main.tsx`,
+`createRoot(…).render(<App />)`) was reported as a component without a test
+on every such app. The app's mount-only entry is now left out, read from
+the syntax tree: a module that calls `createRoot` / `hydrateRoot` imported
+from `react-dom/client` or `react-dom` (by that name, or as
+`ReactDOM.createRoot` through its namespace or default import) and exports
+no component (no default export, no exported capitalised name, no
+`export *`). A `.createRoot(` method of another object, a call in a string
+or a comment, a component that mounts a portal with `createRoot` in an
+effect, and a `main.tsx` that also exports a component still need their
+test. Without the typescript package no module is taken for the entry.
+
+The React guidance of Requires Spec, Professional Component Testing Policy
+and Performance Test Requirements is proved by a regression test on a React
++ Vite project, RED first and then GREEN by doing what `satisfiedBy.react`
+says. Requires Spec's card said "large or money-adjacent client components";
+it now says what the law asks: a `.tsx`/`.jsx` file in the feature or
+data-access layer over 200 lines (`thresholds.angular.specRequiredMinLoc`,
+which applies to React too) or one that writes an `X-Control-Pass` header,
+with a sibling test of the same base name — a test under `__tests__/` is
+not credited.
+
 ### 🐛 Fixed — three Capacitor laws read .mts, .mjs, .cts and .cjs modules (#645)
 
 Capacitor Single Platform Boundary, Capacitor Deep Link Contract and

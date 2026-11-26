@@ -63,6 +63,7 @@ export const SATISFIED_BY_KEYS: readonly (keyof SatisfiedByGuidance)[] = [
   'typescript',
   'angular',
   'react',
+  'vue',
   'python',
   'ionic',
   'capacitor',
@@ -100,19 +101,21 @@ export interface LawsJson {
    * `satisfiedBy` is keyed by the language/framework the how-to-pass guidance
    * targets — a FINER axis than `stack`. The mismatch that bites a naive
    * consumer: a `stack: "frontend"` law carries its guidance under the
-   * `"angular"` and `"react"` keys, so `satisfiedBy[law.stack]` misses. Read
+   * `"angular"`, `"react"` and `"vue"` keys, so `satisfiedBy[law.stack]` misses. Read
    * `stackToKey` to resolve it instead of maintaining your own table: it maps
    * each stack to the SET of keys its guidance is authored under (schemaVersion
-   * 3; it was a single key, and `frontend` had two keys by then, #12).
+   * 3; it was a single key, and `frontend` had two keys by then, #12; schemaVersion
+   * 4 added `"vue"` to `keys`, to `stackToKey.frontend` and to
+   * `projectTypeToKey`, #12).
    * `"typescript"` also appears as cross-cutting guidance on laws of other
    * stacks, so it is not a 1:1 image of `stack: "typescript"`.
    * `"ionic"` and `"capacitor"` are carried by `stack: "frontend"` laws whose
    * `requires` names those toolkits — `stackToKey` cannot point at them, which
    * is why a renderer must iterate `keys`.
    *
-   * `projectTypeToKey` is the finer mapping: `stack: "frontend"` covers Angular
-   * and React alike, so a React project reads `satisfiedBy.react` and an
-   * Angular one `satisfiedBy.angular`. Prefer it when the project type is
+   * `projectTypeToKey` is the finer mapping: `stack: "frontend"` covers Angular,
+   * React and Vue alike, so a React project reads `satisfiedBy.react`, a Vue
+   * one `satisfiedBy.vue` and an Angular one `satisfiedBy.angular`. Prefer it when the project type is
    * known; `stackToKey` stays for consumers that only know the stack.
    */
   satisfiedByStacks: {
@@ -216,7 +219,7 @@ export function serializeLaw(law: ConstitutionalLaw): SerializedLaw {
 }
 
 /**
- * The whole `ruleofcode laws --json` document (schemaVersion 3): tool and
+ * The whole `ruleofcode laws --json` document (schemaVersion 4): tool and
  * version, registry total and how many laws are returned, the filters used,
  * the categories laws actually carry, the satisfiedBy stack keys with their
  * stack/project-type mappings, and the serialized laws.
@@ -226,7 +229,7 @@ export function buildLawsJson(
   options: LawsOptions
 ): LawsJson {
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     tool: getToolName(),
     version: getVersion(),
     registryTotal: TOTAL_LAWS_COUNT,
@@ -240,13 +243,14 @@ export function buildLawsJson(
     satisfiedByStacks: {
       keys: [...SATISFIED_BY_KEYS],
       stackToKey: {
-        frontend: ['angular', 'react'],
+        frontend: ['angular', 'react', 'vue'],
         typescript: ['typescript'],
         python: ['python'],
       },
       projectTypeToKey: {
         angular: 'angular',
         react: 'react',
+        vue: 'vue',
         ionic: 'ionic',
         python: 'python',
         typescript: 'typescript',

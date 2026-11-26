@@ -14,7 +14,11 @@
  */
 
 import * as path from 'path';
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import {
   classModels,
   OPENING_HOOKS,
@@ -30,6 +34,7 @@ import {
   parserUnavailable,
   TsxSource,
 } from '../../utils/react/tsx-source';
+import { placeOf, withViolationDetails } from '../../utils/violation-details';
 import { LawBase } from '../law-base';
 
 export const DEFAULT_MAX_STARTUP_REQUESTS = 4;
@@ -125,6 +130,8 @@ export class StartupRequestFanOutLaw extends LawBase {
         model => model.component && componentSources.includes(model.source)
       );
     const violations: string[] = [];
+    // Every request behind a component's count, at its place (#43).
+    const details: ViolationDetail[] = [];
     let withHook = 0;
     let most = 0;
     for (const model of components) {
@@ -134,6 +141,12 @@ export class StartupRequestFanOutLaw extends LawBase {
       if (requests.length <= threshold.value) continue;
       violations.push(
         `${rel(model.source.fileName)}:${model.line}: ${model.name} starts ${requests.length} HTTP requests when it opens (${OPENING_HOOKS.join(' / ')}; threshold ${threshold.value}): ${requests.map(listed).join('; ')} — sent together, they queue on the same backend and the screen waits for the slowest`
+      );
+      details.push(
+        ...requests.map(request => ({
+          ...placeOf(request.at),
+          message: `${request.label} — one of ${requests.length} requests ${model.name} starts when it opens${request.via ? ` (via ${request.via})` : ''}`,
+        }))
       );
     }
     const counts = {
@@ -155,6 +168,7 @@ export class StartupRequestFanOutLaw extends LawBase {
       ],
       context
     );
+    withViolationDetails(result, details);
     return {
       ...(result.passed
         ? { ...result, message: this.passMessage(counts) }

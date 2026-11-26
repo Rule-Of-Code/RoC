@@ -120,7 +120,10 @@ export const MEASUREMENT_LAWS: EnhancedConstitutionalLaw[] = [
       "A server bind is a line with --host/--bind/-b/-a/-H 127.0.0.1, .listen(port, '127.0.0.1'), a (\"127.0.0.1\", port) tuple on a server or bind call, or host: '127.0.0.1' within two lines of a server word; a bind spread over more lines, or an address built from a variable, is not seen. A file that also binds :: or ::1 is taken to listen on both families.",
       "Ports are compared when both are known. A port from a variable (the server's argument, or a client URL's ${name}) resolves only through a numeric assignment of that name in the same file; an unresolved server port is paired with every localhost URL, an unresolved client port with none, and a port-0 bind (an OS-assigned port, whose address the client gets at runtime) is skipped. Client URLs are http(s)/ws(s)://localhost literals in the same file set; a base URL assembled otherwise is not seen.",
       'Only an IPv4-only bind called through localhost is reported; a server on localhost called as 127.0.0.1, and a server on 0.0.0.0, are not. A project whose test files bind no server to 127.0.0.1 passes: there is nothing to compare, and the pass message says how many test/perf files were read ("0 test/perf files — nothing to compare" when there are none).',
+      'Not about components (#607): it reads test and perf files by directory and name, test configs and the test scripts of package.json, which a Vue project writes as .ts/.js/.json too; a .vue single-file component is never its subject, so it gets no ".vue not read" note.',
     ],
+    notAboutComponents:
+      'Not about components (#607): it reads test and perf files by directory and name, test configs and the test scripts of package.json, which a Vue project writes as .ts/.js/.json too; a .vue single-file component is never its subject, so it gets no ".vue not read" note.',
     emoji: '🔁',
     description:
       'A test or perf server bound to 127.0.0.1 is not called through localhost',

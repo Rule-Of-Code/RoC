@@ -103,6 +103,8 @@ interface RunnableLaw {
   name?: string;
   title?: string;
   severity?: 'error' | 'info' | 'warning';
+  /** Why components are not this law's subject: no .vue note (#607). */
+  notAboutComponents?: string;
   check?: (
     projectRoot: string,
     config: RuleOfCodeConfig
@@ -1104,7 +1106,7 @@ export class RuleOfCodeAuditor {
           runWithParserUse(() => check.call(law, this.projectRoot, this.config))
         );
         const result = this.withParserNote(
-          this.withVueNote(scoped.value.value, scoped.scope),
+          this.withVueNote(scoped.value.value, scoped.scope, law),
           scoped.value.usedParser
         );
         // Ensure lawName is set + expose canonical registry identifiers so a
@@ -1182,9 +1184,11 @@ export class RuleOfCodeAuditor {
   /**
    * A law that scanned for script files without .vue, in a project that has
    * .vue files, did not read them: said in notRead, never a silent pass; when
-   * they are all the script there is, it judged nothing (#607).
+   * they are all the script there is, it judged nothing (#607). A law whose
+   * card declares that components are not its subject gets no note.
    */
-  private withVueNote<T>(result: T, scope: LawScanScope): T {
+  private withVueNote<T>(result: T, scope: LawScanScope, law: RunnableLaw): T {
+    if (law.notAboutComponents) return result;
     const vue = vueNotReadNote(scope, this.vueFiles());
     if (!vue || !isLawResultShape(result)) return result;
     const noted = withNotRead(result, [...(result.notRead ?? []), vue.note]);

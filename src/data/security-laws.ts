@@ -7,6 +7,14 @@ import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
 import { REQUIRES_PRODUCTION_SUBJECT } from '../utils/production-subject-requirements';
 
+/** The detection limit of a security law that reads .vue by its script (#607). */
+const VUE_SCRIPT_ONLY =
+  'A Vue single-file component (.vue) is read by its <script> and <script setup> blocks, at its own lines; its <template> and <style> are not read by this law (#607).';
+
+/** The declared reason of a security-testing law (#607). */
+const SECURITY_TESTS_NOT_COMPONENTS =
+  'Not about components (#607): it reads security test files (found by name), CI workflows and tool configuration, which a Vue project writes as .ts/.js/.yml too; a .vue single-file component is never its subject, so it gets no ".vue not read" note.';
+
 export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
   {
     id: generateLawId(
@@ -66,6 +74,7 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Fallback detection is a crude character-window search: a || or ?? anywhere near a process.env read counts as "handled".',
       'URL / DB-URI / secret detection is substring/regex over raw text, including comments.',
       'The .env sensitive-data and format checks read only env files git could publish (tracked, from the index; or present and not ignored); a local .env that is ignored and untracked is the correct setup and is not judged. Outside a git repository every env file on disk is read.',
+      VUE_SCRIPT_ONLY,
     ],
     emoji: '🛡️',
     description:
@@ -139,6 +148,7 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Regex over .ts/.tsx/.jsx/.html with comments stripped, case-sensitive and anchored on the property access (.innerHTML =, .insertAdjacentHTML(, document.write(, eval(, bypassSecurityTrust*(, [innerHTML]=) — dangerouslySetInnerHTML is not read as innerHTML; plain .js files are not scanned.',
       "A sanitizer counts only in the sink's own statement (up to `;` or the end of the line), by callee name: DOMPurify.sanitize, DomSanitizer .sanitize(SecurityContext.HTML, …) and thresholds.security.htmlSanitizers. A value sanitized on an earlier line and assigned later is flagged; a weak sanitizer configuration is not seen. No data-flow.",
       'An Angular [innerHTML] binding is flagged although Angular sanitizes it itself; eval is always flagged. The CSP is judged by Security Standards (XSS Prevention) Policy, not here.',
+      'A Vue single-file component (.vue) is read by its <script> and <script setup> blocks (an innerHTML / outerHTML assignment, insertAdjacentHTML, document.write, eval), at its own lines; Vue template v-html and :href bindings are not read (#607).',
     ],
     stack: 'frontend',
     emoji: '🚫',
@@ -216,6 +226,7 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Substring / regex heuristics over .ts/.js — no Python, and no data-flow.',
       'Weak-algorithm and hardcoded-secret matching is name-based; it cannot confirm a matched value is actually used as a key or that the algorithm is on a real code path.',
+      VUE_SCRIPT_ONLY,
     ],
     emoji: '🔒',
     description: 'All sensitive data must be properly encrypted',
@@ -253,6 +264,7 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Role-based, permission and resource-level checks apply only where the code has a role or permission concept (an identifier such as roles, UserRole, permissions, claims); with a managed auth SDK and no server session library, session timeout and invalidation are left to the SDK and not asked for. Resource-level authorization is still recognised by words (isOwner, ACL, …).',
       'JS/TS shapes; Python only toggles a native pass via auth-guard decorators — it does not positively analyse Python auth beyond that.',
       'Reads src/ (or Nx apps/ and libs/); when neither holds code, the whole project as the other laws read it (app/, lib/, pages/, server/, the root), less tests, ignored trees and build output (.next/, out/, build/, …). A project with code in src/ is not read beyond it. Inline role checks count (user.role === …, roles.includes(…)); a role written only as an object key (role: …) is not a role concept.',
+      VUE_SCRIPT_ONLY,
     ],
     emoji: '🔐',
     description: 'Secure authentication and authorization mechanisms',
@@ -294,7 +306,9 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Presence, not correctness — it does not run the tests; a test that asserts the wrong thing still counts.',
       'Runs the same detector as Comprehensive Security Testing Requirements, and SAST detection is loose: any repo using @typescript-eslint/eslint-plugin satisfies it.',
       'Security-test discovery is limited to eight named directories (src, test, tests, spec, libs, apps, packages, functions).',
+      SECURITY_TESTS_NOT_COMPONENTS,
     ],
+    notAboutComponents: SECURITY_TESTS_NOT_COMPONENTS,
     emoji: '🧪',
     description: 'Security testing must be part of CI/CD pipeline',
     priority: 'HIGH',
@@ -329,6 +343,7 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Heavily Angular + Firebase + nginx-shaped — no Python, and no per-route Express/Fastify/Nest analysis: an Express server is a file that imports express and creates or starts the app.',
       'Authentication is recognised by shapes in the parse, in a file of any name (a managed auth SDK or session library imported, a sign-in or verify call, an Authorization header attached); a cookie session (a session library, or cookies read or re-issued) is not asked for an Authorization header, and re-issuing its cookie with a new expires/maxAge is its refresh; rate limiting is still a substring appearing SOMEWHERE, and reads as "missing" on a pure frontend, for which it does not apply.',
       'Regex/substring over raw text for HTTPS, rate limiting and headers; servers, HTTP services and authentication are read through the parser, and without it they are NOT read. No data-flow.',
+      'A Vue single-file component (.vue) is read by its <script> and <script setup> blocks for authentication (token handling, refresh, the Authorization header); the CORS, rate-limiting, security-header and input-validation checks read server and Angular files, not .vue (#607).',
     ],
     stack: 'typescript',
     emoji: '🛡️',
@@ -406,7 +421,9 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Recognises a security test by what it ASSERTS (status 401/403, HSTS, CSP, X-Frame-Options) and a SAST/dep-scanner wired in the gate — in TS/JS and Python.',
       'It does not run the tests or judge their correctness, only their presence; a test that asserts the wrong thing still counts.',
+      SECURITY_TESTS_NOT_COMPONENTS,
     ],
+    notAboutComponents: SECURITY_TESTS_NOT_COMPONENTS,
     emoji: '🛡️',
     description: 'Ensures comprehensive security testing is implemented',
     priority: 'HIGH',

@@ -9,6 +9,7 @@ import { PathOperations } from '../../path-operations';
 import { loadTypeScript, parserUnavailable } from '../../react/tsx-source';
 import { scanAndAnalyzeFiles } from '../file-scanning-helper';
 import { SecretManagementAnalyzer } from '../secret-management';
+import { parseInput } from '../../vue/vue-sfc';
 import * as Config from './environment-variables-usage-configuration';
 import { findEnvReads } from './environment-variables-usage-reads';
 import {
@@ -31,9 +32,17 @@ export function validateEnvironmentVariablesUsage(
   const results = scanAndAnalyzeFiles(
     projectRoot,
     config,
-    (file, content) => {
+    (file, raw) => {
+      // A .vue file is read as its script view, by its lang (#607).
+      const input = parseInput(file, raw);
+      const content = input.text;
       const source = ts
-        ? ts.createSourceFile(file, content, ts.ScriptTarget.Latest, true)
+        ? ts.createSourceFile(
+            input.fileName,
+            content,
+            ts.ScriptTarget.Latest,
+            true
+          )
         : null;
       // A finding names the file as the project knows it (`src/lib/api.ts`),
       // not where this machine keeps the checkout (#537).

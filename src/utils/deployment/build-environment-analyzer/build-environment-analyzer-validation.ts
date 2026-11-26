@@ -10,6 +10,7 @@ import { NxWorkspace } from '../../nx-workspace';
 import { PathOperations } from '../../path-operations';
 import { hasBuildConfig as hasProjectBuildConfig } from '../../project-discovery';
 import { PythonSatisfaction } from '../../python-satisfaction';
+import { scriptText, VUE_EXTENSION } from '../../vue/vue-sfc';
 import { BuildEnvironmentAnalyzerConfiguration } from './build-environment-analyzer-configuration';
 
 /**
@@ -237,16 +238,25 @@ export class BuildEnvironmentAnalyzerValidation {
     // fixed paths (src/main.ts, src/index.ts, src/app.ts, server.ts,
     // index.js), so a read in a config module, a CLI entry or a workspace
     // app was reported as no detection at all (#532).
+    // A component's <script> too, read by its script (#607).
     const sourceFiles = CheckerUtils.findFilesByExtension(
       projectRoot,
-      [...CheckerUtils.getCommonExtensions().ALL_CODE, '.mjs', '.cjs'],
+      [
+        ...CheckerUtils.getCommonExtensions().ALL_CODE,
+        '.mjs',
+        '.cjs',
+        VUE_EXTENSION,
+      ],
       config ?? FileUtils.getMinimalDefaultConfig(),
       lawId
     );
 
     for (const filePath of sourceFiles) {
       try {
-        const content = FileUtils.readFile(filePath, { encoding: 'utf8' });
+        const content = scriptText(
+          filePath,
+          FileUtils.readFile(filePath, { encoding: 'utf8' })
+        );
 
         const hasEnvDetection = envPatterns.some(pattern =>
           pattern.test(content)

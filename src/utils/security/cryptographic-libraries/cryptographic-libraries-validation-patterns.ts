@@ -3,6 +3,7 @@
  * Orchestrates validation workflow for cryptographic library analysis
  */
 
+import { scriptText, VUE_EXTENSION } from '../../vue/vue-sfc';
 import { CheckerUtils } from '../../checker-utils';
 import { ConfigFileUtils } from '../../config-file-utils';
 import { ProjectTypeDetectorValidation } from '../../config/project-type-detector/project-type-detector-validation';
@@ -89,14 +90,15 @@ export class CryptographicLibrariesValidationPatterns {
   ): void {
     const config = ConfigFileUtils.getMinimalDefaultConfig();
 
+    // A component's <script> too, read by its script (#607).
     const files = CheckerUtils.findFilesByExtension(
       projectRoot,
-      CheckerUtils.getCommonExtensions().ALL_CODE,
+      [...CheckerUtils.getCommonExtensions().ALL_CODE, VUE_EXTENSION],
       config
     );
 
     for (const file of files) {
-      const content = FileUtils.readFile(file);
+      const content = scriptText(file, FileUtils.readFile(file) ?? '');
       const analysis = Config.analyzeCryptoPatterns(content);
 
       this.processFilePatterns(analysis, file, violations, suggestions);

@@ -18,7 +18,12 @@
  * A file that also binds `::` or `::1` is taken to listen on both families.
  */
 
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
+import { withViolationDetails } from '../../utils/violation-details';
 import { LawBase } from '../law-base';
 import { readProjectFiles, type TextFile } from './project-text-files';
 
@@ -90,13 +95,23 @@ export class TestServerLoopbackAddressMatchLaw extends LawBase {
     );
     const binds = files.flatMap(file => this.binds(file));
     const clients = files.flatMap(file => this.clients(file));
+    // Every client behind a bind's finding, at its line (#43).
+    const details: ViolationDetail[] = [];
     const violations = binds.flatMap(bind => {
       const calling = clients.filter(
         client =>
           client.port !== null &&
           (bind.port === null || client.port === bind.port)
       );
-      return calling.length === 0 ? [] : [this.finding(bind, calling)];
+      if (calling.length === 0) return [];
+      details.push(
+        ...calling.map(client => ({
+          file: client.rel,
+          line: client.line,
+          message: `calls ${client.url} — the test server at ${bind.rel}:${bind.line} binds 127.0.0.1 only`,
+        }))
+      );
+      return [this.finding(bind, calling)];
     });
     const result = this.createResult(
       violations,
@@ -107,6 +122,7 @@ export class TestServerLoopbackAddressMatchLaw extends LawBase {
       ],
       context
     );
+    withViolationDetails(result, details);
     return result.passed
       ? { ...result, message: this.passMessage(files.length, binds.length) }
       : result;

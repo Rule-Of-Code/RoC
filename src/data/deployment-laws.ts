@@ -220,6 +220,7 @@ export const DEPLOYMENT_LAWS: EnhancedConstitutionalLaw[] = [
       'Presence / consistency heuristics over config files; no runtime check that the environments actually match.',
       'Environment detection is a text match (process.env, NODE_ENV, isProduction, environment.production …) in the production sources the law selects (test files excluded), plus workspace config, a build-time define and Python settings; a match in a comment also counts.',
       'Whether .env is in git is asked of git (tracked, or present and not ignored); outside a git repository it falls back to looking for a .env line in .gitignore.',
+      'A Vue single-file component (.vue) is read by its <script> and <script setup> blocks, at its own lines; its <template> and <style> are not read by this law (#607).',
     ],
     emoji: '🌍',
     description: 'Development, staging, and production environment parity',

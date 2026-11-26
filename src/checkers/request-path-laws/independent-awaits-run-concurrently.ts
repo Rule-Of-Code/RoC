@@ -13,7 +13,11 @@
  * nothing), never "compliant".
  */
 
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import { markJudgedNothing, withNotRead } from '../../utils/judged-nothing';
 import { declaredClients } from '../../utils/request-path/data-clients';
 import {
@@ -23,6 +27,7 @@ import {
 import { sourcesFromFiles } from '../../utils/request-path/sources';
 import { readFilesContaining } from '../../utils/law-requirements';
 import { REQUIRES_ASYNC_CODE } from '../../data/request-path-laws';
+import { withViolationDetails } from '../../utils/violation-details';
 import { LawBase } from '../law-base';
 
 export class IndependentAwaitsRunConcurrentlyLaw extends LawBase {
@@ -68,7 +73,15 @@ export class IndependentAwaitsRunConcurrentlyLaw extends LawBase {
       suggestions,
       context
     );
+    // Every await behind a run's count, at its line (#43).
+    const details: ViolationDetail[] = runs.flatMap(run =>
+      run.calls.map(call => ({
+        file: run.rel,
+        line: call.line,
+        message: `${call.callee}() — one of ${run.calls.length} independent awaits in ${run.function}()`,
+      }))
+    );
     // What could not be read is a note, not a finding (#453).
-    return withNotRead(result, sources.unread);
+    return withViolationDetails(withNotRead(result, sources.unread), details);
   }
 }

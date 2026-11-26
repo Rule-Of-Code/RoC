@@ -19,6 +19,8 @@ export interface ConstitutionalLaw {
   alwaysEnabled?: boolean | undefined;
   /** See EnhancedConstitutionalLaw.staticSiteHtml. */
   staticSiteHtml?: boolean | undefined;
+  /** See EnhancedConstitutionalLaw.notAboutComponents (#607). */
+  notAboutComponents?: string | undefined;
   /**
    * False = opt-in: selected only when `laws.enabled` names it. Without
    * `laws.enabled` the law is not run. See EnhancedConstitutionalLaw.defaultEnabled.

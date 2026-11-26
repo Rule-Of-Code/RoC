@@ -1,4 +1,5 @@
 import type { RuleOfCodeConfig } from '../../../config/types';
+import { VUE_EXTENSION } from '../../../utils/vue/vue-sfc';
 import { CheckerUtils } from '../../../utils/checker-utils';
 import { FileUtils } from '../../../utils/file-utils';
 import { PathOperations } from '../../../utils/path-operations';
@@ -44,6 +45,12 @@ const BUILD_OUTPUT_DIRS = new Set([
   'coverage',
   'storybook-static',
 ]);
+
+/** Code files, and a component's <script> (.vue, read by its script through the code view; #607). */
+const CODE_EXTENSIONS = [
+  ...CheckerUtils.getCommonExtensions().ALL_CODE,
+  VUE_EXTENSION,
+];
 
 function isBuildOutput(projectRoot: string, file: string): boolean {
   return PathOperations.getRelative(projectRoot, file)
@@ -109,7 +116,7 @@ export class SecurityCheckerBase {
     if (FileUtils.exists(srcPath)) {
       codeFiles = CheckerUtils.findFilesByExtension(
         srcPath,
-        CheckerUtils.getCommonExtensions().ALL_CODE,
+        CODE_EXTENSIONS,
         scanConfig
       );
     }
@@ -122,7 +129,7 @@ export class SecurityCheckerBase {
       if (FileUtils.exists(appsPath)) {
         const appsFiles = CheckerUtils.findFilesByExtension(
           appsPath,
-          CheckerUtils.getCommonExtensions().ALL_CODE,
+          CODE_EXTENSIONS,
           scanConfig
         );
         codeFiles = [...codeFiles, ...appsFiles];
@@ -131,7 +138,7 @@ export class SecurityCheckerBase {
       if (FileUtils.exists(libsPath)) {
         const libsFiles = CheckerUtils.findFilesByExtension(
           libsPath,
-          CheckerUtils.getCommonExtensions().ALL_CODE,
+          CODE_EXTENSIONS,
           scanConfig
         );
         codeFiles = [...codeFiles, ...libsFiles];
@@ -146,7 +153,7 @@ export class SecurityCheckerBase {
     if (codeFiles.length === 0) {
       codeFiles = CheckerUtils.findFilesByExtension(
         projectRoot,
-        CheckerUtils.getCommonExtensions().ALL_CODE,
+        CODE_EXTENSIONS,
         scanConfig
       ).filter(file => !isBuildOutput(projectRoot, file));
     }

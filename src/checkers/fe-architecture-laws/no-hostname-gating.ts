@@ -10,10 +10,19 @@
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
+import { scriptText, VUE_EXTENSION } from '../../utils/vue/vue-sfc';
 import { FeArchLawBase } from './fe-arch-law-base';
 
 /** Hostname gating is plain JS: any framework, any of these spellings. */
-const HOSTNAME_SOURCE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mjs'];
+const HOSTNAME_SOURCE_EXTENSIONS = [
+  '.ts',
+  '.tsx',
+  '.js',
+  '.jsx',
+  '.mjs',
+  // A component's <script>, read by its script (#607).
+  VUE_EXTENSION,
+];
 
 export class NoHostnameGatingLaw extends FeArchLawBase {
   private static readonly LAW_NAME = 'No Hostname Gating';
@@ -25,7 +34,7 @@ export class NoHostnameGatingLaw extends FeArchLawBase {
     const violations: string[] = [];
 
     for (const file of this.sourceFiles(context, HOSTNAME_SOURCE_EXTENSIONS)) {
-      const content = FileUtils.readFile(file);
+      const content = scriptText(file, FileUtils.readFile(file) ?? '');
       if (!content || !content.includes('location.hostname')) continue;
       const rel = PathOperations.getRelative(projectRoot, file);
       const lines = content.split(/\r\n|\r|\n/);

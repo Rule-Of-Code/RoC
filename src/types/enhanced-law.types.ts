@@ -167,6 +167,14 @@ export interface EnhancedConstitutionalLaw {
    */
   detectionLimits?: string[];
   /**
+   * Why this law's subject is never a Vue single-file component (#607): it
+   * reads test files, test or perf configuration, or file names, which a Vue
+   * project writes as .ts/.js too. Such a law gets no ".vue single-file
+   * components were not read" note. The reason is also one of its
+   * detectionLimits, so the card says it.
+   */
+  notAboutComponents?: string;
+  /**
    * WHY this law exists — the incident or principle that birthed it, not what the
    * check does (that is `description`). The difference between a "rule" and a
    * "law". Where there is a real story (the zero-laws PASSED, the checklist that

@@ -7,7 +7,11 @@
  * Enforces 100% code coverage mandate for all production code
  */
 
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import { FileUtils } from '../../utils';
 import { PathOperations } from '../../utils/path-operations';
 import {
@@ -28,6 +32,7 @@ export class JestUnitTest100CoverageMandateLaw {
   static check(context: LawCheckContext): LawResult {
     const violations: string[] = [];
     const suggestions: string[] = [];
+    const details: ViolationDetail[] = [];
 
     // Check Jest configuration - reuse existing inspector
     const jestConfig = this.checkJestConfigurationSimple(context.projectRoot);
@@ -55,6 +60,13 @@ export class JestUnitTest100CoverageMandateLaw {
         violations.push(
           `Coverage below 100% in: ${lowCoverage.slice(0, 3).join(', ')}`
         );
+        // Every metric, not three, with the report it comes from (#43).
+        details.push(
+          ...lowCoverage.map(area => ({
+            ...(actualCoverage.report ? { file: actualCoverage.report } : {}),
+            message: `${area} — below 100%`,
+          }))
+        );
         suggestions.push(
           'Improve test coverage to achieve 100% for all metrics'
         );
@@ -66,12 +78,14 @@ export class JestUnitTest100CoverageMandateLaw {
     // imply coverage it never provided; Test Coverage Constitutional Standard
     // already checks the source-to-test ratio.)
 
-    return this.createResult(
+    const result = this.createResult(
       violations,
       suggestions,
       context,
       actualCoverage.notRead
     );
+    if (details.length > 0) result.violationDetails = details;
+    return result;
   }
 
   /**
@@ -130,6 +144,8 @@ export class JestUnitTest100CoverageMandateLaw {
     hasReports: boolean;
     lowCoverageAreas: string[];
     notRead: string[];
+    /** The coverage report the areas come from. */
+    report?: string;
   } {
     const { projectRoot, config } = context;
     const hasReports = FileUtils.exists(
@@ -163,6 +179,7 @@ export class JestUnitTest100CoverageMandateLaw {
       hasReports: true,
       lowCoverageAreas: this.lowCoverageAreas(projectRoot, report),
       notRead: [],
+      report: report.path,
     };
   }
 

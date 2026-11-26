@@ -1,4 +1,5 @@
 import type { RuleOfCodeConfig } from '../../config/types';
+import type { ViolationDetail } from '../../types/law.types';
 import { DirectoryScanner } from '../directory-scanner';
 import { FileFilterUtils } from '../file-filter-utils';
 import { PARTLY_READ_TEXT } from '../judged-nothing';
@@ -25,9 +26,12 @@ export class TestFilesExistenceChecker {
   ): {
     violations: string[];
     suggestions: string[];
+    /** Every source file behind "N source files lack … test files" (#43). */
+    details: ViolationDetail[];
   } {
     const violations: string[] = [];
     const suggestions: string[] = [];
+    const details: ViolationDetail[] = [];
 
     const testableSources = this.findTestableSources(
       projectRoot,
@@ -45,6 +49,7 @@ export class TestFilesExistenceChecker {
       violations.push(
         `${uncovered.length} source files lack corresponding test files (a test that imports a file counts)${unread}`
       );
+      details.push(...this.uncoveredDetails(projectRoot, uncovered));
       suggestions.push(...this.presenceSuggestions(projectRoot, uncovered));
     }
 
@@ -69,7 +74,7 @@ export class TestFilesExistenceChecker {
       suggestions.push(this.describeCountedTests(projectRoot, testFiles));
     }
 
-    return { violations, suggestions };
+    return { violations, suggestions, details };
   }
 
   /**
@@ -93,6 +98,17 @@ export class TestFilesExistenceChecker {
    * TypeScript package the imports are not read: the name rule alone decides,
    * and `unread` is the note that says so (empty when nothing was unread).
    */
+  /** Each source file without a test, relative to the project (#43). */
+  static uncoveredDetails(
+    projectRoot: string,
+    uncovered: readonly string[]
+  ): ViolationDetail[] {
+    return uncovered.map(file => ({
+      file: PathOperations.getRelative(projectRoot, file),
+      message: 'source file without a corresponding test file',
+    }));
+  }
+
   static uncoveredByPresence(
     projectRoot: string,
     config: RuleOfCodeConfig,

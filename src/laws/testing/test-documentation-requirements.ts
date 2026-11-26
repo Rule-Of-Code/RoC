@@ -1,7 +1,16 @@
 import { LawBase } from '../../checkers/law-base';
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import { UnitTestDocumentationAnalyzerService } from './unit-test-documentation/services/documentation-analyzer.service';
-import { namedFiles } from '../../utils/testing/fixture-isolation';
+import {
+  namedDetails,
+  namedFiles,
+} from '../../utils/testing/fixture-isolation';
+import { PathOperations } from '../../utils/path-operations';
+import { withViolationDetails } from '../../utils/violation-details';
 import { markJudgedNothing } from '../../utils/judged-nothing';
 import {
   loadTypeScript,
@@ -86,8 +95,11 @@ export class TestDocumentationRequirementsLaw {
     score: number;
     testDocsAnalysis: { hasTestDocumentation: boolean };
     testFileDocsAnalysis: { poorlyDocumentedFiles: string[] };
+    details: ViolationDetail[];
   } {
     const violations: string[] = [];
+    // Every file behind a count or a "…; and N more" list (#43).
+    const details: ViolationDetail[] = [];
     const suggestions: string[] = [];
     let score = 100;
     const { projectRoot, config } = context;
@@ -146,6 +158,14 @@ export class TestDocumentationRequirementsLaw {
       violations.push(
         `${testFileDocsAnalysis.poorlyDocumentedFiles.length} test files lack proper documentation`
       );
+      details.push(
+        ...namedDetails(
+          testFileDocsAnalysis.poorlyDocumentedFiles.map(file =>
+            PathOperations.getRelative(projectRoot, file)
+          ),
+          'lacks proper documentation'
+        )
+      );
       suggestions.push(
         'Add descriptive comments and documentation to test files'
       );
@@ -162,7 +182,8 @@ export class TestDocumentationRequirementsLaw {
       violations,
       suggestions,
       score,
-      thresholds
+      thresholds,
+      details
     );
 
     return {
@@ -171,6 +192,7 @@ export class TestDocumentationRequirementsLaw {
       score: Math.max(0, score),
       testDocsAnalysis,
       testFileDocsAnalysis,
+      details,
     };
   }
 
@@ -189,7 +211,8 @@ export class TestDocumentationRequirementsLaw {
       missingStrategyDocsDeduction: number;
       lowStructureDocDeduction: number;
       minStructureDocCoverage: number;
-    }
+    },
+    details: ViolationDetail[]
   ): number {
     const { projectRoot } = context;
     const analyzer = UnitTestDocumentationAnalyzerService;
@@ -202,6 +225,12 @@ export class TestDocumentationRequirementsLaw {
     if (testDescriptionsAnalysis.poorDescriptions > 0) {
       violations.push(
         `${testDescriptionsAnalysis.poorDescriptions} test cases have unclear descriptions: ${namedFiles(testDescriptionsAnalysis.examples)}`
+      );
+      details.push(
+        ...namedDetails(
+          testDescriptionsAnalysis.examples,
+          'unclear test description'
+        )
       );
       suggestions.push(
         'Write clear, descriptive test case names and descriptions'
@@ -217,6 +246,9 @@ export class TestDocumentationRequirementsLaw {
     if (testDescriptionsAnalysis.unread.length > 0) {
       violations.push(
         `${testDescriptionsAnalysis.unread.length} test files could not be read: ${namedFiles(testDescriptionsAnalysis.unread)}`
+      );
+      details.push(
+        ...namedDetails(testDescriptionsAnalysis.unread, 'could not be read')
       );
     }
 
@@ -269,6 +301,7 @@ export class TestDocumentationRequirementsLaw {
       score: number;
       testDocsAnalysis: { hasTestDocumentation: boolean };
       testFileDocsAnalysis: { poorlyDocumentedFiles: string[] };
+      details?: ViolationDetail[];
     }
   ): LawResult {
     const {
@@ -290,14 +323,17 @@ export class TestDocumentationRequirementsLaw {
       testFileDocsAnalysis
     );
 
-    return LawBase.buildDetailedResult({
-      passed,
-      message,
-      violations,
-      suggestions,
-      score,
-      context,
-    });
+    return withViolationDetails(
+      LawBase.buildDetailedResult({
+        passed,
+        message,
+        violations,
+        suggestions,
+        score,
+        context,
+      }),
+      analysisResult.details ?? []
+    );
   }
 
   private static generateMessage(

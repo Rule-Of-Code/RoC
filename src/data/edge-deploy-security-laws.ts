@@ -49,6 +49,7 @@ export const EDGE_DEPLOY_SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Python (read as text): urljoin(base, url) whose url names request/req, a parameter of a route handler (a function with a request parameter or an @x.get(…)-style decorator) or a local assigned from one, and that is passed to requests/httpx/aiohttp/urllib3, a *client/*session object or urlopen in the same function.',
       'Proxies configured rather than coded (http-proxy and its target option, platform rewrites, nginx) are not read.',
       `Selected only where a .ts/.mts/.cts/.js/.mjs/.cjs file (.d.ts, spec/test/stories and minified files excluded) holds a new URL( with a non-literal first argument and a base and an HTTP call, or a .py file (test_*.py, *_test.py, conftest.py excluded) calls urljoin(. ${GATE_READ} A pass names the URLs judged and the files read (also in the result's metrics).`,
+      'A Vue single-file component (.vue) is read by its <script> and <script setup> blocks, at its own lines, both to select the law and to judge it; its <template> and <style> are not read (#607).',
     ],
     emoji: '🧭',
     description:

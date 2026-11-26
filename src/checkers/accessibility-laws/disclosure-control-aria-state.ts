@@ -175,14 +175,14 @@ export class DisclosureControlAriaStateLaw extends AccessibilityLawBase {
     return element.tag === 'ion-button' || element.tag === 'ion-item';
   }
 
-  /** A button whose (click) handler reads as a disclosure toggle. */
+  /** A button whose click handler — (click), @click, v-on:click — reads as a disclosure toggle. */
   private static isDisclosureToggle(element: MarkupElement): boolean {
     const isButton =
       element.tag === 'button' ||
       element.tag === 'ion-button' ||
       (element.tag === 'ion-item' && this.isClickableItem(element));
     if (!isButton) return false;
-    const click = element.attributes.find(a => a.name === '(click)');
+    const click = TemplateMarkup.event(element, 'click');
     if (!click || !DISCLOSURE_INTENT.test(click.value ?? '')) return false;
     // A button that exposes aria-pressed is a TOGGLE button (a theme switch,
     // an active filter chip), not a disclosure: aria-pressed is the correct

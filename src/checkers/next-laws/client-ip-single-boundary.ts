@@ -17,7 +17,11 @@
  */
 
 import type * as TS from 'typescript';
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import { FileSystemOperations } from '../../utils/file-system-operations';
 import { PathOperations } from '../../utils/path-operations';
 import { NextModuleGraph } from '../../utils/react/next-module-graph';
@@ -76,6 +80,8 @@ export class ClientIpSingleBoundaryLaw extends LawBase {
         `${MODULE_KEY} and ${NOT_USED_KEY} are both declared — a project either reads client IPs in one module or not at all. Keep one`
       );
     }
+    // Each read behind a count, at its line (#43).
+    let details: ViolationDetail[] = [];
     if (boundary.value) {
       violations.push(...this.boundaryFindings(context, boundary.value, reads));
     } else if (notUsed.value) {
@@ -93,8 +99,15 @@ export class ClientIpSingleBoundaryLaw extends LawBase {
       violations.push(
         `client IP headers are read in ${modules.length} module(s) (${listed(reads.map(at))}) and no ${MODULE_KEY} is declared — name the one module that reads them, and move the others behind it`
       );
+      details = reads.map(read => ({
+        file: read.file,
+        line: read.line,
+        message: `reads '${read.header}' — no ${MODULE_KEY} is declared`,
+      }));
     }
-    return this.result(violations, context);
+    const result = this.result(violations, context);
+    if (details.length > 0) result.violationDetails = details;
+    return result;
   }
 
   /** The declared boundary module must exist, and be the only module that reads the headers. */

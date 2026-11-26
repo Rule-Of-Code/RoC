@@ -180,6 +180,7 @@ export const DOCUMENTATION_LAWS: EnhancedConstitutionalLaw[] = [
       "A marker counts only in tag form at the start of a comment line — TODO:, TODO(x):, TODO (Sprint 10):, FIXME:, HACK:, XXX: — in a comment of the file's language (//, #, /* */, <!-- -->). A bare `// TODO fix this` without a colon, a marker mid-sentence or in inline code, and NOTE are not read: recall is traded for precision, and the law is a warning.",
       'File discovery reads .ts/.tsx/.js/.jsx/.html/.css/.scss/.md and .py; the other extensions isCodeFile lists (.java, .go, …) are never requested.',
       'It overlaps TODO Management Constitutional Requirements and will double-report the same markers under a different format rule.',
+      'A Vue single-file component (.vue) is read for its comments: the <template> as HTML (<!-- -->), the <script> as TS/JS, the <style> as CSS (SCSS when a style block has a lang), at its own lines (#607).',
     ],
     emoji: '📋',
     description:

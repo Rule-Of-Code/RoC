@@ -5,6 +5,7 @@
  */
 
 import type { RuleOfCodeConfig } from '../../types/law.types';
+import { VUE_EXTENSION } from '../vue/vue-sfc';
 import { CheckerUtils } from '../checker-utils';
 
 /**
@@ -23,9 +24,11 @@ export function scanAndAnalyzeFiles<T>(
   createEmptyResult: () => T,
   safeReadFile: (filePath: string) => string | null
 ): T[] {
+  // A component too: the analyzer gets the .vue file as it is and reads it by
+  // its script (scriptText, or a code view that does) (#607).
   const files = CheckerUtils.findFilesByExtension(
     projectRoot,
-    CheckerUtils.getCommonExtensions().ALL_CODE,
+    [...CheckerUtils.getCommonExtensions().ALL_CODE, VUE_EXTENSION],
     config
   );
 

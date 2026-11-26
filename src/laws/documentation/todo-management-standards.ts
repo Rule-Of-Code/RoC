@@ -235,6 +235,8 @@ export class TodoManagementStandardsLaw {
         '.md',
         // Python is a stack RoC audits; its markers are `#` comments.
         '.py',
+        // A Vue component: its template, script and style comments (#607).
+        '.vue',
       ];
       const allFiles = this.withoutGitignored(
         dirPath,
@@ -281,6 +283,7 @@ export class TodoManagementStandardsLaw {
 
   private static isCodeFile(filename: string): boolean {
     const codeExtensions = [
+      '.vue',
       '.ts',
       '.js',
       '.tsx',

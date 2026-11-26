@@ -23,6 +23,7 @@ import type { RuleOfCodeConfig } from '../../config/types';
 import { CheckerUtils } from '../checker-utils';
 import { FileUtils } from '../file-utils';
 import { PARSER_UNAVAILABLE_TEXT } from '../judged-nothing';
+import { scriptText, VUE_EXTENSION } from '../vue/vue-sfc';
 import type { ReactPerformanceEvidence } from '../react/react-performance-source';
 
 export interface VitalsMeasurement {
@@ -87,9 +88,15 @@ export class BrowserMonitoringEvidence {
     if (unread.some(note => PARSER_UNAVAILABLE_TEXT.test(note))) return found;
     const skipped = new Set(unread.map(note => note.split(':')[0]));
 
+    // A component's <script> too, read by its script (#607).
     const files = CheckerUtils.findFilesByExtension(
       projectRoot,
-      [...CheckerUtils.getCommonExtensions().ALL_CODE, '.mjs', '.cjs'],
+      [
+        ...CheckerUtils.getCommonExtensions().ALL_CODE,
+        '.mjs',
+        '.cjs',
+        VUE_EXTENSION,
+      ],
       config ?? FileUtils.getMinimalDefaultConfig(),
       lawId
     );
@@ -97,7 +104,7 @@ export class BrowserMonitoringEvidence {
       if (skipped.has(relative(projectRoot, file))) continue;
       const text = FileUtils.readFileContentSync(file);
       if (!text) continue;
-      const kind = measuredIn(text);
+      const kind = measuredIn(scriptText(file, text));
       if (kind) found.push({ kind, at: relative(projectRoot, file) });
     }
     return found;

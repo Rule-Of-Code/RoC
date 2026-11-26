@@ -35,6 +35,9 @@ const TS_EXTENSIONS = [
   '.cts',
   '.mjs',
   '.cjs',
+  // A component's <script>: the parse and the model's lines read a .vue
+  // file by its script (#607).
+  '.vue',
 ];
 const PY_TEST_FILE =
   /(?:^|\/)(?:tests?\/|test_[^/]*\.py$|[^/]*_test\.py$|conftest\.py$)/;

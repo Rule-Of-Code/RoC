@@ -9,6 +9,14 @@
  * followed — its later lines read as code, never as comments.
  */
 
+import {
+  sfcBlocks,
+  isVueFile,
+  scriptView,
+  styleView,
+  templateView,
+} from './vue/vue-sfc';
+
 export interface CommentLine {
   /** 1-based line number. */
   line: number;
@@ -131,6 +139,7 @@ function commentsOnLine(
 
 /** Every comment line of `content`, read with the syntax of `fileName`; none for a format without comments. */
 export function commentLines(fileName: string, content: string): CommentLine[] {
+  if (isVueFile(fileName)) return vueCommentLines(fileName, content);
   const syntax = commentSyntaxOf(fileName);
   if (!syntax) return [];
   const out: CommentLine[] = [];
@@ -143,4 +152,23 @@ export function commentLines(fileName: string, content: string): CommentLine[] {
     }
   });
   return out;
+}
+
+/**
+ * The comments of a Vue single-file component (#607): its template read as
+ * HTML (`<!-- -->`), its script as TS/JS, its style as CSS — or as SCSS when
+ * a `<style>` block has a `lang` (scss, sass, less: `//` is a comment there).
+ * Each view keeps the file's lines, so a comment is at its own line.
+ */
+function vueCommentLines(fileName: string, content: string): CommentLine[] {
+  const styleLang = sfcBlocks(content).some(
+    block => block.kind === 'style' && block.lang !== null
+  )
+    ? 'scss'
+    : 'css';
+  return [
+    ...commentLines(`${fileName}.html`, templateView(content)),
+    ...commentLines(`${fileName}.ts`, scriptView(content)),
+    ...commentLines(`${fileName}.${styleLang}`, styleView(content)),
+  ].sort((a, b) => a.line - b.line);
 }

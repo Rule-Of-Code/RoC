@@ -7,6 +7,7 @@ import {
   mergeAuthShapes,
   readAuthShape,
 } from '../../../../utils/security/auth-shape';
+import { scriptText, VUE_EXTENSION } from '../../../../utils/vue/vue-sfc';
 import { APIAuthenticationConstants } from '../constants';
 import { readApiCodeView } from './api-code-view';
 
@@ -82,9 +83,10 @@ export class APIAuthenticationAnalyzer {
   ): { found: AuthFile[]; all: AuthShape } {
     const found: AuthFile[] = [];
     const shapes: AuthShape[] = [];
+    // A component's <script> too, read by its script (#607).
     const files = CheckerUtils.findFilesByExtension(
       projectRoot,
-      ['.ts', '.tsx'],
+      ['.ts', '.tsx', VUE_EXTENSION],
       config
     );
     for (const file of files) {
@@ -94,12 +96,14 @@ export class APIAuthenticationAnalyzer {
       } catch (_error) {
         continue;
       }
-      if (!AUTH_HINT.test(content)) continue;
+      const script = scriptText(file, content);
+      if (!AUTH_HINT.test(script)) continue;
+      // The code view reads a .vue file by its script itself: given the file.
       const view = readApiCodeView(ts, file, content);
       if (!view) continue;
       const shape = readAuthShape(ts, view);
       shapes.push(shape);
-      if (authenticates(shape)) found.push({ content, shape });
+      if (authenticates(shape)) found.push({ content: script, shape });
     }
     return { found, all: mergeAuthShapes(shapes) };
   }

@@ -15,6 +15,10 @@ const UNREADABLE_TEMPLATE =
 const UNREADABLE_JSX =
   'JSX is read from .tsx/.jsx files only (JSX inside .js files is not seen); a file that does not parse, or that cannot be parsed because no typescript package can be loaded, is reported as not read.';
 
+/** The detection limit of an accessibility law that reads the template of .vue (#607). */
+const VUE_TEMPLATE_ONLY =
+  "A Vue single-file component (.vue) is read by its <template>, at its own lines, with Vue's bindings (:attr, v-bind:attr) and events (@click, v-on:click); its <script> and <style> are not read by this law (#607).";
+
 export const ACCESSIBILITY_LAWS: EnhancedConstitutionalLaw[] = [
   {
     // Pinned: the generated id came from the Angular-only description, and the
@@ -90,6 +94,7 @@ export const ACCESSIBILITY_LAWS: EnhancedConstitutionalLaw[] = [
       'ion-modal is recognised in two forms: an inline <ion-modal> (its own template, or the component whose selector is nested in it), and ModalController.create({ component: X }) with X a class identifier, in a file that imports ModalController from an @ionic/* package. A component passed through a variable, a lazy import(), or a wrapper service is not followed, and classes are matched by name, so two components with one class name are not told apart.',
       'That ion-modal sets role="dialog", aria-modal="true" and traps focus unless focusTrap is false is read from @ionic/core 8.8.17 (modal.js:140, 1188), not checked against the installed version; a focusTrap bound to an expression is taken as on.',
       "A template whose markup cannot be read (an opening tag or a quoted value that never ends) is reported as not read; ModalController detection needs the project's typescript package, and without it a modal that misses the attributes says so in its message.",
+      "A Vue single-file component (.vue) is read by its <template>, at its own lines, with Vue's bindings (:attr, v-bind:attr); a Vue focus trap (focus-trap-vue, a directive of the project) counts only when named in thresholds.accessibility.focusTrapTokens (#607).",
     ],
     emoji: '🪟',
     description:
@@ -137,6 +142,7 @@ export const ACCESSIBILITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Ionic controls are judged by @ionic/core 8.8.17\'s naming, read from its source, not inspected in a browser: label / slot="label" / aria-label / aria-labelledby on ion-input, ion-textarea and ion-range; label / slot="label" / aria-label on ion-select (it forwards only aria-label); default-slot content or aria-* on ion-checkbox, ion-toggle and ion-radio. Any slot content counts, even an icon with no text. The legacy <ion-label> sibling is not accepted (8.x ion-input does not read it).',
       'ion-searchbar is not read: its inner input always carries aria-label="search text" (searchbar.js:473), so it is never nameless — whether that generic name is good enough is not judged.',
       UNREADABLE_TEMPLATE,
+      VUE_TEMPLATE_ONLY,
     ],
     emoji: '🏷️',
     description:
@@ -182,6 +188,7 @@ export const ACCESSIBILITY_LAWS: EnhancedConstitutionalLaw[] = [
       UNREADABLE_JSX,
       'ion-button and ion-fab-button are not read, by design: both default type to "button" (@ionic/core 8.8.17 button.js:51, fab-button.js:48), so they cannot submit by accident. A form that relies on an ion-button to submit without type="submit" is not seen.',
       UNREADABLE_TEMPLATE,
+      VUE_TEMPLATE_ONLY,
     ],
     emoji: '🔘',
     description:
@@ -229,6 +236,7 @@ export const ACCESSIBILITY_LAWS: EnhancedConstitutionalLaw[] = [
       'A toggle inside ion-accordion is exempt without checking it is the accordion header.',
       'The author documents it as advisory and low-precision; it is a warning by default, and fails a gate only where warnings do.',
       UNREADABLE_TEMPLATE,
+      VUE_TEMPLATE_ONLY,
     ],
     emoji: '🔽',
     description:

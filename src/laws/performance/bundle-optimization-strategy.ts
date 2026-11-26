@@ -15,12 +15,17 @@
  * - Calculate final score and compile recommendations
  */
 
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import { withViolationDetails } from '../../utils/violation-details';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import type { ViolationConfig } from './bundle-optimization-strategy/constants/types';
 import { BundleOptimizationStrategyAnalyzerService } from './bundle-optimization-strategy/services';
 import {
   ReactPerformanceSource,
-  unreadViolation,
+  pushUnread,
 } from '../../utils/react/react-performance-source';
 import { WebBundlerConfig } from '../../utils/react/web-bundler-config';
 
@@ -28,8 +33,18 @@ export class BundleOptimizationStrategyLaw {
   static check(context: LawCheckContext): LawResult {
     const violations: string[] = [];
     const suggestions: string[] = [];
-    const score = this.runAllAnalyses(context, violations, suggestions);
-    return this.buildResult(violations, suggestions, score, context);
+    // Every file behind a "NOT read … (+N more)" line (#43).
+    const details: ViolationDetail[] = [];
+    const score = this.runAllAnalyses(
+      context,
+      violations,
+      suggestions,
+      details
+    );
+    return withViolationDetails(
+      this.buildResult(violations, suggestions, score, context),
+      details
+    );
   }
 
   /**
@@ -38,7 +53,8 @@ export class BundleOptimizationStrategyLaw {
   private static runAllAnalyses(
     context: LawCheckContext,
     violations: string[],
-    suggestions: string[]
+    suggestions: string[],
+    details: ViolationDetail[]
   ): number {
     const { projectRoot, config } = context;
     let score = 100;
@@ -120,7 +136,7 @@ export class BundleOptimizationStrategyLaw {
     // What could not be read was not inspected: a violation, never a pass.
     const unread = [...bundler.unread, ...react.unread];
     if (unread.length > 0) {
-      violations.push(unreadViolation(unread));
+      pushUnread(violations, details, unread);
       score -= 10;
     }
 

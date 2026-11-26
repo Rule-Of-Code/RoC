@@ -1,7 +1,8 @@
+import type { ViolationDetail } from '../../../../types/law.types';
 import type { RuleOfCodeConfig } from '../../../../config/types';
 import {
   ReactPerformanceSource,
-  unreadViolation,
+  pushUnread,
 } from '../../../../utils/react/react-performance-source';
 import { WebBundlerConfig } from '../../../../utils/react/web-bundler-config';
 import { BundleOptimizationAnalyzer } from './bundle-optimization.analyzer';
@@ -35,8 +36,11 @@ export class PerformanceAnalyzerService {
   ): Promise<{
     violations: string[];
     scoreImpact: number;
+    /** Every file behind a "NOT read … (+N more)" line (#43). */
+    details: ViolationDetail[];
   }> {
     const violations: string[] = [];
+    const details: ViolationDetail[] = [];
     let scoreImpact = 0;
 
     // Read once, shared by the sub-checks that accept React/Next evidence. On a
@@ -74,7 +78,8 @@ export class PerformanceAnalyzerService {
     // Bundle optimization analysis
     const bundleViolations = BundleOptimizationAnalyzer.analyze(
       projectRoot,
-      bundler
+      bundler,
+      details
     );
     violations.push(...bundleViolations);
     if (bundleViolations.length > 0) scoreImpact += PENALTY.bundle;
@@ -100,10 +105,10 @@ export class PerformanceAnalyzerService {
     // Files the React scan could not read were not inspected: say so, never
     // let their absence read as compliance.
     if (react.unread.length > 0) {
-      violations.push(unreadViolation(react.unread));
+      pushUnread(violations, details, react.unread);
       scoreImpact += PENALTY.unread;
     }
 
-    return { violations, scoreImpact };
+    return { violations, scoreImpact, details };
   }
 }

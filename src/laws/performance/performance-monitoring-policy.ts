@@ -1,6 +1,11 @@
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import { withViolationDetails } from '../../utils/violation-details';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import { PerformanceMonitoringPolicyAnalyzerService } from './performance-monitoring-policy/services';
-import { unreadViolation } from '../../utils/react/react-performance-source';
+import { pushUnread } from '../../utils/react/react-performance-source';
 
 /** Points of the score of 100 each missing piece of performance monitoring costs. */
 const PENALTY = {
@@ -74,8 +79,10 @@ export class PerformanceMonitoringPolicyLaw {
     }
 
     // React source the analysis needed and could not read was not inspected.
+    // Every file behind the "NOT read … (+N more)" line (#43).
+    const details: ViolationDetail[] = [];
     if (analysis.unread.length > 0) {
-      violations.push(unreadViolation(analysis.unread));
+      pushUnread(violations, details, analysis.unread);
       score -= PENALTY.unread;
     }
 
@@ -88,18 +95,21 @@ export class PerformanceMonitoringPolicyLaw {
       score -= PENALTY.dashboards;
     }
 
-    return {
-      passed: violations.length === 0,
-      score: Math.max(0, score),
-      message:
-        violations.length === 0
-          ? 'Performance monitoring policy properly implemented'
-          : `Performance monitoring issues found: ${violations.join(', ')}`,
-      details: violations,
-      violations,
-      suggestions,
-      fixable: true,
-      config: context.config,
-    };
+    return withViolationDetails(
+      {
+        passed: violations.length === 0,
+        score: Math.max(0, score),
+        message:
+          violations.length === 0
+            ? 'Performance monitoring policy properly implemented'
+            : `Performance monitoring issues found: ${violations.join(', ')}`,
+        details: violations,
+        violations,
+        suggestions,
+        fixable: true,
+        config: context.config,
+      },
+      details
+    );
   }
 }

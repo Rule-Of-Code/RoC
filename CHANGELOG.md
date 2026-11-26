@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ Added — performance laws name every file they could not read (#43)
+
+Six performance laws report what they could not read as "Source/config NOT
+read, so it could not be checked: a; b; c; d; e (+N more)". They now put
+every one of those files in `violationDetails`, with its reason (an entry
+that names no single file, such as "3 file(s): …", keeps no file): Bundle
+Size Optimization, Bundle Optimization Strategy Policy, Core Web Vitals
+Compliance, Performance Budget Compliance, Performance Monitoring Policy,
+Performance Standards.
+
+The violation lines, verdicts and scores are unchanged. Nothing new is
+searched for.
+
 ### 🐛 Fixed — three database laws read .vue components (#607, P7)
 
 Database Query Optimization, Count With An Aggregation and Document Read Once

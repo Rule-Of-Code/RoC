@@ -1,4 +1,5 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
+import { withViolationDetails } from '../../utils/violation-details';
 import { PerformanceAnalyzerService } from './performance-standards/services';
 
 /**
@@ -8,7 +9,7 @@ import { PerformanceAnalyzerService } from './performance-standards/services';
  */
 export class PerformanceStandardsLaw {
   static async check(context: LawCheckContext): Promise<LawResult> {
-    const { violations, scoreImpact } =
+    const { violations, scoreImpact, details } =
       await PerformanceAnalyzerService.analyze(
         context.projectRoot,
         context.config,
@@ -18,24 +19,27 @@ export class PerformanceStandardsLaw {
     const passed = violations.length === 0;
     const score = Math.max(0, 100 - scoreImpact);
 
-    return {
-      passed,
-      score,
-      message: passed
-        ? 'Performance standards fully implemented'
-        : `Performance standards gaps found: ${violations.join(', ')}`,
-      details: violations,
-      violations,
-      suggestions: [
-        'Configure Lighthouse with performance thresholds ≥90',
-        'Set performance budgets (angular.json, webpack, Lighthouse assertions, or a size-limit check run by a script or CI)',
-        'Report CLS, INP, LCP with web-vitals or Next.js useReportWebVitals',
-        'Enable production optimizations and code splitting',
-        'Configure WebP, lazy loading, and image compression (next/image in Next.js)',
-        'Implement service worker or configure HTTP caching headers',
-      ],
-      fixable: true,
-      config: context.config,
-    };
+    return withViolationDetails(
+      {
+        passed,
+        score,
+        message: passed
+          ? 'Performance standards fully implemented'
+          : `Performance standards gaps found: ${violations.join(', ')}`,
+        details: violations,
+        violations,
+        suggestions: [
+          'Configure Lighthouse with performance thresholds ≥90',
+          'Set performance budgets (angular.json, webpack, Lighthouse assertions, or a size-limit check run by a script or CI)',
+          'Report CLS, INP, LCP with web-vitals or Next.js useReportWebVitals',
+          'Enable production optimizations and code splitting',
+          'Configure WebP, lazy loading, and image compression (next/image in Next.js)',
+          'Implement service worker or configure HTTP caching headers',
+        ],
+        fixable: true,
+        config: context.config,
+      },
+      details
+    );
   }
 }

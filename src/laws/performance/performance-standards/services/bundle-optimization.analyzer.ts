@@ -1,3 +1,4 @@
+import type { ViolationDetail } from '../../../../types/law.types';
 import { glob } from 'glob';
 import { FileUtils, PathOperations } from '../../../../utils';
 import { AngularBundleConfig } from '../../../../utils/angular-bundle-config';
@@ -5,7 +6,7 @@ import {
   type BundlerReport,
   WebBundlerConfig,
 } from '../../../../utils/react/web-bundler-config';
-import { unreadViolation } from '../../../../utils/react/react-performance-source';
+import { pushUnread } from '../../../../utils/react/react-performance-source';
 import { BundleOptimizationConstants } from '../constants';
 
 /**
@@ -14,7 +15,11 @@ import { BundleOptimizationConstants } from '../constants';
  * Single Responsibility: Analyzing bundle optimization configuration
  */
 export class BundleOptimizationAnalyzer {
-  static analyze(projectRoot: string, bundler?: BundlerReport): string[] {
+  static analyze(
+    projectRoot: string,
+    bundler?: BundlerReport,
+    details: ViolationDetail[] = []
+  ): string[] {
     const violations: string[] = [];
 
     if (this.declaresAngularOptimization(projectRoot)) return violations;
@@ -31,7 +36,7 @@ export class BundleOptimizationAnalyzer {
       return violations;
     }
 
-    return this.frameworkBuildViolations(projectRoot, bundler);
+    return this.frameworkBuildViolations(projectRoot, bundler, details);
   }
 
   /** `optimization` declared in angular.json, or in an Nx project.json. */
@@ -96,7 +101,8 @@ export class BundleOptimizationAnalyzer {
    */
   private static frameworkBuildViolations(
     projectRoot: string,
-    bundler?: BundlerReport
+    bundler: BundlerReport | undefined,
+    details: ViolationDetail[]
   ): string[] {
     const report = bundler ?? WebBundlerConfig.inspect(projectRoot);
     if (WebBundlerConfig.optimizingBuilds(report).length > 0) {
@@ -104,7 +110,7 @@ export class BundleOptimizationAnalyzer {
     }
     const violations: string[] = [];
     if (report.unread.length > 0) {
-      violations.push(unreadViolation(report.unread));
+      pushUnread(violations, details, report.unread);
     }
     violations.push('Bundle optimization not properly configured');
     return violations;

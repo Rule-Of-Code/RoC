@@ -322,6 +322,7 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
       "TS/JS is parsed with the project's typescript package (or the one RoC resolves); when neither loads, the files are reported as unread, never as clean.",
       'A database is proved by use: a query in a Python source (session.query, select(, cursor.execute, collection( …), an import of a database module in the JS/TS sources, a schema / rules / indexes file, or an awaited read of a declared client the N+1 registry recognises. A dependency name in a manifest alone is not a database, and the law is not applicable.',
       'It flags query SHAPES it recognises; it cannot prove a query is slow without running it against real data.',
+      'A Vue single-file component (.vue) is read by its <script> and <script setup> blocks, at its own lines; its <template> and <style> are not read by this law (#607).',
     ],
     emoji: '🗃️',
     description: 'All database queries must be optimized for performance',

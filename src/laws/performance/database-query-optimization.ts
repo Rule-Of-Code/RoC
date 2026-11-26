@@ -14,6 +14,7 @@ import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
 import { declaredClients } from '../../utils/request-path/data-clients';
+import { scriptText, VUE_EXTENSION } from '../../utils/vue/vue-sfc';
 import { DatabaseQueryOptimizationCheckConstants } from './database-query-optimization/constants';
 import { DatabaseQueryOptimizationAnalyzerService } from './database-query-optimization/services';
 import type { NPlusOneAnalysis } from './database-query-optimization/services/nplus-one.analyzer';
@@ -116,16 +117,19 @@ export class DatabaseQueryOptimizationLaw {
    * fixture describing Firestore code is a description, not a database.
    */
   private static usesDatabaseInSource(context: LawCheckContext): boolean {
+    // A component's <script> too (#607): a Firebase or Supabase app often
+    // queries from a component.
     const sources = CheckerUtils.findFilesByExtension(
       context.projectRoot,
-      CheckerUtils.getCommonExtensions().ALL_CODE,
+      [...CheckerUtils.getCommonExtensions().ALL_CODE, VUE_EXTENSION],
       context.config,
       context.lawId
     );
 
     for (const file of sources) {
-      const content = FileUtils.readFileContentSync(file);
-      if (!content) continue;
+      const raw = FileUtils.readFileContentSync(file);
+      if (!raw) continue;
+      const content = scriptText(file, raw);
       if (DATABASE_USAGE.some(pattern => pattern.test(content))) {
         return true;
       }

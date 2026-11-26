@@ -3,6 +3,7 @@
  * Animating a layout property (width/height/top/left/right/bottom/margin/padding)
  * triggers a per-frame reflow; only `transform`/`opacity` are GPU-composited. A
  * `transition`/`transition-property` that names a layout property is flagged.
+ * A Vue single-file component is read by its `<style>` blocks (#607).
  */
 
 import { glob } from 'glob';
@@ -10,6 +11,7 @@ import { minimatch } from 'minimatch';
 import { FileFilterUtils } from '../../utils/file-filter-utils';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
+import { styleText } from '../../utils/vue/vue-sfc';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FeArchLawBase } from './fe-arch-law-base';
 
@@ -24,7 +26,8 @@ export class NoLayoutTransitionLaw extends FeArchLawBase {
     const { projectRoot, config } = context;
     const violations: string[] = [];
 
-    const files = glob.sync('**/*.{scss,css}', {
+    // A component's <style> blocks too, at its own lines (#607).
+    const files = glob.sync('**/*.{scss,css,vue}', {
       cwd: projectRoot,
       absolute: true,
       ignore: [
@@ -48,7 +51,7 @@ export class NoLayoutTransitionLaw extends FeArchLawBase {
 
     for (const file of files) {
       if (isIgnored(file)) continue;
-      const content = FileUtils.readFile(file);
+      const content = styleText(file, FileUtils.readFile(file) ?? '');
       if (!content || !content.includes('transition')) continue;
       const rel = PathOperations.getRelative(projectRoot, file);
       const lines = content.split(/\r\n|\r|\n/);

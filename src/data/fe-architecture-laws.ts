@@ -194,7 +194,7 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Regex over .scss/.css text, no AST — `transition: all` is NOT flagged (it animates layout props but names no layout keyword), and a transition inside a CSS comment is a false positive.',
-      'Only .scss/.css files — inline style= in templates, style={{...}} in JSX and CSS-in-JS (styled-components, Emotion) are not scanned.',
+      "Only .scss/.css files and the <style> blocks of Vue single-file components (.vue, any lang, at the component's own lines; #607) — inline style= in templates, style={{...}} in JSX and CSS-in-JS (styled-components, Emotion) are not scanned.",
       'Covers transition / transition-property only; animation and @keyframes on layout props are out of scope. Framework-neutral; a project with no stylesheet has nothing for it to judge and passes.',
     ],
     emoji: '🎞️',

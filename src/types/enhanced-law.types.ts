@@ -123,6 +123,13 @@ export interface FileContaining {
    * string does not select it (#437).
    */
   readsCode?: boolean;
+  /**
+   * A `.vue` file the globs name is matched by its `<script>` /
+   * `<script setup>` blocks only, at their offsets: its template and style
+   * are not code (#607). Without it a `.vue` file is matched as it is (a gate
+   * that reads a component's `<style>` or markup).
+   */
+  vueScript?: boolean;
 }
 
 export interface EnhancedConstitutionalLaw {

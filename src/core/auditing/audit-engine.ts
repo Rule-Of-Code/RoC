@@ -30,6 +30,10 @@ import { markJudgedNothing, withNotRead } from '../../utils/judged-nothing';
 import { honouredWaiverReason } from '../../utils/law-waivers';
 import { NxWorkspace } from '../../utils/nx-workspace';
 import { warnUser } from '../../utils/logging-utils';
+import {
+  runWithParserUse,
+  typeScriptSourceNote,
+} from '../../utils/react/tsx-source';
 import { PathOperations } from '../../utils/path-operations';
 import { selectionProjectType } from '../../utils/selection-project-type';
 import {
@@ -255,6 +259,10 @@ export class RuleOfCodeAuditor {
     // A typo'd severity override must not pass silently
     this.validateSeverityOverrides();
     this.validatePathPatterns();
+    // The project's typescript without a compiler API (TypeScript 7.0): which
+    // TypeScript parsed instead, or that none could (#667).
+    const typeScriptNote = typeScriptSourceNote(this.projectRoot);
+    if (typeScriptNote) warnUser(`ℹ️  ${typeScriptNote}`);
 
     // Check cache if enabled
     const cacheEnabled = this.settings.performance?.cache ?? false;
@@ -1089,12 +1097,16 @@ export class RuleOfCodeAuditor {
     const check = law.check;
     if (typeof check === 'function') {
       try {
-        // Each law in its own scan scope: the shared scanners note a scan
-        // for script files that left .vue out (#607).
+        // Each law in its own scan scope — the shared scanners note a scan
+        // for script files that left .vue out (#607) — and its own parser-use
+        // scope: which TypeScript parsed goes in its details (#667).
         const scoped = await runLawScope(() =>
-          check.call(law, this.projectRoot, this.config)
+          runWithParserUse(() => check.call(law, this.projectRoot, this.config))
         );
-        const result = this.withVueNote(scoped.value, scoped.scope);
+        const result = this.withParserNote(
+          this.withVueNote(scoped.value.value, scoped.scope),
+          scoped.value.usedParser
+        );
         // Ensure lawName is set + expose canonical registry identifiers so a
         // --json consumer can key `laws.notApplicable` (by lawId or legacyId)
         // without dumping the registry separately. A law that judged nothing
@@ -1137,6 +1149,20 @@ export class RuleOfCodeAuditor {
       severity,
       violations: [],
       suggestions: [],
+    };
+  }
+
+  /**
+   * A law that parsed, in a project whose own typescript has no compiler API
+   * (TypeScript 7.0): its details say which TypeScript parsed instead (#667).
+   */
+  private withParserNote<T>(result: T, usedParser: boolean): T {
+    const note = usedParser ? typeScriptSourceNote(this.projectRoot) : null;
+    if (!note || typeof result !== 'object' || result === null) return result;
+    const details = (result as { details?: unknown }).details;
+    return {
+      ...result,
+      details: [...(Array.isArray(details) ? details : []), note],
     };
   }
 

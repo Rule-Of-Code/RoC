@@ -1,8 +1,16 @@
 import { LawBase } from '../../checkers/law-base';
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import { UnitTestDataManagementAnalyzerService } from './unit-test-data-management/services/data-management-analyzer.service';
 import { markJudgedNothing } from '../../utils/judged-nothing';
-import { namedFiles } from '../../utils/testing/fixture-isolation';
+import {
+  namedDetails,
+  namedFiles,
+} from '../../utils/testing/fixture-isolation';
+import { withViolationDetails } from '../../utils/violation-details';
 import { TestFileDiscovery } from './test-file-discovery';
 import {
   loadTypeScript,
@@ -39,6 +47,8 @@ export class TestDataManagementLaw {
     try {
       const violations: string[] = [];
       const suggestions: string[] = [];
+      // Every file behind a "…; and N more" list (#43).
+      const details: ViolationDetail[] = [];
       let score = 100;
       const { projectRoot, config } = context;
       const testFiles = TestFileDiscovery.findTestFiles(projectRoot, config);
@@ -72,7 +82,8 @@ export class TestDataManagementLaw {
         thresholds,
         violations,
         suggestions,
-        score
+        score,
+        details
       );
 
       // 2. Check for test data structure organization
@@ -99,6 +110,12 @@ export class TestDataManagementLaw {
             cleanupPatterns.uncleaned
           )}`
         );
+        details.push(
+          ...namedDetails(
+            cleanupPatterns.uncleaned,
+            'external resources not cleaned up'
+          )
+        );
         suggestions.push('Implement proper cleanup in afterEach blocks');
         score -= thresholds.noCleanupDeduction;
       }
@@ -116,6 +133,12 @@ export class TestDataManagementLaw {
         // the files it is about must be named (#310).
         violations.push(
           `Tests import external clients and no test uses a test double (mock, spy, network interceptor): ${namedFiles(mockingUsage.externalImports)}`
+        );
+        details.push(
+          ...namedDetails(
+            mockingUsage.externalImports,
+            'imports an external client; no test double'
+          )
         );
         suggestions.push(
           'Improve mocking strategies for external dependencies'
@@ -164,7 +187,7 @@ export class TestDataManagementLaw {
         // Not a pass of the mocking check — there was nothing for it to judge.
         result.details = [...(result.details ?? []), MOCKING_NOT_JUDGED];
       }
-      return result;
+      return withViolationDetails(result, details);
     } catch (error: unknown) {
       return LawBase.createErrorResult('Test Data Management', error, context);
     }
@@ -243,12 +266,19 @@ export class TestDataManagementLaw {
     thresholds: DataThresholds,
     violations: string[],
     suggestions: string[],
-    score: number
+    score: number,
+    details: ViolationDetail[]
   ): number {
     let remaining = score;
     if (!testDataPatterns.hasProperSetup) {
       violations.push(
         `Test files share module-scope mutable state with no beforeEach/afterEach to reset it: ${namedFiles(testDataPatterns.missingSetupFiles)}`
+      );
+      details.push(
+        ...namedDetails(
+          testDataPatterns.missingSetupFiles,
+          'module-scope mutable state with no beforeEach/afterEach'
+        )
       );
       suggestions.push('Implement beforeEach/afterEach for test data setup');
       remaining -= thresholds.missingSetupDeduction;
@@ -257,6 +287,12 @@ export class TestDataManagementLaw {
     if (testDataPatterns.hasHardcodedData && !realDataMode) {
       violations.push(
         `Found hardcoded test data in test files: ${namedFiles(testDataPatterns.hardcodedDataFiles)}`
+      );
+      details.push(
+        ...namedDetails(
+          testDataPatterns.hardcodedDataFiles,
+          'hardcoded test data'
+        )
       );
       suggestions.push(
         'Use test data factories or builders instead of hardcoded values'
@@ -267,6 +303,12 @@ export class TestDataManagementLaw {
     if (testDataPatterns.hasSharedState) {
       violations.push(
         `Tests have shared mutable state issues: ${namedFiles(testDataPatterns.sharedStateFiles)}`
+      );
+      details.push(
+        ...namedDetails(
+          testDataPatterns.sharedStateFiles,
+          'shared mutable state'
+        )
       );
       suggestions.push('Ensure tests are isolated with proper cleanup');
       remaining -= thresholds.sharedStateDeduction;

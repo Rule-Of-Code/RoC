@@ -30,6 +30,41 @@ performance laws (with No Layout Transition and Primary Locale Font
 Preloaded, right as written) is held by a regression test, RED first and
 then GREEN by doing what the card says.
 
+### ✨ Added — testing laws name every file they counted (#43, testing)
+
+Six testing laws said how many, or named the first few ("…; and N more",
+"(e.g. a, b, c, …)", "Coverage below 100% in: a, b, c"). Each law already
+held every one. It now puts them in `violationDetails`:
+
+- **Test Data Management**: every test file behind each finding (shared
+  state, no reset, hardcoded data, external clients without a test double,
+  missing cleanup).
+- **Test Isolation Enforcement**: every test file behind each finding.
+- **Test Documentation Requirements**: every undocumented test file, every
+  unclear test description, every unreadable test file.
+- **Professional Component Testing Policy**: every Angular component without
+  a spec, every low-quality component test, every React component without a
+  co-located test, every React test that does not query by role.
+- **Test Coverage Constitutional Standard**: every source file without a
+  test, and every file below the line-coverage floor of the report.
+- **Jest Unit Test 100% Coverage Mandate**: every metric below 100% (the
+  line shows three), with the report it comes from.
+
+The violation lines, verdicts and scores are unchanged. Nothing new is
+searched for. With this package, every category of the #43 plan is done.
+
+### 🐛 Fixed — Capacitor Listener Handles Released is selected for Angular apps only (#12)
+
+The law judges Angular classes — @Component / @Directive / @Pipe, pages,
+@Injectable services that are not providedIn root — and reads no React or
+Vue component. It required only Capacitor, so on a React or Vue Capacitor
+app it read nothing it judges and passed: a listener a React effect
+registered and never removed was a pass. It now requires `@angular/core`
+beside Capacitor and is not selected where it cannot see; its detection
+limits say so, and that the requirement is read over the whole workspace,
+not per app. It carries Angular guidance only, and no React or Vue guidance
+is written for it: there is nothing it would judge.
+
 ### ✨ Added — accessibility laws name each control they counted (#43, accessibility)
 
 Three accessibility laws count controls on one line ("2 form control(s)

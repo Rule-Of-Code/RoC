@@ -1,5 +1,10 @@
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import { PathOperations } from '../../utils/path-operations';
+import { withViolationDetails } from '../../utils/violation-details';
 import { UnitTestProfessionalComponentTestingAnalyzerService } from './unit-test-professional-component-testing/services/component-testing-analyzer.service';
 import { ReactComponentTestingAnalyzer } from './unit-test-professional-component-testing/services/react-component-testing';
 
@@ -26,6 +31,8 @@ export class ProfessionalComponentTestingPolicyLaw {
     try {
       const violations: string[] = [];
       const suggestions: string[] = [];
+      // Every file behind a count or an "(e.g. a, b, c, …)" list (#43).
+      const details: ViolationDetail[] = [];
       let score = 100;
       const { projectRoot, config } = context;
 
@@ -42,6 +49,13 @@ export class ProfessionalComponentTestingPolicyLaw {
       if (componentAnalysis.missingTestFiles.length > 0) {
         violations.push(
           `${componentAnalysis.missingTestFiles.length} components missing .spec.ts files`
+        );
+        details.push(
+          ...this.fileDetails(
+            context,
+            componentAnalysis.missingTestFiles,
+            'component without a .spec.ts file'
+          )
         );
         suggestions.push('Create .spec.ts files for all components');
         score -= Math.min(
@@ -61,7 +75,8 @@ export class ProfessionalComponentTestingPolicyLaw {
         thresholds,
         violations,
         suggestions,
-        score
+        score,
+        details
       );
       const judgedNothing =
         componentAnalysis.totalComponents === 0 &&
@@ -81,6 +96,13 @@ export class ProfessionalComponentTestingPolicyLaw {
       if (testQualityAnalysis.lowQualityTests.length > 0) {
         violations.push(
           `${testQualityAnalysis.lowQualityTests.length} component tests have low quality`
+        );
+        details.push(
+          ...this.fileDetails(
+            context,
+            testQualityAnalysis.lowQualityTests,
+            'component test of low quality'
+          )
         );
         suggestions.push(
           'Improve component test quality with proper assertions and coverage'
@@ -109,21 +131,24 @@ export class ProfessionalComponentTestingPolicyLaw {
       // contradicted its own passed:false and counted as perfect overall.
       const finalScore = judgedNothing ? 0 : Math.max(0, score);
 
-      return {
-        ...(judgedNothing ? { judgedNothing: true } : {}),
-        passed: violations.length === 0,
-        message: this.generateMessage(
-          violations.length,
-          componentAnalysis,
-          testQualityAnalysis
-        ),
-        details: [...violations, ...suggestions],
-        violations,
-        suggestions,
-        score: finalScore,
-        fixable: true,
-        config: context.config,
-      };
+      return withViolationDetails(
+        {
+          ...(judgedNothing ? { judgedNothing: true } : {}),
+          passed: violations.length === 0,
+          message: this.generateMessage(
+            violations.length,
+            componentAnalysis,
+            testQualityAnalysis
+          ),
+          details: [...violations, ...suggestions],
+          violations,
+          suggestions,
+          score: finalScore,
+          fixable: true,
+          config: context.config,
+        },
+        details
+      );
     } catch (error) {
       return {
         passed: false,
@@ -175,12 +200,20 @@ export class ProfessionalComponentTestingPolicyLaw {
     thresholds: ComponentThresholds,
     violations: string[],
     suggestions: string[],
-    score: number
+    score: number,
+    details: ViolationDetail[]
   ): number {
     let remaining = score;
     if (react.missingTestFiles.length > 0) {
       violations.push(
         `${react.missingTestFiles.length} React components missing a co-located .test.tsx / .spec.tsx (e.g. ${this.firstFew(context, react.missingTestFiles)})`
+      );
+      details.push(
+        ...this.fileDetails(
+          context,
+          react.missingTestFiles,
+          'React component without a co-located test'
+        )
       );
       suggestions.push(
         'Add X.test.tsx next to X.tsx (or __tests__/X.test.tsx)'
@@ -193,6 +226,13 @@ export class ProfessionalComponentTestingPolicyLaw {
     if (react.lowQualityTests.length > 0) {
       violations.push(
         `${react.lowQualityTests.length} React component tests do not query by role and assert, in at least two tests (e.g. ${this.firstFew(context, react.lowQualityTests)})`
+      );
+      details.push(
+        ...this.fileDetails(
+          context,
+          react.lowQualityTests,
+          'React component test that does not query by role and assert in two tests'
+        )
       );
       suggestions.push(
         "Query the rendered component by role (screen.getByRole('button', { name: … })) and assert on what the user sees"
@@ -260,6 +300,18 @@ export class ProfessionalComponentTestingPolicyLaw {
   }
 
   /** Up to three files, relative, for a message. */
+  /** Every file behind a count, relative to the project (#43). */
+  private static fileDetails(
+    context: LawCheckContext,
+    files: readonly string[],
+    message: string
+  ): ViolationDetail[] {
+    return files.map(file => ({
+      file: PathOperations.getRelative(context.projectRoot, file),
+      message,
+    }));
+  }
+
   private static firstFew(context: LawCheckContext, files: string[]): string {
     const shown = files
       .slice(0, 3)

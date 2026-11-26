@@ -20,29 +20,17 @@
 import type * as TS from 'typescript';
 import { parseInput } from '../vue/vue-sfc';
 
-export type TypeScriptModule = typeof TS;
+import { type TypeScriptModule, typeScriptSource } from './typescript-source';
 
-const loaded = new Map<string, TypeScriptModule | null>();
-
-/**
- * The `typescript` module the audited project compiles with, or — when the
- * project has none of its own but RoC can resolve one — that one. Null when
- * neither resolves; memoised per project root.
- */
-export function loadTypeScript(projectRoot: string): TypeScriptModule | null {
-  if (loaded.has(projectRoot)) return loaded.get(projectRoot) ?? null;
-  let ts: TypeScriptModule | null = null;
-  try {
-    const entry = require.resolve('typescript', {
-      paths: [projectRoot, __dirname],
-    });
-    ts = require(entry) as TypeScriptModule;
-  } catch {
-    ts = null;
-  }
-  loaded.set(projectRoot, ts);
-  return ts;
-}
+export {
+  hasCompilerApi,
+  loadTypeScript,
+  runWithParserUse,
+  type TypeScriptModule,
+  type TypeScriptSource,
+  typeScriptSource,
+  typeScriptSourceNote,
+} from './typescript-source';
 
 /**
  * An array a TypeScript node carries under a name the typings do not declare:
@@ -64,6 +52,12 @@ export function parserUnavailable(
   // of .ts files (#427).
   notRead = 'the files this law parses'
 ): string {
+  const { projectVersion } = typeScriptSource(projectRoot);
+  // A package that is there but has no compiler API (TypeScript 7.0) is not
+  // "missing": installing it again would change nothing (#667).
+  if (projectVersion) {
+    return `the project's typescript ${projectVersion} has no compiler API (TypeScript 7.0 ships none) and RoC resolved no TypeScript that has one — ${notRead} were NOT read`;
+  }
   return `could not load the 'typescript' package from ${projectRoot} — ${notRead} were NOT read. Install typescript in the project (it compiles these files) so this law can inspect them`;
 }
 

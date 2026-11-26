@@ -2,6 +2,11 @@ import type { RuleOfCodeConfig } from '../../../../config/types';
 import { AngularComponentFiles } from '../../../../utils/angular-component-files';
 import { CheckerUtils } from '../../../../utils/checker-utils';
 import { FileUtils } from '../../../../utils/file-utils';
+import {
+  markupText,
+  scriptText,
+  VUE_EXTENSION,
+} from '../../../../utils/vue/vue-sfc';
 import type { ReactPerformanceEvidence } from '../../../../utils/react/react-performance-source';
 import type { BundlerReport } from '../../../../utils/react/web-bundler-config';
 import { CoreWebVitalsPerformanceChecksConstants as Checks } from '../constants/performance-checks';
@@ -72,15 +77,28 @@ export class ImageOptimizationAnalyzerService {
     projectRoot: string,
     config: RuleOfCodeConfig
   ): boolean {
-    const componentFiles = AngularComponentFiles.find(projectRoot, config);
+    // Vue components too (#607): loading="lazy" read in the template, an
+    // IntersectionObserver in the script. An Angular file is read as it is.
+    const componentFiles = [
+      ...AngularComponentFiles.find(projectRoot, config),
+      ...CheckerUtils.findFilesByExtension(
+        projectRoot,
+        [VUE_EXTENSION],
+        config
+      ),
+    ];
 
     for (const file of componentFiles) {
       try {
         // file is already an absolute path from CheckerUtils.findFilesByExtension
         const content = FileUtils.readFile(file, { encoding: 'utf8' });
         if (
-          content.includes(Checks.IMAGE_KEYWORDS.LOADING_LAZY) ||
-          content.includes(Checks.IMAGE_KEYWORDS.INTERSECTION_OBSERVER)
+          markupText(file, content).includes(
+            Checks.IMAGE_KEYWORDS.LOADING_LAZY
+          ) ||
+          scriptText(file, content).includes(
+            Checks.IMAGE_KEYWORDS.INTERSECTION_OBSERVER
+          )
         ) {
           return true;
         }

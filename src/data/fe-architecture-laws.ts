@@ -157,6 +157,7 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
       '"Money-adjacent" is a filename substring or the literal X-Control-Pass string (a comment mentioning it triggers it); LOC is a raw line count including blanks and comments.',
       'Candidates are *.component.ts, *.service.ts, .tsx and .jsx files in the feature or data-access layer only — a money service elsewhere is not checked. ' +
         LAYER_IS_CONFIGURABLE,
+      'A Vue single-file component (.vue) in the feature or data-access layer is a component: its size is the whole file, X-Control-Pass is looked for in its script, and Basket.spec.ts / Basket.test.ts next to Basket.vue covers it (#607).',
     ],
     emoji: '🧪',
     description:
@@ -194,7 +195,7 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Regex over .scss/.css text, no AST — `transition: all` is NOT flagged (it animates layout props but names no layout keyword), and a transition inside a CSS comment is a false positive.',
-      'Only .scss/.css files — inline style= in templates, style={{...}} in JSX and CSS-in-JS (styled-components, Emotion) are not scanned.',
+      "Only .scss/.css files and the <style> blocks of Vue single-file components (.vue, any lang, at the component's own lines; #607) — inline style= in templates, style={{...}} in JSX and CSS-in-JS (styled-components, Emotion) are not scanned.",
       'Covers transition / transition-property only; animation and @keyframes on layout props are out of scope. Framework-neutral; a project with no stylesheet has nothing for it to judge and passes.',
     ],
     emoji: '🎞️',
@@ -274,6 +275,7 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
       'Only parameters annotated with a Raw* type token, and only a single property hop — p.data.items.map(), an aliased receiver, or an envelope typed without the Raw marker are false negatives (it stays silent on a project that does not use that naming).',
       'Reads RAW source (no comment/string stripping), so a p.items.map( inside a comment or string is a false positive.',
       LAYER_IS_CONFIGURABLE,
+      'A Vue single-file component (.vue) is read by its <script> and <script setup> blocks, at its own lines; its <template> and <style> are not read by this law (#607).',
     ],
     emoji: '🛟',
     description:
@@ -313,6 +315,7 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
       'HttpClient shape: the receiver is not verified to be HttpClient — any .get<T>() / .post<T>() matches (a builder, a typed Map), a wrapped generic .get<ApiResponse<Foo>>() is missed, and it reads RAW source, so a generic in a comment/string is flagged.',
       "fetch shape (syntax tree, the project's TypeScript): `(await r.json()) as T`, `r.json() as Promise<T>`, `... as unknown as T` and `const x: T = await r.json()`. Any zero-argument .json() call counts, whatever the receiver; a body passed through a helper before the cast is not followed. /Raw/ and unknown/any are allowed.",
       LAYER_IS_CONFIGURABLE,
+      'A Vue single-file component (.vue) is read by its <script> and <script setup> blocks, at its own lines; its <template> and <style> are not read by this law (#607).',
     ],
     emoji: '🎭',
     description:

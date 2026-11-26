@@ -5,20 +5,24 @@
  * writes an `X-Control-Pass` header, or a component over the LOC threshold must
  * have a co-located test.
  *
- * A component is an Angular `*.component.ts` / `*.service.ts`, or a React
- * `.tsx` / `.jsx` module. The co-located test is the sibling with the same base
- * name and a `.spec` or `.test` infix, in any of the TS/JS spellings — so
- * `Basket.tsx` is covered by `Basket.test.tsx`, and `a.component.ts` by
- * `a.component.spec.ts`.
+ * A component is an Angular `*.component.ts` / `*.service.ts`, a React
+ * `.tsx` / `.jsx` module, or a Vue single-file component (`.vue`, #607). The
+ * co-located test is the sibling with the same base name and a `.spec` or
+ * `.test` infix, in any of the TS/JS spellings — so `Basket.tsx` is covered by
+ * `Basket.test.tsx`, `Basket.vue` by `Basket.spec.ts`, and `a.component.ts` by
+ * `a.component.spec.ts`. A `.vue` file's size is the whole file (template,
+ * script and style: the component); `X-Control-Pass` is looked for in its
+ * script.
  */
 
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
+import { scriptText, VUE_EXTENSION } from '../../utils/vue/vue-sfc';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { FeArchLawBase } from './fe-arch-law-base';
+import { FeArchLawBase, TS_SOURCE_EXTENSIONS } from './fe-arch-law-base';
 
 /** The files a spec is required for (when money-adjacent or large). */
-const CANDIDATE = /\.(?:service|component)\.ts$|\.[jt]sx$/;
+const CANDIDATE = /\.(?:service|component)\.ts$|\.[jt]sx$|\.vue$/;
 /** The sibling test spellings that count as co-located. */
 const TEST_SUFFIXES = ['spec', 'test'].flatMap(infix =>
   ['.ts', '.tsx', '.js', '.jsx'].map(ext => `.${infix}${ext}`)
@@ -39,7 +43,8 @@ export class RequiresSpecLaw extends FeArchLawBase {
 
     const content = FileUtils.readFile(file) ?? '';
     const moneyAdjacent =
-      /actions[^/]*\.service\.ts$/.test(norm) || /X-Control-Pass/.test(content);
+      /actions[^/]*\.service\.ts$/.test(norm) ||
+      /X-Control-Pass/.test(scriptText(file, content));
     const loc = content.split(/\r\n|\r|\n/).length;
     const reason = moneyAdjacent
       ? 'money-adjacent write service'
@@ -48,7 +53,7 @@ export class RequiresSpecLaw extends FeArchLawBase {
         : '';
     if (!reason) return null;
 
-    const base = file.replace(/\.[jt]sx?$/, '');
+    const base = file.replace(/\.(?:[jt]sx?|vue)$/, '');
     if (TEST_SUFFIXES.some(suffix => FileUtils.exists(base + suffix)))
       return null;
     return `${PathOperations.getRelative(projectRoot, file)}: ${reason} but has no co-located *.spec.* / *.test.* — add one`;
@@ -60,9 +65,11 @@ export class RequiresSpecLaw extends FeArchLawBase {
       (config.thresholds?.angular as { specRequiredMinLoc?: number })
         ?.specRequiredMinLoc ?? this.DEFAULT_LOC;
 
-    const layered = this.sourceFiles(context).filter(file =>
-      this.inFeatureOrDataAccess(context, file)
-    );
+    // A Vue component too (#607).
+    const layered = this.sourceFiles(context, [
+      ...TS_SOURCE_EXTENSIONS,
+      VUE_EXTENSION,
+    ]).filter(file => this.inFeatureOrDataAccess(context, file));
     const violations: string[] =
       layered.length === 0
         ? [this.emptyLayer(context, ['feature', 'dataAccess'])]

@@ -10,6 +10,7 @@ import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 import { CodeQualityLawBase } from './code-quality-law-base';
+import { scriptText } from '../../utils/vue/vue-sfc';
 
 export class PreferUnionOverEnumLaw extends CodeQualityLawBase {
   private static readonly ENUM_DECL =
@@ -25,7 +26,11 @@ export class PreferUnionOverEnumLaw extends CodeQualityLawBase {
 
     const files = this.findTypeScriptFiles(projectRoot, context);
     for (const file of files) {
-      const content = FileUtils.readFileContentSync(file);
+      // A .vue file is judged by its script (#607).
+      const content = scriptText(
+        file,
+        FileUtils.readFileContentSync(file) ?? ''
+      );
       if (!content) continue;
       const relativePath = PathOperations.getRelative(projectRoot, file);
 

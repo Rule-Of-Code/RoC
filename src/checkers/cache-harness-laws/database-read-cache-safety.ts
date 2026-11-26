@@ -60,7 +60,8 @@ const TS_TESTS = [
   '**/__mocks__/**',
   '**/*.d.{ts,mts,cts}',
 ];
-const TS_FILES = ['**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}'];
+/** TS/JS, and a component's <script> (#607). */
+const TS_FILES = ['**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs,vue}'];
 
 /** A caching decorator, a cache class, or a dict / Map bound under a cache-like name. */
 export const READ_CACHE_FILES: readonly FileContaining[] = [
@@ -71,6 +72,7 @@ export const READ_CACHE_FILES: readonly FileContaining[] = [
   },
   {
     files: TS_FILES,
+    vueScript: true,
     pattern: String.raw`\bnew\s+LRUCache\b|\b(?:this\.)?#?\w*(?:cache|Cache|CACHE|memo|Memo|MEMO)\w*\s*(?:!?:[^=\n]+)?=\s*new\s+Map\b`,
     exclude: TS_TESTS,
   },
@@ -108,7 +110,7 @@ function referenceFiles(
     ),
     ...readFilesContaining(
       context.projectRoot,
-      { files: TS_FILES, pattern, exclude: TS_TESTS },
+      { files: TS_FILES, pattern, exclude: TS_TESTS, vueScript: true },
       ignores
     ),
   ];

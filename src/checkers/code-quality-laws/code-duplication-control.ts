@@ -15,6 +15,7 @@ import {
 } from '../../utils/react/tsx-source';
 import { CodeQualityLawBase } from './code-quality-law-base';
 import { type FunctionBody, functionBodies } from './function-bodies';
+import { parseInput } from '../../utils/vue/vue-sfc';
 
 /** Where one copy of a body is. */
 interface BodyOccurrence {
@@ -101,7 +102,7 @@ export class CodeDuplicationControlLaw extends CodeQualityLawBase {
     if (loadTypeScript(context.projectRoot)) return null;
     const files = CheckerUtils.findFilesByExtension(
       context.projectRoot,
-      CheckerUtils.getCommonExtensions().TYPESCRIPT,
+      [...CheckerUtils.getCommonExtensions().TYPESCRIPT, 'vue'],
       context.config
     );
     if (files.length === 0) return null;
@@ -135,9 +136,10 @@ export class CodeDuplicationControlLaw extends CodeQualityLawBase {
     if (!ts) return { violations, suggestions };
 
     const groups = new Map<string, BodyOccurrence[]>();
+    // .vue too: its script's function bodies (#607).
     const codeFiles = CheckerUtils.findFilesByExtension(
       projectRoot,
-      CheckerUtils.getCommonExtensions().TYPESCRIPT,
+      [...CheckerUtils.getCommonExtensions().TYPESCRIPT, 'vue'],
       config
     );
     for (const file of codeFiles) {
@@ -182,9 +184,11 @@ export class CodeDuplicationControlLaw extends CodeQualityLawBase {
     const minLines = quality?.minDuplicationLines ?? 5;
     const minTokens = quality?.minDuplicationTokens ?? 50;
     const minChars = quality?.minDuplicationBlockSize ?? 50;
+    // A .vue file is parsed as its script, by its lang (#607).
+    const input = parseInput(file, FileUtils.readFile(file));
     const source = ts.createSourceFile(
-      file,
-      FileUtils.readFile(file),
+      input.fileName,
+      input.text,
       ts.ScriptTarget.Latest,
       true
     );

@@ -274,6 +274,7 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
       'Only parameters annotated with a Raw* type token, and only a single property hop — p.data.items.map(), an aliased receiver, or an envelope typed without the Raw marker are false negatives (it stays silent on a project that does not use that naming).',
       'Reads RAW source (no comment/string stripping), so a p.items.map( inside a comment or string is a false positive.',
       LAYER_IS_CONFIGURABLE,
+      'A Vue single-file component (.vue) is read by its <script> and <script setup> blocks, at its own lines; its <template> and <style> are not read by this law (#607).',
     ],
     emoji: '🛟',
     description:
@@ -313,6 +314,7 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
       'HttpClient shape: the receiver is not verified to be HttpClient — any .get<T>() / .post<T>() matches (a builder, a typed Map), a wrapped generic .get<ApiResponse<Foo>>() is missed, and it reads RAW source, so a generic in a comment/string is flagged.',
       "fetch shape (syntax tree, the project's TypeScript): `(await r.json()) as T`, `r.json() as Promise<T>`, `... as unknown as T` and `const x: T = await r.json()`. Any zero-argument .json() call counts, whatever the receiver; a body passed through a helper before the cast is not followed. /Raw/ and unknown/any are allowed.",
       LAYER_IS_CONFIGURABLE,
+      'A Vue single-file component (.vue) is read by its <script> and <script setup> blocks, at its own lines; its <template> and <style> are not read by this law (#607).',
     ],
     emoji: '🎭',
     description:

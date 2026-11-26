@@ -40,7 +40,8 @@ export const REQUIRES_ASYNC_CODE: LawRequirement = {
       ],
     },
     {
-      files: ['**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}'],
+      // A component's <script> too, read by its script (#607).
+      files: ['**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs,vue}'],
       pattern: String.raw`\basync\s+(?:function\b|\(|[A-Za-z_$][\w$]*\s*(?:=>|\())`,
       exclude: [
         '**/*.{spec,test,e2e}.*',
@@ -49,6 +50,7 @@ export const REQUIRES_ASYNC_CODE: LawRequirement = {
         '**/*.d.{ts,mts,cts}',
         ...ONE_OFF_SCRIPT_GLOBS,
       ],
+      vueScript: true,
     },
   ],
 };
@@ -78,6 +80,7 @@ export const REQUEST_PATH_LAWS: EnhancedConstitutionalLaw[] = [
       'Independence is simple def-use: a later call depends on an earlier one when its statement reads a name (or attribute chain) the earlier statement bound, or both receive the same freshly created list/dict/Map. A dependency through shared object state (a method that mutates self, a module global) is not seen and can be reported as independent.',
       "A run is cut, never reported across, by any statement that is not a simple await (a guard, a branch, a plain computation), by a call whose name is a write or an ordered side effect (save, update, delete, commit, send, sleep, lock and the registry's write calls), by gather / Promise.all, by an await of a value that is not a call, by a statement that is only await call(…) (its result discarded: awaited for its effect, such as a guard that raises), and by a marked line (roc: sequential-ok with a reason). A function decorated as a transaction, passed to runTransaction / $transaction / transaction(), or taking a tx / transaction parameter is not judged.",
       'Selected only where some .py file has an async def, or some TS/JS file an async function, arrow or method (a text match, comments included, test files excluded, outside installed and built trees, at most eight levels deep; inside a git work tree only the files git publishes are read (tracked ones from the index when the working copy differs, untracked ones that are not ignored), so a git-ignored file — generated output, a local note — never selects it; outside git the disk is walked); a project without one does not get the law. The law parses exactly the files that selected it; ignores.global leaves the same files out of both. When the parse of those files finds no async function (the match was in a comment or a string), it reports judged nothing, not compliant.',
+      'A Vue single-file component (.vue) is read by its <script> and <script setup> blocks, at its own lines, both to select the law and to judge it; its <template> and <style> are not read (#607).',
     ],
     emoji: '⏱️',
     description:

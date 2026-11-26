@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — four accessibility laws read the template of .vue components (#607, P5)
+
+Explicit Button Type, Form Control Labeling, Disclosure Control ARIA State
+and Modal Dialog Accessibility read Angular `.html` templates and JSX. In a
+Vue project they judged nothing ("judged nothing", with the `.vue` note).
+They now read the `<template>` of `.vue` files, at the component's own
+lines, with Vue's bindings (`:type`, `v-bind:aria-expanded`) and events
+(`@click`, `v-on:click.stop`); markup written in the script is not markup.
+A Vue focus trap counts when it is named in
+`thresholds.accessibility.focusTrapTokens`. Each card says so.
+
+Accessibility Linting Enforcement still asks for Angular or JSX linter
+rules only; in a Vue project it judges nothing and says so.
+
+**Stricter** for Vue projects.
+
 ### 🐛 Fixed — No Layout Transition reads the `<style>` of .vue components (#607)
 
 No Layout Transition read `.scss` / `.css` files only. In a Vue project most

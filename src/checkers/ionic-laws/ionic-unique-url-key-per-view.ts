@@ -12,11 +12,16 @@
  * path are fine: their children carry the URLs.
  */
 
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import { FileUtils } from '../../utils/file-utils';
 import { IonicProject } from '../../utils/ionic/ionic-project';
 import { PathOperations } from '../../utils/path-operations';
 import { TsClasses } from '../../utils/ts-classes';
+import { withViolationDetails } from '../../utils/violation-details';
 import { LawBase } from '../law-base';
 
 /** An array literal that holds routes: typed `Routes`, a `children:` list, or `RouterModule.forX([`. */
@@ -41,14 +46,16 @@ export class IonicUniqueUrlKeyPerViewLaw extends LawBase {
       return IonicProject.withoutOutlet(this.LAW_NAME, context);
     }
     const violations: string[] = [];
+    // Each route behind a count, at its line (#43).
+    const details: ViolationDetail[] = [];
     for (const file of IonicProject.sourceFiles(context)) {
       if (!file.endsWith('.ts')) continue;
       const content = FileUtils.readFileContentSync(file) ?? '';
       if (!/\bpath\s*:/.test(content)) continue;
       const where = PathOperations.getRelative(context.projectRoot, file);
-      violations.push(...this.checkFile(where, content));
+      violations.push(...this.checkFile(where, content, details));
     }
-    return this.createResult(
+    const result = this.createResult(
       violations,
       this.LAW_NAME,
       'FRAMEWORK',
@@ -58,9 +65,14 @@ export class IonicUniqueUrlKeyPerViewLaw extends LawBase {
       ],
       context
     );
+    return withViolationDetails(result, details);
   }
 
-  static checkFile(where: string, content: string): string[] {
+  static checkFile(
+    where: string,
+    content: string,
+    details: ViolationDetail[] = []
+  ): string[] {
     const code = TsClasses.mask(content, 'commentsAndStrings');
     const violations: string[] = [];
     for (const match of code.matchAll(ROUTE_ARRAY)) {
@@ -74,21 +86,30 @@ export class IonicUniqueUrlKeyPerViewLaw extends LawBase {
           TsClasses.lineAt(content, entry.start),
         ]);
       }
-      violations.push(...this.collisions(where, byPath));
+      violations.push(...this.collisions(where, byPath, details));
     }
     return violations;
   }
 
   private static collisions(
     where: string,
-    byPath: Map<string, number[]>
+    byPath: Map<string, number[]>,
+    details: ViolationDetail[]
   ): string[] {
-    return [...byPath]
-      .filter(([, lines]) => lines.length > 1)
-      .map(
-        ([path, lines]) =>
-          `${where}:${lines[0]}: ${lines.length} routes render a component at path '${path}' (lines ${lines.join(', ')}) — ion-router-outlet keys held views by URL, so it re-attaches whichever page it already holds there. Give each view its own URL`
+    const colliding = [...byPath].filter(([, lines]) => lines.length > 1);
+    for (const [path, lines] of colliding) {
+      details.push(
+        ...lines.map(line => ({
+          file: where,
+          line,
+          message: `route renders a component at path '${path}' — one of ${lines.length}`,
+        }))
       );
+    }
+    return colliding.map(
+      ([path, lines]) =>
+        `${where}:${lines[0]}: ${lines.length} routes render a component at path '${path}' (lines ${lines.join(', ')}) — ion-router-outlet keys held views by URL, so it re-attaches whichever page it already holds there. Give each view its own URL`
+    );
   }
 
   /**

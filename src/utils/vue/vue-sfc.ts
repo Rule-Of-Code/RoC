@@ -117,6 +117,14 @@ export function scriptView(text: string): string {
   );
 }
 
+/** The `<style>` blocks of an SFC (any `lang`), at their offsets in the file. */
+export function styleView(text: string): string {
+  return viewOf(
+    text,
+    sfcBlocks(text).filter(block => block.kind === 'style')
+  );
+}
+
 /** The top-level `<template>` of an SFC, at its offsets in the file. */
 export function templateView(text: string): string {
   return viewOf(
@@ -166,6 +174,11 @@ export function parseInput(
 /** The script text a regex-reading law judges: a `.vue` file's script view, or the file. */
 export function scriptText(file: string, text: string): string {
   return isVueFile(file) ? scriptView(text) : text;
+}
+
+/** The stylesheet a style-reading law judges: a `.vue` file's style view, or the file. */
+export function styleText(file: string, text: string): string {
+  return isVueFile(file) ? styleView(text) : text;
 }
 
 /** The markup a template-reading law judges: a `.vue` file's template view, or the file. */

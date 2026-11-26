@@ -16,7 +16,11 @@
  */
 
 import type * as TS from 'typescript';
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import {
   isAsync,
   isFunctionLike,
@@ -56,8 +60,12 @@ export class NextServerActionAuthorizesLaw extends LawBase {
       ...this.moduleActions(source),
       ...this.inlineActions(source),
     ]);
+    const fileOf = (action: Action): string =>
+      graph ? graph.relative(action.source.fileName) : action.source.fileName;
     const where = (action: Action): string =>
-      `${graph ? graph.relative(action.source.fileName) : action.source.fileName}:${action.line}`;
+      `${fileOf(action)}:${action.line}`;
+    // Each action behind the count, at its line (#43).
+    const details: ViolationDetail[] = [];
     if (
       actions.length > 0 &&
       !guards.value?.length &&
@@ -65,6 +73,13 @@ export class NextServerActionAuthorizesLaw extends LawBase {
     ) {
       violations.push(
         `${actions.length} Server Action(s) (${listed(actions.map(a => `${where(a)} ${a.name}`))}) and no ${GUARD_KEY} — the law cannot tell an authorization call from any other. Declare the guard functions your actions call`
+      );
+      details.push(
+        ...actions.map(a => ({
+          file: fileOf(a),
+          line: a.line,
+          message: `Server Action '${a.name}' — no ${GUARD_KEY} is declared`,
+        }))
       );
     } else if (guards.value?.length) {
       for (const action of actions) {
@@ -75,7 +90,7 @@ export class NextServerActionAuthorizesLaw extends LawBase {
           );
       }
     }
-    return this.createResult(
+    const result = this.createResult(
       violations,
       this.LAW_NAME,
       'SECURITY',
@@ -85,6 +100,8 @@ export class NextServerActionAuthorizesLaw extends LawBase {
       ],
       context
     );
+    if (details.length > 0) result.violationDetails = details;
+    return result;
   }
 
   /** The async exports of a `'use server'` module. */

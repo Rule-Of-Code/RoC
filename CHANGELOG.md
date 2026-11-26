@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Professional Component Testing Policy reads Vue components (#12)
+
+On a Vue project, Professional Component Testing Policy found "no component
+files" and judged nothing, whatever tests the project had. It carried the
+".vue not read" note. Vue single-file components are now components:
+
+- Each non-test `.vue` file is paired with `X.spec.ts` / `X.test.ts` beside
+  it, or in `__tests__/` beside it, the layout create-vue generates.
+- A Vue test counts as a quality test when it has at least two tests,
+  asserts with `expect(`, and mounts the component through @vue/test-utils
+  (`mount`, `shallowMount`) or @testing-library/vue (`render`), imported from
+  that package.
+- Each component without a test, and each test below that bar, is one entry
+  in `violationDetails`, as for React (#43).
+
+The React and Vue findings share one helper, and the React output is
+unchanged. The law no longer carries the ".vue not read" note. Proved on
+create-vue apps: the default app (11 components, one spec with one test)
+and a bare app with a two-test spec. Develop judged nothing on both.
+
 ### ✨ Added — testing laws name every file they counted (#43, testing)
 
 Six testing laws said how many, or named the first few ("…; and N more",

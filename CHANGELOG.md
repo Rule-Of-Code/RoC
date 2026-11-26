@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ Added — accessibility laws name each control they counted (#43, accessibility)
+
+Three accessibility laws count controls on one line ("2 form control(s)
+without an accessible label … at lines 2, 3", "aria-expanded on
+<ion-button> line 6 …"). Each control is now one entry in
+`violationDetails`, with its file and line, in templates and in JSX:
+
+- **Explicit Button Type**: each `<button>` without a type, and each
+  `<button {...spread}>` with none written.
+- **Form Control Labeling**: each unnamed native control, each unnamed Ionic
+  control, each JSX `id` no `htmlFor` points at, each control with a spread
+  and no label.
+- **Disclosure Control ARIA State**: each toggle without `aria-expanded`, each
+  Ionic toggle whose `aria-expanded` does not follow the state, each toggle
+  with a spread.
+
+The violation lines, verdicts and scores are unchanged. Nothing new is
+searched for.
+
 ### ✨ Added — performance laws name every file they could not read (#43)
 
 Six performance laws report what they could not read as "Source/config NOT

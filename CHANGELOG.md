@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — laws not about components say so; XSS reads a component's script (#607)
+
+- **No ".vue not read" note where components are not the subject.** Eleven
+  laws read test files, test or perf configuration, or file names, and a Vue
+  project writes those as `.ts` / `.js` too. Their ".vue single-file
+  components were not read" note was noise. Each now declares it on its card
+  (`notAboutComponents`, the reason also in its detection limits), and the
+  engine gives it no note. The laws: API Security Testing Requirements, API
+  Testing Standards, Comprehensive Security Testing Requirements, Perf
+  Harness Matches Production, Performance Test Requirements, Project
+  Structure Standards, Test Data Management, Test Documentation Requirements,
+  Test Isolation Enforcement, Test Server Loopback Address Match, Unit Test
+  Quality Standards. Every other law that does not read `.vue` keeps the
+  note.
+- **Angular Security XSS Prevention Policy** reads the `<script>` of `.vue`
+  files: an `innerHTML` assignment, `document.write` or `eval` there is
+  reported at its line. Vue template `v-html` and `:href` bindings are not
+  read, and the card says so.
+- **Accessibility Linting Enforcement**: its card says that a Vue-only
+  project is not judged (no rule set for Vue templates); it still judges
+  nothing there and says so.
+
 ### ✨ Added — Ionic and Capacitor laws name what they counted (#43, ionic / capacitor)
 
 Five laws said how many, or named the first and "N more". Each law already

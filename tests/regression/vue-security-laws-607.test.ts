@@ -10,6 +10,7 @@
 import { NoHostnameGatingLaw } from '../../src/checkers/fe-architecture-laws/no-hostname-gating';
 import { AuthenticationSecurityLaw } from '../../src/checkers/security-laws/authentication-security';
 import { DataEncryptionStandardsLaw } from '../../src/checkers/security-laws/data-encryption-standards';
+import { EnvironmentParityStandardsLaw } from '../../src/checkers/deployment-laws/environment-parity-standards';
 import { EnvironmentSecurityEnforcementLaw } from '../../src/checkers/security-laws/environment-security-enforcement';
 import { ApiSecurityStandardsLaw } from '../../src/laws/security/api-security-standards';
 import type { LawCheckContext, LawResult } from '../../src/types/law.types';
@@ -41,7 +42,26 @@ const LOGIN = [
   '',
 ].join('\n');
 
-function vueProject(): string {
+/**
+ * A decoy: the same code as text in the template and the style only; the
+ * script holds nothing a law looks for.
+ */
+const DECOY = [
+  '<template>',
+  "  <pre>const hash = CryptoJS.MD5(password).toString(); localStorage.setItem('token', token);</pre>",
+  "  <p>if (process.env.NODE_ENV === 'production') fetch('https://api.myshop.io/v1')</p>",
+  '</template>',
+  '<script setup lang="ts">',
+  'const shown = 1;',
+  'void shown;',
+  '</script>',
+  '<style>',
+  '.x::after { content: "localStorage.setItem(\'token\', t) CryptoJS.MD5(password)"; }',
+  '</style>',
+  '',
+].join('\n');
+
+function vueProject(component = LOGIN): string {
   return project({
     'package.json': JSON.stringify({
       name: 'app',
@@ -51,14 +71,17 @@ function vueProject(): string {
     }),
     'src/main.ts':
       "import { createApp } from 'vue';\nexport const app = createApp;\n",
-    [COMPONENT]: LOGIN,
+    [COMPONENT]: component,
   });
 }
 
 async function judge(
-  check: (c: LawCheckContext) => LawResult | Promise<LawResult>
+  check: (c: LawCheckContext) => LawResult | Promise<LawResult>,
+  component = LOGIN
 ): Promise<{ violations: string[]; unread: boolean }> {
-  const { value, scope } = await runLawScope(() => check(ctx(vueProject())));
+  const { value, scope } = await runLawScope(() =>
+    check(ctx(vueProject(component)))
+  );
   return {
     violations: value.violations ?? [],
     unread: vueNotReadNote(scope, [COMPONENT]) !== null,
@@ -122,5 +145,53 @@ describe('#607 P4 security laws read .vue components by their script', () => {
       ])
     );
     expect(r.unread).toBe(false);
+  });
+
+  it('Environment Parity Standards: process.env.NODE_ENV in the script is environment detection', async () => {
+    const withRead = LOGIN.replace(
+      "if (location.hostname === 'localhost') console.log('dev');",
+      "if (process.env.NODE_ENV === 'production') console.log('prod');"
+    );
+    const r = await judge(
+      c => EnvironmentParityStandardsLaw.check(c),
+      withRead
+    );
+    expect(r.violations).not.toContain('No proper environment detection found');
+    expect(r.unread).toBe(false);
+  });
+});
+
+describe('#607 P4 code-like text in a component template or style is not code', () => {
+  it('Authentication Security: MD5(password) and the token in localStorage, only as template/style text, are not findings', async () => {
+    const r = await judge(c => AuthenticationSecurityLaw.check(c), DECOY);
+    expect(r.violations).not.toContain('Insecure password handling detected');
+    expect(r.violations).not.toContain('Insecure session storage detected');
+  });
+
+  it('Data Encryption Standards: no weak hash and no browser storage from template/style text', async () => {
+    const r = await judge(c => DataEncryptionStandardsLaw.check(c), DECOY);
+    expect(
+      r.violations.filter(v =>
+        /Weak encryption algorithm|sensitive data in browser storage/.test(v)
+      )
+    ).toEqual([]);
+  });
+
+  it('API Security Standards: no token storage finding from template/style text', async () => {
+    const r = await judge(c => ApiSecurityStandardsLaw.check(c), DECOY);
+    expect(r.violations.filter(v => /localStorage/.test(v))).toEqual([]);
+  });
+
+  it('Environment Security Enforcement: a URL in the template is not hardcoded in code', async () => {
+    const r = await judge(
+      c => EnvironmentSecurityEnforcementLaw.check(c),
+      DECOY
+    );
+    expect(r.violations.filter(v => /myshop\.io/.test(v))).toEqual([]);
+  });
+
+  it('Environment Parity Standards: process.env in the template is not environment detection', async () => {
+    const r = await judge(c => EnvironmentParityStandardsLaw.check(c), DECOY);
+    expect(r.violations).toContain('No proper environment detection found');
   });
 });

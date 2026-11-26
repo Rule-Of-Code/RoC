@@ -7,13 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### 🐛 Fixed — five security laws read .vue single-file components (#607, P4)
+### 🐛 Fixed — six security and environment laws read .vue single-file components (#607, P4)
 
 No Hostname Gating, Authentication Security, Data Encryption Standards,
-Environment Security Enforcement and API Security Standards (its
-authentication check) read `.vue` files by their `<script>` /
-`<script setup>`, at the component's own lines; text in the template that
-looks like code is not code. In a Vue project whose login lives in a
+Environment Security Enforcement, Environment Parity Standards and API
+Security Standards (its authentication check) read `.vue` files by their
+`<script>` /
+`<script setup>`, at the component's own lines; text in the template or
+the style that looks like code is not code (the shared code view the
+security patterns run over reads a component's script only). In a Vue project whose login lives in a
 component, Authentication Security and API Security Standards no longer say
 "No authentication service implementation found", and the findings about
 that login (MD5 of a password, a token in `localStorage`, no token refresh,

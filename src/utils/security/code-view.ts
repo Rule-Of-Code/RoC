@@ -25,6 +25,7 @@
  */
 import type * as TS from 'typescript';
 import { readSource } from '../../checkers/code-quality-laws/source-view';
+import { scriptText } from '../vue/vue-sfc';
 
 /** The views of one file. */
 export interface CodeView {
@@ -148,13 +149,17 @@ export function readCodeView(
   // are put back, since an import is code.
   const view = readSource(ts, content, fileName);
   const { source } = view;
+  // A .vue file is judged by its script view, at the file's offsets: the
+  // parse already reads only the script, and so must the text the patterns
+  // run over — the template and the style are not code (#607).
+  const text = scriptText(fileName, content);
   const literals: Range[] = [];
   const strings: TS.StringLiteralLike[] = [];
   const code = view.code.split('');
   const visit = (node: TS.Node): void => {
     if (isModuleSpecifier(ts, node)) {
       for (let i = node.getStart(source); i < node.getEnd(); i++)
-        code[i] = content[i] ?? ' ';
+        code[i] = text[i] ?? ' ';
       return;
     }
     if (isTextToken(ts, node)) {
@@ -168,7 +173,7 @@ export function readCodeView(
   visit(source);
 
   const commentless = blanked(
-    content,
+    text,
     view.comments.map(c => ({ start: c.start, end: c.start + c.text.length }))
   );
   const inLiteral = (offset: number): boolean =>

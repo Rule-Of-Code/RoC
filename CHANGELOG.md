@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — three more laws read .vue single-file components (#607, P3b)
+
+Defensive Array Coercion and No Passthrough Cast scan `.vue` files in the
+data-access layer and read their `<script>` / `<script setup>`; a finding is
+reported at its line in the component, and text in the template that looks
+like code is not code. Guard Function Has Production Caller reads the script
+of `.vue` files too: a guard that only a component calls now has a
+production caller (it was reported as having none). Each card says `.vue`
+is read by its script only.
+
+**Stricter** for the two FE-architecture laws in Vue projects; one false
+finding fewer for the guard law.
+
 ### 📦 Adds a runtime dependency: `typescript` ^5.9.3 (~24 MB); a project's own `typescript` is never shadowed (#667)
 
 `typescript` moves from `devDependencies` to `dependencies` (^5.9.3, 23.6 MB

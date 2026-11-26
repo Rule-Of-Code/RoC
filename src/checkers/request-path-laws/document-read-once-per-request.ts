@@ -18,6 +18,7 @@ import {
   scanDuplicateReads,
 } from '../../utils/request-path/duplicate-reads';
 import { projectSources } from '../../utils/request-path/sources';
+import { withViolationDetails } from '../../utils/violation-details';
 import { LawBase } from '../law-base';
 import { requestPathResult } from './request-path-result';
 
@@ -34,7 +35,15 @@ export class DocumentReadOncePerRequestLaw extends LawBase {
       sources.modules,
       declaredClients(context.projectRoot)
     );
-    return requestPathResult({
+    // Every read behind a document's count, at its line (#43).
+    const details = duplicates.flatMap(dup =>
+      dup.sites.map(site => ({
+        file: site.rel,
+        line: site.line,
+        message: `${dup.document} read in ${site.function}()${site.via ? ` (called at ${site.via.rel}:${site.via.line})` : ''} — one of ${dup.sites.length} reads while serving ${dup.handler}()`,
+      }))
+    );
+    const result = requestPathResult({
       lawName: this.LAW_NAME,
       context,
       sources,
@@ -50,5 +59,6 @@ export class DocumentReadOncePerRequestLaw extends LawBase {
           : `${keyedReads} keyed document read(s) compared, no document read twice in one request`,
       notSeen: NOT_SEEN,
     });
+    return withViolationDetails(result, details);
   }
 }

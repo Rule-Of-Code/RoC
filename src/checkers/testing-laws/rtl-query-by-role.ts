@@ -21,7 +21,8 @@ import { ReactProject } from '../../utils/react/react-project';
 import type { TsxSource } from '../../utils/react/tsx-source';
 import { TestSources } from '../../utils/testing/test-sources';
 import { LawBase } from '../law-base';
-import { shareSummary, type FileCount } from './query-share';
+import { shareDetails, shareSummary, type FileCount } from './query-share';
+import { withViolationDetails } from '../../utils/violation-details';
 
 const RTL = '@testing-library/react';
 
@@ -82,7 +83,7 @@ export class RtlQueryByRoleLaw extends LawBase {
     });
     if (verdict) violations.push(verdict);
 
-    return this.createResult(
+    const result = this.createResult(
       violations,
       this.LAW_NAME,
       'TESTING',
@@ -91,6 +92,11 @@ export class RtlQueryByRoleLaw extends LawBase {
         'Keep getByTestId for elements with no accessible role, label or text',
       ],
       context
+    );
+    // Every file behind the five the verdict names (#43).
+    return withViolationDetails(
+      result,
+      verdict ? shareDetails(byFile, 'ByTestId/querySelector') : []
     );
   }
 

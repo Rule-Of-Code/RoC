@@ -25,7 +25,11 @@ import * as fs from 'fs';
 import { minimatch } from 'minimatch';
 import * as path from 'path';
 import type * as TS from 'typescript';
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import {
   relativePath,
   trackedFiles,
@@ -35,6 +39,7 @@ import {
   parserUnavailable,
   type TypeScriptModule,
 } from '../../utils/react/tsx-source';
+import { withViolationDetails } from '../../utils/violation-details';
 import { LawBase } from '../law-base';
 
 /** Exclude entries naming one of these are dependency or build output, not code. */
@@ -88,8 +93,10 @@ export class TsconfigExcludeLeavesCodeUntypedLaw extends LawBase {
   static readonly LAW_NAME = 'Tsconfig Exclude Leaves Code Untyped';
 
   static check(context: LawCheckContext): LawResult {
-    return this.createResult(
-      this.findings(context.projectRoot),
+    // Every file behind "N file(s) (a, b, c, …)" (#43).
+    const details: ViolationDetail[] = [];
+    const result = this.createResult(
+      this.findings(context.projectRoot, details),
       this.LAW_NAME,
       'CODE_QUALITY',
       [
@@ -98,9 +105,13 @@ export class TsconfigExcludeLeavesCodeUntypedLaw extends LawBase {
       ],
       context
     );
+    return withViolationDetails(result, details);
   }
 
-  private static findings(root: string): string[] {
+  private static findings(
+    root: string,
+    details: ViolationDetail[] = []
+  ): string[] {
     const ts = loadTypeScript(root);
     if (!ts)
       return [
@@ -127,7 +138,7 @@ export class TsconfigExcludeLeavesCodeUntypedLaw extends LawBase {
     const resolved = this.resolveAll(ts, root, configFiles, findings);
     const covered = this.covered(ts, resolved);
     for (const config of resolved) {
-      findings.push(...this.uncovered(root, config, sources, covered));
+      findings.push(...this.uncovered(root, config, sources, covered, details));
     }
     return findings;
   }
@@ -264,7 +275,8 @@ export class TsconfigExcludeLeavesCodeUntypedLaw extends LawBase {
     root: string,
     config: ResolvedConfig,
     sources: string[],
-    covered: Set<string>
+    covered: Set<string>,
+    details: ViolationDetail[]
   ): string[] {
     const exclude = config.raw.exclude;
     if (exclude === undefined) return [];
@@ -286,6 +298,12 @@ export class TsconfigExcludeLeavesCodeUntypedLaw extends LawBase {
       const sample = missing
         .slice(0, SAMPLE)
         .map(file => relativePath(root, file));
+      details.push(
+        ...missing.map(file => ({
+          file: relativePath(root, file),
+          message: `in no tsconfig: left out by exclude "${entry}" in ${where}`,
+        }))
+      );
       findings.push(
         `${where}: exclude "${entry}" leaves ${missing.length} TypeScript file(s) in no tsconfig (${sample.join(', ')}${missing.length > SAMPLE ? ', …' : ''}) — a green tsc says nothing about them`
       );

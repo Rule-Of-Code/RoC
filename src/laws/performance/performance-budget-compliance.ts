@@ -1,8 +1,13 @@
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import { withViolationDetails } from '../../utils/violation-details';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import { PerformanceBudgetGates } from '../../utils/performance-budget-gates';
 import {
   ReactPerformanceSource,
-  unreadViolation,
+  pushUnread,
 } from '../../utils/react/react-performance-source';
 import { WorkspaceManifests } from '../../utils/workspace-manifests';
 import { PerformanceBudgetComplianceCheckConstants } from './performance-budget-compliance/constants';
@@ -101,27 +106,35 @@ export class PerformanceBudgetComplianceLaw {
     }
 
     // 2-4. Bundle size monitoring, the gate that runs it, production monitoring.
+    // Every file behind a "NOT read … (+N more)" line (#43).
+    const details: ViolationDetail[] = [];
     score = this.monitoringFindings(
       context,
       { angularBudgets, webpackPerformance, sizeLimit, budgetsNotRead },
       violations,
       suggestions,
-      score
+      score,
+      details
     );
 
-    return Promise.resolve({
-      passed: violations.length === 0,
-      score: Math.max(0, score),
-      message:
-        violations.length === 0
-          ? 'Performance budget compliance fully implemented'
-          : `Performance budget violations found: ${violations.join(', ')}`,
-      details: violations,
-      violations,
-      suggestions,
-      fixable: true,
-      config: context.config,
-    });
+    return Promise.resolve(
+      withViolationDetails(
+        {
+          passed: violations.length === 0,
+          score: Math.max(0, score),
+          message:
+            violations.length === 0
+              ? 'Performance budget compliance fully implemented'
+              : `Performance budget violations found: ${violations.join(', ')}`,
+          details: violations,
+          violations,
+          suggestions,
+          fixable: true,
+          config: context.config,
+        },
+        details
+      )
+    );
   }
 
   /**
@@ -138,7 +151,8 @@ export class PerformanceBudgetComplianceLaw {
     },
     violations: string[],
     suggestions: string[],
-    score: number
+    score: number,
+    details: ViolationDetail[]
   ): number {
     const { projectRoot, config } = context;
     const analyzer = PerformanceBudgetComplianceAnalyzerService;
@@ -193,7 +207,7 @@ export class PerformanceBudgetComplianceLaw {
 
     // React source the scan could not read was not inspected.
     if (react.unread.length > 0) {
-      violations.push(unreadViolation(react.unread));
+      pushUnread(violations, details, react.unread);
       remaining -= deduct('MONITORING');
     }
     return remaining;

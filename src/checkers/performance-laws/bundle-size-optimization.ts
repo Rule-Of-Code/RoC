@@ -3,11 +3,13 @@
  * BundleSizeAnalyzer: Ensures bundle size stays within performance limits
  */
 
+import { withViolationDetails } from '../../utils/violation-details';
 import { BundleOptimizationConstants } from '../../laws/performance/performance-standards/constants/bundle-optimization.constants';
 import type {
   LawCheckContext,
   LawResult,
   RuleOfCodeConfig,
+  ViolationDetail,
 } from '../../types/law.types';
 import { AngularBundleConfig } from '../../utils/angular-bundle-config';
 import { CheckerUtils } from '../../utils/checker-utils';
@@ -19,7 +21,7 @@ import { JsConfigSource } from '../../utils/react/js-config-source';
 import {
   type ReactPerformanceEvidence,
   ReactPerformanceSource,
-  unreadViolation,
+  pushUnread,
 } from '../../utils/react/react-performance-source';
 import type { TsxSource } from '../../utils/react/tsx-source';
 import {
@@ -64,18 +66,21 @@ export class BundleSizeOptimizationLaw {
   static check(context: LawCheckContext): LawResult {
     const violations: string[] = [];
     const suggestions: string[] = [];
+    // Every file behind a "NOT read … (+N more)" line (#43).
+    const details: ViolationDetail[] = [];
     const bundler = WebBundlerConfig.inspect(context.projectRoot);
 
     // Check for bundle optimization configuration
     const optimizationAnalysis = this.checkBundleOptimizationConfig(
       context.projectRoot,
-      bundler
+      bundler,
+      details
     );
     violations.push(...optimizationAnalysis.violations);
     suggestions.push(...optimizationAnalysis.suggestions);
 
     // Check for large bundle indicators
-    const bundleAnalysis = this.checkBundleSize(context);
+    const bundleAnalysis = this.checkBundleSize(context, details);
     violations.push(...bundleAnalysis.violations);
     suggestions.push(...bundleAnalysis.suggestions);
 
@@ -84,21 +89,24 @@ export class BundleSizeOptimizationLaw {
     violations.push(...reportAnalysis.violations);
     suggestions.push(...reportAnalysis.suggestions);
 
-    return {
-      passed: violations.length === 0,
-      message:
-        violations.length === 0
-          ? 'Bundle size optimization compliance verified'
-          : `BundleSizeAnalyzer: ${violations.length} bundle size optimization violations found`,
-      violations,
-      suggestions,
-      score:
-        violations.length === 0
-          ? 100
-          : Math.max(0, 100 - violations.length * 10),
-      fixable: violations.length > 0,
-      config: context.config,
-    };
+    return withViolationDetails(
+      {
+        passed: violations.length === 0,
+        message:
+          violations.length === 0
+            ? 'Bundle size optimization compliance verified'
+            : `BundleSizeAnalyzer: ${violations.length} bundle size optimization violations found`,
+        violations,
+        suggestions,
+        score:
+          violations.length === 0
+            ? 100
+            : Math.max(0, 100 - violations.length * 10),
+        fixable: violations.length > 0,
+        config: context.config,
+      },
+      details
+    );
   }
 
   /**
@@ -119,7 +127,8 @@ export class BundleSizeOptimizationLaw {
    */
   private static checkBundleOptimizationConfig(
     projectRoot: string,
-    bundler: BundlerReport
+    bundler: BundlerReport,
+    details: ViolationDetail[]
   ): Findings {
     const violations: string[] = [];
     const suggestions: string[] = [];
@@ -140,7 +149,7 @@ export class BundleSizeOptimizationLaw {
       return { violations, suggestions };
     }
 
-    if (unread.length > 0) violations.push(unreadViolation(unread));
+    if (unread.length > 0) pushUnread(violations, details, unread);
     violations.push(this.VALIDATION_MESSAGES.NO_OPTIMIZATION_CONFIG);
     suggestions.push(
       this.VALIDATION_MESSAGES.NO_OPTIMIZATION_CONFIG_SUGGESTION
@@ -192,7 +201,10 @@ export class BundleSizeOptimizationLaw {
     );
   }
 
-  private static checkBundleSize(context: LawCheckContext): Findings {
+  private static checkBundleSize(
+    context: LawCheckContext,
+    details: ViolationDetail[]
+  ): Findings {
     const violations: string[] = [];
     const suggestions: string[] = [];
 
@@ -210,7 +222,7 @@ export class BundleSizeOptimizationLaw {
     const react: ReactPerformanceEvidence =
       ReactPerformanceSource.scan(context);
     if (react.dynamicImports.length > 0) return { violations, suggestions };
-    if (react.unread.length > 0) violations.push(unreadViolation(react.unread));
+    if (react.unread.length > 0) pushUnread(violations, details, react.unread);
 
     violations.push(
       this.VALIDATION_MESSAGES.HEAVY_LIBS_NO_LAZY_LOADING.replace(

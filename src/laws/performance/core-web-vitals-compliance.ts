@@ -3,10 +3,15 @@
  * Ensures application meets Google's Core Web Vitals standards
  */
 
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import { withViolationDetails } from '../../utils/violation-details';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import { CoreWebVitalsPerformanceChecksConstants as Checks } from './core-web-vitals-compliance/constants/performance-checks';
 import { CoreWebVitalsAnalyzerService } from './core-web-vitals-compliance/services/analyzer.service';
-import { unreadViolation } from '../../utils/react/react-performance-source';
+import { pushUnread } from '../../utils/react/react-performance-source';
 
 export class CoreWebVitalsComplianceLaw {
   static async check(context: LawCheckContext): Promise<LawResult> {
@@ -64,23 +69,30 @@ export class CoreWebVitalsComplianceLaw {
 
     // Source or config the analysis needed and could not read was not
     // inspected — its absence must not read as compliance.
+    // Every file behind the "NOT read … (+N more)" line (#43).
+    const details: ViolationDetail[] = [];
     if (analysis.unread && analysis.unread.length > 0) {
-      violations.push(unreadViolation(analysis.unread));
+      pushUnread(violations, details, analysis.unread);
       score -= Checks.SCORE_DEDUCTIONS.RESOURCE_HINTS_MISSING;
     }
 
-    return Promise.resolve({
-      passed: violations.length === 0,
-      score: Math.max(0, score),
-      message:
-        violations.length === 0
-          ? 'Core Web Vitals compliance properly configured'
-          : `Core Web Vitals compliance issues found: ${violations.join(', ')}`,
-      details: [...violations, ...suggestions],
-      violations,
-      suggestions,
-      fixable: true,
-      config: context.config,
-    });
+    return Promise.resolve(
+      withViolationDetails(
+        {
+          passed: violations.length === 0,
+          score: Math.max(0, score),
+          message:
+            violations.length === 0
+              ? 'Core Web Vitals compliance properly configured'
+              : `Core Web Vitals compliance issues found: ${violations.join(', ')}`,
+          details: [...violations, ...suggestions],
+          violations,
+          suggestions,
+          fixable: true,
+          config: context.config,
+        },
+        details
+      )
+    );
   }
 }

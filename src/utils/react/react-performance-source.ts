@@ -29,7 +29,11 @@
  */
 
 import type * as TS from 'typescript';
-import type { LawCheckContext, RuleOfCodeConfig } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  RuleOfCodeConfig,
+  ViolationDetail,
+} from '../../types/law.types';
 import { WorkspaceManifests } from '../workspace-manifests';
 import { ReactProject } from './react-project';
 import {
@@ -137,6 +141,30 @@ export function unreadViolation(unread: readonly string[]): string {
   const shown = unread.slice(0, 5).join('; ');
   const more = unread.length > 5 ? ` (+${unread.length - 5} more)` : '';
   return `Source/config NOT read, so it could not be checked: ${shown}${more}`;
+}
+
+/**
+ * Every entry behind unreadViolation as a detail (#43): `rel: reason` gives
+ * the file; an entry that names no single file (`3 file(s): …`) has none.
+ */
+export function unreadDetails(unread: readonly string[]): ViolationDetail[] {
+  return unread.map(entry => {
+    const at = entry.indexOf(': ');
+    const file = at > 0 ? entry.slice(0, at) : '';
+    return file && !/\s/.test(file)
+      ? { file, message: `NOT read: ${entry.slice(at + 2)}` }
+      : { message: `NOT read: ${entry}` };
+  });
+}
+
+/** The unread violation, and every unread entry as a detail (#43). */
+export function pushUnread(
+  violations: string[],
+  details: ViolationDetail[],
+  unread: readonly string[]
+): void {
+  violations.push(unreadViolation(unread));
+  details.push(...unreadDetails(unread));
 }
 
 /**

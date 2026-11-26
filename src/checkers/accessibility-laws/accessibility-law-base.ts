@@ -6,7 +6,11 @@
  * never passed.
  */
 
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import { CheckerUtils } from '../../utils/checker-utils';
 import { FileSystemOperations } from '../../utils/file-system-operations';
 import { PathOperations } from '../../utils/path-operations';
@@ -111,6 +115,29 @@ export abstract class AccessibilityLawBase {
   /** "lines 3, 7" — where in a file the findings are. */
   protected static lines(lines: number[]): string {
     return `line${lines.length === 1 ? '' : 's'} ${lines.join(', ')}`;
+  }
+
+  /** One detail per line behind a count (#43). */
+  protected static lineDetails(
+    file: string,
+    lines: readonly number[],
+    message: string
+  ): ViolationDetail[] {
+    return lines.map(line => ({ file, line, message }));
+  }
+
+  /** One detail per "<label> line N" item of a listed finding (#43). */
+  protected static labelledDetails(
+    file: string,
+    items: readonly string[],
+    message: (label: string) => string
+  ): ViolationDetail[] {
+    return items.map(item => {
+      const at = /^(.*) line (\d+)$/.exec(item);
+      return at?.[1] && at[2]
+        ? { file, line: Number(at[2]), message: message(at[1]) }
+        : { file, message: message(item) };
+    });
   }
 
   protected static createResult(

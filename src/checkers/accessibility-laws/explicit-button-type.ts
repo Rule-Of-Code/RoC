@@ -13,7 +13,12 @@
  * the latent submit this law guards against does not exist for them.
  */
 
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
+import { withViolationDetails } from '../../utils/violation-details';
 import { AccessibilityLawBase } from './accessibility-law-base';
 import { JsxSources } from './jsx-sources';
 import { TemplateMarkup } from './template-markup';
@@ -24,6 +29,8 @@ export class ExplicitButtonTypeLaw extends AccessibilityLawBase {
   static check(context: LawCheckContext): LawResult {
     const { templates, unread } = this.readTemplates(context);
     const violations: string[] = [...unread];
+    // Each button behind a count, at its line (#43).
+    const details: ViolationDetail[] = [];
 
     for (const template of templates) {
       const missing = template.document.elements
@@ -33,11 +40,18 @@ export class ExplicitButtonTypeLaw extends AccessibilityLawBase {
         violations.push(
           `${template.relative}: ${missing.length} <button> without an explicit type (${DEFAULTS_TO_SUBMIT}) at ${this.lines(missing)} — add type="button" (or submit/reset).`
         );
+        details.push(
+          ...this.lineDetails(
+            template.relative,
+            missing,
+            '<button> without an explicit type (defaults to submit)'
+          )
+        );
       }
     }
-    violations.push(...this.checkJsx(context));
+    violations.push(...this.checkJsx(context, details));
 
-    return this.createResult(
+    const result = this.createResult(
       violations,
       'Explicit Button Type',
       [
@@ -49,9 +63,13 @@ export class ExplicitButtonTypeLaw extends AccessibilityLawBase {
       ],
       context
     );
+    return withViolationDetails(result, details);
   }
 
-  private static checkJsx(context: LawCheckContext): string[] {
+  private static checkJsx(
+    context: LawCheckContext,
+    details: ViolationDetail[]
+  ): string[] {
     const jsx = JsxSources.read(context);
     const violations = [...jsx.unread];
     for (const file of jsx.files) {
@@ -65,10 +83,24 @@ export class ExplicitButtonTypeLaw extends AccessibilityLawBase {
         violations.push(
           `${file.relative}: ${missing.length} <button> without an explicit type (${DEFAULTS_TO_SUBMIT}) at ${this.lines(missing)} — add type="button" (or submit/reset).`
         );
+        details.push(
+          ...this.lineDetails(
+            file.relative,
+            missing,
+            '<button> without an explicit type (defaults to submit)'
+          )
+        );
       }
       if (spread.length > 0) {
         violations.push(
           `${file.relative}: ${spread.length} <button {...spread}> with no type written at ${this.lines(spread)} — whether the spread sets it cannot be read; write type explicitly.`
+        );
+        details.push(
+          ...this.lineDetails(
+            file.relative,
+            spread,
+            '<button {...spread}> with no type written'
+          )
         );
       }
     }

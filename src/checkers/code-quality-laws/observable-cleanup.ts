@@ -7,6 +7,7 @@ import { AngularComponentFiles } from '../../utils/angular-component-files';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils/file-utils';
 import { CodeQualityLawBase } from './code-quality-law-base';
+import { scriptText } from '../../utils/vue/vue-sfc';
 
 const REACT_IMPORT = /\bfrom\s+['"]react(?:\/[^'"]*)?['"]/;
 const RXJS_IMPORT = /\bfrom\s+['"]rxjs(?:\/[^'"]*)?['"]/;
@@ -41,7 +42,11 @@ export class ObservableCleanupLaw extends CodeQualityLawBase {
       const tsFiles = this.findTypeScriptFiles(projectRoot, context);
 
       for (const file of tsFiles) {
-        const content = FileUtils.readFileContentSync(file);
+        // A .vue file is judged by its script (#607).
+        const content = scriptText(
+          file,
+          FileUtils.readFileContentSync(file) ?? ''
+        );
         if (!content) continue;
 
         // A React module's `.subscribe(` is a store's own API (the shape

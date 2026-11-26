@@ -20,6 +20,71 @@ is read by its script only.
 **Stricter** for the two FE-architecture laws in Vue projects; one false
 finding fewer for the guard law.
 
+### 📦 Adds a runtime dependency: `typescript` ^5.9.3 (~24 MB); a project's own `typescript` is never shadowed (#667)
+
+`typescript` moves from `devDependencies` to `dependencies` (^5.9.3, 23.6 MB
+unpacked). RoC parses with it when the project's own `typescript` has
+no compiler API. Under its own name, npm never lets it shadow the project's:
+a project with its own `typescript` (5.x, 6 or 7) keeps it, and its
+`npx tsc` stays its own version; RoC's copy is installed nested under RoC.
+A project without `typescript` gets RoC's 5.9.3 hoisted, with a `tsc` in
+`.bin` — added, not shadowing anything.
+
+### 🐛 Fixed — TypeScript 7 projects: the laws parse instead of crashing (#667)
+
+TypeScript 7.0's `typescript` package exports only its version; its API is
+not there (`createSourceFile`, `ScriptTarget`, `ScriptKind`, `sys`). Taken
+as the parser, it made 29 laws end in "Check failed — Cannot read
+properties of undefined (reading 'Latest' | 'TSX' | 'readFile')" on the
+default `npm create vite` react-ts project. Now:
+
+- the project's `typescript` is used when it has the compiler API (checked
+  by what the package offers, never by its version); otherwise RoC parses
+  with its own (`typescript` ^5.9.3). Parsing needs no type-checking, so
+  the versions need not match. The details of each law that parsed say so:
+  `project typescript 7.0.2 offers no JS API; parsed with RoC's typescript
+  5.9.x`, and the audit says it once at the start;
+- if no TypeScript with the API can be found, the laws report their files
+  as NOT read and name the project's version, instead of crashing;
+- TypeScript Strict Mode and Zero Tolerance Doctrine judge an option a
+  tsconfig leaves out by the TypeScript major the project builds with: from
+  6.0 on `strict` is true and `target` is the newest ES version (TypeScript
+  6.0 and 7.0 release notes). A Vite project on TypeScript 6 or 7 without
+  `"strict"` no longer gets "strict not enabled"; `"strict": false` is still
+  off.
+- Dependency Security Scanning read an npm alias (`"x": "npm:typescript@^6.0.3"`)
+  as "Unknown version format"; it judges the alias by its range now.
+
+### 🐛 Fixed — the code-quality laws read .vue single-file components (#607, P3a)
+
+Fourteen code-quality laws now read the `<script>` and `<script setup>` of a
+`.vue` file, at its own lines: Dead Code Elimination, Magic Number
+Prevention, Absolute Zero Tolerance Doctrine, Centralized Logging, Code
+Complexity Control, Code Documentation Standards, Code Duplication Control,
+Error Handling Completeness, No Double Cast, No Explicit Any / Non-Null
+Assertion, Observable Cleanup Requirements, Prefer Union Over Enum, Typed
+HTTP Boundaries and Web Storage Encapsulation. Their scans ask for `.vue`,
+and the file is read as its script through the shared readers, so text in
+the `<template>` that looks like code (`{{ v as unknown as string }}`,
+`localStorage.getItem` in prose) is not taken for code. They no longer get
+the `.vue … not read` note of P0. Each card says so in `detectionLimits`.
+
+**Stricter** for Vue projects: findings in components are now reported.
+
+### 🐛 Fixed — a strict-flag finding never points into node_modules (#640)
+
+A tsconfig that extends a base from a package (`@vue/tsconfig`,
+`@tsconfig/strictest`) got its findings on the package's file, which the
+project cannot edit: "node_modules/@vue/tsconfig/tsconfig.json: …". A
+finding now goes to the last file of the `extends` chain outside
+node_modules, where the fix belongs; when the package set the value, it is
+named: `tsconfig.app.json (inherited from @vue/tsconfig: false): TypeScript
+strict mode not enabled`.
+
+Also: a missing flag that `strict` does not switch on (`noImplicitReturns`,
+`noUnusedLocals`, …) was attributed to the file that set `strict`; it goes
+to the file where the chain ends without it.
+
 ### 🐛 Fixed — a law's own glob for script files is held to the .vue note too (#607, P2b)
 
 The `.vue` note of #607 P0 came from the shared directory scanner only.
@@ -129,37 +194,6 @@ values are unchanged.
 
 The fix reaches a project when its hooks are generated again:
 `npx ruleofcode reinstall-hooks`.
-
-### Internal — a Vue single-file component reader (#607, P1)
-
-`src/utils/vue/vue-sfc.ts` splits a `.vue` file into a script view (the
-contents of `<script>` and `<script setup>`) and a template view (the
-top-level `<template>`). Each view keeps the file's length and line breaks
-and blanks the rest, so an offset or a line found in a view is the same in
-the `.vue` file; `scriptFileName` tells a parser how to read the script
-(`lang="ts"`, `tsx`, `jsx` or none). Only top-level blocks count: a nested
-`<template #slot>` is markup, and a block inside an HTML comment is not a
-block. No law reads it yet; the laws start to in the next packages.
-
-### 🐛 Fixed — a law that does not read .vue files says so (#607, P0)
-
-The laws read `.ts` / `.tsx` / `.js` / `.jsx` through the shared scanners; a
-`.vue` single-file component — where most of a Vue project's code is — was
-not read, and a law that found nothing wrong in the rest passed in silence.
-Now every law that scans for script files and leaves `.vue` out, in a project
-that has `.vue` files, reports them in `notRead`:
-`.vue single-file components were not read: N file(s) (…) — this law reads
-.ts/.js only so far (#607)`. When the `.vue` files are all the script there
-is, the law judged nothing.
-
-The note comes from the scans themselves: the audit runs each law in its own
-scope (Node's AsyncLocalStorage, so laws run in parallel are told apart), and
-the shared directory scanner records a scan with script extensions and no
-`.vue`. A law that asks for `.vue` as well is taken to read it. Scans that do
-not go through the shared scanner (a law's own glob) are not seen.
-
-**Stricter: Vue projects may lose `passed` until a law reads `.vue`.** The
-laws learn to read `.vue` in the next packages of #607.
 
 ### 🐛 Fixed — the code-quality laws read an eslint.config.mjs as ESLint loads it (#613)
 

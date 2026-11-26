@@ -10,6 +10,7 @@ import { SacredLawBase } from './sacred-law-base';
 import { PathOperations } from '../../utils/path-operations';
 import { loadTypeScript } from '../../utils/react/tsx-source';
 import {
+  absentOptionDefaults,
   readTsconfigProjects,
   type TsconfigChain,
   tsconfigFindingWhere,
@@ -18,6 +19,15 @@ import {
 
 const TSCONFIG = 'tsconfig.json';
 
+/** The options that are set: an option present as `undefined` is absent. */
+function withoutUndefined(
+  options: Record<string, unknown>
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(options).filter(([, value]) => value !== undefined)
+  );
+}
+
 /** The compiler option a finding of this law is about. */
 function flagsOf(finding: string): string[] {
   if (finding.startsWith('TypeScript strict mode')) return ['strict'];
@@ -25,9 +35,23 @@ function flagsOf(finding: string): string[] {
   if (finding.startsWith('TypeScript moduleResolution'))
     return ['moduleResolution'];
   const flag = /^TypeScript (\w+) must be/.exec(finding)?.[1];
-  // A flag strict implies is set by whoever set strict, when it is unset.
-  return flag ? [flag, 'strict'] : [];
+  if (!flag) return [];
+  // A flag strict implies is set by whoever set strict, when it is unset;
+  // any other flag only by itself (noImplicitReturns is not one strict sets).
+  return STRICT_FAMILY.has(flag) ? [flag, 'strict'] : [flag];
 }
+
+/** The options `strict: true` switches on (TypeScript's own list). */
+const STRICT_FAMILY = new Set([
+  'noImplicitAny',
+  'noImplicitThis',
+  'alwaysStrict',
+  'strictNullChecks',
+  'strictFunctionTypes',
+  'strictBindCallApply',
+  'strictPropertyInitialization',
+  'useUnknownInCatchVariables',
+]);
 
 export class TypeScriptStrictLaw {
   // The flags this law requires. noPropertyAccessFromIndexSignature and
@@ -141,16 +165,7 @@ export class TypeScriptStrictLaw {
   }
 
   /** The options `strict: true` switches on (TypeScript's own list). */
-  private static readonly IMPLIED_BY_STRICT = new Set([
-    'noImplicitAny',
-    'noImplicitThis',
-    'alwaysStrict',
-    'strictNullChecks',
-    'strictFunctionTypes',
-    'strictBindCallApply',
-    'strictPropertyInitialization',
-    'useUnknownInCatchVariables',
-  ]);
+  private static readonly IMPLIED_BY_STRICT = STRICT_FAMILY;
 
   /**
    * A tsconfig's compiler options as TypeScript resolves them (`extends`
@@ -186,7 +201,16 @@ export class TypeScriptStrictLaw {
     // The flags as the compiler resolves them — `extends` followed (an Nx
     // tsconfig.base.json, @tsconfig/strictest) — or, without a loadable
     // typescript, as the JSONC chain sets them.
-    const flags = this.resolvedFlags(projectRoot, file) ?? compilerOptions;
+    // An option the tsconfig leaves out has the default of the TypeScript
+    // major the project builds with: from 6.0 on, `strict` is true and
+    // `target` is the newest ES version (#667).
+    const defaults = absentOptionDefaults(projectRoot);
+    const flags = {
+      ...defaults,
+      ...withoutUndefined(
+        this.resolvedFlags(projectRoot, file) ?? compilerOptions
+      ),
+    };
     // A link of the chain that was not read may set any flag the read files
     // leave unset: such a flag is not judged (the note says so).
     const unknown = (flag: string): boolean =>
@@ -202,7 +226,10 @@ export class TypeScriptStrictLaw {
     // target / moduleResolution as the chain sets them (strings, unlike the
     // compiler's resolved enums) — inherited ones included.
     if (!unknown('target'))
-      this.validateTargetVersion(compilerOptions, violations);
+      this.validateTargetVersion(
+        { ...defaults, ...withoutUndefined(compilerOptions) },
+        violations
+      );
     if (!unknown('moduleResolution'))
       this.validateModuleResolution(compilerOptions, violations);
   }

@@ -23,6 +23,7 @@ import {
 import { FileUtils } from '../../utils/file-utils';
 import { declaredDependencies } from '../../utils/law-requirements';
 import { TsClasses } from '../../utils/ts-classes';
+import { scriptText } from '../../utils/vue/vue-sfc';
 import { LawBase } from '../law-base';
 
 interface Declaration {
@@ -162,6 +163,7 @@ export class CapacitorPluginPlatformDeclarationsLaw extends LawBase {
     return violations;
   }
 
+  /** The production source, comments masked; a .vue file's script only (#12). */
   private static sourceText(context: LawCheckContext): string {
     return FileUtils.scanForFiles(
       context.projectRoot,
@@ -170,7 +172,11 @@ export class CapacitorPluginPlatformDeclarationsLaw extends LawBase {
       context.lawId,
       false
     )
-      .map(file => TsClasses.mask(FileUtils.readFileContentSync(file) ?? ''))
+      .map(file =>
+        TsClasses.mask(
+          scriptText(file, FileUtils.readFileContentSync(file) ?? '')
+        )
+      )
       .join('\n');
   }
 }

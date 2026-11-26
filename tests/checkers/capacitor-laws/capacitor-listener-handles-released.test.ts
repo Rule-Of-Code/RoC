@@ -155,8 +155,14 @@ describe('CapacitorListenerHandlesReleasedLaw (#259)', () => {
   });
 
   describe('selection (requires)', () => {
-    it('selected: @capacitor/core and a config', () => {
-      expect(selected(TITLE, { '@capacitor/core': '8.5.1' })).toBe(true);
+    it('selected: @angular/core, @capacitor/core and a config', () => {
+      expect(
+        selected(TITLE, { '@angular/core': '20', '@capacitor/core': '8.5.1' })
+      ).toBe(true);
+    });
+    // #12: it judges Angular classes only; a React or Vue app is not read.
+    it('not selected: Capacitor without Angular', () => {
+      expect(selected(TITLE, { '@capacitor/core': '8.5.1' })).toBe(false);
     });
     it('not selected: no Capacitor', () => {
       expect(selected(TITLE, { '@ionic/angular': '8' })).toBe(false);

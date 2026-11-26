@@ -20,6 +20,7 @@ import {
 } from '../../utils/capacitor/capacitor-project';
 import { FileUtils } from '../../utils/file-utils';
 import { TsClasses } from '../../utils/ts-classes';
+import { scriptText } from '../../utils/vue/vue-sfc';
 import { LawBase } from '../law-base';
 
 const INTENT_FILTER = /<intent-filter\b[\s\S]*?<\/intent-filter>/g;
@@ -136,7 +137,12 @@ export class CapacitorDeepLinkContractLaw extends LawBase {
       context.lawId,
       false
     ).some(file =>
-      LISTENER.test(TsClasses.mask(FileUtils.readFileContentSync(file) ?? ''))
+      LISTENER.test(
+        // A .vue file's script only: template text is not code (#12).
+        TsClasses.mask(
+          scriptText(file, FileUtils.readFileContentSync(file) ?? '')
+        )
+      )
     );
   }
 }

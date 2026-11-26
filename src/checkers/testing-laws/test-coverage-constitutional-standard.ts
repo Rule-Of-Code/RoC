@@ -96,6 +96,10 @@ export class TestCoverageConstitutionalStandardLaw {
       config: context.config,
       fixable: true,
       ...(notRead.length > 0 ? { notRead } : {}),
+      // Every file behind the coverage verdict's counts (#43).
+      ...(verdict?.details?.length
+        ? { violationDetails: verdict.details }
+        : {}),
     };
   }
 }

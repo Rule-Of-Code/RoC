@@ -1,4 +1,28 @@
+import type { ViolationDetail } from '../../types/law.types';
 import { CodeText } from '../code-text';
+
+/**
+ * Every file behind a namedFiles list as a detail (#43): the line names five;
+ * the details name all of them. An entry `file: text` or `file (text)` keeps
+ * the text.
+ */
+export function namedDetails(
+  files: readonly string[],
+  message: string
+): ViolationDetail[] {
+  return files.map(entry => {
+    const colon = entry.indexOf(': ');
+    if (colon > 0 && !/\s/.test(entry.slice(0, colon)))
+      return {
+        file: entry.slice(0, colon),
+        message: `${message} ${entry.slice(colon + 2)}`,
+      };
+    const paren = /^(\S+) \((.+)\)$/.exec(entry);
+    if (paren?.[1] && paren[2])
+      return { file: paren[1], message: `${message} (${paren[2]})` };
+    return { file: entry, message };
+  });
+}
 
 /** The first files of a finding by name, and how many more there are. */
 export function namedFiles(files: string[], shown = 5): string {

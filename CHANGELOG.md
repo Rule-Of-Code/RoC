@@ -22,6 +22,77 @@ Linting Enforcement has no rule set for Vue templates and carries none.
 A renderer that iterates `keys` picks the new key up. One that hardcoded
 the six keys should read `keys` instead.
 
+### 🐛 Fixed — three Capacitor laws read a Vue component's script, not its template (#12)
+
+Capacitor Single Platform Boundary, Capacitor Deep Link Contract and
+Capacitor Plugin Platform Declarations scan `.vue` files and masked the
+whole file as TypeScript. A `/*` in template text ("src/*") opened a comment
+that ran to the end of the file and hid the script below it: a component
+that imported `@capacitor/core` outside the boundary passed, and an
+`appUrlOpen` listener or a `createChannel` call in its script was reported
+missing. Template text that spelled a call ("Capacitor.getPlatform()") was
+read as code. The three laws now read a `.vue` file's `<script>` and
+`<script setup>` only, at the file's own lines, and their detection limits
+say so.
+
+### 🐛 Fixed — performance laws: React guidance says what passes on Vite; Core Web Vitals reads the Vite index.html (#12)
+
+The React guidance of four performance laws said only what a Next app
+does. Proved on a React + Vite project, the cards now also say what passes
+there: Performance Standards and Core Web Vitals Compliance — an image tool
+(sharp, imagemin or squoosh) and Cache-Control in firebase.json or
+nginx.conf, or a service worker; Bundle Optimization Strategy Policy — a
+critical-CSS tool (critters, critical or penthouse) beside manualChunks;
+Performance Monitoring Policy — the alert and the dashboard files the law
+finds, where the card had said "an alert definition and a dashboard".
+
+Core Web Vitals Compliance read resource hints from `src/index.html` and
+built output only, so a `<link rel="preconnect">` in the project-root
+`index.html` a Vite app is built from was not seen and the law reported
+"Missing critical resource hints". It now reads that file too.
+
+The detection limits of Performance Monitoring Policy now say what counts
+as an alert and as a dashboard: a `lighthouserc.json` without the leading
+dot counts as an alert, not as a dashboard. The React guidance of the eight
+performance laws (with No Layout Transition and Primary Locale Font
+Preloaded, right as written) is held by a regression test, RED first and
+then GREEN by doing what the card says.
+
+### ✨ Added — testing laws name every file they counted (#43, testing)
+
+Six testing laws said how many, or named the first few ("…; and N more",
+"(e.g. a, b, c, …)", "Coverage below 100% in: a, b, c"). Each law already
+held every one. It now puts them in `violationDetails`:
+
+- **Test Data Management**: every test file behind each finding (shared
+  state, no reset, hardcoded data, external clients without a test double,
+  missing cleanup).
+- **Test Isolation Enforcement**: every test file behind each finding.
+- **Test Documentation Requirements**: every undocumented test file, every
+  unclear test description, every unreadable test file.
+- **Professional Component Testing Policy**: every Angular component without
+  a spec, every low-quality component test, every React component without a
+  co-located test, every React test that does not query by role.
+- **Test Coverage Constitutional Standard**: every source file without a
+  test, and every file below the line-coverage floor of the report.
+- **Jest Unit Test 100% Coverage Mandate**: every metric below 100% (the
+  line shows three), with the report it comes from.
+
+The violation lines, verdicts and scores are unchanged. Nothing new is
+searched for. With this package, every category of the #43 plan is done.
+
+### 🐛 Fixed — Capacitor Listener Handles Released is selected for Angular apps only (#12)
+
+The law judges Angular classes — @Component / @Directive / @Pipe, pages,
+@Injectable services that are not providedIn root — and reads no React or
+Vue component. It required only Capacitor, so on a React or Vue Capacitor
+app it read nothing it judges and passed: a listener a React effect
+registered and never removed was a pass. It now requires `@angular/core`
+beside Capacitor and is not selected where it cannot see; its detection
+limits say so, and that the requirement is read over the whole workspace,
+not per app. It carries Angular guidance only, and no React or Vue guidance
+is written for it: there is nothing it would judge.
+
 ### ✨ Added — accessibility laws name each control they counted (#43, accessibility)
 
 Three accessibility laws count controls on one line ("2 form control(s)

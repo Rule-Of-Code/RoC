@@ -129,7 +129,9 @@ export const CAPACITOR_BRIDGE_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       NEEDS_TYPESCRIPT,
       'Recognises plugins by import source (@capacitor/*, @capacitor-*/*, @capawesome/*) and registerPlugin(); a plugin re-exported under another name from a local barrel is followed one import deep only.',
-      "Judges classes decorated @Component / @Directive / @Pipe, page classes (a .page.ts file or a template with ion-content / ion-header), and @Injectable classes without providedIn 'root' / 'platform' — such a service listed in a root providers array is still judged as short-lived. Module functions, token factories and root services are app-lifetime and not judged; React and Vue components are not read.",
+      "Judges classes decorated @Component / @Directive / @Pipe, page classes (a .page.ts file or a template with ion-content / ion-header), and @Injectable classes without providedIn 'root' / 'platform' — such a service listed in a root providers array is still judged as short-lived. Module functions, token factories and root services are app-lifetime and not judged.",
+      'Selected only where @angular/core is declared beside Capacitor: React and Vue components are not read, so a React or Vue Capacitor app is not judged — a listener registered in a useEffect or onMounted and never removed is not seen.',
+      'The requirement is read over the whole workspace, not per app: in a monorepo with an Angular app and a React or Vue Capacitor app it is selected, and it reads no component of the latter.',
       'Removal is matched by name in the same class: a remove() in ngOnDestroy, ionViewWillLeave, ionViewDidLeave or a DestroyRef.onDestroy callback that mentions the handle, or any removeAllListeners() there; a handle passed to a helper that removes it is not seen, and a handle returned to the caller belongs to the caller.',
     ],
     emoji: '🎧',
@@ -138,7 +140,9 @@ export const CAPACITOR_BRIDGE_LAWS: EnhancedConstitutionalLaw[] = [
     priority: 'HIGH',
     category: 'PERFORMANCE',
     stack: 'frontend',
-    requires: REQUIRES_CAPACITOR,
+    // It judges Angular classes only; a React or Vue Capacitor app is not
+    // read, so it is not selected there (#12).
+    requires: { ...REQUIRES_CAPACITOR, allDependencies: ['@angular/core'] },
     defaultEnabled: true,
     defaultSeverity: 'warning',
     automation: 'AUTOMATED',

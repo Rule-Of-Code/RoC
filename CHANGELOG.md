@@ -30,6 +30,37 @@ held every one. It now puts them in `violationDetails`:
 The violation lines, verdicts and scores are unchanged. Nothing new is
 searched for. With this package, every category of the #43 plan is done.
 
+### 🐛 Fixed — Capacitor Listener Handles Released is selected for Angular apps only (#12)
+
+The law judges Angular classes — @Component / @Directive / @Pipe, pages,
+@Injectable services that are not providedIn root — and reads no React or
+Vue component. It required only Capacitor, so on a React or Vue Capacitor
+app it read nothing it judges and passed: a listener a React effect
+registered and never removed was a pass. It now requires `@angular/core`
+beside Capacitor and is not selected where it cannot see; its detection
+limits say so, and that the requirement is read over the whole workspace,
+not per app. It carries Angular guidance only, and no React or Vue guidance
+is written for it: there is nothing it would judge.
+
+### ✨ Added — accessibility laws name each control they counted (#43, accessibility)
+
+Three accessibility laws count controls on one line ("2 form control(s)
+without an accessible label … at lines 2, 3", "aria-expanded on
+<ion-button> line 6 …"). Each control is now one entry in
+`violationDetails`, with its file and line, in templates and in JSX:
+
+- **Explicit Button Type**: each `<button>` without a type, and each
+  `<button {...spread}>` with none written.
+- **Form Control Labeling**: each unnamed native control, each unnamed Ionic
+  control, each JSX `id` no `htmlFor` points at, each control with a spread
+  and no label.
+- **Disclosure Control ARIA State**: each toggle without `aria-expanded`, each
+  Ionic toggle whose `aria-expanded` does not follow the state, each toggle
+  with a spread.
+
+The violation lines, verdicts and scores are unchanged. Nothing new is
+searched for.
+
 ### ✨ Added — performance laws name every file they could not read (#43)
 
 Six performance laws report what they could not read as "Source/config NOT

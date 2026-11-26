@@ -23,11 +23,16 @@
  *   They render in shadow DOM, so a wrapping <label> does not reach them.
  */
 
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import {
   jsxAttribute,
   type JsxElementInfo,
 } from '../../utils/react/tsx-source';
+import { withViolationDetails } from '../../utils/violation-details';
 import { AccessibilityLawBase } from './accessibility-law-base';
 import { JsxSources, type JsxFile } from './jsx-sources';
 import { TemplateMarkup, type MarkupElement } from './template-markup';
@@ -97,6 +102,12 @@ const IONIC_CONTROLS: Record<string, IonicNaming> = {
   },
 };
 
+/** The detail of a native control without a name, in a template and in JSX (#43). */
+const UNLABELLED =
+  'form control without an accessible label (id / wrapping <label> / aria-label / aria-labelledby)';
+const UNLABELLED_JSX =
+  'form control without an accessible label (<label htmlFor> / wrapping <label> / aria-label / aria-labelledby)';
+
 export class FormControlLabelingLaw extends AccessibilityLawBase {
   // Control types that carry their own semantics / need no text label.
   private static readonly EXEMPT_TYPES =
@@ -105,6 +116,8 @@ export class FormControlLabelingLaw extends AccessibilityLawBase {
   static check(context: LawCheckContext): LawResult {
     const { templates, unread } = this.readTemplates(context);
     const violations: string[] = [...unread];
+    // Each control behind a count, at its line (#43).
+    const details: ViolationDetail[] = [];
 
     for (const template of templates) {
       const { native, ionic } = this.unnamed(template.document.elements);
@@ -112,16 +125,26 @@ export class FormControlLabelingLaw extends AccessibilityLawBase {
         violations.push(
           `${template.relative}: ${native.length} form control(s) without an accessible label (id/wrapping <label>/aria-label/aria-labelledby) at ${this.lines(native)} — placeholder does not count.`
         );
+        details.push(
+          ...this.lineDetails(template.relative, native, UNLABELLED)
+        );
       }
       if (ionic.length > 0) {
         violations.push(
           `${template.relative}: ${ionic.length} Ionic control(s) without an accessible name (${ionic.join(', ')}) — give it a label="…" or a slot="label" child (ion-input/textarea/select/range), visible slot text (ion-checkbox/toggle/radio), or aria-label.`
         );
+        details.push(
+          ...this.labelledDetails(
+            template.relative,
+            ionic,
+            tag => `${tag} without an accessible name`
+          )
+        );
       }
     }
-    violations.push(...this.checkJsx(context));
+    violations.push(...this.checkJsx(context, details));
 
-    return this.createResult(
+    const result = this.createResult(
       violations,
       'Form Control Labeling',
       [
@@ -131,9 +154,13 @@ export class FormControlLabelingLaw extends AccessibilityLawBase {
       ],
       context
     );
+    return withViolationDetails(result, details);
   }
 
-  private static checkJsx(context: LawCheckContext): string[] {
+  private static checkJsx(
+    context: LawCheckContext,
+    details: ViolationDetail[]
+  ): string[] {
     const jsx = JsxSources.read(context);
     const violations = [...jsx.unread];
     for (const file of jsx.files) {
@@ -142,15 +169,32 @@ export class FormControlLabelingLaw extends AccessibilityLawBase {
         violations.push(
           `${file.relative}: ${found.unnamed.length} form control(s) without an accessible label (<label htmlFor>/wrapping <label>/aria-label/aria-labelledby) at ${this.lines(found.unnamed)} — placeholder does not count.`
         );
+        details.push(
+          ...this.lineDetails(file.relative, found.unnamed, UNLABELLED_JSX)
+        );
       }
       if (found.orphans.length > 0) {
         violations.push(
           `${file.relative}: ${found.orphans.length} control id(s) that no htmlFor in this file points at (${found.orphans.join(', ')}) — add a <label htmlFor>, wrap the control in a <label>, or use aria-labelledby.`
         );
+        details.push(
+          ...this.labelledDetails(
+            file.relative,
+            found.orphans,
+            id => `control ${id} — no htmlFor in this file points at it`
+          )
+        );
       }
       if (found.spread.length > 0) {
         violations.push(
           `${file.relative}: ${found.spread.length} form control(s) with a {...spread} and no label written at ${this.lines(found.spread)} — whether the spread names it cannot be read; write the label here.`
+        );
+        details.push(
+          ...this.lineDetails(
+            file.relative,
+            found.spread,
+            'form control with a {...spread} and no label written'
+          )
         );
       }
     }

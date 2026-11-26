@@ -24,6 +24,7 @@ import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { CheckerUtils } from '../../utils/checker-utils';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
+import { scriptText, VUE_EXTENSION } from '../../utils/vue/vue-sfc';
 import { SecurityLawBase } from './security-law-base';
 
 interface Sink {
@@ -112,7 +113,10 @@ export class XSSPreventionLaw {
       sanitizers.some(re => re.test(statement));
 
     for (const file of this.getSourceFiles(context)) {
-      const code = blankComments(FileUtils.readFile(file) ?? '');
+      // A .vue file is read by its script view, at its own lines (#607).
+      const code = blankComments(
+        scriptText(file, FileUtils.readFile(file) ?? '')
+      );
       const rel = PathOperations.getRelative(context.projectRoot, file);
       for (const sink of SINKS) {
         violations.push(...this.unsanitized(code, rel, sink, sanitizedAt));
@@ -169,7 +173,8 @@ export class XSSPreventionLaw {
     const { projectRoot, config, lawId } = context;
     return CheckerUtils.findFilesByExtension(
       projectRoot,
-      ['.ts', '.tsx', '.jsx', '.html'],
+      // A component's <script> too; its template (v-html) is not read (#607).
+      ['.ts', '.tsx', '.jsx', '.html', VUE_EXTENSION],
       config,
       lawId
     );

@@ -67,7 +67,10 @@ export const DOCUMENTATION_LAWS: EnhancedConstitutionalLaw[] = [
       'It knows two manifests — package.json and the Python trio (pyproject.toml / setup.py / setup.cfg). A Rust or Go project still fails on the missing package.json, because no Cargo.toml or go.mod path exists yet.',
       'Only the manifest is load-bearing; the src/lib/app, test-directory and tsconfig/eslint/prettier/jest checks are suggestions that never fail the law.',
       'Manifest validity is a JSON parse plus a field-presence check, not a schema.',
+      'Not about components (#607): it asks whether test files exist, by file name; a .vue single-file component is never a test file, so it gets no ".vue not read" note.',
     ],
+    notAboutComponents:
+      'Not about components (#607): it asks whether test files exist, by file name; a .vue single-file component is never a test file, so it gets no ".vue not read" note.',
     emoji: '🏗️',
     description: 'Proper project organization and configuration',
     priority: 'MEDIUM',

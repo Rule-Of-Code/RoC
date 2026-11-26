@@ -11,6 +11,10 @@ import { REQUIRES_PRODUCTION_SUBJECT } from '../utils/production-subject-require
 const VUE_SCRIPT_ONLY =
   'A Vue single-file component (.vue) is read by its <script> and <script setup> blocks, at its own lines; its <template> and <style> are not read by this law (#607).';
 
+/** The declared reason of a security-testing law (#607). */
+const SECURITY_TESTS_NOT_COMPONENTS =
+  'Not about components (#607): it reads security test files (found by name), CI workflows and tool configuration, which a Vue project writes as .ts/.js/.yml too; a .vue single-file component is never its subject, so it gets no ".vue not read" note.';
+
 export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
   {
     id: generateLawId(
@@ -144,6 +148,7 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Regex over .ts/.tsx/.jsx/.html with comments stripped, case-sensitive and anchored on the property access (.innerHTML =, .insertAdjacentHTML(, document.write(, eval(, bypassSecurityTrust*(, [innerHTML]=) — dangerouslySetInnerHTML is not read as innerHTML; plain .js files are not scanned.',
       "A sanitizer counts only in the sink's own statement (up to `;` or the end of the line), by callee name: DOMPurify.sanitize, DomSanitizer .sanitize(SecurityContext.HTML, …) and thresholds.security.htmlSanitizers. A value sanitized on an earlier line and assigned later is flagged; a weak sanitizer configuration is not seen. No data-flow.",
       'An Angular [innerHTML] binding is flagged although Angular sanitizes it itself; eval is always flagged. The CSP is judged by Security Standards (XSS Prevention) Policy, not here.',
+      'A Vue single-file component (.vue) is read by its <script> and <script setup> blocks (an innerHTML / outerHTML assignment, insertAdjacentHTML, document.write, eval), at its own lines; Vue template v-html and :href bindings are not read (#607).',
     ],
     stack: 'frontend',
     emoji: '🚫',
@@ -301,7 +306,9 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Presence, not correctness — it does not run the tests; a test that asserts the wrong thing still counts.',
       'Runs the same detector as Comprehensive Security Testing Requirements, and SAST detection is loose: any repo using @typescript-eslint/eslint-plugin satisfies it.',
       'Security-test discovery is limited to eight named directories (src, test, tests, spec, libs, apps, packages, functions).',
+      SECURITY_TESTS_NOT_COMPONENTS,
     ],
+    notAboutComponents: SECURITY_TESTS_NOT_COMPONENTS,
     emoji: '🧪',
     description: 'Security testing must be part of CI/CD pipeline',
     priority: 'HIGH',
@@ -414,7 +421,9 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
     detectionLimits: [
       'Recognises a security test by what it ASSERTS (status 401/403, HSTS, CSP, X-Frame-Options) and a SAST/dep-scanner wired in the gate — in TS/JS and Python.',
       'It does not run the tests or judge their correctness, only their presence; a test that asserts the wrong thing still counts.',
+      SECURITY_TESTS_NOT_COMPONENTS,
     ],
+    notAboutComponents: SECURITY_TESTS_NOT_COMPONENTS,
     emoji: '🛡️',
     description: 'Ensures comprehensive security testing is implemented',
     priority: 'HIGH',

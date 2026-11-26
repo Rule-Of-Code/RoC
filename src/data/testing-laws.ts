@@ -7,6 +7,10 @@ import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { generateLawId } from '../utils/id-generator';
 import { REQUIRES_ANGULAR } from '../utils/framework-requirements';
 
+/** The declared reason of a testing law that reads test files only (#607). */
+const TEST_FILES_NOT_COMPONENTS =
+  'Not about components (#607): it reads test files (*.spec.* / *.test.*, found by name), which a Vue project writes as .ts/.js too; a .vue single-file component is never its subject, so it gets no ".vue not read" note.';
+
 export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
   {
     // The id hashes the original description; it stays, so ignores.byRule and
@@ -108,7 +112,9 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
       'It counts structure, not assertion strength; a test with one weak assertion passes.',
       'The async patterns (.then without catch, setTimeout without fake timers, done() with async, awaited literals) are read from the code of the TypeScript parse — not from strings or comments; without a loadable `typescript` they are NOT read and the law says so.',
       'TS/JS .spec/.test files only — no Python. realDataMode suppresses the no-mocking / hardcoded-data findings for projects that test against real data by design.',
+      TEST_FILES_NOT_COMPONENTS,
     ],
+    notAboutComponents: TEST_FILES_NOT_COMPONENTS,
     stack: 'typescript',
     emoji: '⚖️',
     description:
@@ -226,7 +232,9 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
       'JS/TS .spec/.test files only — no Python. realDataMode suppresses the hardcoded-data finding.',
       'A module-level `let` / `var` (top level, with an initialiser; every declarator of the statement) is shared state unless a `beforeEach` / `afterEach` of the same file assigns it; a reset in `beforeAll` does not count. Bindings and hooks are read from the syntax tree: an assignment counts only where it is code, and a same-named binding declared inside the hook shadows the module binding instead of resetting it.',
       'Test files are the .spec/.test (.ts, .tsx, .js, .jsx) and .e2e-spec files under src/, apps/, libs/, test/, tests/ and e2e/, found with the project’s ignores and includes matched from the project root — the same discovery as test-isolation-enforcement. A test file outside those six roots (a packages/ workspace, a Jest __tests__ file without the suffix) is not read.',
+      TEST_FILES_NOT_COMPONENTS,
     ],
+    notAboutComponents: TEST_FILES_NOT_COMPONENTS,
     emoji: '📊',
     description: 'Proper test data setup and teardown procedures',
     priority: 'MEDIUM',
@@ -265,7 +273,9 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
       'Test files are the .spec/.test (.ts, .tsx, .js, .jsx) and .e2e-spec files under src/, apps/, libs/, test/, tests/ and e2e/, found with the project’s ignores and includes matched from the project root — the same discovery as test-data-management, which carries the same resource check. A test file outside those six roots (a packages/ workspace, a Jest __tests__ file without the suffix) is not read.',
       'it.only/fit are flagged as an order dependency (really a focus/CI concern), and a lone describe() satisfies "framework isolation".',
       'Regex over JS/TS test files only — no Python.',
+      TEST_FILES_NOT_COMPONENTS,
     ],
+    notAboutComponents: TEST_FILES_NOT_COMPONENTS,
     emoji: '🏝️',
     description: 'All tests must be isolated and independent',
     priority: 'HIGH',
@@ -303,7 +313,9 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
       'Presence, not content: HTTP-method "coverage" is a very loose regex (the word GET anywhere, any .get(), any 4xx-looking number).',
       'API test files are found by filename, or by a test file whose syntax tree drives an HTTP test harness (supertest, nock, msw, fetch-mock, HttpTestingController / provideHttpClientTesting); only .ts files are scanned (no .js).',
       'Python gets a native pass via test-client tests; otherwise it is Jest/supertest-shaped.',
+      TEST_FILES_NOT_COMPONENTS,
     ],
+    notAboutComponents: TEST_FILES_NOT_COMPONENTS,
     emoji: '🔌',
     description: 'Comprehensive API testing with proper assertions',
     priority: 'HIGH',
@@ -340,7 +352,10 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
       'Bundle-size and web-vitals are browser-only and there is NO Python path, so a Python service is scored on browser concerns it cannot have.',
       'A pass requires perf files AND load config AND bundle-size AND web-vitals AND monitoring AND critical-flow keywords together.',
       'A spec without a perf name counts only if its code reads performance.now() or Date.now() and asserts toBeLessThan / toBeLessThanOrEqual; a budget compared with < inside an if, or one asserted through a helper, is not seen.',
+      'Not about components (#607): it reads performance test files and load-testing / bundle-size configuration, which a Vue project writes as .ts/.js/.json too; a .vue single-file component is never its subject, so it gets no ".vue not read" note.',
     ],
+    notAboutComponents:
+      'Not about components (#607): it reads performance test files and load-testing / bundle-size configuration, which a Vue project writes as .ts/.js/.json too; a .vue single-file component is never its subject, so it gets no ".vue not read" note.',
     stack: 'frontend',
     emoji: '⚡',
     description: 'Performance testing for critical user flows',
@@ -375,7 +390,9 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
       '"Documentation" = presence of doc files (a min length) plus comment/description heuristics — it cannot judge whether the docs are useful.',
       'Structure-doc coverage is a heuristic ratio, not a real measure.',
       'Regex/string over JS/TS test files; no Python.',
+      TEST_FILES_NOT_COMPONENTS,
     ],
+    notAboutComponents: TEST_FILES_NOT_COMPONENTS,
     emoji: '📝',
     description: 'All test suites must have proper documentation',
     priority: 'LOW',

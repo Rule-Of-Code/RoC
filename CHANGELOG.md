@@ -42,6 +42,22 @@ default `npm create vite` react-ts project. Now:
 - Dependency Security Scanning read an npm alias (`"x": "npm:typescript@^6.0.3"`)
   as "Unknown version format"; it judges the alias by its range now.
 
+### 🐛 Fixed — the code-quality laws read .vue single-file components (#607, P3a)
+
+Fourteen code-quality laws now read the `<script>` and `<script setup>` of a
+`.vue` file, at its own lines: Dead Code Elimination, Magic Number
+Prevention, Absolute Zero Tolerance Doctrine, Centralized Logging, Code
+Complexity Control, Code Documentation Standards, Code Duplication Control,
+Error Handling Completeness, No Double Cast, No Explicit Any / Non-Null
+Assertion, Observable Cleanup Requirements, Prefer Union Over Enum, Typed
+HTTP Boundaries and Web Storage Encapsulation. Their scans ask for `.vue`,
+and the file is read as its script through the shared readers, so text in
+the `<template>` that looks like code (`{{ v as unknown as string }}`,
+`localStorage.getItem` in prose) is not taken for code. They no longer get
+the `.vue … not read` note of P0. Each card says so in `detectionLimits`.
+
+**Stricter** for Vue projects: findings in components are now reported.
+
 ### 🐛 Fixed — a strict-flag finding never points into node_modules (#640)
 
 A tsconfig that extends a base from a package (`@vue/tsconfig`,

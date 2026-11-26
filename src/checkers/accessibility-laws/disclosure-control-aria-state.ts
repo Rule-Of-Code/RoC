@@ -17,11 +17,16 @@
  */
 
 import type * as TS from 'typescript';
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import {
   jsxAttribute,
   type JsxElementInfo,
 } from '../../utils/react/tsx-source';
+import { withViolationDetails } from '../../utils/violation-details';
 import { AccessibilityLawBase } from './accessibility-law-base';
 import { JsxSources, type JsxFile } from './jsx-sources';
 import { TemplateMarkup, type MarkupElement } from './template-markup';
@@ -30,10 +35,16 @@ import { TemplateMarkup, type MarkupElement } from './template-markup';
 export const DISCLOSURE_INTENT =
   /toggle|expand|collaps|dropdown|menu|disclos|isopen|open/i;
 
+/** The detail of a toggle without its state (#43). */
+const NO_EXPANDED =
+  'disclosure button toggling a panel/menu without aria-expanded';
+
 export class DisclosureControlAriaStateLaw extends AccessibilityLawBase {
   static check(context: LawCheckContext): LawResult {
     const { templates, unread } = this.readTemplates(context);
     const violations: string[] = [...unread];
+    // Each toggle behind a count or a list, at its line (#43).
+    const details: ViolationDetail[] = [];
 
     for (const template of templates) {
       const { missing, ionicStale } = this.findings(template.document.elements);
@@ -45,16 +56,26 @@ export class DisclosureControlAriaStateLaw extends AccessibilityLawBase {
         violations.push(
           `${template.relative}: ${missing.length} disclosure button(s) toggling a panel/menu without ${expanded} at ${this.lines(missing)} — add it so the state is announced.`
         );
+        details.push(
+          ...this.lineDetails(template.relative, missing, NO_EXPANDED)
+        );
       }
       if (ionicStale.length > 0) {
         violations.push(
           `${template.relative}: aria-expanded on ${ionicStale.join(', ')} does not follow the state — ion-button copies it to its inner <button> once at load and does not watch it; ion-item copies only aria-label. Use a native <button${this.isVue(template) ? ' :aria-expanded' : ' [attr.aria-expanded]'}> or ion-accordion.`
         );
+        details.push(
+          ...this.labelledDetails(
+            template.relative,
+            ionicStale,
+            tag => `aria-expanded on ${tag} does not follow the state`
+          )
+        );
       }
     }
-    violations.push(...this.checkJsx(context));
+    violations.push(...this.checkJsx(context, details));
 
-    return this.createResult(
+    const result = this.createResult(
       violations,
       'Disclosure Control ARIA State',
       [
@@ -66,6 +87,7 @@ export class DisclosureControlAriaStateLaw extends AccessibilityLawBase {
       ],
       context
     );
+    return withViolationDetails(result, details);
   }
 
   /**
@@ -75,7 +97,10 @@ export class DisclosureControlAriaStateLaw extends AccessibilityLawBase {
    * `{...spread}` it is reported as not readable: the spread may carry the
    * state.
    */
-  private static checkJsx(context: LawCheckContext): string[] {
+  private static checkJsx(
+    context: LawCheckContext,
+    details: ViolationDetail[]
+  ): string[] {
     const jsx = JsxSources.read(context);
     const violations = [...jsx.unread];
     for (const file of jsx.files) {
@@ -88,10 +113,18 @@ export class DisclosureControlAriaStateLaw extends AccessibilityLawBase {
         violations.push(
           `${file.relative}: ${missing.length} disclosure button(s) toggling a panel/menu without aria-expanded at ${this.lines(missing)} — bind aria-expanded={open} so the state is announced.`
         );
+        details.push(...this.lineDetails(file.relative, missing, NO_EXPANDED));
       }
       if (spread.length > 0) {
         violations.push(
           `${file.relative}: ${spread.length} disclosure button(s) with a {...spread} and no aria-expanded written at ${this.lines(spread)} — whether the spread sets it cannot be read; write aria-expanded here.`
+        );
+        details.push(
+          ...this.lineDetails(
+            file.relative,
+            spread,
+            'disclosure button with a {...spread} and no aria-expanded written'
+          )
         );
       }
     }

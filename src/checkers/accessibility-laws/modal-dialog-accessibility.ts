@@ -38,6 +38,8 @@ import {
 const ROLE_DIALOG = 'role="dialog"';
 const ARIA_MODAL = 'aria-modal="true"';
 const FOCUS_TRAP = 'a focus trap (cdkTrapFocus)';
+/** The same item, said to a Vue component: cdkTrapFocus is Angular's (#607). */
+const VUE_FOCUS_TRAP = `a focus trap (name yours in thresholds.accessibility.focusTrapTokens)`;
 
 export class ModalDialogAccessibilityLaw extends AccessibilityLawBase {
   static check(context: LawCheckContext): LawResult {
@@ -89,7 +91,9 @@ export class ModalDialogAccessibilityLaw extends AccessibilityLawBase {
       'Modal Dialog Accessibility',
       [
         `Name your accessible shared modal component in ${CONFIG_KEY}, or`,
-        'Add role="dialog" + aria-modal="true" + cdkTrapFocus to the dialog container',
+        this.readsVue(templates)
+          ? 'Add role="dialog" + aria-modal="true" + a focus trap to the dialog container, and name the trap you use in thresholds.accessibility.focusTrapTokens'
+          : 'Add role="dialog" + aria-modal="true" + cdkTrapFocus to the dialog container',
         'Ionic: present it with ion-modal / ModalController (do not turn focusTrap off)',
       ],
       context
@@ -149,13 +153,17 @@ export class ModalDialogAccessibilityLaw extends AccessibilityLawBase {
     presentation: IonicPresentation | undefined,
     ionic: IonicDialogs | null
   ): string {
+    const vue = this.isVue(template);
     if (presentation) {
-      return `${template.relative}: presented by ${presentation.via} with focusTrap set to false and no focus trap of its own — keep ion-modal's focus trap or add cdkTrapFocus.`;
+      return `${template.relative}: presented by ${presentation.via} with focusTrap set to false and no focus trap of its own — keep ion-modal's focus trap or add ${vue ? 'one of your own' : 'cdkTrapFocus'}.`;
     }
     const unreadNote =
       ionic && ionic.unread.length > 0
         ? ` (whether ion-modal presents it could not be decided: ${ionic.unread.join('; ')})`
         : '';
-    return `${template.relative}: dialog without ${missing.join(' + ')} — add them, present it with ion-modal / ModalController, or name your accessible dialog component in ${CONFIG_KEY}${unreadNote}.`;
+    const named = vue
+      ? missing.map(item => (item === FOCUS_TRAP ? VUE_FOCUS_TRAP : item))
+      : missing;
+    return `${template.relative}: dialog without ${named.join(' + ')} — add them, present it with ion-modal / ModalController, or name your accessible dialog component in ${CONFIG_KEY}${unreadNote}.`;
   }
 }

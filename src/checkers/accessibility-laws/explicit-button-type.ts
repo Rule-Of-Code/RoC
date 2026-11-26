@@ -42,7 +42,10 @@ export class ExplicitButtonTypeLaw extends AccessibilityLawBase {
       'Explicit Button Type',
       [
         'Add type="button" to every non-submit <button>',
-        'Or bind it: [type]="…" / [attr.type]="…" (JSX: type={…})',
+        // A Vue project is not advised in Angular syntax (#607).
+        this.readsVue(templates)
+          ? 'Or bind it: :type="…" in a Vue template (type={…} in JSX)'
+          : 'Or bind it: [type]="…" / [attr.type]="…" (JSX: type={…})',
       ],
       context
     );

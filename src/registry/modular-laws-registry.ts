@@ -126,6 +126,7 @@ export class ModularLawsRegistry {
       alwaysEnabled: law.alwaysEnabled,
       defaultEnabled: law.defaultEnabled,
       staticSiteHtml: law.staticSiteHtml,
+      notAboutComponents: law.notAboutComponents,
       applicableFrameworks: this.getApplicableFrameworks(law),
       legacyId: law.legacyId,
       stack: law.stack,

@@ -48,7 +48,10 @@ export const TEST_INTEGRITY_LAWS: EnhancedConstitutionalLaw[] = [
       'Does not judge `.skip` (a separate decision) or a focus applied from the command line (`--testNamePattern`, `-g`).',
       'JavaScript/TypeScript runners only; Python has no focus modifier in pytest itself.',
       PARSED_WITH_PROJECT_TYPESCRIPT,
+      'Not about components (#607): it reads test files (*.spec.* / *.test.* / *.cy.* / *.e2e-spec.*, or a __tests__ directory, found by name), which a Vue project writes as .ts/.js too; a .vue single-file component is never its subject, so it gets no ".vue not read" note.',
     ],
+    notAboutComponents:
+      'Not about components (#607): it reads test files (*.spec.* / *.test.* / *.cy.* / *.e2e-spec.*, or a __tests__ directory, found by name), which a Vue project writes as .ts/.js too; a .vue single-file component is never its subject, so it gets no ".vue not read" note.',
     emoji: '🔦',
     description: 'No committed .only, fit or fdescribe narrows the test run',
     priority: 'HIGH',

@@ -7,6 +7,7 @@ import type { RuleOfCodeConfig } from '../../../types/law.types';
 import { loadTypeScript, parserUnavailable } from '../../react/tsx-source';
 import { type CodeView, codeMatches, readCodeView } from '../code-view';
 import { scanAndAnalyzeFiles } from '../file-scanning-helper';
+import { scriptText } from '../../vue/vue-sfc';
 import * as Config from './encryption-implementation-configuration';
 
 // ============================================================================
@@ -29,10 +30,12 @@ export function validateEncryptionImplementation(
     (file, content) => {
       if (!ts) return Config.createEmptyResult();
       const view = readCodeView(ts, content, file);
+      // The text patterns read a component's script only (#607).
+      const script = scriptText(file, content);
       return Config.mergeResults(
         checkWeakEncryption(view, file),
-        checkEncryptionUsage(view, content, file),
-        checkKeyManagement(view, content, file)
+        checkEncryptionUsage(view, script, file),
+        checkKeyManagement(view, script, file)
       );
     },
     () => Config.createEmptyResult(),

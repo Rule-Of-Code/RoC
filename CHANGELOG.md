@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — No Focused Tests says components are not its subject (#607)
+
+No Focused Tests reads test files (`*.spec.*`, `*.test.*`, `*.cy.*`,
+`*.e2e-spec.*` or a `__tests__` directory), which a Vue project writes as
+`.ts` / `.js` too. Its ".vue single-file components were not read" note
+was noise; its card now declares that components are not its subject
+(`notAboutComponents`, the reason also in its detection limits), like the
+eleven laws in the previous entry.
+
 ### 🐛 Fixed — laws not about components say so; XSS reads a component's script (#607)
 
 - **No ".vue not read" note where components are not the subject.** Eleven

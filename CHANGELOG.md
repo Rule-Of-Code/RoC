@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — the accessibility laws advise a Vue project in its own terms (#607)
+
+Explicit Button Type, Disclosure Control ARIA State and Modal Dialog
+Accessibility read Vue templates since #607 P5, but advised them in Angular
+syntax: "without [attr.aria-expanded]", "Or bind it: [type]=…", "a focus trap
+(cdkTrapFocus)". For a `.vue` template the finding now says
+"an aria-expanded bound to the open state (:aria-expanded)" and "a focus trap
+(name yours in thresholds.accessibility.focusTrapTokens)", and when the law
+read a Vue template its recommendations name `:type` / `:aria-expanded` and
+`focusTrapTokens`. Angular templates are told exactly what they were told
+before.
+
 ### 🐛 Fixed — No Focused Tests says components are not its subject (#607)
 
 No Focused Tests reads test files (`*.spec.*`, `*.test.*`, `*.cy.*`,

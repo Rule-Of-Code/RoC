@@ -37,14 +37,18 @@ export class DisclosureControlAriaStateLaw extends AccessibilityLawBase {
 
     for (const template of templates) {
       const { missing, ionicStale } = this.findings(template.document.elements);
+      // A Vue component is told in its own terms, not Angular's (#607).
+      const expanded = this.isVue(template)
+        ? 'an aria-expanded bound to the open state (:aria-expanded)'
+        : '[attr.aria-expanded]';
       if (missing.length > 0) {
         violations.push(
-          `${template.relative}: ${missing.length} disclosure button(s) toggling a panel/menu without [attr.aria-expanded] at ${this.lines(missing)} — add it so the state is announced.`
+          `${template.relative}: ${missing.length} disclosure button(s) toggling a panel/menu without ${expanded} at ${this.lines(missing)} — add it so the state is announced.`
         );
       }
       if (ionicStale.length > 0) {
         violations.push(
-          `${template.relative}: aria-expanded on ${ionicStale.join(', ')} does not follow the state — ion-button copies it to its inner <button> once at load and does not watch it; ion-item copies only aria-label. Use a native <button [attr.aria-expanded]> or ion-accordion.`
+          `${template.relative}: aria-expanded on ${ionicStale.join(', ')} does not follow the state — ion-button copies it to its inner <button> once at load and does not watch it; ion-item copies only aria-label. Use a native <button${this.isVue(template) ? ' :aria-expanded' : ' [attr.aria-expanded]'}> or ion-accordion.`
         );
       }
     }
@@ -54,7 +58,9 @@ export class DisclosureControlAriaStateLaw extends AccessibilityLawBase {
       violations,
       'Disclosure Control ARIA State',
       [
-        'Bind [attr.aria-expanded] (JSX: aria-expanded={open}) to the open/closed state on the toggle button',
+        this.readsVue(templates)
+          ? 'Bind aria-expanded to the open/closed state on the toggle button (:aria-expanded in a Vue template, aria-expanded={open} in JSX)'
+          : 'Bind [attr.aria-expanded] (JSX: aria-expanded={open}) to the open/closed state on the toggle button',
         'Add aria-haspopup / role="menu" when it opens a menu',
         'Ionic: use ion-accordion, or a native <button> for the toggle',
       ],

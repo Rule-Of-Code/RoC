@@ -10,7 +10,7 @@ import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { CheckerUtils } from '../../utils/checker-utils';
 import { FileSystemOperations } from '../../utils/file-system-operations';
 import { PathOperations } from '../../utils/path-operations';
-import { markupText } from '../../utils/vue/vue-sfc';
+import { isVueFile, markupText } from '../../utils/vue/vue-sfc';
 import { TemplateMarkup, type MarkupDocument } from './template-markup';
 
 /** One template file, read as elements. */
@@ -89,6 +89,19 @@ export abstract class AccessibilityLawBase {
       templates.push({ file, relative, document });
     }
     return { templates, unread };
+  }
+
+  /**
+   * Whether the law read a Vue component's template: its advice is then
+   * written without Angular syntax (#607). Angular output is unchanged.
+   */
+  protected static readsVue(templates: readonly ReadTemplate[]): boolean {
+    return templates.some(template => isVueFile(template.file));
+  }
+
+  /** Whether one template is a Vue component's (#607). */
+  protected static isVue(template: ReadTemplate): boolean {
+    return isVueFile(template.file);
   }
 
   protected static relative(projectRoot: string, file: string): string {

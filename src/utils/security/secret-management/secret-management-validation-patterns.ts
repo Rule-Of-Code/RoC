@@ -3,6 +3,7 @@
  * Validation workflow for secret management analysis
  */
 
+import { VUE_EXTENSION } from '../../vue/vue-sfc';
 import { CheckerUtils } from '../../checker-utils';
 import { DirectoryScanner } from '../../directory-scanner';
 import * as Config from './secret-management-configuration';
@@ -101,7 +102,11 @@ function checkSecretRotation(projectRoot: string): Config.SecretCheckResult {
 }
 
 function findRelevantFiles(projectRoot: string): string[] {
-  const extensions = CheckerUtils.getCommonExtensions().ALL_CODE;
+  // A component is a source file too (#607).
+  const extensions = [
+    ...CheckerUtils.getCommonExtensions().ALL_CODE,
+    VUE_EXTENSION,
+  ];
 
   return Config.SOURCE_DIRS.flatMap(dir => {
     const dirPath = Config.joinPath(projectRoot, dir);

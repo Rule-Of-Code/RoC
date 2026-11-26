@@ -4,6 +4,7 @@
  */
 
 import type { RuleOfCodeConfig } from '../../../types/law.types';
+import { VUE_EXTENSION } from '../../vue/vue-sfc';
 import { CheckerUtils } from '../../checker-utils';
 import { FileUtils } from '../../file-utils';
 import { loadTypeScript, parserUnavailable } from '../../react/tsx-source';
@@ -95,9 +96,10 @@ export class DataStorageSecurityValidationPatterns {
     violations: string[],
     suggestions: string[]
   ): void {
+    // A component's <script> too, read by its script through the code view (#607).
     const files = CheckerUtils.findFilesByExtension(
       projectRoot,
-      EXTENSIONS.ALL_CODE,
+      [...EXTENSIONS.ALL_CODE, VUE_EXTENSION],
       config
     );
 

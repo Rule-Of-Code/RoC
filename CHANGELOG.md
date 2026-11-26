@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — six security and environment laws read .vue single-file components (#607, P4)
+
+No Hostname Gating, Authentication Security, Data Encryption Standards,
+Environment Security Enforcement, Environment Parity Standards and API
+Security Standards (its authentication check) read `.vue` files by their
+`<script>` /
+`<script setup>`, at the component's own lines; text in the template or
+the style that looks like code is not code (the shared code view the
+security patterns run over reads a component's script only). In a Vue project whose login lives in a
+component, Authentication Security and API Security Standards no longer say
+"No authentication service implementation found", and the findings about
+that login (MD5 of a password, a token in `localStorage`, no token refresh,
+a hardcoded endpoint) are reported. Each card says so. The CORS,
+rate-limiting, security-header and input-validation checks of API Security
+Standards read server and Angular files, not `.vue`.
+
+**Stricter** for Vue projects, and one false "no authentication" finding
+fewer.
+
 ### 🐛 Fixed — three database laws read .vue components (#607, P7)
 
 Database Query Optimization, Count With An Aggregation and Document Read Once

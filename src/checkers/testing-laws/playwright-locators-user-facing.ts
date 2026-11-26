@@ -20,7 +20,13 @@ import type { TsxSource } from '../../utils/react/tsx-source';
 import { TestSources } from '../../utils/testing/test-sources';
 import { LawBase } from '../law-base';
 import { PLAYWRIGHT_NOT_FOUND } from './playwright-no-fixed-wait';
-import { percentFloor, shareSummary, type FileCount } from './query-share';
+import {
+  percentFloor,
+  shareDetails,
+  shareSummary,
+  type FileCount,
+} from './query-share';
+import { withViolationDetails } from '../../utils/violation-details';
 
 /** The locators that find an element the way a user does. */
 export const USER_FACING_LOCATORS = new Set([
@@ -78,7 +84,7 @@ export class PlaywrightLocatorsUserFacingLaw extends LawBase {
     });
     if (floor.ok && verdict) violations.push(verdict);
 
-    return this.createResult(
+    const result = this.createResult(
       violations,
       this.LAW_NAME,
       'TESTING',
@@ -87,6 +93,11 @@ export class PlaywrightLocatorsUserFacingLaw extends LawBase {
         'Keep getByTestId for elements with no stable role or text, and CSS locators for what a user cannot name',
       ],
       context
+    );
+    // Every file behind the five the verdict names (#43).
+    return withViolationDetails(
+      result,
+      floor.ok && verdict ? shareDetails(byFile, 'getByTestId/locator()') : []
     );
   }
 

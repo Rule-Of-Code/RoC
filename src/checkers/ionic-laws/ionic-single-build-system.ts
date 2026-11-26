@@ -72,6 +72,7 @@ export class IonicSingleBuildSystemLaw extends LawBase {
         violations.push(
           `both entries are imported (${standalone.length} from '${STANDALONE_ENTRY}', ${modules.length} from '${MODULE_ENTRY}') and the installed @ionic/angular could not be read to tell the shared classes apart — NOT judged`
         );
+        details.push(...this.importDetails(standalone, modules));
       } else {
         violations.push(...this.mixed(standalone, modules, shared, details));
         notes.push(...this.sharedNotes(modules, shared));
@@ -259,6 +260,23 @@ export class IonicSingleBuildSystemLaw extends LawBase {
         }))
       );
     return found;
+  }
+
+  /** Each import of either entry, at its line (#43). */
+  private static importDetails(
+    standalone: ImportSite[],
+    modules: ImportSite[]
+  ): ViolationDetail[] {
+    return [
+      ...standalone.map(site => ({
+        ...placeOf(site.where),
+        message: `imports from '${STANDALONE_ENTRY}'`,
+      })),
+      ...modules.map(site => ({
+        ...placeOf(site.where),
+        message: `imports from '${MODULE_ENTRY}'`,
+      })),
+    ];
   }
 
   private static sharedNotes(

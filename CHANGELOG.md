@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ Added — integrity, measurement, request-path and test laws name what they counted (#43, remaining categories)
+
+Eight laws said how many, or showed the first few. Each law already held
+every one. It now puts them in `violationDetails`, at their place:
+
+- **Tsconfig Exclude Leaves Code Untyped**: every file an `exclude` leaves in
+  no tsconfig (the line shows three).
+- **Test Server Loopback Address Match**: every client that calls the
+  127.0.0.1-only server through localhost, at its line (the line shows five).
+- **Startup Request Fan-Out**: each request a component starts when it
+  opens, at its line.
+- **Independent Awaits Run Concurrently**: each await of a sequential run, at
+  its line.
+- **Document Read Once Per Request**: each read of the document, at its line,
+  with the call that reaches it.
+- **Playwright Locators User Facing** and **RTL Query By Role**: every file
+  with test-id / selector queries, with its count (the line names five).
+- **Ionic Single Build System**: each import of either entry when the shared
+  classes could not be told apart.
+
+The violation lines, verdicts and scores are unchanged. Nothing new is
+searched for.
+
 ### 🐛 Fixed — the accessibility laws advise a Vue project in its own terms (#607)
 
 Explicit Button Type, Disclosure Control ARIA State and Modal Dialog

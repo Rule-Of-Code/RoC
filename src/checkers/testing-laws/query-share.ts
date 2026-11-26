@@ -65,3 +65,20 @@ export function shareSummary(input: {
     .join(', ');
   return `${input.userFacing} of ${total} ${input.what} (${Math.floor(share)}%) find an element the way a user does (${input.userFacingNames}); the floor is ${input.floor}%. Most ${input.implementationNames}: ${worst}`;
 }
+
+/**
+ * Every file with implementation queries, most first, as details (#43): the
+ * verdict names five; these name all of them.
+ */
+export function shareDetails(
+  byFile: readonly FileCount[],
+  implementationNames: string
+): Array<{ file: string; message: string }> {
+  return byFile
+    .filter(entry => entry.count > 0)
+    .sort((a, b) => b.count - a.count || a.file.localeCompare(b.file))
+    .map(entry => ({
+      file: entry.file,
+      message: `${entry.count} ${implementationNames}`,
+    }));
+}

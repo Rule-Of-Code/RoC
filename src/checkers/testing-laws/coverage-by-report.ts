@@ -23,6 +23,7 @@ import * as fs from 'fs';
 import type * as TS from 'typescript';
 
 import type { RuleOfCodeConfig } from '../../config/types';
+import type { ViolationDetail } from '../../types/law.types';
 import { PathOperations } from '../../utils/path-operations';
 import { loadTypeScript } from '../../utils/react/tsx-source';
 import {
@@ -47,6 +48,8 @@ export interface CoverageVerdict {
   notRead: string[];
   /** The report the files were judged by; null when judged by presence. */
   report: string | null;
+  /** Every file behind a count or a cut list (#43); absent when there is none. */
+  details?: ViolationDetail[];
 }
 
 interface Scope {
@@ -132,6 +135,7 @@ export class CoverageByReport {
   ): CoverageVerdict {
     const violations: string[] = [];
     const suggestions: string[] = [];
+    const details: ViolationDetail[] = [];
     // A file with no runtime code (only types and type imports) has nothing
     // a test can run: istanbul still gives it one line at 0%, so it is not
     // judged by the report.
@@ -151,6 +155,12 @@ export class CoverageByReport {
       violations.push(
         `${below.length} source file(s) below ${floor}% line coverage in ${report.path}: ${named.slice(0, NAMED_FILES).join(', ')}${below.length > NAMED_FILES ? ` (+${below.length - NAMED_FILES} more)` : ''}`
       );
+      details.push(
+        ...below.map(({ file, pct }) => ({
+          file: PathOperations.getRelative(scope.projectRoot, file),
+          message: `${Math.floor(pct * 10) / 10}% line coverage in ${report.path}, below ${floor}%`,
+        }))
+      );
       suggestions.push(
         `Raise line coverage to ${floor}% (${LINE_COVERAGE_KEY}) in: ${named.join(', ')}`
       );
@@ -169,6 +179,12 @@ export class CoverageByReport {
         violations.push(
           `${uncovered.length} source files are not in ${report.path} and lack corresponding test files (a test that imports a file counts)${unread}`
         );
+        details.push(
+          ...TestFilesExistenceChecker.uncoveredDetails(
+            scope.projectRoot,
+            uncovered
+          )
+        );
         suggestions.push(
           ...TestFilesExistenceChecker.presenceSuggestions(
             scope.projectRoot,
@@ -178,7 +194,13 @@ export class CoverageByReport {
         );
       }
     }
-    return { violations, suggestions, notRead: [], report: report.path };
+    return {
+      violations,
+      suggestions,
+      notRead: [],
+      report: report.path,
+      ...(details.length > 0 ? { details } : {}),
+    };
   }
 
   /**
@@ -218,13 +240,19 @@ export class CoverageByReport {
   }
 
   private static byPresence(scope: Scope, notRead: string[]): CoverageVerdict {
-    const { violations, suggestions } =
+    const { violations, suggestions, details } =
       TestFilesExistenceChecker.checkTestFilesExistence(
         scope.projectRoot,
         scope.config,
         scope.lawId
       );
-    return { violations, suggestions, notRead, report: null };
+    return {
+      violations,
+      suggestions,
+      notRead,
+      report: null,
+      ...(details.length > 0 ? { details } : {}),
+    };
   }
 
   private static entry(

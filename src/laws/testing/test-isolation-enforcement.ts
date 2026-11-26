@@ -1,7 +1,15 @@
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import { UnitTestIsolationAnalyzerService } from './unit-test-isolation/services/isolation-analyzer.service';
 import { markJudgedNothing } from '../../utils/judged-nothing';
-import { namedFiles } from '../../utils/testing/fixture-isolation';
+import {
+  namedDetails,
+  namedFiles,
+} from '../../utils/testing/fixture-isolation';
+import { withViolationDetails } from '../../utils/violation-details';
 import { TestFileDiscovery } from './test-file-discovery';
 import {
   loadTypeScript,
@@ -86,8 +94,11 @@ export class TestIsolationEnforcementLaw {
     score: number;
     sharedStateAnalysis: { hasSharedMutableState: boolean };
     setupTeardownAnalysis: { hasProperIsolation: boolean };
+    details: ViolationDetail[];
   } {
     const violations: string[] = [];
+    // Every file behind a "…; and N more" list (#43).
+    const details: ViolationDetail[] = [];
     const suggestions: string[] = [];
     let score = 100;
     const { projectRoot, config } = context;
@@ -122,6 +133,12 @@ export class TestIsolationEnforcementLaw {
       violations.push(
         `Tests share mutable state that can cause interference: ${namedFiles(sharedStateAnalysis.files)}`
       );
+      details.push(
+        ...namedDetails(
+          sharedStateAnalysis.files,
+          'shares mutable state with other tests'
+        )
+      );
       suggestions.push(
         'Move shared variables inside test functions or beforeEach blocks'
       );
@@ -137,6 +154,12 @@ export class TestIsolationEnforcementLaw {
       violations.push(
         `Tests missing proper isolation in setup/teardown (fewer than 70% of test files have it): ${namedFiles(setupTeardownAnalysis.files)}`
       );
+      details.push(
+        ...namedDetails(
+          setupTeardownAnalysis.files,
+          'no isolation in setup/teardown'
+        )
+      );
       suggestions.push(
         'Implement comprehensive beforeEach/afterEach for test isolation'
       );
@@ -149,7 +172,8 @@ export class TestIsolationEnforcementLaw {
       violations,
       suggestions,
       score,
-      thresholds
+      thresholds,
+      details
     );
 
     return {
@@ -158,6 +182,7 @@ export class TestIsolationEnforcementLaw {
       score: Math.max(0, score),
       sharedStateAnalysis,
       setupTeardownAnalysis,
+      details,
     };
   }
 
@@ -174,7 +199,8 @@ export class TestIsolationEnforcementLaw {
       resourceIsolationDeduction: number;
       globalStatePollutionDeduction: number;
       missingIsolationPatternsDeduction: number;
-    }
+    },
+    details: ViolationDetail[]
   ): number {
     const { projectRoot, config } = context;
     const analyzer = UnitTestIsolationAnalyzerService;
@@ -187,6 +213,12 @@ export class TestIsolationEnforcementLaw {
     if (orderDependencyAnalysis.hasOrderDependencies) {
       violations.push(
         `Tests appear to have order dependencies (a skipped or focused test or suite): ${namedFiles(orderDependencyAnalysis.files)}`
+      );
+      details.push(
+        ...namedDetails(
+          orderDependencyAnalysis.files,
+          'a skipped or focused test or suite'
+        )
       );
       suggestions.push('Ensure tests can run independently in any order');
       score -= thresholds.orderDependenciesDeduction;
@@ -202,6 +234,12 @@ export class TestIsolationEnforcementLaw {
         `External resources not properly isolated between tests: ${namedFiles(
           resourceIsolationAnalysis.unisolated
         )}`
+      );
+      details.push(
+        ...namedDetails(
+          resourceIsolationAnalysis.unisolated,
+          'external resources not isolated between tests'
+        )
       );
       suggestions.push('Mock or properly clean up external dependencies');
       score -= thresholds.resourceIsolationDeduction;
@@ -243,6 +281,7 @@ export class TestIsolationEnforcementLaw {
       score: number;
       sharedStateAnalysis: { hasSharedMutableState: boolean };
       setupTeardownAnalysis: { hasProperIsolation: boolean };
+      details?: ViolationDetail[];
     }
   ): LawResult {
     const {
@@ -259,15 +298,18 @@ export class TestIsolationEnforcementLaw {
       setupTeardownAnalysis
     );
 
-    return {
-      passed,
-      message,
-      details: [...violations, ...suggestions],
-      violations,
-      suggestions,
-      score,
-      config: context.config,
-    };
+    return withViolationDetails(
+      {
+        passed,
+        message,
+        details: [...violations, ...suggestions],
+        violations,
+        suggestions,
+        score,
+        config: context.config,
+      },
+      analysisResult.details ?? []
+    );
   }
 
   /**

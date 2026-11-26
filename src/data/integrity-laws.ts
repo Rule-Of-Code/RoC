@@ -133,6 +133,7 @@ export const INTEGRITY_LAWS: EnhancedConstitutionalLaw[] = [
       'References are matched by name in the syntax tree (comments and strings never count; import/export lists, declarations, object keys and recursion inside the guard do not count). Two guards with one name share their callers, and an unrelated `obj.requireX` counts as a reference.',
       'A function passed by reference counts as referenced (dynamic dispatch is not followed further).',
       'Test files are *.spec|test|cy|e2e.* and *.stories.* files, and anything under a __tests__, __mocks__, __fixtures__, test, tests, e2e, cypress, spec or specs directory; a test helper elsewhere counts as production.',
+      'A Vue single-file component (.vue) is read by its <script> and <script setup> blocks, at its own lines; its <template> and <style> are not read by this law (#607).',
     ],
     emoji: '🛡️',
     description:

@@ -17,7 +17,8 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
-import { FeArchLawBase } from './fe-arch-law-base';
+import { scriptText, VUE_EXTENSION } from '../../utils/vue/vue-sfc';
+import { FeArchLawBase, TS_SOURCE_EXTENSIONS } from './fe-arch-law-base';
 
 export class DefensiveArrayCoercionLaw extends FeArchLawBase {
   private static readonly LAW_NAME = 'Defensive Array Coercion';
@@ -26,14 +27,16 @@ export class DefensiveArrayCoercionLaw extends FeArchLawBase {
 
   static check(context: LawCheckContext): LawResult {
     const { projectRoot } = context;
-    const dataAccess = this.sourceFiles(context).filter(file =>
-      this.inLayer(context, file, 'dataAccess')
-    );
+    // .vue too, read by its script (#607).
+    const dataAccess = this.sourceFiles(context, [
+      ...TS_SOURCE_EXTENSIONS,
+      VUE_EXTENSION,
+    ]).filter(file => this.inLayer(context, file, 'dataAccess'));
     const violations: string[] =
       dataAccess.length === 0 ? [this.emptyLayer(context, ['dataAccess'])] : [];
 
     for (const file of dataAccess) {
-      const content = FileUtils.readFile(file);
+      const content = scriptText(file, FileUtils.readFile(file) ?? '');
       // "Raw" as an internal token (RawX prefix OR FuturesRawX infix) — no \b,
       // per the FE naming convention (else the futures infix form is missed).
       if (!content || !/Raw[A-Z]/.test(content)) continue;

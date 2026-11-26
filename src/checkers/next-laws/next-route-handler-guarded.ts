@@ -16,7 +16,11 @@
  */
 
 import type * as TS from 'typescript';
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import {
   isFunctionLike,
   moduleExports,
@@ -97,6 +101,18 @@ export class NextRouteHandlerGuardedLaw extends LawBase {
     violations.push(
       ...this.guardFindings(guarded, config, guards.problems.length, where)
     );
+    // Each handler behind the count, at its line (#43): the same condition
+    // as guardFindings' count line.
+    const details: ViolationDetail[] =
+      guarded.length > 0 &&
+      !config.guards?.length &&
+      guards.problems.length === 0
+        ? guarded.map(h => ({
+            file: graph.relative(h.route.file),
+            line: h.entry.line,
+            message: `${h.entry.name} ${h.route.path}: mutating route handler — no ${GUARD_KEY} is declared`,
+          }))
+        : [];
     for (const handler of handlers) {
       const problem = this.bodyProblem(handler, config.validators);
       if (problem)
@@ -110,7 +126,9 @@ export class NextRouteHandlerGuardedLaw extends LawBase {
         `${PUBLIC_KEY}: '${entry.key}' is no route handler's path — a stale exemption is the next route's silent hole. Remove it or correct the path`
       );
     }
-    return this.result(violations, context);
+    const result = this.result(violations, context);
+    if (details.length > 0) result.violationDetails = details;
+    return result;
   }
 
   /** No guard declared while handlers need one; else each guarded handler that calls none. */

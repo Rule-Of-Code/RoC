@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ Added — Ionic and Capacitor laws name what they counted (#43, ionic / capacitor)
+
+Five laws said how many, or named the first and "N more". Each law already
+held every one. It now puts them in `violationDetails`, at their place:
+
+- **Capacitor Android Back Has One Owner**: each
+  `App.addListener('backButton')`, at its line.
+- **Capacitor Single Platform Boundary**: each file behind "imported from N
+  project directories: dir (n files)", with what it uses.
+- **Ionic Unique URL Key Per View**: each route that renders a component at
+  the shared path, at its line.
+- **Ionic Session Exit Uses Navigate Root**: each forward navigation behind
+  "(N calls)", at its line.
+- **Ionic Single Build System**: each standalone import behind "<first> and
+  N more", at its line.
+
+The violation lines, verdicts and scores are unchanged. Nothing new is
+searched for.
+
 ### ✨ Added — Next laws name what they counted (#43, react / next)
 
 Four Next laws said how many and showed at most five: "client IP headers are

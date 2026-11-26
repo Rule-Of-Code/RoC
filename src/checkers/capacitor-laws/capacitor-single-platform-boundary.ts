@@ -25,6 +25,7 @@ import {
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 import { TsClasses } from '../../utils/ts-classes';
+import { withViolationDetails } from '../../utils/violation-details';
 import { LawBase } from '../law-base';
 
 /** A runtime import of a Capacitor package (not `import type`, not the CLI's config types). */
@@ -51,7 +52,15 @@ export class CapacitorSinglePlatformBoundaryLaw extends LawBase {
     const violations = boundary?.length
       ? this.outsideBoundary(users, boundary)
       : this.inferredBoundary(context, users);
-    return this.createResult(
+    // Each file behind the directory counts, with what it uses (#43).
+    const details =
+      !boundary?.length && violations.length > 0
+        ? users.map(user => ({
+            file: user.where,
+            message: `uses ${user.uses.join(', ')} (project directory ${this.projectDirOf(context.projectRoot, user.where)})`,
+          }))
+        : [];
+    const result = this.createResult(
       violations,
       this.LAW_NAME,
       'FRAMEWORK',
@@ -62,6 +71,7 @@ export class CapacitorSinglePlatformBoundaryLaw extends LawBase {
       ],
       context
     );
+    return withViolationDetails(result, details);
   }
 
   /** Files that import Capacitor or branch on the platform, with what they use. */

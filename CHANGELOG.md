@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ Added — Vue guidance: the `vue` key of `satisfiedBy`, first for accessibility (#12)
+
+`satisfiedBy` gains a `vue` key: how to pass a law in a Vue single-file
+component. It is written only for a law that reads `.vue` files. The first
+are the four accessibility laws that read a `.vue` template: Explicit Button
+Type, Form Control Labeling, Disclosure Control ARIA State and Modal Dialog
+Accessibility. Each text was proved on a Vue + Vite app. Accessibility
+Linting Enforcement has no rule set for Vue templates and carries none.
+
+**`laws --json` is now `schemaVersion` 4.** `satisfiedByStacks.keys` gains
+`"vue"` (after `"react"`), `stackToKey.frontend` becomes
+`["angular", "react", "vue"]`, and `projectTypeToKey` gains `"vue": "vue"`.
+A renderer that iterates `keys` picks the new key up. One that hardcoded
+the six keys should read `keys` instead.
+
 ### 🐛 Fixed — three Capacitor laws read a Vue component's script, not its template (#12)
 
 Capacitor Single Platform Boundary, Capacitor Deep Link Contract and

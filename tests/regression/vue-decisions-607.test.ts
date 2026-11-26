@@ -57,6 +57,7 @@ const NOT_ABOUT_COMPONENTS = [
   'API Security Testing Requirements',
   'API Testing Standards',
   'Comprehensive Security Testing Requirements',
+  'No Focused Tests',
   'Perf Harness Matches Production',
   'Performance Test Requirements',
   'Project Structure Standards',
@@ -168,5 +169,30 @@ describe('#607 decision (c): a law that is not about components gets no .vue not
     expect((s.notRead ?? []).filter(n => VUE_NOTE.test(n))).toEqual([]);
     const m = await auditorFor(root).executeSingleLaw(memory);
     expect((m.notRead ?? []).filter(n => VUE_NOTE.test(n))).toHaveLength(1);
+  });
+
+  it('No Focused Tests through the engine: a focused spec is found, and no .vue note', async () => {
+    const root = project({
+      ...VUE_APP,
+      'package.json': JSON.stringify({
+        name: 'app',
+        version: '1.0.0',
+        dependencies: { vue: '^3.5.0' },
+        devDependencies: { vitest: '^3.2.0' },
+      }),
+      'src/components/Counter.spec.ts':
+        "import { it } from 'vitest';\nit.only('counts', () => {});\n",
+    });
+    const law = ModularLawsRegistry.getAll().find(
+      l => l.name === 'No Focused Tests'
+    );
+    const r = (await auditorFor(root).executeSingleLaw(law)) as {
+      violations?: string[];
+      notRead?: string[];
+    };
+    expect(r.violations).toEqual([
+      expect.stringMatching(/src[\\/]components[\\/]Counter\.spec\.ts:2/),
+    ]);
+    expect((r.notRead ?? []).filter(n => VUE_NOTE.test(n))).toEqual([]);
   });
 });

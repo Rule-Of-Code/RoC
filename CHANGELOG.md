@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — performance laws: React guidance says what passes on Vite; Core Web Vitals reads the Vite index.html (#12)
+
+The React guidance of four performance laws said only what a Next app
+does. Proved on a React + Vite project, the cards now also say what passes
+there: Performance Standards and Core Web Vitals Compliance — an image tool
+(sharp, imagemin or squoosh) and Cache-Control in firebase.json or
+nginx.conf, or a service worker; Bundle Optimization Strategy Policy — a
+critical-CSS tool (critters, critical or penthouse) beside manualChunks;
+Performance Monitoring Policy — the alert and the dashboard files the law
+finds, where the card had said "an alert definition and a dashboard".
+
+Core Web Vitals Compliance read resource hints from `src/index.html` and
+built output only, so a `<link rel="preconnect">` in the project-root
+`index.html` a Vite app is built from was not seen and the law reported
+"Missing critical resource hints". It now reads that file too.
+
+The detection limits of Performance Monitoring Policy now say what counts
+as an alert and as a dashboard: a `lighthouserc.json` without the leading
+dot counts as an alert, not as a dashboard. The React guidance of the eight
+performance laws (with No Layout Transition and Primary Locale Font
+Preloaded, right as written) is held by a regression test, RED first and
+then GREEN by doing what the card says.
+
 ### ✨ Added — accessibility laws name each control they counted (#43, accessibility)
 
 Three accessibility laws count controls on one line ("2 form control(s)

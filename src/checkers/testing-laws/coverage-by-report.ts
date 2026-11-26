@@ -48,8 +48,8 @@ export interface CoverageVerdict {
   notRead: string[];
   /** The report the files were judged by; null when judged by presence. */
   report: string | null;
-  /** Every file behind a count or a cut list (#43). */
-  details: ViolationDetail[];
+  /** Every file behind a count or a cut list (#43); absent when there is none. */
+  details?: ViolationDetail[];
 }
 
 interface Scope {
@@ -199,7 +199,7 @@ export class CoverageByReport {
       suggestions,
       notRead: [],
       report: report.path,
-      details,
+      ...(details.length > 0 ? { details } : {}),
     };
   }
 
@@ -246,7 +246,13 @@ export class CoverageByReport {
         scope.config,
         scope.lawId
       );
-    return { violations, suggestions, notRead, report: null, details };
+    return {
+      violations,
+      suggestions,
+      notRead,
+      report: null,
+      ...(details.length > 0 ? { details } : {}),
+    };
   }
 
   private static entry(

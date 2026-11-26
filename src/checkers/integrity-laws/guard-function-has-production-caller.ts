@@ -53,8 +53,10 @@ const SOURCE_EXTENSIONS = [
   '.jsx',
   '.mjs',
   '.cjs',
+  // A component's script calls guards too; read by its script (#607).
+  '.vue',
 ];
-const TYPESCRIPT_FILE = /\.(?:ts|tsx|mts|cts)$/;
+const TYPESCRIPT_FILE = /\.(?:ts|tsx|mts|cts|vue)$/;
 const STORY_FILE = /\.stories\.[cm]?[jt]sx?$/;
 
 interface Guard {

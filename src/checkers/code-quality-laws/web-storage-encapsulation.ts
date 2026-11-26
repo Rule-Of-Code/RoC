@@ -14,6 +14,7 @@ import type {
 import { PathOperations } from '../../utils/path-operations';
 import { FileUtils } from '../../utils/file-utils';
 import { CodeQualityLawBase } from './code-quality-law-base';
+import { scriptText } from '../../utils/vue/vue-sfc';
 
 export class WebStorageEncapsulationLaw extends CodeQualityLawBase {
   private static readonly WEB_STORAGE =
@@ -29,8 +30,12 @@ export class WebStorageEncapsulationLaw extends CodeQualityLawBase {
       // Storage access is allowed inside services (the encapsulation boundary).
       if (/\.service\.ts$/.test(file.replace(/\\/g, '/'))) continue;
 
-      const content = FileUtils.readFileContentSync(file);
-      if (!content) continue;
+      // A .vue file is judged by its script (#607).
+      const content = scriptText(
+        file,
+        FileUtils.readFileContentSync(file) ?? ''
+      );
+      if (!content.trim()) continue;
       const code = this.stripComments(content);
       const matches = code.match(this.WEB_STORAGE);
       if (matches && matches.length > 0) {

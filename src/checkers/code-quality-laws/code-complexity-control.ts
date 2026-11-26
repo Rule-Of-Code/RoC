@@ -143,9 +143,10 @@ export class CodeComplexityControlLaw extends CodeQualityLawBase {
     const details: ViolationDetail[] = [];
 
     // Find TypeScript/JavaScript files
+    // .vue too: measured on its script (#607).
     const codeFiles = CheckerUtils.findFilesByExtension(
       projectRoot,
-      CheckerUtils.getCommonExtensions().TYPESCRIPT,
+      [...CheckerUtils.getCommonExtensions().TYPESCRIPT, 'vue'],
       config
     );
     let complexFilesFound = 0;

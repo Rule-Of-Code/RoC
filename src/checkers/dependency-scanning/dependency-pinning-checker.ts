@@ -230,6 +230,14 @@ export class DependencyPinningChecker {
       return { isViolation: false, severityScore: 0 };
     }
 
+    // An npm alias, `npm:<package>@<range>`, is judged by its range: it was
+    // "Unknown version format" (#667). With no range it is the latest.
+    if (version.startsWith('npm:')) {
+      const target = version.slice('npm:'.length);
+      const at = target.lastIndexOf('@');
+      return this.rangeVerdict(at > 0 ? target.slice(at + 1) : 'latest');
+    }
+
     // Allow git dependencies from ANY provider/protocol — git+ssh://, git+https://,
     // git://, the github:/gitlab:/bitbucket: shorthands, or raw git@ SSH — but
     // still suggest pinning to a commit-ish (#...).

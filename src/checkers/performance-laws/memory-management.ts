@@ -5,6 +5,8 @@
  * directive files it flags:
  *   - setInterval() with no clearInterval() in the same file;
  *   - addEventListener() with no removeEventListener() in the same file.
+ * The same two checks read the <script> of every Vue single-file component
+ * (.vue), and tell it to tear down in onBeforeUnmount() / onUnmounted() (#12).
  *
  * Reconciliation (RoC has many related laws — no duplicate flagging):
  *  - RxJS subscription cleanup is owned by ObservableCleanupLaw and
@@ -25,8 +27,11 @@ import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
 import { AngularComponentFiles } from '../../utils/angular-component-files';
+import { scriptText } from '../../utils/vue/vue-sfc';
 
 const LAW_NAME = 'Memory Management Law';
+/** Where a Vue component releases what it acquired (#12). */
+const VUE_TEARDOWN = 'onBeforeUnmount() / onUnmounted()';
 
 /** The concern this law owns does not exist without its substrate. */
 const NOT_APPLICABLE_MESSAGE =
@@ -81,30 +86,66 @@ export class MemoryManagementLaw {
         continue;
       const raw = FileUtils.readFileContentSync(file);
       if (!raw) continue;
-      const content = raw
-        .replace(/\/\*[\s\S]*?\*\//g, ' ')
-        .replace(/(^|[^:])\/\/[^\n]*/g, '$1');
-      const relativePath = PathOperations.getRelative(projectRoot, file);
-
-      if (
-        this.SET_INTERVAL.test(content) &&
-        !this.CLEAR_INTERVAL.test(content)
-      ) {
-        violations.push(
-          `${relativePath}: setInterval() without a matching clearInterval() — clear the interval in ngOnDestroy().`
-        );
-      }
-      if (
-        this.ADD_LISTENER.test(content) &&
-        !this.REMOVE_LISTENER.test(content)
-      ) {
-        violations.push(
-          `${relativePath}: addEventListener() without a matching removeEventListener() — remove the listener in ngOnDestroy().`
-        );
-      }
+      violations.push(
+        ...this.leaks(
+          PathOperations.getRelative(projectRoot, file),
+          raw,
+          'ngOnDestroy()'
+        )
+      );
     }
 
     return violations;
+  }
+
+  /**
+   * The same checks on Vue single-file components (#12): a .vue file is read
+   * by its <script> and <script setup>, so markup and styles that mention a
+   * timer are not code.
+   */
+  private static collectVueViolations(
+    vueFiles: string[],
+    projectRoot: string
+  ): string[] {
+    const violations: string[] = [];
+    for (const file of vueFiles) {
+      const raw = FileUtils.readFileContentSync(file);
+      if (!raw) continue;
+      violations.push(
+        ...this.leaks(
+          PathOperations.getRelative(projectRoot, file),
+          scriptText(file, raw),
+          VUE_TEARDOWN
+        )
+      );
+    }
+    return violations;
+  }
+
+  /** A timer or a listener the code acquires and never releases, as findings. */
+  private static leaks(
+    relativePath: string,
+    raw: string,
+    teardown: string
+  ): string[] {
+    const content = raw
+      .replace(/\/\*[\s\S]*?\*\//g, ' ')
+      .replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+    const found: string[] = [];
+    if (this.SET_INTERVAL.test(content) && !this.CLEAR_INTERVAL.test(content)) {
+      found.push(
+        `${relativePath}: setInterval() without a matching clearInterval() — clear the interval in ${teardown}.`
+      );
+    }
+    if (
+      this.ADD_LISTENER.test(content) &&
+      !this.REMOVE_LISTENER.test(content)
+    ) {
+      found.push(
+        `${relativePath}: addEventListener() without a matching removeEventListener() — remove the listener in ${teardown}.`
+      );
+    }
+    return found;
   }
 
   static check(context: LawCheckContext): LawResult {
@@ -122,8 +163,16 @@ export class MemoryManagementLaw {
       context.projectRoot,
       context.config
     );
+    // Vue single-file components, read by their script (#12).
+    const vueFiles = FileUtils.scanForFiles(
+      context.projectRoot,
+      context.config,
+      ['.vue'],
+      context.lawId,
+      false
+    );
 
-    if (componentFiles.length === 0) {
+    if (componentFiles.length === 0 && vueFiles.length === 0) {
       return {
         lawName: LAW_NAME,
         passed: false,
@@ -136,10 +185,10 @@ export class MemoryManagementLaw {
       };
     }
 
-    const violations = this.collectViolations(
-      componentFiles,
-      context.projectRoot
-    );
+    const violations = [
+      ...this.collectViolations(componentFiles, context.projectRoot),
+      ...this.collectVueViolations(vueFiles, context.projectRoot),
+    ];
 
     suggestions.push(...this.RECOMMENDATIONS);
 
@@ -158,7 +207,7 @@ export class MemoryManagementLaw {
           : Math.max(0, 100 - violations.length * 10),
       config: context.config,
       metrics: {
-        totalFiles: componentFiles.length,
+        totalFiles: componentFiles.length + vueFiles.length,
         issuesFound: violations.length,
       },
     };

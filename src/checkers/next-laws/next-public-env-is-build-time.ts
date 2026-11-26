@@ -21,7 +21,11 @@
  */
 
 import { glob } from 'glob';
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 import { clientGraph, strippedFromPage } from '../../utils/react/next-entries';
@@ -60,6 +64,15 @@ interface BuildSite {
   declared: Set<string>;
 }
 
+/** `file:line` (or a bare file) as a detail's place. */
+function placeOf(where: string | undefined): { file?: string; line?: number } {
+  if (!where) return {};
+  const match = /^(.*):(\d+)$/.exec(where);
+  return match?.[1] && match[2]
+    ? { file: match[1], line: Number(match[2]) }
+    : { file: where };
+}
+
 export class NextPublicEnvIsBuildTimeLaw extends LawBase {
   static readonly LAW_NAME = 'Next Public Env Is Build Time';
 
@@ -86,8 +99,10 @@ export class NextPublicEnvIsBuildTimeLaw extends LawBase {
     }
     const sites = this.buildSites(context.projectRoot);
     const dotenv = this.dotenvNames(context.projectRoot);
+    // Each variable behind a count or a cut list, at its place (#43).
+    const details: ViolationDetail[] = [];
     if (reads.size > 0 && !source.value)
-      violations.push(...this.undeclared(reads, sites, dotenv));
+      violations.push(...this.undeclared(reads, sites, dotenv, details));
     if (graph) violations.push(...this.computedInClient(graph, context));
     const names = new Set([
       ...reads.keys(),
@@ -100,7 +115,7 @@ export class NextPublicEnvIsBuildTimeLaw extends LawBase {
         new Set((allowed.value ?? []).map(entry => entry.key))
       )
     );
-    return this.createResult(
+    const result = this.createResult(
       violations,
       this.LAW_NAME,
       'SECURITY',
@@ -112,6 +127,8 @@ export class NextPublicEnvIsBuildTimeLaw extends LawBase {
       ],
       context
     );
+    if (details.length > 0) result.violationDetails = details;
+    return result;
   }
 
   /** Rule 2: computed, destructured or whole-object process.env in a client graph module. */
@@ -162,17 +179,30 @@ export class NextPublicEnvIsBuildTimeLaw extends LawBase {
   private static undeclared(
     reads: Map<string, string>,
     sites: BuildSite[],
-    dotenv: Set<string>
+    dotenv: Set<string>,
+    details: ViolationDetail[]
   ): string[] {
     const names = [...reads.keys()].filter(name => !dotenv.has(name)).sort();
     if (names.length === 0) return [];
     if (sites.length === 0) {
+      details.push(
+        ...names.map(name => ({
+          ...placeOf(reads.get(name)),
+          message: `${name} is read — no Dockerfile or CI file here runs next build`,
+        }))
+      );
       return [
         `${names.length} NEXT_PUBLIC_ variable(s) are read (${listed(names.map(n => `${n} at ${reads.get(n)}`))}) and no Dockerfile or CI file here runs next build — the law cannot see whether the build has them. Declare them where the build runs, or say where in ${SOURCE_KEY}`,
       ];
     }
     return sites.flatMap(site => {
       const missing = names.filter(name => !site.declared.has(name));
+      details.push(
+        ...missing.map(name => ({
+          ...placeOf(site.where),
+          message: `${name}: not declared before this build (read at ${reads.get(name) ?? '?'}) — inlined as undefined`,
+        }))
+      );
       return missing.length === 0
         ? []
         : [

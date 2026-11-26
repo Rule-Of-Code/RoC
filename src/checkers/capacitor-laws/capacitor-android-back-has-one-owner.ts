@@ -18,7 +18,12 @@
  */
 
 import type * as TS from 'typescript';
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
+import { placeOf, withViolationDetails } from '../../utils/violation-details';
 import {
   configValue,
   resolvedProjects,
@@ -80,11 +85,19 @@ export class CapacitorAndroidBackHasOneOwnerLaw extends LawBase {
         }))
     );
     const notes: string[] = [];
+    // Each listener behind the count, at its line (#43).
+    const details: ViolationDetail[] = [];
     if (listeners.length === 0) {
       violations.push(...this.deadChain(context));
     } else if (listeners.length > 1) {
       violations.push(
         `${listeners.length} App.addListener('backButton') call sites: ${listeners.map(l => l.where).join(', ')} — every listener is notified on each press, so one press is handled ${listeners.length} times. Keep exactly one listener for the app`
+      );
+      details.push(
+        ...listeners.map(l => ({
+          ...placeOf(l.where),
+          message: `App.addListener('backButton') — one of ${listeners.length} listeners`,
+        }))
       );
     } else {
       const [only] = listeners;
@@ -96,15 +109,18 @@ export class CapacitorAndroidBackHasOneOwnerLaw extends LawBase {
       }
     }
     return withNotes(
-      this.createResult(
-        violations,
-        this.LAW_NAME,
-        'FRAMEWORK',
-        [
-          "Register exactly one App.addListener('backButton') for the app (in a root service or app initializer)",
-          'Either let Ionic own back (the listener only exits at the root) or set hardwareBackButton: false and let the listener close the top overlay first, then go back',
-        ],
-        context
+      withViolationDetails(
+        this.createResult(
+          violations,
+          this.LAW_NAME,
+          'FRAMEWORK',
+          [
+            "Register exactly one App.addListener('backButton') for the app (in a root service or app initializer)",
+            'Either let Ionic own back (the listener only exits at the root) or set hardwareBackButton: false and let the listener close the top overlay first, then go back',
+          ],
+          context
+        ),
+        details
       ),
       notes
     );

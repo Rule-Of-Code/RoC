@@ -16,6 +16,7 @@ import { publishedListing, readFromIndex } from './git/git-layout';
 import { NxWorkspace } from './nx-workspace';
 import { lexPython } from './request-path/python-source';
 import { noteScriptGlob } from './vue/vue-read-tracker';
+import { isVueFile, scriptView } from './vue/vue-sfc';
 
 /** Trees that hold installed, built, generated or virtualenv files, not the project's own. */
 const CONTAINING_IGNORE = [
@@ -160,6 +161,12 @@ function containingCandidates(
  * contents blanked.
  */
 function matchedText(entry: FileContaining, rel: string, text: string): string {
+  // An entry that reads a component's script matches a .vue file by its
+  // <script> blocks, at their offsets (#607).
+  if (entry.vueScript && isVueFile(rel)) {
+    const script = scriptView(text);
+    return entry.readsCode ? CodeText.stripCommentsAndStrings(script) : script;
+  }
   if (!entry.readsCode) return text;
   if (/\.py$/.test(rel)) return lexPython(text).code;
   return /\.[cm]?[jt]sx?$/.test(rel)

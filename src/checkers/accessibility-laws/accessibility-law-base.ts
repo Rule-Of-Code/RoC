@@ -1,14 +1,16 @@
 /**
  * Accessibility Law Base Class
- * Shared helpers for accessibility (a11y) law checkers. Templates (.html) are
- * read as elements by TemplateMarkup; a template that cannot be read to the
- * end is reported, never passed.
+ * Shared helpers for accessibility (a11y) law checkers. Templates (.html, and
+ * the <template> of a Vue single-file component, #607) are read as elements
+ * by TemplateMarkup; a template that cannot be read to the end is reported,
+ * never passed.
  */
 
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { CheckerUtils } from '../../utils/checker-utils';
 import { FileSystemOperations } from '../../utils/file-system-operations';
 import { PathOperations } from '../../utils/path-operations';
+import { markupText } from '../../utils/vue/vue-sfc';
 import { TemplateMarkup, type MarkupDocument } from './template-markup';
 
 /** One template file, read as elements. */
@@ -39,13 +41,32 @@ export abstract class AccessibilityLawBase {
   }
 
   /**
+   * The markup the template laws read: Angular templates (.html) and Vue
+   * single-file components (.vue), each read by its <template> (#607).
+   * Kept apart from findTemplateFiles, which asks whether the project has
+   * Angular templates.
+   */
+  protected static findMarkupFiles(
+    projectRoot: string,
+    context: LawCheckContext
+  ): string[] {
+    return CheckerUtils.findFilesByExtension(
+      projectRoot,
+      ['html', 'vue'],
+      context.config,
+      context.lawId
+    );
+  }
+
+  /**
    * Every template, parsed. A template whose markup cannot be read to the end
-   * (an opening tag or a quoted value that never closes) is in `unread`.
+   * (an opening tag or a quoted value that never closes) is in `unread`. A
+   * .vue file is read by its <template> only, at the file's own lines.
    */
   protected static readTemplates(context: LawCheckContext): ReadTemplates {
     const templates: ReadTemplate[] = [];
     const unread: string[] = [];
-    for (const file of this.findTemplateFiles(context.projectRoot, context)) {
+    for (const file of this.findMarkupFiles(context.projectRoot, context)) {
       const relative = this.relative(context.projectRoot, file);
       let content: string;
       try {
@@ -58,7 +79,7 @@ export abstract class AccessibilityLawBase {
         );
         continue;
       }
-      const document = TemplateMarkup.parse(content);
+      const document = TemplateMarkup.parse(markupText(file, content));
       if (document.error) {
         unread.push(
           `${relative}: could not be read as markup (${document.error}) — its elements were NOT checked`

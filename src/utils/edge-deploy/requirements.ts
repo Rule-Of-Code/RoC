@@ -41,9 +41,11 @@ const HTTP_CALL = String.raw`\b(?:fetch|axios|got|ky)\s*[.(]|\bnew\s+Request\s*\
 export const REQUIRES_PROXY_UPSTREAM_URL: LawRequirement = {
   anyFileContaining: [
     {
-      files: ['**/*.{ts,mts,cts,js,mjs,cjs}'],
+      // A component's <script> too, read by its script (#607).
+      files: ['**/*.{ts,mts,cts,js,mjs,cjs,vue}'],
       pattern: String.raw`(?<![\s\S])(?=[\s\S]*?(?:${HTTP_CALL}))(?=[\s\S]*?${URL_WITH_BASE})`,
       exclude: [...TEST_TREES, ...JS_TEST_FILES],
+      vueScript: true,
     },
     {
       files: ['**/*.py'],

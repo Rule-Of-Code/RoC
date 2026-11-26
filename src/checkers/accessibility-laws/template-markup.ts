@@ -287,9 +287,9 @@ export class TemplateMarkup {
   }
 
   /**
-   * The attribute `name` as written statically or bound by Angular:
-   * `name`, `[name]`, `[attr.name]` (case-insensitive, exact name — so
-   * `data-type` is not `type`).
+   * The attribute `name` as written statically or bound: Angular's
+   * `[name]`, `[attr.name]`, and Vue's `:name`, `v-bind:name` (#607)
+   * (case-insensitive, exact name — so `data-type` is not `type`).
    */
   static attribute(
     element: MarkupElement,
@@ -301,8 +301,27 @@ export class TemplateMarkup {
       return (
         written === wanted ||
         written === `[${wanted}]` ||
-        written === `[attr.${wanted}]`
+        written === `[attr.${wanted}]` ||
+        written === `:${wanted}` ||
+        written === `v-bind:${wanted}`
       );
+    });
+  }
+
+  /**
+   * The handler of the DOM event `name`: Angular's `(name)`, Vue's `@name`
+   * or `v-on:name`, with or without modifiers (`@click.stop`) (#607).
+   */
+  static event(
+    element: MarkupElement,
+    name: string
+  ): MarkupAttribute | undefined {
+    const wanted = name.toLowerCase();
+    return element.attributes.find(attribute => {
+      const written = attribute.name.toLowerCase();
+      if (written === `(${wanted})`) return true;
+      const vue = /^(?:@|v-on:)([^.]+)(?:\..*)?$/.exec(written);
+      return vue?.[1] === wanted;
     });
   }
 

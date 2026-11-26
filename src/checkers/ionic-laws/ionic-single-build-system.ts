@@ -19,11 +19,16 @@
 
 import * as fs from 'fs';
 import type * as TS from 'typescript';
-import type { LawCheckContext, LawResult } from '../../types/law.types';
+import type {
+  LawCheckContext,
+  LawResult,
+  ViolationDetail,
+} from '../../types/law.types';
 import { AngularComponents } from '../../utils/ionic/angular-components';
 import { withNotes } from '../../utils/ionic/law-notes';
 import { PathOperations } from '../../utils/path-operations';
 import { TsxSource, type TypeScriptModule } from '../../utils/react/tsx-source';
+import { placeOf, withViolationDetails } from '../../utils/violation-details';
 import { LawBase } from '../law-base';
 
 const MODULE_ENTRY = '@ionic/angular';
@@ -56,6 +61,8 @@ export class IonicSingleBuildSystemLaw extends LawBase {
       }
     }
     const notes: string[] = [];
+    // Each standalone import behind "<first> and N more" (#43).
+    const details: ViolationDetail[] = [];
     if (standalone.length > 0 && modules.length > 0) {
       const shared = this.sharedSymbols(
         context.projectRoot,
@@ -66,7 +73,7 @@ export class IonicSingleBuildSystemLaw extends LawBase {
           `both entries are imported (${standalone.length} from '${STANDALONE_ENTRY}', ${modules.length} from '${MODULE_ENTRY}') and the installed @ionic/angular could not be read to tell the shared classes apart — NOT judged`
         );
       } else {
-        violations.push(...this.mixed(standalone, modules, shared));
+        violations.push(...this.mixed(standalone, modules, shared, details));
         notes.push(...this.sharedNotes(modules, shared));
       }
     }
@@ -80,7 +87,7 @@ export class IonicSingleBuildSystemLaw extends LawBase {
       ],
       context
     );
-    return withNotes(result, notes);
+    return withNotes(withViolationDetails(result, details), notes);
   }
 
   /** Value imports and value re-exports in one file, with the names they bring. */
@@ -220,15 +227,21 @@ export class IonicSingleBuildSystemLaw extends LawBase {
     }
   }
 
+  /**
+   * Each module-build import that is not a shared class, against the
+   * standalone imports; when there is one, every standalone import goes in
+   * `details` (#43): the line names the first and "N more".
+   */
   private static mixed(
     standalone: ImportSite[],
     modules: ImportSite[],
-    shared: Set<string>
+    shared: Set<string>,
+    details: ViolationDetail[]
   ): string[] {
     const first = standalone[0]?.where ?? '';
     const others =
       standalone.length > 1 ? ` and ${standalone.length - 1} more` : '';
-    return modules.flatMap(site => {
+    const found = modules.flatMap(site => {
       const own = site.names.filter(name => !shared.has(name));
       if (own.length === 0) return [];
       const what = own.includes(WHOLE_ENTRY)
@@ -238,6 +251,14 @@ export class IonicSingleBuildSystemLaw extends LawBase {
         `${site.where}: imports ${what} from '${MODULE_ENTRY}' while ${first}${others} import from '${STANDALONE_ENTRY}' — a different class (a different DI token) in each build, and the module build's lazy loader; the docs say the two cannot be used at the same time`,
       ];
     });
+    if (found.length > 0)
+      details.push(
+        ...standalone.map(site => ({
+          ...placeOf(site.where),
+          message: `imports from '${STANDALONE_ENTRY}'`,
+        }))
+      );
+    return found;
   }
 
   private static sharedNotes(

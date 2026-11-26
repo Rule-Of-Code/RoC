@@ -26,6 +26,89 @@ held every one. It now puts them in `violationDetails`, at their place:
 The violation lines, verdicts and scores are unchanged. Nothing new is
 searched for.
 
+### ✨ Added — Next laws name what they counted (#43, react / next)
+
+Four Next laws said how many and showed at most five: "client IP headers are
+read in 6 module(s) (… and 1 more)", "6 mutating route handler(s) (…)", "6
+Server Action(s) (…)", "6 NEXT_PUBLIC_ variable(s) are read (…)",
+"builds Next without A, B, …". Each law already held every one. It now puts
+them in `violationDetails`, at their place:
+
+- **Client IP Single Boundary**: each header read, at its line, when no
+  boundary module is declared.
+- **Next Route Handler Guarded**: each mutating route handler, at its line,
+  when no guard is declared.
+- **Next Server Action Authorizes**: each Server Action, at its line, when no
+  guard is declared.
+- **Next Public Env Is Build Time**: each `NEXT_PUBLIC_` variable read where
+  no build runs here, at the line that reads it; each one a build lacks, at
+  the build's line, with where it is read.
+
+React Effect Fetch Race Guarded already starts every violation with
+`path:line:` and is unchanged. The violation lines, verdicts and scores are
+unchanged. Nothing new is searched for.
+
+### 🐛 Fixed — four laws gated by script files are selected by .vue components (#607)
+
+Proxy Target Keeps Origin Host, Independent Awaits Run Concurrently,
+Database Read Cache Safety and Async Cache Single-Flight were selected only
+by `.ts` / `.js` files containing their pattern. In a project that keeps that
+code in `.vue` components the law was not selected, and nothing said so. The
+gates now read `.vue` files by their `<script>` / `<script setup>` (the
+template is not code), the laws judge those files and report findings at the
+component's own lines. Each card says so.
+
+**Stricter** in Vue projects: the four laws can be selected and report
+findings where they did not run before.
+
+### 🐛 Fixed — three more laws read .vue single-file components (#607, P3b)
+
+Defensive Array Coercion and No Passthrough Cast scan `.vue` files in the
+data-access layer and read their `<script>` / `<script setup>`; a finding is
+reported at its line in the component, and text in the template that looks
+like code is not code. Guard Function Has Production Caller reads the script
+of `.vue` files too: a guard that only a component calls now has a
+production caller (it was reported as having none). Each card says `.vue`
+is read by its script only.
+
+**Stricter** for the two FE-architecture laws in Vue projects; one false
+finding fewer for the guard law.
+
+### 📦 Adds a runtime dependency: `typescript` ^5.9.3 (~24 MB); a project's own `typescript` is never shadowed (#667)
+
+`typescript` moves from `devDependencies` to `dependencies` (^5.9.3, 23.6 MB
+unpacked). RoC parses with it when the project's own `typescript` has
+no compiler API. Under its own name, npm never lets it shadow the project's:
+a project with its own `typescript` (5.x, 6 or 7) keeps it, and its
+`npx tsc` stays its own version; RoC's copy is installed nested under RoC.
+A project without `typescript` gets RoC's 5.9.3 hoisted, with a `tsc` in
+`.bin` — added, not shadowing anything.
+
+### 🐛 Fixed — TypeScript 7 projects: the laws parse instead of crashing (#667)
+
+TypeScript 7.0's `typescript` package exports only its version; its API is
+not there (`createSourceFile`, `ScriptTarget`, `ScriptKind`, `sys`). Taken
+as the parser, it made 29 laws end in "Check failed — Cannot read
+properties of undefined (reading 'Latest' | 'TSX' | 'readFile')" on the
+default `npm create vite` react-ts project. Now:
+
+- the project's `typescript` is used when it has the compiler API (checked
+  by what the package offers, never by its version); otherwise RoC parses
+  with its own (`typescript` ^5.9.3). Parsing needs no type-checking, so
+  the versions need not match. The details of each law that parsed say so:
+  `project typescript 7.0.2 offers no JS API; parsed with RoC's typescript
+  5.9.x`, and the audit says it once at the start;
+- if no TypeScript with the API can be found, the laws report their files
+  as NOT read and name the project's version, instead of crashing;
+- TypeScript Strict Mode and Zero Tolerance Doctrine judge an option a
+  tsconfig leaves out by the TypeScript major the project builds with: from
+  6.0 on `strict` is true and `target` is the newest ES version (TypeScript
+  6.0 and 7.0 release notes). A Vite project on TypeScript 6 or 7 without
+  `"strict"` no longer gets "strict not enabled"; `"strict": false` is still
+  off.
+- Dependency Security Scanning read an npm alias (`"x": "npm:typescript@^6.0.3"`)
+  as "Unknown version format"; it judges the alias by its range now.
+
 ### 🐛 Fixed — the code-quality laws read .vue single-file components (#607, P3a)
 
 Fourteen code-quality laws now read the `<script>` and `<script setup>` of a

@@ -26,6 +26,7 @@ import type {
 import { chainPrefixes, collapse } from './expr-text';
 import { finishLoop, type WalkedLoop } from './loop-dependence';
 import { TsxSource, type TypeScriptModule } from '../react/tsx-source';
+import { scriptText } from '../vue/vue-sfc';
 
 /** Characters of a statement's or a body's source a model keeps as its text. */
 const MODEL_TEXT_LENGTH = 2000;
@@ -761,6 +762,7 @@ export function typescriptModule(
     imports: builder.imports(),
     constants: builder.constants(),
     literalCollections: builder.literalCollections(),
-    lines: content.split(/\r\n|\r|\n/),
+    // A .vue file's lines are its script view: the template is not code (#607).
+    lines: scriptText(file, content).split(/\r\n|\r|\n/),
   };
 }

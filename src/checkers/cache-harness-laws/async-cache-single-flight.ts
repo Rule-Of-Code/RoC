@@ -81,10 +81,12 @@ export const ASYNC_CACHE_FILES: readonly FileContaining[] = [
     readsCode: true,
   },
   {
-    files: ['**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}'],
+    // A component's <script> too, read by its script (#607).
+    files: ['**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs,vue}'],
     pattern: String.raw`${FILE_START}[\s\S]*?${TS_NAME_START}([A-Za-z_$][\w$.]*)\.(?:get|has)\((?:[\s\S]${REACH}?${TS_ASYNC}[\s\S]${REACH}?${TS_NAME_START}\1\.set\(|[\s\S]${REACH}?${TS_NAME_START}\1\.set\([^\n]*${TS_ASYNC})`,
     exclude: TS_TESTS,
     readsCode: true,
+    vueScript: true,
   },
 ];
 

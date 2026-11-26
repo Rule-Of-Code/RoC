@@ -26,6 +26,87 @@ Standards read server and Angular files, not `.vue`.
 **Stricter** for Vue projects, and one false "no authentication" finding
 fewer.
 
+### 🐛 Fixed — three database laws read .vue components (#607, P7)
+
+Database Query Optimization, Count With An Aggregation and Document Read Once
+Per Request read the project's TS/JS sources only. A Firebase or Supabase
+app that queries from a component's `<script setup>` was told it uses no
+database, and its N+1 reads, full-collection counts and repeated document
+reads in that component were not judged. The request-path sources include
+`.vue` files now, read by their script at the component's own lines (the
+model's lines too: template text is not code). Each card says so.
+
+**Stricter** for Vue projects.
+
+### 🐛 Fixed — six performance and naming laws read .vue components (#607, P7)
+
+In a Vue project whose `App.vue` measures web vitals, registers an error
+handler, lazy-loads an image and splits code by hand, six laws did not see
+it:
+- Performance Monitoring Policy said "Core Web Vitals monitoring not
+  implemented" and "Performance error tracking not configured";
+- Performance Monitoring Standards said "Real User Monitoring not
+  configured";
+- Performance Standards said "web-vitals is declared but no metric is
+  measured";
+- Core Web Vitals Compliance said "Image optimization not configured";
+- Bundle Optimization Strategy Policy said "Code splitting not configured".
+
+They now read the component's `<script>` (and, for lazy loading, its
+`<template>`). Naming Convention Enforcement reads the identifiers of the
+script; a call written only in the template (`$t(`, `formatDate(`) is not a
+declaration. Each card says so.
+
+**Fewer false findings** for Vue projects, and naming findings where there
+were none.
+
+### 🐛 Fixed — TODO Management Standards reads the comments of .vue components (#607, P7)
+
+TODO Management Standards read comments in `.ts` / `.js`, `.html`, CSS and
+other files, but not in `.vue` components. A Vue project's markers were never
+counted. It now reads a component's comments in its template (`<!-- -->`),
+its script (TS/JS) and its style (CSS, or SCSS when the block has a
+`lang`), at the component's own lines; text that only looks like a marker
+outside a comment is not one. The card says so.
+
+**Stricter** for Vue projects.
+
+### 🐛 Fixed — Requires Spec reads .vue components (#607, P6)
+
+Requires Spec asked for a co-located test of large or money-adjacent
+Angular and React components only. A Vue single-file component in the
+feature or data-access layer is a component too now: its size is the whole
+file, `X-Control-Pass` is looked for in its script, and `Basket.spec.ts` /
+`Basket.test.ts` next to `Basket.vue` covers it. The card says so.
+
+**Stricter** for Vue projects.
+
+### 🐛 Fixed — four accessibility laws read the template of .vue components (#607, P5)
+
+Explicit Button Type, Form Control Labeling, Disclosure Control ARIA State
+and Modal Dialog Accessibility read Angular `.html` templates and JSX. In a
+Vue project they judged nothing ("judged nothing", with the `.vue` note).
+They now read the `<template>` of `.vue` files, at the component's own
+lines, with Vue's bindings (`:type`, `v-bind:aria-expanded`) and events
+(`@click`, `v-on:click.stop`); markup written in the script is not markup.
+A Vue focus trap counts when it is named in
+`thresholds.accessibility.focusTrapTokens`. Each card says so.
+
+Accessibility Linting Enforcement still asks for Angular or JSX linter
+rules only; in a Vue project it judges nothing and says so.
+
+**Stricter** for Vue projects.
+
+### 🐛 Fixed — No Layout Transition reads the `<style>` of .vue components (#607)
+
+No Layout Transition read `.scss` / `.css` files only. In a Vue project most
+styles live in the `<style>` blocks of `.vue` components, and a transition on
+`width` there was never judged, with nothing said. The law now reads those
+blocks (any `lang`), reports at the component's own line, and does not read
+the template or script as CSS. The card says so.
+
+**Stricter** for Vue projects.
+
 ### ✨ Added — Ionic and Capacitor laws name what they counted (#43, ionic / capacitor)
 
 Five laws said how many, or named the first and "N more". Each law already

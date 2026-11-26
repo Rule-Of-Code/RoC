@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Capacitor Listener Handles Released is selected for Angular apps only (#12)
+
+The law judges Angular classes — @Component / @Directive / @Pipe, pages,
+@Injectable services that are not providedIn root — and reads no React or
+Vue component. It required only Capacitor, so on a React or Vue Capacitor
+app it read nothing it judges and passed: a listener a React effect
+registered and never removed was a pass. It now requires `@angular/core`
+beside Capacitor and is not selected where it cannot see; its detection
+limits say so, and that the requirement is read over the whole workspace,
+not per app. It carries Angular guidance only, and no React or Vue guidance
+is written for it: there is nothing it would judge.
+
 ### ✨ Added — performance laws name every file they could not read (#43)
 
 Six performance laws report what they could not read as "Source/config NOT

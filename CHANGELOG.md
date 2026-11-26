@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ Added — Next laws name what they counted (#43, react / next)
+
+Four Next laws said how many and showed at most five: "client IP headers are
+read in 6 module(s) (… and 1 more)", "6 mutating route handler(s) (…)", "6
+Server Action(s) (…)", "6 NEXT_PUBLIC_ variable(s) are read (…)",
+"builds Next without A, B, …". Each law already held every one. It now puts
+them in `violationDetails`, at their place:
+
+- **Client IP Single Boundary**: each header read, at its line, when no
+  boundary module is declared.
+- **Next Route Handler Guarded**: each mutating route handler, at its line,
+  when no guard is declared.
+- **Next Server Action Authorizes**: each Server Action, at its line, when no
+  guard is declared.
+- **Next Public Env Is Build Time**: each `NEXT_PUBLIC_` variable read where
+  no build runs here, at the line that reads it; each one a build lacks, at
+  the build's line, with where it is read.
+
+React Effect Fetch Race Guarded already starts every violation with
+`path:line:` and is unchanged. The violation lines, verdicts and scores are
+unchanged. Nothing new is searched for.
+
 ### 🐛 Fixed — the code-quality laws read .vue single-file components (#607, P3a)
 
 Fourteen code-quality laws now read the `<script>` and `<script setup>` of a

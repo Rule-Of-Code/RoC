@@ -1,6 +1,7 @@
 import type { RuleOfCodeConfig } from '../../../../types/law.types';
 import { CheckerUtils, FileUtils } from '../../../../utils';
 import { BundleOptimizationStrategyCheckConstants } from '../constants';
+import { scriptText, VUE_EXTENSION } from '../../../../utils/vue/vue-sfc';
 import type { ReactPerformanceEvidence } from '../../../../utils/react/react-performance-source';
 import {
   type BundlerReport,
@@ -111,11 +112,20 @@ export class CodeSplittingAnalyzerService {
     config: RuleOfCodeConfig,
     strategies: string[]
   ): void {
-    const tsFiles = CheckerUtils.findTypeScriptFiles(projectRoot, config);
+    // A component's <script> too, read by its script (#607): a template
+    // handler such as @click="load().then(…)" is not code splitting.
+    const tsFiles = CheckerUtils.findFilesByExtension(
+      projectRoot,
+      [...CheckerUtils.getCommonExtensions().TYPESCRIPT, VUE_EXTENSION],
+      config
+    );
 
     for (const file of tsFiles) {
       try {
-        const content = FileUtils.readFile(file, { encoding: 'utf8' });
+        const content = scriptText(
+          file,
+          FileUtils.readFile(file, { encoding: 'utf8' })
+        );
         if (
           content.includes(
             BundleOptimizationStrategyCheckConstants.DYNAMIC_IMPORT_PATTERN

@@ -34,6 +34,11 @@ export interface MarkupElement {
   text: string;
   /** 1-based line of the opening `<`. */
   line: number;
+  /**
+   * 1-based line of the first non-blank text written directly inside the
+   * element, outside `{{ … }}`; absent when there is none (#12).
+   */
+  textLine?: number;
 }
 
 export interface MarkupDocument {
@@ -132,7 +137,15 @@ class Tokenizer {
     ) {
       end++;
     }
-    this.current.text += this.advanceTo(end);
+    const element = this.current;
+    const start = this.line;
+    const chunk = this.advanceTo(end);
+    element.text += chunk;
+    const firstWord = chunk.search(/\S/);
+    if (element.textLine === undefined && firstWord !== -1) {
+      element.textLine =
+        start + (chunk.slice(0, firstWord).match(/\n/g)?.length ?? 0);
+    }
   }
 
   private readAngle(): void {

@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — the i18n law reads Vue: vue-i18n is a setup, and .vue templates are read for hardcoded text (#12)
+
+On a Vue project, Internationalization (i18n) Compliance Policy said "Missing
+Angular i18n configuration". It did not recognise vue-i18n, so a Vue app
+translated end to end failed. It did not read `.vue` files either, so
+hardcoded text in a component was never seen, and the law carried the
+".vue not read" note.
+
+- vue-i18n declared in any workspace package.json is a recognised setup. A
+  Vue project without it is told "no vue-i18n declared", not Angular.
+- The `<template>` of each `.vue` component is read as elements, with the
+  heuristic the JSX reading uses: text written inside an element, and static
+  placeholder/title/alt/aria-label, with four-plus Latin letters. Each text
+  is one entry in `violationDetails`, at the line where it is written.
+- Not hardcoded: text inside `{{ }}` (`{{ $t('…') }}`), bound attributes, an
+  element whose text `v-t` / `v-text` / `v-html` replaces, and the children
+  of `<i18n-t>`. A template that cannot be read is reported, never passed.
+
+The law no longer carries the ".vue not read" note. Proved on projects made
+by create-vue: the default app (35 hardcoded texts found) and a bare app
+translated with vue-i18n (fails on develop, passes now).
+
 ### ✨ Added — testing laws name every file they counted (#43, testing)
 
 Six testing laws said how many, or named the first few ("…; and N more",

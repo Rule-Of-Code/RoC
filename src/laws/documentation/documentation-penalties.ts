@@ -11,6 +11,7 @@ export const I18N_POLICY_PENALTY = {
   translationFiles: 25,
   hardcodedTemplateText: 20,
   hardcodedJsxText: 20,
+  hardcodedVueText: 20,
 } as const;
 
 /** MD Footer Template. `missingMax` caps the share-based deduction. */

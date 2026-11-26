@@ -13,10 +13,32 @@ import { PathOperations } from '../../utils/path-operations';
 import { PathResolver } from '../../utils/path-resolver';
 import { declaredDependencies } from '../../utils/law-requirements';
 import { analyzeJsxText } from './i18n-jsx';
+import { analyzeVueText } from './i18n-vue';
 import { I18N_POLICY_PENALTY as PENALTY } from './documentation-penalties';
 
 /** React i18n libraries this law recognises as a configured i18n setup. */
 const REACT_I18N_LIBRARIES = ['next-intl', 'react-i18next'];
+/** The Vue i18n library this law recognises (#12). */
+const VUE_I18N_LIBRARIES = ['vue-i18n'];
+
+/** How a finding of hardcoded text names where it was read. */
+interface TextKind {
+  where: string;
+  detail: string;
+  suggestion: string;
+}
+const JSX_TEXT: TextKind = {
+  where: 'JSX',
+  detail: 'JSX',
+  suggestion:
+    'Move user-facing JSX text into message files and render it through t(...)',
+};
+const VUE_TEXT: TextKind = {
+  where: 'Vue templates',
+  detail: 'Vue template',
+  suggestion:
+    "Move user-facing template text into message files and render it through {{ $t('…') }} or v-t",
+};
 /** A locale-named catalog (`en.json`, `pt-BR.json`) — required inside a generic `messages/` directory. */
 const LOCALE_JSON = /^[a-z]{2}(?:-[A-Z]{2})?\.json$/;
 // Interfaces for i18n analysis
@@ -80,19 +102,9 @@ export class InternationalizationCompliancePolicyLaw {
     // 1. Check for an i18n configuration (Angular, or a React i18n library)
     const i18nConfig = this.analyzeI18nConfiguration(projectRoot);
     if (!i18nConfig.hasI18nConfig) {
-      if (declaredDependencies(projectRoot).has('react')) {
-        violations.push(
-          `Missing i18n configuration — no ${REACT_I18N_LIBRARIES.join(' or ')} declared in any workspace package.json (nor an Angular i18n setup)`
-        );
-        suggestions.push(
-          'Add next-intl (Next.js) or react-i18next and keep user text in message files'
-        );
-      } else {
-        violations.push('Missing Angular i18n configuration');
-        suggestions.push(
-          'Configure Angular i18n in angular.json and add @angular/localize'
-        );
-      }
+      const missing = this.missingConfiguration(projectRoot);
+      violations.push(missing.violation);
+      suggestions.push(missing.suggestion);
       score -= PENALTY.angularI18nConfig;
     }
 
@@ -127,27 +139,34 @@ export class InternationalizationCompliancePolicyLaw {
     // 3b. Hardcoded text in JSX, read on the syntax tree
     const jsx = analyzeJsxText(context);
     violations.push(...jsx.unread);
-    if (jsx.hardcoded.length > 0) {
-      const shown = jsx.hardcoded.slice(0, 3).join('; ');
-      violations.push(
-        `Hardcoded text found in JSX: ${jsx.hardcoded.length} text(s), e.g. ${shown}${jsx.hardcoded.length > 3 ? '; …' : ''}`
-      );
-      violationDetails.push(
-        ...jsx.sites.map(site => ({
-          file: site.file,
-          line: site.line,
-          message: `hardcoded JSX text "${site.text}"`,
-        }))
-      );
-      suggestions.push(
-        'Move user-facing JSX text into message files and render it through t(...)'
-      );
+    if (
+      this.reportTexts(jsx, JSX_TEXT, {
+        violations,
+        violationDetails,
+        suggestions,
+      })
+    )
       score -= PENALTY.hardcodedJsxText;
-    }
+
+    // 3c. Hardcoded text in Vue templates, read as elements (#12)
+    const vue = analyzeVueText(context);
+    violations.push(...vue.unread);
+    if (
+      this.reportTexts(vue, VUE_TEXT, {
+        violations,
+        violationDetails,
+        suggestions,
+      })
+    )
+      score -= PENALTY.hardcodedVueText;
 
     // 4. Check for i18n directive usage
     const i18nDirectives = this.analyzeI18nDirectiveUsage(projectRoot, context);
-    if (!i18nDirectives.hasI18nDirectives && !jsx.usesTranslations) {
+    if (
+      !i18nDirectives.hasI18nDirectives &&
+      !jsx.usesTranslations &&
+      !vue.usesTranslations
+    ) {
       // Advisory only — no violation, so no score deduction (see the
       // score/verdict coherence note in incident-response-protocol).
       suggestions.push('Use i18n directives for proper text localization');
@@ -177,6 +196,65 @@ export class InternationalizationCompliancePolicyLaw {
     };
   }
 
+  /** What the missing-configuration finding says, in the project's own framework. */
+  private static missingConfiguration(projectRoot: string): {
+    violation: string;
+    suggestion: string;
+  } {
+    const declared = declaredDependencies(projectRoot);
+    if (declared.has('vue')) {
+      return {
+        violation: `Missing i18n configuration — no ${VUE_I18N_LIBRARIES.join(' or ')} declared in any workspace package.json (nor an Angular i18n setup)`,
+        suggestion:
+          'Add vue-i18n and keep user text in message files (src/locales/en.json)',
+      };
+    }
+    if (declared.has('react')) {
+      return {
+        violation: `Missing i18n configuration — no ${REACT_I18N_LIBRARIES.join(' or ')} declared in any workspace package.json (nor an Angular i18n setup)`,
+        suggestion:
+          'Add next-intl (Next.js) or react-i18next and keep user text in message files',
+      };
+    }
+    return {
+      violation: 'Missing Angular i18n configuration',
+      suggestion:
+        'Configure Angular i18n in angular.json and add @angular/localize',
+    };
+  }
+
+  /**
+   * The hardcoded texts of JSX or of Vue templates as one finding with a
+   * detail per text; whether there were any.
+   */
+  private static reportTexts(
+    found: {
+      hardcoded: string[];
+      sites: Array<{ file: string; line: number; text: string }>;
+    },
+    kind: TextKind,
+    out: {
+      violations: string[];
+      violationDetails: ViolationDetail[];
+      suggestions: string[];
+    }
+  ): boolean {
+    if (found.hardcoded.length === 0) return false;
+    const shown = found.hardcoded.slice(0, 3).join('; ');
+    out.violations.push(
+      `Hardcoded text found in ${kind.where}: ${found.hardcoded.length} text(s), e.g. ${shown}${found.hardcoded.length > 3 ? '; …' : ''}`
+    );
+    out.violationDetails.push(
+      ...found.sites.map(site => ({
+        file: site.file,
+        line: site.line,
+        message: `hardcoded ${kind.detail} text "${site.text}"`,
+      }))
+    );
+    out.suggestions.push(kind.suggestion);
+    return true;
+  }
+
   private static analyzeI18nConfiguration(projectRoot: string): {
     hasI18nConfig: boolean;
     configQuality: string;
@@ -186,7 +264,9 @@ export class InternationalizationCompliancePolicyLaw {
     }
     // A React i18n library, declared in any workspace manifest
     const declared = declaredDependencies(projectRoot);
-    const library = REACT_I18N_LIBRARIES.find(name => declared.has(name));
+    const library = [...REACT_I18N_LIBRARIES, ...VUE_I18N_LIBRARIES].find(
+      name => declared.has(name)
+    );
     if (library) return { hasI18nConfig: true, configQuality: library };
     // Check package.json for @angular/localize
     try {

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — four laws gated by script files are selected by .vue components (#607)
+
+Proxy Target Keeps Origin Host, Independent Awaits Run Concurrently,
+Database Read Cache Safety and Async Cache Single-Flight were selected only
+by `.ts` / `.js` files containing their pattern. In a project that keeps that
+code in `.vue` components the law was not selected, and nothing said so. The
+gates now read `.vue` files by their `<script>` / `<script setup>` (the
+template is not code), the laws judge those files and report findings at the
+component's own lines. Each card says so.
+
+**Stricter** in Vue projects: the four laws can be selected and report
+findings where they did not run before.
+
 ### 🐛 Fixed — three more laws read .vue single-file components (#607, P3b)
 
 Defensive Array Coercion and No Passthrough Cast scan `.vue` files in the

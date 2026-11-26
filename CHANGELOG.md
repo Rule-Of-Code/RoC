@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — three Capacitor laws read a Vue component's script, not its template (#12)
+
+Capacitor Single Platform Boundary, Capacitor Deep Link Contract and
+Capacitor Plugin Platform Declarations scan `.vue` files and masked the
+whole file as TypeScript. A `/*` in template text ("src/*") opened a comment
+that ran to the end of the file and hid the script below it: a component
+that imported `@capacitor/core` outside the boundary passed, and an
+`appUrlOpen` listener or a `createChannel` call in its script was reported
+missing. Template text that spelled a call ("Capacitor.getPlatform()") was
+read as code. The three laws now read a `.vue` file's `<script>` and
+`<script setup>` only, at the file's own lines, and their detection limits
+say so.
+
 ### 🐛 Fixed — performance laws: React guidance says what passes on Vite; Core Web Vitals reads the Vite index.html (#12)
 
 The React guidance of four performance laws said only what a Next app

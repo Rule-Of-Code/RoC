@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Stores In Data Access recognises Pinia and reads Vue components (#12)
+
+Stores In Data Access knew NgRx, Redux Toolkit and zustand. A Pinia store
+(`defineStore`) defined in the feature layer passed, and the law did not
+scan `.vue` files, so it carried the ".vue not read" note. A feature layer
+made only of Vue components counted as empty ("judged nothing").
+
+- `defineStore` imported from `pinia` (aliases too) is a store, resolved
+  through the file's imports like `createSlice` and zustand's `create`. A
+  `defineStore` from another module is not.
+- `.vue` files are read by their `<script>` / `<script setup>`, at the
+  file's own lines. A store defined in a feature component is reported
+  there, and text in the template or in a string is not code.
+
+The law no longer carries the ".vue not read" note. Proved on a create-vue
+app: the counter store moved under `src/features/` passed on develop and is
+reported now; with the store in `src/stores/` and a feature component that
+uses it, develop said "judged nothing" and the law passes now. Like the
+other layer laws, it does not read `.js` files.
+
 ### ✨ Added — Vue guidance for the security laws (#12)
 
 Both security laws that judge a Vue project gain `satisfiedBy.vue`:

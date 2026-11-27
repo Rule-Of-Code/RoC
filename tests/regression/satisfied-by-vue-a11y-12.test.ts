@@ -322,7 +322,23 @@ describe('#12 V0: satisfiedBy.vue for accessibility, proved on a Vue + Vite app'
   });
 });
 
-describe('#12 invariant: a law that carries satisfiedBy.vue reads .vue files', () => {
+/**
+ * The ".vue not read" note a law's run gets in an audit. The engine attaches
+ * none to a law declared `notAboutComponents` (#607), whatever its scans:
+ * audit-engine.ts, `if (law.notAboutComponents) return result;`. Every other
+ * law gets the note its scans leave.
+ */
+async function attachedNote(
+  law: ReturnType<typeof ModularLawsRegistry.getAll>[number],
+  root: string
+): Promise<ReturnType<typeof vueNotReadNote>> {
+  const config = vueConfig(root).config as RuleOfCodeConfig;
+  const { scope } = await runLawScope(() => law.check(root, config));
+  if (law.notAboutComponents) return null;
+  return vueNotReadNote(scope, [COMPONENT, 'src/App.vue']);
+}
+
+describe('#12 invariant: a law that carries satisfiedBy.vue judges a Vue project with no ".vue not read" note', () => {
   const withVue = ModularLawsRegistry.getAll().filter(law =>
     buildLawsJson([law], {}).laws.some(
       serialized => serialized.satisfiedBy?.vue
@@ -337,9 +353,18 @@ describe('#12 invariant: a law that carries satisfiedBy.vue reads .vue files', (
     '%s: no ".vue not read" note on a Vue + Vite app',
     async (_name, law) => {
       const root = vueViteProject('  <button type="button">Ok</button>');
-      const config = vueConfig(root).config as RuleOfCodeConfig;
-      const { scope } = await runLawScope(() => law.check(root, config));
-      expect(vueNotReadNote(scope, [COMPONENT, 'src/App.vue'])).toBeNull();
+      expect(await attachedNote(law, root)).toBeNull();
     }
   );
+
+  it('control: the invariant still fails a law that is not declared notAboutComponents and leaves .vue unread (Angular Lifecycle Management)', async () => {
+    const law = ModularLawsRegistry.getAll().find(
+      candidate => candidate.name === 'Angular Lifecycle Management'
+    );
+    expect(law).toBeDefined();
+    if (!law) return;
+    expect(law.notAboutComponents).toBeUndefined();
+    const root = vueViteProject('  <button type="button">Ok</button>');
+    expect(await attachedNote(law, root)).not.toBeNull();
+  });
 });

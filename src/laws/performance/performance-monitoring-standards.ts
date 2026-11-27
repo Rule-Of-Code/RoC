@@ -5,7 +5,7 @@ import { PerformanceMonitoringAnalyzerService } from './performance-monitoring/s
 
 /** What the tracing check asks for, said in its violation (#12, b4). */
 export const PERFORMANCE_TRACING_NOT_CONFIGURED =
-  'Performance tracing not configured: no Sentry.init with tracesSampleRate / tracesSampler / tracePropagationTargets, and no backend APM or tracing dependency';
+  'Performance tracing not configured: no Sentry.init with tracesSampleRate / tracesSampler / tracePropagationTargets, no datadogRum.init with allowedTracingUrls / traceSampleRate, and no backend APM or tracing dependency';
 
 interface MonitoringAnalysis {
   monitoringTools: { hasTools: boolean; tools: string[] };
@@ -125,7 +125,7 @@ export class PerformanceMonitoringStandardsLaw {
         applies: true,
         violation: PERFORMANCE_TRACING_NOT_CONFIGURED,
         suggestion: hasBrowser
-          ? 'Initialise Sentry with tracesSampleRate, tracesSampler or tracePropagationTargets (Sentry.init in your entry or instrument file, or Next.js instrumentation-client / sentry.server.config / sentry.edge.config)'
+          ? 'Initialise Sentry with tracesSampleRate, tracesSampler or tracePropagationTargets (Sentry.init in your entry or instrument file, or Next.js instrumentation-client / sentry.server.config / sentry.edge.config), or Datadog RUM with allowedTracingUrls / traceSampleRate'
           : 'Declare an APM or tracing dependency (OpenTelemetry, sentry-sdk, ddtrace, prometheus-client …) for the service, or initialise Sentry with tracesSampleRate',
         penalty: 10,
       },

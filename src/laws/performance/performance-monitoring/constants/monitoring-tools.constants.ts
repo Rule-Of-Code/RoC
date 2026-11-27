@@ -20,6 +20,9 @@ export class MonitoringToolsConstants {
     ...Object.fromEntries(
       SENTRY_BROWSER_SDKS.map(sdk => [sdk, SENTRY_LABELS[sdk] ?? 'Sentry'])
     ),
+    // Datadog RUM (#12, b4): "Add @datadog/browser-rum to your package.json"
+    // (https://docs.datadoghq.com/real_user_monitoring/browser/setup/client/).
+    '@datadog/browser-rum': 'Datadog RUM',
     '@firebase/performance': 'Firebase Performance',
     firebase: 'Firebase',
     newrelic: 'New Relic',

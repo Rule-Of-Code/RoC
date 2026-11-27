@@ -31,7 +31,8 @@ frontend earns its credit on its own path.
 
 **Performance Monitoring Standards, monitoring tools**: the list of
 packages takes the shared Sentry browser SDKs (it had `@sentry/browser`
-and `@sentry/angular` only).
+and `@sentry/angular` only) and lists Datadog RUM (`@datadog/browser-rum`).
+A Datadog RUM app used to pass by the word "datadog".
 
 **Performance Monitoring Standards, performance tracing**: it required one
 of three fixed files (`src/app/app.module.ts`, `src/main.ts`,
@@ -40,14 +41,17 @@ of three fixed files (`src/app/app.module.ts`, `src/main.ts`,
 import passed it, and the files Sentry's guides use were never read. It now
 reads, from the syntax tree, a Sentry SDK's `init` with `tracesSampleRate`,
 `tracesSampler`, `tracePropagationTargets` or `tracingOrigins`, in any
-non-test source file that mentions `@sentry/`. An init without a tracing
-option is error tracking, which Performance Monitoring Policy judges.
+non-test source file that mentions `@sentry/`. Datadog RUM's
+`datadogRum.init` with `allowedTracingUrls` or `traceSampleRate` counts too.
+An init without a tracing option is error tracking, which Performance
+Monitoring Policy judges.
 
 **Changed violation text** (not an API; named here because a renderer or a
 grep may match it): Performance Monitoring Standards' "Performance error
 tracking not configured" is now "Performance tracing not configured: no
 Sentry.init with tracesSampleRate / tracesSampler / tracePropagationTargets,
-and no backend APM or tracing dependency". Performance Monitoring Policy's
+no datadogRum.init with allowedTracingUrls / traceSampleRate, and no backend
+APM or tracing dependency". Performance Monitoring Policy's
 "Performance error tracking not configured" is unchanged.
 
 Internal: Performance Monitoring Standards' `ErrorTrackingConstants` (its

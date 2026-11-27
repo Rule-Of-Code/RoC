@@ -33,10 +33,15 @@ import {
 import { SENTRY_BROWSER_SDKS } from '../../../../utils/sentry-browser-sdks';
 import { scriptText, VUE_EXTENSION } from '../../../../utils/vue/vue-sfc';
 
-/** The SDKs whose `init` can start tracing: the browser list and the Node SDK. */
+/** The Sentry SDKs whose `init` can start tracing: the browser list and the server-side SDKs. */
 export const SENTRY_TRACING_MODULES: readonly string[] = [
   ...SENTRY_BROWSER_SDKS,
   '@sentry/node',
+  '@sentry/bun',
+  '@sentry/deno',
+  '@sentry/aws-serverless',
+  '@sentry/google-cloud-serverless',
+  '@sentry/nestjs',
 ];
 
 /** The Sentry.init options that turn tracing on (tracingOrigins: older SDKs). */
@@ -46,6 +51,32 @@ export const TRACING_OPTIONS: readonly string[] = [
   'tracePropagationTargets',
   'tracingOrigins',
 ];
+
+/**
+ * An SDK whose `<binding>.init({ … })` can start tracing, and the options
+ * that do. Datadog RUM (#12, b4): `import { datadogRum } from
+ * '@datadog/browser-rum'; datadogRum.init({ allowedTracingUrls, traceSampleRate })`
+ * — "Configure the `allowedTracingUrls` initialization parameter with the list
+ * of internal, first-party origins called by your browser application" and
+ * "Configure the `traceSampleRate` initialization parameter to keep a defined
+ * percentage of the backend traces"
+ * (https://docs.datadoghq.com/real_user_monitoring/platform/connect_rum_and_traces/).
+ */
+interface Tracer {
+  modules: readonly string[];
+  options: readonly string[];
+}
+
+const TRACERS: readonly Tracer[] = [
+  { modules: SENTRY_TRACING_MODULES, options: TRACING_OPTIONS },
+  {
+    modules: ['@datadog/browser-rum'],
+    options: ['allowedTracingUrls', 'traceSampleRate'],
+  },
+];
+
+/** Text a file must contain to be parsed: it imports one of the tracers. */
+const TRACER_MARKERS = ['@sentry/', '@datadog/browser-rum'];
 
 /** What the scan found: files that start Sentry tracing, and files it could not read. */
 export interface PerformanceTracing {
@@ -71,12 +102,16 @@ function memberName(
   return null;
 }
 
-/** Whether `source` calls a Sentry SDK's init with a tracing option. */
-export function startsSentryTracing(source: TsxSource): boolean {
+/** Whether `source` calls a tracer's init (Sentry or Datadog RUM) with one of its tracing options. */
+export function startsTracing(source: TsxSource): boolean {
+  return TRACERS.some(tracer => startsTracingWith(source, tracer));
+}
+
+function startsTracingWith(source: TsxSource, tracer: Tracer): boolean {
   const ts = source.ts;
   const namespaces = new Set<string>();
   const inits = new Set<string>();
-  for (const module of SENTRY_TRACING_MODULES) {
+  for (const module of tracer.modules) {
     for (const name of JsConfigSource.importedNames(source, module))
       namespaces.add(name);
     for (const name of importedNames(source, [module], 'init')) inits.add(name);
@@ -100,7 +135,7 @@ export function startsSentryTracing(source: TsxSource): boolean {
     if (!options || !ts.isObjectLiteralExpression(options)) return;
     found = options.properties.some(member => {
       const name = memberName(ts, member);
-      return name !== null && TRACING_OPTIONS.includes(name);
+      return name !== null && tracer.options.includes(name);
     });
   });
   return found;
@@ -126,7 +161,10 @@ export function sentryTracingInits(
   )) {
     if (REACT_TEST_FILE.test(file.replace(/\\/g, '/'))) continue;
     const text = FileUtils.readFileContentSync(file);
-    if (text && scriptText(file, text).includes('@sentry/'))
+    if (
+      text &&
+      TRACER_MARKERS.some(marker => scriptText(file, text).includes(marker))
+    )
       candidates.push({ file, text });
   }
   if (candidates.length === 0) return { files: [], unread: [] };
@@ -136,7 +174,7 @@ export function sentryTracingInits(
     return {
       files: [],
       unread: [
-        `${candidates.length} file(s): ${parserUnavailable(projectRoot, 'the files that import a Sentry SDK')}`,
+        `${candidates.length} file(s): ${parserUnavailable(projectRoot, 'the files that import a Sentry or Datadog RUM SDK')}`,
       ],
     };
   }
@@ -148,9 +186,9 @@ export function sentryTracingInits(
     const [syntaxError] = source.parseErrors();
     if (syntaxError) {
       unread.push(
-        `${relative(projectRoot, file)}: could not be parsed (${syntaxError}) — its Sentry.init was NOT read`
+        `${relative(projectRoot, file)}: could not be parsed (${syntaxError}) — its tracing init was NOT read`
       );
-    } else if (startsSentryTracing(source)) {
+    } else if (startsTracing(source)) {
       files.push(relative(projectRoot, file));
     }
   }

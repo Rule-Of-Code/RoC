@@ -60,7 +60,7 @@ describe('#12 (b): one source for the Sentry browser SDKs', () => {
       ['@sentry/nextjs', 'Sentry Next.js'],
       ['@sentry/react', 'Sentry React'],
       ['@sentry/vue', 'Sentry Vue'],
-      ['@firebase/performance', 'Firebase Performance'],
+      ['@datadog/browser-rum', 'Datadog RUM'],
     ]);
   });
 });

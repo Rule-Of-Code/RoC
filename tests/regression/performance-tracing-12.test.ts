@@ -92,6 +92,24 @@ describe('#12 (b4): performance tracing is a Sentry init with a tracing option',
       'src/instrument.js',
       "const Sentry = require('@sentry/node');\nSentry.init({ dsn: 'x', tracesSampleRate: 1.0 });",
     ],
+    [
+      'Bun service: @sentry/bun (a server SDK)',
+      { '@sentry/bun': '^8.47.0' },
+      'src/instrument.ts',
+      init('@sentry/bun', 'tracesSampleRate: 1.0'),
+    ],
+    [
+      'Datadog RUM: datadogRum.init with allowedTracingUrls (Datadog "connect RUM and traces")',
+      { vue: '^3.5.13', '@datadog/browser-rum': '^5.35.0' },
+      'src/main.ts',
+      "import { datadogRum } from '@datadog/browser-rum';\ndatadogRum.init({ applicationId: 'a', clientToken: 'c', site: 'datadoghq.eu', allowedTracingUrls: ['https://api.example.com'] });",
+    ],
+    [
+      'Datadog RUM: datadogRum.init with traceSampleRate',
+      { react: '^19.0.0', '@datadog/browser-rum': '^5.35.0' },
+      'src/rum.ts',
+      "import { datadogRum } from '@datadog/browser-rum';\ndatadogRum.init({ applicationId: 'a', clientToken: 'c', traceSampleRate: 20 });",
+    ],
   ])('%s → traced', (_name, deps, file, code) => {
     expect(
       tracingFiles({ 'package.json': manifest(deps), [file]: code })
@@ -118,6 +136,14 @@ describe('#12 (b4): performance tracing is a Sentry init with a tracing option',
     [
       'the @angular/fire/performance import the substring check took for tracing',
       "import { getPerformance } from '@angular/fire/performance';\nimport * as Sentry from '@sentry/angular';\nSentry.init({ dsn: 'x' });\nexport const perf = getPerformance;",
+    ],
+    [
+      'Datadog RUM init without a tracing option (RUM only)',
+      "import { datadogRum } from '@datadog/browser-rum';\ndatadogRum.init({ applicationId: 'a', clientToken: 'c', sessionSampleRate: 80 });",
+    ],
+    [
+      'a Sentry SDK that is not server-side and not in the browser list (@sentry/nuxt)',
+      "import * as Sentry from '@sentry/nuxt';\nSentry.init({ dsn: 'x' });",
     ],
   ])('decoy: %s → not traced', (_name, code) => {
     expect(
@@ -181,5 +207,22 @@ describe('#12 (b4): the law says what it asks, and names what it could not read'
     expect(violations.join('\n')).toMatch(
       /NOT read.*src\/instrument\.ts: could not be parsed/
     );
+  });
+
+  // QA on #704: a Datadog RUM app passed monitoring tools by the word
+  // "datadog" and lost it with the word search; it is now a listed package.
+  it('Datadog RUM declared: monitoring tools are credited, and its tracing init too', async () => {
+    const violations = await standards({
+      'package.json': manifest({
+        vue: '^3.5.13',
+        '@datadog/browser-rum': '^5.35.0',
+      }),
+      'src/main.ts':
+        "import { datadogRum } from '@datadog/browser-rum';\ndatadogRum.init({ applicationId: 'a', clientToken: 'c', allowedTracingUrls: ['https://api.example.com'] });",
+    });
+    expect(violations).not.toContain(
+      'No performance monitoring tools configured'
+    );
+    expect(violations.join('\n')).not.toMatch(new RegExp(TRACING));
   });
 });

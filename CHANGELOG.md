@@ -7,6 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ Added — Vue guidance for the performance laws (#12)
+
+Seven performance laws judge a Vue project and gain `satisfiedBy.vue`:
+- five read `.vue` files: Memory Leak Prevention (#695), Performance
+  Standards, Core Web Vitals Compliance, Bundle Optimization Strategy Policy
+  and Performance Monitoring Policy;
+- two judge the build and its gates and need no `.vue` file: Bundle Size
+  Optimization and Performance Budget Compliance.
+
+The texts say what each law recognises on Vite: an unchanged `vite.config.*`
+minification, a size-limit or Lighthouse budget a script and a CI step run,
+web-vitals called in `src/main.ts`, resource hints in the root `index.html`,
+`loading="lazy"` in the template, and Cache-Control headers or a service
+worker.
+
+Three limits are stated, not worked around:
+- a Vue Router lazy route `() => import()` and `defineAsyncComponent` are not
+  yet credited as code splitting;
+- `@sentry/vue` and `app.config.errorHandler` are not yet credited as error
+  tracking;
+- with a heavy library in `package.json` (lodash, moment, bootstrap,
+  chart.js, d3), Bundle Size Optimization does not yet see its lazy loading
+  in a Vue app. It reports the library as not lazy-loaded and leaves `.vue`
+  unread. The V0 invariant test names this as an explicit exception until
+  the detector reads Vue.
+
+Proved on a Vue 3 + Vite app with the config a real audit reads:
+- the default create-vue app fails;
+- the app the texts describe passes all seven with no ".vue not read" note;
+- both limits hold on that app with its idiomatic router;
+- a view that never releases its timer and listener fails Memory Leak
+  Prevention.
+
+### ✨ Added — Vue guidance for the testing laws (#12)
+
+The two testing laws that judge a Vue project gain `satisfiedBy.vue`:
+
+- **Professional Component Testing Policy** (reads `.vue` components since
+  #694): give each `X.vue` a co-located `X.spec.ts`, or `__tests__/X.spec.ts`
+  beside it, with two tests that mount it (`@vue/test-utils` or
+  `@testing-library/vue`) and assert. Every non-test `.vue` counts, `App.vue`
+  and icon components included; a spec under `tests/unit/` is not paired.
+- **Performance Test Requirements:**
+  - a perf spec under `src/`, `tests/`, `test/` or `e2e/` (create-vue's
+    Playwright / Cypress directory) that drives a critical flow;
+  - `size-limit` or `vite-bundle-analyzer`, and `web-vitals` or
+    Lighthouse, in the root `package.json`.
+  It is declared not about components and needs no `.vue` file, like the
+  Content-Security-Policy law.
+
+The invariant test for the `vue` key now asks what the audit engine asks: a
+law declared `notAboutComponents` gets no ".vue not read" note. Each text was
+proved on a Vue 3 + Vite app, with the config a real audit reads, and with
+controls (`tests/unit/` specs, a spec that never mounts, tooling only in a
+workspace `package.json`) that fail where the text says.
+
 ### ✨ Added — Vue guidance for the i18n law (#12)
 
 Internationalization (i18n) Compliance Policy recognises vue-i18n and reads

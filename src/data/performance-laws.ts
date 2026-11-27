@@ -28,6 +28,7 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
         'Add a Lighthouse config with a >=90 threshold, angular.json/webpack budgets, web-vitals tracking, lazy-loading and image optimization.',
       react:
         'Run Lighthouse from a script or CI step with a performance threshold, declare one enforced budget (Lighthouse assertions or a size-limit check that a script runs), report Web Vitals with useReportWebVitals or web-vitals, and render images with next/image. A Next build already optimizes and caches hashed assets unless next.config turns that off. On Vite, declare an image tool (sharp, imagemin or squoosh — sharp for vite-plugin-image-optimizer, say) and serve the hashed assets with Cache-Control (firebase.json hosting headers or nginx.conf) or register a service worker (public/sw.js).',
+      vue: "Run Lighthouse from a script or CI step with a performance threshold, declare one enforced budget (Lighthouse assertions or a size-limit check that a script runs), and measure Web Vitals with web-vitals (onLCP / onINP / onCLS) called in src/main.ts or a component's <script>. Keep vite.config.* without minification turned off, declare an image tool (sharp, imagemin or squoosh — sharp for vite-plugin-image-optimizer, say) and serve the hashed assets with Cache-Control (firebase.json hosting headers or nginx.conf) or register a service worker (public/sw.js).",
       capacitor:
         'No service worker is needed for caching in the shell; if the web build registers one, disable it on native or handle SwUpdate (#268).',
     },
@@ -73,6 +74,7 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
         'Enable optimization/tree-shaking in the build, lazy-load routes (loadChildren), and add a bundle analyzer (source-map-explorer / webpack-bundle-analyzer).',
       react:
         'Build with next build or vite build without turning minification off, run a bundle analyzer from a script (next experimental-analyze, @next/bundle-analyzer wired into next.config, source-map-explorer, size-limit), and load heavy libraries with next/dynamic or React.lazy.',
+      vue: 'Build with vite build without turning minification off in vite.config.*, and run a bundle check from a script (size-limit, source-map-explorer or a bundle analyzer). With a heavy library in package.json (lodash, moment, bootstrap, chart.js, d3), its lazy loading in a Vue app is not yet recognised: the law reports it as not lazy-loaded.',
     },
     detectionLimits: [
       'Never measures actual bundle bytes despite the name: "optimization configured" is read from the build tool\'s config (Angular budgets/esbuild/"optimization", Next/Vite defaults unless minification is turned off, webpack production mode, a Rollup terser plugin), never from the output.',
@@ -112,6 +114,7 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
         'Set performance budgets, lazy-load, add a service worker / caching, image optimization and resource hints (preload/preconnect) in index.html; track web-vitals.',
       react:
         'Run Lighthouse from a script or CI step, declare an enforced budget (Lighthouse assertions or a size-limit check that a script runs), render images with next/image or loading="lazy", and preload fonts with next/font or a <link rel="preconnect"> in the root layout (index.html on Vite). Next serves hashed assets with immutable caching unless next.config sets output: "export"; on Vite, serve them with Cache-Control (firebase.json hosting headers or nginx.conf) or register a service worker (public/sw.js).',
+      vue: 'Run Lighthouse from a script or CI step, declare an enforced budget (Lighthouse assertions or a size-limit check that a script runs), keep vite.config.* without minification turned off, put a <link rel="preconnect"> or <link rel="preload"> in the root index.html, give images loading="lazy" in the .vue template, and serve the hashed assets with Cache-Control (firebase.json hosting headers or nginx.conf) or register a service worker (public/sw.js).',
     },
     detectionLimits: [
       'Measures NO actual Core Web Vitals despite the name — configuration and source evidence only, and Lighthouse is wiring-only here (no threshold read).',
@@ -152,6 +155,7 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
         'Code-split with lazy routes and dynamic import(), enable tree-shaking (ESM, optimization), and configure vendor / critical-css chunking in angular.json.',
       react:
         "Build with next build (route splitting, minification, tree-shaking and chunking are Next's own), enable experimental.optimizeCss (with critters) for critical CSS, split heavy client code with next/dynamic or React.lazy, and check it with an analyzer (next experimental-analyze, @next/bundle-analyzer, size-limit). On Vite, declare manualChunks / codeSplitting groups and a critical-CSS tool (critters, critical or penthouse) as a dependency.",
+      vue: 'Keep vite.config.* without minification turned off, declare manualChunks (build.rollupOptions.output) and a critical-CSS tool (critters, critical or penthouse) as a dependency. Code splitting is credited for an import(…) followed by .then( in the same file, a .vue <script> included, or loadChildren in a routing file; a Vue Router lazy route `() => import()` and defineAsyncComponent are not yet recognised.',
     },
     detectionLimits: [
       'All configuration reads (angular.json / project.json / package.json / next.config / vite.config) — it measures no bundle.',
@@ -192,6 +196,7 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
         'Wire RUM (or analytics), error tracking, performance alerts, a dashboard, and web-vitals reporting from production.',
       react:
         'Report Web Vitals with useReportWebVitals (or web-vitals) and errors with @sentry/nextjs or @sentry/react from the root layout or instrumentation*.ts (main.tsx on Vite); declare a size-limit or Lighthouse budget, an alert (Lighthouse CI assertions, or a CI workflow that runs the performance check and notifies) and a dashboard file at the project root: dashboard.json, grafana.json, kibana.json, newrelic-dashboard.json, or the Lighthouse CI config named .lighthouserc.json / .lighthouserc.js.',
+      vue: "Report Web Vitals with web-vitals (onLCP / onINP / onCLS called in src/main.ts or a component's <script>). Error tracking is credited for window.onerror or a window 'error' listener in the sources; @sentry/vue and app.config.errorHandler are not yet recognised. Declare a size-limit or Lighthouse budget, an alert (Lighthouse CI assertions, or a CI workflow that runs the performance check and notifies) and a dashboard file at the project root: dashboard.json, grafana.json, kibana.json, newrelic-dashboard.json, or the Lighthouse CI config named .lighthouserc.json / .lighthouserc.js.",
     },
     detectionLimits: [
       'Dependency / config / file presence only — no proof monitoring actually reports; a Google Analytics snippet is detected by an index.html substring. Web Vitals monitoring (and the field-metrics part of RUM) is a measurement in the production sources: a web-vitals call (v3 or v4), useReportWebVitals, or a PerformanceObserver of the project on the entry types the vitals are made of; a declared web-vitals that nothing calls does not count. On React/Next an error-tracking SDK import anywhere in the source counts as error tracking.',
@@ -276,6 +281,7 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
         'takeUntilDestroyed(), toSignal(), or unsubscribe in ngOnDestroy — a component that subscribes must also clean up.',
       typescript:
         'Pair every addEventListener / setInterval with its remove / clear on teardown.',
+      vue: 'In each .vue component whose <script setup> starts a setInterval or an addEventListener, call clearInterval / removeEventListener in the same file, in onBeforeUnmount() or onUnmounted(). The law reads components and directives, not a composable in a .ts file.',
     },
     detectionLimits: [
       'Checks two things, by pattern, in Angular component and directive files (by suffix or decorator), comments stripped: a setInterval( with no clearInterval( anywhere in the same file, and an addEventListener( with no removeEventListener( in the same file. RxJS subscriptions (takeUntilDestroyed, DestroyRef, unsubscribe) are not judged here: Observable Cleanup Requirements and Angular Lifecycle Management own them.',
@@ -392,6 +398,7 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
         'Declare angular.json/webpack budgets, a Lighthouse budget, bundle-size monitoring, and a CI gate that fails on a budget breach.',
       react:
         'Declare one enforced budget — a size-limit check with a limit, or Lighthouse CI assertions — run by a script, run it from a CI step (or a git hook when the project has no hosted CI), and report Web Vitals or errors in production (useReportWebVitals, @sentry/nextjs).',
+      vue: 'Declare one enforced budget — a size-limit check with a limit, or Lighthouse CI assertions — run by a script, run it from a CI step (or a git hook when the project has no hosted CI), and report Web Vitals in production (web-vitals called in src/main.ts).',
     },
     detectionLimits: [
       'Presence only — it reads that a budget is declared and wired, never the budget value, and never whether a build actually breaches it.',

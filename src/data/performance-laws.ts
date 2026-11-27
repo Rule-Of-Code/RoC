@@ -278,9 +278,10 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
         'Pair every addEventListener / setInterval with its remove / clear on teardown.',
     },
     detectionLimits: [
-      'Detects missing subscription / listener / timer cleanup by PATTERN in TS/JS (takeUntilDestroyed, DestroyRef, unsubscribe, clearInterval).',
+      'Checks two things, by pattern, in Angular component and directive files (by suffix or decorator), comments stripped: a setInterval( with no clearInterval( anywhere in the same file, and an addEventListener( with no removeEventListener( in the same file. RxJS subscriptions (takeUntilDestroyed, DestroyRef, unsubscribe) are not judged here: Observable Cleanup Requirements and Angular Lifecycle Management own them.',
       'It cannot prove a leak occurs at runtime, only that a known cleanup idiom is absent — a genuinely leak-free custom pattern may still be flagged.',
       'No signal on non-TS/JS stacks; it does not analyse Python object lifetimes.',
+      'A Vue single-file component (.vue) is judged by its <script> and <script setup>, at its own lines: setInterval without clearInterval and addEventListener without removeEventListener in the same file, with the release advised in onBeforeUnmount() / onUnmounted(). Where the release is written is not checked, and a composable in a .ts file is not read, as only component and directive files are (#12).',
     ],
     emoji: '🧠',
     description: 'Proactive memory leak detection and prevention',

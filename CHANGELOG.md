@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Memory Leak Prevention reads Vue components (#12)
+
+Memory Leak Prevention judged Angular component and directive files only. A
+Vue component that started a `setInterval` or an `addEventListener` and
+never released it passed, and the law carried the ".vue not read" note. Each
+`.vue` file is now read by its `<script>` / `<script setup>` and judged the
+same way: a `setInterval` with no `clearInterval`, or an `addEventListener`
+with no `removeEventListener`, in the same file. The advice names
+`onBeforeUnmount()` / `onUnmounted()`, not `ngOnDestroy()`. Text in the
+template or the style is not code. The law no longer carries the ".vue not
+read" note. Proved on a create-vue app: a leaking clock component passed on
+develop and is reported now; the same component releasing both in
+`onBeforeUnmount` passes.
+
+The first detection limit of the card now says what the code checks
+(setInterval / addEventListener without their release, in component and
+directive files). It had named RxJS idioms (takeUntilDestroyed, DestroyRef,
+unsubscribe) that this law never read.
+
 ### 🐛 Fixed — Professional Component Testing Policy reads Vue components (#12)
 
 On a Vue project, Professional Component Testing Policy found "no component

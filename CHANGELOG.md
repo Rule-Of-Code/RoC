@@ -39,6 +39,48 @@ The first detection limit of Angular Security XSS Prevention Policy now
 names the `.vue` reading too ("Regex over .ts/.tsx/.jsx/.html" said nothing
 of it).
 
+### 🐛 Fixed — the i18n law reads Vue: vue-i18n is a setup, and .vue templates are read for hardcoded text (#12)
+
+On a Vue project, Internationalization (i18n) Compliance Policy said "Missing
+Angular i18n configuration". It did not recognise vue-i18n, so a Vue app
+translated end to end failed. It did not read `.vue` files either, so
+hardcoded text in a component was never seen, and the law carried the
+".vue not read" note.
+
+- vue-i18n declared in any workspace package.json is a recognised setup. A
+  Vue project without it is told "no vue-i18n declared", not Angular.
+- The `<template>` of each `.vue` component is read as elements, with the
+  heuristic the JSX reading uses: text written inside an element, and static
+  placeholder/title/alt/aria-label, with four-plus Latin letters. Each text
+  is one entry in `violationDetails`, at the line where it is written.
+- Not hardcoded: text inside `{{ }}` (`{{ $t('…') }}`), bound attributes, an
+  element whose text `v-t` / `v-text` / `v-html` replaces, and the children
+  of `<i18n-t>`. A template that cannot be read is reported, never passed.
+
+The law no longer carries the ".vue not read" note. Proved on projects made
+by create-vue: the default app (35 hardcoded texts found) and a bare app
+translated with vue-i18n (fails on develop, passes now).
+
+### 🐛 Fixed — Stores In Data Access recognises Pinia and reads Vue components (#12)
+
+Stores In Data Access knew NgRx, Redux Toolkit and zustand. A Pinia store
+(`defineStore`) defined in the feature layer passed, and the law did not
+scan `.vue` files, so it carried the ".vue not read" note. A feature layer
+made only of Vue components counted as empty ("judged nothing").
+
+- `defineStore` imported from `pinia` (aliases too) is a store, resolved
+  through the file's imports like `createSlice` and zustand's `create`. A
+  `defineStore` from another module is not.
+- `.vue` files are read by their `<script>` / `<script setup>`, at the
+  file's own lines. A store defined in a feature component is reported
+  there, and text in the template or in a string is not code.
+
+The law no longer carries the ".vue not read" note. Proved on a create-vue
+app: the counter store moved under `src/features/` passed on develop and is
+reported now; with the store in `src/stores/` and a feature component that
+uses it, develop said "judged nothing" and the law passes now. Like the
+other layer laws, it does not read `.js` files.
+
 ### ✨ Added — Vue guidance for the security laws (#12)
 
 Both security laws that judge a Vue project gain `satisfiedBy.vue`:

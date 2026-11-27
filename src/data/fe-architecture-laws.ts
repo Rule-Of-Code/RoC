@@ -119,12 +119,13 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Only checks the feature layer — a store misplaced in ui/, util/, shared/ or core/ is never caught.',
-      "Detection is by CONTENT — a signalStore(/createFeature(/createReducer( call in code (comments and strings stripped), or a call to createSlice imported from @reduxjs/toolkit or create imported from zustand (resolved through the imports with the project's TypeScript). Other store libraries (Jotai, MobX, Valtio, React context stores) are not recognised.",
+      "Detection is by CONTENT — a signalStore(/createFeature(/createReducer( call in code (comments and strings stripped), or a call to createSlice imported from @reduxjs/toolkit, create imported from zustand or defineStore imported from pinia (resolved through the imports with the project's TypeScript). Other store libraries (Jotai, MobX, Valtio, React context stores, Vuex) are not recognised.",
+      'A Vue single-file component (.vue) in the feature layer is read by its <script> and <script setup>, at its own lines, so template text is not code. Like the other layer laws it reads .ts, .tsx, .jsx and .vue, not .js: a Pinia store in a JavaScript file is not seen (#12).',
       LAYER_IS_CONFIGURABLE,
     ],
     emoji: '🗄️',
     description:
-      'State stores (signalStore / createFeature / createSlice / zustand create) live in data-access, not in the feature layer',
+      'State stores (signalStore / createFeature / createSlice / zustand create / Pinia defineStore) live in data-access, not in the feature layer',
     priority: 'HIGH',
     category: 'FRAMEWORK',
     stack: 'frontend',

@@ -290,9 +290,10 @@ export const DOCUMENTATION_LAWS: EnhancedConstitutionalLaw[] = [
         "Use an i18n library (next-intl or react-i18next) and keep user text in message files (messages/en.json, locales/, i18n/); render it through t('…') or <Trans>, not as JSX text or a literal placeholder/title/alt/aria-label.",
     },
     detectionLimits: [
-      'Recognised setups: an Angular i18n block (angular.json or project.json), @angular/localize / @ngx-translate/core in the root package.json, or next-intl / react-i18next in any workspace package.json. Vue, react-intl and Lingui are not recognised and fail the config check.',
+      'Recognised setups: an Angular i18n block (angular.json or project.json), @angular/localize / @ngx-translate/core in the root package.json, or next-intl / react-i18next / vue-i18n in any workspace package.json. react-intl and Lingui are not recognised and fail the config check, and so does a Nuxt app whose package.json declares @nuxtjs/i18n but not vue-i18n.',
       'Angular templates: the hardcoded-text regex matches any three-plus-letter tag text and even fires inside .ts and .scss files it scans, making it noisy. JSX: read on the syntax tree — JsxText and string placeholder/title/alt/aria-label with four-plus Latin letters, outside <Trans>; text in a variable or a non-Latin script is not seen.',
       'It confirms translation files exist (locale/locales/i18n/translations directories, or locale-named .json in a messages/ directory) but never checks the translations are correct or complete.',
+      'Vue templates (#12): the <template> of each .vue component is read as elements, at its own lines — text written directly inside an element, and static placeholder/title/alt/aria-label, with four-plus Latin letters. Text inside {{ }} (a $t call, or a string literal, which is not seen), a bound attribute, an element whose text v-t / v-text / v-html replaces, and the children of <i18n-t> are not hardcoded. The script and the style are not read for text; a template that cannot be read is reported as not read.',
     ],
     stack: 'frontend',
     emoji: '🌍',

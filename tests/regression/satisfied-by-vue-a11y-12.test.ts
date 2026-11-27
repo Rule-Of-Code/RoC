@@ -382,14 +382,13 @@ describe('#12 invariant: a law that carries satisfiedBy.vue judges a Vue project
     expect(await attachedNote(law, root)).not.toBeNull();
   });
 
-  // KNOWN EXCEPTION, named so it cannot pass in silence. With a heavy library
-  // in package.json, Bundle Size Optimization looks for its lazy loading in
-  // Angular routing and parsed React source only, so it leaves .vue unread;
-  // its satisfiedBy.vue says so ("not yet recognised"). The fixture above has
-  // no heavy library, which is why the invariant holds for it. When the
-  // detector reads Vue (#12, the Bundle Size Optimization fix), this test
-  // fails: delete it then, and the sentence in the text.
-  it('known exception (#12, until the Bundle Size Optimization fix): with chart.js declared, Bundle Size Optimization leaves .vue unread', async () => {
+  // Was a named exception until #12 (c): with a heavy library in package.json,
+  // Bundle Size Optimization looked for its lazy loading in Angular routing and
+  // parsed React source only, and left .vue unread. It now reads a Vue
+  // workspace's dynamic import() too, so the invariant holds on that branch
+  // of the detector as well — the fixture above, having no heavy library,
+  // never reached it.
+  it('the heavy-library branch: with chart.js declared, Bundle Size Optimization reads .vue too', async () => {
     const law = ModularLawsRegistry.getAll().find(
       candidate => candidate.name === 'Bundle Size Optimization'
     );
@@ -406,6 +405,6 @@ describe('#12 invariant: a law that carries satisfiedBy.vue judges a Vue project
         devDependencies: { vite: '^6.0.0', '@vitejs/plugin-vue': '^5.2.1' },
       }),
     });
-    expect(await attachedNote(law, root)).not.toBeNull();
+    expect(await attachedNote(law, root)).toBeNull();
   });
 });

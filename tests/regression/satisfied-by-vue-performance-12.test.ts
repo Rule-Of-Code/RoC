@@ -286,8 +286,9 @@ describe('#12 V-performance: satisfiedBy.vue for the performance laws, proved on
     expect(monitoring).not.toMatch(/not yet recognised/);
     const bundleSize = vueGuidance('Bundle Size Optimization');
     expect(bundleSize).toMatch(
-      /With a heavy library in package\.json \(lodash, moment, bootstrap, chart\.js, d3\), its lazy loading in a Vue app is not yet recognised/
+      /With a heavy library in package\.json, load code on demand with a dynamic import\(\) in your sources/
     );
+    expect(bundleSize).not.toMatch(/not yet recognised/);
     expect(`${strategy} ${monitoring} ${bundleSize}`).not.toMatch(
       /m\.default|instead of/
     );
@@ -375,11 +376,9 @@ describe('#12 V-performance: satisfiedBy.vue for the performance laws, proved on
     expect(r.passed).toBe(true);
   });
 
-  // The limit the Bundle Size Optimization text names: with a heavy library
-  // declared, the law looks for lazy loading in Angular routing and parsed
-  // React source only, so a Vue app's on-demand import is not seen and the
-  // .vue files are not read. Remove when that detector reads Vue (#12, (c)).
-  it('limit: with chart.js declared and loaded on demand in a .vue script, Bundle Size Optimization reports it as not lazy-loaded and leaves .vue unread', async () => {
+  // Was a limit until #12 (c): with a heavy library declared, the law looked
+  // for lazy loading in Angular routing and parsed React source only.
+  const withChartJs = (homeImport: string | null): Record<string, string> => {
     const files = describedFiles();
     const manifestJson = JSON.parse(files['package.json'] ?? '{}') as {
       dependencies: Record<string, string>;
@@ -389,15 +388,37 @@ describe('#12 V-performance: satisfiedBy.vue for the performance laws, proved on
     files['src/views/HomeView.vue'] = (
       files['src/views/HomeView.vue'] ?? ''
     ).replace(
-      "import('../charts/sales').then(({ drawSales }) => drawSales());",
-      "import('chart.js').then(({ Chart }) => console.log(Chart));"
+      "  import('../charts/sales').then(({ drawSales }) => drawSales());",
+      homeImport ?? ''
+    );
+    // The router's lazy route is a dynamic import() too: take it out for the control.
+    files['src/router.ts'] = (files['src/router.ts'] ?? '').replace(
+      "() => import('./views/AboutView.vue')",
+      'HomeView'
+    );
+    return files;
+  };
+
+  it('with chart.js declared and loaded on demand in a .vue script, Bundle Size Optimization credits the lazy loading and reads .vue', async () => {
+    const files = withChartJs(
+      "  import('chart.js').then(({ Chart }) => console.log(Chart));"
     );
     expect(files['src/views/HomeView.vue']).toContain("import('chart.js')");
+    const r = await judge(files, 'Bundle Size Optimization');
+    expect(r.violations).toEqual([]);
+    expect(r.passed).toBe(true);
+    expect(r.noted).toBe(false);
+  });
+
+  it('control: with chart.js declared and no dynamic import() anywhere, it is still reported', async () => {
+    const files = withChartJs(null);
+    expect(files['src/views/HomeView.vue']).not.toContain('import(');
+    expect(files['src/router.ts']).not.toContain('import(');
     const r = await judge(files, 'Bundle Size Optimization');
     expect(r.passed).toBe(false);
     expect(r.violations).toEqual([
       'Heavy dependencies (chart.js) detected without lazy loading',
     ]);
-    expect(r.noted).toBe(true);
+    expect(r.noted).toBe(false);
   });
 });

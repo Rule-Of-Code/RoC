@@ -67,6 +67,26 @@ list of error-tracking SDKs, and the substring patterns and config paths the
 old check used) is removed. After the tracing check moved to the Sentry init,
 nothing read it.
 
+### 🐛 Fixed — Bundle Size Optimization and Core Web Vitals read a Vue app's lazy loading (#12)
+
+With a heavy library in `package.json` (lodash, moment, bootstrap, chart.js
+…), Bundle Size Optimization credited lazy loading only from Angular routing
+(`loadChildren` in a file named `routing`) and parsed React source. A Vue app
+that loads the library with `import('chart.js')`, in a `.vue` script or in a
+`.ts` module, was reported as "Heavy dependencies (…) detected without lazy
+loading", and its `.vue` files were noted as not read. Core Web Vitals
+Compliance's bundle check read the same React evidence.
+
+Both now also read `VueDynamicImports` (#701), with the React rule: every
+dynamic `import()` in a Vue workspace's sources, `.vue` scripts included,
+from the syntax tree. A Vue workspace declares `vue` or `nuxt` and neither
+`react` nor `next`, so React, Next and Angular projects do not move. A `.vue`
+that cannot be parsed is named as not read, as React source is.
+
+The Vue guidance of Bundle Size Optimization no longer says this is "not yet
+recognised". The V0 invariant's named exception for this law is now a
+positive case: with a heavy library declared, the law reads `.vue` too.
+
 ### 🐛 Fixed — Vue error tracking: @sentry/vue and app.config.errorHandler count (#12)
 
 **Performance Monitoring Policy** did not credit a Vue app's error tracking:

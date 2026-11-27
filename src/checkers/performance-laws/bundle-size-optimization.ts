@@ -29,6 +29,7 @@ import {
   type BundlerReport,
   WebBundlerConfig,
 } from '../../utils/react/web-bundler-config';
+import { VueDynamicImports } from '../../utils/vue/vue-dynamic-imports';
 import { WorkspaceManifests } from '../../utils/workspace-manifests';
 
 type Findings = { violations: string[]; suggestions: string[] };
@@ -223,6 +224,12 @@ export class BundleSizeOptimizationLaw {
       ReactPerformanceSource.scan(context);
     if (react.dynamicImports.length > 0) return { violations, suggestions };
     if (react.unread.length > 0) pushUnread(violations, details, react.unread);
+
+    // Vue source, by the same rule (#12, (c)): any dynamic import() in .ts/.js
+    // and .vue scripts. Empty unless vue or nuxt is declared without react/next.
+    const vue = VueDynamicImports.scan(context);
+    if (vue.dynamicImports.length > 0) return { violations, suggestions };
+    if (vue.unread.length > 0) pushUnread(violations, details, vue.unread);
 
     violations.push(
       this.VALIDATION_MESSAGES.HEAVY_LIBS_NO_LAZY_LOADING.replace(

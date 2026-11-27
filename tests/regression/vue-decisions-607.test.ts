@@ -154,7 +154,9 @@ describe('#607 decision (c): a law that is not about components gets no .vue not
     );
   });
 
-  it('real laws through the engine: Project Structure Standards has no note; Memory Leak Prevention keeps it', async () => {
+  // The law that keeps the note was Memory Leak Prevention until it read
+  // .vue (#12); Angular Lifecycle Management judges Angular classes only.
+  it('real laws through the engine: Project Structure Standards has no note; Angular Lifecycle Management keeps it', async () => {
     const root = project({
       ...VUE_APP,
       'src/app.component.ts':
@@ -164,10 +166,12 @@ describe('#607 decision (c): a law that is not about components gets no .vue not
     const structure = all.find(
       law => law.name === 'Project Structure Standards'
     );
-    const memory = all.find(law => law.name === 'Memory Leak Prevention');
+    const lifecycle = all.find(
+      law => law.name === 'Angular Lifecycle Management'
+    );
     const s = await auditorFor(root).executeSingleLaw(structure);
     expect((s.notRead ?? []).filter(n => VUE_NOTE.test(n))).toEqual([]);
-    const m = await auditorFor(root).executeSingleLaw(memory);
+    const m = await auditorFor(root).executeSingleLaw(lifecycle);
     expect((m.notRead ?? []).filter(n => VUE_NOTE.test(n))).toHaveLength(1);
   });
 

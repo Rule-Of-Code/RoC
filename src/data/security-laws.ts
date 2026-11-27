@@ -143,6 +143,7 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
         'Bind with interpolation or [textContent]; when you must render HTML, sanitize it in the same statement — DomSanitizer.sanitize(SecurityContext.HTML, v) — and never pass unsanitized input to bypassSecurityTrust*.',
       react:
         'Render text by default. When a ref must write HTML (el.innerHTML = ...), sanitize it in the same statement (DOMPurify.sanitize, or a sanitizer named in thresholds.security.htmlSanitizers). dangerouslySetInnerHTML is judged by react-dangerous-html-guarded.',
+      vue: 'Render text with {{ }} interpolation or v-text. When the script writes HTML through a template ref (el.innerHTML = …), sanitize it in the same statement: DOMPurify.sanitize(…) or a sanitizer named in thresholds.security.htmlSanitizers; never eval. This law does not read v-html in the template: give it only a value already sanitized in the script, e.g. computed(() => DOMPurify.sanitize(raw.value)).',
     },
     detectionLimits: [
       'Regex over .ts/.tsx/.jsx/.html with comments stripped, case-sensitive and anchored on the property access (.innerHTML =, .insertAdjacentHTML(, document.write(, eval(, bypassSecurityTrust*(, [innerHTML]=) — dangerouslySetInnerHTML is not read as innerHTML; plain .js files are not scanned.',
@@ -183,6 +184,7 @@ export const SECURITY_LAWS: EnhancedConstitutionalLaw[] = [
         'Serve a Content-Security-Policy: a <meta http-equiv> in index.html, or the hosting headers (firebase.json, vercel.json, netlify.toml); name any other server config in thresholds.security.cspFiles.',
       react:
         "Declare a CSP: in next.config.* headers() or proxy.ts for Next (as Next's CSP guide shows), in index.html or the hosting headers otherwise; name any other server config in thresholds.security.cspFiles.",
+      vue: 'Declare a Content-Security-Policy where the app is served: a <meta http-equiv="Content-Security-Policy"> in the root index.html of a Vite app, or the headers of firebase.json, vercel.json or netlify.toml. A Nuxt app has no index.html of its own: set the header in nuxt.config.* (routeRules headers) and name that file in thresholds.security.cspFiles.',
     },
     detectionLimits: [
       'Checks that the Content-Security-Policy header is DECLARED (its name, outside comments; -Report-Only does not count), never what the policy allows — a policy of `*` passes.',

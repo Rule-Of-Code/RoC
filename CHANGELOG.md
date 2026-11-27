@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ Added — Vue guidance for the security laws (#12)
+
+Both security laws that judge a Vue project gain `satisfiedBy.vue`:
+
+- **Angular Security XSS Prevention Policy** (it reads a `.vue` file's
+  script): render text with `{{ }}` or `v-text`; when the script writes
+  HTML through a template ref, sanitize it in the same statement
+  (`DOMPurify.sanitize`, or a sanitizer named in
+  `thresholds.security.htmlSanitizers`); never `eval`. The text also says
+  that `v-html` is not read, so the value given to it must already be
+  sanitized in the script.
+- **Security Standards (XSS Prevention) Policy**, the Content-Security-Policy
+  law: a `<meta http-equiv>` in the root `index.html` of a Vite app, or the
+  headers of `firebase.json`, `vercel.json` or `netlify.toml`. A Nuxt app has
+  no `index.html` of its own, so it names the config that sets the header
+  (`nuxt.config.*`) in `thresholds.security.cspFiles`.
+
+The CSP law reads no `.vue` file and needs none, so the rule for the key
+changes: a key is written for a law that judges a Vue project, either by
+reading its `.vue` files or without needing them. Each text was proved on a
+Vue 3 + Vite app (and a Nuxt 3 app for the CSP), with a control that fails
+where the text says it does. `laws --json` keeps `schemaVersion` 4; eight
+laws now carry `vue`.
+
+The detection limits of Observable Cleanup Requirements no longer begin with
+"Reads .ts and .tsx files only": the law also reads a `.vue` file's script.
+
 ### ✨ Added — Vue guidance for the code-quality laws (#12)
 
 Two code-quality laws that run on every Vue project and read a `.vue`

@@ -137,7 +137,7 @@ export class BundleOptimizationStrategyLaw {
     );
 
     // What could not be read was not inspected: a violation, never a pass.
-    const unread = [...bundler.unread, ...react.unread];
+    const unread = [...bundler.unread, ...react.unread, ...vue.unread];
     if (unread.length > 0) {
       pushUnread(violations, details, unread);
       score -= 10;

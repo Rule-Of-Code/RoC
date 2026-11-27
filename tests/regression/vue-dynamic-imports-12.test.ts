@@ -150,6 +150,48 @@ describe('#12 (a): Bundle Optimization Strategy credits it as code splitting on 
     ).toBe(true);
   });
 
+  // A .vue whose script cannot be parsed was not read: the law says so, as it
+  // does for React source, and never treats it as inspected.
+  const BROKEN = [
+    '<template>',
+    '  <p>Broken</p>',
+    '</template>',
+    '<script setup lang="ts">',
+    "const Lazy = defineAsyncComponent(() => import('./Lazy.vue'));",
+    'const broken = ;',
+    '</script>',
+    '',
+  ].join('\n');
+
+  const strategyViolations = async (
+    files: Record<string, string>
+  ): Promise<string[]> =>
+    (await BundleOptimizationStrategyLaw.check(auditContext(project(files))))
+      .violations ?? [];
+
+  it('a .vue that cannot be parsed, holding the only import(), is named as not read (and there is no credit)', async () => {
+    const violations = await strategyViolations({
+      'package.json': manifest({ vue: '^3.5.13' }),
+      'src/components/Broken.vue': BROKEN,
+    });
+    expect(violations).toContain('Code splitting not configured');
+    expect(violations.join('\n')).toMatch(
+      /NOT read.*src\/components\/Broken\.vue: could not be parsed/
+    );
+  });
+
+  it('with a valid import() elsewhere: credited, and the broken .vue is still named as not read', async () => {
+    const violations = await strategyViolations({
+      'package.json': manifest({ vue: '^3.5.13', 'vue-router': '^4.5.0' }),
+      'src/components/Broken.vue': BROKEN,
+      'src/router/index.ts': ROUTER,
+    });
+    expect(violations).not.toContain('Code splitting not configured');
+    expect(violations.join('\n')).toMatch(
+      /NOT read.*src\/components\/Broken\.vue: could not be parsed/
+    );
+  });
+
   it('Angular, unchanged: the same router file in an Angular project is not credited by this path', async () => {
     expect(
       await codeSplittingMissing({

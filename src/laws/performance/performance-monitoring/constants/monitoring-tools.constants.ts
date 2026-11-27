@@ -1,3 +1,14 @@
+import { SENTRY_BROWSER_SDKS } from '../../../../utils/sentry-browser-sdks';
+
+/** How each Sentry browser SDK is named in the law's output. */
+const SENTRY_LABELS: Record<string, string> = {
+  '@sentry/browser': 'Sentry',
+  '@sentry/angular': 'Sentry Angular',
+  '@sentry/nextjs': 'Sentry Next.js',
+  '@sentry/react': 'Sentry React',
+  '@sentry/vue': 'Sentry Vue',
+};
+
 /**
  * Monitoring Tools Constants
  *
@@ -5,8 +16,10 @@
  */
 export class MonitoringToolsConstants {
   static readonly MONITORING_TOOL_PACKAGES: Record<string, string> = {
-    '@sentry/browser': 'Sentry',
-    '@sentry/angular': 'Sentry Angular',
+    // The shared Sentry list (#12, b4): it listed browser and angular only.
+    ...Object.fromEntries(
+      SENTRY_BROWSER_SDKS.map(sdk => [sdk, SENTRY_LABELS[sdk] ?? 'Sentry'])
+    ),
     '@firebase/performance': 'Firebase Performance',
     firebase: 'Firebase',
     newrelic: 'New Relic',

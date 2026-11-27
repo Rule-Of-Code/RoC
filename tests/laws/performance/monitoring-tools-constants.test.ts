@@ -79,10 +79,11 @@ describe('MonitoringToolsConstants', () => {
       ).toBe('Google Analytics 4');
     });
 
-    it('should have 10 packages', () => {
+    // The five Sentry browser SDKs from the shared list (#12), then eight more.
+    it('should have 13 packages', () => {
       expect(
         Object.keys(MonitoringToolsConstants.MONITORING_TOOL_PACKAGES).length
-      ).toBe(10);
+      ).toBe(13);
     });
   });
 

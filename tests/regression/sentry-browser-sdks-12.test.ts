@@ -9,6 +9,7 @@
  * only @sentry/browser and @sentry/angular, took the whole list.
  */
 import { ErrorTrackingConstants } from '../../src/laws/performance/performance-monitoring/constants/error-tracking.constants';
+import { MonitoringToolsConstants } from '../../src/laws/performance/performance-monitoring/constants/monitoring-tools.constants';
 import { PerformanceBudgetComplianceCheckConstants } from '../../src/laws/performance/performance-budget-compliance/constants/checks';
 import { ErrorTrackingPolicyConstants } from '../../src/laws/performance/performance-monitoring-policy/constants/error-tracking-policy.constants';
 import { SENTRY_BROWSER_SDKS } from '../../src/utils/sentry-browser-sdks';
@@ -43,6 +44,22 @@ describe('#12 (b): one source for the Sentry browser SDKs', () => {
     expect(
       PerformanceBudgetComplianceCheckConstants.MONITORING_SERVICES
     ).toEqual(['web-vitals', ...SDKS, '@newrelic/browser', 'firebase']);
+  });
+
+  it('Performance Monitoring Standards, monitoring tools (b4): every SDK, named, before the other tools', () => {
+    expect(
+      Object.entries(MonitoringToolsConstants.MONITORING_TOOL_PACKAGES).slice(
+        0,
+        6
+      )
+    ).toEqual([
+      ['@sentry/browser', 'Sentry'],
+      ['@sentry/angular', 'Sentry Angular'],
+      ['@sentry/nextjs', 'Sentry Next.js'],
+      ['@sentry/react', 'Sentry React'],
+      ['@sentry/vue', 'Sentry Vue'],
+      ['@firebase/performance', 'Firebase Performance'],
+    ]);
   });
 
   it('Performance Monitoring Standards: the SDKs, then bugsnag and rollbar', () => {

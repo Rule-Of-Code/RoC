@@ -1,3 +1,5 @@
+import { SENTRY_BROWSER_SDKS } from '../../../../utils/sentry-browser-sdks';
+
 /**
  * Error Tracking Policy Constants
  *
@@ -5,10 +7,7 @@
  */
 export class ErrorTrackingPolicyConstants {
   static readonly ERROR_TRACKING_TOOLS: string[] = [
-    '@sentry/browser',
-    '@sentry/angular',
-    '@sentry/nextjs',
-    '@sentry/react',
+    ...SENTRY_BROWSER_SDKS,
     'logrocket',
     'logrocket-react',
     'bugsnag',

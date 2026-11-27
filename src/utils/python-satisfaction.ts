@@ -16,6 +16,7 @@
  */
 
 import { glob } from 'glob';
+import { backendApmDependencies } from './backend-apm-dependencies';
 import { FileUtils } from './file-utils';
 import { PathOperations } from './path-operations';
 import {
@@ -261,11 +262,11 @@ export class PythonSatisfaction extends PythonProject {
   /**
    * Backend performance monitoring: the concern is real for a service, but the
    * evidence is Prometheus / OpenTelemetry / an APM — not Core Web Vitals.
+   * Read from the declared dependencies' names (#12, b4), never from words in
+   * a file: see backendApmDependencies.
    */
   static hasBackendPerformanceMonitoring(projectRoot: string): boolean {
-    return /\b(prometheus[_-]?client|opentelemetry|opentracing|sentry[_-]?sdk|\bsentry\b|datadog|ddtrace|statsd|newrelic|new_relic|elastic[_-]?apm|py[_-]?spy|scout_apm)\b/i.test(
-      this.gateConfig(projectRoot) + this.read(projectRoot, 'requirements.txt')
-    );
+    return backendApmDependencies(projectRoot).length > 0;
   }
 
   /**

@@ -3,94 +3,9 @@
  *
  * Tests for error tracking, monitoring tools, alerts and budget constants.
  */
-import { ErrorTrackingConstants } from '../../../src/laws/performance/performance-monitoring/constants/error-tracking.constants';
 import { MonitoringToolsConstants } from '../../../src/laws/performance/performance-monitoring/constants/monitoring-tools.constants';
 import { PerformanceAlertsConstants } from '../../../src/laws/performance/performance-monitoring/constants/performance-alerts.constants';
 import { PerformanceBudgetConstants } from '../../../src/laws/performance/performance-monitoring/constants/performance-budget.constants';
-
-describe('ErrorTrackingConstants', () => {
-  describe('ERROR_TRACKING_TOOLS', () => {
-    it('should include @sentry/browser', () => {
-      expect(ErrorTrackingConstants.ERROR_TRACKING_TOOLS).toContain(
-        '@sentry/browser'
-      );
-    });
-
-    it('should include @sentry/angular', () => {
-      expect(ErrorTrackingConstants.ERROR_TRACKING_TOOLS).toContain(
-        '@sentry/angular'
-      );
-    });
-
-    it('should include bugsnag', () => {
-      expect(ErrorTrackingConstants.ERROR_TRACKING_TOOLS).toContain('bugsnag');
-    });
-
-    it('should include rollbar', () => {
-      expect(ErrorTrackingConstants.ERROR_TRACKING_TOOLS).toContain('rollbar');
-    });
-  });
-
-  describe('getErrorTrackingConfigFilePaths', () => {
-    const projectRoot = '/test/project';
-
-    it('should include src/app/app.module.ts', async () => {
-      expect(
-        await ErrorTrackingConstants.getErrorTrackingConfigFilePaths(
-          projectRoot
-        )
-      ).toContain(`${projectRoot}/src/app/app.module.ts`);
-    });
-
-    it('should include sentry.config.js', async () => {
-      expect(
-        await ErrorTrackingConstants.getErrorTrackingConfigFilePaths(
-          projectRoot
-        )
-      ).toContain(`${projectRoot}/sentry.config.js`);
-    });
-  });
-
-  describe('PERFORMANCE_ERROR_TRACKING_PATTERNS', () => {
-    it('should include tracesSampleRate', () => {
-      expect(
-        ErrorTrackingConstants.PERFORMANCE_ERROR_TRACKING_PATTERNS
-      ).toContain('tracesSampleRate');
-    });
-
-    it('should include performance', () => {
-      expect(
-        ErrorTrackingConstants.PERFORMANCE_ERROR_TRACKING_PATTERNS
-      ).toContain('performance');
-    });
-  });
-
-  describe('isErrorTrackingTool', () => {
-    it('should return true for @sentry/browser', () => {
-      expect(
-        ErrorTrackingConstants.isErrorTrackingTool('@sentry/browser')
-      ).toBe(true);
-    });
-
-    it('should return false for unknown tool', () => {
-      expect(ErrorTrackingConstants.isErrorTrackingTool('unknown')).toBe(false);
-    });
-  });
-
-  describe('hasErrorTrackingConfig', () => {
-    it('should return true for content with tracesSampleRate', () => {
-      expect(
-        ErrorTrackingConstants.hasErrorTrackingConfig('tracesSampleRate: 1.0')
-      ).toBe(true);
-    });
-
-    it('should return false for unrelated content', () => {
-      expect(
-        ErrorTrackingConstants.hasErrorTrackingConfig('config: true')
-      ).toBe(false);
-    });
-  });
-});
 
 describe('MonitoringToolsConstants', () => {
   describe('MONITORING_TOOL_PACKAGES', () => {

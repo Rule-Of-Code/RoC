@@ -7,6 +7,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — performance monitoring credit comes from what a project declares and initialises, not from words in its files (#12)
+
+**Backend APM** (`hasBackendPerformanceMonitoring`) was a word search: words
+such as `sentry`, `datadog` and `statsd` anywhere in package.json,
+pyproject.toml, the Makefile and other gate files, or in requirements.txt.
+A frontend with `@sentry/react`, or a script named `sentry:upload`, counted
+as a service with an APM. Its three users moved with it: Performance
+Monitoring Standards' monitoring-tools and tracing checks, and the
+Pre-Deployment checklist's performance clause. It now reads declared
+dependency **names**:
+- Python: every manifest the dependency reader knows (requirements,
+  pyproject, Pipfile, setup), PEP 503 names;
+- Node: package.json, against an allowlist of server-side packages:
+  - Sentry's server SDKs (`@sentry/node`, `bun`, `deno`, `aws-serverless`,
+    `google-cloud-serverless`, `nestjs`);
+  - `dd-trace`, `prom-client`, `newrelic` and `elastic-apm-node`;
+  - `@opentelemetry/sdk-node`, `@opentelemetry/auto-instrumentations-node`
+    and `@opentelemetry/sdk-trace-node` (a manual OpenTelemetry setup);
+  - the StatsD clients `node-statsd`, `hot-shots` and `statsd-client`.
+
+Any other package gives no backend credit: a browser, mobile or
+meta-framework SDK, `@sentry/types`, build tooling, `@opentelemetry/api`,
+`@opentelemetry/sdk-trace-base` and `@opentelemetry/sdk-metrics` (a browser
+app uses those too). A frontend earns its credit on its own path.
+
+**Shared Sentry SDK list**: `@sentry/nuxt` and `@sentry/capacitor` join it.
+Performance Monitoring Policy (error tracking), Performance Budget
+Compliance (production monitoring) and Performance Monitoring Standards
+(monitoring tools, and the tracing init) now recognise them.
+
+**Performance Monitoring Standards, monitoring tools**: the list of
+packages takes the shared Sentry browser SDKs (it had `@sentry/browser`
+and `@sentry/angular` only) and lists Datadog RUM (`@datadog/browser-rum`).
+A Datadog RUM app used to pass by the word "datadog".
+
+**Performance Monitoring Standards, performance tracing**: it required one
+of three fixed files (`src/app/app.module.ts`, `src/main.ts`,
+`sentry.config.js`) containing the substrings `tracesSampleRate`,
+`performance` or `tracingOrigins`. So an `@angular/fire/performance`
+import passed it, and the files Sentry's guides use were never read. It now
+reads, from the syntax tree, a Sentry SDK's `init` with `tracesSampleRate`,
+`tracesSampler`, `tracePropagationTargets` or `tracingOrigins`, in any
+non-test source file that mentions `@sentry/`. Datadog RUM's
+`datadogRum.init` with `allowedTracingUrls` or `traceSampleRate` counts too.
+An init without a tracing option is error tracking, which Performance
+Monitoring Policy judges.
+
+**Changed violation text** (not an API; named here because a renderer or a
+grep may match it): Performance Monitoring Standards' "Performance error
+tracking not configured" is now "Performance tracing not configured: no
+Sentry.init with tracesSampleRate / tracesSampler / tracePropagationTargets,
+no datadogRum.init with allowedTracingUrls / traceSampleRate, and no backend
+APM or tracing dependency". Performance Monitoring Policy's
+"Performance error tracking not configured" is unchanged.
+
+Internal: Performance Monitoring Standards' `ErrorTrackingConstants` (its
+list of error-tracking SDKs, and the substring patterns and config paths the
+old check used) is removed. After the tracing check moved to the Sentry init,
+nothing read it.
+
 ### 🐛 Fixed — Bundle Size Optimization and Core Web Vitals read a Vue app's lazy loading (#12)
 
 With a heavy library in `package.json` (lodash, moment, bootstrap, chart.js

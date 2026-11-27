@@ -21,7 +21,7 @@ export class PerformanceMonitoringAnalyzerService {
     realUserMonitoring: { configured: boolean };
     performanceBudget: { configured: boolean };
     buildPerformance: { configured: boolean };
-    errorTracking: { configured: boolean };
+    errorTracking: { configured: boolean; files: string[]; unread: string[] };
     performanceAlerts: { configured: boolean };
   }> {
     // The two awaited checks are independent reads of the project: start
@@ -34,7 +34,8 @@ export class PerformanceMonitoringAnalyzerService {
       ),
       ErrorTrackingAnalyzerService.checkPerformanceErrorTracking(
         projectRoot,
-        config
+        config,
+        lawId
       ),
     ]);
     return {

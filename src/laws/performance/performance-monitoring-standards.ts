@@ -1,13 +1,18 @@
 import type { LawCheckContext, LawResult } from '../../types/law.types';
 import { PythonSatisfaction } from '../../utils/python-satisfaction';
+import { unreadViolation } from '../../utils/react/react-performance-source';
 import { PerformanceMonitoringAnalyzerService } from './performance-monitoring/services/performance-monitoring.analyzer';
+
+/** What the tracing check asks for, said in its violation (#12, b4). */
+export const PERFORMANCE_TRACING_NOT_CONFIGURED =
+  'Performance tracing not configured: no Sentry.init with tracesSampleRate / tracesSampler / tracePropagationTargets, no datadogRum.init with allowedTracingUrls / traceSampleRate, and no backend APM or tracing dependency';
 
 interface MonitoringAnalysis {
   monitoringTools: { hasTools: boolean; tools: string[] };
   realUserMonitoring: { configured: boolean };
   performanceBudget: { configured: boolean };
   buildPerformance: { configured: boolean };
-  errorTracking: { configured: boolean };
+  errorTracking: { configured: boolean; unread?: string[] };
   performanceAlerts: { configured: boolean };
 }
 
@@ -32,6 +37,13 @@ export class PerformanceMonitoringStandardsLaw {
     violations.push(...findings.violations);
     suggestions.push(...findings.suggestions);
     score -= findings.penalty;
+
+    // A file that imports Sentry and could not be parsed was not read: when
+    // tracing was not found, say so rather than imply it was inspected.
+    const unread = analysis.errorTracking.unread ?? [];
+    if (!analysis.errorTracking.configured && unread.length > 0) {
+      violations.push(unreadViolation(unread));
+    }
 
     return {
       passed: violations.length === 0,
@@ -105,13 +117,16 @@ export class PerformanceMonitoringStandardsLaw {
         suggestion: 'Configure build time monitoring and alerts',
         penalty: 15,
       },
+      // Performance TRACING (#12, b4): a Sentry init with a tracing option, or
+      // a backend's APM / tracing dependency. Error tracking without tracing
+      // is Performance Monitoring Policy's to judge.
       {
         satisfied: analysis.errorTracking.configured || hasBackendApm,
         applies: true,
-        violation: 'Performance error tracking not configured',
+        violation: PERFORMANCE_TRACING_NOT_CONFIGURED,
         suggestion: hasBrowser
-          ? 'Configure error tracking for performance issues'
-          : 'Configure error/latency tracking (Sentry, OpenTelemetry) for the service',
+          ? 'Initialise Sentry with tracesSampleRate, tracesSampler or tracePropagationTargets (Sentry.init in your entry or instrument file, or Next.js instrumentation-client / sentry.server.config / sentry.edge.config), or Datadog RUM with allowedTracingUrls / traceSampleRate'
+          : 'Declare an APM or tracing dependency (OpenTelemetry, sentry-sdk, ddtrace, prometheus-client …) for the service, or initialise Sentry with tracesSampleRate',
         penalty: 10,
       },
       {

@@ -27,6 +27,32 @@ The Vue guidance of Bundle Size Optimization no longer says this is "not yet
 recognised". The V0 invariant's named exception for this law is now a
 positive case: with a heavy library declared, the law reads `.vue` too.
 
+### 🐛 Fixed — Vue error tracking: @sentry/vue and app.config.errorHandler count (#12)
+
+**Performance Monitoring Policy** did not credit a Vue app's error tracking:
+`@sentry/vue` was missing from its list of Sentry SDKs, and an own handler
+was recognised for Angular (`ErrorHandler`) and `window` / `process`
+listeners, not for Vue's `app.config.errorHandler`. **Performance Budget
+Compliance** missed `@sentry/vue` as a production monitoring service too.
+
+- The Sentry browser SDKs are declared once (`SENTRY_BROWSER_SDKS`), and the
+  three laws that listed them spread it: `@sentry/browser`, `angular`,
+  `nextjs`, `react` and now `vue`. The lists of Monitoring Policy and Budget
+  Compliance keep their order, with `vue` added after `react`.
+- **Performance Monitoring Standards** listed only `@sentry/browser` and
+  `@sentry/angular`, and now takes the whole list. Measured on React, Next,
+  Vue and Angular fixtures, no verdict moves. Its error-tracking check is
+  already met by any `sentry` in `package.json` (its backend-APM path).
+- **Monitoring Policy** reads `config.errorHandler` set on a Vue app from the
+  syntax tree. The app is what `createApp` / `createSSRApp` imported from
+  `vue` returns (named, aliased or through a namespace), held in a variable,
+  through `.use(…)`, or inline. An `errorHandler` set on another object, in
+  a comment or a string, or on a `createApp` from another module does not
+  count.
+
+The Vue guidance of Performance Monitoring Policy names both and no longer
+says they are "not yet recognised".
+
 ### 🐛 Fixed — Bundle Optimization Strategy credits a Vue app's dynamic import() as code splitting (#12)
 
 On a Vue app, a Vue Router lazy route (`component: () => import(…)`) or

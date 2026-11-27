@@ -128,7 +128,11 @@ function describedFiles(
   return {
     ...BASE,
     'package.json': manifest(
-      { 'web-vitals': '^4.2.4', '@sentry/vue': '^8.47.0' },
+      // @sentry/vue only where main.ts uses it: declaring it is error tracking (#12, (b)).
+      {
+        'web-vitals': '^4.2.4',
+        ...(errors === 'sentry' ? { '@sentry/vue': '^8.47.0' } : {}),
+      },
       {
         'size-limit': '^11.1.6',
         '@size-limit/preset-app': '^11.1.6',
@@ -277,8 +281,9 @@ describe('#12 V-performance: satisfiedBy.vue for the performance laws, proved on
     expect(strategy).not.toMatch(/not yet recognised/);
     const monitoring = vueGuidance('Performance Monitoring Policy');
     expect(monitoring).toMatch(
-      /@sentry\/vue and app\.config\.errorHandler are not yet recognised/
+      /@sentry\/vue declared in package\.json \(as @sentry\/react is on React\), app\.config\.errorHandler set on the app createApp returns/
     );
+    expect(monitoring).not.toMatch(/not yet recognised/);
     const bundleSize = vueGuidance('Bundle Size Optimization');
     expect(bundleSize).toMatch(
       /With a heavy library in package\.json, load code on demand with a dynamic import\(\) in your sources/
@@ -351,19 +356,25 @@ describe('#12 V-performance: satisfiedBy.vue for the performance laws, proved on
     expect(r.noted).toBe(false);
   });
 
-  it.each([['sentry' as const], ['handler' as const]])(
-    'limit: with only %s capturing errors, error tracking is not credited',
-    async errors => {
-      const r = await judge(
-        describedFiles(errors),
-        'Performance Monitoring Policy'
-      );
-      expect(r.passed).toBe(false);
-      expect(r.violations).toEqual([
-        'Performance error tracking not configured',
-      ]);
-    }
-  );
+  // Was a limit until @sentry/vue joined the shared Sentry list (#12, (b)).
+  it('@sentry/vue alone (Sentry.init, no window listener) is credited as error tracking', async () => {
+    const r = await judge(
+      describedFiles('sentry'),
+      'Performance Monitoring Policy'
+    );
+    expect(r.violations).toEqual([]);
+    expect(r.passed).toBe(true);
+  });
+
+  // Was a limit until app.config.errorHandler was read (#12, (b)).
+  it('app.config.errorHandler alone (no Sentry, no window listener) is credited as error tracking', async () => {
+    const r = await judge(
+      describedFiles('handler'),
+      'Performance Monitoring Policy'
+    );
+    expect(r.violations).toEqual([]);
+    expect(r.passed).toBe(true);
+  });
 
   // Was a limit until #12 (c): with a heavy library declared, the law looked
   // for lazy loading in Angular routing and parsed React source only.

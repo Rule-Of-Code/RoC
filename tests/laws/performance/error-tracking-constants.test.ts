@@ -47,8 +47,9 @@ describe('ErrorTrackingConstants', () => {
       expect(ErrorTrackingConstants.ERROR_TRACKING_TOOLS).toContain('rollbar');
     });
 
-    it('should have exactly 5 tools', () => {
-      expect(ErrorTrackingConstants.ERROR_TRACKING_TOOLS.length).toBe(5);
+    // The five Sentry browser SDKs from the shared list (#12), then three more.
+    it('should have exactly 8 tools', () => {
+      expect(ErrorTrackingConstants.ERROR_TRACKING_TOOLS.length).toBe(8);
     });
   });
 

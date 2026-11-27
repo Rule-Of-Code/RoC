@@ -10,4 +10,5 @@ export const SENTRY_BROWSER_SDKS: readonly string[] = [
   '@sentry/angular',
   '@sentry/nextjs',
   '@sentry/react',
+  '@sentry/vue',
 ];

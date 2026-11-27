@@ -28,6 +28,7 @@ import {
   pushUnread,
 } from '../../utils/react/react-performance-source';
 import { WebBundlerConfig } from '../../utils/react/web-bundler-config';
+import { VueDynamicImports } from '../../utils/vue/vue-dynamic-imports';
 
 export class BundleOptimizationStrategyLaw {
   static check(context: LawCheckContext): LawResult {
@@ -63,10 +64,12 @@ export class BundleOptimizationStrategyLaw {
     // the React source (only where react or next is declared).
     const bundler = WebBundlerConfig.inspect(projectRoot);
     const react = ReactPerformanceSource.scan(context);
+    // Vue source, by the React rule (#12); empty unless vue/nuxt without react/next.
+    const vue = VueDynamicImports.scan(context);
 
     // Run each analysis and add violations if not passing
     score = this.checkAnalysis(
-      analyzer.analyzeCodeSplitting(projectRoot, config, react, bundler)
+      analyzer.analyzeCodeSplitting(projectRoot, config, react, bundler, vue)
         .isConfigured,
       violations,
       suggestions,
@@ -134,7 +137,7 @@ export class BundleOptimizationStrategyLaw {
     );
 
     // What could not be read was not inspected: a violation, never a pass.
-    const unread = [...bundler.unread, ...react.unread];
+    const unread = [...bundler.unread, ...react.unread, ...vue.unread];
     if (unread.length > 0) {
       pushUnread(violations, details, unread);
       score -= 10;

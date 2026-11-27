@@ -273,11 +273,12 @@ describe('#12 V-performance: satisfiedBy.vue for the performance laws, proved on
     expect(vueGuidance(name).length).toBeGreaterThan(0);
   });
 
-  it('the texts name the two limits, without advice to rewrite the code', () => {
+  it('the texts name the remaining limits, without advice to rewrite the code; code splitting credits a Vue Router lazy route and defineAsyncComponent', () => {
     const strategy = vueGuidance('Bundle Optimization Strategy Policy');
     expect(strategy).toMatch(
-      /a Vue Router lazy route `\(\) => import\(\)` and defineAsyncComponent are not yet recognised/
+      /a Vue Router lazy route `component: \(\) => import\(…\)` and defineAsyncComponent\(\(\) => import\(…\)\) count/
     );
+    expect(strategy).not.toMatch(/not yet recognised/);
     const monitoring = vueGuidance('Performance Monitoring Policy');
     expect(monitoring).toMatch(
       /@sentry\/vue declared in package\.json \(as @sentry\/react is on React\), app\.config\.errorHandler set on the app createApp returns/
@@ -342,13 +343,16 @@ describe('#12 V-performance: satisfiedBy.vue for the performance laws, proved on
     );
   });
 
-  it('limit: with only the Vue Router lazy route (no import(…).then( anywhere), code splitting is not credited', async () => {
+  // Was a limit until the Vue reading of dynamic import() (#12, (a)): the
+  // idiomatic router alone is now code splitting, as React.lazy is on React.
+  it('the Vue Router lazy route alone (no import(…).then( anywhere) is credited as code splitting', async () => {
     const r = await judge(
       describedFiles('listener', false),
       'Bundle Optimization Strategy Policy'
     );
-    expect(r.passed).toBe(false);
-    expect(r.violations).toEqual(['Code splitting not configured']);
+    expect(r.violations).toEqual([]);
+    expect(r.passed).toBe(true);
+    expect(r.noted).toBe(false);
   });
 
   // Was a limit until @sentry/vue joined the shared Sentry list (#12, (b)).

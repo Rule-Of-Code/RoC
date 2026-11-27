@@ -1,5 +1,6 @@
 import type { RuleOfCodeConfig } from '../../../../types/law.types';
 import type { ReactPerformanceEvidence } from '../../../../utils/react/react-performance-source';
+import type { VueDynamicImportEvidence } from '../../../../utils/vue/vue-dynamic-imports';
 import type { BundlerReport } from '../../../../utils/react/web-bundler-config';
 import {
   BundleOptimizationStrategyTypesConstants,
@@ -28,7 +29,8 @@ export class BundleOptimizationStrategyAnalyzerService {
     projectRoot: string,
     config: RuleOfCodeConfig,
     react?: ReactPerformanceEvidence,
-    bundler?: BundlerReport
+    bundler?: BundlerReport,
+    vue?: VueDynamicImportEvidence
   ): {
     isConfigured: boolean;
     strategies: string[];
@@ -37,7 +39,8 @@ export class BundleOptimizationStrategyAnalyzerService {
       projectRoot,
       config,
       react,
-      bundler
+      bundler,
+      vue
     );
   }
 

@@ -315,6 +315,7 @@ describe('#12 V0: satisfiedBy.vue for accessibility, proved on a Vue + Vite app'
       'Observable Cleanup Requirements',
       'Requires Spec',
       'Security Standards (XSS Prevention) Policy',
+      'Stores In Data Access',
       'Web Storage Encapsulation',
     ]);
   });

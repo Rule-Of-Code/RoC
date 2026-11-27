@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ Added — Vue guidance for Stores In Data Access (#12)
+
+Now that the law recognises Pinia's `defineStore` and reads `.vue` files
+(#692), it gains `satisfiedBy.vue`. Define stores outside the feature layer:
+in `src/stores/`, as create-vue lays them out, or in a data-access directory.
+Views and components then use them. A `defineStore` in a `.vue` script in
+the feature layer is flagged too. A create-vue app has no feature directory,
+so the text says to name one in `thresholds.frontend.featureLayers` (for
+example `src/views/**`); until then the law judges nothing.
+
+Proved on a Vue 3 + Vite + Pinia app:
+- the default layout judges nothing;
+- with `src/views/**` named, a store defined in a view fails at its line;
+- the same store in `src/stores/counter.ts`, used from the view, passes
+  with no ".vue not read" note;
+- `defineStore` named only in a comment does not count.
+
 ### ✨ Added — Vue guidance for five FE architecture laws (#12)
 
 Five FE architecture laws run on every Vue project and read its `.vue`

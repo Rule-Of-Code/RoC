@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — Bundle Optimization Strategy credits a Vue app's dynamic import() as code splitting (#12)
+
+On a Vue app, a Vue Router lazy route (`component: () => import(…)`) or
+`defineAsyncComponent(() => import(…))` was not code splitting: the law
+counted `loadChildren` in a file named `routing`, an `import(` next to a
+`.then(` in the same file, and the React source (React.lazy, next/dynamic,
+any `import()`). create-vue keeps its router in `src/router/index.ts`, so an
+idiomatic Vue app failed "Code splitting not configured".
+
+A new reader, `VueDynamicImports`, applies the React rule to a Vue
+workspace (one that declares `vue` or `nuxt`, and neither `react` nor
+`next`): every dynamic `import()` in the parsed sources counts, in
+`.ts`/`.js` and in the `<script>` / `<script setup>` of a `.vue` file,
+reported as `file:line import()`. An `import(` in a comment, a string or the
+template is not a call. React, Next and Angular projects are not scanned by
+it, so their verdicts do not move.
+
+The law's Vue guidance no longer says the router and defineAsyncComponent
+are "not yet recognised"; it names them.
+
 ### ✨ Added — Vue guidance for the performance laws (#12)
 
 Seven performance laws judge a Vue project and gain `satisfiedBy.vue`:

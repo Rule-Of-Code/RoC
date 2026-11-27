@@ -155,14 +155,14 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
         'Code-split with lazy routes and dynamic import(), enable tree-shaking (ESM, optimization), and configure vendor / critical-css chunking in angular.json.',
       react:
         "Build with next build (route splitting, minification, tree-shaking and chunking are Next's own), enable experimental.optimizeCss (with critters) for critical CSS, split heavy client code with next/dynamic or React.lazy, and check it with an analyzer (next experimental-analyze, @next/bundle-analyzer, size-limit). On Vite, declare manualChunks / codeSplitting groups and a critical-CSS tool (critters, critical or penthouse) as a dependency.",
-      vue: 'Keep vite.config.* without minification turned off, declare manualChunks (build.rollupOptions.output) and a critical-CSS tool (critters, critical or penthouse) as a dependency. Code splitting is credited for an import(…) followed by .then( in the same file, a .vue <script> included, or loadChildren in a routing file; a Vue Router lazy route `() => import()` and defineAsyncComponent are not yet recognised.',
+      vue: 'Keep vite.config.* without minification turned off, declare manualChunks (build.rollupOptions.output) and a critical-CSS tool (critters, critical or penthouse) as a dependency. Code splitting is credited for a dynamic import() in your sources, a .vue <script> included: a Vue Router lazy route `component: () => import(…)` and defineAsyncComponent(() => import(…)) count, as React.lazy does on React.',
     },
     detectionLimits: [
       'All configuration reads (angular.json / project.json / package.json / next.config / vite.config) — it measures no bundle.',
       'The Nx fallback walks only apps/* (not libs/*) for the Angular minification / critical-css / vendor checks.',
       'Vendor chunking does not apply to a Next app (Next owns chunking) and is reported satisfied with that reason. Outside Angular, tree-shaking is credited to Next / Vite / webpack-production defaults; on Angular the dependency-name heuristic ("@", "ng-", "ngx-") still stands.',
       'No Python path — a backend fails all six sub-checks.',
-      "A hand-written import(…).then(…) in the <script> of a Vue single-file component counts as code splitting; one in a template handler does not, and Vue's defineAsyncComponent is not recognised (#607).",
+      'In a Vue workspace (vue or nuxt declared, neither react nor next), every dynamic import() in the parsed sources counts as code splitting, by the rule the React path uses: a Vue Router lazy route and defineAsyncComponent(() => import(…)) included, in .ts/.js and in the <script> / <script setup> of a .vue file. An import( in a comment, a string or a template handler is not a call and does not count; whether the imported module is large is not checked (#12).',
     ],
     stack: 'frontend',
     emoji: '🚀',

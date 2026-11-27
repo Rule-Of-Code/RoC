@@ -209,6 +209,9 @@ function describedFiles(
       },
     }),
     'src/main.ts': mainTs(errors),
+    // The app's own chart module, loaded on demand (no heavy library declared).
+    'src/charts/sales.ts':
+      "export function drawSales(): void {\n  console.log('sales');\n}\n",
     'src/views/HomeView.vue': [
       '<template>',
       '  <img src="/hero.webp" alt="Hero" width="800" height="400" loading="lazy">',
@@ -229,7 +232,7 @@ function describedFiles(
       ...(chartOnDemand
         ? [
             'function showChart(): void {',
-            "  import('chart.js').then(({ Chart }) => console.log(Chart));",
+            "  import('../charts/sales').then(({ drawSales }) => drawSales());",
             '}',
           ]
         : ['function showChart(): void {}']),
@@ -275,7 +278,13 @@ describe('#12 V-performance: satisfiedBy.vue for the performance laws, proved on
     expect(monitoring).toMatch(
       /@sentry\/vue and app\.config\.errorHandler are not yet recognised/
     );
-    expect(`${strategy} ${monitoring}`).not.toMatch(/m\.default|instead of/);
+    const bundleSize = vueGuidance('Bundle Size Optimization');
+    expect(bundleSize).toMatch(
+      /With a heavy library in package\.json \(lodash, moment, bootstrap, chart\.js, d3\), its lazy loading in a Vue app is not yet recognised/
+    );
+    expect(`${strategy} ${monitoring} ${bundleSize}`).not.toMatch(
+      /m\.default|instead of/
+    );
   });
 
   it.each(
@@ -350,4 +359,30 @@ describe('#12 V-performance: satisfiedBy.vue for the performance laws, proved on
       ]);
     }
   );
+
+  // The limit the Bundle Size Optimization text names: with a heavy library
+  // declared, the law looks for lazy loading in Angular routing and parsed
+  // React source only, so a Vue app's on-demand import is not seen and the
+  // .vue files are not read. Remove when that detector reads Vue (#12, (c)).
+  it('limit: with chart.js declared and loaded on demand in a .vue script, Bundle Size Optimization reports it as not lazy-loaded and leaves .vue unread', async () => {
+    const files = describedFiles();
+    const manifestJson = JSON.parse(files['package.json'] ?? '{}') as {
+      dependencies: Record<string, string>;
+    };
+    manifestJson.dependencies['chart.js'] = '^4.4.7';
+    files['package.json'] = JSON.stringify(manifestJson);
+    files['src/views/HomeView.vue'] = (
+      files['src/views/HomeView.vue'] ?? ''
+    ).replace(
+      "import('../charts/sales').then(({ drawSales }) => drawSales());",
+      "import('chart.js').then(({ Chart }) => console.log(Chart));"
+    );
+    expect(files['src/views/HomeView.vue']).toContain("import('chart.js')");
+    const r = await judge(files, 'Bundle Size Optimization');
+    expect(r.passed).toBe(false);
+    expect(r.violations).toEqual([
+      'Heavy dependencies (chart.js) detected without lazy loading',
+    ]);
+    expect(r.noted).toBe(true);
+  });
 });

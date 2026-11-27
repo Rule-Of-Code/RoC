@@ -22,11 +22,16 @@ web-vitals called in `src/main.ts`, resource hints in the root `index.html`,
 `loading="lazy"` in the template, and Cache-Control headers or a service
 worker.
 
-Two limits are stated, not worked around:
+Three limits are stated, not worked around:
 - a Vue Router lazy route `() => import()` and `defineAsyncComponent` are not
   yet credited as code splitting;
 - `@sentry/vue` and `app.config.errorHandler` are not yet credited as error
-  tracking.
+  tracking;
+- with a heavy library in `package.json` (lodash, moment, bootstrap,
+  chart.js, d3), Bundle Size Optimization does not yet see its lazy loading
+  in a Vue app. It reports the library as not lazy-loaded and leaves `.vue`
+  unread. The V0 invariant test names this as an explicit exception until
+  the detector reads Vue.
 
 Proved on a Vue 3 + Vite app with the config a real audit reads:
 - the default create-vue app fails;

@@ -24,7 +24,12 @@ import {
   runLawScope,
   vueNotReadNote,
 } from '../../src/utils/vue/vue-read-tracker';
-import { ctx, project, removeProjects } from '../checkers/toolkit-fixture';
+import {
+  ctx,
+  project,
+  removeProjects,
+  writeFiles,
+} from '../checkers/toolkit-fixture';
 
 afterAll(removeProjects);
 
@@ -374,6 +379,33 @@ describe('#12 invariant: a law that carries satisfiedBy.vue judges a Vue project
     if (!law) return;
     expect(law.notAboutComponents).toBeUndefined();
     const root = vueViteProject('  <button type="button">Ok</button>');
+    expect(await attachedNote(law, root)).not.toBeNull();
+  });
+
+  // KNOWN EXCEPTION, named so it cannot pass in silence. With a heavy library
+  // in package.json, Bundle Size Optimization looks for its lazy loading in
+  // Angular routing and parsed React source only, so it leaves .vue unread;
+  // its satisfiedBy.vue says so ("not yet recognised"). The fixture above has
+  // no heavy library, which is why the invariant holds for it. When the
+  // detector reads Vue (#12, the Bundle Size Optimization fix), this test
+  // fails: delete it then, and the sentence in the text.
+  it('known exception (#12, until the Bundle Size Optimization fix): with chart.js declared, Bundle Size Optimization leaves .vue unread', async () => {
+    const law = ModularLawsRegistry.getAll().find(
+      candidate => candidate.name === 'Bundle Size Optimization'
+    );
+    expect(law).toBeDefined();
+    if (!law) return;
+    const root = vueViteProject('  <button type="button">Ok</button>');
+    writeFiles(root, {
+      'package.json': JSON.stringify({
+        name: 'vue-vite-app',
+        version: '1.0.0',
+        type: 'module',
+        scripts: { dev: 'vite', build: 'vite build' },
+        dependencies: { vue: '^3.5.13', 'chart.js': '^4.4.7' },
+        devDependencies: { vite: '^6.0.0', '@vitejs/plugin-vue': '^5.2.1' },
+      }),
+    });
     expect(await attachedNote(law, root)).not.toBeNull();
   });
 });

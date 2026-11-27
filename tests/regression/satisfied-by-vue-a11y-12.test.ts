@@ -307,6 +307,8 @@ describe('#12 V0: satisfiedBy.vue for accessibility, proved on a Vue + Vite app'
       'Explicit Button Type',
       'Form Control Labeling',
       'Modal Dialog Accessibility',
+      'Observable Cleanup Requirements',
+      'Web Storage Encapsulation',
     ]);
   });
 });

@@ -3,6 +3,7 @@ import { CheckerUtils, FileUtils } from '../../../../utils';
 import { BundleOptimizationStrategyCheckConstants } from '../constants';
 import { scriptText, VUE_EXTENSION } from '../../../../utils/vue/vue-sfc';
 import type { ReactPerformanceEvidence } from '../../../../utils/react/react-performance-source';
+import type { VueDynamicImportEvidence } from '../../../../utils/vue/vue-dynamic-imports';
 import {
   type BundlerReport,
   WebBundlerConfig,
@@ -23,7 +24,8 @@ export class CodeSplittingAnalyzerService {
     projectRoot: string,
     config: RuleOfCodeConfig,
     react?: ReactPerformanceEvidence,
-    bundler?: BundlerReport
+    bundler?: BundlerReport,
+    vue?: VueDynamicImportEvidence
   ): {
     isConfigured: boolean;
     strategies: string[];
@@ -50,6 +52,13 @@ export class CodeSplittingAnalyzerService {
     if (react && react.dynamicImports.length > 0) {
       strategies.push(
         `Lazy-loaded code: ${react.dynamicImports.slice(0, 3).join(', ')}`
+      );
+    }
+    // Vue source, by the same rule (#12): every dynamic import() in the
+    // parse — a Vue Router lazy route and defineAsyncComponent included.
+    if (vue && vue.dynamicImports.length > 0) {
+      strategies.push(
+        `Lazy-loaded code: ${vue.dynamicImports.slice(0, 3).join(', ')}`
       );
     }
 

@@ -46,7 +46,7 @@ export const ACCESSIBILITY_LAWS: EnhancedConstitutionalLaw[] = [
       'The jsx-a11y recommended/strict preset is recognised as plugin:jsx-a11y/recommended|strict, or <binding>.flatConfigs|configs.recommended|strict where the binding is imported or required from eslint-plugin-jsx-a11y in that config file; a preset reached through a shared config package or a re-exported variable is not followed, and without a loadable typescript package the flat preset is not recognised (its rules are then reported missing).',
       'eslint-config-next is credited with registering jsx-a11y and enabling alt-text, aria-props and role-has-required-aria-props, as eslint-config-next 16.4.6 does (dist/index.js:176-191); it is recognised by the text eslint-config-next or next/core-web-vitals only, so a legacy extends: "next" is not recognised, and another version\'s rule list is not read.',
       "The @angular-eslint template a11y rules it asks for check native HTML elements; on ion-* elements they are silent, so a passing lint config says nothing about an Ionic app's ion-input or ion-button.",
-      'A Vue project is not judged: the law asks for linter rules over Angular templates or JSX, and has no rule set for Vue templates (.vue); in a project whose markup is Vue only it judges nothing, and its .vue note stays (#607).',
+      'A Vue project is not judged: the law asks for linter rules over Angular templates or JSX. Not yet recognised: eslint-plugin-vuejs-accessibility (a rule set for Vue templates exists; this law does not read it). In a project whose markup is Vue only it judges nothing, and its .vue note stays (#607).',
     ],
     emoji: '♿',
     description:

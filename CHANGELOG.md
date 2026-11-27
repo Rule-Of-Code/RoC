@@ -18,6 +18,15 @@ nuxt.config (`htmlAttrs.lang`, `link`), `useHead()` and Vue I18n's
 `createI18n({ locale })`. A Nuxt app with no `.html` document is judged
 nothing (no default locale found).
 
+### 📝 Changed — Accessibility Linting Enforcement's Vue limit names the rule set it does not read (#12)
+
+Its detection limit said the law "has no rule set for Vue templates". A rule
+set exists, `eslint-plugin-vuejs-accessibility`; the law does not read it
+(the founder's decision on #607: judged nothing plus a limit). The line now
+says so: "Not yet recognised: eslint-plugin-vuejs-accessibility (a rule set
+for Vue templates exists; this law does not read it)". The detector is
+unchanged.
+
 ### 🐛 Fixed — performance monitoring credit comes from what a project declares and initialises, not from words in its files (#12)
 
 **Backend APM** (`hasBackendPerformanceMonitoring`) was a word search: words

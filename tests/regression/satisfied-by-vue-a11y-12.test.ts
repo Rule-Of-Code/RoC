@@ -11,6 +11,7 @@
  * The invariant at the end holds for every category written later: a law
  * that carries `satisfiedBy.vue` reads the .vue files of a Vue project.
  */
+import { AccessibilityLintingEnforcementLaw } from '../../src/checkers/accessibility-laws/accessibility-linting-enforcement';
 import { DisclosureControlAriaStateLaw } from '../../src/checkers/accessibility-laws/disclosure-control-aria-state';
 import { ExplicitButtonTypeLaw } from '../../src/checkers/accessibility-laws/explicit-button-type';
 import { FormControlLabelingLaw } from '../../src/checkers/accessibility-laws/form-control-labeling';
@@ -282,6 +283,51 @@ describe('#12 V0: satisfiedBy.vue for accessibility, proved on a Vue + Vite app'
         law => law.title === 'Accessibility Linting Enforcement'
       )?.satisfiedBy?.vue
     ).toBeUndefined();
+  });
+
+  // Founder's decision on #607 (point 2, 26.11): judged nothing plus a limit,
+  // no eslint-plugin-vuejs-accessibility in the detector. The limit says the
+  // rule set exists and is not read — not that Vue has no counterpart.
+  it('Accessibility Linting Enforcement: the Vue limit names eslint-plugin-vuejs-accessibility as not yet recognised, without advice', () => {
+    const limits =
+      ACCESSIBILITY_LAWS.find(
+        law => law.title === 'Accessibility Linting Enforcement'
+      )?.detectionLimits ?? [];
+    const vue = limits.filter(line => /Vue/.test(line));
+    expect(vue).toEqual([
+      'A Vue project is not judged: the law asks for linter rules over Angular templates or JSX. Not yet recognised: eslint-plugin-vuejs-accessibility (a rule set for Vue templates exists; this law does not read it). In a project whose markup is Vue only it judges nothing, and its .vue note stays (#607).',
+    ]);
+    expect(vue[0]).not.toMatch(/no (?:Vue )?counterpart|enable|add |instead/i);
+  });
+
+  it('Accessibility Linting Enforcement: a Vue app with eslint-plugin-vuejs-accessibility configured is still judged nothing', async () => {
+    const root = vueViteProject('  <button type="button">Ok</button>');
+    writeFiles(root, {
+      'package.json': JSON.stringify({
+        name: 'vue-vite-app',
+        version: '1.0.0',
+        type: 'module',
+        dependencies: { vue: '^3.5.13' },
+        devDependencies: {
+          vite: '^6.0.0',
+          '@vitejs/plugin-vue': '^5.2.1',
+          eslint: '^9.17.0',
+          'eslint-plugin-vuejs-accessibility': '^2.4.1',
+        },
+      }),
+      'eslint.config.js': [
+        "import pluginVueA11y from 'eslint-plugin-vuejs-accessibility';",
+        "export default [...pluginVueA11y.configs['flat/recommended']];",
+      ].join('\n'),
+    });
+    const r = await judge(
+      context => AccessibilityLintingEnforcementLaw.check(context),
+      vueConfig(root)
+    );
+    expect(r.passed).toBe(false);
+    expect(r.violations).toEqual([
+      'Accessibility Linting Enforcement: nothing was judged — it asks for linter rules over Angular templates (with @angular/core declared) or .tsx/.jsx sources, and this project has neither',
+    ]);
   });
 
   it('laws --json: schemaVersion 4, vue in keys, in stackToKey.frontend and in projectTypeToKey', () => {

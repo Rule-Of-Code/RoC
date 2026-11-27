@@ -8,6 +8,7 @@ import { ImageOptimizationAnalyzerService } from './image-optimization.analyzer'
 import { LighthouseAnalyzerService } from './lighthouse.analyzer';
 import { PerformanceBudgetsAnalyzerService } from './performance-budgets.analyzer';
 import { ResourceHintsAnalyzerService } from './resource-hints.analyzer';
+import { VueDynamicImports } from '../../../../utils/vue/vue-dynamic-imports';
 
 /**
  * Runs the six Core Web Vitals Compliance checks on one project. The React/Next
@@ -25,6 +26,8 @@ export class CoreWebVitalsAnalyzerService {
     // and what its next.config / vite.config says. Both are empty on a project
     // that declares neither (the scan does not run there).
     const react = ReactPerformanceSource.scan({ projectRoot, config, lawId });
+    // Vue source, by the React rule (#12, (c)); empty unless vue/nuxt without react/next.
+    const vue = VueDynamicImports.scan({ projectRoot, config, lawId });
     const bundler = WebBundlerConfig.inspect(projectRoot);
     return {
       lighthouse: LighthouseAnalyzerService.analyze(projectRoot),
@@ -36,7 +39,8 @@ export class CoreWebVitalsAnalyzerService {
         projectRoot,
         config,
         react,
-        bundler
+        bundler,
+        vue
       ),
       browserCaching: BrowserCachingAnalyzerService.analyze(projectRoot),
       imageOptimization: ImageOptimizationAnalyzerService.analyze(
@@ -46,7 +50,7 @@ export class CoreWebVitalsAnalyzerService {
         bundler
       ),
       resourceHints: ResourceHintsAnalyzerService.analyze(projectRoot, react),
-      unread: [...react.unread, ...bundler.unread],
+      unread: [...react.unread, ...bundler.unread, ...vue.unread],
     };
   }
 }

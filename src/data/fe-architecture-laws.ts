@@ -116,6 +116,7 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
         'Define signalStore/createFeature/createReducer stores (and *.store.ts) in the data-access layer, not in feature/ui/util.',
       react:
         'Keep shared stores (Redux Toolkit createSlice, zustand create) in the data layer; feature components consume them. Declare where your layers live in thresholds.frontend.featureLayers / dataAccessLayers.',
+      vue: 'Define Pinia stores (defineStore from pinia) outside the feature layer, in src/stores/ as create-vue lays them out or in a data-access directory, and use them from views and components. A defineStore in a .vue script in the feature layer is flagged too. The law judges the feature layer: a /feature*/ directory, or where thresholds.frontend.featureLayers says it lives. A create-vue app has no such directory, so name yours (for example src/views/**); until then the law judges nothing.',
     },
     detectionLimits: [
       'Only checks the feature layer — a store misplaced in ui/, util/, shared/ or core/ is never caught.',

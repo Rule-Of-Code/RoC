@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ Added — Vue guidance for the code-quality laws (#12)
+
+Two code-quality laws that run on every Vue project and read a `.vue`
+file's script gain `satisfiedBy.vue`:
+
+- **Observable Cleanup Requirements:** clean up where you subscribe, with
+  `onUnmounted(() => sub.unsubscribe())` in `<script setup>`,
+  `onScopeDispose` in a composable, or `take(1)` for a one-shot value. The
+  subscription and its cleanup sit in the same file, because the detector
+  looks per file.
+- **Web Storage Encapsulation:** every `localStorage` / `sessionStorage`
+  call goes in a `*.service.ts` module. That suffix is the only one the
+  detector exempts, so the same calls in a composable or a Pinia store file
+  are still flagged.
+
+Each text was proved on a Vue 3 + Vite app: a component that breaks the law
+fails, the same code written the way the text says passes with no ".vue not
+read" note, and a control fails where the text says it does. `laws --json`
+keeps `schemaVersion` 4; six laws now carry `vue`.
+
 ### ✨ Added — Vue guidance: the `vue` key of `satisfiedBy`, first for accessibility (#12)
 
 `satisfiedBy` gains a `vue` key: how to pass a law in a Vue single-file

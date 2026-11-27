@@ -115,7 +115,7 @@ onto a stack. Measured against the shipped registry:
 | `typescript` | 96 | 2 `frontend` + 20 `typescript` + 74 universal |
 | `angular` | 67 | 58 `frontend` + 3 `typescript` + 6 universal |
 | `react` | 59 | 58 `frontend` + 1 `typescript` |
-| `vue` | 4 | 4 `frontend` |
+| `vue` | 6 | 6 `frontend` |
 | `python` | 83 | 37 `python` + 46 universal |
 | `ionic` | 24 | 24 `frontend` |
 | `capacitor` | 24 | 21 `frontend` + 3 universal |
@@ -160,7 +160,8 @@ The `frontend` laws that run on every UI project (no `requires`) carry React gui
 `satisfiedBy.angular`.
 Vue guidance (`satisfiedBy.vue`) is being written one category at a time
 ([#12](https://github.com/Rule-Of-Code/RoC/issues/12)): so far the four accessibility laws
-that read a `.vue` template. A key is written only for a law that reads `.vue` files.
+that read a `.vue` template, and the two code-quality laws that read its script
+(Observable Cleanup Requirements, Web Storage Encapsulation). A key is written only for a law that reads `.vue` files.
 A React or Vue project matches `stack: "frontend"`, so a law without its key still runs
 there — but the only remediation text it has is another framework's.
 

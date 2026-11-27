@@ -1,5 +1,6 @@
 import type { RuleOfCodeConfig } from '../../../../config/types';
 import { PathResolver } from '../../../../utils/path-resolver';
+import { SENTRY_BROWSER_SDKS } from '../../../../utils/sentry-browser-sdks';
 
 /**
  * Error Tracking Constants
@@ -8,8 +9,7 @@ import { PathResolver } from '../../../../utils/path-resolver';
  */
 export class ErrorTrackingConstants {
   static readonly ERROR_TRACKING_TOOLS: string[] = [
-    '@sentry/browser',
-    '@sentry/angular',
+    ...SENTRY_BROWSER_SDKS,
     'bugsnag',
     '@bugsnag/browser',
     'rollbar',

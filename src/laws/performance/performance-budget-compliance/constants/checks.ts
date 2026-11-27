@@ -1,3 +1,5 @@
+import { SENTRY_BROWSER_SDKS } from '../../../../utils/sentry-browser-sdks';
+
 /**
  * PerformanceBudgetComplianceCheckConstants
  *
@@ -45,10 +47,7 @@ export class PerformanceBudgetComplianceCheckConstants {
   // Monitoring services
   static readonly MONITORING_SERVICES = [
     'web-vitals',
-    '@sentry/browser',
-    '@sentry/angular',
-    '@sentry/nextjs',
-    '@sentry/react',
+    ...SENTRY_BROWSER_SDKS,
     '@newrelic/browser',
     'firebase',
   ];

@@ -79,18 +79,18 @@ recognised the type is `generic` — never a framework by default.
 ## 🗂️ Law card schema (`roc laws --json`)
 
 `roc laws --json` is the contract for anything that renders a law — a docs site, an
-IDE panel, a dashboard. It is versioned by `schemaVersion` (currently `2`).
+IDE panel, a dashboard. It is versioned by `schemaVersion` (currently `4`).
 
 ```jsonc
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "tool": "ruleofcode",          // the package name this build was published under
   "version": "8.0.1",
   "registryTotal": 264,
   "satisfiedByStacks": {          // the mapping described below — read it, don't hardcode it
-    "keys": ["typescript", "angular", "react", "python", "ionic", "capacitor"],
-    "stackToKey": { "frontend": ["angular", "react"], "typescript": ["typescript"], "python": ["python"] },
-    "projectTypeToKey": { "angular": "angular", "react": "react", "ionic": "ionic",
+    "keys": ["typescript", "angular", "react", "vue", "python", "ionic", "capacitor"],
+    "stackToKey": { "frontend": ["angular", "react", "vue"], "typescript": ["typescript"], "python": ["python"] },
+    "projectTypeToKey": { "angular": "angular", "react": "react", "vue": "vue", "ionic": "ionic",
                           "python": "python", "typescript": "typescript", "node": "typescript" }
   },
   "laws": [ /* … */ ]
@@ -104,7 +104,7 @@ This is the part that looks like an inconsistency and is not:
 | field | question it answers | values |
 |---|---|---|
 | `stack` | **selection** — does this law run on this project at all? | `frontend`, `typescript`, `python`, or absent (universal) |
-| `satisfiedBy` keys | **guidance** — which technology are these instructions written for? | `typescript`, `angular`, `react`, `python`, `ionic`, `capacitor` |
+| `satisfiedBy` keys | **guidance** — which technology are these instructions written for? | `typescript`, `angular`, `react`, `vue`, `python`, `ionic`, `capacitor` |
 | `requires` | **selection, finer** — does the project declare the toolkit this law is about? | `{ anyDependency, allDependencies, anyFile, anyPythonDependency, anyFileContaining, anyOf }`, or `null` |
 
 **They are orthogonal. A `satisfiedBy` key is not a stack label**, and no key maps 1:1
@@ -115,6 +115,7 @@ onto a stack. Measured against the shipped registry:
 | `typescript` | 96 | 2 `frontend` + 20 `typescript` + 74 universal |
 | `angular` | 67 | 58 `frontend` + 3 `typescript` + 6 universal |
 | `react` | 59 | 58 `frontend` + 1 `typescript` |
+| `vue` | 13 | 13 `frontend` |
 | `python` | 83 | 37 `python` + 46 universal |
 | `ionic` | 24 | 24 `frontend` |
 | `capacitor` | 24 | 21 `frontend` + 3 universal |
@@ -123,11 +124,11 @@ onto a stack. Measured against the shipped registry:
 it names the technology the advice is written in, not the projects the law applies to.
 
 **Render by the key, not by the stack.** `satisfiedByStacks.projectTypeToKey` gives the
-key for a known project type — `stack: "frontend"` covers Angular and React alike, so a
-React project reads `react` and an Angular one `angular`. `stackToKey` gives, when only
+key for a known project type — `stack: "frontend"` covers Angular, React and Vue alike, so a
+React project reads `react`, a Vue one `vue` and an Angular one `angular`. `stackToKey` gives, when only
 the stack is known, the **set** of keys that stack's guidance is written under —
-`frontend` is `["angular", "react"]`, so render every key of the set the law carries
-(schemaVersion 3; in schemaVersion 2 it was one key, `"frontend": "angular"`). Universal
+`frontend` is `["angular", "react", "vue"]`, so render every key of the set the law carries
+(schemaVersion 4 added `vue`; in schemaVersion 2 it was one key, `"frontend": "angular"`). Universal
 laws carry whichever keys have been authored. Read that object rather than hardcoding a
 table — if a key is ever added, your renderer picks it up.
 
@@ -157,9 +158,18 @@ point at — another reason to iterate `keys`.
 The `frontend` laws that run on every UI project (no `requires`) carry React guidance
 (`satisfiedBy.react`, counted in the `react` row above); none of them carries only
 `satisfiedBy.angular`.
-There is **no Vue guidance yet** ([#12](https://github.com/Rule-Of-Code/RoC/issues/12)). A
-React project matches `stack: "frontend"`, so a law without a `react` key still runs there
-— but the only remediation text it has is Angular's.
+Vue guidance (`satisfiedBy.vue`) is being written one category at a time
+([#12](https://github.com/Rule-Of-Code/RoC/issues/12)): so far the four accessibility laws
+that read a `.vue` template, and the two code-quality laws that read its script
+(Observable Cleanup Requirements, Web Storage Encapsulation), and the two security laws:
+the XSS sinks law, which reads the script, and the Content-Security-Policy law; and five
+FE architecture laws (Requires Spec, No Layout Transition, No Hostname Gating, Defensive
+Array Coercion, No Passthrough Cast).
+A key is written only for a law that judges a Vue project: one that reads its `.vue`
+files, or one that needs none of them (the Content-Security-Policy law, which reads
+`index.html`, the hosting headers or a named config).
+A React or Vue project matches `stack: "frontend"`, so a law without its key still runs
+there — but the only remediation text it has is another framework's.
 
 If you render law cards, say that plainly ("written for Angular — no React/Vue
 instructions for this law yet") rather than presenting Angular steps as if they were universal. The

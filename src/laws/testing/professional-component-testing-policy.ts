@@ -7,11 +7,47 @@ import { PathOperations } from '../../utils/path-operations';
 import { withViolationDetails } from '../../utils/violation-details';
 import { UnitTestProfessionalComponentTestingAnalyzerService } from './unit-test-professional-component-testing/services/component-testing-analyzer.service';
 import { ReactComponentTestingAnalyzer } from './unit-test-professional-component-testing/services/react-component-testing';
+import { VueComponentTestingAnalyzer } from './unit-test-professional-component-testing/services/vue-component-testing';
 
 /** The deductions Professional Component Testing Policy judges with. */
 type ComponentThresholds = ReturnType<
   (typeof ProfessionalComponentTestingPolicyLaw)['thresholdsOf']
 >;
+
+/** How the React and the Vue findings are worded. */
+interface FrameworkWords {
+  missing: string;
+  missingDetail: string;
+  missingSuggestion: string;
+  lowQuality: string;
+  lowQualityDetail: string;
+  lowQualitySuggestion: string;
+}
+
+const REACT: FrameworkWords = {
+  missing: 'React components missing a co-located .test.tsx / .spec.tsx',
+  missingDetail: 'React component without a co-located test',
+  missingSuggestion: 'Add X.test.tsx next to X.tsx (or __tests__/X.test.tsx)',
+  lowQuality:
+    'React component tests do not query by role and assert, in at least two tests',
+  lowQualityDetail:
+    'React component test that does not query by role and assert in two tests',
+  lowQualitySuggestion:
+    "Query the rendered component by role (screen.getByRole('button', { name: … })) and assert on what the user sees",
+};
+
+/** Vue single-file components (#12). */
+const VUE: FrameworkWords = {
+  missing: 'Vue components missing a co-located .spec.ts / .test.ts',
+  missingDetail: 'Vue component without a co-located test',
+  missingSuggestion: 'Add X.spec.ts next to X.vue (or __tests__/X.spec.ts)',
+  lowQuality:
+    'Vue component tests do not mount the component with @vue/test-utils or @testing-library/vue and assert, in at least two tests',
+  lowQualityDetail:
+    'Vue component test that does not mount it and assert in two tests',
+  lowQualitySuggestion:
+    'Mount the component with @vue/test-utils (mount) or @testing-library/vue (render) and assert on what the user sees, in at least two tests',
+};
 
 /**
  * Professional Component Testing Policy Law
@@ -69,21 +105,26 @@ export class ProfessionalComponentTestingPolicyLaw {
       // Angular-only checks below (patterns, mocking, TestBed) judge the
       // Angular specs only; a React test is judged by its role queries.
       const react = ReactComponentTestingAnalyzer.analyze(context);
-      score = this.reactFindings(
+      // 1c. Vue single-file components and their tests (#12), judged by
+      // whether the test mounts the component and asserts.
+      const vue = VueComponentTestingAnalyzer.analyze(context);
+      const out = { violations, suggestions, details };
+      score = this.frameworkFindings(
         context,
         react,
+        REACT,
         thresholds,
-        violations,
-        suggestions,
-        score,
-        details
+        out,
+        score
       );
+      score = this.frameworkFindings(context, vue, VUE, thresholds, out, score);
       const judgedNothing =
         componentAnalysis.totalComponents === 0 &&
-        react.components.length === 0;
+        react.components.length === 0 &&
+        vue.components.length === 0;
       if (judgedNothing) {
         violations.push(
-          'found no component files (Angular components — *.component.ts or a file with @Component — under src/, apps/, libs/; .tsx/.jsx through the scan) — this law judged nothing'
+          'found no component files (Angular components — *.component.ts or a file with @Component — under src/, apps/, libs/; .tsx/.jsx and .vue through the scan) — this law judged nothing'
         );
       }
 
@@ -193,53 +234,55 @@ export class ProfessionalComponentTestingPolicyLaw {
     };
   }
 
-  /** React components without a co-located test, and tests that do not query by role. */
-  private static reactFindings(
+  /**
+   * React or Vue components without a co-located test, and tests that fall
+   * short of the framework's quality bar; returns the score left.
+   */
+  private static frameworkFindings(
     context: LawCheckContext,
-    react: ReturnType<typeof ReactComponentTestingAnalyzer.analyze>,
+    found: { missingTestFiles: string[]; lowQualityTests: string[] },
+    words: FrameworkWords,
     thresholds: ComponentThresholds,
-    violations: string[],
-    suggestions: string[],
-    score: number,
-    details: ViolationDetail[]
+    out: {
+      violations: string[];
+      suggestions: string[];
+      details: ViolationDetail[];
+    },
+    score: number
   ): number {
     let remaining = score;
-    if (react.missingTestFiles.length > 0) {
-      violations.push(
-        `${react.missingTestFiles.length} React components missing a co-located .test.tsx / .spec.tsx (e.g. ${this.firstFew(context, react.missingTestFiles)})`
+    if (found.missingTestFiles.length > 0) {
+      out.violations.push(
+        `${found.missingTestFiles.length} ${words.missing} (e.g. ${this.firstFew(context, found.missingTestFiles)})`
       );
-      details.push(
+      out.details.push(
         ...this.fileDetails(
           context,
-          react.missingTestFiles,
-          'React component without a co-located test'
+          found.missingTestFiles,
+          words.missingDetail
         )
       );
-      suggestions.push(
-        'Add X.test.tsx next to X.tsx (or __tests__/X.test.tsx)'
-      );
+      out.suggestions.push(words.missingSuggestion);
       remaining -= Math.min(
         thresholds.maxMissingSpecDeduction,
-        react.missingTestFiles.length * thresholds.missingSpecFileDeduction
+        found.missingTestFiles.length * thresholds.missingSpecFileDeduction
       );
     }
-    if (react.lowQualityTests.length > 0) {
-      violations.push(
-        `${react.lowQualityTests.length} React component tests do not query by role and assert, in at least two tests (e.g. ${this.firstFew(context, react.lowQualityTests)})`
+    if (found.lowQualityTests.length > 0) {
+      out.violations.push(
+        `${found.lowQualityTests.length} ${words.lowQuality} (e.g. ${this.firstFew(context, found.lowQualityTests)})`
       );
-      details.push(
+      out.details.push(
         ...this.fileDetails(
           context,
-          react.lowQualityTests,
-          'React component test that does not query by role and assert in two tests'
+          found.lowQualityTests,
+          words.lowQualityDetail
         )
       );
-      suggestions.push(
-        "Query the rendered component by role (screen.getByRole('button', { name: … })) and assert on what the user sees"
-      );
+      out.suggestions.push(words.lowQualitySuggestion);
       remaining -= Math.min(
         thresholds.maxLowQualityDeduction,
-        react.lowQualityTests.length * thresholds.lowQualityTestDeduction
+        found.lowQualityTests.length * thresholds.lowQualityTestDeduction
       );
     }
     return remaining;
@@ -299,7 +342,6 @@ export class ProfessionalComponentTestingPolicyLaw {
     return remaining;
   }
 
-  /** Up to three files, relative, for a message. */
   /** Every file behind a count, relative to the project (#43). */
   private static fileDetails(
     context: LawCheckContext,
@@ -312,6 +354,7 @@ export class ProfessionalComponentTestingPolicyLaw {
     }));
   }
 
+  /** Up to three files, relative, for a message. */
   private static firstFew(context: LawCheckContext, files: string[]): string {
     const shown = files
       .slice(0, 3)

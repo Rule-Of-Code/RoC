@@ -115,7 +115,7 @@ onto a stack. Measured against the shipped registry:
 | `typescript` | 96 | 2 `frontend` + 20 `typescript` + 74 universal |
 | `angular` | 67 | 58 `frontend` + 3 `typescript` + 6 universal |
 | `react` | 59 | 58 `frontend` + 1 `typescript` |
-| `vue` | 8 | 8 `frontend` |
+| `vue` | 13 | 13 `frontend` |
 | `python` | 83 | 37 `python` + 46 universal |
 | `ionic` | 24 | 24 `frontend` |
 | `capacitor` | 24 | 21 `frontend` + 3 universal |
@@ -162,7 +162,9 @@ Vue guidance (`satisfiedBy.vue`) is being written one category at a time
 ([#12](https://github.com/Rule-Of-Code/RoC/issues/12)): so far the four accessibility laws
 that read a `.vue` template, and the two code-quality laws that read its script
 (Observable Cleanup Requirements, Web Storage Encapsulation), and the two security laws:
-the XSS sinks law, which reads the script, and the Content-Security-Policy law.
+the XSS sinks law, which reads the script, and the Content-Security-Policy law; and five
+FE architecture laws (Requires Spec, No Layout Transition, No Hostname Gating, Defensive
+Array Coercion, No Passthrough Cast).
 A key is written only for a law that judges a Vue project: one that reads its `.vue`
 files, or one that needs none of them (the Content-Security-Policy law, which reads
 `index.html`, the hosting headers or a named config).

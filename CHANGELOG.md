@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ Added — Vue guidance for five FE architecture laws (#12)
+
+Five FE architecture laws run on every Vue project and read its `.vue`
+files. They gain `satisfiedBy.vue`:
+
+- **Requires Spec:** a `.vue` file in the feature or data-access layer
+  that is over 200 lines (counted over the whole file) or writes an
+  `X-Control-Pass` header has a test beside it, `Basket.spec.ts` next to
+  `Basket.vue`. A test in the `__tests__/` folder that create-vue generates
+  is not credited.
+- **No Layout Transition:** animate `transform` and `opacity` in the
+  component's `<style>`, the classes a `<Transition>` uses included. A
+  `:style` binding or an inline style attribute is not read.
+- **No Hostname Gating:** branch on `import.meta.env.DEV`, `MODE` or a
+  `VITE_*` value, not on `location.hostname`.
+- **Defensive Array Coercion** and **No Passthrough Cast:**
+  - coerce with `Array.isArray(x) ? x : []`, because `?? []` is not enough;
+  - parse `res.json()` as `unknown`; `axios.get<RawUser>()`, not
+    `axios.get<User>()`;
+  - both judge the data-access layer, and a create-vue app has none until
+    `thresholds.frontend.dataAccessLayers` names it (for example
+    `src/api/**`). Until then the laws judge nothing.
+
+Each text was proved on a Vue 3 + Vite app: before fails, after passes with
+no ".vue not read" note, and a control fails where the text says. Thirteen
+laws now carry `vue`; `schemaVersion` stays 4. Stores In Data Access follows
+its Pinia detector (#692).
+
+The first detection limit of Angular Security XSS Prevention Policy now
+names the `.vue` reading too ("Regex over .ts/.tsx/.jsx/.html" said nothing
+of it).
+
 ### ✨ Added — Vue guidance for the security laws (#12)
 
 Both security laws that judge a Vue project gain `satisfiedBy.vue`:

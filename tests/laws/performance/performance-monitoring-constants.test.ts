@@ -3,46 +3,9 @@
  *
  * Tests for error tracking, monitoring tools, alerts and budget constants.
  */
-import { ErrorTrackingConstants } from '../../../src/laws/performance/performance-monitoring/constants/error-tracking.constants';
 import { MonitoringToolsConstants } from '../../../src/laws/performance/performance-monitoring/constants/monitoring-tools.constants';
 import { PerformanceAlertsConstants } from '../../../src/laws/performance/performance-monitoring/constants/performance-alerts.constants';
 import { PerformanceBudgetConstants } from '../../../src/laws/performance/performance-monitoring/constants/performance-budget.constants';
-
-describe('ErrorTrackingConstants', () => {
-  describe('ERROR_TRACKING_TOOLS', () => {
-    it('should include @sentry/browser', () => {
-      expect(ErrorTrackingConstants.ERROR_TRACKING_TOOLS).toContain(
-        '@sentry/browser'
-      );
-    });
-
-    it('should include @sentry/angular', () => {
-      expect(ErrorTrackingConstants.ERROR_TRACKING_TOOLS).toContain(
-        '@sentry/angular'
-      );
-    });
-
-    it('should include bugsnag', () => {
-      expect(ErrorTrackingConstants.ERROR_TRACKING_TOOLS).toContain('bugsnag');
-    });
-
-    it('should include rollbar', () => {
-      expect(ErrorTrackingConstants.ERROR_TRACKING_TOOLS).toContain('rollbar');
-    });
-  });
-
-  describe('isErrorTrackingTool', () => {
-    it('should return true for @sentry/browser', () => {
-      expect(
-        ErrorTrackingConstants.isErrorTrackingTool('@sentry/browser')
-      ).toBe(true);
-    });
-
-    it('should return false for unknown tool', () => {
-      expect(ErrorTrackingConstants.isErrorTrackingTool('unknown')).toBe(false);
-    });
-  });
-});
 
 describe('MonitoringToolsConstants', () => {
   describe('MONITORING_TOOL_PACKAGES', () => {

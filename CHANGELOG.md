@@ -45,6 +45,11 @@ Sentry.init with tracesSampleRate / tracesSampler / tracePropagationTargets,
 and no backend APM or tracing dependency". Performance Monitoring Policy's
 "Performance error tracking not configured" is unchanged.
 
+Internal: Performance Monitoring Standards' `ErrorTrackingConstants` (its
+list of error-tracking SDKs, and the substring patterns and config paths the
+old check used) is removed. After the tracing check moved to the Sentry init,
+nothing read it.
+
 ### 🐛 Fixed — Vue error tracking: @sentry/vue and app.config.errorHandler count (#12)
 
 **Performance Monitoring Policy** did not credit a Vue app's error tracking:

@@ -6,9 +6,11 @@
  *
  * b1 moved the four SDKs the laws already shared into the list, unchanged.
  * b2 added @sentry/vue, and Performance Monitoring Standards, which listed
- * only @sentry/browser and @sentry/angular, took the whole list.
+ * only @sentry/browser and @sentry/angular, took the whole list. b4 moved
+ * Standards' tracing check to the Sentry init itself, so that list was read
+ * by nothing and was removed; Standards' monitoring-tools list spreads the
+ * shared one instead.
  */
-import { ErrorTrackingConstants } from '../../src/laws/performance/performance-monitoring/constants/error-tracking.constants';
 import { MonitoringToolsConstants } from '../../src/laws/performance/performance-monitoring/constants/monitoring-tools.constants';
 import { PerformanceBudgetComplianceCheckConstants } from '../../src/laws/performance/performance-budget-compliance/constants/checks';
 import { ErrorTrackingPolicyConstants } from '../../src/laws/performance/performance-monitoring-policy/constants/error-tracking-policy.constants';
@@ -59,15 +61,6 @@ describe('#12 (b): one source for the Sentry browser SDKs', () => {
       ['@sentry/react', 'Sentry React'],
       ['@sentry/vue', 'Sentry Vue'],
       ['@firebase/performance', 'Firebase Performance'],
-    ]);
-  });
-
-  it('Performance Monitoring Standards: the SDKs, then bugsnag and rollbar', () => {
-    expect(ErrorTrackingConstants.ERROR_TRACKING_TOOLS).toEqual([
-      ...SDKS,
-      'bugsnag',
-      '@bugsnag/browser',
-      'rollbar',
     ]);
   });
 });

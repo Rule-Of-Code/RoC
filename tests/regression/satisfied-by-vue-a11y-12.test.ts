@@ -327,6 +327,7 @@ describe('#12 V0: satisfiedBy.vue for accessibility, proved on a Vue + Vite app'
       'Performance Monitoring Policy',
       'Performance Standards',
       'Performance Test Requirements',
+      'Primary Locale Font Preloaded',
       'Professional Component Testing Policy',
       'Requires Spec',
       'Security Standards (XSS Prevention) Policy',

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ Added — Vue guidance for Primary Locale Font Preloaded (#12)
+
+The law judges a Vue project: it reads `@font-face` from stylesheets and from
+the `<style>` blocks of `.vue` files (`lang="scss"` too), the locale from
+`<html lang>` and the preload from `<link rel="preload" as="font">`. Its
+`satisfiedBy.vue` says where that is on a Vue + Vite app: `index.html`.
+A new detection limit says what is not yet recognised: Nuxt's `app.head` in
+nuxt.config (`htmlAttrs.lang`, `link`), `useHead()` and Vue I18n's
+`createI18n({ locale })`. A Nuxt app with no `.html` document is judged
+nothing (no default locale found).
+
 ### 🐛 Fixed — performance monitoring credit comes from what a project declares and initialises, not from words in its files (#12)
 
 **Backend APM** (`hasBackendPerformanceMonitoring`) was a word search: words

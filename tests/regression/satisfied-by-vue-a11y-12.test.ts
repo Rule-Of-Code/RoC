@@ -303,11 +303,13 @@ describe('#12 V0: satisfiedBy.vue for accessibility, proved on a Vue + Vite app'
         .map(law => law.name)
         .sort()
     ).toEqual([
+      'Angular Security XSS Prevention Policy',
       'Disclosure Control ARIA State',
       'Explicit Button Type',
       'Form Control Labeling',
       'Modal Dialog Accessibility',
       'Observable Cleanup Requirements',
+      'Security Standards (XSS Prevention) Policy',
       'Web Storage Encapsulation',
     ]);
   });

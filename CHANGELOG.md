@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ Added — Vue guidance for the testing laws (#12)
+
+The two testing laws that judge a Vue project gain `satisfiedBy.vue`:
+
+- **Professional Component Testing Policy** (reads `.vue` components since
+  #694): give each `X.vue` a co-located `X.spec.ts`, or `__tests__/X.spec.ts`
+  beside it, with two tests that mount it (`@vue/test-utils` or
+  `@testing-library/vue`) and assert. Every non-test `.vue` counts, `App.vue`
+  and icon components included; a spec under `tests/unit/` is not paired.
+- **Performance Test Requirements:**
+  - a perf spec under `src/`, `tests/`, `test/` or `e2e/` (create-vue's
+    Playwright / Cypress directory) that drives a critical flow;
+  - `size-limit` or `vite-bundle-analyzer`, and `web-vitals` or
+    Lighthouse, in the root `package.json`.
+  It is declared not about components and needs no `.vue` file, like the
+  Content-Security-Policy law.
+
+The invariant test for the `vue` key now asks what the audit engine asks: a
+law declared `notAboutComponents` gets no ".vue not read" note. Each text was
+proved on a Vue 3 + Vite app, with the config a real audit reads, and with
+controls (`tests/unit/` specs, a spec that never mounts, tooling only in a
+workspace `package.json`) that fail where the text says.
+
 ### ✨ Added — Vue guidance for the i18n law (#12)
 
 Internationalization (i18n) Compliance Policy recognises vue-i18n and reads

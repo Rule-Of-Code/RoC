@@ -115,7 +115,7 @@ onto a stack. Measured against the shipped registry:
 | `typescript` | 96 | 2 `frontend` + 20 `typescript` + 74 universal |
 | `angular` | 67 | 58 `frontend` + 3 `typescript` + 6 universal |
 | `react` | 59 | 58 `frontend` + 1 `typescript` |
-| `vue` | 15 | 15 `frontend` |
+| `vue` | 17 | 17 `frontend` |
 | `python` | 83 | 37 `python` + 46 universal |
 | `ionic` | 24 | 24 `frontend` |
 | `capacitor` | 24 | 21 `frontend` + 3 universal |
@@ -168,11 +168,14 @@ Vue guidance (`satisfiedBy.vue`) is being written one category at a time
 - six FE architecture laws (Requires Spec, No Layout Transition, No Hostname Gating,
   Defensive Array Coercion, No Passthrough Cast, and Stores In Data Access, which reads
   a Pinia store in a `.vue` script or a `.ts` module);
-- the i18n law, which reads a `.vue` template for text not written through vue-i18n.
+- the i18n law, which reads a `.vue` template for text not written through vue-i18n;
+- the two testing laws: Professional Component Testing Policy, which reads `.vue`
+  components and their tests, and Performance Test Requirements.
 
 A key is written only for a law that judges a Vue project: one that reads its `.vue`
 files, or one that needs none of them (the Content-Security-Policy law, which reads
-`index.html`, the hosting headers or a named config).
+`index.html`, the hosting headers or a named config; Performance Test Requirements, which
+reads perf specs and the root `package.json`).
 A React or Vue project matches `stack: "frontend"`, so a law without its key still runs
 there — but the only remediation text it has is another framework's.
 

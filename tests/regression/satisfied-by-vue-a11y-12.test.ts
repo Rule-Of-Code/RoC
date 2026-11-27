@@ -314,6 +314,8 @@ describe('#12 V0: satisfiedBy.vue for accessibility, proved on a Vue + Vite app'
       'No Layout Transition',
       'No Passthrough Cast',
       'Observable Cleanup Requirements',
+      'Performance Test Requirements',
+      'Professional Component Testing Policy',
       'Requires Spec',
       'Security Standards (XSS Prevention) Policy',
       'Stores In Data Access',

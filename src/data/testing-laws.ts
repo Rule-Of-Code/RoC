@@ -187,6 +187,7 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
         'Give each *.component.ts a spec that configures TestBed, renders via ComponentFixture, and asserts on inputs/outputs or user interaction.',
       react:
         'Give each client component X.tsx a co-located X.test.tsx (or __tests__/X.test.tsx) with at least two tests that query by role (screen.getByRole) and assert on what the user sees. The module that mounts the app (Vite src/main.tsx) is not asked for one when it calls createRoot / hydrateRoot imported from react-dom/client or react-dom and exports no component; keep components out of it.',
+      vue: 'Give each .vue component X.vue a co-located X.spec.ts (or __tests__/X.spec.ts beside it, the layout create-vue generates) with at least two tests that mount it, with mount / shallowMount from @vue/test-utils or render from @testing-library/vue, and assert with expect. Every non-test .vue counts, App.vue and icon components included; a test elsewhere (tests/unit/) is not paired with its component.',
     },
     detectionLimits: [
       'Angular: components are *.component.ts or files with @Component (Angular 20 hero.ts) under src/, apps/, libs/; each is paired with <name>.spec.ts beside it — a spec elsewhere or under another name is not paired.',
@@ -347,6 +348,7 @@ export const TESTING_LAWS: EnhancedConstitutionalLaw[] = [
         'Add perf/load tests (k6/artillery), a bundle-size budget, and web-vitals (LCP/CLS/INP) tracking for critical flows.',
       react:
         'Add a perf spec (named *.perf.spec.ts or *.perf.test.ts, or any spec whose code compares a performance.now() or Date.now() duration with toBeLessThan) under src/, tests/, test/, e2e/ or an {apps,libs,packages}/**/src directory, exercising a critical flow (login, checkout, payment, or any flow an e2e spec drives with page.goto / cy.visit). Declare size-limit or @next/bundle-analyzer, and web-vitals or Lighthouse, in the ROOT package.json: a workspace package manifest is not read.',
+      vue: 'Add a perf spec (named *.perf.spec.ts or *.perf.test.ts, or any spec whose code compares a performance.now() or Date.now() duration with toBeLessThan) under src/, tests/, test/ or e2e/ (the Playwright or Cypress directory create-vue generates), exercising a critical flow (login, checkout, payment, or any flow an e2e spec drives with page.goto / cy.visit). Declare size-limit or vite-bundle-analyzer, and web-vitals or Lighthouse, in the ROOT package.json: a workspace package manifest is not read. The law reads these files, not .vue components.',
     },
     detectionLimits: [
       'Entirely presence-of-tooling by keyword — it measures no actual performance number.',

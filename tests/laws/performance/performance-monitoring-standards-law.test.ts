@@ -170,14 +170,13 @@ describe('PerformanceMonitoringStandardsLaw', () => {
       expect(violations).not.toContain('performance budget');
     });
 
-    it('should detect missing error tracking', async () => {
+    // #12 (b4): the check is performance tracing, and its violation says so.
+    it('should detect missing performance tracing', async () => {
       const result = await PerformanceMonitoringStandardsLaw.check(mockContext);
 
       expect(
-        result.violations?.some(
-          v =>
-            v.toLowerCase().includes('error') ||
-            v.toLowerCase().includes('tracking')
+        result.violations?.some(v =>
+          v.startsWith('Performance tracing not configured')
         )
       ).toBe(true);
     });

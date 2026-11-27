@@ -1,62 +1,31 @@
 import type { RuleOfCodeConfig } from '../../../../config/types';
-import { ProjectTypeDetectorValidation } from '../../../../utils/config/project-type-detector/project-type-detector-validation';
-import { FileUtils } from '../../../../utils/file-utils';
-import { PathOperations } from '../../../../utils/path-operations';
-import { ErrorTrackingConstants } from '../constants/error-tracking.constants';
+import { sentryTracingInits } from './performance-tracing';
 
 /**
- * Error Tracking Analyzer Service
+ * Error Tracking Analyzer Service — Performance Monitoring Standards'
+ * "performance tracing" check (#12, b4).
  *
- * Single Responsibility: Analyze error tracking configuration
+ * Until b4 it required a Sentry SDK in package.json and one of three fixed
+ * files containing the substring tracesSampleRate, performance or
+ * tracingOrigins. It now reads every source file for a Sentry SDK's init
+ * with a tracing option, from the syntax tree (see performance-tracing.ts).
+ * The method name is kept for its callers.
  */
 export class ErrorTrackingAnalyzerService {
   static async checkPerformanceErrorTracking(
     projectRoot: string,
-    config?: RuleOfCodeConfig
+    config?: RuleOfCodeConfig,
+    lawId?: string
   ): Promise<{
     configured: boolean;
+    files: string[];
+    unread: string[];
   }> {
-    try {
-      const packageJsonPath = PathOperations.join(projectRoot, 'package.json');
-      if (!FileUtils.exists(packageJsonPath)) {
-        return { configured: false };
-      }
-
-      const deps =
-        ProjectTypeDetectorValidation.getProjectDependencies(projectRoot);
-
-      if (
-        !ErrorTrackingConstants.ERROR_TRACKING_TOOLS.some(tool => deps[tool])
-      ) {
-        return { configured: false };
-      }
-
-      return await this.checkErrorTrackingConfiguration(projectRoot, config);
-    } catch {
-      return { configured: false };
-    }
-  }
-
-  private static async checkErrorTrackingConfiguration(
-    projectRoot: string,
-    config?: RuleOfCodeConfig
-  ): Promise<{
-    configured: boolean;
-  }> {
-    const configFilePaths =
-      await ErrorTrackingConstants.getErrorTrackingConfigFilePaths(
-        projectRoot,
-        config
-      );
-    for (const fullPath of configFilePaths) {
-      if (FileUtils.exists(fullPath)) {
-        const content = FileUtils.readFile(fullPath, { encoding: 'utf8' });
-        if (ErrorTrackingConstants.hasErrorTrackingConfig(content)) {
-          return { configured: true };
-        }
-      }
-    }
-
-    return { configured: false };
+    const tracing = sentryTracingInits(projectRoot, config, lawId);
+    return Promise.resolve({
+      configured: tracing.files.length > 0,
+      files: tracing.files,
+      unread: tracing.unread,
+    });
   }
 }

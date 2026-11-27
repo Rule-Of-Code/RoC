@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed — performance monitoring credit comes from what a project declares and initialises, not from words in its files (#12)
+
+**Backend APM** (`hasBackendPerformanceMonitoring`) was a word search: words
+such as `sentry`, `datadog` and `statsd` anywhere in package.json,
+pyproject.toml, the Makefile and other gate files, or in requirements.txt.
+A frontend with `@sentry/react`, or a script named `sentry:upload`, counted
+as a service with an APM. Its three users moved with it: Performance
+Monitoring Standards' monitoring-tools and tracing checks, and the
+Pre-Deployment checklist's performance clause. It now reads declared
+dependency **names**:
+- Python: every manifest the dependency reader knows (requirements,
+  pyproject, Pipfile, setup), PEP 503 names;
+- Node: package.json.
+
+Browser SDKs and Sentry build tooling do not count. A frontend earns its
+credit on its own path.
+
+**Performance Monitoring Standards, monitoring tools**: the list of
+packages takes the shared Sentry browser SDKs (it had `@sentry/browser`
+and `@sentry/angular` only).
+
+**Performance Monitoring Standards, performance tracing**: it required one
+of three fixed files (`src/app/app.module.ts`, `src/main.ts`,
+`sentry.config.js`) containing the substrings `tracesSampleRate`,
+`performance` or `tracingOrigins`. So an `@angular/fire/performance`
+import passed it, and the files Sentry's guides use were never read. It now
+reads, from the syntax tree, a Sentry SDK's `init` with `tracesSampleRate`,
+`tracesSampler`, `tracePropagationTargets` or `tracingOrigins`, in any
+non-test source file that mentions `@sentry/`. An init without a tracing
+option is error tracking, which Performance Monitoring Policy judges.
+
+**Changed violation text** (not an API; named here because a renderer or a
+grep may match it): Performance Monitoring Standards' "Performance error
+tracking not configured" is now "Performance tracing not configured: no
+Sentry.init with tracesSampleRate / tracesSampler / tracePropagationTargets,
+and no backend APM or tracing dependency". Performance Monitoring Policy's
+"Performance error tracking not configured" is unchanged.
+
 ### 🐛 Fixed — Vue error tracking: @sentry/vue and app.config.errorHandler count (#12)
 
 **Performance Monitoring Policy** did not credit a Vue app's error tracking:

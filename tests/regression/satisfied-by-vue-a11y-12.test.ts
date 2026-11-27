@@ -308,6 +308,7 @@ describe('#12 V0: satisfiedBy.vue for accessibility, proved on a Vue + Vite app'
       'Disclosure Control ARIA State',
       'Explicit Button Type',
       'Form Control Labeling',
+      'Internationalization (i18n) Compliance Policy',
       'Modal Dialog Accessibility',
       'No Hostname Gating',
       'No Layout Transition',

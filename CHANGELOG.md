@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ Added — Vue guidance for the i18n law (#12)
+
+Internationalization (i18n) Compliance Policy recognises vue-i18n and reads
+`.vue` templates (#693), so it gains `satisfiedBy.vue`. The text says:
+- declare `vue-i18n` in `package.json`;
+- keep user text in message files under a `locales/` directory
+  (`src/locales/en.json`);
+- render it through `{{ $t('…') }}`, a bound `:placeholder` / `:title` /
+  `:alt` / `:aria-label`, `v-t` or `<i18n-t>`.
+
+A Nuxt app with `@nuxtjs/i18n` declares `vue-i18n` too, because the module
+alone is not recognised (a limit the card already names).
+
+Proved on a Vue 3 + Vite app and a Nuxt 3 app, with the config a real audit
+reads:
+- the app the text describes passes with no ".vue not read" note;
+- without vue-i18n, message files and translated text it fails;
+- one static `title` still fails at its line;
+- Nuxt with `@nuxtjs/i18n` alone fails, and passes once `vue-i18n` is
+  declared.
+
 ### ✨ Added — Vue guidance for Stores In Data Access (#12)
 
 Now that the law recognises Pinia's `defineStore` and reads `.vue` files

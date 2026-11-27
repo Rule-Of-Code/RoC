@@ -288,6 +288,7 @@ export const DOCUMENTATION_LAWS: EnhancedConstitutionalLaw[] = [
         'Configure Angular i18n (angular.json i18n block or @angular/localize / @ngx-translate), keep translation files under src/locale or i18n, and mark template text with i18n= / $localize / | translate.',
       react:
         "Use an i18n library (next-intl or react-i18next) and keep user text in message files (messages/en.json, locales/, i18n/); render it through t('…') or <Trans>, not as JSX text or a literal placeholder/title/alt/aria-label.",
+      vue: "Declare vue-i18n in package.json (a Nuxt app with @nuxtjs/i18n declares vue-i18n too: the module alone is not recognised), keep user text in message files under a locales/, locale/, i18n/ or translations/ directory (src/locales/en.json), and render it in the template through {{ $t('…') }}, a bound :placeholder / :title / :alt / :aria-label=\"$t('…')\", v-t or <i18n-t>, not as text written in an element or a static placeholder/title/alt/aria-label.",
     },
     detectionLimits: [
       'Recognised setups: an Angular i18n block (angular.json or project.json), @angular/localize / @ngx-translate/core in the root package.json, or next-intl / react-i18next / vue-i18n in any workspace package.json. react-intl and Lingui are not recognised and fail the config check, and so does a Nuxt app whose package.json declares @nuxtjs/i18n but not vue-i18n.',

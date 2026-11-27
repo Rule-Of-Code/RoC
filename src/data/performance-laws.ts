@@ -74,11 +74,11 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
         'Enable optimization/tree-shaking in the build, lazy-load routes (loadChildren), and add a bundle analyzer (source-map-explorer / webpack-bundle-analyzer).',
       react:
         'Build with next build or vite build without turning minification off, run a bundle analyzer from a script (next experimental-analyze, @next/bundle-analyzer wired into next.config, source-map-explorer, size-limit), and load heavy libraries with next/dynamic or React.lazy.',
-      vue: 'Build with vite build without turning minification off in vite.config.*, and run a bundle check from a script (size-limit, source-map-explorer or a bundle analyzer). With a heavy library in package.json (lodash, moment, bootstrap, chart.js, d3), its lazy loading in a Vue app is not yet recognised: the law reports it as not lazy-loaded.',
+      vue: 'Build with vite build without turning minification off in vite.config.*, and run a bundle check from a script (size-limit, source-map-explorer or a bundle analyzer). With a heavy library in package.json, load code on demand with a dynamic import() in your sources, a .vue <script> included: a Vue Router lazy route or defineAsyncComponent(() => import(…)) counts, as React.lazy does on React.',
     },
     detectionLimits: [
       'Never measures actual bundle bytes despite the name: "optimization configured" is read from the build tool\'s config (Angular budgets/esbuild/"optimization", Next/Vite defaults unless minification is turned off, webpack production mode, a Rollup terser plugin), never from the output.',
-      'Lazy loading is credited project-wide (Angular loadChildren in a routing file; next/dynamic, React.lazy or import() in parsed React source) — it does not check that the heavy library itself is the deferred one, and heavy libraries are read from the root package.json only.',
+      'Lazy loading is credited project-wide (Angular loadChildren in a routing file; next/dynamic, React.lazy or import() in parsed React source; in a Vue workspace — vue or nuxt declared, neither react nor next — any dynamic import() in .ts/.js and .vue scripts, #12) — it does not check that the heavy library itself is the deferred one, and heavy libraries are read from the root package.json only.',
       'TS/JS — no Python path, so a backend gets false "no optimization / no bundle analysis" violations.',
     ],
     stack: 'frontend',

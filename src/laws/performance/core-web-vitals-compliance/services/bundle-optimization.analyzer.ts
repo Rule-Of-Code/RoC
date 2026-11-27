@@ -3,6 +3,7 @@ import { CheckerUtils } from '../../../../utils/checker-utils';
 import { FileUtils } from '../../../../utils/file-utils';
 import { NxWorkspace } from '../../../../utils/nx-workspace';
 import type { ReactPerformanceEvidence } from '../../../../utils/react/react-performance-source';
+import type { VueDynamicImportEvidence } from '../../../../utils/vue/vue-dynamic-imports';
 import {
   type BundlerReport,
   WebBundlerConfig,
@@ -22,7 +23,8 @@ export class BundleOptimizationAnalyzerService {
     projectRoot: string,
     config: RuleOfCodeConfig,
     react?: ReactPerformanceEvidence,
-    bundler?: BundlerReport
+    bundler?: BundlerReport,
+    vue?: VueDynamicImportEvidence
   ): BundleOptimizationResult {
     const optimizations: string[] = [];
 
@@ -37,6 +39,10 @@ export class BundleOptimizationAnalyzerService {
     }
     if (react && react.dynamicImports.length > 0) {
       optimizations.push(`Lazy-loaded code: ${react.dynamicImports[0]}`);
+    }
+    // Vue source, by the same rule (#12, (c)).
+    if (vue && vue.dynamicImports.length > 0) {
+      optimizations.push(`Lazy-loaded code: ${vue.dynamicImports[0]}`);
     }
 
     // Check for lazy loading

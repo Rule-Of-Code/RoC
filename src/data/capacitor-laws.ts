@@ -13,6 +13,10 @@ import type { EnhancedConstitutionalLaw } from '../types/enhanced-law.types';
 import { REQUIRES_CAPACITOR } from '../utils/capacitor/capacitor-law-support';
 import { generateLawId } from '../utils/id-generator';
 
+/** The three laws that read platform code scan .vue files too (#12). */
+const VUE_SCRIPT_ONLY =
+  'A Vue single-file component (.vue) is read by its <script> and <script setup> blocks, at its own lines; its <template> and <style> are not read by this law (#12).';
+
 /** The limits every law reading the resolved config shares. */
 const RESOLVED_ON_THIS_MACHINE =
   'Reads the config resolved by `cap config --json` on the auditing machine; a value computed from an environment variable is judged for this environment only.';
@@ -194,6 +198,7 @@ export const CAPACITOR_LAWS: EnhancedConstitutionalLaw[] = [
       'Import-line and call-site patterns; a re-export through a barrel inside the boundary and consumed outside is credited to the boundary, and a wrapper that merely renames the plugin API is not detected as leakage.',
       "Platform branching by other means (navigator.userAgent, window.innerWidth) is not this law's subject.",
       'Without thresholds.capacitor.boundary the boundary is inferred: green only when exactly one project directory (nearest project.json / package.json) imports Capacitor. A monorepo with one boundary per app should configure it; a root ESLint no-restricted-imports rule naming @capacitor is accepted as the same boundary stated in another tool.',
+      VUE_SCRIPT_ONLY,
     ],
     emoji: '🧱',
     description:
@@ -232,6 +237,7 @@ export const CAPACITOR_LAWS: EnhancedConstitutionalLaw[] = [
       'Table-driven (@capacitor/push-notifications 8.1.3, @capacitor/geolocation 8.2.4): only plugins with a row are checked, and each row cites the file it was read from at that version.',
       'Presence, not content: an empty usage string or a channel created with low importance passes.',
       'Reads the main source set and Info.plist by fixed path; a permission declared only in a flavour or debug manifest is not seen, and a platform not yet added is not judged.',
+      VUE_SCRIPT_ONLY,
     ],
     emoji: '📜',
     description:
@@ -270,6 +276,7 @@ export const CAPACITOR_LAWS: EnhancedConstitutionalLaw[] = [
       'Cannot see assetlinks.json / apple-app-site-association on the web host, nor whether the signing key they name is the one the build uses.',
       'Does not judge the route mapping inside the listener, nor compare hosts across the sides — a side is present or absent.',
       'Custom schemes (myapp://) are not https links and are not required to have an entitlement.',
+      VUE_SCRIPT_ONLY,
     ],
     emoji: '🔗',
     description:

@@ -80,6 +80,7 @@ export const ACCESSIBILITY_LAWS: EnhancedConstitutionalLaw[] = [
         'Give modal templates role="dialog" (or alertdialog), aria-modal="true" and cdkTrapFocus; or name your shared accessible dialog component in thresholds.accessibility.accessibleDialogComponents, and a template that uses it is compliant.',
       react:
         'Use a native <dialog> opened with showModal(), or a shared Modal that sets role="dialog", aria-modal="true", traps focus and returns it on close; name that component in thresholds.accessibility.accessibleDialogComponents and its focus-trap component in thresholds.accessibility.focusTrapTokens.',
+      vue: 'In the .vue template, give the dialog container role="dialog" (or alertdialog) and aria-modal="true", and wrap it in a focus trap named in thresholds.accessibility.focusTrapTokens as the template writes it (FocusTrap for focus-trap-vue); or name your shared accessible dialog component in thresholds.accessibility.accessibleDialogComponents. A .vue dialog is found by the classes fixed and inset-0 in a static class attribute.',
       ionic:
         'Use ion-modal / ModalController; it provides role="dialog", aria-modal and a focus trap. Do not set focusTrap to false without a replacement.',
     },
@@ -129,6 +130,7 @@ export const ACCESSIBILITY_LAWS: EnhancedConstitutionalLaw[] = [
         'Give every input/select/textarea an id tied to a <label for>, a wrapping <label>, or an aria-label / aria-labelledby; hidden and button-type inputs are exempt.',
       react:
         'Every control has a <label htmlFor> matching its id, a wrapping <label>, or an aria-label / aria-labelledby.',
+      vue: 'Give every input/select/textarea in the template an id (or :id) tied to a <label for>, a wrapping <label>, or an aria-label / aria-labelledby (static or bound with :); v-model and placeholder do not name it, and hidden and button-type inputs are exempt.',
       ionic:
         'Give every ion-input / ion-select / ion-textarea / ion-range a label (property or slot="label") or aria-label; give ion-checkbox / ion-toggle / ion-radio visible slot text.',
     },
@@ -178,6 +180,7 @@ export const ACCESSIBILITY_LAWS: EnhancedConstitutionalLaw[] = [
       angular:
         'Set type="button" (or submit/reset), or bind [type] / [attr.type], on every button element.',
       react: 'Give every <button> an explicit type.',
+      vue: 'Set type="button" (or submit/reset), or bind :type, on every <button> in the template.',
       ionic:
         'ion-button defaults to type="button"; set type="submit" on the one that submits.',
     },
@@ -224,6 +227,7 @@ export const ACCESSIBILITY_LAWS: EnhancedConstitutionalLaw[] = [
         'Add aria-expanded (static or [attr.aria-expanded]) to buttons whose click handler toggles, expands or collapses a region.',
       react:
         'Bind aria-expanded to the open state on toggle buttons (aria-expanded={open}).',
+      vue: 'Bind :aria-expanded="open" on buttons whose @click toggles, expands or collapses a region; a toggle button with aria-pressed needs none.',
       ionic:
         'Use ion-accordion, which manages aria-expanded itself, or a native <button [attr.aria-expanded]> for the toggle: ion-button copies aria-expanded to its inner button only once, at load, and ion-item not at all.',
     },

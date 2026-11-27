@@ -27,7 +27,7 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
       angular:
         'Add a Lighthouse config with a >=90 threshold, angular.json/webpack budgets, web-vitals tracking, lazy-loading and image optimization.',
       react:
-        'Run Lighthouse from a script or CI step with a performance threshold, declare one enforced budget (Lighthouse assertions or a size-limit check that a script runs), report Web Vitals with useReportWebVitals or web-vitals, and render images with next/image. A Next build already optimizes and caches hashed assets unless next.config turns that off.',
+        'Run Lighthouse from a script or CI step with a performance threshold, declare one enforced budget (Lighthouse assertions or a size-limit check that a script runs), report Web Vitals with useReportWebVitals or web-vitals, and render images with next/image. A Next build already optimizes and caches hashed assets unless next.config turns that off. On Vite, declare an image tool (sharp, imagemin or squoosh — sharp for vite-plugin-image-optimizer, say) and serve the hashed assets with Cache-Control (firebase.json hosting headers or nginx.conf) or register a service worker (public/sw.js).',
       capacitor:
         'No service worker is needed for caching in the shell; if the web build registers one, disable it on native or handle SwUpdate (#268).',
     },
@@ -111,11 +111,11 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
       angular:
         'Set performance budgets, lazy-load, add a service worker / caching, image optimization and resource hints (preload/preconnect) in index.html; track web-vitals.',
       react:
-        'Run Lighthouse from a script or CI step, declare an enforced budget (Lighthouse assertions or a size-limit check that a script runs), render images with next/image or loading="lazy", and preload fonts with next/font or a <link rel="preconnect"> in the root layout. Next serves hashed assets with immutable caching unless next.config sets output: "export".',
+        'Run Lighthouse from a script or CI step, declare an enforced budget (Lighthouse assertions or a size-limit check that a script runs), render images with next/image or loading="lazy", and preload fonts with next/font or a <link rel="preconnect"> in the root layout (index.html on Vite). Next serves hashed assets with immutable caching unless next.config sets output: "export"; on Vite, serve them with Cache-Control (firebase.json hosting headers or nginx.conf) or register a service worker (public/sw.js).',
     },
     detectionLimits: [
       'Measures NO actual Core Web Vitals despite the name — configuration and source evidence only, and Lighthouse is wiring-only here (no threshold read).',
-      'Resource hints: a raw string search of index.html (source and built) on Angular; on React, parsed <link rel> elements, next/font loader calls and react-dom preload/preconnect calls — a hint a library emits at run time is not seen.',
+      'Resource hints: a raw string search of index.html (src/index.html, the project-root index.html of a Vite app, and built ones) on Angular and Vite; on React, parsed <link rel> elements, next/font loader calls and react-dom preload/preconnect calls — a hint a library emits at run time is not seen.',
       'Next caching is credited to Next\'s own immutable /_next/static headers unless next.config sets output: "export"; a proxy or host in front of `next start` is not read.',
       'No Python path, so a backend fails all six sub-checks.',
       'A Vue single-file component (.vue) counts for lazy loading: loading="lazy" is read in its <template>, an IntersectionObserver in its <script> (#607).',
@@ -151,7 +151,7 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
       angular:
         'Code-split with lazy routes and dynamic import(), enable tree-shaking (ESM, optimization), and configure vendor / critical-css chunking in angular.json.',
       react:
-        "Build with next build (route splitting, minification, tree-shaking and chunking are Next's own), enable experimental.optimizeCss (with critters) for critical CSS, split heavy client code with next/dynamic or React.lazy, and check it with an analyzer (next experimental-analyze, @next/bundle-analyzer, size-limit). On Vite, declare manualChunks / codeSplitting groups.",
+        "Build with next build (route splitting, minification, tree-shaking and chunking are Next's own), enable experimental.optimizeCss (with critters) for critical CSS, split heavy client code with next/dynamic or React.lazy, and check it with an analyzer (next experimental-analyze, @next/bundle-analyzer, size-limit). On Vite, declare manualChunks / codeSplitting groups and a critical-CSS tool (critters, critical or penthouse) as a dependency.",
     },
     detectionLimits: [
       'All configuration reads (angular.json / project.json / package.json / next.config / vite.config) — it measures no bundle.',
@@ -191,11 +191,11 @@ export const PERFORMANCE_LAWS: EnhancedConstitutionalLaw[] = [
       angular:
         'Wire RUM (or analytics), error tracking, performance alerts, a dashboard, and web-vitals reporting from production.',
       react:
-        'Report Web Vitals with useReportWebVitals (or web-vitals) and errors with @sentry/nextjs or @sentry/react from the root layout or instrumentation*.ts; declare a size-limit or Lighthouse budget, an alert definition and a dashboard.',
+        'Report Web Vitals with useReportWebVitals (or web-vitals) and errors with @sentry/nextjs or @sentry/react from the root layout or instrumentation*.ts (main.tsx on Vite); declare a size-limit or Lighthouse budget, an alert (Lighthouse CI assertions, or a CI workflow that runs the performance check and notifies) and a dashboard file at the project root: dashboard.json, grafana.json, kibana.json, newrelic-dashboard.json, or the Lighthouse CI config named .lighthouserc.json / .lighthouserc.js.',
     },
     detectionLimits: [
       'Dependency / config / file presence only — no proof monitoring actually reports; a Google Analytics snippet is detected by an index.html substring. Web Vitals monitoring (and the field-metrics part of RUM) is a measurement in the production sources: a web-vitals call (v3 or v4), useReportWebVitals, or a PerformanceObserver of the project on the entry types the vitals are made of; a declared web-vitals that nothing calls does not count. On React/Next an error-tracking SDK import anywhere in the source counts as error tracking.',
-      'Alerting and dashboards are keyword / file-presence checks on every stack (newrelic.js, datadog.json, .lighthouserc.js containing "alert", "notification" or "webhook"; grafana.json and similar).',
+      'Alerting and dashboards are keyword / file-presence checks on every stack. An alert is newrelic.js or datadog.json containing "alert", "notification" or "webhook", a Lighthouse CI config (lighthouserc.* or .lighthouserc.*) with assertions, or a .github/workflows file that runs a performance check and notifies. A dashboard is dashboard.json, grafana.json, kibana.json or newrelic-dashboard.json at the project root, or .lighthouserc.json / .lighthouserc.js — a lighthouserc.json without the leading dot counts as an alert, not as a dashboard.',
       'Browser-oriented with NO backend/Python path (unlike Performance Monitoring Standards) — a backend fails most checks.',
       'Conceptually overlaps Performance Monitoring Standards but is a separate, less capable detector.',
       'Error tracking also counts an own error handler in the production sources, read with the TypeScript parser: an Angular ErrorHandler provider wherever it is registered (or a provide…ErrorHandler() helper), window.onerror, or a window / process error listener. It shows that errors are captured, not that they are sent anywhere.',

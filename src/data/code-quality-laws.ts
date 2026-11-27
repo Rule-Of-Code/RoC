@@ -109,9 +109,10 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
         'Clean up subscriptions with takeUntilDestroyed / DestroyRef, the async pipe, take(1), or unsubscribe in ngOnDestroy.',
       react:
         'Return the cleanup from the effect that subscribes: const sub = source$.subscribe(…); return () => sub.unsubscribe(); — or take(1) for a one-shot value. Keep the subscription and its cleanup in the same .ts/.tsx file: the detector looks for them per file.',
+      vue: 'Clean up each subscription where it is made: const sub = source$.subscribe(…) in <script setup>, then onUnmounted(() => sub.unsubscribe()); in a composable, onScopeDispose(() => sub.unsubscribe()); or take(1) for a one-shot value. Keep the subscription and its cleanup in the same .vue or .ts file: the detector looks for them per file, and in a .vue file it reads the script only.',
     },
     detectionLimits: [
-      'Reads .ts and .tsx files only — a subscription in a .jsx or plain .js file is not seen. A React module that imports react and not rxjs is skipped: its .subscribe( is a store API (useSyncExternalStore), not an RxJS Observable.',
+      'Reads .ts and .tsx files, and a .vue file by its script (see below) — a subscription in a .jsx or plain .js file is not seen. A React module that imports react and not rxjs is skipped: its .subscribe( is a store API (useSyncExternalStore), not an RxJS Observable.',
       'Whole-file, lenient exemption: ANY occurrence of the substring `async` (an async function anywhere) marks the whole file as cleaned up — a large false negative.',
       'A single uncleaned subscription in a component can trigger three near-duplicate violations (three overlapping checks).',
       'Regex, no AST; matches in comments/strings; no Python.',
@@ -610,6 +611,7 @@ export const CODE_QUALITY_LAWS: EnhancedConstitutionalLaw[] = [
         'Access localStorage/sessionStorage only through a service (*.service.ts); wrap reads/writes in a typed API.',
       react:
         'Put every web-storage call in one small module named *.service.ts (a plain TS module; that suffix is the only place this detector exempts) and read it through a hook. Guard it for server rendering and for blocked storage.',
+      vue: 'Put every localStorage/sessionStorage call in one module named *.service.ts (a plain TS module; that suffix is the only file this detector exempts, so the same calls in a composable or a Pinia store file are still flagged) and call that module from components and composables. In a .vue file only the <script> / <script setup> is read. Guard it for server rendering (Nuxt) and for blocked storage.',
       capacitor:
         'Wrap storage in a service and, on native, back durable keys with @capacitor/preferences; declare WebView-only keys as disposable (#269).',
     },

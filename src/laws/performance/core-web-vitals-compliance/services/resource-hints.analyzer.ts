@@ -12,7 +12,7 @@ const MAX_BUILT_DOCUMENTS = 20;
 
 /**
  * Finds resource hints (preload, prefetch, dns-prefetch, preconnect) in
- * src/index.html, in built index.html files (`dist/` and every declared
+ * src/index.html or the project-root index.html (Vite), in built index.html files (`dist/` and every declared
  * `outputPath`, at most 20), and in React/Next source (JSX `<link>`,
  * next/font, react-dom preload calls).
  */
@@ -58,13 +58,18 @@ export class ResourceHintsAnalyzerService {
     return { hasHints: hints.size > 0, hints: [...hints] };
   }
 
-  /** The source index.html, plus any built one the project has produced. */
+  /**
+   * The source index.html — src/index.html (Angular, Nx) or the project-root
+   * index.html a Vite app is built from (#12) — plus any built one.
+   */
   private static indexDocuments(projectRoot: string): string[] {
     const documents: string[] = [];
 
-    const sourceIndex = FileDiscovery.getIndexHtmlPath(projectRoot);
-    if (FileUtils.exists(sourceIndex)) {
-      documents.push(sourceIndex);
+    for (const sourceIndex of [
+      FileDiscovery.getIndexHtmlPath(projectRoot),
+      PathOperations.join(projectRoot, 'index.html'),
+    ]) {
+      if (FileUtils.exists(sourceIndex)) documents.push(sourceIndex);
     }
 
     documents.push(...this.builtIndexDocuments(projectRoot));

@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ Added — Vue guidance for the performance laws (#12)
+
+Seven performance laws judge a Vue project and gain `satisfiedBy.vue`:
+- five read `.vue` files: Memory Leak Prevention (#695), Performance
+  Standards, Core Web Vitals Compliance, Bundle Optimization Strategy Policy
+  and Performance Monitoring Policy;
+- two judge the build and its gates and need no `.vue` file: Bundle Size
+  Optimization and Performance Budget Compliance.
+
+The texts say what each law recognises on Vite: an unchanged `vite.config.*`
+minification, a size-limit or Lighthouse budget a script and a CI step run,
+web-vitals called in `src/main.ts`, resource hints in the root `index.html`,
+`loading="lazy"` in the template, and Cache-Control headers or a service
+worker.
+
+Two limits are stated, not worked around:
+- a Vue Router lazy route `() => import()` and `defineAsyncComponent` are not
+  yet credited as code splitting;
+- `@sentry/vue` and `app.config.errorHandler` are not yet credited as error
+  tracking.
+
+Proved on a Vue 3 + Vite app with the config a real audit reads:
+- the default create-vue app fails;
+- the app the texts describe passes all seven with no ".vue not read" note;
+- both limits hold on that app with its idiomatic router;
+- a view that never releases its timer and listener fails Memory Leak
+  Prevention.
+
 ### ✨ Added — Vue guidance for the testing laws (#12)
 
 The two testing laws that judge a Vue project gain `satisfiedBy.vue`:

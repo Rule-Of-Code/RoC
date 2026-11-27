@@ -22,6 +22,8 @@ const SDKS = [
   '@sentry/nextjs',
   '@sentry/react',
   '@sentry/vue',
+  '@sentry/nuxt',
+  '@sentry/capacitor',
 ];
 
 describe('#12 (b): one source for the Sentry browser SDKs', () => {
@@ -52,7 +54,7 @@ describe('#12 (b): one source for the Sentry browser SDKs', () => {
     expect(
       Object.entries(MonitoringToolsConstants.MONITORING_TOOL_PACKAGES).slice(
         0,
-        6
+        8
       )
     ).toEqual([
       ['@sentry/browser', 'Sentry'],
@@ -60,6 +62,8 @@ describe('#12 (b): one source for the Sentry browser SDKs', () => {
       ['@sentry/nextjs', 'Sentry Next.js'],
       ['@sentry/react', 'Sentry React'],
       ['@sentry/vue', 'Sentry Vue'],
+      ['@sentry/nuxt', 'Sentry Nuxt'],
+      ['@sentry/capacitor', 'Sentry Capacitor'],
       ['@datadog/browser-rum', 'Datadog RUM'],
     ]);
   });

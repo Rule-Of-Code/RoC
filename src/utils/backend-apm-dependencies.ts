@@ -46,10 +46,18 @@ const PYTHON_APM_PREFIX = 'opentelemetry-';
  *   ("New Relic agent"), elastic-apm-node ("The official Elastic APM agent for
  *   Node.js"), @opentelemetry/sdk-node ("OpenTelemetry SDK for Node.js"),
  *   @opentelemetry/auto-instrumentations-node ("Metapackage which bundles
- *   opentelemetry node core and contrib instrumentations").
+ *   opentelemetry node core and contrib instrumentations"),
+ *   @opentelemetry/sdk-trace-node ("OpenTelemetry Node SDK provides automatic
+ *   telemetry (tracing, metrics, etc) for Node.js applications" — a manual
+ *   OpenTelemetry setup), and the StatsD clients node-statsd ("node client
+ *   for Etsy'd StatsD server"), hot-shots ("Node.js client for StatsD,
+ *   DogStatsD, and Telegraf") and statsd-client ("Yet another client for
+ *   Etsy's statsd").
  *
- * Not listed: @opentelemetry/api ("Public API for OpenTelemetry"), which a
- * browser app uses as well.
+ * Not listed, because a browser app uses them as well: @opentelemetry/api
+ * ("Public API for OpenTelemetry"), @opentelemetry/sdk-trace-base
+ * ("OpenTelemetry Tracing", which @opentelemetry/sdk-trace-web builds on) and
+ * @opentelemetry/sdk-metrics ("OpenTelemetry metrics SDK").
  */
 export const NODE_APM_PACKAGES: readonly string[] = [
   '@sentry/node',
@@ -64,6 +72,10 @@ export const NODE_APM_PACKAGES: readonly string[] = [
   'elastic-apm-node',
   '@opentelemetry/sdk-node',
   '@opentelemetry/auto-instrumentations-node',
+  '@opentelemetry/sdk-trace-node',
+  'node-statsd',
+  'hot-shots',
+  'statsd-client',
 ];
 
 function isPythonApm(name: string): boolean {

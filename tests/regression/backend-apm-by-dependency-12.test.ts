@@ -80,6 +80,31 @@ describe('#12 (b4): backend APM is a declared dependency', () => {
       },
       ['@sentry/aws-serverless', '@sentry/bun', '@sentry/nestjs'],
     ],
+    [
+      'Node: a manual OpenTelemetry setup, sdk-trace-node with an OTLP exporter (QA on #704)',
+      {
+        'package.json': manifest({
+          dependencies: {
+            '@opentelemetry/sdk-trace-node': '^1.29.0',
+            '@opentelemetry/exporter-trace-otlp-http': '^0.56.0',
+          },
+        }),
+      },
+      ['@opentelemetry/sdk-trace-node'],
+    ],
+    [
+      'Node: the StatsD clients hot-shots, node-statsd and statsd-client (QA on #704)',
+      {
+        'package.json': manifest({
+          dependencies: {
+            'hot-shots': '^10.2.1',
+            'node-statsd': '^0.1.1',
+            'statsd-client': '^0.4.7',
+          },
+        }),
+      },
+      ['hot-shots', 'node-statsd', 'statsd-client'],
+    ],
   ])('%s → credited', (_name, files, expected) => {
     const root = project(files as Record<string, string>);
     expect(backendApmDependencies(root)).toEqual(expected);
@@ -118,6 +143,17 @@ describe('#12 (b4): backend APM is a declared dependency', () => {
       {
         'package.json': manifest({
           dependencies: { '@opentelemetry/api': '^1.9.0' },
+        }),
+      },
+    ],
+    [
+      'OpenTelemetry tracing base and metrics SDKs alone (a browser app uses them too)',
+      {
+        'package.json': manifest({
+          dependencies: {
+            '@opentelemetry/sdk-trace-base': '^1.29.0',
+            '@opentelemetry/sdk-metrics': '^1.29.0',
+          },
         }),
       },
     ],

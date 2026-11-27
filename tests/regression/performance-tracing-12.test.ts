@@ -99,6 +99,27 @@ describe('#12 (b4): performance tracing is a Sentry init with a tracing option',
       init('@sentry/bun', 'tracesSampleRate: 1.0'),
     ],
     [
+      'Nuxt: sentry.client.config.ts (Sentry Nuxt guide; QA on #704)',
+      { nuxt: '^3.15.0', '@sentry/nuxt': '^8.47.0' },
+      'sentry.client.config.ts',
+      init('@sentry/nuxt', 'tracesSampleRate: 1.0'),
+    ],
+    [
+      'Capacitor: Sentry.init with the framework init as the second argument (Sentry Capacitor guide; QA on #704)',
+      {
+        '@angular/core': '^20.0.0',
+        '@capacitor/core': '^6.2.0',
+        '@sentry/capacitor': '^1.2.0',
+        '@sentry/angular': '^8.47.0',
+      },
+      'src/main.ts',
+      [
+        "import * as Sentry from '@sentry/capacitor';",
+        "import * as SentryAngular from '@sentry/angular';",
+        "Sentry.init({ dsn: 'https://key@o0.ingest.sentry.io/0', tracesSampleRate: 1.0 }, SentryAngular.init);",
+      ].join('\n'),
+    ],
+    [
       'Datadog RUM: datadogRum.init with allowedTracingUrls (Datadog "connect RUM and traces")',
       { vue: '^3.5.13', '@datadog/browser-rum': '^5.35.0' },
       'src/main.ts',
@@ -142,8 +163,12 @@ describe('#12 (b4): performance tracing is a Sentry init with a tracing option',
       "import { datadogRum } from '@datadog/browser-rum';\ndatadogRum.init({ applicationId: 'a', clientToken: 'c', sessionSampleRate: 80 });",
     ],
     [
-      'a Sentry SDK that is not server-side and not in the browser list (@sentry/nuxt)',
+      '@sentry/nuxt init without a tracing option (error tracking only)',
       "import * as Sentry from '@sentry/nuxt';\nSentry.init({ dsn: 'x' });",
+    ],
+    [
+      'a Sentry SDK for a stack RoC has no laws for (@sentry/react-native), with a tracing option',
+      "import * as Sentry from '@sentry/react-native';\nSentry.init({ dsn: 'x', tracesSampleRate: 1.0 });",
     ],
   ])('decoy: %s → not traced', (_name, code) => {
     expect(
@@ -224,5 +249,47 @@ describe('#12 (b4): the law says what it asks, and names what it could not read'
       'No performance monitoring tools configured'
     );
     expect(violations.join('\n')).not.toMatch(new RegExp(TRACING));
+  });
+
+  // QA on #704: @sentry/nuxt and @sentry/capacitor were outside the shared
+  // list, so their tracing init was not read and both apps lost tracing.
+  it.each([
+    [
+      'Nuxt',
+      { nuxt: '^3.15.0', '@sentry/nuxt': '^8.47.0' },
+      'sentry.client.config.ts',
+      init('@sentry/nuxt', 'tracesSampleRate: 1.0'),
+    ],
+    [
+      'Capacitor',
+      {
+        '@angular/core': '^20.0.0',
+        '@capacitor/core': '^6.2.0',
+        '@sentry/capacitor': '^1.2.0',
+        '@sentry/angular': '^8.47.0',
+      },
+      'src/main.ts',
+      "import * as Sentry from '@sentry/capacitor';\nimport * as SentryAngular from '@sentry/angular';\nSentry.init({ dsn: 'x', tracesSampleRate: 1.0 }, SentryAngular.init);",
+    ],
+  ])(
+    '%s with a tracing init: monitoring tools and tracing are credited',
+    async (_name, deps, file, code) => {
+      const violations = await standards({
+        'package.json': manifest(deps),
+        [file]: code,
+      });
+      expect(violations).not.toContain(
+        'No performance monitoring tools configured'
+      );
+      expect(violations.join('\n')).not.toMatch(new RegExp(TRACING));
+    }
+  );
+
+  it('decoy: Nuxt with @sentry/nuxt and no tracing option → tracing not configured', async () => {
+    const violations = await standards({
+      'package.json': manifest({ nuxt: '^3.15.0', '@sentry/nuxt': '^8.47.0' }),
+      'sentry.client.config.ts': init('@sentry/nuxt', 'environment: "prod"'),
+    });
+    expect(violations.join('\n')).toMatch(new RegExp(TRACING));
   });
 });

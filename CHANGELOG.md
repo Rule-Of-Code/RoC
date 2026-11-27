@@ -23,11 +23,19 @@ dependency **names**:
   - Sentry's server SDKs (`@sentry/node`, `bun`, `deno`, `aws-serverless`,
     `google-cloud-serverless`, `nestjs`);
   - `dd-trace`, `prom-client`, `newrelic` and `elastic-apm-node`;
-  - `@opentelemetry/sdk-node` and `@opentelemetry/auto-instrumentations-node`.
+  - `@opentelemetry/sdk-node`, `@opentelemetry/auto-instrumentations-node`
+    and `@opentelemetry/sdk-trace-node` (a manual OpenTelemetry setup);
+  - the StatsD clients `node-statsd`, `hot-shots` and `statsd-client`.
 
 Any other package gives no backend credit: a browser, mobile or
-meta-framework SDK, `@sentry/types`, build tooling, `@opentelemetry/api`. A
-frontend earns its credit on its own path.
+meta-framework SDK, `@sentry/types`, build tooling, `@opentelemetry/api`,
+`@opentelemetry/sdk-trace-base` and `@opentelemetry/sdk-metrics` (a browser
+app uses those too). A frontend earns its credit on its own path.
+
+**Shared Sentry SDK list**: `@sentry/nuxt` and `@sentry/capacitor` join it.
+Performance Monitoring Policy (error tracking), Performance Budget
+Compliance (production monitoring) and Performance Monitoring Standards
+(monitoring tools, and the tracing init) now recognise them.
 
 **Performance Monitoring Standards, monitoring tools**: the list of
 packages takes the shared Sentry browser SDKs (it had `@sentry/browser`

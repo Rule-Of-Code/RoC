@@ -7,6 +7,8 @@ const SENTRY_LABELS: Record<string, string> = {
   '@sentry/nextjs': 'Sentry Next.js',
   '@sentry/react': 'Sentry React',
   '@sentry/vue': 'Sentry Vue',
+  '@sentry/nuxt': 'Sentry Nuxt',
+  '@sentry/capacitor': 'Sentry Capacitor',
 };
 
 /**

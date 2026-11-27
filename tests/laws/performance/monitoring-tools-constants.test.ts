@@ -79,11 +79,11 @@ describe('MonitoringToolsConstants', () => {
       ).toBe('Google Analytics 4');
     });
 
-    // The five Sentry browser SDKs from the shared list and Datadog RUM (#12), then eight more.
-    it('should have 14 packages', () => {
+    // The seven Sentry SDKs from the shared list and Datadog RUM (#12), then eight more.
+    it('should have 16 packages', () => {
       expect(
         Object.keys(MonitoringToolsConstants.MONITORING_TOOL_PACKAGES).length
-      ).toBe(14);
+      ).toBe(16);
     });
   });
 

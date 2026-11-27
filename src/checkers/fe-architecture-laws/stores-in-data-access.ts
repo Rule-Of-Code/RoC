@@ -8,15 +8,18 @@
  * `signalStore()` / `createFeature()` / `createReducer()` call in code
  * (comments and strings stripped), or a call to Redux Toolkit's `createSlice`
  * or zustand's `create`, resolved through the file's imports — `create(` alone
- * is far too common a name to mean a store.
+ * is far too common a name to mean a store. Pinia's `defineStore` is read the
+ * same way, and a Vue single-file component (.vue) is read by its script
+ * (#12).
  */
 
 import { CodeText } from '../../utils/code-text';
 import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 import { ReactProject } from '../../utils/react/react-project';
+import { scriptText } from '../../utils/vue/vue-sfc';
 import type { LawCheckContext, LawResult } from '../../types/law.types';
-import { FeArchLawBase } from './fe-arch-law-base';
+import { FeArchLawBase, TS_SOURCE_EXTENSIONS } from './fe-arch-law-base';
 
 /** Library store factories, resolved through the file's imports. */
 const LIBRARY_STORES: Array<{
@@ -30,7 +33,11 @@ const LIBRARY_STORES: Array<{
     label: 'createSlice (Redux Toolkit)',
   },
   { module: 'zustand', imported: 'create', label: 'create (zustand)' },
+  { module: 'pinia', imported: 'defineStore', label: 'defineStore (Pinia)' },
 ];
+
+/** The files this law reads: TS/JSX sources and Vue single-file components (#12). */
+const STORE_SOURCE_EXTENSIONS = [...TS_SOURCE_EXTENSIONS, '.vue'];
 
 export class StoresInDataAccessLaw extends FeArchLawBase {
   private static readonly LAW_NAME = 'Stores In Data Access';
@@ -39,15 +46,17 @@ export class StoresInDataAccessLaw extends FeArchLawBase {
 
   static check(context: LawCheckContext): LawResult {
     const { projectRoot } = context;
-    const featureFiles = this.sourceFiles(context).filter(file =>
-      this.inLayer(context, file, 'feature')
-    );
+    const featureFiles = this.sourceFiles(
+      context,
+      STORE_SOURCE_EXTENSIONS
+    ).filter(file => this.inLayer(context, file, 'feature'));
     const violations: string[] =
       featureFiles.length === 0 ? [this.emptyLayer(context, ['feature'])] : [];
     const libraryCandidates: string[] = [];
 
     for (const file of featureFiles) {
-      const raw = FileUtils.readFile(file) ?? '';
+      // A .vue file's script only: its template is not code (#12).
+      const raw = scriptText(file, FileUtils.readFile(file) ?? '');
       if (this.STATE_CALL.test(CodeText.stripCommentsAndStrings(raw))) {
         violations.push(this.misplaced(projectRoot, file, null, 'state store'));
       } else if (LIBRARY_STORES.some(store => raw.includes(store.module))) {

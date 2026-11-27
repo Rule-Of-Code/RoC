@@ -215,6 +215,12 @@ export interface SatisfiedByGuidance {
   angular?: string;
   /** React and the frameworks on it (Next.js); keyed by project type, not by stack. */
   react?: string;
+  /**
+   * Vue single-file components (.vue), keyed by project type like `react`
+   * (#12). Written only for a law that reads .vue files: a law whose .vue
+   * note stays carries none.
+   */
+  vue?: string;
   python?: string;
   ionic?: string;
   capacitor?: string;

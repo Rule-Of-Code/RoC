@@ -119,12 +119,13 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
     },
     detectionLimits: [
       'Only checks the feature layer — a store misplaced in ui/, util/, shared/ or core/ is never caught.',
-      "Detection is by CONTENT — a signalStore(/createFeature(/createReducer( call in code (comments and strings stripped), or a call to createSlice imported from @reduxjs/toolkit or create imported from zustand (resolved through the imports with the project's TypeScript). Other store libraries (Jotai, MobX, Valtio, React context stores) are not recognised.",
+      "Detection is by CONTENT — a signalStore(/createFeature(/createReducer( call in code (comments and strings stripped), or a call to createSlice imported from @reduxjs/toolkit, create imported from zustand or defineStore imported from pinia (resolved through the imports with the project's TypeScript). Other store libraries (Jotai, MobX, Valtio, React context stores, Vuex) are not recognised.",
+      'A Vue single-file component (.vue) in the feature layer is read by its <script> and <script setup>, at its own lines, so template text is not code. Like the other layer laws it reads .ts, .tsx, .jsx and .vue, not .js: a Pinia store in a JavaScript file is not seen (#12).',
       LAYER_IS_CONFIGURABLE,
     ],
     emoji: '🗄️',
     description:
-      'State stores (signalStore / createFeature / createSlice / zustand create) live in data-access, not in the feature layer',
+      'State stores (signalStore / createFeature / createSlice / zustand create / Pinia defineStore) live in data-access, not in the feature layer',
     priority: 'HIGH',
     category: 'FRAMEWORK',
     stack: 'frontend',
@@ -155,6 +156,7 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
         'Add a co-located *.spec.ts for money-adjacent (*actions*) services and any feature/data-access file over the LOC threshold.',
       react:
         'A .tsx/.jsx file in the feature or data-access layer over 200 lines (thresholds.angular.specRequiredMinLoc — the key sits under angular and applies to React too), or one that writes an X-Control-Pass header, has a co-located test with the same base name: Basket.tsx next to Basket.test.tsx or Basket.spec.tsx. A test under __tests__/ is not credited.',
+      vue: 'A .vue file in the feature or data-access layer (a /feature*/ or /data-access/ directory, or where thresholds.frontend.featureLayers / dataAccessLayers say they live) that is over 200 lines counted over the whole file, template, script and style (thresholds.angular.specRequiredMinLoc), or whose script writes an X-Control-Pass header, has a co-located test with the same base name beside it: Basket.vue next to Basket.spec.ts or Basket.test.ts. A test in the __tests__/ folder create-vue generates is not credited.',
     },
     detectionLimits: [
       'Checks that a test FILE exists next to the source (same base name, .spec/.test infix, any TS/JS extension), not its content — an empty one satisfies it; a test under __tests__/ or elsewhere is not credited.',
@@ -196,6 +198,7 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
         'Animate transform and opacity, not layout properties; never transition width/height/top/left/margin/padding.',
       react:
         'Animate transform and opacity, not layout properties, in your .css/.scss (CSS Modules included).',
+      vue: "Animate transform and opacity, not layout properties, in the component's <style> (scoped or not) and in .css/.scss files, the classes a <Transition> uses (.v-enter-active …) included. A transition in a :style binding or an inline style attribute is not read.",
     },
     detectionLimits: [
       'Regex over .scss/.css text, no AST — `transition: all` is NOT flagged (it animates layout props but names no layout keyword), and a transition inside a CSS comment is a false positive.',
@@ -235,6 +238,7 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
         'Branch on injected configuration / environment, never on location.hostname. Reading the hostname is fine; comparing it to decide behaviour is not.',
       react:
         'Branch on injected configuration (an env value read at build time), not on location.hostname.',
+      vue: 'Branch on a build-time env value (import.meta.env.DEV, import.meta.env.MODE or a VITE_* variable), not on location.hostname, in a .vue script as in a .ts module. Reading the hostname is fine; comparing it to decide behaviour is not.',
     },
     detectionLimits: [
       'Literal-token, single-line match on .ts/.tsx/.js/.jsx/.mjs — aliasing defeats it: `const h = location.hostname; if (h === "demo")` is not flagged.',
@@ -275,6 +279,7 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
         'In data-access, coerce raw fields before iterating: (Array.isArray(x) ? x : []).map(...); do not .map/.filter/.reduce a Raw* field directly.',
       react:
         'Coerce untrusted arrays at the boundary — (Array.isArray(x) ? x : []) — or parse with a schema. The law judges parameters typed Raw* in the data-access layer: a /data-access/ directory, or where thresholds.frontend.dataAccessLayers says it lives.',
+      vue: 'Coerce untrusted arrays at the boundary, (Array.isArray(x) ? x : []) before .map/.filter/.reduce, or parse with a schema; ?? [] is not enough. The law judges parameters typed Raw* in the data-access layer: a /data-access/ directory, or where thresholds.frontend.dataAccessLayers says it lives. A create-vue app has no such directory, so name yours (for example src/api/**); until then the law judges nothing.',
     },
     detectionLimits: [
       'Only parameters annotated with a Raw* type token, and only a single property hop — p.data.items.map(), an aliased receiver, or an envelope typed without the Raw marker are false negatives (it stays silent on a project that does not use that naming).',
@@ -315,6 +320,7 @@ export const FE_ARCHITECTURE_LAWS: EnhancedConstitutionalLaw[] = [
         'Type the HTTP call to a validated domain type, not the Raw envelope; map/parse Raw* into the domain model at the boundary.',
       react:
         'Parse response bodies; do not cast res.json() to a domain type. Read it as unknown and parse it (a schema, or a mapper over a Raw* type). With axios, type the call as the wire shape — axios.get<RawUser>() or axios.get<unknown>() — and map .data to the domain type; axios.get<User>() is reported like a cast. The law judges the data-access layer: a /data-access/ directory, or where thresholds.frontend.dataAccessLayers says it lives.',
+      vue: 'Parse response bodies, in a .vue script as in a .ts module: do not cast res.json() to a domain type; read it as unknown and parse it (a schema, or a mapper over a Raw* type). With axios, type the call as the wire shape (axios.get<RawUser>() or axios.get<unknown>()) and map .data to the domain type; axios.get<User>() is reported like a cast. The law judges the data-access layer: a /data-access/ directory, or where thresholds.frontend.dataAccessLayers says it lives. A create-vue app has no such directory, so name yours (for example src/api/**); until then the law judges nothing.',
     },
     detectionLimits: [
       'HttpClient shape: the receiver is not verified to be HttpClient — any .get<T>() / .post<T>() matches (a builder, a typed Map), a wrapped generic .get<ApiResponse<Foo>>() is missed, and it reads RAW source, so a generic in a comment/string is flagged.',

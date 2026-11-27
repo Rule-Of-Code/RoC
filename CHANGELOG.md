@@ -27,6 +27,178 @@ unchanged. The law no longer carries the ".vue not read" note. Proved on
 create-vue apps: the default app (11 components, one spec with one test)
 and a bare app with a two-test spec. Develop judged nothing on both.
 
+### ✨ Added — Vue guidance for five FE architecture laws (#12)
+
+Five FE architecture laws run on every Vue project and read its `.vue`
+files. They gain `satisfiedBy.vue`:
+
+- **Requires Spec:** a `.vue` file in the feature or data-access layer
+  that is over 200 lines (counted over the whole file) or writes an
+  `X-Control-Pass` header has a test beside it, `Basket.spec.ts` next to
+  `Basket.vue`. A test in the `__tests__/` folder that create-vue generates
+  is not credited.
+- **No Layout Transition:** animate `transform` and `opacity` in the
+  component's `<style>`, the classes a `<Transition>` uses included. A
+  `:style` binding or an inline style attribute is not read.
+- **No Hostname Gating:** branch on `import.meta.env.DEV`, `MODE` or a
+  `VITE_*` value, not on `location.hostname`.
+- **Defensive Array Coercion** and **No Passthrough Cast:**
+  - coerce with `Array.isArray(x) ? x : []`, because `?? []` is not enough;
+  - parse `res.json()` as `unknown`; `axios.get<RawUser>()`, not
+    `axios.get<User>()`;
+  - both judge the data-access layer, and a create-vue app has none until
+    `thresholds.frontend.dataAccessLayers` names it (for example
+    `src/api/**`). Until then the laws judge nothing.
+
+Each text was proved on a Vue 3 + Vite app: before fails, after passes with
+no ".vue not read" note, and a control fails where the text says. Thirteen
+laws now carry `vue`; `schemaVersion` stays 4. Stores In Data Access follows
+its Pinia detector (#692).
+
+The first detection limit of Angular Security XSS Prevention Policy now
+names the `.vue` reading too ("Regex over .ts/.tsx/.jsx/.html" said nothing
+of it).
+
+### 🐛 Fixed — the i18n law reads Vue: vue-i18n is a setup, and .vue templates are read for hardcoded text (#12)
+
+On a Vue project, Internationalization (i18n) Compliance Policy said "Missing
+Angular i18n configuration". It did not recognise vue-i18n, so a Vue app
+translated end to end failed. It did not read `.vue` files either, so
+hardcoded text in a component was never seen, and the law carried the
+".vue not read" note.
+
+- vue-i18n declared in any workspace package.json is a recognised setup. A
+  Vue project without it is told "no vue-i18n declared", not Angular.
+- The `<template>` of each `.vue` component is read as elements, with the
+  heuristic the JSX reading uses: text written inside an element, and static
+  placeholder/title/alt/aria-label, with four-plus Latin letters. Each text
+  is one entry in `violationDetails`, at the line where it is written.
+- Not hardcoded: text inside `{{ }}` (`{{ $t('…') }}`), bound attributes, an
+  element whose text `v-t` / `v-text` / `v-html` replaces, and the children
+  of `<i18n-t>`. A template that cannot be read is reported, never passed.
+
+The law no longer carries the ".vue not read" note. Proved on projects made
+by create-vue: the default app (35 hardcoded texts found) and a bare app
+translated with vue-i18n (fails on develop, passes now).
+
+### 🐛 Fixed — Stores In Data Access recognises Pinia and reads Vue components (#12)
+
+Stores In Data Access knew NgRx, Redux Toolkit and zustand. A Pinia store
+(`defineStore`) defined in the feature layer passed, and the law did not
+scan `.vue` files, so it carried the ".vue not read" note. A feature layer
+made only of Vue components counted as empty ("judged nothing").
+
+- `defineStore` imported from `pinia` (aliases too) is a store, resolved
+  through the file's imports like `createSlice` and zustand's `create`. A
+  `defineStore` from another module is not.
+- `.vue` files are read by their `<script>` / `<script setup>`, at the
+  file's own lines. A store defined in a feature component is reported
+  there, and text in the template or in a string is not code.
+
+The law no longer carries the ".vue not read" note. Proved on a create-vue
+app: the counter store moved under `src/features/` passed on develop and is
+reported now; with the store in `src/stores/` and a feature component that
+uses it, develop said "judged nothing" and the law passes now. Like the
+other layer laws, it does not read `.js` files.
+
+### ✨ Added — Vue guidance for the security laws (#12)
+
+Both security laws that judge a Vue project gain `satisfiedBy.vue`:
+
+- **Angular Security XSS Prevention Policy** (it reads a `.vue` file's
+  script): render text with `{{ }}` or `v-text`; when the script writes
+  HTML through a template ref, sanitize it in the same statement
+  (`DOMPurify.sanitize`, or a sanitizer named in
+  `thresholds.security.htmlSanitizers`); never `eval`. The text also says
+  that `v-html` is not read, so the value given to it must already be
+  sanitized in the script.
+- **Security Standards (XSS Prevention) Policy**, the Content-Security-Policy
+  law: a `<meta http-equiv>` in the root `index.html` of a Vite app, or the
+  headers of `firebase.json`, `vercel.json` or `netlify.toml`. A Nuxt app has
+  no `index.html` of its own, so it names the config that sets the header
+  (`nuxt.config.*`) in `thresholds.security.cspFiles`.
+
+The CSP law reads no `.vue` file and needs none, so the rule for the key
+changes: a key is written for a law that judges a Vue project, either by
+reading its `.vue` files or without needing them. Each text was proved on a
+Vue 3 + Vite app (and a Nuxt 3 app for the CSP), with a control that fails
+where the text says it does. `laws --json` keeps `schemaVersion` 4; eight
+laws now carry `vue`.
+
+The detection limits of Observable Cleanup Requirements no longer begin with
+"Reads .ts and .tsx files only": the law also reads a `.vue` file's script.
+
+### ✨ Added — Vue guidance for the code-quality laws (#12)
+
+Two code-quality laws that run on every Vue project and read a `.vue`
+file's script gain `satisfiedBy.vue`:
+
+- **Observable Cleanup Requirements:** clean up where you subscribe, with
+  `onUnmounted(() => sub.unsubscribe())` in `<script setup>`,
+  `onScopeDispose` in a composable, or `take(1)` for a one-shot value. The
+  subscription and its cleanup sit in the same file, because the detector
+  looks per file.
+- **Web Storage Encapsulation:** every `localStorage` / `sessionStorage`
+  call goes in a `*.service.ts` module. That suffix is the only one the
+  detector exempts, so the same calls in a composable or a Pinia store file
+  are still flagged.
+
+Each text was proved on a Vue 3 + Vite app: a component that breaks the law
+fails, the same code written the way the text says passes with no ".vue not
+read" note, and a control fails where the text says it does. `laws --json`
+keeps `schemaVersion` 4; six laws now carry `vue`.
+
+### ✨ Added — Vue guidance: the `vue` key of `satisfiedBy`, first for accessibility (#12)
+
+`satisfiedBy` gains a `vue` key: how to pass a law in a Vue single-file
+component. It is written only for a law that reads `.vue` files. The first
+are the four accessibility laws that read a `.vue` template: Explicit Button
+Type, Form Control Labeling, Disclosure Control ARIA State and Modal Dialog
+Accessibility. Each text was proved on a Vue + Vite app. Accessibility
+Linting Enforcement has no rule set for Vue templates and carries none.
+
+**`laws --json` is now `schemaVersion` 4.** `satisfiedByStacks.keys` gains
+`"vue"` (after `"react"`), `stackToKey.frontend` becomes
+`["angular", "react", "vue"]`, and `projectTypeToKey` gains `"vue": "vue"`.
+A renderer that iterates `keys` picks the new key up. One that hardcoded
+the six keys should read `keys` instead.
+
+### 🐛 Fixed — three Capacitor laws read a Vue component's script, not its template (#12)
+
+Capacitor Single Platform Boundary, Capacitor Deep Link Contract and
+Capacitor Plugin Platform Declarations scan `.vue` files and masked the
+whole file as TypeScript. A `/*` in template text ("src/*") opened a comment
+that ran to the end of the file and hid the script below it: a component
+that imported `@capacitor/core` outside the boundary passed, and an
+`appUrlOpen` listener or a `createChannel` call in its script was reported
+missing. Template text that spelled a call ("Capacitor.getPlatform()") was
+read as code. The three laws now read a `.vue` file's `<script>` and
+`<script setup>` only, at the file's own lines, and their detection limits
+say so.
+
+### 🐛 Fixed — performance laws: React guidance says what passes on Vite; Core Web Vitals reads the Vite index.html (#12)
+
+The React guidance of four performance laws said only what a Next app
+does. Proved on a React + Vite project, the cards now also say what passes
+there: Performance Standards and Core Web Vitals Compliance — an image tool
+(sharp, imagemin or squoosh) and Cache-Control in firebase.json or
+nginx.conf, or a service worker; Bundle Optimization Strategy Policy — a
+critical-CSS tool (critters, critical or penthouse) beside manualChunks;
+Performance Monitoring Policy — the alert and the dashboard files the law
+finds, where the card had said "an alert definition and a dashboard".
+
+Core Web Vitals Compliance read resource hints from `src/index.html` and
+built output only, so a `<link rel="preconnect">` in the project-root
+`index.html` a Vite app is built from was not seen and the law reported
+"Missing critical resource hints". It now reads that file too.
+
+The detection limits of Performance Monitoring Policy now say what counts
+as an alert and as a dashboard: a `lighthouserc.json` without the leading
+dot counts as an alert, not as a dashboard. The React guidance of the eight
+performance laws (with No Layout Transition and Primary Locale Font
+Preloaded, right as written) is held by a regression test, RED first and
+then GREEN by doing what the card says.
+
 ### ✨ Added — testing laws name every file they counted (#43, testing)
 
 Six testing laws said how many, or named the first few ("…; and N more",

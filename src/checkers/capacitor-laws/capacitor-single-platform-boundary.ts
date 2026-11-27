@@ -26,6 +26,7 @@ import { FileUtils } from '../../utils/file-utils';
 import { PathOperations } from '../../utils/path-operations';
 import { TsClasses } from '../../utils/ts-classes';
 import { withViolationDetails } from '../../utils/violation-details';
+import { scriptText } from '../../utils/vue/vue-sfc';
 import { LawBase } from '../law-base';
 
 /** A runtime import of a Capacitor package (not `import type`, not the CLI's config types). */
@@ -89,7 +90,10 @@ export class CapacitorSinglePlatformBoundaryLaw extends LawBase {
     for (const file of files) {
       const where = relative(context, file);
       if (/(?:^|\/)capacitor\.config\.[jt]s$/.test(where)) continue;
-      const uses = this.uses(FileUtils.readFileContentSync(file) ?? '');
+      // A .vue file's script only: template text is not code (#12).
+      const uses = this.uses(
+        scriptText(file, FileUtils.readFileContentSync(file) ?? '')
+      );
       if (uses.length > 0) users.push({ where, uses });
     }
     return users;

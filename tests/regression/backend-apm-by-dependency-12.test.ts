@@ -58,6 +58,28 @@ describe('#12 (b4): backend APM is a declared dependency', () => {
       },
       ['@opentelemetry/sdk-node'],
     ],
+    [
+      'Node: dd-trace and prom-client (names the word search never matched)',
+      {
+        'package.json': manifest({
+          dependencies: { 'dd-trace': '^5.30.0', 'prom-client': '^15.1.3' },
+        }),
+      },
+      ['dd-trace', 'prom-client'],
+    ],
+    [
+      'Node: Sentry server SDKs for Bun, Lambda and NestJS',
+      {
+        'package.json': manifest({
+          dependencies: {
+            '@sentry/bun': '^8.47.0',
+            '@sentry/aws-serverless': '^8.47.0',
+            '@sentry/nestjs': '^8.47.0',
+          },
+        }),
+      },
+      ['@sentry/aws-serverless', '@sentry/bun', '@sentry/nestjs'],
+    ],
   ])('%s → credited', (_name, files, expected) => {
     const root = project(files as Record<string, string>);
     expect(backendApmDependencies(root)).toEqual(expected);
@@ -75,6 +97,27 @@ describe('#12 (b4): backend APM is a declared dependency', () => {
             '@sentry/react': '^8.47.0',
             '@sentry/nextjs': '^8.47.0',
           },
+        }),
+      },
+    ],
+    [
+      'Sentry SDKs that are not server-side (QA on #704): @sentry/nuxt, @sentry/capacitor, @sentry/types in devDependencies',
+      {
+        'package.json': manifest({
+          dependencies: {
+            nuxt: '^3.15.0',
+            '@sentry/nuxt': '^8.47.0',
+            '@sentry/capacitor': '^1.2.0',
+          },
+          devDependencies: { '@sentry/types': '^8.47.0' },
+        }),
+      },
+    ],
+    [
+      'the OpenTelemetry API alone (a browser app uses it too)',
+      {
+        'package.json': manifest({
+          dependencies: { '@opentelemetry/api': '^1.9.0' },
         }),
       },
     ],

@@ -19,10 +19,15 @@ Pre-Deployment checklist's performance clause. It now reads declared
 dependency **names**:
 - Python: every manifest the dependency reader knows (requirements,
   pyproject, Pipfile, setup), PEP 503 names;
-- Node: package.json.
+- Node: package.json, against an allowlist of server-side packages:
+  - Sentry's server SDKs (`@sentry/node`, `bun`, `deno`, `aws-serverless`,
+    `google-cloud-serverless`, `nestjs`);
+  - `dd-trace`, `prom-client`, `newrelic` and `elastic-apm-node`;
+  - `@opentelemetry/sdk-node` and `@opentelemetry/auto-instrumentations-node`.
 
-Browser SDKs and Sentry build tooling do not count. A frontend earns its
-credit on its own path.
+Any other package gives no backend credit: a browser, mobile or
+meta-framework SDK, `@sentry/types`, build tooling, `@opentelemetry/api`. A
+frontend earns its credit on its own path.
 
 **Performance Monitoring Standards, monitoring tools**: the list of
 packages takes the shared Sentry browser SDKs (it had `@sentry/browser`

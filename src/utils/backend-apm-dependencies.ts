@@ -10,17 +10,16 @@
  *   pyproject, Pipfile, setup.*), PEP 503 names;
  * - Node: the root package.json's dependencies and devDependencies.
  *
- * The names are the words the search used, now matched against a package
- * name. Browser SDKs and the build tooling of a frontend do not count here:
- * a frontend earns its credit on its own path (the Sentry browser SDK list,
- * Web Vitals, a performance tracing init).
+ * Both are allowlists of server-side APM / metrics / tracing packages. Any
+ * other package — a browser or mobile SDK, a meta-framework SDK, types, build
+ * tooling — gives no backend credit: a frontend earns its credit on its own
+ * path (the Sentry browser SDK list, Web Vitals, a tracing init).
  */
 
 import { ProjectTypeDetectorValidation } from './config/project-type-detector/project-type-detector-validation';
 import { declaredPythonDependencies } from './python-dependencies';
-import { SENTRY_BROWSER_SDKS } from './sentry-browser-sdks';
 
-/** The words of the former search, as Python distribution names (PEP 503). */
+/** Python APM / metrics distributions (PEP 503 names), the words of the former search. */
 const PYTHON_APM = new Set([
   'sentry-sdk',
   'prometheus-client',
@@ -35,19 +34,37 @@ const PYTHON_APM = new Set([
 ]);
 const PYTHON_APM_PREFIX = 'opentelemetry-';
 
-/** The same words, found in a Node package name. */
-const NODE_APM =
-  /(?:^|[@/_-])(?:prometheus|opentelemetry|opentracing|sentry|datadog|ddtrace|statsd|newrelic|elastic-apm)(?:$|[/_-])/i;
-/** A browser SDK, an agent for the browser, or frontend build tooling: not a service's APM. */
-const NOT_BACKEND = /browser|^@sentry\/(?:cli|.+-plugin)$/i;
-
-function isNodeApm(name: string): boolean {
-  return (
-    NODE_APM.test(name) &&
-    !NOT_BACKEND.test(name) &&
-    !SENTRY_BROWSER_SDKS.includes(name)
-  );
-}
+/**
+ * Node server-side APM / metrics / tracing packages.
+ *
+ * - Sentry's server-side JavaScript SDKs, as its guides name them: @sentry/node
+ *   ("Sentry for Node.js"), @sentry/bun, @sentry/deno, @sentry/aws-serverless
+ *   (AWS Lambda), @sentry/google-cloud-serverless (Google Cloud Functions),
+ *   @sentry/nestjs — https://docs.sentry.io/platforms/javascript/guides/<node|bun|deno|aws-lambda|gcp-functions|nestjs>/
+ * - Other APM agents, by their npm descriptions: dd-trace ("Datadog APM tracing
+ *   client for JavaScript"), prom-client ("Client for prometheus"), newrelic
+ *   ("New Relic agent"), elastic-apm-node ("The official Elastic APM agent for
+ *   Node.js"), @opentelemetry/sdk-node ("OpenTelemetry SDK for Node.js"),
+ *   @opentelemetry/auto-instrumentations-node ("Metapackage which bundles
+ *   opentelemetry node core and contrib instrumentations").
+ *
+ * Not listed: @opentelemetry/api ("Public API for OpenTelemetry"), which a
+ * browser app uses as well.
+ */
+export const NODE_APM_PACKAGES: readonly string[] = [
+  '@sentry/node',
+  '@sentry/bun',
+  '@sentry/deno',
+  '@sentry/aws-serverless',
+  '@sentry/google-cloud-serverless',
+  '@sentry/nestjs',
+  'dd-trace',
+  'prom-client',
+  'newrelic',
+  'elastic-apm-node',
+  '@opentelemetry/sdk-node',
+  '@opentelemetry/auto-instrumentations-node',
+];
 
 function isPythonApm(name: string): boolean {
   return PYTHON_APM.has(name) || name.startsWith(PYTHON_APM_PREFIX);
@@ -60,6 +77,6 @@ export function backendApmDependencies(projectRoot: string): string[] {
   );
   const node = Object.keys(
     ProjectTypeDetectorValidation.getProjectDependencies(projectRoot)
-  ).filter(isNodeApm);
+  ).filter(name => NODE_APM_PACKAGES.includes(name));
   return [...python.sort(), ...node.sort()];
 }

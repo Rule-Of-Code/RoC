@@ -280,8 +280,9 @@ describe('#12 V-performance: satisfiedBy.vue for the performance laws, proved on
     );
     const monitoring = vueGuidance('Performance Monitoring Policy');
     expect(monitoring).toMatch(
-      /@sentry\/vue declared in package\.json \(as @sentry\/react is on React\).*app\.config\.errorHandler is not yet recognised/
+      /@sentry\/vue declared in package\.json \(as @sentry\/react is on React\), app\.config\.errorHandler set on the app createApp returns/
     );
+    expect(monitoring).not.toMatch(/not yet recognised/);
     const bundleSize = vueGuidance('Bundle Size Optimization');
     expect(bundleSize).toMatch(
       /With a heavy library in package\.json \(lodash, moment, bootstrap, chart\.js, d3\), its lazy loading in a Vue app is not yet recognised/
@@ -360,13 +361,14 @@ describe('#12 V-performance: satisfiedBy.vue for the performance laws, proved on
     expect(r.passed).toBe(true);
   });
 
-  it('limit: with only app.config.errorHandler capturing errors, error tracking is not credited', async () => {
+  // Was a limit until app.config.errorHandler was read (#12, (b)).
+  it('app.config.errorHandler alone (no Sentry, no window listener) is credited as error tracking', async () => {
     const r = await judge(
       describedFiles('handler'),
       'Performance Monitoring Policy'
     );
-    expect(r.passed).toBe(false);
-    expect(r.violations).toEqual(['Performance error tracking not configured']);
+    expect(r.violations).toEqual([]);
+    expect(r.passed).toBe(true);
   });
 
   // The limit the Bundle Size Optimization text names: with a heavy library
